@@ -109,20 +109,46 @@ hex, not the header bytes.
 For each Delta *d* carried by a `publisher_delta` Entry of *B*, the Auditor
 MUST audit *d* if and only if
 
-    draw(d) = first 8 octets of SHA-256(beta || d.delta_id_utf8),
-              read big-endian, divided by 2^64
-    draw(d) < p(domain(d))
-    p(domain) = clamp(0.02 + 0.30 x (1 - reputation), 0.02, 0.50)
+    D(d)  = first 8 octets of SHA-256(beta || d.delta_id_utf8),
+            read big-endian: an integer in [0, 2^64)
+    p_1e7 = clamp(200 000 + 3 x (1 000 000 - reputation_u),
+                  200 000, 5 000 000)
+    select(d)  <=>  D(d) x 10^7  <  p_1e7 x 2^64
 
-where `beta` is those 64 raw octets, `d.delta_id_utf8` is the UTF-8
-encoding of the full Delta ID string including its `sha256:` prefix,
-`domain(d)` is the domain of the Publisher whose key signed *d*, and
-reputation is that domain's §6 reputation at height *B* − 1 — the state of
-the log immediately before *B* was sealed, which for Block 0 is the empty
-log — evaluated with the §9 constants in force at *B*'s `sealed_at`. If a
+`D(d)`, `p_1e7`, and both sides of that comparison are integers, and **no
+floating-point operation appears anywhere in the selection test**. `beta`
+is those 64 raw octets; `d.delta_id_utf8` is the UTF-8 encoding of the full
+Delta ID string including its `sha256:` prefix; `domain(d)` is the domain
+of the Publisher whose key signed *d*; and `reputation_u` is that domain's
+§6 reputation, in micro-units, at height *B* − 1 — the state of the log
+immediately before *B* was sealed, which for Block 0 is the empty log —
+evaluated with the §9 constants in force at *B*'s `sealed_at`. If a
 level-1 sanction (§7) is in force against `domain(d)` at that same height,
-`p(domain(d))` is 0.50 instead of the clamp above; that is the only thing
+`p_1e7` is 5 000 000 instead of the clamp above; that is the only thing
 that displaces the formula.
+
+`p_1e7` is the sampling rate scaled by 10^7, and that scale is exact
+rather than approximate: `reputation_u` carries six decimal digits and the
+slope contributes one more, so seven digits represent the rate with
+nothing left over to round. The floor 200 000, the ceiling 5 000 000, and
+the slope 3 per micro-unit of reputation are the Parameter Registry values
+(§9); rendered for humans they are the familiar 0.02, 0.50 and 0.30, but
+**the integers are normative and the decimals are only a reading of
+them** — an implementation MUST compute with the integers. Likewise
+`select` is the exact rendering of "the draw `D / 2^64` falls below the
+rate `p_1e7 / 10^7`", with both sides multiplied by `10^7 x 2^64` so that
+neither fraction is ever evaluated. The two products reach 9.3e25 and
+require at least 128-bit integers (or arbitrary precision); computing them
+in 64-bit arithmetic overflows and is non-conforming.
+
+This is what makes selection *recomputable* rather than merely
+*reproducible-in-practice*. The comparison is strict and sits directly on
+the last digit of the reputation that feeds it, so had either side stayed
+in binary floating point, two honest Auditors using two correct `libm`s
+could have disagreed about whether a given Delta was theirs to audit —
+and, under the coverage duty below, one of them would be provably in
+breach for a Delta the other never owed. Integers remove the disagreement
+rather than making it rare.
 
 The Auditor publishes the VRF proof `pi`, lowercase hex, in every Audit
 Record it emits for Block *B* (`vrf_proof`). Anyone can verify with the
@@ -237,10 +263,13 @@ its results happen to agree, because `exp()` is not correctly rounded in
 any mainstream math library and the last unit in the last place decides
 audit selection, quota, and inclusion latency.
 
-Where another section takes reputation as a fraction of 1, the value is
-the exact rational `reputation_u / 1 000 000` — never a rounded binary
-approximation of it. All constants live in the Parameter Registry (§9),
-read as of the `sealed_at` of Block N.
+Every other section consumes `reputation_u` itself — §4's selection test
+and §6.4's quota and latency thresholds all take the integer. No section
+converts reputation to a fraction of 1: micro-units are the single
+normative representation, and any decimal shown in this document (0.10 for
+the Provisional cap, 0.5 for the latency threshold) is a reading of the
+integer, not a second definition of it. All constants live in the
+Parameter Registry (§9), read as of the `sealed_at` of Block N.
 
 **Evaluation order is normative.** Every expression in this section
 contains at most one division, and that division is its **last**
@@ -391,7 +420,8 @@ Exactly three things:
 1. **Ping quota** (DC-2 §4): `Q = 100 + 10 000 × reputation_u / 1 000 000`
    Pings per UTC day, integer division. The new-domain quota DC-2 §5 refers
    to is this formula at `reputation_u` = 100 000, i.e. **Q = 1100**.
-2. **Sampling rate** `p(domain)` (§4), read at the height §4 fixes.
+2. **Sampling rate** `p_1e7` (§4), which takes `reputation_u` directly at
+   the height §4 fixes.
 3. **Inclusion latency**: `reputation_u` ≥ 500 000 → eligible for the next
    Block; below → eligible for the Block after the next (one full Block
    of delay).
@@ -406,7 +436,8 @@ Sanctions are graduated, logged, evidence-bound Registry Updates
 (`action: "sanction"`, `subject` = the domain, `evidence` = the Delta IDs
 of the Audit Records establishing the Confirmed Inconsistencies):
 
-1. **Intensified sampling** — `p(domain)` raised to its 0.50 maximum.
+1. **Intensified sampling** — `p_1e7` raised to its maximum, 5 000 000
+   (§4).
 2. **Weight reduction** — the domain's Deltas are marked reduced-weight
    in materialized snapshots.
 3. **Sanctioned Quarantine** — ingestion is suspended: the domain's Pings
@@ -479,8 +510,8 @@ are made by `parameter_change` Registry Updates and MUST have
 | Clock skew allowance | 10 minutes | DC-1 §3.4 |
 | Key Set cache TTL | 24 hours | DC-1 §5.1 |
 | Baseline feed poll interval | 24 hours | DC-2 §5 |
-| Sampling floor / ceiling | 0.02 / 0.50 | §4 |
-| Sampling reputation slope | 0.30 | §4 |
+| Sampling floor / ceiling (`p_1e7`) | 200 000 / 5 000 000 (reads as 0.02 / 0.50) | §4 |
+| Sampling reputation slope | 3 per micro-unit of reputation (reads as 0.30) | §4 |
 | Coverage duty deadline | 72 hours | §4 |
 | `coverage_failures_max` | 24 Blocks per 30 days | §4 |
 | Similarity thresholds (consistent / variance floor) | 0.60 / 0.30 | §5 |
@@ -630,23 +661,33 @@ key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
 | `alpha` (32 octets, hex) | `d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95` |
 | `pi` = `vrf_proof` (80 octets) | `856e908f120334751af0091a2a608197268c57170671dd4a0c5776116f4081b1`<br>`6c9445faf5482a1b43ca6b87c259750924297cd4f88daf9892e24576b7d918e7`<br>`fefb066cf325db4855dd58c11c8f5e04` |
 | `beta` (64 octets) | `cd753c76ddf3539df84f434de5d1638b84ab31c6195a36d4640d3378c6a5911e`<br>`840ebe82d2653c91785ae0fc8878f3b705f7cc1e5db0423b4d55896329529703` |
-| Delta ID *d* | `sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1` |
-| `SHA-256(beta ‖ d)[0..8]` | `fc5101e3231c0551` |
-| `draw(d)` | `0.9856110744` |
+| Delta ID of Entry 0 | `sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1` |
+| `SHA-256(beta ‖ Entry 0)[0..8]` | `fc5101e3231c0551` |
+| `D`(Entry 0) | `18181315245729645905` |
+| Delta ID of Entry 3 | `sha256:d3a22b1cedf703c2efd115dc67c8d7ff44d409b820bf45ebc9e66a803ca1c903` |
+| `SHA-256(beta ‖ Entry 3)[0..8]` | `373a3915f98ecf73` |
+| `D`(Entry 3) | `3979555987279236979` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
-enters `draw` as the UTF-8 bytes of the whole string, `sha256:` prefix
+enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
 included — the two are deliberately different and an implementation that
 confuses them will produce a different, wrong selection set.
 
-Selection outcome for this draw:
+Selection outcomes, by the §4 integer test `D × 10^7 < p_1e7 × 2^64`. Both
+Deltas are real Entries of the same Block drawn against the same `beta`;
+the two domains differ only in reputation:
 
-| Domain reputation | `p` | `draw < p`? | Outcome |
-|---|---|---|---|
-| 0.10 (Provisional) | 0.29 | no | not selected |
-| 0.90 (established) | 0.05 | no | not selected |
+| Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
+|---|---|---|---|---|---|
+| Entry 0 | 100 000 (Provisional) | 2 900 000 | 1.818e26 | 5.352e25 | no |
+| Entry 0 | 900 000 (established) | 500 000 | 1.818e26 | 9.223e24 | no |
+| Entry 3 | 100 000 (Provisional) | 2 900 000 | 3.980e25 | 5.352e25 | **yes** |
+| Entry 3 | 900 000 (established) | 500 000 | 3.980e25 | 9.223e24 | no |
 
-A draw below the threshold would select the Delta for audit; a different
+The two product columns are shown rounded for reading; the exact integers
+are in the vector, and an implementation MUST compare the exact ones. Note
+what the third row costs the Provisional domain: the same Delta that an
+established domain's rate leaves alone is audited at 0.29. A different
 Auditor, holding a different key, gets a different `beta` over the same
 Block and therefore an independently drawn selection set.
 
@@ -706,15 +747,15 @@ two meet at all — at `A` = 0 the ungated formula equals the cap exactly,
 so the Provisional cap is the value the formula already has rather than a
 number bolted on top of it.
 
-**`p` is exact.** §4's `p(domain)` = clamp(0.02 + 0.30 × (1 − reputation),
-0.02, 0.50) takes reputation with six decimal digits and multiplies by a
-two-digit decimal, so its value always has at most seven decimal digits
-and is exactly representable in decimal: `p` × 1e7 =
-clamp(200 000 + 3 × (1 000 000 − `reputation_u`), 200 000, 5 000 000).
-The worked example's 0.2122292 is that identity, not a rounding of it.
-The decay table's endpoints, `decay(0)` = 1 000 000 000 and
-`decay(1825)` = 39 512, are likewise exact integers rather than the output
-of any `exp()`.
+**Nothing here is rounded.** The `p_1e7` column of
+`vectors/dc4/reputation.json` is §4's sampling rate computed by §4's own
+integer clamp on `reputation_u`; for the worked example it is 2 122 292,
+which *reads* as 0.2122292 but is never computed as a decimal. The decay
+table's endpoints, `decay(0)` = 1 000 000 000 and `decay(1825)` = 39 512,
+are likewise exact integers rather than the output of any `exp()`. Reading
+this appendix together with Appendix A, every number the protocol compares
+— reputation, quota, sampling rate, and the draw itself — is an integer
+from end to end.
 
 ## References
 
