@@ -1,0 +1,26 @@
+{
+  "delta": {
+    "dc_version": "1.0.0",
+    "url": "https://example.com/blog/post-1",
+    "change_type": "new",
+    "observed_at": "2026-08-02T12:00:00Z",
+    "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
+    "extract_hash": "sha256:280b420ff2d23150e67553ca0bca7825529e96f53b4df3f523beecfcdfd9a7c1",
+    "summary": {
+      "title": "Post 1",
+      "abstract": "An introduction to DeltaCommons."
+    },
+    "meta": {
+      "lang": "en",
+      "topics": [
+        "software"
+      ],
+      "license": "CC-BY-4.0"
+    }
+  },
+  "sig": {
+    "key_id": "test-k1",
+    "alg": "Ed25519",
+    "value": "aDRvbB3J4L2Chht8V_Up_-pXzBZX6quUq9XBBb2H2znmbX8TbJ3IuXYiz6f_9wePwvyTIYG-TPFj5Y_vkvAuAw"
+  }
+}
