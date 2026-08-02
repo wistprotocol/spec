@@ -31,6 +31,11 @@ shown here.
   (schema: [`schemas/audit-record.schema.json`](../schemas/audit-record.schema.json)).
 - **Verdict**: the graded outcome of one audit: `consistent`,
   `inconsistent`, `unreachable`, or `dynamic_variance`.
+- **VRF Proof**: the 80-octet `pi_string` an Auditor produces over a Block
+  Hash with its own key under ECVRF-EDWARDS25519-SHA512-TAI ([RFC 9381]),
+  carried in every Audit Record as `vrf_proof`. It lets anyone recompute
+  that Auditor's selection set for that Block, and only that Auditor
+  produce it (§4).
 - **Confirmed Inconsistency**: ≥ 2 independent Auditors returning
   `inconsistent` for the same Delta within 72 hours (§5).
 - **Sanction**: a graduated, logged penalty against a domain (§7).
@@ -49,13 +54,24 @@ and the DC-1 §4 signature block (`key_id`, `alg`, `value`).
 
 Auditors are admitted by an `auditor_admit` Registry Update (schema:
 [`schemas/registry-update.schema.json`](../schemas/registry-update.schema.json))
-whose `details` carry the Auditor's `key_id` and raw Ed25519 `public_key`,
-and removed by `auditor_remove`. Both are signed by the Aggregator and,
-like everything else, live in the log — the roster of who may audit, and
-since when, is public and permanent.
+whose `details` MUST carry the Auditor's `key_id` and its raw Ed25519
+`public_key` (base64url, 32 octets unpadded), and removed by
+`auditor_remove`. Both are signed by the Aggregator and, like everything
+else, live in the log — the roster of who may audit, and since when, is
+public and permanent.
+
+That one `public_key` serves both purposes: it verifies the Auditor's
+Record signatures **and** it is the VRF public key against which its
+`vrf_proof` is checked (§4). ECVRF-EDWARDS25519-SHA512-TAI and Ed25519
+share the [RFC 8032] key format, so no second key is admitted, and there is
+no way for an Auditor to sign under one identity while drawing its audit
+assignments under another.
 
 An Audit Record signed by a key not admitted at the Record's `fetched_at`
-MUST be rejected by validators recomputing reputation.
+MUST be rejected by validators recomputing reputation. So MUST a Record
+whose `vrf_proof` does not verify under that key over the audited Block's
+Block Hash, and one whose `audited_delta` is not in the selection set that
+proof determines (§4).
 
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
 `aggregator_key_remove` actions defined in DC-3 §3.4; their `details`
@@ -63,30 +79,78 @@ sub-schema is specified in §9.1.
 
 ## 4. Audit Sampling
 
-Sampling MUST be deterministic and unpredictable before sealing:
+Selection is per-Auditor and unpredictable to everyone, including the
+Aggregator.
 
-> A Delta in Block *B* is selected for audit if and only if
-> `HMAC-SHA256(key = raw Block Hash of B, message = Delta ID string)`,
-> interpreting the first 8 bytes of the MAC as a big-endian integer
-> divided by 2^64, is **less than** `p(domain)`, where
->
-> `p(domain) = clamp(0.02 + 0.30 × (1 − reputation), 0.02, 0.50)`
+For each sealed Block *B*, each admitted Auditor computes a Verifiable
+Random Function output over the Block Hash using its own key:
 
-Because the Block Hash does not exist until the Block is sealed, no
-Publisher can know at submission time whether a Delta will be audited;
-because it is public afterward, anyone can verify that Auditors audited
-exactly what the rule selected — no more (harassment) and no less
-(favoritism).
+    beta = ECVRF_proof_to_hash(ECVRF_prove(auditor_sk, alpha))
+    alpha = the 32 raw octets of B's Block Hash (the hex digest decoded;
+            the "sha256:" prefix is not part of alpha)
 
-**Worked example** (test vectors, DC-1/DC-3 appendices; computed by
-`tools/gen_vectors.py`): Block Hash
-`1e0eb04676c1f4de91a5a1ace6252a0d9baf4c1a78992e13ff845dcdb13edc7f`,
-Delta ID
-`sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1`.
-First 8 MAC bytes: `a082cb92882f0e16` → draw = `0.6269957764`. For a
-Provisional domain (reputation 0.10): p = 0.290 → 0.6270 ≥ 0.290, **not
-selected**. For a reputable domain (0.90): p = 0.050 → **not selected**.
-A draw below the threshold would select the Delta for audit.
+The VRF is **ECVRF-EDWARDS25519-SHA512-TAI**, the ciphersuite of [RFC 9381]
+§5.5 with `suite_string` `0x03`; `pi` is its 80-octet `pi_string` and `beta`
+its 64-octet `beta_string`. `auditor_sk` is the Auditor's 32-octet
+[RFC 8032] Ed25519 secret key — the very key whose public half was admitted
+by `auditor_admit` (§3) and is in force at *B*'s `sealed_at`, and which
+signs the Auditor's Records. *B*'s Block Hash is
+`"sha256:" + hex(SHA-256(JCS(header)))` (DC-3 §3.1), so `alpha` is those 32
+octets and nothing else: not the `sha256:`-prefixed string, not its ASCII
+hex, not the header bytes.
+
+For each Delta *d* carried by a `publisher_delta` Entry of *B*, the Auditor
+MUST audit *d* if and only if
+
+    draw(d) = first 8 octets of SHA-256(beta || d.delta_id_utf8),
+              read big-endian, divided by 2^64
+    draw(d) < p(domain(d))
+    p(domain) = clamp(0.02 + 0.30 x (1 - reputation), 0.02, 0.50)
+
+where `beta` is those 64 raw octets, `d.delta_id_utf8` is the UTF-8
+encoding of the full Delta ID string including its `sha256:` prefix,
+`domain(d)` is the domain of the Publisher whose key signed *d*, and
+reputation is that domain's §6 reputation at height *B* − 1 — the state of
+the log immediately before *B* was sealed, which for Block 0 is the empty
+log — evaluated with the §9 constants in force at *B*'s `sealed_at`. If a
+level-1 sanction (§7) is in force against `domain(d)` at that same height,
+`p(domain(d))` is 0.50 instead of the clamp above; that is the only thing
+that displaces the formula.
+
+The Auditor publishes the VRF proof `pi`, lowercase hex, in every Audit
+Record it emits for Block *B* (`vrf_proof`). Anyone can verify with the
+Auditor's public key that `beta` is the unique correct output for that
+Block, and can therefore recompute the Auditor's entire selection set for
+*B* and check it audited exactly that set — no more (harassment) and no
+less (favoritism).
+
+This construction closes three problems at once. The Aggregator cannot
+steer audits: it does not hold Auditor keys, so grinding the Block Hash
+changes every Auditor's selection unpredictably and in no chosen direction.
+The Auditor cannot steer them either: the VRF output is uniquely determined
+by its key and the Block, and any deviation is detectable. And assignment
+needs no coordinator: each Auditor's duties for each Block are derived, not
+allocated.
+
+**Coverage duty.** For every Delta its VRF selects, an Auditor MUST publish
+either an Audit Record or, when it cannot fetch at all, a Record with
+verdict `unreachable`, within 72 hours of the Block's `sealed_at`. The duty
+attaches to every Block sealed while the Auditor is admitted, and to no
+other Block. An Auditor is **in breach for Block *B*** if, 72 hours after
+*B*'s `sealed_at`, the log holds no Record from it for some Delta its VRF
+selected in *B*; because `pi` pins the selection set exactly, breach is an
+objective and recomputable fact rather than a judgement. An Auditor that
+repeatedly fails its coverage duty is removed by `auditor_remove` (§3),
+whose `evidence` MUST name the breached Blocks.
+
+An Auditor whose VRF selects nothing in *B* emits no Record and therefore
+publishes no `pi` for *B*. It MUST nonetheless be able to produce `pi` for
+*B* on challenge, and an Auditor that cannot is in breach for *B*: without
+this rule an empty selection set and a wholly shirked one would be
+indistinguishable (§10).
+
+Worked numbers for this section — real values from `vectors/dc4/sampling.json`
+— are in the Appendix.
 
 ## 5. Verdicts and Tolerance
 
@@ -96,9 +160,15 @@ Auditor fetched the URL), `response_hash` (SHA-256 of the raw response
 body), `ref_extract_hash` (SHA-256 of the Auditor's own reference
 extraction), `similarity` (the §5 metric value), `verdict`, and
 `evidence` (`warc:sha256:` + hash of the WARC capture, which the Auditor
-MUST preserve). `response_hash`, `ref_extract_hash`, `similarity`, and
+MUST preserve), and `vrf_proof` (the §4 VRF Proof over the Block Hash of
+the Block carrying the audited Delta, 80 octets as 160 lowercase hex
+characters). The Record names no Block: the audited Block is the one Block
+whose `publisher_delta` Entries carry `audited_delta`, which DC-3 §3.2
+makes unique and permanent. `response_hash`, `ref_extract_hash`, `similarity`, and
 `evidence` are REQUIRED whenever the fetch succeeded, and omitted for
-`unreachable`.
+`unreachable`; `vrf_proof` is REQUIRED in every Record, `unreachable`
+included, because it is what establishes the Auditor's right and duty to
+have audited at all.
 
 The web is not deterministic; byte equality is never the criterion.
 
@@ -257,6 +327,7 @@ are made by `parameter_change` Registry Updates and MUST have
 | Baseline feed poll interval | 24 hours | DC-2 §5 |
 | Sampling floor / ceiling | 0.02 / 0.50 | §4 |
 | Sampling reputation slope | 0.30 | §4 |
+| Coverage duty deadline | 72 hours | §4 |
 | Similarity thresholds (consistent / variance floor) | 0.60 / 0.30 | §5 |
 | Shingle size | 8 words | §5 |
 | Confirmation: auditors / window | 2 / 72 hours | §5 |
@@ -274,11 +345,28 @@ are made by `parameter_change` Registry Updates and MUST have
 
 ## 10. Security Considerations
 
-- **Auditor collusion.** Confirmation requires *independent* Auditors,
-  and Auditors are themselves auditable: the Aggregator MAY commission
-  overlapping audits of the same Delta by disjoint Auditor sets and
-  compare outcomes; systematic divergence by one Auditor is grounds for
+- **Audit selection is unforgeable and unsteerable.** Who audits what is
+  fixed by each Auditor's own VRF over the Block Hash (§4), so no party
+  chooses it. The Aggregator holds no Auditor key: grinding `sealed_at`,
+  Entry order, or Block membership — all of which it does control — moves
+  every Auditor's selection at once and in no direction it can predict, so
+  the sub-two-trial steer that a single log-wide draw permitted no longer
+  exists. The Auditor cannot steer its own draw either, because `beta` is
+  uniquely determined by its key and the Block. Auditing *outside* the VRF
+  set is detectable by anyone: the published `pi` recomputes the set, and a
+  Record for a Delta outside it is void (§3) and is evidence for
+  `auditor_remove`. Confirmation still requires *independent* Auditors, and
+  the Aggregator MAY still commission overlapping audits and compare
+  outcomes; systematic divergence by one Auditor remains grounds for
   `auditor_remove`, in the log with evidence like any sanction.
+- **Silent shirking of an empty selection set.** An Auditor that selects
+  nothing in a Block publishes nothing, so its `pi` for that Block is never
+  in the log and third parties cannot confirm the set really was empty.
+  This is the one gap the VRF does not close on its own; §4 closes it by
+  obliging the Auditor to produce `pi` for any Block in its admitted window
+  on challenge. Implementations SHOULD challenge periodically at random
+  rather than only on suspicion, since selective challenge is itself
+  steerable.
 - **Reputation gaming via attest-farming.** A domain cannot inflate `C`
   by emitting torrents of trivially-true `attest` Deltas: audits of
   `attest` Deltas never increment `C` (§6). Only content-bearing Deltas
@@ -309,7 +397,9 @@ no private reputation channel.
 
 **Auditor:**
 
-- [ ] Audits exactly the Deltas the §4 rule selects — no more, no fewer
+- [ ] Audits exactly its VRF-selected set and publishes `vrf_proof` (§4)
+- [ ] Meets the coverage duty for every Block sealed while admitted, within
+      72 hours of `sealed_at` (§4)
 - [ ] Computes similarity with the normative §5 metric and thresholds
 - [ ] Emits `unreachable` (never `inconsistent`) for robots.txt-forbidden
       or failed fetches
@@ -331,15 +421,55 @@ no private reputation channel.
 
 - [ ] Reproduces §6 exactly (constants from the Parameter Registry as of
       the evaluated block height)
+- [ ] Verifies VRF proofs before counting a Record (§4)
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
       Inconsistencies (§5)
 - [ ] Excludes `attest` audits from `C` (§6)
 
+## Appendix A. Worked Sampling Example
+
+Real values, computed by `tools/gen_vectors.py` and machine-checked by
+`tools/validate_examples.py` (`vectors:dc4-sampling`). The source of truth
+is [`vectors/dc4/sampling.json`](../vectors/dc4/sampling.json); the test
+key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
+`000102…1f` — **never use it in production**).
+
+| Field | Value |
+|---|---|
+| Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
+| Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
+| Block Hash of *B* | `sha256:d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95` |
+| `alpha` (32 octets, hex) | `d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95` |
+| `pi` = `vrf_proof` (80 octets) | `856e908f120334751af0091a2a608197268c57170671dd4a0c5776116f4081b1`<br>`6c9445faf5482a1b43ca6b87c259750924297cd4f88daf9892e24576b7d918e7`<br>`fefb066cf325db4855dd58c11c8f5e04` |
+| `beta` (64 octets) | `cd753c76ddf3539df84f434de5d1638b84ab31c6195a36d4640d3378c6a5911e`<br>`840ebe82d2653c91785ae0fc8878f3b705f7cc1e5db0423b4d55896329529703` |
+| Delta ID *d* | `sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1` |
+| `SHA-256(beta ‖ d)[0..8]` | `fc5101e3231c0551` |
+| `draw(d)` | `0.9856110744` |
+
+Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
+enters `draw` as the UTF-8 bytes of the whole string, `sha256:` prefix
+included — the two are deliberately different and an implementation that
+confuses them will produce a different, wrong selection set.
+
+Selection outcome for this draw:
+
+| Domain reputation | `p` | `draw < p`? | Outcome |
+|---|---|---|---|
+| 0.10 (Provisional) | 0.29 | no | not selected |
+| 0.90 (established) | 0.05 | no | not selected |
+
+A draw below the threshold would select the Delta for audit; a different
+Auditor, holding a different key, gets a different `beta` over the same
+Block and therefore an independently drawn selection set.
+
 ## References
 
 - [RFC 2119] / [RFC 8174] BCP 14 key words
-- [RFC 2104] HMAC: Keyed-Hashing for Message Authentication
+- [RFC 8032] Edwards-Curve Digital Signature Algorithm (EdDSA) — the
+  Ed25519 key format and edwards25519 group shared by signing and the VRF
+- [RFC 9381] Verifiable Random Functions (VRFs) — ECVRF-EDWARDS25519-SHA512-TAI
+  (§5.5); the normative source for §4's `prove`, `proof_to_hash` and `verify`
 - DC-1: Delta Format & Identity — key rotation, scope rule, §6 absence
 - DC-2: Site Publication — quotas, hints, robots.txt boundary
 - DC-3: Commons Log & Distribution — entry envelope, checkpoints,
-  immutability
+  immutability, Block Hash (§3.1)

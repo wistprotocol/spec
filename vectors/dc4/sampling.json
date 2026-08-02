@@ -1,0 +1,23 @@
+{
+  "auditor_public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "ciphersuite": "ECVRF-EDWARDS25519-SHA512-TAI",
+  "block_hash": "sha256:d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95",
+  "alpha_hex": "d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95",
+  "vrf_proof_hex": "856e908f120334751af0091a2a608197268c57170671dd4a0c5776116f4081b16c9445faf5482a1b43ca6b87c259750924297cd4f88daf9892e24576b7d918e7fefb066cf325db4855dd58c11c8f5e04",
+  "beta_hex": "cd753c76ddf3539df84f434de5d1638b84ab31c6195a36d4640d3378c6a5911e840ebe82d2653c91785ae0fc8878f3b705f7cc1e5db0423b4d55896329529703",
+  "delta_id": "sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1",
+  "draw_first8_hex": "fc5101e3231c0551",
+  "draw": 0.9856110744031953,
+  "thresholds": [
+    {
+      "reputation": 0.1,
+      "p": 0.29,
+      "selected": false
+    },
+    {
+      "reputation": 0.9,
+      "p": 0.05,
+      "selected": false
+    }
+  ]
+}

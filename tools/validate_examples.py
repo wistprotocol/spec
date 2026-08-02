@@ -6,6 +6,7 @@ import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator
 
+import ecvrf
 from merkle import audit_path, leaf_hash, merkle_root, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -189,6 +190,67 @@ def _merkle_exhaustive():
             _expect_reject(block, {**proof, "path": path_hex + [filler]})  # path too long
     assert exercised == sum(range(1, 65)), "did not exercise every (n, index) pair"
 check("merkle-exhaustive", _merkle_exhaustive)
+
+# 4. DC-4 §4: the ECVRF primitive itself, then the sampling vector built on it.
+# The RFC 9381 Appendix B.3 vectors are the acceptance criterion for ecvrf.py:
+# a VRF that is subtly wrong still *looks* verifiable, so the primitive is
+# re-proved against the RFC on every harness run, not just at authoring time.
+check("ecvrf:rfc9381-b3-vectors", ecvrf.self_test)
+
+def _dc4_sampling():
+    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
+    pk = b64u_decode(v["auditor_public_key"])
+    alpha, pi = bytes.fromhex(v["alpha_hex"]), bytes.fromhex(v["vrf_proof_hex"])
+    # alpha is the 32 raw octets of the Block Hash: the hex digest decoded,
+    # with the "sha256:" prefix NOT part of alpha (DC-4 §4).
+    block = json.loads((ROOT / "examples" / "block.json").read_text())
+    block_hash = "sha256:" + hashlib.sha256(rfc8785.dumps(block["header"])).hexdigest()
+    assert v["block_hash"] == block_hash, "sampling vector is not bound to the example Block"
+    assert alpha == bytes.fromhex(block_hash.split(":")[1]), "alpha is not the raw Block Hash"
+    assert ecvrf.verify(pk, alpha, pi), "VRF proof does not verify"
+    beta = ecvrf.proof_to_hash(pi)
+    assert beta.hex() == v["beta_hex"], "beta mismatch"
+    d8 = hashlib.sha256(beta + v["delta_id"].encode()).digest()[:8]
+    assert d8.hex() == v["draw_first8_hex"], "draw bytes mismatch"
+    assert abs(int.from_bytes(d8, "big") / 2**64 - v["draw"]) < 1e-12, "draw mismatch"
+    for row in v["thresholds"]:
+        p = min(max(0.02 + 0.30 * (1 - row["reputation"]), 0.02), 0.50)
+        assert abs(p - row["p"]) < 1e-9, f"p mismatch at reputation {row['reputation']}"
+        assert row["selected"] == (v["draw"] < row["p"]), \
+            f"selection mismatch at reputation {row['reputation']}"
+    # A proof for a different Block MUST NOT verify against this alpha: this is
+    # what stops an Auditor reusing one draw across Blocks.
+    assert not ecvrf.verify(pk, bytes(32), pi), "proof verified against wrong alpha"
+check("vectors:dc4-sampling", _dc4_sampling)
+
+def _dc4_audit_record_proof():
+    """The published Record's vrf_proof must verify for the Block it audits."""
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
+    alpha = bytes.fromhex(v["alpha_hex"])
+    assert ecvrf.verify(load_test_pubkey(), alpha, bytes.fromhex(rec["vrf_proof"])), \
+        "audit record vrf_proof does not verify"
+    assert rec["vrf_proof"] == v["vrf_proof_hex"], "record proof differs from vector proof"
+check("vectors:dc4-audit-record-proof", _dc4_audit_record_proof)
+
+def _dc4_appendix_figures():
+    """DC-4's worked example must quote the vector, not a remembered figure.
+
+    Figures transcribed into prose drift silently from the vectors that
+    produced them. This pins every published figure to
+    vectors/dc4/sampling.json.
+    """
+    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    flat = spec.replace("`<br>`", "")   # long hex is wrapped inside table cells
+    for field in ("block_hash", "alpha_hex", "vrf_proof_hex", "beta_hex",
+                  "delta_id", "draw_first8_hex", "auditor_public_key"):
+        assert v[field] in flat, f"DC-4 does not quote sampling.json {field}"
+    assert f"{v['draw']:.10f}" in flat, "DC-4 does not quote the sampling draw"
+    for row in v["thresholds"]:
+        assert f"| {row['reputation']:.2f}" in flat or f"{row['reputation']:.2f} " in flat, \
+            f"DC-4 does not quote reputation {row['reputation']}"
+check("spec:dc4-appendix-figures", _dc4_appendix_figures)
 
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""
