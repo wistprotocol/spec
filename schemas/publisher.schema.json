@@ -8,11 +8,13 @@
   "properties": {
     "publisher": {
       "type": "object",
-      "required": ["dc_version", "domain", "keys"],
+      "required": ["dc_version", "domain", "keys", "seq"],
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "domain": {"type": "string", "format": "hostname"},
+        "seq": {"type": "integer", "minimum": 0},
+        "prev_declaration": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "subdomain_scope": {"type": "array", "items": {"type": "string", "format": "hostname"}},
         "keys": {
           "type": "array",
