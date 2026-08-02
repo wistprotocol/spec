@@ -22,16 +22,18 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 shown here.
 
 - **Feed**: the signed list of a Publisher's recent Delta IDs.
+- **Page**: an immutable, sealed slice of exactly 1000 older Delta IDs
+  evicted from a Feed, reachable by walking `next` (§3.2).
 - **Ping**: the unauthenticated notification a Publisher sends an
   Aggregator's Ingest Endpoint to trigger a pull.
 - **Change Hint**: an unsigned, out-of-protocol signal (IndexNow ping,
   sitemap, llms.txt) that a page may have changed.
 - **Ingest Endpoint**: the Aggregator URL that receives Pings.
 
-Terms defined in DC-1 (Publisher, Delta, Delta ID, Envelope, Key Set) are
-used with their DC-1 meanings. Every Envelope in this document carries
-`dc_version` (DC-1 §3.1) and the DC-1 §4 signature block (`key_id`,
-`alg`, `value`).
+Terms defined in DC-1 (Publisher, Delta, Delta ID, Envelope, Key Set,
+Canonical Host, Normalized URL) are used with their DC-1 meanings. Every
+Envelope in this document carries `dc_version` (DC-1 §3.1) and the DC-1
+§4 signature block (`key_id`, `alg`, `value`).
 
 ## 3. Well-Known Layout
 
@@ -41,6 +43,7 @@ A conforming Publisher serves, over HTTPS only:
 /.well-known/deltacommons/publisher.json     (identity — DC-1 §5)
 /.well-known/deltacommons/deltas/<id>.json   (one file per Delta)
 /.well-known/deltacommons/feed.json          (the Feed)
+/.well-known/deltacommons/feed/<n>.json      (sealed Feed Pages — §3.2)
 ```
 
 ### 3.1. Delta Files
@@ -53,16 +56,60 @@ under an ID, the bytes MUST NOT change. Publishers SHOULD serve them with
 long-lived cache headers (`Cache-Control: public, max-age=31536000,
 immutable`).
 
-### 3.2. The Feed
+### 3.2. The Feed and its Pages
 
 `feed.json` is an Envelope whose inner object is `feed` (schema:
 [`schemas/feed.schema.json`](../schemas/feed.schema.json)): `domain`,
-`generated_at`, `deltas` — a rolling window of at most 1000 Delta IDs in
-publication order, newest last — and `next`, a URI pointing to the
-previous (older) immutable feed page, or `null` if none. Feed pages
-referenced by `next` MUST be immutable; only the top `feed.json` changes.
-`generated_at` MUST be monotonically non-decreasing across successive
-versions of `feed.json`.
+`generated_at`, `deltas` — Delta IDs in publication order, newest last —
+and `next`. `generated_at` MUST be monotonically non-decreasing across
+successive versions of `feed.json`.
+
+**Publication order** is the order in which the Publisher first added each
+Delta to the Feed. A Delta MUST NOT appear before the Delta named by its
+`prev`.
+
+**Page sealing.** When appending a Delta would make `deltas` exceed 1000
+entries, the Publisher MUST first seal the current 1000 entries into an
+immutable Page at `/.well-known/deltacommons/feed/<n>.json`. `<n>` is a
+zero-based counter assigned in sealing order — `0` for the first Page a
+domain ever seals (its oldest content), incrementing by exactly one each
+time a further Page is sealed, and never reused or reassigned once
+published, so a Page's URL and bytes never change. The Publisher MUST
+publish the new Page's file at its URL *before* removing the newly-sealed
+entries from the live `feed.json` and updating its `next` — so at every
+instant, each Delta being sealed is retrievable either from the live
+`feed.json` (not yet cut over) or from the new Page (already published),
+never from neither. Once cutover completes, `feed.json`'s `next` names the
+highest-numbered (most recently sealed) Page's absolute URL. Each Page
+carries the same schema and the same `domain`, and its own `next` names
+the next-*older* Page — Page `<n-1>`'s absolute URL, or `null` for Page 0,
+which has no older Page before it. Pages MUST partition the Publisher's
+history: every Delta ID the Publisher has ever sealed MUST appear on
+exactly one Page, never on two and never on none.
+
+**Verification of sealed pages.** A page is verified against the Key Set
+whose Declaration was current at the page's `generated_at` (DC-1 §5.2);
+because pages are immutable they are never re-signed on rotation, and a
+validator MUST NOT reject a page solely because its signing key has since
+been retired.
+
+**Aggregator obligation.** On each pull, an Aggregator MUST follow `next`
+until it reaches a page whose newest Delta ID it has already ingested, or
+until `next` is `null`, applying the same diff-fetch-validate-queue
+procedure (§5 steps 2–4) to every page's `deltas` as to the live
+`feed.json`'s. Diffing only the live `feed.json` is non-conforming and
+loses Deltas whenever more than one window's worth is published between
+pulls.
+
+`next` MUST be an absolute `https` URL whose Canonical Host is within the
+Publisher's authority and whose path is under
+`/.well-known/deltacommons/`.
+
+**Caching.** Publishers SHOULD serve `feed.json` with `Cache-Control:
+no-cache` and an `ETag`; Aggregators SHOULD use conditional requests. A
+pull that returns `304` is not `DC2-E02` and MUST NOT count as noise.
+Sealed Pages are immutable and SHOULD instead be served with long-lived
+cache headers, as in §3.1.
 
 ## 4. The Ping
 
@@ -75,6 +122,10 @@ Content-Type: application/json
 {"host": "example.com"}
 ```
 
+`host` MUST be a Canonical Host (DC-1 §2). An Aggregator MUST reject a
+ping whose `host` is not canonical, and MUST reject a Feed whose
+`feed.domain` differs from the host it was fetched from.
+
 The Ping carries no content and no signature; authenticity comes from the
 subsequent HTTPS pull of the signed Feed and Deltas. Responses:
 
@@ -84,17 +135,30 @@ subsequent HTTPS pull of the signed Feed and Deltas. Responses:
 | 429 | Rate-limited; MUST include `Retry-After` |
 | 403 | Domain quarantined or delisted (see DC-4 §7) |
 
+On a 5xx, timeout, or connection failure a Publisher SHOULD retry at most
+three times with exponential backoff (1 min, 4 min, 16 min) and then rely
+on the Aggregator's baseline polling; it MUST NOT retry a 4xx other than
+429.
+
 Per-domain Ping quotas are a function of the domain's reputation; the
 quota formula is normative in DC-4 §6. DC-2 only fixes the dependency:
-higher reputation ⇒ higher quota.
+higher reputation ⇒ higher quota. Only pings resolving to `DC2-E02` or
+`DC2-E04` count against the domain's daily quota Q (DC-4 §6); productive
+pings do not. Exceeding Q yields `429` until the UTC-day window resets.
 
 ## 5. Aggregator Pull Behavior
 
 On receiving a Ping for a known-or-new domain, the Aggregator:
 
+0. **First contact.** If the domain is unknown, the Aggregator MUST fetch
+   and verify `publisher.json` (DC-1 §5.1) before any Feed pull, seal it
+   as a `publisher_declaration` Entry (DC-3 §3.3), and apply the
+   new-domain quota of DC-4 §6. A missing or invalid Declaration is a
+   `DC2-E04` rejection.
 1. Fetches `feed.json`; verifies its signature against the domain's Key
    Set (DC-1 §5).
-2. Diffs `feed.deltas` against the IDs it has already seen for the domain.
+2. Diffs `feed.deltas` against the IDs it has already seen for the
+   domain, following `next` through sealed Pages as required by §3.2.
 3. Fetches each new `deltas/<id>.json`; validates each per DC-1 (§4, §7).
 4. Queues accepted Deltas for the next log block (DC-3 §3).
 
@@ -129,17 +193,21 @@ convenience. This asymmetry is the adoption incentive for DC-1/DC-2.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| DC2-E01 | Feed unreachable after Ping. Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 1 h, then abandons the Ping and relies on baseline polling. |
+| DC2-E01 | Feed unreachable after Ping. Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 64 min; a fresh ping cancels a pending backoff and starts a new attempt, subject to quota. |
 | DC2-E02 | Ping produced no new feed content. Counts as noise against the domain's Ping quota. |
 | DC2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`. Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
 | DC2-E04 | Feed signature invalid. The pull is discarded; counts as noise against the quota. |
+| DC2-E05 | Feed `generated_at` regression. The pull is discarded and counts against the quota as noise. |
 
 ### 7.1. Publisher Status Endpoint
 
-Aggregators MUST expose `GET <aggregator>/status/<domain>` returning, as
-JSON, the domain's last successful pull time, pending rejections with
-their DC-1/DC-2 error codes, current quota, and quarantine state. This is
-the Publisher's debugging surface.
+Aggregators MUST expose `GET <aggregator>/status/<domain>` returning the
+`status` object (schema:
+[`schemas/status.schema.json`](../schemas/status.schema.json)) as JSON:
+the domain's last successful pull time, pending rejections with their
+DC-1/DC-2 error codes, current quota, and state. The status document is
+a plain JSON object, not a signed Envelope — it is the Publisher's
+debugging surface, not an artifact other parties verify.
 
 ## 8. Security Considerations
 
@@ -153,9 +221,11 @@ the Publisher's debugging surface.
   detects rollback, and Deltas already seen are idempotent (DC-1 §4).
 - **Cache poisoning of `.well-known`.** All discovery and pulls are
   HTTPS-only; Aggregators MUST NOT accept any `deltacommons` resource
-  over plain HTTP, and MUST NOT follow redirects that leave the domain's
-  authority (a redirect from `example.com` to another host invalidates
-  the pull).
+  over plain HTTP. An Aggregator MUST follow a redirect only when the
+  target is `https` and its Canonical Host equals the Canonical Host of
+  the request, or is listed in the Publisher's `subdomain_scope`.
+  Apex-to-`www` redirects are therefore conforming when `www` is in
+  scope.
 
 ## 9. Privacy Considerations
 
@@ -169,20 +239,29 @@ who consumes their Deltas.
 
 **Publisher:**
 
-- [ ] Serves the three well-known paths over HTTPS with the layout of §3
+- [ ] Serves the well-known paths over HTTPS with the layout of §3
 - [ ] Delta files are immutable and named by hex digest (§3.1)
-- [ ] Feed window ≤ 1000 IDs, publication order, immutable `next` pages,
-      monotonic `generated_at` (§3.2)
-- [ ] Pings with the exact one-field body of §4 and honors `Retry-After`
+- [ ] Seals Pages when `deltas` would exceed 1000 entries — file
+      published before cutover, sealing-order numbering, no Delta
+      omitted or duplicated across Pages, monotonic `generated_at` (§3.2)
+- [ ] Pings with the exact one-field body of §4, honors `Retry-After`, and
+      follows the retry/backoff rule of §4
 
 **Aggregator (ingest side):**
 
 - [ ] Implements the pull sequence of §5 with signature validation at
       every step
+- [ ] Performs First Contact (verifies `publisher.json` before any Feed
+      pull for an unknown domain) (§5)
+- [ ] Follows `next` through sealed Pages until reaching already-ingested
+      content or `null`; never diffs only the live `feed.json` (§3.2)
 - [ ] Runs baseline polling independent of Pings (§5)
 - [ ] Never attributes unsigned-hint content to a domain (§6)
 - [ ] Implements the Error Registry behaviors and the status endpoint (§7)
-- [ ] HTTPS-only, same-authority-only fetching (§8)
+- [ ] Accounts pings correctly against the domain's quota — only
+      `DC2-E02`/`DC2-E04` count as noise (§4)
+- [ ] HTTPS-only, same-authority-only fetching, per the Canonical Host /
+      `subdomain_scope` redirect rule (§8)
 
 ## References
 
