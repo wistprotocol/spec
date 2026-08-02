@@ -182,10 +182,13 @@ of the Audit Records establishing the Confirmed Inconsistencies):
 Process requirements:
 
 - A `notice` Registry Update MUST precede any sanction above level 1,
-  naming the evidence and opening the appeal window.
-- The appeal window is 14 days from the `notice`'s `effective_at`. The
-  Publisher appeals with an `appeal` Registry Update signed by its own
-  domain key (the one class of Registry Update not signed by the
+  naming the evidence and opening the appeal window. This applies to
+  sanction notices (`details.kind` `"sanction"`); a `notice` with
+  `details.kind` `"recovery"` opens the DC-1 §5.3 recovery window
+  instead and is not subject to the appeal process below.
+- The appeal window is 14 days from a sanction `notice`'s `effective_at`.
+  The Publisher appeals with an `appeal` Registry Update signed by its
+  own domain key (the one class of Registry Update not signed by the
   Aggregator).
 - An `appeal_ruling` closes the appeal with its reasoning in `details`.
 - `sanction_lift` reverses a sanction; like everything else it is
@@ -253,6 +256,7 @@ are made by `parameter_change` Registry Updates and MUST have
 | Inclusion latency threshold | reputation 0.5 | §6 |
 | Escalation: level 2 / level 3 | 3 in 90 days / 10 in 90 days or severity 3 | §7 |
 | Appeal window | 14 days | §7 |
+| Recovery window | 7 days | DC-1 §5.3 |
 | Parameter change grace period | 7 days | §9 |
 
 ## 10. Security Considerations

@@ -31,6 +31,20 @@
             }
           }
         },
+        "recovery_keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key_id", "alg", "public_key", "valid_from"],
+            "additionalProperties": false,
+            "properties": {
+              "key_id": {"type": "string", "maxLength": 64},
+              "alg": {"const": "Ed25519"},
+              "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"},
+              "valid_from": {"type": "string", "format": "date-time"}
+            }
+          }
+        },
         "contact": {"type": "string", "maxLength": 256}
       }
     },
