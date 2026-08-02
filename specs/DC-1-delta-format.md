@@ -459,7 +459,11 @@ What remains in the Log permanently, and cannot be withdrawn, is:
   because unboundedly many texts share any given length, but a party
   holding a candidate text can observe that the length is consistent with
   it. It is carried because a Consumer must be able to bound a fetch and
-  detect truncation before it can verify anything.
+  detect truncation before it can verify anything;
+- the verdicts and `similarity` values of any Audit Records about the URL.
+  Those Records observe the page directly, so every content-derived value
+  in them is committed under the same Payload salt rather than digested
+  bare, and expires with it (DC-4 §5, §11).
 
 Publishers should understand that this residue is permanent, and that
 withdrawal removes the content from future distribution rather than from

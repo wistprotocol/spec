@@ -326,6 +326,89 @@ def _dc4_audit_record_proof():
     assert rec["vrf_proof"] == v["vrf_proof_hex"], "record proof differs from vector proof"
 check("vectors:dc4-audit-record-proof", _dc4_audit_record_proof)
 
+def _dc4_audit_commitments():
+    """Every content-derived value in an Audit Record is salted (DC-4 §5).
+
+    Moving extracts out of the Log achieves nothing if the Log keeps bare
+    digests of the same text: a party holding a copy could recompute one and
+    confirm the text was there, which is precisely the confirmability the
+    Payload salt exists to destroy. So the Auditor's three content-derived
+    values are committed under that same salt, and this recomputes all three
+    from their preimages.
+    """
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    v = json.loads((ROOT / "vectors" / "dc4" / "audit-commitments.json").read_text())
+    salt = b64u_decode(payload["salt"])
+    assert v["audited_delta"] == rec["audited_delta"], \
+        "the commitment vector does not describe the example Record"
+    for field, entry in v["commitments"].items():
+        expected = "hmac-sha256:" + hmac.new(
+            salt, bytes.fromhex(entry["message_hex"]), hashlib.sha256).hexdigest()
+        assert expected == entry["value"], f"{field}: vector value is not HMAC(salt, message)"
+        assert rec[field] == expected, f"{field}: the Record does not carry that commitment"
+    # The Auditor's reference extraction in a `consistent` audit is the Payload's
+    # own extract, so this one is recomputable from the Payload alone — which is
+    # what ties the Record's key to the Delta's key rather than to a second salt.
+    assert rec["ref_extract_commitment"] == "hmac-sha256:" + hmac.new(
+        salt, payload["content"]["extract"].encode(), hashlib.sha256).hexdigest(), \
+        "ref_extract_commitment is not keyed by the audited Payload's salt"
+check("audit:commitments", _dc4_audit_commitments)
+
+def _dc4_audit_commitment_tamper():
+    """One mutated octet, or the wrong salt, MUST break each commitment.
+
+    Binding must hold for the Auditor's values exactly as it does for the
+    Publisher's: a Record must not be able to stand for a capture other than
+    the one it was computed over. And keying MUST be to the Payload's salt,
+    not to any salt the Auditor could retain past a withdrawal.
+    """
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    v = json.loads((ROOT / "vectors" / "dc4" / "audit-commitments.json").read_text())
+    salt = b64u_decode(payload["salt"])
+    other_salt = bytes(b ^ 0x01 for b in salt)
+    assert other_salt != salt, "the alternative salt is not different"
+    for field, entry in v["commitments"].items():
+        msg = bytearray(bytes.fromhex(entry["message_hex"]))
+        assert msg, f"{field}: empty preimage proves nothing"
+        mutated = bytearray(msg)
+        mutated[-1] ^= 0x01
+        assert bytes(mutated) != bytes(msg), f"{field}: the mutation changed nothing"
+        assert "hmac-sha256:" + hmac.new(
+            salt, bytes(mutated), hashlib.sha256).hexdigest() != entry["value"], \
+            f"{field}: a mutated preimage still reproduces the commitment"
+        assert "hmac-sha256:" + hmac.new(
+            other_salt, bytes(msg), hashlib.sha256).hexdigest() != entry["value"], \
+            f"{field}: the commitment does not depend on the salt"
+check("negative:audit-commitment-tamper", _dc4_audit_commitment_tamper)
+
+def _no_unsalted_content_digest():
+    """After a withdrawal the Log must retain no unsalted digest of the content.
+
+    That sentence is only true if no object in the Log carries one, so this
+    enumerates the Audit Record — the one object that observes page content
+    directly — and requires every content-derived value in it to be an
+    `hmac-sha256:` commitment. The only bare `sha256:` an Audit Record may
+    carry is `audited_delta`, which is derived from the Delta's Canonical
+    Bytes and therefore from the salted commitment, not from any content.
+    """
+    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
+    props = schema["properties"]["record"]["properties"]
+    stale = [name for name in props if name.endswith("_hash")]
+    assert not stale, f"Audit Record still declares bare digest fields: {stale}"
+    for name, sub in props.items():
+        pat = sub.get("pattern", "")
+        if "sha256" in pat and name != "audited_delta":
+            assert pat.startswith("^hmac-sha256:"), \
+                f"{name} is a bare digest ({pat}), not a salted commitment"
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    for name, value in rec.items():
+        if isinstance(value, str) and re.search(r"(^|:)sha256:", value):
+            assert name == "audited_delta", \
+                f"the example Audit Record carries a bare digest in {name}: {value}"
+        assert "warc:" not in str(value), f"{name} still carries a bare WARC digest"
+check("repo:no-unsalted-content-digest", _no_unsalted_content_digest)
+
 def _dc4_coverage_attestation():
     """§4's in-band coverage proof must be expressible as a Registry Update.
 

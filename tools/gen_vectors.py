@@ -244,20 +244,56 @@ alpha = bytes.fromhex(block_hash.split(":")[1])
 pi = ecvrf.prove(SEED, alpha)
 beta = ecvrf.proof_to_hash(pi)
 
+# Every content-derived value an Audit Record seals is committed under the
+# Payload salt of the Payload the audit measured against (DC-4 §5), so one
+# salt lifecycle governs the Delta's commitment and the Auditor's alike.
+# The audited Delta here is the DC-1 vector Delta, so that salt is `salt`.
+def audit_commit(message: bytes) -> str:
+    return "hmac-sha256:" + hmac.new(salt, message, hashlib.sha256).hexdigest()
+
+
+RESPONSE_BODY = b"response-placeholder"
+REF_EXTRACTION = EXTRACT.encode()      # a `consistent` audit: the Auditor's own
+                                       # extraction reproduces the Payload extract
+WARC_CAPTURE = b"warc-placeholder"
+
 audit_record = {
     "dc_version": "1.0.0",
     "audited_delta": delta_id,
     "auditor_id": "audit.example.org",
     "fetched_at": "2026-08-02T14:00:00Z",
-    "response_hash": "sha256:" + sha256_hex(b"response-placeholder"),
-    "ref_extract_hash": "sha256:" + sha256_hex(EXTRACT.encode()),
+    "response_commitment": audit_commit(RESPONSE_BODY),
+    "ref_extract_commitment": audit_commit(REF_EXTRACTION),
     "similarity": 940000,
     "verdict": "consistent",
-    "evidence": "warc:sha256:" + sha256_hex(b"warc-placeholder"),
+    "evidence_commitment": audit_commit(WARC_CAPTURE),
     "vrf_proof": pi.hex(),
 }
 write_json(EXAMPLES / "audit-record.json",
            sign_envelope("record", audit_record, "test-aud-k1"))
+
+DC4 = ROOT / "vectors" / "dc4"
+DC4.mkdir(parents=True, exist_ok=True)
+write_json(DC4 / "audit-commitments.json", {
+    "note": ("Preimages of the example Audit Record's commitments. Each is "
+             "HMAC-SHA256 keyed by the salt of the Payload the audit measured "
+             "against — here examples/payload.json, the audited Delta's own "
+             "Payload (DC-4 §5). Once that Payload is withdrawn the salt is "
+             "gone and none of these commitments can be checked again."),
+    "audited_delta": delta_id,
+    "salt_source": "examples/payload.json",
+    "commitments": {
+        "response_commitment": {
+            "message_hex": RESPONSE_BODY.hex(),
+            "value": audit_record["response_commitment"]},
+        "ref_extract_commitment": {
+            "message_hex": REF_EXTRACTION.hex(),
+            "value": audit_record["ref_extract_commitment"]},
+        "evidence_commitment": {
+            "message_hex": WARC_CAPTURE.hex(),
+            "value": audit_record["evidence_commitment"]},
+    },
+})
 
 registry_update = {
     "dc_version": "1.0.0",
@@ -319,9 +355,6 @@ assert sampling_p_1e7(100_000) == 2_900_000 and sampling_p_1e7(900_000) == 500_0
     "sampling p_1e7 drifted"
 assert sampling_p_1e7(10**6) == SAMPLING_FLOOR_1E7, "floor not reached at full reputation"
 assert sampling_p_1e7(0) == 3_200_000, "slope drifted"
-
-DC4 = ROOT / "vectors" / "dc4"
-DC4.mkdir(parents=True, exist_ok=True)
 
 # Two real Deltas of the same example Block, drawn against the same beta: entry
 # 0 is selected by nobody, and one further Entry is selected at a Provisional

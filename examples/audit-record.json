@@ -4,16 +4,16 @@
     "audited_delta": "sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047",
     "auditor_id": "audit.example.org",
     "fetched_at": "2026-08-02T14:00:00Z",
-    "response_hash": "sha256:a5c2d47df834005cc3877d8057ce4ac0c613d6d321a9532f793d4e3ba908ec77",
-    "ref_extract_hash": "sha256:280b420ff2d23150e67553ca0bca7825529e96f53b4df3f523beecfcdfd9a7c1",
+    "response_commitment": "hmac-sha256:8652be7fd06816b6998fb3c7325a35ada44d8b350ac88b4c8005530472bfb928",
+    "ref_extract_commitment": "hmac-sha256:6379342666cfdee8f80015a9e3d7f46085bf8a7d93f1e7de4b6aef2608f332da",
     "similarity": 940000,
     "verdict": "consistent",
-    "evidence": "warc:sha256:f68effe29706be6d194da825fe294342daa326cb4ba5914a79ad1a9dc53c0ef4",
+    "evidence_commitment": "hmac-sha256:e787d4cf09890f43da957730a1452cb58bc7860bb8f81fdf7898d61023b198d3",
     "vrf_proof": "201470c521f335e0e8b5e2e6c4456234d4c408653608b0dc3f9ab3313b2eb120df5129d19a2184e7ff670dd93d5ec63f1537c567f46c3f5ebb130908fcaee1550fc0f5e4d2fde2cfb322bc716d54b404"
   },
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "EbDEVVsx-zgI6_PEQHwYrCi-p7h5TypyW5Zd_LS2tcBDOVSiWhaUlV5Su7oTMDDt-0j8KNEveOB2wFWGHmWaDQ"
+    "value": "VhemNI3UyEaLCBA8JACFOWlMN8RgrRu3g1I-ntw5nPkQEXJLcdtortJQyfPLbxjPcHc2fyOsgVj6UqMBtlLsDg"
   }
 }
