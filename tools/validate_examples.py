@@ -105,8 +105,8 @@ def _block_checks():
     block = json.loads((ROOT / "examples" / "block.json").read_text())
     cp = json.loads((ROOT / "examples" / "checkpoint.json").read_text())
     assert block["header"]["entry_count"] == len(block["entries"]), "entry_count mismatch"
-    # Block Hash definition lives in DC-3 §3.1.
-    signed_bytes = rfc8785.dumps({"header": block["header"], "entries": block["entries"]})
+    # Block Hash definition lives in DC-3 §3.1: header only.
+    signed_bytes = rfc8785.dumps(block["header"])
     block_hash = "sha256:" + hashlib.sha256(signed_bytes).hexdigest()
     assert cp["checkpoint"]["block_hash"] == block_hash, "checkpoint does not bind block"
     assert cp["checkpoint"]["block_number"] == block["header"]["block_number"], "block_number mismatch"

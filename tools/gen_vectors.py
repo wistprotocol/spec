@@ -138,7 +138,7 @@ header = {
     "merkle_root": merkle_root,
     "entry_count": 4,
 }
-block_inner = {"header": header, "entries": entries}
+block_inner = header                      # header only — DC-3 §3.1
 block_canonical = rfc8785.dumps(block_inner)
 block_hash = "sha256:" + sha256_hex(block_canonical)
 block_sig = priv.sign(block_canonical)

@@ -57,10 +57,16 @@ A Block is an Envelope-like object with `header`, `entries`, and `sig`
 | `merkle_root` | Root over `entries` (§4). |
 | `entry_count` | MUST equal `entries.length`. |
 
-The **Block Hash** is `"sha256:" + hex(SHA-256(JCS({"header": ...,
-"entries": ...})))` — header and entries, excluding `sig`. The Aggregator
-signs those same canonical bytes; `sig.key_id` names an Aggregator key
-published in the log via `registry_update`.
+The **Block Hash** is `"sha256:" + hex(SHA-256(JCS(header)))` — the header
+alone. The Aggregator signs those same canonical bytes; `sig.key_id` names
+an Aggregator key admitted per §3.4.
+
+The header commits to the Block's contents through `merkle_root` and
+`entry_count`, so a verifier holding only a header and a Checkpoint can
+authenticate the header, and then authenticate any Entry against it with an
+Inclusion Proof (§4). Entries are transported inside the Block file but are
+not covered by the signature directly; a verifier that downloads them MUST
+recompute `merkle_root` and check `entry_count` before use.
 
 ### 3.2. Sealing
 
@@ -110,7 +116,9 @@ accept iff "sha256:" + hex(h) == header.merkle_root
 ```
 
 Inclusion Proofs let a light client verify "this Delta is in the log"
-against nothing but a Block header and a Checkpoint.
+holding only a Block header, a Checkpoint, and the proof — the header is
+authenticated by the Aggregator signature over its canonical bytes (§3.1)
+and by the Checkpoint's `block_hash`.
 
 ## 5. Checkpoints and Anti-Equivocation
 
@@ -122,6 +130,16 @@ the fixed URL `/log/checkpoint.json` after sealing each Block: the
 - Mirrors MUST retain every Checkpoint they have ever served.
 - Consumers SHOULD fetch Checkpoints from more than one Mirror and
   SHOULD retain the Checkpoints they act on.
+- A Consumer MUST verify that the Block Hash of the Block it treats as the
+  chain head equals the `block_hash` of the Checkpoint it is syncing to,
+  and MUST verify the chain backward from that head via `prev_block_hash`.
+  A Block that is not reachable by this backward walk MUST NOT be applied.
+- A Consumer MUST reject a Checkpoint whose `block_number` is lower than
+  the highest it has already verified (rollback protection).
+- A Consumer SHOULD treat the log as stale, and SHOULD warn, when
+  `sealed_at` of the newest Checkpoint lags the current time by more than
+  three times the sealing cadence (§3.2); empty Blocks make this signal
+  reliable.
 
 **Equivocation** is two Checkpoints, both validly signed by the
 Aggregator, with the same `block_number` and different `block_hash`. The
@@ -190,13 +208,19 @@ authority.
 4. Download Blocks `log_position + 1 .. checkpoint.block_number`.
 5. Verify each Block: chain (`prev_block_hash`), signature, `merkle_root`
    recomputation, `entry_count`.
-6. Apply Entries in order to the local index.
+6. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
+   and that each Block's `prev_block_hash` matches the Block Hash of its
+   predecessor, walking backward from the head to `log_position`.
+7. Apply Entries in order to the local index.
 
 **Continuous operation:**
 
 1. Fetch `checkpoint.json` (SHOULD: from ≥ 2 Mirrors).
 2. Download missing Blocks; verify as above.
-3. Apply.
+3. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
+   and that each Block's `prev_block_hash` matches the Block Hash of its
+   predecessor, walking backward from the head to `log_position`.
+4. Apply.
 
 **Catch-up decision.** A Consumer offline for a long period compares the
 Block distance from its position to the newest Checkpoint against the
@@ -209,7 +233,7 @@ economic.
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
 | DC3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
-| DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
+| DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, or head Block Hash does not match the Checkpoint's `block_hash`). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
 | DC3-E03 | Corrupted Block (hash or signature failure on one file). Re-download, from another Mirror if needed, before concluding misbehavior. |
 | DC3-E04 | Manifest file hash or size mismatch. Reject the entire Snapshot. |
 
@@ -255,6 +279,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 - [ ] Verifies chain, signatures, Merkle roots, and entry counts on every
       Block before applying (§8)
+- [ ] Binds the head Block to the Checkpoint and walks the chain backward
+      from it (§5, §8)
+- [ ] Rejects Checkpoints older than the highest already verified (§5)
 - [ ] Verifies manifest hashes/sizes before using a Snapshot (§8)
 - [ ] Implements all four Error Registry behaviors, including evidence
       preservation on divergence (§9)
@@ -293,10 +320,10 @@ n23 = node(leaf2, leaf3) = 71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882
 sha256:ad59dd329d0b87f9f07f3576232f05531990847dbf75acbc6841ac44cb322f0d
 ```
 
-**Block Hash (over JCS of header+entries):**
+**Block Hash (over JCS of the header):**
 
 ```
-sha256:1e0eb04676c1f4de91a5a1ace6252a0d9baf4c1a78992e13ff845dcdb13edc7f
+sha256:d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95
 ```
 
 **Inclusion proof for entry 0** — path `[right: leaf1, right: n23]`:
