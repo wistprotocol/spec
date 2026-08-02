@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/publisher.schema.json",
+  "title": "DeltaCommons Publisher Declaration (DC-1)",
+  "type": "object",
+  "required": ["publisher", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "publisher": {
+      "type": "object",
+      "required": ["dc_version", "domain", "keys"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "domain": {"type": "string", "format": "hostname"},
+        "subdomain_scope": {"type": "array", "items": {"type": "string", "format": "hostname"}},
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["key_id", "alg", "public_key", "valid_from"],
+            "additionalProperties": false,
+            "properties": {
+              "key_id": {"type": "string", "maxLength": 64},
+              "alg": {"const": "Ed25519"},
+              "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"},
+              "valid_from": {"type": "string", "format": "date-time"}
+            }
+          }
+        },
+        "contact": {"type": "string", "maxLength": 256}
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}
