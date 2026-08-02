@@ -12,7 +12,7 @@
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-        "action": {"enum": ["auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change"]},
+        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change"]},
         "subject": {"type": "string", "maxLength": 256},
         "details": {"type": "object"},
         "evidence": {"type": "array", "items": {"type": "string", "maxLength": 256}},

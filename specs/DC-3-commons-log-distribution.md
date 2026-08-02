@@ -88,6 +88,32 @@ DC-3 defines only this envelope; the `body` formats of the latter two are
 normative in DC-4. Validators MUST reject Blocks containing unknown Entry
 types under the current major version.
 
+### 3.4. Aggregator Keys and the Log Anchor
+
+A Log is identified by its **Log Anchor**, a self-signed document served at
+`/log/anchor.json` (schema: `schemas/log-anchor.schema.json`) declaring the
+`log_id` and the **genesis key**. The Anchor is the Log's out-of-band trust
+root: a Consumer MUST obtain it through a channel it trusts (bundled with
+the client, pinned by the operator, or verified against an out-of-band
+fingerprint) and MUST NOT accept an Anchor fetched from the Log itself
+without such verification. Anchors are content-addressed by
+`"sha256:" + hex(SHA-256(JCS(anchor)))`, so a fingerprint is short enough to
+publish in documentation or a package manifest.
+
+All subsequent Aggregator keys are admitted in-band: an
+`aggregator_key_add` Registry Update, signed by a key already valid at that
+Block, adds a key; `aggregator_key_remove` retires one. A Block sealed at
+height N MUST be signed by a key that was valid at height N, where "valid"
+means: the genesis key, or a key added by an `aggregator_key_add` sealed at
+a height ≤ N and not removed at a height ≤ N. A Consumer replaying the Log
+from the Anchor can therefore compute the set of valid keys at every height
+without external input.
+
+Key rotation does not repudiate the past. A signature made by a key that
+was valid when the signed object was sealed remains binding evidence
+forever — including for the equivocation proof of §5. An Aggregator MUST
+NOT be treated as exonerated by removing a key after the fact.
+
 ## 4. Merkle Tree and Inclusion Proofs
 
 The tree over a Block's Entries uses the RFC 6962 hashing discipline:
@@ -183,7 +209,10 @@ Aggregator, with the same `block_number` and different `block_hash`. The
 evidence bundle is exactly those two Checkpoint files — self-contained,
 portable, verifiable by anyone with the Aggregator's public key. A party
 holding such a bundle SHOULD publish it widely; consumers verifying it
-MUST stop applying new data from that Aggregator (§9, `DC3-E02`).
+MUST stop applying new data from that Aggregator (§9, `DC3-E02`). Checkpoints
+signed by *any* key valid at their `block_number` count; an Aggregator
+cannot escape an equivocation proof by removing the signing key afterward
+(§3.4).
 
 ## 6. Static Layout
 
@@ -285,6 +314,13 @@ economic.
   modification fails hash or signature verification (`DC3-E03`).
 - **Compression bombs.** The 256 MiB decompressed cap MUST be enforced
   streaming-side, aborting decompression at the limit rather than after.
+- **Key rotation repudiation.** Without an in-band, height-scoped notion
+  of key validity, an Aggregator caught equivocating could retire the
+  signing key and claim the proof no longer identifies a currently
+  trusted key, laundering the misbehavior. §3.4 closes this: key validity
+  is evaluated at the signed object's own height, computed by replaying
+  the log from the Log Anchor, so a signature valid at sealing time
+  remains binding evidence regardless of later rotation.
 
 ## 11. Privacy Considerations
 
@@ -306,6 +342,7 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
       embedding model declaration and the materialization rule
 - [ ] Never emits a Block exceeding the decompressed cap (§6)
+- [ ] Publishes a Log Anchor and admits all later keys in-band (§3.4)
 
 **Mirror:**
 
@@ -329,6 +366,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       preservation on divergence (§9)
 - [ ] Enforces the streaming decompression cap (§10)
 - [ ] Honors the materialization rule for deletions (§7)
+- [ ] Obtains the Anchor out-of-band and resolves signing keys by height
+      (§3.4)
 
 ## Appendix A. Test Vectors
 
