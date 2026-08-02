@@ -207,6 +207,18 @@ publisher continuity, because domain control alone cannot distinguish a
 Publisher recovering from key loss from a party that has merely acquired
 the domain.
 
+Recovery keys protect themselves. Once a Declaration lists a non-empty
+`recovery_keys`, every later Declaration signed only by a signing key
+MUST carry a byte-identical `recovery_keys`; a Declaration that adds,
+removes, or alters a recovery key MUST be signed by one of the recovery
+keys it is replacing, and is rejected with `DC1-E08` otherwise. Without
+this rule the mechanism would be worthless: a thief holding a signing
+key could rotate and drop the recovery keys in the same Declaration,
+permanently severing the owner's path back. A Publisher whose previous
+Declaration lists no recovery keys MAY establish them with an ordinary
+signing-key signature — there is nothing yet to protect — which is how a
+Publisher adopts recovery keys after the fact.
+
 **Compromise recovery.** A Declaration with a higher `seq` is classified
 by what signs it:
 
@@ -233,10 +245,19 @@ anyone buy an aged domain and inherit its reputation.
 
 **Historical verification.** Accepted Declarations are sealed into the Log
 as `publisher_declaration` Entries (DC-3 §3.3). The Key Set applicable to a
-`publisher_delta` Entry sealed in Block N is the one from that domain's
-highest-`seq` Declaration Entry sealed at a height ≤ N. A Consumer
-replaying the Log therefore verifies every historical Delta signature from
-the Log alone, with no fetch and no trust in the Aggregator.
+`publisher_delta` Entry sealed in Block N is normally the one from that
+domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
+that a recovery Declaration which took effect under the Compromise
+recovery rule above prevails over every ordinary rotation sealed during
+its recovery window, regardless of `seq`. A Consumer replaying the Log
+therefore excludes any such superseded rotation from the "highest `seq`"
+comparison and treats the recovery Declaration (and whatever legitimately
+follows it) as applicable instead, for every height from the recovery
+Declaration's own sealing height onward. Because `seq`, `prev_declaration`,
+each Declaration's signer, and Entry order are all present in the Log
+itself, this resolution — ordinary case and recovery exception alike — is
+fully deterministic from log order alone, with no fetch and no trust in
+the Aggregator.
 
 ## 6. Deliberate Normative Absence
 
@@ -258,7 +279,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | DC1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | DC1-E07 | `prev` chain violation (missing, non-existent, wrong URL, or non-monotonic `observed_at`) |
-| DC1-E08 | Declaration sequence violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; or `prev_declaration` mismatched against the previously accepted Declaration) |
+| DC1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.
