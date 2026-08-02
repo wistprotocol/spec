@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
-import base64, calendar, hashlib, json, pathlib, sys, time
+import base64, calendar, hashlib, json, pathlib, re, sys, time
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -542,5 +542,32 @@ def _negative_index():
         return  # correctly rejected
     raise AssertionError("falsified index verified — index is unauthenticated")
 check("negative:falsified-index", _negative_index)
+
+def _no_process_narration():
+    """Published files describe what must hold, never how they came to say it.
+
+    A specification is read by people with no access to its drafting history,
+    so a comment or sentence that refers to a review round, an internal task
+    number, or "an earlier revision" documents nothing a reader can act on and
+    dates the artifact. State the invariant and the failure mode it prevents
+    instead.
+    """
+    markers = [
+        r"fix[- ]round", r"\bround[- ]\d", r"\bTask \d+\b", r"\bthe reviewer\b",
+        r"\breview (?:found|caught)\b", r"XFAIL_UNTIL", r"\bin a later task\b",
+        r"\bprior implementer\b", r"\bearlier revision\b",
+    ]
+    pattern = re.compile("|".join(markers), re.IGNORECASE)
+    hits = []
+    for folder, glob in (("specs", "*.md"), ("schemas", "*.json"),
+                         ("tools", "*.py"), ("decisions", "*.md")):
+        for path in sorted((ROOT / folder).glob(glob)):
+            if path.name == "validate_examples.py":
+                continue          # this check necessarily names the markers
+            for n, line in enumerate(path.read_text().splitlines(), 1):
+                if pattern.search(line):
+                    hits.append(f"{path.relative_to(ROOT)}:{n}: {line.strip()}")
+    assert not hits, "process narration in published files:\n  " + "\n  ".join(hits)
+check("repo:no-process-narration", _no_process_narration)
 
 sys.exit(1 if failures else 0)
