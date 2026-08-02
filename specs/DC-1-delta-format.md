@@ -159,28 +159,30 @@ https://<domain>/.well-known/deltacommons/publisher.json
 The document is an Envelope whose inner object is `publisher` (schema:
 [`schemas/publisher.schema.json`](../schemas/publisher.schema.json)),
 containing: `dc_version`, `domain`, `seq` (a monotonic Declaration
-counter, starting at 0; see §5.3), `prev_declaration` (the hash of the
+counter, starting at 0; see §5.2), `prev_declaration` (the hash of the
 Declaration this one replaces; REQUIRED when `seq` > 0, absent only for
-`seq` 0; see §5.3), optional `subdomain_scope` (hostnames the Key Set
+`seq` 0; see §5.2), optional `subdomain_scope` (hostnames the Key Set
 also covers), the `keys` array (each entry: `key_id`, `alg`, raw Ed25519
 `public_key` base64url, `valid_from`), optional `recovery_keys` (same
-item shape as `keys`; see §5.3), and optional `contact`.
+item shape as `keys`; see §5.2), and optional `contact`.
 
-Discovery MUST use HTTPS. A validator MUST NOT accept a Publisher
-Declaration served over plain HTTP.
+Discovery MUST use HTTPS; there is no alternative channel. A validator MUST
+NOT accept a Publisher Declaration served over plain HTTP, and MUST NOT
+follow a redirect whose target host is outside the Publisher's authority
+(DC-2 §8).
 
-### 5.2. DNS Fallback
+A validator MAY cache a Key Set for at most 24 hours (Parameter Registry:
+Key Set cache TTL). While a cached Key Set is valid, a discovery failure
+does not block validation. When no valid cached Key Set exists and
+discovery fails, the validator MUST fail closed: Deltas are rejected with
+`DC1-E02` and MUST NOT be sealed.
 
-Publishers unable to serve `.well-known` paths MAY instead publish a DNS
-TXT record at `_deltacommons.<domain>`:
+`valid_from` bounds a key's use: a Delta whose `observed_at` precedes the
+`valid_from` of the key named in `sig.key_id` MUST be rejected with
+`DC1-E02`. Backdating a Delta to before a key existed is therefore not a
+route around key history.
 
-```
-v=dc1; k=<key_id>; p=<public_key_base64url>
-```
-
-The `.well-known` document is authoritative when both exist.
-
-### 5.3. Sequencing, Rotation and Revocation
+### 5.2. Sequencing, Rotation and Revocation
 
 Every Publisher Declaration carries a monotonic `seq`, starting at 0. A
 Declaration with `seq` > 0 MUST include `prev_declaration`,
@@ -289,7 +291,7 @@ not an error.
 - **Key theft.** A stolen Publisher signing key can sign fraudulent
   Deltas and can even perform a rotation that looks entirely valid: a
   Declaration signed by a key from the previous Key Set is accepted as
-  an ordinary rotation immediately, with no window (§5.3). The actual
+  an ordinary rotation immediately, with no window (§5.2). The actual
   mitigation is the recovery key: because a recovery key signs nothing
   but Declarations and is meant to be held offline, separately from the
   signing key, compromising the signing key alone does not expose it,
@@ -302,9 +304,9 @@ not an error.
   on any suspicion of compromise; fraud committed before recovery is
   still attributed to the domain and handled by DC-4 audit and
   sanctions. A Publisher that loses its signing key without ever having
-  provisioned a recovery key has no cryptographic path back (§5.3).
+  provisioned a recovery key has no cryptographic path back (§5.2).
 - **Domain transfer.** A Key Set replacement does not transfer standing
-  by itself: §5.3 classifies a replacing Declaration by what signs it,
+  by itself: §5.2 classifies a replacing Declaration by what signs it,
   and one signed by neither the previous Key Set nor the previous
   `recovery_keys` is a fresh identity whose `A`/`C` reset to zero. A
   party that acquires a domain's hosting without also acquiring a
@@ -319,6 +321,11 @@ not an error.
 - **URL authority spoofing.** The scope rule (§3.2) plus HTTPS-only key
   discovery (§5.1) bind every Delta to a domain the signer demonstrably
   controls. Validators MUST NOT relax either check.
+- **Single discovery channel.** Key discovery is HTTPS-only by design. Any
+  unauthenticated alternative channel would let an off-path spoofer inject
+  a signing key for a domain whose HTTPS endpoint is made to fail,
+  defeating every other guarantee in this document; no such channel is
+  defined.
 
 ## 9. Privacy Considerations
 
@@ -342,9 +349,9 @@ in the log permanently.
       ones reference the immediately prior Delta (§3.5)
 - [ ] Respects field caps: extract ≤ 32768 bytes, summary ≤ 2048 bytes (§3.6, §3.7)
 - [ ] Omits `extract`/`summary` on `attest`, omits `extract` on `delete` (§3.3)
-- [ ] Rotates keys by signing the new Key Set with a previous key (§5.3)
+- [ ] Rotates keys by signing the new Key Set with a previous key (§5.2)
 - [ ] Increments seq and sets prev_declaration on every new Declaration
-      (§5.3)
+      (§5.2)
 
 **Validator (any party checking Deltas):**
 
@@ -355,7 +362,7 @@ in the log permanently.
 - [ ] Rejects Declarations served over plain HTTP (§5.1)
 - [ ] Applies the 10-minute clock-skew allowance to `observed_at` (§3.4)
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
-      by Block height (§5.3)
+      by Block height (§5.2)
 
 ## Appendix A. Test Vectors
 
