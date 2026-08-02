@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/delta.schema.json",
+  "title": "DeltaCommons Delta Envelope (DC-1)",
+  "type": "object",
+  "required": ["delta", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "delta": {
+      "type": "object",
+      "required": ["dc_version", "url", "change_type", "observed_at", "meta"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "url": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "change_type": {"enum": ["new", "update", "delete", "attest"]},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "prev": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "extract": {"type": "string", "maxLength": 32768},
+        "extract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "summary": {
+          "type": "object",
+          "required": ["title"],
+          "additionalProperties": false,
+          "properties": {
+            "title": {"type": "string", "maxLength": 256},
+            "abstract": {"type": "string", "maxLength": 1792}
+          }
+        },
+        "meta": {
+          "type": "object",
+          "required": ["lang"],
+          "additionalProperties": false,
+          "properties": {
+            "lang": {"type": "string", "pattern": "^[a-z]{2}(-[A-Za-z0-9]+)?$"},
+            "topics": {"type": "array", "items": {"type": "string", "maxLength": 64}, "maxItems": 10},
+            "license": {"type": "string", "maxLength": 64}
+          }
+        }
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}
