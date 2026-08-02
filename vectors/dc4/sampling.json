@@ -7,16 +7,61 @@
   "beta_hex": "cd753c76ddf3539df84f434de5d1638b84ab31c6195a36d4640d3378c6a5911e840ebe82d2653c91785ae0fc8878f3b705f7cc1e5db0423b4d55896329529703",
   "delta_id": "sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1",
   "draw_first8_hex": "fc5101e3231c0551",
-  "draw": 0.9856110744031953,
-  "thresholds": [
+  "D": 18181315245729645905,
+  "test": "select <=> D x 10^7 < p_1e7 x 2^64  (integers only, DC-4 \u00a74)",
+  "note": "D, lhs and rhs exceed 2^53; a consumer whose JSON parser uses IEEE-754 doubles MUST read D from draw_first8_hex and recompute lhs/rhs as big integers.",
+  "parameters": {
+    "floor_1e7": 200000,
+    "ceiling_1e7": 5000000,
+    "slope_per_micro": 3
+  },
+  "selection": [
     {
-      "reputation": 0.1,
-      "p": 0.29,
+      "label": "entry-0-provisional",
+      "delta_id": "sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1",
+      "entry_index": 0,
+      "draw_first8_hex": "fc5101e3231c0551",
+      "D": 18181315245729645905,
+      "reputation_u": 100000,
+      "p_1e7": 2900000,
+      "lhs": 181813152457296459050000000,
+      "rhs": 53495557813757699686400000,
       "selected": false
     },
     {
-      "reputation": 0.9,
-      "p": 0.05,
+      "label": "entry-0-established",
+      "delta_id": "sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1",
+      "entry_index": 0,
+      "draw_first8_hex": "fc5101e3231c0551",
+      "D": 18181315245729645905,
+      "reputation_u": 900000,
+      "p_1e7": 500000,
+      "lhs": 181813152457296459050000000,
+      "rhs": 9223372036854775808000000,
+      "selected": false
+    },
+    {
+      "label": "entry-3-provisional",
+      "delta_id": "sha256:d3a22b1cedf703c2efd115dc67c8d7ff44d409b820bf45ebc9e66a803ca1c903",
+      "entry_index": 3,
+      "draw_first8_hex": "373a3915f98ecf73",
+      "D": 3979555987279236979,
+      "reputation_u": 100000,
+      "p_1e7": 2900000,
+      "lhs": 39795559872792369790000000,
+      "rhs": 53495557813757699686400000,
+      "selected": true
+    },
+    {
+      "label": "entry-3-established",
+      "delta_id": "sha256:d3a22b1cedf703c2efd115dc67c8d7ff44d409b820bf45ebc9e66a803ca1c903",
+      "entry_index": 3,
+      "draw_first8_hex": "373a3915f98ecf73",
+      "D": 3979555987279236979,
+      "reputation_u": 900000,
+      "p_1e7": 500000,
+      "lhs": 39795559872792369790000000,
+      "rhs": 9223372036854775808000000,
       "selected": false
     }
   ]
