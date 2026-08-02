@@ -133,7 +133,7 @@ subsequent HTTPS pull of the signed Feed and Deltas. Responses:
 |--------|---------------------------------------------------|
 | 202 | Accepted; a pull will follow |
 | 429 | Rate-limited; MUST include `Retry-After` |
-| 403 | Domain quarantined or delisted (see DC-4 §7) |
+| 403 | Domain in Sanctioned Quarantine or delisted (DC-4 §7). New and Provisional domains MUST NOT receive 403. |
 
 On a 5xx, timeout, or connection failure a Publisher SHOULD retry at most
 three times with exponential backoff (1 min, 4 min, 16 min) and then rely
@@ -268,4 +268,4 @@ who consumes their Deltas.
 - [RFC 2119] / [RFC 8174] BCP 14 key words
 - DC-1: Delta Format & Identity — Envelope, Delta ID, Key Set, scope rule
 - DC-3: Commons Log & Distribution — block queueing
-- DC-4: Audit, Reputation & Governance — quotas, quarantine, auditor observations
+- DC-4: Audit, Reputation & Governance — quotas, sanctions, auditor observations

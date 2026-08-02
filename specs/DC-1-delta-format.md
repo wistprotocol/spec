@@ -273,7 +273,7 @@ by what signs it:
   window — so a thief holding only a signing key cannot outrun the
   holder of the recovery key.
 - Signed by neither — a **fresh identity**. The Declaration is accepted,
-  but `A` and `C` reset to zero and the domain re-enters Quarantine
+  but `A` and `C` reset to zero and the domain re-enters Provisional
   (DC-4 §6).
 
 A Publisher that loses both its signing keys and its recovery keys
