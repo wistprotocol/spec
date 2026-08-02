@@ -76,3 +76,14 @@ publisher = {
 }
 write_json(EXAMPLES / "publisher.json", sign_envelope("publisher", publisher, "test-k1"))
 print("dc1 publisher example written")
+
+# ----------------------------------------------------------------- DC-2: feed
+feed = {
+    "dc_version": "1.0.0",
+    "domain": "example.com",
+    "generated_at": "2026-08-02T12:00:00Z",
+    "deltas": [delta_id],
+    "next": None,
+}
+write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, "test-k1"))
+print("dc2 feed example written")
