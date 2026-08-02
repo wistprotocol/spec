@@ -90,6 +90,17 @@ feed = {
 write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, "test-k1"))
 print("dc2 feed example written")
 
+# ------------------------------------------------------------ DC-3: log anchor
+anchor = {
+    "dc_version": "1.0.0",
+    "log_id": "log.example.org",
+    "genesis_key": {"key_id": "test-agg-k1", "alg": "Ed25519",
+                    "public_key": b64u(pub_raw)},
+    "created_at": "2026-08-02T00:00:00Z",
+}
+write_json(EXAMPLES / "log-anchor.json", sign_envelope("anchor", anchor, "test-agg-k1"))
+print("dc3 log anchor example written")
+
 # ---------------------------------------------------------------- DC-3: block
 DC3 = ROOT / "vectors" / "dc3"
 DC3.mkdir(parents=True, exist_ok=True)

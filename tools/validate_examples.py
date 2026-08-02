@@ -69,6 +69,7 @@ INNER_KEY = {
     "block.json": None,  # block signs its header only — checked separately
     "checkpoint.json": "checkpoint", "snapshot-manifest.json": "manifest",
     "audit-record.json": "record", "registry-update.json": "update",
+    "log-anchor.json": "anchor",
 }
 
 def load_test_pubkey():
