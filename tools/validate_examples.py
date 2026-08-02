@@ -212,12 +212,36 @@ def _dc4_sampling():
     assert beta.hex() == v["beta_hex"], "beta mismatch"
     d8 = hashlib.sha256(beta + v["delta_id"].encode()).digest()[:8]
     assert d8.hex() == v["draw_first8_hex"], "draw bytes mismatch"
-    assert abs(int.from_bytes(d8, "big") / 2**64 - v["draw"]) < 1e-12, "draw mismatch"
-    for row in v["thresholds"]:
-        p = min(max(0.02 + 0.30 * (1 - row["reputation"]), 0.02), 0.50)
-        assert abs(p - row["p"]) < 1e-9, f"p mismatch at reputation {row['reputation']}"
-        assert row["selected"] == (v["draw"] < row["p"]), \
-            f"selection mismatch at reputation {row['reputation']}"
+    assert int.from_bytes(d8, "big") == v["D"], "D mismatch"
+    # The §4 selection test, recomputed in integers only. Every Delta named
+    # here must be a real Entry of the example Block, and its D must follow
+    # from beta and the Delta ID rather than being asserted.
+    par = v["parameters"]
+    assert (par["floor_1e7"], par["ceiling_1e7"], par["slope_per_micro"]) \
+        == (200_000, 5_000_000, 3), "sampling parameters drifted from §9"
+    seen = set()
+    for c in v["selection"]:
+        entry = block["entries"][c["entry_index"]]
+        did = "sha256:" + hashlib.sha256(rfc8785.dumps(entry["body"]["delta"])).hexdigest()
+        assert did == c["delta_id"], f"{c['label']}: delta_id is not that Entry's ID"
+        first8 = hashlib.sha256(beta + c["delta_id"].encode()).digest()[:8]
+        assert first8.hex() == c["draw_first8_hex"], f"{c['label']}: draw bytes"
+        D = int.from_bytes(first8, "big")
+        assert D == c["D"] and 0 <= D < 2**64, f"{c['label']}: D"
+        p_1e7 = min(max(par["floor_1e7"]
+                        + par["slope_per_micro"] * (1_000_000 - c["reputation_u"]),
+                        par["floor_1e7"]), par["ceiling_1e7"])
+        assert p_1e7 == c["p_1e7"], f"{c['label']}: p_1e7"
+        lhs, rhs = D * 10**7, p_1e7 * 2**64
+        assert (lhs, rhs) == (c["lhs"], c["rhs"]), f"{c['label']}: comparison operands"
+        assert c["selected"] == (lhs < rhs), f"{c['label']}: selection outcome"
+        # The integer test must agree with the rational it renders, at every
+        # published point: D/2^64 < p_1e7/1e7.
+        from fractions import Fraction
+        assert c["selected"] == (Fraction(D, 2**64) < Fraction(p_1e7, 10**7)), \
+            f"{c['label']}: integer test disagrees with the exact rational"
+        seen.add(c["selected"])
+    assert seen == {True, False}, "vector must show both a selected and a rejected Delta"
     # A proof for a different Block MUST NOT verify against this alpha: this is
     # what stops an Auditor reusing one draw across Blocks.
     assert not ecvrf.verify(pk, bytes(32), pi), "proof verified against wrong alpha"
@@ -273,10 +297,17 @@ def _dc4_appendix_figures():
     for field in ("block_hash", "alpha_hex", "vrf_proof_hex", "beta_hex",
                   "delta_id", "draw_first8_hex", "auditor_public_key"):
         assert v[field] in flat, f"DC-4 does not quote sampling.json {field}"
-    assert f"{v['draw']:.10f}" in flat, "DC-4 does not quote the sampling draw"
-    for row in v["thresholds"]:
-        assert f"| {row['reputation']:.2f}" in flat or f"{row['reputation']:.2f} " in flat, \
-            f"DC-4 does not quote reputation {row['reputation']}"
+    for c in v["selection"]:
+        for field in ("delta_id", "draw_first8_hex"):
+            assert c[field] in flat, f"DC-4 does not quote {c['label']} {field}"
+        for n in (c["D"], c["p_1e7"], c["reputation_u"]):
+            assert str(n) in flat or f"{n:,}".replace(",", " ") in flat, \
+                f"DC-4 does not quote {c['label']} value {n}"
+    # No floating-point rendering of the sampling rate may survive in §4's
+    # normative text: the integers are the definition, decimals only a reading.
+    section4 = flat.split("## 4. Audit Sampling")[1].split("## 5.")[0]
+    for stale in ("draw(d) <", "0.30 x (1 - reputation)", "clamp(0.02"):
+        assert stale not in section4, f"§4 still specifies sampling in floats: {stale!r}"
 check("spec:dc4-appendix-figures", _dc4_appendix_figures)
 
 # 5. DC-4 §6: reputation, recomputed from the normative decay table using
@@ -343,9 +374,10 @@ def _dc4_reputation():
         assert rep <= formula, "the Provisional cap acted as a floor"
         q = k["quota_base"] + k["quota_slope"] * rep // micro
         assert q == case["Q"], f"Q mismatch in {case['label']}"
+        # §4's integer sampling rate for this reputation, recomputed here.
         p = min(max(200_000 + 3 * (micro - rep), 200_000), 5_000_000)
-        assert p == case["p_scaled_1e7"], f"p mismatch in {case['label']}"
-        assert case["p"] == "0.%07d" % p, "decimal p does not match its scaled form"
+        assert p == case["p_1e7"], f"p_1e7 mismatch in {case['label']}"
+        assert case["p_readable"] == "0.%07d" % p, "readable p does not match p_1e7"
         return rep
 
     w = r["worked_example"]

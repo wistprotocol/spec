@@ -249,44 +249,94 @@ write_json(EXAMPLES / "registry-update.json",
 print("dc4 audit-record and registry-update examples written")
 
 # ------------------------------------------------------ DC-4: audit sampling
-# Worked VRF sampling vector (DC-4 §4). draw(d) = first 8 octets of
-# SHA-256(beta || UTF-8 of the full Delta ID string, "sha256:" prefix
-# included), read big-endian, divided by 2^64.
-draw_bytes = hashlib.sha256(beta + delta_id.encode()).digest()[:8]
-draw = int.from_bytes(draw_bytes, "big") / 2**64
+# Worked VRF sampling vector (DC-4 §4), computed the way §4 mandates: in
+# integers, with no float anywhere in the selection test.
+#   D(d)  = first 8 octets of SHA-256(beta || UTF-8 of the full Delta ID
+#           string, "sha256:" prefix included), big-endian
+#   p_1e7 = clamp(200000 + 3 x (1e6 - reputation_u), 200000, 5000000)
+#   select <=> D x 10^7 < p_1e7 x 2^64
+SAMPLING_FLOOR_1E7 = 200_000
+SAMPLING_CEILING_1E7 = 5_000_000
+SAMPLING_SLOPE = 3
+TWO_64 = 2**64
 
 
-def sampling_p(reputation: float) -> float:
-    """DC-4 §4: p(domain) = clamp(0.02 + 0.30 x (1 - reputation), 0.02, 0.50)."""
-    return round(min(max(0.02 + 0.30 * (1 - reputation), 0.02), 0.50), 4)
+def draw_D(beta_bytes: bytes, did: str) -> tuple[bytes, int]:
+    first8 = hashlib.sha256(beta_bytes + did.encode()).digest()[:8]
+    return first8, int.from_bytes(first8, "big")
 
 
-# Guard against the published figures drifting from the Parameter Registry.
-assert sampling_p(0.10) == 0.29 and sampling_p(0.90) == 0.05, "sampling p drifted"
+def sampling_p_1e7(reputation_u: int) -> int:
+    """DC-4 §4's sampling rate, scaled by 1e7. Exact: no rounding occurs."""
+    return min(max(SAMPLING_FLOOR_1E7 + SAMPLING_SLOPE * (10**6 - reputation_u),
+                   SAMPLING_FLOOR_1E7), SAMPLING_CEILING_1E7)
+
+
+def selected(D: int, p_1e7: int) -> bool:
+    return D * 10**7 < p_1e7 * TWO_64
+
+
+# Guard against the published figures drifting from the Parameter Registry:
+# 0.10 and 0.90 reputation read as p = 0.29 and 0.05.
+assert sampling_p_1e7(100_000) == 2_900_000 and sampling_p_1e7(900_000) == 500_000, \
+    "sampling p_1e7 drifted"
+assert sampling_p_1e7(10**6) == SAMPLING_FLOOR_1E7, "floor not reached at full reputation"
+assert sampling_p_1e7(0) == 3_200_000, "slope drifted"
 
 DC4 = ROOT / "vectors" / "dc4"
 DC4.mkdir(parents=True, exist_ok=True)
+
+# Two real Deltas of the same example Block, drawn against the same beta: the
+# first is selected by nobody, the last is selected by a Provisional domain's
+# rate. One selected and one not-selected case is what exercises the strict
+# inequality in both directions.
+selected_delta_id = "sha256:" + sha256_hex(rfc8785.dumps(entries[3]["body"]["delta"]))
+draw_bytes, D_primary = draw_D(beta, delta_id)
+sel_bytes, D_selected = draw_D(beta, selected_delta_id)
+
+selection_cases = []
+for label, did, dbytes, D in (
+        ("entry-0", delta_id, draw_bytes, D_primary),
+        ("entry-3", selected_delta_id, sel_bytes, D_selected)):
+    for rep_label, rep_u in (("provisional", 100_000), ("established", 900_000)):
+        p1e7 = sampling_p_1e7(rep_u)
+        selection_cases.append({
+            "label": f"{label}-{rep_label}",
+            "delta_id": did,
+            "entry_index": 0 if label == "entry-0" else 3,
+            "draw_first8_hex": dbytes.hex(),
+            "D": D,
+            "reputation_u": rep_u,
+            "p_1e7": p1e7,
+            "lhs": D * 10**7,
+            "rhs": p1e7 * TWO_64,
+            "selected": selected(D, p1e7),
+        })
+assert any(c["selected"] for c in selection_cases), "no selected case in the vector"
+assert not all(c["selected"] for c in selection_cases), "no rejected case in the vector"
+
 write_json(DC4 / "sampling.json", {
     "auditor_public_key": b64u(pub_raw),
     "ciphersuite": "ECVRF-EDWARDS25519-SHA512-TAI",
     "block_hash": block_hash,
     "alpha_hex": alpha.hex(), "vrf_proof_hex": pi.hex(), "beta_hex": beta.hex(),
-    "delta_id": delta_id, "draw_first8_hex": draw_bytes.hex(),
-    "draw": draw,
-    "thresholds": [
-        {"reputation": 0.10, "p": sampling_p(0.10), "selected": draw < sampling_p(0.10)},
-        {"reputation": 0.90, "p": sampling_p(0.90), "selected": draw < sampling_p(0.90)},
-    ],
+    "delta_id": delta_id, "draw_first8_hex": draw_bytes.hex(), "D": D_primary,
+    "test": "select <=> D x 10^7 < p_1e7 x 2^64  (integers only, DC-4 §4)",
+    "note": ("D, lhs and rhs exceed 2^53; a consumer whose JSON parser uses "
+             "IEEE-754 doubles MUST read D from draw_first8_hex and recompute "
+             "lhs/rhs as big integers."),
+    "parameters": {"floor_1e7": SAMPLING_FLOOR_1E7, "ceiling_1e7": SAMPLING_CEILING_1E7,
+                   "slope_per_micro": SAMPLING_SLOPE},
+    "selection": selection_cases,
 })
 print("dc4 sampling alpha:", alpha.hex())
 print("dc4 sampling pi:", pi.hex())
 print("dc4 sampling beta:", beta.hex())
-print("dc4 sampling draw[:8] hex:", draw_bytes.hex())
-print("dc4 sampling draw: %.10f" % draw)
-for rep in (0.10, 0.90):
-    p = sampling_p(rep)
-    print("dc4 sampling rep=%.2f: p=%.3f -> %s" % (
-        rep, p, "AUDIT" if draw < p else "no audit"))
+print("dc4 sampling draw[:8] hex:", draw_bytes.hex(), "D:", D_primary)
+for c in selection_cases:
+    print("dc4 sampling %-22s D=%-20d rep_u=%-7d p_1e7=%-8d -> %s" % (
+        c["label"], c["D"], c["reputation_u"], c["p_1e7"],
+        "AUDIT" if c["selected"] else "no audit"))
 
 # --------------------------------------------------------- DC-4: decay table
 # DC-4 §6.1: decay(t) = floor(exp(-t/180) * 1e9) for whole days 0..1825.
@@ -382,9 +432,8 @@ def reputation_case(label, age_days, distinct_urls, incidents, note=""):
     provisional = age_days < GATE_AGE_DAYS or c < GATE_C
     reputation_u = min(formula_u, PROVISIONAL_CAP) if provisional else formula_u
     quota = 100 + 10_000 * reputation_u // MICRO
-    # DC-4 §4's p(domain) is exact in decimal at this resolution:
-    # p x 1e7 = 200000 + 3 x (1e6 - reputation_u), clamped to [2e5, 5e6].
-    p_1e7 = min(max(200_000 + 3 * (MICRO - reputation_u), 200_000), 5_000_000)
+    # §4's sampling rate for this reputation, in §4's own integer scale.
+    p_1e7 = sampling_p_1e7(reputation_u)
     return {
         "label": label,
         "note": note,
@@ -401,8 +450,8 @@ def reputation_case(label, age_days, distinct_urls, incidents, note=""):
         "provisional": provisional,
         "reputation_u": reputation_u,
         "Q": quota,
-        "p_scaled_1e7": p_1e7,
-        "p": "0.%07d" % p_1e7,
+        "p_1e7": p_1e7,
+        "p_readable": "0.%07d" % p_1e7,
     }
 
 
@@ -473,7 +522,7 @@ write_json(DC4 / "reputation.json", {
 for case in [primary] + boundary:
     print("dc4 reputation %-24s A=%-4d C=%-3d penalty=%-12d formula=%-7d rep_u=%-7d Q=%-6d p=%s"
           % (case["label"], case["A"], case["C"], case["penalty_n"],
-             case["formula_u"], case["reputation_u"], case["Q"], case["p"]))
+             case["formula_u"], case["reputation_u"], case["Q"], case["p_readable"]))
 assert all(
     boundary[i]["reputation_u"] <= boundary[i + 1]["reputation_u"]
     for i in (0, 1, 3, 5)), "reputation fell when a gate lifted"

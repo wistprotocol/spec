@@ -37,8 +37,8 @@
     "provisional": false,
     "reputation_u": 359236,
     "Q": 3692,
-    "p_scaled_1e7": 2122292,
-    "p": "0.2122292",
+    "p_1e7": 2122292,
+    "p_readable": "0.2122292",
     "sealed_at": {
       "first_delta_block": "2026-08-02T13:00:00Z",
       "confirming_block": "2027-08-07T17:00:00Z",
@@ -61,8 +61,8 @@
       "provisional": true,
       "reputation_u": 100000,
       "Q": 1100,
-      "p_scaled_1e7": 2900000,
-      "p": "0.2900000"
+      "p_1e7": 2900000,
+      "p_readable": "0.2900000"
     },
     {
       "label": "gate-age-at",
@@ -79,8 +79,8 @@
       "provisional": false,
       "reputation_u": 136986,
       "Q": 1469,
-      "p_scaled_1e7": 2789042,
-      "p": "0.2789042"
+      "p_1e7": 2789042,
+      "p_readable": "0.2789042"
     },
     {
       "label": "gate-age-above",
@@ -97,8 +97,8 @@
       "provisional": false,
       "reputation_u": 138219,
       "Q": 1482,
-      "p_scaled_1e7": 2785343,
-      "p": "0.2785343"
+      "p_1e7": 2785343,
+      "p_readable": "0.2785343"
     },
     {
       "label": "gate-age-below-penalized",
@@ -121,8 +121,8 @@
       "provisional": true,
       "reputation_u": 76717,
       "Q": 867,
-      "p_scaled_1e7": 2969849,
-      "p": "0.2969849"
+      "p_1e7": 2969849,
+      "p_readable": "0.2969849"
     },
     {
       "label": "gate-age-at-penalized",
@@ -145,8 +145,8 @@
       "provisional": false,
       "reputation_u": 77413,
       "Q": 874,
-      "p_scaled_1e7": 2967761,
-      "p": "0.2967761"
+      "p_1e7": 2967761,
+      "p_readable": "0.2967761"
     },
     {
       "label": "gate-c-below",
@@ -163,8 +163,8 @@
       "provisional": true,
       "reputation_u": 100000,
       "Q": 1100,
-      "p_scaled_1e7": 2900000,
-      "p": "0.2900000"
+      "p_1e7": 2900000,
+      "p_readable": "0.2900000"
     },
     {
       "label": "gate-c-at",
@@ -181,8 +181,8 @@
       "provisional": false,
       "reputation_u": 1000000,
       "Q": 10100,
-      "p_scaled_1e7": 200000,
-      "p": "0.0200000"
+      "p_1e7": 200000,
+      "p_readable": "0.0200000"
     },
     {
       "label": "new-domain",
@@ -199,8 +199,8 @@
       "provisional": true,
       "reputation_u": 100000,
       "Q": 1100,
-      "p_scaled_1e7": 2900000,
-      "p": "0.2900000"
+      "p_1e7": 2900000,
+      "p_readable": "0.2900000"
     }
   ]
 }
