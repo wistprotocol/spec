@@ -220,6 +220,13 @@ makes unique and permanent. `response_hash`, `ref_extract_hash`, `similarity`, a
 included, because it is what establishes the Auditor's right and duty to
 have audited at all.
 
+Every Audit Record has an **Audit Record ID**: `"sha256:" + hex(SHA-256(JCS(record)))`
+— the record's inner object canonicalized and hashed under the same
+content-addressing construction DC-1 §4 uses for a Delta ID. A `sanction`'s
+`evidence` (§7) is a list of Audit Record IDs, so anyone can fetch exactly
+the Records a sanction claims to rest on and recompute what they establish,
+rather than trust the claim.
+
 The web is not deterministic; byte equality is never the criterion.
 
 The normative similarity metric is **Jaccard similarity over the sets of
@@ -484,8 +491,9 @@ measures *trustworthiness of process*, never *importance of content*.
 ## 7. Sanctions and Due Process
 
 Sanctions are graduated, logged, evidence-bound Registry Updates
-(`action: "sanction"`, `subject` = the domain, `evidence` = the Delta IDs
-of the Audit Records establishing the Confirmed Inconsistencies):
+(`action: "sanction"`, `subject` = the domain, `evidence` = the Audit
+Record IDs (§5) of the Audit Records establishing the Confirmed
+Inconsistencies):
 
 1. **Intensified sampling** — `p_1e7` raised to its maximum, 5 000 000
    (§4).
@@ -497,26 +505,46 @@ of the Audit Records establishing the Confirmed Inconsistencies):
 4. **Delisting** — the domain's Deltas are excluded from materialization
    (the log, as always, retains history).
 
+Severity is **derived from the evidence, not chosen**. For a Confirmed
+Inconsistency, let `sim` be the highest `similarity` among the confirming
+`inconsistent` Audit Records:
+
+| Condition | `severity` |
+|---|---|
+| 0.15 ≤ `sim` < 0.30 | 1 (minor divergence) |
+| 0.05 ≤ `sim` < 0.15 | 2 (misleading extract) |
+| `sim` < 0.05, or the claimed content is wholly absent | 3 (fabricated content) |
+
+A party recomputing reputation MUST recompute severity from the referenced
+Audit Records and MUST reject a `sanction` whose `details.severity`
+disagrees, or whose `evidence` does not establish a Confirmed
+Inconsistency under §5. The Aggregator therefore records sanctions; it
+does not decide their weight.
+
 Process requirements:
 
-- A `notice` Registry Update MUST precede any sanction above level 1,
-  naming the evidence and opening the appeal window. This applies to
-  sanction notices (`details.kind` `"sanction"`); a `notice` with
-  `details.kind` `"recovery"` opens the DC-1 §5.2 recovery window
-  instead and is not subject to the appeal process below.
-- The appeal window is 14 days from a sanction `notice`'s `effective_at`.
-  The Publisher appeals with an `appeal` Registry Update signed by its
-  own domain key (one of only two classes of Registry Update not signed by
-  the Aggregator; the other is `coverage_attestation`, §4).
-- An `appeal_ruling` closes the appeal with its reasoning in `details`.
-- `sanction_lift` reverses a sanction; like everything else it is
-  logged, permanent, and public.
-
-The ladder is proportionate: level 1 is automatic on a single Confirmed
-Inconsistency; levels 2–4 require escalation criteria in the Parameter
-Registry (defaults: level 2 at 3 Confirmed Inconsistencies within 90
-days; level 3 at 10 within 90 days or any severity-3; level 4 by
-`appeal_ruling` only, never automatically).
+- Levels 1–2 follow automatically from the escalation criteria; levels 3
+  and 4 MUST be preceded by a `notice` naming the evidence and opening the
+  appeal window. This applies to sanction notices (`details.kind`
+  `"sanction"`); a `notice` with `details.kind` `"recovery"` opens the
+  DC-1 §5.2 recovery window instead and is not subject to the appeal
+  process below.
+- Escalation criteria: level 1 at a single Confirmed Inconsistency; level
+  2 at 3 within 90 days; level 3 at 10 within 90 days, or any severity-3;
+  **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
+  a level-3 domain that accrues a further Confirmed Inconsistency**. Level
+  4 is never conditioned on whether the Publisher appealed.
+- The appeal window is 14 days from the `notice`'s `effective_at`. If it
+  lapses with no `appeal`, the sanction takes effect unchanged; there is no
+  silent reprieve and no penalty for silence.
+- An `appeal` is signed by the Publisher and MUST verify against the Key
+  Set current at the `notice`'s Block — not the present one — so that a
+  domain in key compromise or identity reset (DC-1 §5.2) can still appeal.
+- An `appeal_ruling` MUST be sealed within 30 days of the `appeal`
+  (Parameter Registry: ruling deadline). An appeal does not stay a sanction
+  unless the ruling says so; if the deadline passes with no ruling, the
+  sanction is automatically lifted by the next `sanction_lift` the
+  Aggregator MUST seal.
 
 ## 8. Constitutional Invariants
 
@@ -549,41 +577,73 @@ can amend them. Amending them requires a new major version of this suite
 Every numeric constant in the suite, with its normative default. Changes
 are made by `parameter_change` Registry Updates and MUST have
 `effective_at` ≥ 7 days after the Block's `sealed_at` (the grace period
-— itself a parameter, changeable only by the same process).
+— itself a parameter, changeable only by the same process). The
+**Identifier** column is the value `details.parameter` MUST carry
+(schema: `schemas/registry-update.schema.json`, §9.1); a parameter with no
+identifier is not independently amendable by `parameter_change` — it is
+either a fixed structural definition or, for the decay table digest,
+changed by publishing a new table (§6), never by a bare number.
 
-| Parameter | Default | Defined in |
-|---|---|---|
-| Block sealing cadence | 1 hour | DC-3 §3.2 |
-| Block decompressed size cap | 256 MiB | DC-3 §6 |
-| `extract` size cap | 32768 bytes | DC-1 §3.6 |
-| `summary` size cap | 2048 bytes | DC-1 §3.7 |
-| Feed window | 1000 IDs | DC-2 §3.2 |
-| Clock skew allowance | 10 minutes | DC-1 §3.4 |
-| Key Set cache TTL | 24 hours | DC-1 §5.1 |
-| Baseline feed poll interval | 24 hours | DC-2 §5 |
-| Sampling floor / ceiling (`p_1e7`) | 200 000 / 5 000 000 (reads as 0.02 / 0.50) | §4 |
-| Sampling reputation slope | 3 per micro-unit of reputation (reads as 0.30) | §4 |
-| Coverage duty deadline | 72 hours | §4 |
-| `coverage_failures_max` | 24 Blocks per 30 days | §4 |
-| Similarity thresholds (consistent / variance floor) | 0.60 / 0.30 | §5 |
-| Shingle size | 8 words | §5 |
-| Confirmation: auditors / window | 2 / 72 hours | §5 |
-| Age normalization | 730 days | §6 |
-| Reputation base at age 0 | 100 000 micro-units (= the Provisional cap) | §6 |
-| Penalty decay constant (1/e) | 180 days (the true half-life is 180·ln2 ≈ 124.8 days) | §6 |
-| Decay table horizon | 1825 days | §6 |
-| Decay table digest (SHA-256) | `f0cd1eb4…bfdf7dc1` | §6 |
-| Distinct-URL cap `C_cap` | 500 | §6 |
-| Reputation resolution | 1e-6 (micro-units) | §6 |
-| Penalty weight | 5 | §6 |
-| Provisional gates (age / distinct audited URLs) | 30 days / 10 | §6 |
-| Provisional reputation cap (ceiling, not floor) | 0.10 = 100 000 micro-units | §6 |
-| Ping quota base / slope | 100 / 10000 per day | §6 |
-| Inclusion latency threshold | reputation 0.5 = 500 000 micro-units | §6 |
-| Escalation: level 2 / level 3 | 3 in 90 days / 10 in 90 days or severity 3 | §7 |
-| Appeal window | 14 days | §7 |
-| Recovery window | 7 days | DC-1 §5.2 |
-| Parameter change grace period | 7 days | §9 |
+| Parameter | Identifier | Default | Defined in |
+|---|---|---|---|
+| Block sealing cadence | `block_cadence_seconds` | 1 hour | DC-3 §3.2 |
+| Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | DC-3 §6 |
+| `extract` size cap | `extract_cap_bytes` | 32768 bytes | DC-1 §3.6 |
+| `summary` size cap | `summary_cap_bytes` | 2048 bytes | DC-1 §3.7 |
+| Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
+| Clock skew allowance | `clock_skew_seconds` | 10 minutes | DC-1 §3.4 |
+| Key Set cache TTL | `keyset_cache_ttl_seconds` | 24 hours | DC-1 §5.1 |
+| Baseline feed poll interval | `baseline_poll_seconds` | 24 hours | DC-2 §5 |
+| Sampling floor / ceiling (`p_1e7`) | `sampling_floor` / `sampling_ceiling` | 200 000 / 5 000 000 (reads as 0.02 / 0.50) | §4 |
+| Sampling reputation slope | `sampling_slope` | 3 per micro-unit of reputation (reads as 0.30) | §4 |
+| Coverage duty deadline | `coverage_deadline_hours` | 72 hours | §4 |
+| `coverage_failures_max` | — | 24 Blocks per 30 days | §4 |
+| Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 0.60 / 0.30 | §5 |
+| Shingle size | `shingle_size` | 8 words | §5 |
+| Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
+| Age normalization | `age_norm_days` | 730 days | §6 |
+| Reputation base at age 0 | — | 100 000 micro-units (= the Provisional cap) | §6 |
+| Penalty decay constant (1/e) | `decay_constant_days` | 180 days (the true half-life is 180·ln2 ≈ 124.8 days) | §6 |
+| Decay table horizon | `decay_horizon_days` | 1825 days | §6 |
+| Decay table digest (SHA-256) | — | `f0cd1eb4…bfdf7dc1` | §6 |
+| Distinct-URL cap `C_cap` | `c_cap` | 500 | §6 |
+| Reputation resolution | — | 1e-6 (micro-units) | §6 |
+| Penalty weight | `penalty_weight` | 5 | §6 |
+| Provisional gates (age / distinct audited URLs) | `provisional_age_days` / `provisional_audits` | 30 days / 10 | §6 |
+| Provisional reputation cap (ceiling, not floor) | `provisional_cap_u` | 0.10 = 100 000 micro-units | §6 |
+| Ping quota base / slope | `quota_base` / `quota_slope` | 100 / 10000 per day | §6 |
+| Inclusion latency threshold | `latency_threshold_u` | reputation 0.5 = 500 000 micro-units | §6 |
+| Escalation: level 2 / level 3 | `escalation_l2` / `escalation_l3` | 3 in 90 days / 10 in 90 days or severity 3 | §7 |
+| Appeal window | `appeal_window_days` | 14 days | §7 |
+| Appeal ruling deadline | `ruling_deadline_days` | 30 days | §7 |
+| Recovery window | `recovery_window_days` | 7 days | DC-1 §5.2 |
+| Parameter change grace period | `param_grace_days` | 7 days | §9 |
+
+### 9.1. Registry Update `details` Contract
+
+`schemas/registry-update.schema.json` constrains `details` per `action`,
+mirroring §7 and §3:
+
+- `aggregator_key_add`, `auditor_admit`: `key_id`, `alg` (`"Ed25519"`), and
+  `public_key` (the raw Ed25519 public key, 43-character base64url).
+- `aggregator_key_remove`, `auditor_remove`: `key_id`.
+- `sanction`: `level` (1–4) and `severity` (1–3, §7); `evidence`
+  (top-level, not `details`) MUST be non-empty and name the Audit Record
+  IDs (§5) of the Records establishing the Confirmed Inconsistency.
+- `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
+  additionally requires `reason` and `appeal_deadline` (date-time, the
+  `effective_at` + the appeal window, §7); a `"recovery"` notice requires
+  nothing further (DC-1 §5.2).
+- `appeal_ruling`: `outcome` (`"upheld"` or `"overturned"`) and
+  `reasoning`.
+- `parameter_change`: `parameter`, one of the Identifier values in the
+  table above, and `value` (a number); `effective_at` MUST be ≥ 7 days
+  after the Block's `sealed_at`, as stated above.
+
+`sanction_lift`, `appeal`, and `coverage_attestation` carry an
+unconstrained `details` object; §4 and §7 govern their content in prose,
+not the schema. The same is true of any action a future major revision
+adds.
 
 ## 10. Security Considerations
 
@@ -640,6 +700,14 @@ are made by `parameter_change` Registry Updates and MUST have
 - **Sanction censorship.** An Aggregator cannot quietly suppress a
   sanction or an appeal: withholding log entries from some observers is
   equivocation, detectable and provable per DC-3 §5.
+- **Fabricated sanction severity is detectable by recomputation.** Severity
+  is derived from the confirming Audit Records' `similarity` values (§7),
+  not asserted by the Aggregator, so a `sanction` whose `details.severity`
+  overstates or understates what those Records show is objectively wrong.
+  A party recomputing reputation MUST reject such a sanction, and MUST
+  reject one whose `evidence` does not resolve to Audit Record IDs (§5)
+  establishing a Confirmed Inconsistency at all — a captured Aggregator
+  gains nothing by inflating or inventing a penalty.
 - **Griefing via false `inconsistent` verdicts.** A single hostile
   Auditor cannot harm anyone: confirmation requires a second independent
   `inconsistent` within 72 hours, and the sampling rule (§4) makes it
@@ -672,8 +740,8 @@ no private reputation channel.
 **Aggregator (governance side):**
 
 - [ ] Admits/removes Auditors only via logged Registry Updates (§3)
-- [ ] Applies sanctions only per the §7 ladder, with notice, evidence,
-      and appeal window
+- [ ] Applies sanctions only per the §7 ladder — evidence for every
+      sanction, notice and an appeal window for levels 3–4
 - [ ] Never suspends ingestion for a Provisional domain; only
       Sanctioned Quarantine or delisting rejects a Ping or pull (§6, §7)
 - [ ] Enforces the §8 invariants unconditionally
@@ -695,6 +763,7 @@ no private reputation channel.
 - [ ] Applies the Provisional cap as a ceiling, not a floor (§6.2), and
       resets `A`/`C` only for a fresh identity — never for an ordinary or
       recovery rotation (§6.3)
+- [ ] Recomputes severity from evidence and rejects unsupported sanctions (§7)
 
 ## Appendix A. Worked Sampling Example
 
