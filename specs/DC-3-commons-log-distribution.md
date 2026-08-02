@@ -116,30 +116,41 @@ Sibling **sides are not carried in the proof**: they are derived from
 `index` and `entry_count`, exactly as in RFC 6962, so that a proof
 authenticates the Entry's *position* as well as its membership.
 
-Verification:
+Verification MUST reconstruct the audit path exactly as RFC 6962 §2.1.1
+defines it (the `PATH(m, D[n])` function, with `entry_count` as the tree
+size *n* and `index` as *m*), applying this specification's leaf and
+node hashing (above). Concretely: start with `h = leaf(JCS(entry))` and
+walk from leaf to root, tracking the current node's own index within its
+level, `fn` (initially `index`), and the index of the last node at that
+level, `sn` (initially `entry_count - 1`). While `sn > 0`:
 
 ```
-verify(entry, index, entry_count, path, merkle_root):
-    require 0 <= index < entry_count
-    h = leaf(JCS(entry))
-    lo, hi = 0, entry_count            # current subtree range [lo, hi)
-    p = 0
-    while hi - lo > 1:
-        k = largest power of two < (hi - lo)   # RFC 6962 split
-        if index - lo < k:
-            require p < len(path)
-            h = node(h, path[p]); p += 1; hi = lo + k
-        else:
-            require p < len(path)
-            h = node(path[p], h); p += 1; lo = lo + k
-        # a subtree with a single child promotes it unchanged: no
-        # sibling is consumed, which the loop expresses by construction
-    require p == len(path)             # no unused siblings
-    accept iff "sha256:" + hex(h) == merkle_root
+if fn is odd:               # fn is a right child
+    consume the next path element as its LEFT sibling
+elif fn < sn:                # fn is a left child with a real sibling
+    consume the next path element as its RIGHT sibling
+else:                        # fn == sn, fn even: the lone, unpaired
+    consume nothing           # trailing node at this level, promoted
+                              # unchanged (matching the promotion rule above)
+fn = fn div 2; sn = sn div 2
 ```
 
-A verifier MUST reject a proof whose `path` length does not match the
-length this procedure consumes, and MUST reject `index >= entry_count`.
+The walk terminates when `sn == 0`; the resulting hash is accepted iff
+`"sha256:" + hex(h) == merkle_root`.
+
+A verifier MUST reject a proof when:
+
+- `index >= entry_count` or `index < 0`;
+- the proof's `entry_count` differs from the Block header's
+  `entry_count`, so that a forged tree size cannot reshape the
+  derivation;
+- the walk needs a `path` element beyond the ones supplied (it runs out
+  of siblings before `sn == 0`), or terminates with `path` elements left
+  unconsumed.
+
+Because the sides are derived from `index` and `entry_count` rather than
+read from the proof, a proof authenticates the Entry's position as well
+as its membership.
 
 Inclusion Proofs let a light client verify "this Delta is in the log"
 holding only a Block header, a Checkpoint, and the proof — the header is
@@ -307,8 +318,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Block before applying (§8)
 - [ ] When verifying an Inclusion Proof, derives sibling sides from
       `index` and `entry_count` rather than trusting side labels in the
-      proof, and rejects a shape-mismatched `path` or `index >=
-      entry_count` (§4)
+      proof, and rejects a shape-mismatched `path`, an `index` out of
+      range, or a proof `entry_count` that disagrees with the Block
+      header's (§4)
 - [ ] Binds the head Block to the Checkpoint and walks the chain backward
       from it (§5, §8)
 - [ ] Rejects Checkpoints older than the highest already verified (§5)
@@ -361,9 +373,16 @@ leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → d1142719...  (= n01)   # index 0 < k=2: sibling on the right
-h = node(h, n23)     → ad59dd32...  (= root)  # index 0 < k=1: sibling on the right  ✓
+h = node(h, leaf1)   → d1142719...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → ad59dd32...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
+
+This worked example only exercises `index` 0, which — being a uniform
+left-child at every level — cannot by itself distinguish a correct
+verifier from one that only handles the uniform-left/uniform-right cases.
+`tools/validate_examples.py`'s `merkle-exhaustive` check is the actual
+correctness evidence: it verifies every `index` for every tree size 1..64
+against a freshly generated audit path.
 
 The corresponding Checkpoint is
 [`examples/checkpoint.json`](../examples/checkpoint.json). The example
