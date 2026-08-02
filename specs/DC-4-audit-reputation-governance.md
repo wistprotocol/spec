@@ -71,7 +71,12 @@ An Audit Record signed by a key not admitted at the Record's `fetched_at`
 MUST be rejected by validators recomputing reputation. So MUST a Record
 whose `vrf_proof` does not verify — over the audited Block's Block Hash,
 under the key admitted at that Block's `sealed_at` (§4) — and one whose
-`audited_delta` is not in the selection set that proof determines (§4).
+`audited_delta` is not in the selection set that proof determines (§4). So
+MUST a Record whose `similarity` does not satisfy §5's condition for its
+own `verdict` — a `verdict: "inconsistent"` Record, for example, whose
+`similarity` is not below §5's threshold for that verdict is malformed
+evidence, not a divergent judgement call, and MUST NOT be allowed to leave
+`sim` (§7) resting on a value outside every severity band.
 
 That first rejection is scoped to reputation and does not reach coverage:
 an Auditor removed after a Block was sealed but before its coverage
@@ -208,7 +213,8 @@ An Audit Record's fields: `audited_delta` (the Delta ID under audit),
 `auditor_id` (the Auditor's hostname identity), `fetched_at` (when the
 Auditor fetched the URL), `response_hash` (SHA-256 of the raw response
 body), `ref_extract_hash` (SHA-256 of the Auditor's own reference
-extraction), `similarity` (the §5 metric value), `verdict`, and
+extraction), `similarity` (the §5 metric value, an integer in micro-units),
+`verdict`, and
 `evidence` (`warc:sha256:` + hash of the WARC capture, which the Auditor
 MUST preserve), and `vrf_proof` (the §4 VRF Proof over the Block Hash of
 the Block carrying the audited Delta, 80 octets as 160 lowercase hex
@@ -229,23 +235,33 @@ rather than trust the claim.
 
 The web is not deterministic; byte equality is never the criterion.
 
-The normative similarity metric is **Jaccard similarity over the sets of
-word 8-grams (shingles)** of (a) the audited Delta's `extract` and (b)
-the Auditor's own extraction of the fetched page, after Unicode NFC
-normalization, lowercasing, and whitespace collapsing. Verdicts:
+`similarity` is an integer in **micro-units** (0 … 1 000 000, the same
+resolution as `reputation_u`, §6), never a floating-point ratio. Let *A*
+be the set of word 8-grams (shingles) of the audited Delta's `extract`
+and *B* the same shingling of the Auditor's own extraction of the fetched
+page, both after Unicode NFC normalization, lowercasing, and whitespace
+collapsing:
+
+    similarity = floor((|A ∩ B| × 1 000 000) / |A ∪ B|)
+
+in exact integer arithmetic on the shingle sets' cardinalities — no
+floating-point Jaccard ratio is ever computed or compared, and no two
+conforming Auditors can disagree about a boundary case from rounding
+alone. When *A* and *B* are both empty, `similarity` = 1 000 000 (two
+empty extracts are identical). Verdicts:
 
 | Verdict | Condition |
 |---------|-----------|
-| `consistent` | similarity ≥ 0.60 |
-| `dynamic_variance` | 0.30 ≤ similarity < 0.60 |
-| `inconsistent` | similarity < 0.30 **and** the Delta's claimed content is absent from the fetched page |
+| `consistent` | `similarity` ≥ 600 000 |
+| `dynamic_variance` | 300 000 ≤ `similarity` < 600 000 |
+| `inconsistent` | `similarity` < 300 000 **and** the Delta's claimed content is absent from the fetched page |
 | `unreachable` | network or HTTP failure fetching the URL |
 
 For `attest` and `delete` Deltas (which carry no `extract`), the audit
 checks the asserted state: `attest` is `consistent` if the page's current
-extraction is ≥ 0.60-similar to the last content-bearing Delta in the
-per-URL chain; `delete` is `consistent` if the URL returns 404/410 or no
-longer carries indexable content.
+extraction has `similarity` ≥ 600 000 against the last content-bearing
+Delta in the per-URL chain; `delete` is `consistent` if the URL returns
+404/410 or no longer carries indexable content.
 
 `dynamic_variance` and `unreachable` are neutral: they never contribute
 to sanctions. Auditor re-fetches of content URLs respect `robots.txt`
@@ -346,7 +362,7 @@ lower bound, and everything from height 0 counts.
   is sealed above the domain's most recent identity reset and at a height
   ≤ N count. For each such Confirmed Inconsistency *i*: `s_i` ∈ {1 = minor
   divergence, 2 = misleading extract, 3 = fabricated content} is computed
-  from the confirming Audit Records by the §7 severity table —
+  from its confirming Records (§7) by the §7 severity table —
   independently of whether any `sanction` Registry Update exists for it —
   and `t_i` is the whole days between the `sealed_at` of the **confirming
   Block** and the `sealed_at` of Block N. The confirming Block is the one
@@ -356,8 +372,8 @@ lower bound, and everything from height 0 counts.
   height that fixes `t_i` is the height at which the Confirmed
   Inconsistency begins contributing to `penalty_n`, whether or not the
   Aggregator ever files a `sanction` for it. Records beyond that one — a
-  third or fourth `inconsistent` verdict — do not move the date and do not
-  create a second Confirmed Inconsistency.
+  third or fourth `inconsistent` verdict — do not move the date, do not
+  move `sim` (§7), and do not create a second Confirmed Inconsistency.
 - **`decay(t)`** is read from the normative decay table
   ([`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json)): an
   array of 1826 integers, `decay(t) = floor(exp(−t / 180) × 1e9)` — the
@@ -509,15 +525,23 @@ Inconsistencies):
 4. **Delisting** — the domain's Deltas are excluded from materialization
    (the log, as always, retains history).
 
-Severity is **derived from the evidence, not chosen**. For a Confirmed
-Inconsistency, let `sim` be the highest `similarity` among the confirming
-`inconsistent` Audit Records:
+Severity is **derived from the evidence, not chosen**. The **confirming
+Records** of a Confirmed Inconsistency are exactly the `inconsistent`
+Audit Records for that Delta, in Log order (ascending Block height, then
+ascending Entry index within a Block), from the first such verdict
+through the Record at which §5's confirmation predicate is first
+satisfied — the same closed set §6.1 uses to fix `t_i`; a Record sealed
+after that point is not a confirming Record and moves neither `t_i` nor
+`sim` (§6.1). For a Confirmed Inconsistency, let `sim` be the highest
+`similarity` among its confirming Records: the set is closed before the
+extremum is taken, so a Record arriving after confirmation cannot lower
+severity by outbidding the ones that established it.
 
 | Condition | `severity` |
 |---|---|
-| 0.15 ≤ `sim` < 0.30 | 1 (minor divergence) |
-| 0.05 ≤ `sim` < 0.15 | 2 (misleading extract) |
-| `sim` < 0.05 | 3 (fabricated content) |
+| 150 000 ≤ `sim` < 300 000 | 1 (minor divergence) |
+| 50 000 ≤ `sim` < 150 000 | 2 (misleading extract) |
+| `sim` < 50 000 | 3 (fabricated content) |
 
 A party recomputing reputation locates every Confirmed Inconsistency
 directly from Audit Records under §5 — no `sanction` Registry Update is
@@ -541,7 +565,7 @@ Process requirements:
 - Levels 1–2 follow automatically from the escalation criteria; levels 3
   and 4 MUST be preceded by a `notice` naming the evidence and opening the
   appeal window. Levels 1–2 need neither: their entire basis — the
-  confirming Audit Records and the §7 severity table below — is already
+  confirming Audit Records and the §7 severity table above — is already
   public and independently recomputable, so there is nothing a notice
   would let the Publisher contest that a replaying party cannot already
   verify for itself; this holds even for level 2's weight reduction, which
@@ -554,6 +578,18 @@ Process requirements:
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
   a level-3 domain that accrues a further Confirmed Inconsistency**. Level
   4 is never conditioned on whether the Publisher appealed.
+- Levels 3 and 4 are themselves derived, mirroring severity above and the
+  deadline rule below: once the escalation criteria above are met at some
+  height N, the corresponding state — ingestion rejected (level 3) or
+  excluded from materialization (level 4) — is in force on recomputation
+  from N's Block onward, whether or not the Aggregator has sealed the
+  `notice` and `sanction` that formally record it. This governs
+  recomputation only: the Aggregator's own conduct still MUST issue the
+  `notice` before it enforces the rejection or exclusion in real time, so
+  a Publisher retains its chance to appeal before the Aggregator itself
+  acts. A captured Aggregator that never files either cannot spare a
+  qualifying domain — a party replaying the Log arrives at the level-3 or
+  level-4 state independently of what the Aggregator chose to record.
 - The appeal window is 14 days from the `notice`'s `effective_at`. If it
   lapses with no `appeal`, the sanction takes effect unchanged; there is no
   silent reprieve and no penalty for silence.
@@ -610,6 +646,17 @@ identifier is not independently amendable by `parameter_change` — it is
 either a fixed structural definition or, for the decay table digest,
 changed by publishing a new table (§6), never by a bare number.
 
+A `parameter_change` MUST NOT make a §7 severity band unreachable, and
+MUST NOT set a confirmation or weight parameter (`confirm_auditors`,
+`penalty_weight`, and any later parameter serving the same role) to a
+value that nullifies the mechanism implementing a §8 invariant. The
+schema enforces this wherever it reduces to a single numeric floor
+(`penalty_weight` ≥ 1, `confirm_auditors` ≥ 2, `similarity_variance_floor`
+> 150 000); where it does not — a value that is individually in range but
+collapses a band only in combination with another parameter's current
+value — a party recomputing reputation MUST reject the `parameter_change`
+directly against this sentence rather than apply it.
+
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
 | Block sealing cadence | `block_cadence_seconds` | 1 hour | DC-3 §3.2 |
@@ -624,7 +671,7 @@ changed by publishing a new table (§6), never by a bare number.
 | Sampling reputation slope | `sampling_slope` | 3 per micro-unit of reputation (reads as 0.30) | §4 |
 | Coverage duty deadline | `coverage_deadline_hours` | 72 hours | §4 |
 | `coverage_failures_max` | — | 24 Blocks per 30 days | §4 |
-| Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 0.60 / 0.30 | §5 |
+| Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
 | Shingle size | `shingle_size` | 8 words | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
@@ -658,13 +705,15 @@ mirroring §7 and §3:
   (§5) of the concurring, independent Auditors' Records that establish
   the Confirmed Inconsistency (§5's own minimum).
 - `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
-  additionally requires `reason` and `appeal_deadline` (date-time, the
-  `effective_at` + the appeal window, §7); a `"recovery"` notice requires
-  nothing further (DC-1 §5.2).
+  additionally requires `reason`, `appeal_deadline` (date-time, the
+  `effective_at` + the appeal window, §7), and a top-level `evidence`
+  naming what the notice is about; a `"recovery"` notice requires nothing
+  further (DC-1 §5.2).
 - `appeal_ruling`: `outcome` (`"upheld"` or `"overturned"`) and
   `reasoning`.
 - `parameter_change`: `parameter`, one of the Identifier values in the
-  table above, and `value` (a number); `effective_at` MUST be ≥ 7 days
+  table above, and `value` (a number, bounded per the sentence above
+  where a single numeric floor exists); `effective_at` MUST be ≥ 7 days
   after the Block's `sealed_at`, as stated above.
 
 `sanction_lift`, `appeal`, and `coverage_attestation` carry an

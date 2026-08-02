@@ -526,22 +526,32 @@ def _dc4_severity_bands():
     """DC-4 §7's severity table drives `penalty_n` directly (§6.1), so a
     collapsed or unreachable band silently changes every domain's
     reputation rather than merely misdocumenting one. Confirms all three
-    severities are reachable from `sim` alone and that no row rests on a
-    term needing its own definition (e.g. "wholly absent").
+    severities are reachable from `sim` alone (now an integer, §5), that
+    no row rests on a term needing its own definition (e.g. "wholly
+    absent"), and that the reachable range tracks §5's own `inconsistent`
+    threshold rather than a value copied once and then hardcoded — a
+    mutation of §5's threshold that collapses a band must fail here.
     """
     spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
     section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
-    for row in ("| 0.15 ≤ `sim` < 0.30 | 1 (minor divergence) |",
-                "| 0.05 ≤ `sim` < 0.15 | 2 (misleading extract) |",
-                "| `sim` < 0.05 | 3 (fabricated content) |"):
+    for row in ("| 150 000 ≤ `sim` < 300 000 | 1 (minor divergence) |",
+                "| 50 000 ≤ `sim` < 150 000 | 2 (misleading extract) |",
+                "| `sim` < 50 000 | 3 (fabricated content) |"):
         assert row in section7, f"DC-4 §7 no longer carries the severity row {row!r}"
     assert "wholly absent" not in section7, \
         "DC-4 §7's severity table still conditions a band on an undefined term"
 
-    LOW, MID, HIGH = 0.05, 0.15, 0.30   # exactly the boundaries pinned above
+    # HIGH is read from §5's own `inconsistent` threshold, not copied and
+    # frozen here: a future edit that narrows or widens it must change what
+    # this check exercises, or a collapsed band goes undetected again.
+    m = re.search(r"\|\s*`inconsistent`\s*\|\s*`similarity`\s*<\s*([\d ]+?)\s*\*\*and\*\*", section5)
+    assert m, "DC-4 §5 does not state the `inconsistent` threshold in the expected form"
+    HIGH = int(m.group(1).replace(" ", ""))
+    LOW, MID = 50_000, 150_000   # exactly the §7 table boundaries pinned above
 
     def severity(sim):
-        assert 0 <= sim < HIGH, f"{sim} is not a valid Confirmed-Inconsistency sim (§5: < 0.30)"
+        assert 0 <= sim < HIGH, f"{sim} is not a valid Confirmed-Inconsistency sim (§5: < {HIGH})"
         if sim >= MID:
             return 1
         if sim >= LOW:
@@ -549,17 +559,17 @@ def _dc4_severity_bands():
         return 3
 
     # Construct a Confirmed Inconsistency's confirming Audit Records (§5:
-    # both `inconsistent`, i.e. similarity < 0.30) at a similarity that
+    # both `inconsistent`, i.e. similarity < HIGH) at a similarity that
     # lands the CI's `sim` (the highest of the two) in each band.
     cases = [
-        ([0.22, 0.18], 1, "minor divergence"),
-        ([0.12, 0.09], 2, "misleading extract"),
-        ([0.04, 0.01], 3, "fabricated content"),
+        ([220_000, 180_000], 1, "minor divergence"),
+        ([120_000, 90_000], 2, "misleading extract"),
+        ([40_000, 10_000], 3, "fabricated content"),
     ]
     seen = set()
     for sims, expected, label in cases:
         records = [{"similarity": s, "verdict": "inconsistent"} for s in sims]
-        assert all(r["verdict"] == "inconsistent" and r["similarity"] < 0.30
+        assert all(r["verdict"] == "inconsistent" and r["similarity"] < HIGH
                    for r in records), f"{label}: constructed records are not valid confirming Records"
         sim = max(r["similarity"] for r in records)
         got = severity(sim)
@@ -568,25 +578,22 @@ def _dc4_severity_bands():
     assert seen == {1, 2, 3}, f"the three worked cases do not cover all three severities: {seen}"
 
     # No reachable similarity value maps to a band the table cannot
-    # produce: scan the whole confirmable range at fine resolution and
-    # confirm every one of the three severities is actually produced. A
-    # collapsed table (e.g. severity 3 for nearly everything) would still
-    # run without error but never emit a 1.
-    reachable = set()
-    steps = 3000
-    for i in range(steps):
-        sim = round((HIGH * i) / steps, 6)
-        reachable.add(severity(sim))
+    # produce: `similarity` is an integer (§5), so the reachable range is
+    # finite and exactly enumerable — every integer in [0, HIGH) is
+    # checked, not a sample. A collapsed table (e.g. severity 3 for nearly
+    # everything, or band 1 emptied by a narrowed HIGH) would still run
+    # without error but never emit a 1.
+    reachable = {severity(sim) for sim in range(HIGH)}
     assert reachable == {1, 2, 3}, \
         f"severity table does not produce all three bands across [0, {HIGH}): got {reachable}"
 
     # Exact boundary behaviour, matching the table's own "≤" / "<" reading.
-    # Pinned to literal values, not to LOW/MID/HIGH: a mutation of those
+    # Pinned to literal integers, not to LOW/MID/HIGH: a mutation of those
     # variables must be caught here rather than checked against itself.
-    assert severity(0.15) == 1 and severity(0.15 - 1e-6) == 2, \
-        "the level 1 / level 2 boundary is not at sim = 0.15"
-    assert severity(0.05) == 2 and severity(0.05 - 1e-6) == 3, \
-        "the level 2 / level 3 boundary is not at sim = 0.05"
+    assert severity(150_000) == 1 and severity(149_999) == 2, \
+        "the level 1 / level 2 boundary is not at sim = 150 000"
+    assert severity(50_000) == 2 and severity(49_999) == 3, \
+        "the level 2 / level 3 boundary is not at sim = 50 000"
 check("spec:dc4-severity-bands", _dc4_severity_bands)
 
 def _negative_index():
