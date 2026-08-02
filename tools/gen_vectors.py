@@ -10,6 +10,8 @@ import rfc8785
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from merkle import audit_path, leaf_hash, node_hash
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DC1 = ROOT / "vectors" / "dc1"
 EXAMPLES = ROOT / "examples"
@@ -92,12 +94,6 @@ print("dc2 feed example written")
 DC3 = ROOT / "vectors" / "dc3"
 DC3.mkdir(parents=True, exist_ok=True)
 
-def leaf_hash(b: bytes) -> bytes:
-    return hashlib.sha256(b"\x00" + b).digest()
-
-def node_hash(l: bytes, r: bytes) -> bytes:
-    return hashlib.sha256(b"\x01" + l + r).digest()
-
 def attest_delta(n: int, prev_id: str) -> dict:
     inner = {
         "dc_version": "1.0.0",
@@ -146,7 +142,7 @@ block = {"header": header, "entries": entries,
          "sig": {"key_id": "test-agg-k1", "alg": "Ed25519", "value": b64u(block_sig)}}
 
 inclusion_proof = {"index": 0, "entry_count": len(entries),
-                   "path": [leaves[1].hex(), n23.hex()]}
+                   "path": [h.hex() for h in audit_path(0, leaves)]}
 
 write_json(DC3 / "block.json", block)
 write_json(DC3 / "inclusion-proof.json", inclusion_proof)

@@ -6,6 +6,8 @@ import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator
 
+from merkle import audit_path, leaf_hash, merkle_root, node_hash
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 failures = []
 
@@ -20,25 +22,34 @@ def check(label, fn):
 def b64u_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
-def leaf_hash(b): return hashlib.sha256(b"\x00" + b).digest()
-def node_hash(l, r): return hashlib.sha256(b"\x01" + l + r).digest()
-
 def verify_inclusion(block, proof):
+    """RFC 6962 audit-path verification (DC-3 §4).
+
+    Walks from the leaf to the root using the node's own index (`fn`) and
+    the index of the last node at the current level (`sn`), rather than
+    reading a claimed "side" out of the proof: `fn` odd means the node is a
+    right child (its sibling, consumed from `path`, is on the left); `fn`
+    even and `fn < sn` means it's a left child with a real right sibling
+    (consumed on the right); `fn == sn` (even) means it is the lone,
+    unpaired trailing node at this level and is promoted unchanged,
+    consuming nothing. This is what makes a proof authenticate `index`
+    itself, not just membership: an attacker cannot relabel `index` without
+    changing which siblings the walk demands.
+    """
     idx, n, path = proof["index"], proof["entry_count"], proof["path"]
-    assert n == len(block["entries"]), "entry_count mismatch"
     assert 0 <= idx < n, "index out of range"
+    assert n == block["header"]["entry_count"], "entry_count mismatch"
     h = leaf_hash(rfc8785.dumps(block["entries"][idx]))
-    lo, hi, p = 0, n, 0
-    while hi - lo > 1:
-        k = 1
-        while k * 2 < hi - lo:
-            k *= 2
-        assert p < len(path), "path too short"
-        sib = bytes.fromhex(path[p]); p += 1
-        if idx - lo < k:
-            h = node_hash(h, sib); hi = lo + k
-        else:
-            h = node_hash(sib, h); lo = lo + k
+    fn, sn, p = idx, n - 1, 0
+    while sn > 0:
+        if fn % 2 == 1:                 # fn is a right child: sibling on the left
+            assert p < len(path), "path too short"
+            h = node_hash(bytes.fromhex(path[p]), h); p += 1
+        elif fn < sn:                   # fn is a left child with a real sibling
+            assert p < len(path), "path too short"
+            h = node_hash(h, bytes.fromhex(path[p])); p += 1
+        # else: fn == sn, fn even -> lone node, promoted unchanged, no proof consumed
+        fn //= 2; sn //= 2
     assert p == len(path), "unused path elements"
     assert "sha256:" + h.hex() == block["header"]["merkle_root"], "root mismatch"
 
@@ -131,6 +142,51 @@ def _merkle_empty():
     assert expected == "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", \
         "empty-tree constant drifted"
 check("merkle-empty", _merkle_empty)
+
+def _merkle_exhaustive():
+    """Property test — the real acceptance criterion for verify_inclusion.
+
+    A single index-0 vector cannot expose a verifier that only handles
+    uniform-left or uniform-right walks: index 0 is a left child at every
+    level and index n-1 a right child at every level, so a verifier that
+    derives direction incorrectly still accepts both while silently
+    miscomputing every interior index. This builds a synthetic tree for
+    every size n in 1..64 and, for every valid index, checks that
+    verify_inclusion (a) accepts the correct audit path, (b) rejects that
+    same path under every other in-range `index` (position is
+    authenticated, not just membership), and (c) rejects it with one
+    sibling removed or one appended (the path's length is bound to
+    `index`/`entry_count`, not read off the proof).
+    """
+    def _expect_reject(block, proof):
+        try:
+            verify_inclusion(block, proof)
+        except Exception:
+            return
+        raise AssertionError(
+            f"expected rejection, got acceptance: entry_count={proof['entry_count']} "
+            f"claimed_index={proof['index']} path_len={len(proof['path'])}")
+
+    exercised = 0
+    for n in range(1, 65):
+        entries = [{"i": j} for j in range(n)]
+        leaves = [leaf_hash(rfc8785.dumps(e)) for e in entries]
+        root = "sha256:" + merkle_root(leaves).hex()
+        block = {"header": {"entry_count": n, "merkle_root": root}, "entries": entries}
+        for idx in range(n):
+            path_hex = [h.hex() for h in audit_path(idx, leaves)]
+            proof = {"index": idx, "entry_count": n, "path": path_hex}
+            verify_inclusion(block, proof)                    # (a) correct proof verifies
+            exercised += 1
+            for other in range(n):                            # (b) position authentication
+                if other != idx:
+                    _expect_reject(block, {**proof, "index": other})
+            if path_hex:                                      # (c) path too short
+                _expect_reject(block, {**proof, "path": path_hex[:-1]})
+            filler = path_hex[0] if path_hex else leaves[0].hex()
+            _expect_reject(block, {**proof, "path": path_hex + [filler]})  # path too long
+    assert exercised == sum(range(1, 65)), "did not exercise every (n, index) pair"
+check("merkle-exhaustive", _merkle_exhaustive)
 
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""
