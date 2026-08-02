@@ -1,13 +1,8 @@
 {
   "index": 0,
+  "entry_count": 4,
   "path": [
-    {
-      "side": "right",
-      "hash": "0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260"
-    },
-    {
-      "side": "right",
-      "hash": "71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882077495a760b"
-    }
+    "0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260",
+    "71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882077495a760b"
   ]
 }
