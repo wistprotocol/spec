@@ -136,18 +136,24 @@ allocated.
 either an Audit Record or, when it cannot fetch at all, a Record with
 verdict `unreachable`, within 72 hours of the Block's `sealed_at`. The duty
 attaches to every Block sealed while the Auditor is admitted, and to no
-other Block. An Auditor is **in breach for Block *B*** if, 72 hours after
-*B*'s `sealed_at`, the log holds no Record from it for some Delta its VRF
-selected in *B*; because `pi` pins the selection set exactly, breach is an
-objective and recomputable fact rather than a judgement. An Auditor that
-repeatedly fails its coverage duty is removed by `auditor_remove` (§3),
-whose `evidence` MUST name the breached Blocks.
+other Block. Because `pi` pins the selection set exactly, failure is an
+objective and recomputable fact rather than a judgement.
 
-An Auditor whose VRF selects nothing in *B* emits no Record and therefore
-publishes no `pi` for *B*. It MUST nonetheless be able to produce `pi` for
-*B* on challenge, and an Auditor that cannot is in breach for *B*: without
-this rule an empty selection set and a wholly shirked one would be
-indistinguishable (§10).
+The duty is verifiable in-band, because the VRF proof reaches the Log for
+every Block whether or not anything was selected: for each sealed Block, an
+Auditor MUST publish either at least one Audit Record carrying its
+`vrf_proof` for that Block, or — when its VRF selects no Delta in that
+Block — a `coverage_attestation` Registry Update carrying the same proof
+and nothing else. An Auditor with neither, at the coverage deadline, has
+failed its duty for that Block; an Auditor that fails it for more than
+`coverage_failures_max` Blocks in any 30-day window (Parameter Registry;
+default 24) is removed by `auditor_remove` (§3), whose `evidence` MUST name
+the failed Blocks. Without the attestation, an Auditor that simply does
+nothing would be indistinguishable from one whose VRF selected nothing.
+
+`coverage_attestation` is the second class of Registry Update not signed by
+the Aggregator (the first is `appeal`, §7): the Auditor signs it with its
+own admitted key, and its `subject` is the Auditor's `auditor_id`.
 
 Worked numbers for this section — real values from `vectors/dc4/sampling.json`
 — are in the Appendix.
@@ -270,8 +276,8 @@ Process requirements:
   instead and is not subject to the appeal process below.
 - The appeal window is 14 days from a sanction `notice`'s `effective_at`.
   The Publisher appeals with an `appeal` Registry Update signed by its
-  own domain key (the one class of Registry Update not signed by the
-  Aggregator).
+  own domain key (one of only two classes of Registry Update not signed by
+  the Aggregator; the other is `coverage_attestation`, §4).
 - An `appeal_ruling` closes the appeal with its reasoning in `details`.
 - `sanction_lift` reverses a sanction; like everything else it is
   logged, permanent, and public.
@@ -328,6 +334,7 @@ are made by `parameter_change` Registry Updates and MUST have
 | Sampling floor / ceiling | 0.02 / 0.50 | §4 |
 | Sampling reputation slope | 0.30 | §4 |
 | Coverage duty deadline | 72 hours | §4 |
+| Coverage failures allowed | 24 Blocks per 30 days | §4 |
 | Similarity thresholds (consistent / variance floor) | 0.60 / 0.30 | §5 |
 | Shingle size | 8 words | §5 |
 | Confirmation: auditors / window | 2 / 72 hours | §5 |
@@ -359,14 +366,16 @@ are made by `parameter_change` Registry Updates and MUST have
   the Aggregator MAY still commission overlapping audits and compare
   outcomes; systematic divergence by one Auditor remains grounds for
   `auditor_remove`, in the log with evidence like any sanction.
-- **Silent shirking of an empty selection set.** An Auditor that selects
-  nothing in a Block publishes nothing, so its `pi` for that Block is never
-  in the log and third parties cannot confirm the set really was empty.
-  This is the one gap the VRF does not close on its own; §4 closes it by
-  obliging the Auditor to produce `pi` for any Block in its admitted window
-  on challenge. Implementations SHOULD challenge periodically at random
-  rather than only on suspicion, since selective challenge is itself
-  steerable.
+- **Shirking is detectable from the Log alone.** Every Block in an
+  Auditor's admitted window has exactly one of two artefacts in the Log
+  bearing that Auditor's `vrf_proof`: an Audit Record, or a
+  `coverage_attestation` where the VRF selected nothing (§4). An Auditor
+  that audits nothing and attests nothing is therefore not merely suspected
+  but demonstrated, by any party replaying the Log, with no challenge
+  protocol, no side channel, and no cooperation from the Auditor. Since the
+  proof is published either way, an Auditor cannot hide behind "my VRF
+  selected nothing": that claim is now a signed, falsifiable statement whose
+  proof anyone can check against the Block Hash.
 - **Reputation gaming via attest-farming.** A domain cannot inflate `C`
   by emitting torrents of trivially-true `attest` Deltas: audits of
   `attest` Deltas never increment `C` (§6). Only content-bearing Deltas
@@ -399,7 +408,8 @@ no private reputation channel.
 
 - [ ] Audits exactly its VRF-selected set and publishes `vrf_proof` (§4)
 - [ ] Meets the coverage duty for every Block sealed while admitted, within
-      72 hours of `sealed_at` (§4)
+      72 hours of `sealed_at` — a Record, or a `coverage_attestation` when
+      its VRF selected nothing (§4)
 - [ ] Computes similarity with the normative §5 metric and thresholds
 - [ ] Emits `unreachable` (never `inconsistent`) for robots.txt-forbidden
       or failed fetches
