@@ -24,11 +24,23 @@ def leaf_hash(b): return hashlib.sha256(b"\x00" + b).digest()
 def node_hash(l, r): return hashlib.sha256(b"\x01" + l + r).digest()
 
 def verify_inclusion(block, proof):
-    h = leaf_hash(rfc8785.dumps(block["entries"][proof["index"]]))
-    for step in proof["path"]:
-        sib = bytes.fromhex(step["hash"])
-        h = node_hash(sib, h) if step["side"] == "left" else node_hash(h, sib)
-    assert "sha256:" + h.hex() == block["header"]["merkle_root"], "inclusion proof mismatch"
+    idx, n, path = proof["index"], proof["entry_count"], proof["path"]
+    assert n == len(block["entries"]), "entry_count mismatch"
+    assert 0 <= idx < n, "index out of range"
+    h = leaf_hash(rfc8785.dumps(block["entries"][idx]))
+    lo, hi, p = 0, n, 0
+    while hi - lo > 1:
+        k = 1
+        while k * 2 < hi - lo:
+            k *= 2
+        assert p < len(path), "path too short"
+        sib = bytes.fromhex(path[p]); p += 1
+        if idx - lo < k:
+            h = node_hash(h, sib); hi = lo + k
+        else:
+            h = node_hash(sib, h); lo = lo + k
+    assert p == len(path), "unused path elements"
+    assert "sha256:" + h.hex() == block["header"]["merkle_root"], "root mismatch"
 
 # 1. Schema validation: examples/<stem>.json <-> schemas/<stem>.schema.json
 for example in sorted((ROOT / "examples").glob("*.json")):
@@ -120,23 +132,6 @@ def _merkle_empty():
         "empty-tree constant drifted"
 check("merkle-empty", _merkle_empty)
 
-XFAIL_KNOWN_DEFECTS = {"negative:falsified-index"}
-
-def check_xfail(label, fn):
-    """A check known to fail against a defect not yet fixed in the spec.
-
-    Reports XFAIL (non-fatal) while it still fails, and FAIL — fatal — the
-    moment it starts passing without the marker being removed, so the marker
-    cannot silently outlive the defect it documents.
-    """
-    try:
-        fn()
-    except Exception:
-        print(f"XFAIL {label} (known defect)")
-        return
-    failures.append(label)
-    print(f"FAIL {label}: now passing — remove it from XFAIL_KNOWN_DEFECTS")
-
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""
     import copy
@@ -156,6 +151,6 @@ def _negative_index():
     except Exception:
         return  # correctly rejected
     raise AssertionError("falsified index verified — index is unauthenticated")
-check_xfail("negative:falsified-index", _negative_index)
+check("negative:falsified-index", _negative_index)
 
 sys.exit(1 if failures else 0)

@@ -103,17 +103,43 @@ level**. The root of a single-entry Block is that Entry's leaf hash. The
 `merkle_root` of an empty Block is `"sha256:" + hex(SHA-256(0x00))` (the
 leaf hash of zero bytes).
 
-An Inclusion Proof for Entry *i* is `{"index": i, "path": [{"side":
-"left"|"right", "hash": <hex>}, ...]}`, listing sibling hashes from leaf
-level upward. Verification:
+> **Deviation from RFC 6962.** For the empty tree, RFC 6962 defines
+> MTH({}) = SHA-256(""), while this specification uses the leaf hash of
+> zero bytes: SHA-256(0x00) =
+> `6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d`.
+> Non-empty trees are identical to RFC 6962. Implementers wiring in an
+> existing Certificate Transparency library MUST special-case empty Blocks.
+
+An Inclusion Proof for Entry *i* of a Block with *n* Entries is
+`{"index": i, "entry_count": n, "path": [<hex sibling hash>, ...]}`.
+Sibling **sides are not carried in the proof**: they are derived from
+`index` and `entry_count`, exactly as in RFC 6962, so that a proof
+authenticates the Entry's *position* as well as its membership.
+
+Verification:
 
 ```
-h = leaf(JCS(entry[i]))
-for step in path:
-    h = node(step.hash, h)  if step.side == "left"
-    h = node(h, step.hash)  if step.side == "right"
-accept iff "sha256:" + hex(h) == header.merkle_root
+verify(entry, index, entry_count, path, merkle_root):
+    require 0 <= index < entry_count
+    h = leaf(JCS(entry))
+    lo, hi = 0, entry_count            # current subtree range [lo, hi)
+    p = 0
+    while hi - lo > 1:
+        k = largest power of two < (hi - lo)   # RFC 6962 split
+        if index - lo < k:
+            require p < len(path)
+            h = node(h, path[p]); p += 1; hi = lo + k
+        else:
+            require p < len(path)
+            h = node(path[p], h); p += 1; lo = lo + k
+        # a subtree with a single child promotes it unchanged: no
+        # sibling is consumed, which the loop expresses by construction
+    require p == len(path)             # no unused siblings
+    accept iff "sha256:" + hex(h) == merkle_root
 ```
+
+A verifier MUST reject a proof whose `path` length does not match the
+length this procedure consumes, and MUST reject `index >= entry_count`.
 
 Inclusion Proofs let a light client verify "this Delta is in the log"
 holding only a Block header, a Checkpoint, and the proof — the header is
@@ -279,6 +305,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 - [ ] Verifies chain, signatures, Merkle roots, and entry counts on every
       Block before applying (§8)
+- [ ] When verifying an Inclusion Proof, derives sibling sides from
+      `index` and `entry_count` rather than trusting side labels in the
+      proof, and rejects a shape-mismatched `path` or `index >=
+      entry_count` (§4)
 - [ ] Binds the head Block to the Checkpoint and walks the chain backward
       from it (§5, §8)
 - [ ] Rejects Checkpoints older than the highest already verified (§5)
@@ -326,12 +356,13 @@ sha256:ad59dd329d0b87f9f07f3576232f05531990847dbf75acbc6841ac44cb322f0d
 sha256:d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95
 ```
 
-**Inclusion proof for entry 0** — path `[right: leaf1, right: n23]`:
+**Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
+leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → d1142719...  (= n01)
-h = node(h, n23)     → ad59dd32...  (= root)  ✓
+h = node(h, leaf1)   → d1142719...  (= n01)   # index 0 < k=2: sibling on the right
+h = node(h, n23)     → ad59dd32...  (= root)  # index 0 < k=1: sibling on the right  ✓
 ```
 
 The corresponding Checkpoint is
