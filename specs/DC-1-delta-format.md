@@ -111,8 +111,10 @@ corresponding Payload retrievable (DC-2 §3.1); a Delta that omits it
 asserts nothing about content and has no Payload to serve. An `attest`
 Delta carries no content of its own precisely because it claims none:
 what it is measured against is the Payload of the last content-bearing
-Delta in the same per-URL chain (DC-4 §5), which is why §3.5's chain and
-DC-2 §3.1's retention obligation reach further back than the Delta itself.
+Delta *at or before it* in the same per-URL chain (DC-4 §5's Reference
+Payload), which is why §3.5's chain and DC-2 §3.1's retention obligation
+reach further back than the Delta itself. The same holds for a `delete`,
+whose claim is that exactly that content is no longer served.
 
 ### 3.4. `observed_at`
 
@@ -196,6 +198,15 @@ Deltas, keeps the binding and forfeits the hiding.
 Descriptive metadata: `lang` (REQUIRED; BCP 47 primary tag, e.g. `en`,
 `pt-BR`), `topics` (≤ 10 free-form strings), and `license` (the declared
 license of the page content, e.g. `CC-BY-4.0` or `proprietary`).
+
+`meta` is the one descriptive field that lives inside the signed Delta
+rather than in the Payload, so it is sealed with the Delta and is outside
+the withdrawal mechanism entirely: it can never be erased. A Publisher
+MUST NOT place personal data in `meta`, `topics` included, whatever the
+page itself publishes — the allowance §9 grants a Payload does not extend
+here, because the basis for that allowance is that a Payload can be
+withdrawn and `meta` cannot. Where a page's subject is a person, that
+belongs in the Payload's `summary`.
 
 ## 4. Canonicalization and Identity
 
@@ -440,11 +451,13 @@ across mirrors it does not control would be promising a deletion it could
 not perform.
 
 Publishers MUST NOT include in a Payload's `extract` or `summary` personal
-data beyond what the referenced page itself publicly serves. A `delete`
-Delta removes content from future snapshots (the materialized index honors
-deletion) but does not erase log history, and a `payload_withdrawal`
-(DC-3 §6.2) erases the content without erasing the record that the content
-existed.
+data beyond what the referenced page itself publicly serves, and MUST NOT
+include personal data in a Delta's `meta` at all (§3.7) — the difference
+being that a Payload can be withdrawn and `meta`, sealed in the Delta,
+cannot. A `delete` Delta removes content from future snapshots (the
+materialized index honors deletion) but does not erase log history, and a
+`payload_withdrawal` (DC-3 §6.2) erases the content without erasing the
+record that the content existed.
 
 What remains in the Log permanently, and cannot be withdrawn, is:
 
@@ -460,6 +473,10 @@ What remains in the Log permanently, and cannot be withdrawn, is:
   holding a candidate text can observe that the length is consistent with
   it. It is carried because a Consumer must be able to bound a fetch and
   detect truncation before it can verify anything;
+- `meta` in full — `lang`, `topics` and `license`. These are content-derived
+  and sit inside the signed Delta, so unlike a Payload they are permanent
+  and unwithdrawable, which is why §3.7 forbids personal data in them
+  outright rather than bounding it by what the page serves;
 - the verdicts and `similarity` values of any Audit Records about the URL.
   Those Records observe the page directly, so every content-derived value
   in them is committed under the same Payload salt rather than digested

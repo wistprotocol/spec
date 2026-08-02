@@ -10,7 +10,7 @@
       "type": "object",
       "required": ["dc_version", "audited_delta", "auditor_id", "fetched_at", "verdict", "vrf_proof"],
       "additionalProperties": false,
-      "description": "Every content-derived value an Audit Record seals is a commitment keyed by the Payload salt of the Payload the audit measured against (DC-4 §5), never a bare digest: withdrawing that Payload destroys the salt and renders these commitments uncheckable at the same instant as the Delta's own.",
+      "description": "Every content-derived value an Audit Record seals is a commitment keyed by the salt of the audit's Reference Payload (DC-4 §5), never a bare digest: withdrawing that Payload destroys the salt and renders these commitments uncheckable at the same instant as the Delta's own.",
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "audited_delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
@@ -34,5 +34,34 @@
         "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["record"],
+        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance"]}}}}
+      },
+      "then": {
+        "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "similarity", "evidence_commitment"]}}
+      }
+    },
+    {
+      "if": {
+        "required": ["record"],
+        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["unreachable", "not_auditable"]}}}}
+      },
+      "then": {
+        "properties": {
+          "record": {
+            "allOf": [
+              {"not": {"required": ["response_commitment"]}},
+              {"not": {"required": ["ref_extract_commitment"]}},
+              {"not": {"required": ["similarity"]}},
+              {"not": {"required": ["evidence_commitment"]}}
+            ]
+          }
+        }
+      }
+    }
+  ]
 }

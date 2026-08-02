@@ -382,31 +382,125 @@ def _dc4_audit_commitment_tamper():
             f"{field}: the commitment does not depend on the salt"
 check("negative:audit-commitment-tamper", _dc4_audit_commitment_tamper)
 
-def _no_unsalted_content_digest():
-    """After a withdrawal the Log must retain no unsalted digest of the content.
+# DC-3 §6.2: after a withdrawal the Log retains no unsalted digest of the
+# withdrawn content. That sentence is a claim about every object format in the
+# suite, so the guard below enumerates every schema and every example rather
+# than any single object.
+#
+# Each entry names a digest-shaped field that is NOT derived from page content,
+# with what it actually covers. Anything digest-shaped and not on this list must
+# be an `hmac-sha256:` commitment under the Payload salt, or it fails. Adding a
+# field here is the deliberate act of asserting it carries no content.
+NON_CONTENT_DIGESTS = {
+    ("delta.schema.json", "prev"): "a Delta ID: SHA-256 of Canonical Bytes, which carry the salted commitment and no content",
+    ("publisher.schema.json", "prev_declaration"): "SHA-256 of a Declaration, which carries keys and no content",
+    ("feed.schema.json", "deltas"): "Delta IDs",
+    ("block.schema.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("block.schema.json", "merkle_root"): "root over Entries, which carry commitments and no content",
+    ("checkpoint.schema.json", "block_hash"): "SHA-256 of a Block header",
+    ("audit-record.schema.json", "audited_delta"): "a Delta ID",
+    ("registry-update.schema.json", "evidence"): "Audit Record IDs: SHA-256 over Records that themselves carry only commitments",
+    ("registry-update.schema.json", "delta_id"): "a Delta ID",
+    ("status.schema.json", "delta_id"): "a Delta ID",
+    ("snapshot-manifest.schema.json", "sha256"): "a whole tier file, not any one record (DC-3 §7); and a manifest is a static artifact, not a Log Entry",
+    ("audit-record.schema.json", "vrf_proof"): "an ECVRF proof over a Block Hash (DC-4 §4); hex-shaped but not a digest of anything fetched",
+    ("payload.schema.json", "salt"): "the salt itself: drawn from a CSPRNG, never derived from the content it keys (DC-1 §3.6)",
+}
 
-    That sentence is only true if no object in the Log carries one, so this
-    enumerates the Audit Record — the one object that observes page content
-    directly — and requires every content-derived value in it to be an
-    `hmac-sha256:` commitment. The only bare `sha256:` an Audit Record may
-    carry is `audited_delta`, which is derived from the Delta's Canonical
-    Bytes and therefore from the salted commitment, not from any content.
+DIGEST_NAME = re.compile(r"hash|digest|sha\d|checksum|commitment", re.IGNORECASE)
+
+# A pattern is digest-shaped if it accepts a digest. Probing the pattern beats
+# pattern-matching the pattern: `^[0-9a-f]{64}$`, `^[0-9A-F]{64}$` and
+# `^[a-f0-9]{64}$` are the same constraint written three ways, and a regex over
+# the regex catches whichever spelling it was written to catch.
+DIGEST_PROBES = [p + "0" * n
+                 for n in (32, 40, 56, 64, 96, 128, 160)
+                 for p in ("", "sha256:", "warc:sha256:", "hmac-sha256:")]
+
+def _is_digest_shaped(pattern: str) -> bool:
+    if not pattern:
+        return False
+    try:
+        rx = re.compile(pattern)
+    except re.error:
+        return True          # an unparseable pattern constrains nothing usable
+    return any(rx.search(probe) for probe in DIGEST_PROBES)
+
+def _walk_schema(node, schema_name, findings, key=None):
+    """Collect every digest-shaped leaf, by property name and by pattern shape.
+
+    Two detectors, because either alone is escapable: a field named
+    `withdrawn_content` with pattern `^[0-9a-f]{64}$` carries no telltale name,
+    and a field named `extract_hash` with no pattern at all carries no telltale
+    pattern. What neither reaches is a field with an innocuous name and no
+    pattern at all — an unconstrained string can hold a digest whatever it is
+    called. The example scan below covers that for what the suite ships, and
+    DC-4 §9.1 covers it normatively for what an implementation may add.
     """
-    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
-    props = schema["properties"]["record"]["properties"]
-    stale = [name for name in props if name.endswith("_hash")]
-    assert not stale, f"Audit Record still declares bare digest fields: {stale}"
-    for name, sub in props.items():
-        pat = sub.get("pattern", "")
-        if "sha256" in pat and name != "audited_delta":
-            assert pat.startswith("^hmac-sha256:"), \
-                f"{name} is a bare digest ({pat}), not a salted commitment"
-    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    for name, value in rec.items():
-        if isinstance(value, str) and re.search(r"(^|:)sha256:", value):
-            assert name == "audited_delta", \
-                f"the example Audit Record carries a bare digest in {name}: {value}"
-        assert "warc:" not in str(value), f"{name} still carries a bare WARC digest"
+    if isinstance(node, dict):
+        pattern = node.get("pattern", "")
+        if key is not None and (DIGEST_NAME.search(key) or _is_digest_shaped(pattern)):
+            findings.append((schema_name, key, pattern))
+        for name, sub in node.get("properties", {}).items():
+            _walk_schema(sub, schema_name, findings, name)
+        for kw in ("items", "then", "else", "not", "contains",
+                   "additionalProperties", "propertyNames"):
+            if isinstance(node.get(kw), dict):
+                _walk_schema(node[kw], schema_name, findings, key)
+        for kw in ("allOf", "anyOf", "oneOf"):
+            for sub in node.get(kw, []):
+                if isinstance(sub, dict):
+                    _walk_schema(sub, schema_name, findings, key)
+        # `if` shapes a branch rather than declaring a field, but a digest
+        # smuggled into one would still be a schema-blessed field name.
+        if isinstance(node.get("if"), dict):
+            _walk_schema(node["if"], schema_name, findings, key)
+    return findings
+
+def _no_unsalted_content_digest():
+    """No object in the suite carries a bare digest of page content.
+
+    Moving extracts out of the Log achieves nothing if any object keeps an
+    unsalted hash of the same text, so this holds the whole suite to the rule
+    DC-3 §6.2 states: a content-derived value is committed under the Payload
+    salt or it is not carried at all. Every schema is enumerated; every
+    digest-shaped field must either be an `hmac-sha256:` commitment or appear
+    in NON_CONTENT_DIGESTS with a reason.
+    """
+    schemas = sorted((ROOT / "schemas").glob("*.schema.json"))
+    assert len(schemas) >= 9, f"only {len(schemas)} schemas enumerated; the sweep is not suite-wide"
+    offenders = []
+    for path in schemas:
+        for name, key, pattern in _walk_schema(
+                json.loads(path.read_text()), path.name, []):
+            if pattern.startswith("^hmac-sha256:"):
+                continue                       # a salted commitment
+            if (name, key) in NON_CONTENT_DIGESTS:
+                continue                       # declared to carry no content
+            offenders.append(f"{name}: {key} (pattern {pattern!r})")
+    assert not offenders, \
+        "digest-shaped fields that are neither salted commitments nor declared " \
+        "content-free:\n  " + "\n  ".join(offenders)
+
+    # The examples must not smuggle one through an unconstrained object either
+    # (DC-4 §9.1): registry-update `details` is `{"type": "object"}` for several
+    # actions, so a bare digest there would satisfy every schema in the suite.
+    allowed_keys = {key for _, key in NON_CONTENT_DIGESTS}
+    def scan(node, key, where):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                scan(v, k, where)
+        elif isinstance(node, list):
+            for v in node:
+                scan(v, key, where)
+        elif isinstance(node, str):
+            bare = re.fullmatch(r"(sha256:|warc:sha256:)?[0-9a-f]{64}", node)
+            if bare and key not in allowed_keys:
+                raise AssertionError(
+                    f"{where}: bare digest at {key!r} = {node} — commit it under "
+                    "the Payload salt (DC-3 §6.2) or do not carry it")
+    for example in sorted((ROOT / "examples").glob("*.json")):
+        scan(json.loads(example.read_text()), None, example.name)
 check("repo:no-unsalted-content-digest", _no_unsalted_content_digest)
 
 def _dc4_coverage_attestation():
