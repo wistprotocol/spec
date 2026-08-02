@@ -445,11 +445,20 @@ def _dc4_evaluation_order():
     corrected forms and the two counterexample values the spec quotes.
     """
     spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    for form in ("100 000 + ((900 000 × min(A, 730)) / 730)",
-                 "100 + ((10 000 × reputation_u) / 1 000 000)",
-                 "(base_u × (C + 1) × 1 000 000 000)",
-                 "(seconds(Y) − seconds(X)) / 86 400"):
+    forms = ("(seconds(Y) − seconds(X)) / 86 400",
+             "100 000 + ((900 000 × min(A, 730)) / 730)",
+             "(base_u × (C + 1) × 1 000 000 000)",
+             "100 + ((10 000 × reputation_u) / 1 000 000)")
+    for form in forms:
         assert form in spec, f"DC-4 §6 no longer writes {form!r} parenthesized"
+    # The stated count and the enumeration must agree, or a reader cannot
+    # tell which divisions the parenthesization rule covers.
+    assert "exactly **four**" in spec, \
+        f"DC-4 §6 no longer states the division count, which is {len(forms)}"
+    table_rows = [ln for ln in spec.splitlines()
+                  if ln.startswith("| ") and ") / " in ln and "§6" in ln]
+    assert len(table_rows) == len(forms), \
+        f"the evaluation-order table lists {len(table_rows)} divisions, not {len(forms)}"
     # The spec quotes what the wrong parses produce; verify those numbers are
     # real, so the warning cannot rot into a wrong warning.
     assert (100_000 + 900_000 * 0) // 730 == 136, "quoted mis-parse of base_u is stale"
@@ -467,21 +476,29 @@ def _dc4_sealed_at_precision():
     move a whole-day boundary and with it A, t_i, base_u and the score. The
     constraint therefore lives in the Block schema, not in prose downstream.
     """
+    import copy
+    import re
     schema = json.loads((ROOT / "schemas" / "block.schema.json").read_text())
     pat = schema["properties"]["header"]["properties"]["sealed_at"].get("pattern")
     assert pat == r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", \
         "block.schema.json does not constrain sealed_at to whole seconds + Z"
-    import re
     block = json.loads((ROOT / "examples" / "block.json").read_text())
     assert re.match(pat, block["header"]["sealed_at"]), \
         "the example Block does not satisfy its own sealed_at pattern"
     v = Draft202012Validator(schema)
+    # Positive control. Without it, a pattern that rejects everything would
+    # satisfy the negative cases below and look like a passing guard.
+    assert v.is_valid(block), "the shipped Block no longer validates against its schema"
+    # Negative controls. `is_valid` returns a bool; `iter_errors` returns a
+    # generator, which is truthy even when it yields nothing — asserting on it
+    # directly would pass for every input, valid ones included.
     for bad in ("2026-08-02T13:00:00.500Z", "2026-08-02T13:00:00+00:00",
                 "2026-08-02T13:00:00", "2026-08-02t13:00:00z"):
-        import copy
         candidate = copy.deepcopy(block)
         candidate["header"]["sealed_at"] = bad
-        assert v.iter_errors(candidate), f"schema accepts non-exact sealed_at {bad!r}"
+        assert not v.is_valid(candidate), f"schema accepts non-exact sealed_at {bad!r}"
+        assert list(v.iter_errors(candidate)), \
+            f"schema produced no error for non-exact sealed_at {bad!r}"
     dc3 = (ROOT / "specs" / "DC-3-commons-log-distribution.md").read_text()
     assert "whole-second precision" in dc3, "DC-3 §3.1 does not state the constraint"
 check("schema:dc4-sealed-at-precision", _dc4_sealed_at_precision)
