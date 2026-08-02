@@ -159,11 +159,12 @@ https://<domain>/.well-known/deltacommons/publisher.json
 The document is an Envelope whose inner object is `publisher` (schema:
 [`schemas/publisher.schema.json`](../schemas/publisher.schema.json)),
 containing: `dc_version`, `domain`, `seq` (a monotonic Declaration
-counter, starting at 0; see §5.3), optional `prev_declaration` (the hash
-of the Declaration this one replaces, carried for every `seq` greater
-than 0; see §5.3), optional `subdomain_scope` (hostnames the Key Set
+counter, starting at 0; see §5.3), `prev_declaration` (the hash of the
+Declaration this one replaces; REQUIRED when `seq` > 0, absent only for
+`seq` 0; see §5.3), optional `subdomain_scope` (hostnames the Key Set
 also covers), the `keys` array (each entry: `key_id`, `alg`, raw Ed25519
-`public_key` base64url, `valid_from`), and optional `contact`.
+`public_key` base64url, `valid_from`), optional `recovery_keys` (same
+item shape as `keys`; see §5.3), and optional `contact`.
 
 Discovery MUST use HTTPS. A validator MUST NOT accept a Publisher
 Declaration served over plain HTTP.
@@ -181,30 +182,54 @@ The `.well-known` document is authoritative when both exist.
 
 ### 5.3. Sequencing, Rotation and Revocation
 
-Every Publisher Declaration carries a monotonic `seq`, starting at 0, and
-(for `seq` > 0) `prev_declaration`, the `"sha256:" + hex(SHA-256(JCS(...)))`
-of the Declaration it replaces. A validator MUST reject a Declaration whose
+Every Publisher Declaration carries a monotonic `seq`, starting at 0. A
+Declaration with `seq` > 0 MUST include `prev_declaration`,
+`"sha256:" + hex(SHA-256(JCS(publisher)))` computed over the *previous*
+Declaration's inner `publisher` object — the Declaration this one
+replaces. A validator MUST reject a Declaration under `DC1-E08` when:
 `seq` is not greater than the highest it has already accepted for that
-domain, which makes replay of a superseded Declaration (for example from a
-stale cache) detectable rather than silent.
+domain; or `seq` > 0 and `prev_declaration` is absent; or
+`prev_declaration` does not equal the hash of the previously accepted
+Declaration's `publisher` object. This makes replay of a superseded
+Declaration (for example from a stale cache) detectable rather than
+silent, the same way `DC1-E07` treats a missing or mismatched `prev` on
+a Delta.
 
 Key rotation is performed by publishing a Declaration whose envelope is
 signed by a key from the **previous** Key Set (`sig.key_id` names the old
 key). The first Declaration a domain publishes (`seq` 0) is self-signed. A
 key is revoked by publishing a Declaration that omits it.
 
-**Compromise recovery.** Because a stolen key can itself perform a valid
-rotation, the rotation signature is not the sole authority. Control of the
-domain's HTTPS `.well-known` endpoint is authoritative: when an Aggregator
-observes a Declaration with a higher `seq` that is *not* validly signed by
-the previous Key Set, it MUST NOT accept it silently and MUST NOT treat the
-domain as a fresh identity. It MUST record a `notice` (DC-4 §7) opening a
-recovery window (Parameter Registry: 7 days) during which Deltas from the
-domain are queued rather than sealed, and at the end of which the
-Declaration served at the well-known endpoint prevails, with the domain's
-`A` and `C` (DC-4 §6) preserved. This gives a compromised Publisher a path
-back that does not destroy its standing, while giving an attacker no way to
-seize one silently.
+**Recovery keys.** A Declaration MAY list `recovery_keys` alongside its
+signing `keys`. Recovery keys sign nothing but Declarations and are
+meant to be held offline. They are the protocol's only proof of
+publisher continuity, because domain control alone cannot distinguish a
+Publisher recovering from key loss from a party that has merely acquired
+the domain.
+
+**Compromise recovery.** A Declaration with a higher `seq` is classified
+by what signs it:
+
+- Signed by a key in the previous Key Set — an ordinary rotation.
+  Accepted; `A` and `C` (DC-4 §6) are preserved.
+- Signed by a key in the previous Declaration's `recovery_keys` — a
+  **recovery rotation**. The Aggregator MUST record a `notice` (DC-4 §7)
+  carrying `details.kind` `"recovery"`, opening a recovery window
+  (Parameter Registry: recovery window, 7 days) during which the
+  domain's Deltas are queued rather than sealed. At the end of the
+  window the recovery Declaration takes effect with `A` and `C`
+  preserved, and it supersedes any ordinary rotation sealed during that
+  window — so a thief holding only a signing key cannot outrun the
+  holder of the recovery key.
+- Signed by neither — a **fresh identity**. The Declaration is accepted,
+  but `A` and `C` reset to zero and the domain re-enters Quarantine
+  (DC-4 §6).
+
+A Publisher that loses both its signing keys and its recovery keys
+starts over; that is the honest outcome, because with no cryptographic
+continuity left nothing distinguishes the Publisher from a new owner of
+the same name, and preserving standing on domain control alone would let
+anyone buy an aged domain and inherit its reputation.
 
 **Historical verification.** Accepted Declarations are sealed into the Log
 as `publisher_declaration` Entries (DC-3 §3.3). The Key Set applicable to a
@@ -233,30 +258,38 @@ matter". Importance is measured at consumption, outside this protocol.
 | DC1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | DC1-E07 | `prev` chain violation (missing, non-existent, wrong URL, or non-monotonic `observed_at`) |
-| DC1-E08 | Declaration sequence violation (`seq` not greater than the highest accepted, or `prev_declaration` mismatch) |
+| DC1-E08 | Declaration sequence violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; or `prev_declaration` mismatched against the previously accepted Declaration) |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.
 
 ## 8. Security Considerations
 
-- **Key theft.** A stolen Publisher key can sign fraudulent Deltas, and
-  can even perform a rotation that looks valid on its face. §5.3's
-  compromise-recovery rule keeps that rotation from being final: an
-  Aggregator that sees a higher-`seq` Declaration not signed by the
-  previous Key Set opens a recovery window rather than accepting it
-  outright, Deltas are queued rather than sealed until the window
-  closes, and the Declaration actually served at the `.well-known`
-  endpoint prevails without loss of standing. Publishers SHOULD keep
-  signing keys off the web server that serves content and SHOULD rotate
-  on any suspicion of compromise; fraud committed before rotation is
+- **Key theft.** A stolen Publisher signing key can sign fraudulent
+  Deltas and can even perform a rotation that looks entirely valid: a
+  Declaration signed by a key from the previous Key Set is accepted as
+  an ordinary rotation immediately, with no window (§5.3). The actual
+  mitigation is the recovery key: because a recovery key signs nothing
+  but Declarations and is meant to be held offline, separately from the
+  signing key, compromising the signing key alone does not expose it,
+  and a Declaration signed by the recovery key supersedes any ordinary
+  rotation sealed during its 7-day recovery window — so a thief holding
+  only the signing key gets a temporary, always-reversible foothold,
+  never a permanent one. Publishers SHOULD generate recovery keys
+  independently of signing keys and keep them offline, SHOULD keep
+  signing keys off the web server that serves content, and SHOULD rotate
+  on any suspicion of compromise; fraud committed before recovery is
   still attributed to the domain and handled by DC-4 audit and
-  sanctions.
+  sanctions. A Publisher that loses its signing key without ever having
+  provisioned a recovery key has no cryptographic path back (§5.3).
 - **Domain transfer.** A Key Set replacement does not transfer standing
-  by itself: it is arbitrated by the `seq`, `prev_declaration`, and
-  compromise-recovery rules of §5.3, not by simply overwriting the
-  Declaration, so acquiring a domain does not, on its own, acquire its
-  predecessor's history.
+  by itself: §5.3 classifies a replacing Declaration by what signs it,
+  and one signed by neither the previous Key Set nor the previous
+  `recovery_keys` is a fresh identity whose `A`/`C` reset to zero. A
+  party that acquires a domain's hosting without also acquiring a
+  signing or recovery key therefore cannot inherit its predecessor's
+  history — only cryptographic continuity does that, never possession of
+  the name alone.
 - **Signature malleability.** Ed25519 signatures as specified in RFC 8032
   are deterministic; validators MUST verify against Canonical Bytes only.
 - **Canonicalization attacks.** JCS removes serialization ambiguity

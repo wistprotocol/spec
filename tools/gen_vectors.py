@@ -75,6 +75,15 @@ publisher = {
         {"key_id": "test-k1", "alg": "Ed25519", "public_key": b64u(pub_raw),
          "valid_from": "2026-08-02T12:00:00Z"}
     ],
+    # Illustrative only: a real recovery key MUST be a distinct keypair,
+    # generated independently and held offline, never reused as a signing
+    # key. The vector reuses the same test public key purely so the suite
+    # ships one deterministic keypair; DC-1 §5.3 normatively requires
+    # recovery keys to sign nothing but Declarations.
+    "recovery_keys": [
+        {"key_id": "test-r1", "alg": "Ed25519", "public_key": b64u(pub_raw),
+         "valid_from": "2026-08-02T12:00:00Z"}
+    ],
     "contact": "mailto:webmaster@example.com",
 }
 write_json(EXAMPLES / "publisher.json", sign_envelope("publisher", publisher, "test-k1"))
