@@ -16,15 +16,15 @@
         "change_type": {"enum": ["new", "update", "delete", "attest"]},
         "observed_at": {"type": "string", "format": "date-time"},
         "prev": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        "extract": {"type": "string", "maxLength": 32768},
-        "extract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        "summary": {
+        "payload": {
           "type": "object",
-          "required": ["title"],
+          "required": ["commitment", "alg", "bytes"],
           "additionalProperties": false,
+          "description": "Salted commitment to the Delta's content (DC-1 §3.6). The content itself travels as a Payload alongside the Block (DC-3 §6.1) and never enters the Log.",
           "properties": {
-            "title": {"type": "string", "maxLength": 256},
-            "abstract": {"type": "string", "maxLength": 1792}
+            "commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
+            "alg": {"const": "HMAC-SHA256"},
+            "bytes": {"type": "integer", "minimum": 0, "maximum": 34816}
           }
         },
         "meta": {

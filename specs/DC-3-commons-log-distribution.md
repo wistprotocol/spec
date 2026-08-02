@@ -34,9 +34,13 @@ shown here.
 - **Tier**: a size/completeness layer of a Snapshot (Tier 0 compact,
   Tier 1 full extracts).
 - **Inclusion Proof**: a Merkle path proving an Entry is in a Block.
+- **Payload**: the content a Delta commits to (DC-1 §3.6), distributed
+  alongside the Block that seals that Delta and not inside it (§6.1).
+- **Withdrawal**: the logged removal of a Payload from distribution,
+  under §6.2.
 
-Terms from DC-1 (Envelope, Delta, Canonical Bytes) and DC-2 (Feed) keep
-their defined meanings. Every signed object in this document carries
+Terms from DC-1 (Envelope, Delta, Canonical Bytes, Payload) and DC-2
+(Feed) keep their defined meanings. Every signed object in this document carries
 `dc_version` (DC-1 §3.1) and the DC-1 §4 signature block (`key_id`,
 `alg`, `value`).
 
@@ -244,14 +248,17 @@ cannot escape an equivocation proof by removing the signing key afterward
 
 The log is distributed as static files. Transport is out of scope: any
 HTTP server, CDN, torrent, or IPFS gateway works, because every file
-except `checkpoint.json` is immutable and integrity is verified by hash
-and signature, never by source.
+except `checkpoint.json` is immutable and integrity is verified by hash,
+signature, or commitment, never by source. Payload files are immutable in
+the same sense — their bytes never change — but they are the one class of
+file that may cease to be served, under §6.2.
 
 ```
 /log/checkpoint.json                    (mutable, small, signed)
 /log/blocks/000000000.json.zst          (immutable; zero-padded 9-digit block number)
 /log/blocks/000000001.json.zst
 ...
+/payloads/7bee228c….json                (one per content-bearing Delta — §6.1)
 /snapshots/2026-08-02/manifest.json     (signed; declares log position)
 /snapshots/2026-08-02/tier0/index.sqlite
 /snapshots/2026-08-02/tier0/embeddings.parquet
@@ -261,6 +268,110 @@ and signature, never by source.
 Blocks are zstandard-compressed JSON. The decompressed size of a Block
 MUST NOT exceed 256 MiB (Parameter Registry); consumers MUST enforce this
 cap while decompressing (§10).
+
+### 6.1. Payloads
+
+A Delta commits to its content and does not carry it (DC-1 §3.6). The
+content travels as a **Payload** (schema:
+[`schemas/payload.schema.json`](../schemas/payload.schema.json)) served at
+
+```
+/payloads/<delta-id-hex>.json
+```
+
+where `<delta-id-hex>` is the Delta ID's 64-character hex digest without
+the `sha256:` prefix — the same naming a Publisher uses (DC-2 §3.1). A
+Payload file is immutable while it is served: an Aggregator MUST serve at
+that path either the exact bytes it verified at ingest (DC-2 §5) or
+nothing at all.
+
+Payloads are fetched in the same synchronisation pass as Blocks, from the
+same static file servers, by the same unauthenticated GETs. They are
+**not** covered by the Block signature and **not** covered by the Merkle
+root; nothing in a Block's header, hash, or inclusion proofs depends on
+them, which is exactly why a Block stays byte-immutable when a Payload is
+withdrawn.
+
+A Consumer MUST verify each Payload against its Delta's `commitment` and
+`bytes` (DC-1 §3.6) before applying its content, and MUST NOT apply
+content that fails (`DC1-E11`; the serving party is at fault under
+`DC3-E03`). Verification does not depend on where the file came from, so a
+Payload MAY be fetched from any Mirror, from another Consumer, or from the
+Publisher's own `.well-known` path: the commitment decides, never the
+source.
+
+A Delta whose Payload a Consumer cannot obtain remains valid, sealed, and
+part of its per-URL chain. The Consumer applies what the Delta itself
+says — the URL, the change type, the observation time — and materializes
+no content for it.
+
+**Availability window.** An Aggregator and any Mirror serving a Block MUST
+serve that Block's Payloads for at least the payload availability window
+(Parameter Registry; default 180 days), except for Payloads withdrawn
+under §6.2. A Payload that is absent without a withdrawal entry is a
+`DC3-E05` fault against that Mirror; this is what distinguishes a lawful
+withdrawal from a Mirror quietly dropping content it dislikes.
+
+After the window elapses, retention is at each Mirror's discretion, and a
+Consumer MUST NOT read absence as misbehavior. The window is therefore a
+detection window rather than an archival promise: it is set long enough
+that a Payload's absence inside it is evidence, and every duty that
+depends on content — an Auditor's coverage duty above all, which expires
+72 hours after a Block is sealed (DC-4 §4) — falls well within it.
+
+**Anchor Payloads.** One class of Payload outlives the window at the
+Aggregator. A URL's **anchor Payload** is the Payload of the most recent
+content-bearing Delta for that URL, for as long as that URL has not been
+deleted; it is what an `attest` Delta is audited against (DC-4 §5), which
+may be years after it was sealed. An Aggregator MUST keep serving a URL's
+anchor Payload for as long as it is the anchor, regardless of the window,
+unless it is withdrawn under §6.2. This costs nothing it was not already
+holding — the anchor Payloads of live URLs are exactly the content Tier 1
+materializes (§7) — and it means a Publisher cannot make its own freshness
+claims unauditable by dropping its copy: the Aggregator's copy is
+independent, and the commitment makes the two interchangeable.
+
+### 6.2. Withdrawal
+
+A Payload is removed from distribution by a `payload_withdrawal` Registry
+Update (DC-4 §9.1), signed by the Aggregator, whose `subject` is the
+Publisher's domain and whose `details` name the `delta_id`, the
+`legal_basis` under which the content is being erased, and the
+`jurisdiction` of the party demanding it. A request covering several
+Deltas is recorded as one entry per Delta, so that each withdrawal names
+exactly what it removed and can be checked on its own.
+
+A withdrawal takes effect at the height of the Block that seals it. From
+that height:
+
+- the Aggregator and every Mirror MUST stop serving that Payload, and a
+  Consumer MUST NOT treat its absence as a fault;
+- Consumers MUST exclude the withdrawn content from subsequent
+  materializations (§7);
+- Auditors record `not_auditable` for that Delta (DC-4 §5) rather than a
+  verdict derived from content.
+
+What withdrawal does not touch is the record. The Delta stays sealed, its
+commitment stays in the Log, its inclusion proofs keep verifying, and
+every Audit Record ever published about it remains — including the
+verdicts that establish what the Publisher was found to have declared.
+Withdrawal removes content from distribution; it cannot remove history,
+and it cannot recall copies already served.
+
+The due process is the same the suite uses for sanctions (DC-4 §7):
+notice in the Log, a named basis, a public and permanent record. An
+operator that removes a Payload without sealing this entry has not
+withdrawn it lawfully — it has dropped it, and §6.1's window makes that
+observable.
+
+Withdrawal is itself an act the Aggregator is accountable for, and it
+cannot be performed quietly. Every withdrawal is signed, sealed and
+enumerable, so anyone can list every Payload an operator has ever removed
+together with the basis and jurisdiction it claimed, and a pattern no
+legal basis explains is visible as a pattern. What the Log cannot do is
+adjudicate a basis; it can only make the claim permanent and attributable
+to the party that made it — the same standard this suite applies to every
+other exercise of operator power.
 
 ## 7. Snapshots and Tiers
 
@@ -276,19 +387,31 @@ size.
   queries alone.
 - **Tier 1** — full extracts of live records, as Parquet.
 
+Both tiers are built from Payloads (§6.1), not from the Log: the Log
+carries commitments, and a Snapshot is where the content a Consumer
+actually queries is materialized. A Snapshot MUST NOT include content
+whose commitment it did not verify.
+
 **Embedding model declaration.** Embeddings are meaningful only within
 one model's vector space. The manifest MUST declare the model `name`,
 `version`, `dim`, and `quantization`. A Consumer using a different model
 MUST NOT mix vector spaces; it re-embeds from Tier 1 extracts instead.
 
 **Materialization rule.** A `delete` Delta (DC-1 §3.3) excludes that
-URL's content from all subsequent Snapshots. The log itself retains full
-history — deletion shapes the materialized present, never the recorded
-past.
+URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
+likewise excludes that Delta's content from every Snapshot produced at or
+above its sealing height, in both tiers, including any embedding derived
+from it. The log itself retains full history — deletion and withdrawal
+shape the materialized present, never the recorded past.
 
-Anyone can rebuild a bit-identical Tier 0/Tier 1 from the raw log plus
-the manifest's declared parameters; Snapshots are a convenience, not an
-authority.
+Anyone can rebuild a bit-identical Tier 0/Tier 1 from the raw log, the
+Payloads it references, and the manifest's declared parameters; Snapshots
+are a convenience, not an authority. Withdrawal does not cost that
+property: because the exclusion is triggered by a logged entry rather than
+by whether a given rebuilder happens to hold the file, two parties with
+different Payload collections still produce the same Snapshot. A party
+missing a Payload that was never withdrawn cannot rebuild, and MUST report
+that rather than emit a Snapshot silently missing a record.
 
 ## 8. Consumer Synchronization
 
@@ -303,7 +426,11 @@ authority.
 6. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
    and that each Block's `prev_block_hash` matches the Block Hash of its
    predecessor, walking backward from the head to `log_position`.
-7. Apply Entries in order to the local index.
+7. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
+   in those Blocks whose Payload has not been withdrawn (§6.2); verify
+   each against its Delta's commitment and `bytes` (§6.1).
+8. Apply Entries in order to the local index, materializing content only
+   from Payloads that verified.
 
 **Continuous operation:**
 
@@ -312,7 +439,14 @@ authority.
 3. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
    and that each Block's `prev_block_hash` matches the Block Hash of its
    predecessor, walking backward from the head to `log_position`.
-4. Apply.
+4. Fetch and verify the corresponding Payloads (§6.1).
+5. Apply.
+
+Payload fetching never gates chain verification: a Consumer that cannot
+obtain some Payloads still verifies, applies, and advances over the
+Blocks, and simply materializes no content for the affected Deltas. Chain
+integrity and content availability are separate failures, and only the
+first is ever a reason to stop.
 
 **Catch-up decision.** A Consumer offline for a long period compares the
 Block distance from its position to the newest Checkpoint against the
@@ -326,8 +460,9 @@ economic.
 |---------|--------------------------------------------------------------|
 | DC3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
 | DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, or head Block Hash does not match the Checkpoint's `block_hash`). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
-| DC3-E03 | Corrupted Block (hash or signature failure on one file). Re-download, from another Mirror if needed, before concluding misbehavior. |
+| DC3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — DC-1 §3.6, `DC1-E11`). Re-download, from another Mirror if needed, before concluding misbehavior. |
 | DC3-E04 | Manifest file hash or size mismatch. Reject the entire Snapshot. |
+| DC3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (DC-2 §3.1), and keep applying the Log. A Consumer that sees `DC3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
 ## 10. Security Considerations
 
@@ -337,7 +472,28 @@ economic.
   block numbers are monotonic and Consumers never accept a Checkpoint
   older than one they hold.
 - **Mirror tampering.** Mirrors are trustless byte servers; any
-  modification fails hash or signature verification (`DC3-E03`).
+  modification fails hash or signature verification (`DC3-E03`). This
+  covers Payloads too: a Mirror that alters one fails the Delta's
+  commitment, which every fetcher recomputes and which was fixed by the
+  Publisher's signature before any Mirror saw it.
+- **Selective payload suppression.** Tampering being useless, a hostile
+  Mirror's remaining move is to serve some Payloads and not others. §6.1
+  makes that a typed, attributable fault: inside the availability window,
+  absence with no `payload_withdrawal` in the Log is `DC3-E05` against
+  that Mirror, and the Payload is still obtainable from the Aggregator,
+  another Mirror, or the Publisher, so suppression by one party achieves
+  nothing but its own detection. Lawful withdrawal looks different in
+  every respect a Consumer can observe: it is announced in the Log before
+  it takes effect, it names a legal basis and a jurisdiction, it applies
+  at every Mirror rather than one, and it is permanent and public.
+  Two limits are worth stating plainly. After the window elapses, absence
+  is no longer evidence, so suppression of old Payloads is indistinguishable
+  from ordinary expiry — which is tolerable because every content-dependent
+  duty in the suite falls inside the window. And an Aggregator that
+  withholds a Payload from ingest onward, never publishing it at all,
+  is visible as a Delta that no party can audit rather than as a Mirror
+  fault; DC-2 §5 closes the honest path by requiring the Aggregator to
+  reject such a Delta instead of sealing it.
 - **Compression bombs.** The 256 MiB decompressed cap MUST be enforced
   streaming-side, aborting decompression at the limit rather than after.
 - **Key rotation repudiation.** Without an in-band, height-scoped notion
@@ -351,7 +507,21 @@ economic.
 ## 11. Privacy Considerations
 
 The log is public and permanent; DC-1 §9's constraints on personal data
-apply to everything in it. On the read side, a Consumer's sync pattern
+apply to everything in it. Content is deliberately not in it: Payloads are
+distributed alongside the Log and are erasable under §6.2, so an erasure
+order costs a file deletion plus a Log entry rather than a rewrite of
+sealed history. Mirrors keep serving bytes and stay free of any obligation
+to re-serialize or partially reconstruct what they hold.
+
+Erasure is an obligation on operators, not a property of the network. A
+withdrawal binds the Aggregator and its Mirrors; it cannot reach a copy
+already downloaded, and nothing in this specification pretends otherwise.
+What the design does guarantee is that after withdrawal the Log itself
+stops helping: with the salt destroyed, the surviving commitment does not
+let a holder of a copy establish that the copy is what was committed to
+(DC-1 §3.6, §9).
+
+On the read side, a Consumer's sync pattern
 (timing, IP) is visible to the Mirrors it uses. Mitigations: Mirrors are
 dumb file servers requiring no accounts; bulk sync reveals only "this IP
 follows the log", not queries (all querying is local by design); privacy-
@@ -366,6 +536,13 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Hash and Merkle root)
 - [ ] Publishes a Checkpoint per sealed Block at the fixed URL (§5)
 - [ ] Serves the static layout of §6 with immutable Block files
+- [ ] Serves every sealed Delta's Payload at `/payloads/<delta-id-hex>.json`
+      for at least the availability window, byte-identical to what it
+      verified at ingest, and serves every live URL's anchor Payload for
+      as long as it is the anchor (§6.1)
+- [ ] Withdraws a Payload only by sealing a `payload_withdrawal` naming
+      the Delta, the legal basis, and the jurisdiction — and then stops
+      serving it (§6.2)
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
       embedding model declaration and the materialization rule
 - [ ] Never emits a Block exceeding the decompressed cap (§6)
@@ -377,6 +554,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 - [ ] Serves files byte-identical to origin (verifiable by consumers)
 - [ ] Retains all Checkpoints ever served (§5)
+- [ ] Serves the Payloads of every Block it serves for at least the
+      availability window, and stops serving one only after a
+      `payload_withdrawal` is sealed for it (§6.1, §6.2)
 
 **Consumer:**
 
@@ -391,10 +571,13 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       from it (§5, §8)
 - [ ] Rejects Checkpoints older than the highest already verified (§5)
 - [ ] Verifies manifest hashes/sizes before using a Snapshot (§8)
-- [ ] Implements all four Error Registry behaviors, including evidence
+- [ ] Verifies every Payload against its Delta's commitment and `bytes`
+      before materializing its content, and never lets a missing Payload
+      stop chain verification (§6.1, §8)
+- [ ] Implements all five Error Registry behaviors, including evidence
       preservation on divergence (§9)
 - [ ] Enforces the streaming decompression cap (§10)
-- [ ] Honors the materialization rule for deletions (§7)
+- [ ] Honors the materialization rule for deletions and withdrawals (§7)
 - [ ] Obtains the Anchor out-of-band and resolves signing keys by height
       (§3.4)
 
@@ -411,7 +594,7 @@ Block 0 contains 4 `publisher_delta` Entries: the DC-1 vector Delta
 **Leaf hashes (hex):**
 
 ```
-leaf0 = e5566aed73171ef1c162955b0d3e73660276b1fe7d3cc63becf1406b7b854758
+leaf0 = f9b2ad1998bba159c08fa3b0706eef2bfe11839061955dc2172afca9f41d60a5
 leaf1 = 0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260
 leaf2 = 220054dcb66d9ba11a870cc8df9de8b45f81d9906d898779dfbc98a5458e6958
 leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
@@ -420,20 +603,20 @@ leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = d1142719a9b0f9525ff18f1e8876d3ee529eb039acaa2ee6d9fc84cbdcfde97b
+n01 = node(leaf0, leaf1) = adc5908010c74bf4b4fc295d788178e921e94436b91cebe19308e869b3faa00f
 n23 = node(leaf2, leaf3) = 71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882077495a760b
 ```
 
 **Merkle root:**
 
 ```
-sha256:ad59dd329d0b87f9f07f3576232f05531990847dbf75acbc6841ac44cb322f0d
+sha256:80cf0dccbce6b385a278468fb7db80ba5c2d926c1fb8e80b9a4d64b527c8e131
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95
+sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
@@ -441,9 +624,15 @@ leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → d1142719...  (= n01)   # fn=0 < sn=3: sibling on the right
-h = node(h, n23)     → ad59dd32...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
+h = node(h, leaf1)   → adc59080...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → 80cf0dcc...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
+
+Entry 0's Payload is [`examples/payload.json`](../examples/payload.json),
+served at `/payloads/7bee228c…1047.json`. It contributes to none of the
+hashes above: every figure here is computed over Entries that carry the
+commitment alone, which is why withdrawing that Payload leaves the leaf,
+the root, the Block Hash, and this proof untouched.
 
 This worked example only exercises `index` 0, which — being a uniform
 left-child at every level — cannot by itself distinguish a correct

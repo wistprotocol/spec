@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
-import base64, calendar, hashlib, json, pathlib, re, sys, time
+import base64, calendar, hashlib, hmac, json, pathlib, re, sys, time
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -72,6 +72,8 @@ INNER_KEY = {
     "audit-record.json": "record", "registry-update.json": "update",
     "log-anchor.json": "anchor",
     "status.json": None,  # not a signed Envelope — plain JSON (DC-2 §7.1)
+    "payload.json": None,  # unsigned: its integrity comes from the Delta's
+                           # commitment, not from a signature (DC-3 §6.1)
 }
 
 def load_test_pubkey():
@@ -105,6 +107,73 @@ if (dc1 / "envelope.json").exists():
         pub = Ed25519PublicKey.from_public_bytes(b64u_decode(keys["public_key"]))
         pub.verify(b64u_decode(env["sig"]["value"]), canonical)
     check("vectors:dc1", _dc1)
+
+# 2b. The payload commitment: the only thing binding a Delta to content that
+# the Log does not carry. Everything downstream — the audit metric, snapshot
+# materialization, the withdrawal guarantee — rests on this recomputation.
+def _load_payload_and_delta():
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
+    return payload, delta
+
+def _commit(salt_b64: str, content: dict) -> str:
+    return "hmac-sha256:" + hmac.new(
+        b64u_decode(salt_b64), rfc8785.dumps(content), hashlib.sha256).hexdigest()
+
+def _payload_commitment():
+    payload, delta = _load_payload_and_delta()
+    assert delta["payload"]["alg"] == "HMAC-SHA256", "commitment algorithm is not HMAC-SHA256"
+    assert len(b64u_decode(payload["salt"])) >= 16, "salt is shorter than 128 bits (DC-1 §3.6)"
+    assert _commit(payload["salt"], payload["content"]) == delta["payload"]["commitment"], \
+        "the Payload does not reproduce the Delta's commitment"
+check("payload:commitment", _payload_commitment)
+
+def _payload_length():
+    payload, delta = _load_payload_and_delta()
+    n = len(rfc8785.dumps(payload["content"]))
+    assert delta["payload"]["bytes"] == n, \
+        f"the Delta declares {delta['payload']['bytes']} octets, JCS(content) is {n}"
+    assert n <= 34816, "JCS(content) exceeds the 34816-octet cap (DC-1 §3.6)"
+check("payload:length", _payload_length)
+
+def _payload_tamper():
+    """One mutated octet MUST break the commitment (DC-1 §3.6).
+
+    Binding is the whole reason the extract can leave the signed object: a
+    Publisher must not be able to serve one text and later claim it committed
+    to another, and a Mirror must not be able to substitute a Payload. Each
+    case below changes exactly one octet of what the commitment covers, or of
+    the salt that keys it, and every one must fail to reproduce it.
+    """
+    import copy
+    payload, delta = _load_payload_and_delta()
+    committed = delta["payload"]["commitment"]
+    assert _commit(payload["salt"], payload["content"]) == committed, \
+        "the untampered Payload does not verify, so no mutation below proves anything"
+
+    def flip_last(s: str) -> str:
+        last = s[-1]
+        return s[:-1] + ("A" if last != "A" else "B")
+
+    mutations = {}
+    m = copy.deepcopy(payload)
+    m["content"]["extract"] = flip_last(m["content"]["extract"])
+    mutations["extract"] = m
+    m = copy.deepcopy(payload)
+    m["content"]["summary"]["title"] = flip_last(m["content"]["summary"]["title"])
+    mutations["summary.title"] = m
+    m = copy.deepcopy(payload)
+    m["content"]["summary"]["abstract"] = flip_last(m["content"]["summary"]["abstract"])
+    mutations["summary.abstract"] = m
+    m = copy.deepcopy(payload)
+    m["salt"] = flip_last(m["salt"])
+    mutations["salt"] = m
+
+    for label, mutated in mutations.items():
+        assert mutated != payload, f"{label}: the mutation did not change the Payload"
+        assert _commit(mutated["salt"], mutated["content"]) != committed, \
+            f"{label}: a mutated Payload still reproduces the commitment"
+check("negative:payload-tamper", _payload_tamper)
 
 # 3. DC-3 vectors: recompute merkle root and verify inclusion proof
 dc3 = ROOT / "vectors" / "dc3"
@@ -268,7 +337,14 @@ def _dc4_coverage_attestation():
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     actions = schema["properties"]["update"]["properties"]["action"]["enum"]
     assert "coverage_attestation" in actions, "action enum lacks coverage_attestation"
-    assert actions[-1] == "coverage_attestation", "coverage_attestation must be appended, not reordered"
+    # The enum is append-only. Reordering it would silently reinterpret nothing
+    # in the Log (actions are strings), but it invites an implementation to key
+    # on position; pinning the established prefix leaves appends the only edit.
+    established = ["aggregator_key_add", "aggregator_key_remove", "auditor_admit",
+                   "auditor_remove", "sanction", "sanction_lift", "notice", "appeal",
+                   "appeal_ruling", "parameter_change", "coverage_attestation"]
+    assert actions[:len(established)] == established, \
+        "the action enum was reordered rather than appended to"
     v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
     attestation = {
         "update": {
@@ -283,6 +359,43 @@ def _dc4_coverage_attestation():
     }
     Draft202012Validator(schema).validate(attestation)
 check("schema:dc4-coverage-attestation", _dc4_coverage_attestation)
+
+def _dc4_payload_withdrawal():
+    """A withdrawal is only distinguishable from censorship if it is typed.
+
+    DC-3 §6.2 rests on the Log carrying, for every withdrawn Payload, an entry
+    naming which Delta, on what legal basis, at whose demand. A withdrawal
+    missing any of the three would let an operator record an unfalsifiable
+    "we removed something", which is what a quiet drop looks like.
+    """
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    actions = schema["properties"]["update"]["properties"]["action"]["enum"]
+    assert "payload_withdrawal" in actions, "action enum lacks payload_withdrawal"
+    delta_id = (ROOT / "vectors" / "dc1" / "id.txt").read_text().strip()
+    withdrawal = {
+        "update": {
+            "dc_version": "1.0.0",
+            "action": "payload_withdrawal",
+            "subject": "example.com",
+            "details": {"delta_id": delta_id,
+                        "legal_basis": "GDPR Art. 17(1)(a)",
+                        "jurisdiction": "EU"},
+            "effective_at": "2026-08-02T16:00:00Z",
+        },
+        "sig": json.loads(
+            (ROOT / "examples" / "registry-update.json").read_text())["sig"],
+    }
+    v = Draft202012Validator(schema)
+    v.validate(withdrawal)
+    import copy
+    for missing in ("delta_id", "legal_basis", "jurisdiction"):
+        bad = copy.deepcopy(withdrawal)
+        del bad["update"]["details"][missing]
+        assert not v.is_valid(bad), f"a withdrawal without {missing} validates"
+    bad = copy.deepcopy(withdrawal)
+    bad["update"]["details"]["delta_id"] = "not-a-delta-id"
+    assert not v.is_valid(bad), "a withdrawal naming no well-formed Delta ID validates"
+check("schema:dc4-payload-withdrawal", _dc4_payload_withdrawal)
 
 def _dc4_appendix_figures():
     """DC-4's worked example must quote the vector, not a remembered figure.
