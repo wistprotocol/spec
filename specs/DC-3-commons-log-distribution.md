@@ -36,7 +36,9 @@ shown here.
 - **Inclusion Proof**: a Merkle path proving an Entry is in a Block.
 
 Terms from DC-1 (Envelope, Delta, Canonical Bytes) and DC-2 (Feed) keep
-their defined meanings.
+their defined meanings. Every signed object in this document carries
+`dc_version` (DC-1 §3.1) and the DC-1 §4 signature block (`key_id`,
+`alg`, `value`).
 
 ## 3. Block Format
 
@@ -155,8 +157,9 @@ cap while decompressing (§10).
 A Snapshot is a derived artifact: the materialized state of the log up to
 Block N. Its `manifest.json` (schema:
 [`schemas/snapshot-manifest.schema.json`](../schemas/snapshot-manifest.schema.json))
-is signed by the Aggregator and declares `log_position` (= N), the
-`embedding_model`, and every file with its SHA-256 and byte size.
+is signed by the Aggregator and declares `snapshot_date`, `log_position`
+(= N), the `embedding_model`, and every file with its SHA-256 and byte
+size.
 
 - **Tier 0** — summaries and quantized embeddings of every live record:
   SQLite (FTS5) + Parquet. Sized for any laptop; answers most agent
