@@ -226,28 +226,156 @@ change between push and audit.
 
 ## 6. Reputation
 
-Reputation is a pure, deterministic function of log history. Anyone
-replaying the log MUST arrive at the same score for every domain at every
-block height. All constants live in the Parameter Registry (§9).
+Reputation is an integer in **micro-units** (`reputation_u`, 0 … 1 000 000,
+a resolution of 1e-6) and is a pure, deterministic function of Log history
+evaluated **at a Block height N**. No floating-point arithmetic appears
+anywhere in its definition: every input is an integer, every division is
+integer division, and any implementation replaying the same Log to the
+same height MUST produce bit-identical values. An implementation that
+computes reputation in binary floating point is non-conforming even when
+its results happen to agree, because `exp()` is not correctly rounded in
+any mainstream math library and the last unit in the last place decides
+audit selection, quota, and inclusion latency.
 
-For a domain at evaluation time *t*:
+Where another section takes reputation as a fraction of 1, the value is
+the exact rational `reputation_u / 1 000 000` — never a rounded binary
+approximation of it. All constants live in the Parameter Registry (§9),
+read as of the `sealed_at` of Block N.
 
-- `A` = days since the domain's first accepted Delta;
-  `age_score = min(A / 730, 1)`.
-- `C` = lifetime count of `consistent` Audit Records for the domain's
-  **content-bearing** Deltas (`new`/`update`). Audits of `attest` Deltas
-  do not increment `C` (§10).
-- For each Confirmed Inconsistency *i*: severity `s_i` ∈ {1 = minor
-  divergence, 2 = misleading extract, 3 = fabricated content} — assigned
-  in the corresponding `sanction` Registry Update — and age `t_i` in
-  days; `penalty = Σ s_i × exp(−t_i / 180)`.
-- `reputation = age_score × (C + 1) / (C + 1 + 5 × penalty)`, clamped to
-  [0, 1].
+**Evaluation order is normative.** Every expression in this section
+contains at most one division, and that division is its **last**
+operation: all multiplications, additions and subtractions are carried
+out first, in exact integer arithmetic on the full-width intermediate,
+and only the final quotient is truncated. Dividing early — for example
+computing `10 000 × (reputation_u / 1 000 000)` instead of
+`(10 000 × reputation_u) / 1 000 000` — yields different, non-conforming
+results, and is the one mistake an implementation can make while still
+using only integers.
 
-**Provisional:** while `A < 30` or `C < 10`, reputation is capped at
-0.10. A domain whose Key Set is replaced without a valid rotation
-signature (DC-1 §5.2) resets `A` and `C` to zero and re-enters
-Provisional.
+### 6.1. Inputs
+
+Every day count is derived from Block `sealed_at` values, never from wall
+clock time and never from a Publisher-supplied timestamp. An RFC 3339 UTC
+`sealed_at` converts to an integer count of seconds since
+1970-01-01T00:00:00Z with every day counted as exactly 86 400 seconds (no
+leap seconds), and "whole days between X and Y" is
+`(seconds(Y) − seconds(X)) / 86 400` under integer division. `sealed_at`
+is strictly increasing across Blocks (DC-3 §3.1), so every such difference
+is non-negative and the rounding direction of a negative quotient never
+arises.
+
+- **`A`** = whole days between the `sealed_at` of the Block that first
+  contained an accepted Delta from this domain **under its current
+  identity** (§6.3) and the `sealed_at` of Block N. A domain with no
+  accepted Delta at height N has `A` = 0. Publisher-supplied `observed_at`
+  is never used, so backdating a Delta cannot age a domain.
+- **`base_u`** = `100 000 + 900 000 × min(A, 730) / 730`, integer
+  division. It rises linearly from 100 000 (exactly the Provisional cap)
+  at `A` = 0 to 1 000 000 at `A` ≥ 730.
+- **`C`** = the number of distinct Normalized URLs (DC-1 §3.2) of this
+  domain that have at least one `consistent` Audit Record, sealed at a
+  height ≤ N, for a content-bearing Delta (`new` or `update`) on that URL,
+  capped at `C_cap` = 500. Audits of `attest` and `delete` Deltas never
+  contribute. Counting distinct URLs rather than Records, and capping the
+  count, prevents a high-volume Publisher from diluting penalties toward
+  zero.
+- **Confirmed Inconsistencies.** Only those whose confirming Audit Record
+  is sealed at a height ≤ N count. For each such Confirmed Inconsistency
+  *i*: `s_i` ∈ {1 = minor divergence, 2 = misleading extract,
+  3 = fabricated content} is the severity assigned in the corresponding
+  `sanction` Registry Update (§7), and `t_i` is the whole days between the
+  `sealed_at` of the **confirming Block** — the Block sealing the second
+  of the two `inconsistent` Audit Records that complete the confirmation
+  under §5, "second" being taken in Log order (ascending Block height,
+  then ascending Entry index within a Block) — and the `sealed_at` of
+  Block N.
+- **`decay(t)`** is read from the normative decay table
+  ([`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json)): an
+  array of 1826 integers, `decay(t) = floor(exp(−t / 180) × 1e9)` — the
+  decay scale 1e9 being 1 000 000 000 — indexed by whole days 0 … 1825,
+  with `decay(t) = 0` for `t` > 1825. The table,
+  not `exp()`, is normative; implementations MUST read it and MUST NOT
+  recompute it at runtime. `decay(0)` = 1 000 000 000 and the table is
+  strictly decreasing. Expiry at the horizon drops a residue of
+  `decay(1825)` = 39 512 (3.95e-5 of full weight) to zero; that step can
+  only raise a reputation, never lower one. The table is normative as
+  *bytes*: SHA-256 of the file is
+  `f0cd1eb48cbfb1647a083b4ba06e7f69e6c42d5b5f4bf8e4f42b97c6bfdf7dc1`, and
+  an implementation carrying a table that does not hash to that value is
+  non-conforming even if every entry looks plausible. Changing the table
+  changes every reputation in the system and is a `parameter_change` (§9)
+  like any other constant.
+- **`penalty_n`** = `Σ s_i × decay(t_i)`, in exact integer arithmetic. The
+  sum is over integers, so its value does not depend on summation order;
+  implementations that publish intermediate sums SHOULD nevertheless
+  accumulate in ascending `t_i`, ties broken by ascending byte order of
+  the UTF-8 Delta ID of the inconsistent Delta, so that intermediates
+  agree too.
+
+### 6.2. The formula
+
+    reputation_u = base_u × (C + 1) × 1 000 000 000
+                   / ((C + 1) × 1 000 000 000 + 5 × penalty_n)
+
+using integer division, then clamped to [0, 1 000 000]. The 1 000 000 000
+is the decay scale: it cancels against the scale of `penalty_n`, so
+`decay` never has to be un-scaled and no rounding happens before the final
+division. Every dividend here is non-negative and every divisor is
+positive, so truncation toward zero and flooring coincide: no
+implementation language's treatment of negative operands can change the
+result. The clamp is defensive — the quotient cannot leave the range — and
+MUST be applied anyway.
+
+A signed 64-bit integer holds every intermediate: the numerator is at most
+1 000 000 × 501 × 1 000 000 000 ≈ 5.01e17, and the denominator exceeds
+2^63 only for a domain carrying more than 6 × 10^8 unexpired Confirmed
+Inconsistencies at once. Implementations SHOULD nevertheless use
+arbitrary-precision integers, and MUST NOT let any intermediate wrap
+silently.
+
+**Provisional cap.** While `A` < 30 or `C` < 10, the domain is
+**Provisional** and
+
+    reputation_u = min(reputation_u, 100 000)
+
+The cap is a **ceiling only**, never a floor: it is `min(formula, cap)`,
+not "forced to exactly the cap". A Provisional domain that has earned a
+Confirmed Inconsistency therefore scores *below* 0.10, and the gate does
+not launder it clean.
+
+**No cliff at the boundary.** Reputation MUST NOT decrease solely because
+a gate lifted, and under this definition it cannot: with `A`, `C`, and
+`penalty_n` fixed, the gated value is `min(f, 100 000)` and the ungated
+value is `f`, and `min(f, 100 000) ≤ f` for every `f`. The formula also
+meets the cap continuously from below rather than jumping past it: at
+`A` = 0 with no penalty, `base_u` is exactly 100 000, so a brand-new
+domain's *ungated* value already equals the cap, and at the gate values
+(`A` = 30, `C` = 10, no penalty) it is 136 986 — a promotion, not the
+demotion the earlier `age_score = A / 730` formula produced. Since
+`base_u` is non-decreasing in `A`, `(C + 1) / ((C + 1) + 5 × penalty_n)`
+is non-decreasing in `C`, and `A` and `C` never fall except at an identity
+reset (§6.3), `reputation_u` is monotone non-decreasing in both. Only a
+new Confirmed Inconsistency lowers it. Worked values at, just below, and
+just above the gate are in Appendix B.
+
+Lifting the `C` gate can raise reputation by a large step — an aged domain
+sitting at the cap with `C` = 9 moves to its full `base_u` at `C` = 10.
+That is deliberate: standing above 0.10 requires audit evidence, and the
+step is upward.
+
+### 6.3. Identity, reset, and Provisional
+
+`A` and `C` belong to a **key identity**, not to a name. A Declaration
+that DC-1 §5.2 classifies as a **fresh identity** — signed by neither a
+key of the previous Key Set nor a key in the previous Declaration's
+`recovery_keys` — resets `A` and `C` to zero at the height its Declaration
+Entry is sealed, and the domain re-enters Provisional; its `A` is then
+measured from the first Block sealing an accepted Delta after that height.
+An **ordinary rotation** (signed by a previous signing key) and a
+**recovery rotation** (signed by a pre-registered offline recovery key)
+both preserve `A` and `C` in full. Replacing a Key Set is therefore not
+by itself a reset; only the loss of every cryptographic link to the prior
+identity is.
 
 Provisional is not a penalty and MUST NOT block participation: a
 Provisional domain pings, is pulled, has its Deltas sealed, and is audited
@@ -256,11 +384,15 @@ It is the only way `A` and `C` can grow, and therefore the only path out of
 Provisional; an implementation that suspends ingestion for Provisional
 domains cannot bootstrap and is non-conforming.
 
-Reputation governs exactly three things:
+### 6.4. What reputation governs
 
-1. **Ping quota** (DC-2 §4): `Q = 100 + 10000 × reputation` Pings/day.
-2. **Sampling rate** `p(domain)` (§4).
-3. **Inclusion latency**: reputation ≥ 0.5 → eligible for the next
+Exactly three things:
+
+1. **Ping quota** (DC-2 §4): `Q = 100 + 10 000 × reputation_u / 1 000 000`
+   Pings per UTC day, integer division. The new-domain quota DC-2 §5 refers
+   to is this formula at `reputation_u` = 100 000, i.e. **Q = 1100**.
+2. **Sampling rate** `p(domain)` (§4), read at the height §4 fixes.
+3. **Inclusion latency**: `reputation_u` ≥ 500 000 → eligible for the next
    Block; below → eligible for the Block after the next (one full Block
    of delay).
 
@@ -355,12 +487,17 @@ are made by `parameter_change` Registry Updates and MUST have
 | Shingle size | 8 words | §5 |
 | Confirmation: auditors / window | 2 / 72 hours | §5 |
 | Age normalization | 730 days | §6 |
-| Penalty half-life divisor | 180 days | §6 |
+| Reputation base at age 0 | 100 000 micro-units (= the Provisional cap) | §6 |
+| Penalty decay constant (1/e) | 180 days (the true half-life is 180·ln2 ≈ 124.8 days) | §6 |
+| Decay table horizon | 1825 days | §6 |
+| Decay table digest (SHA-256) | `f0cd1eb4…bfdf7dc1` | §6 |
+| Distinct-URL cap `C_cap` | 500 | §6 |
+| Reputation resolution | 1e-6 (micro-units) | §6 |
 | Penalty weight | 5 | §6 |
-| Provisional gates (age / consistent audits) | 30 days / 10 | §6 |
-| Provisional reputation cap | 0.10 | §6 |
+| Provisional gates (age / distinct audited URLs) | 30 days / 10 | §6 |
+| Provisional reputation cap (ceiling, not floor) | 0.10 = 100 000 micro-units | §6 |
 | Ping quota base / slope | 100 / 10000 per day | §6 |
-| Inclusion latency threshold | reputation 0.5 | §6 |
+| Inclusion latency threshold | reputation 0.5 = 500 000 micro-units | §6 |
 | Escalation: level 2 / level 3 | 3 in 90 days / 10 in 90 days or severity 3 | §7 |
 | Appeal window | 14 days | §7 |
 | Recovery window | 7 days | DC-1 §5.2 |
@@ -397,12 +534,27 @@ are made by `parameter_change` Registry Updates and MUST have
   Deltas and not others is a failure for the Block, not partial credit (§4).
 - **Reputation gaming via attest-farming.** A domain cannot inflate `C`
   by emitting torrents of trivially-true `attest` Deltas: audits of
-  `attest` Deltas never increment `C` (§6). Only content-bearing Deltas
-  that survive audit build reputation, and those are exactly the Deltas
-  that are expensive to fake at scale.
-- **Domain resale.** Reputation attaches to key continuity, not the
-  name: a Key Set replaced without rotation signature resets to
-  Provisional (§6, DC-1 §5.2). Buying an aged domain buys no standing.
+  `attest` and `delete` Deltas never contribute to `C` (§6). Nor can it
+  inflate `C` by re-publishing the same URL: `C` counts *distinct*
+  Normalized URLs with a `consistent` audit, capped at 500, so the only
+  way to dilute a penalty is to publish, and keep passing audits on, many
+  different pages — exactly the thing that is expensive to fake at scale.
+- **Domain resale.** Reputation attaches to key continuity, not the name.
+  A Declaration signed by neither the previous Key Set nor the previous
+  `recovery_keys` is a fresh identity: `A` and `C` reset and the domain
+  re-enters Provisional (§6.3, DC-1 §5.2). Buying an aged domain, or its
+  hosting, buys no standing. An ordinary rotation and a recovery rotation
+  both preserve standing, because both prove possession of a key the prior
+  identity chose in advance — recovery keys exist precisely so that losing
+  a signing key does not force a Publisher to forfeit its history, and a
+  thief holding only a signing key cannot outrun them (DC-1 §5.2).
+- **Floating-point divergence in reputation.** Reputation decides audit
+  selection, quota, and inclusion latency through strict comparisons, so
+  two implementations differing by one unit in the last place would
+  disagree about which Deltas were required to be audited. §6 removes the
+  possibility rather than tolerating it: every quantity is an integer,
+  `exp()` is replaced by a published table, and division order and
+  rounding are pinned. There is no conforming path that uses `double`.
 - **Sanction censorship.** An Aggregator cannot quietly suppress a
   sanction or an appeal: withholding log entries from some observers is
   equivocation, detectable and provable per DC-3 §5.
@@ -450,10 +602,17 @@ no private reputation channel.
 
 - [ ] Reproduces §6 exactly (constants from the Parameter Registry as of
       the evaluated block height)
+- [ ] Uses integer arithmetic and the normative decay table only (§6)
+- [ ] Derives `A` and every `t_i` from Block `sealed_at`, never from
+      `observed_at` or wall clock time (§6.1)
 - [ ] Verifies VRF proofs before counting a Record (§4)
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
       Inconsistencies (§5)
-- [ ] Excludes `attest` audits from `C` (§6)
+- [ ] Excludes `attest` and `delete` audits from `C`, counts distinct
+      Normalized URLs, and applies `C_cap` (§6.1)
+- [ ] Applies the Provisional cap as a ceiling, not a floor (§6.2), and
+      resets `A`/`C` only for a fresh identity — never for an ordinary or
+      recovery rotation (§6.3)
 
 ## Appendix A. Worked Sampling Example
 
@@ -490,6 +649,72 @@ Selection outcome for this draw:
 A draw below the threshold would select the Delta for audit; a different
 Auditor, holding a different key, gets a different `beta` over the same
 Block and therefore an independently drawn selection set.
+
+## Appendix B. Worked Reputation Example
+
+Real values, computed by `tools/gen_vectors.py` and machine-checked by
+`tools/validate_examples.py` (`vectors:dc4-reputation`,
+`vectors:dc4-decay-table`). The source of truth is
+[`vectors/dc4/reputation.json`](../vectors/dc4/reputation.json) and
+[`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json). Every
+number below is an integer produced by the §6 operations in the order §6
+gives them.
+
+A domain whose first accepted Delta was sealed in the Block of Appendix A
+(`sealed_at` `2026-08-02T13:00:00Z`), evaluated at a Block N sealed
+`2027-09-06T18:00:00Z`, with 12 distinct audited URLs and one severity-2
+Confirmed Inconsistency whose confirming Block was sealed
+`2027-08-07T17:00:00Z`:
+
+| Quantity | Value | How |
+|---|---|---|
+| `A` | 400 | (Block N − first Block) = 400 d 5 h; the partial day truncates |
+| `t_1` | 30 | (Block N − confirming Block) = 30 d 1 h; likewise |
+| `base_u` | 593 150 | 100 000 + 900 000 × 400 / 730 |
+| `C` | 12 | distinct Normalized URLs with a `consistent` audit, under `C_cap` |
+| `decay(30)` | 846 481 724 | table lookup, not `exp()` |
+| `penalty_n` | 1 692 963 448 | 2 × 846 481 724 |
+| numerator | 7 710 950 000 000 000 | 593 150 × 13 × 1e9 |
+| denominator | 21 464 817 240 | 13 × 1e9 + 5 × 1 692 963 448 |
+| `reputation_u` | 359 236 | integer division, not Provisional, no clamping |
+| `Q` | 3 692 | 100 + 10 000 × 359 236 / 1e6 |
+| `p` (§4) | 0.2122292 | exact in decimal at this resolution (see below) |
+
+**The Provisional boundary.** Reputation never falls because a gate
+lifted. Rows 1–3 cross the age gate with a clean record; rows 4–5 cross
+the same gate with the severity-2 penalty above still in force, where the
+cap is not even binding; rows 6–7 cross the `C` gate for an aged domain,
+the only place the cap does bind; row 8 is a brand-new domain.
+
+| `A` | `C` | `penalty_n` | `base_u` | formula | Provisional? | `reputation_u` | `Q` |
+|---|---|---|---|---|---|---|---|
+| 29 | 10 | 0 | 135 753 | 135 753 | yes | 100 000 | 1100 |
+| 30 | 10 | 0 | 136 986 | 136 986 | no | 136 986 | 1469 |
+| 31 | 10 | 0 | 138 219 | 138 219 | no | 138 219 | 1482 |
+| 29 | 10 | 1 692 963 448 | 135 753 | 76 717 | yes | 76 717 | 867 |
+| 30 | 10 | 1 692 963 448 | 136 986 | 77 413 | no | 77 413 | 874 |
+| 800 | 9 | 0 | 1 000 000 | 1 000 000 | yes | 100 000 | 1100 |
+| 800 | 10 | 0 | 1 000 000 | 1 000 000 | no | 1 000 000 | 10 100 |
+| 0 | 0 | 0 | 100 000 | 100 000 | yes | 100 000 | 1100 |
+
+Three things to read off this table. Graduating is a promotion
+(100 000 → 136 986), not the demotion the old real-valued formula
+produced. The cap is a ceiling: at rows 4–5 the penalized domain scores
+below 0.10 while Provisional, so the gate cannot launder a Confirmed
+Inconsistency, and its `Q` is 867, not 1100. And the last row is why the
+two meet at all — at `A` = 0 the ungated formula equals the cap exactly,
+so the Provisional cap is the value the formula already has rather than a
+number bolted on top of it.
+
+**`p` is exact.** §4's `p(domain)` = clamp(0.02 + 0.30 × (1 − reputation),
+0.02, 0.50) takes reputation with six decimal digits and multiplies by a
+two-digit decimal, so its value always has at most seven decimal digits
+and is exactly representable in decimal: `p` × 1e7 =
+clamp(200 000 + 3 × (1 000 000 − `reputation_u`), 200 000, 5 000 000).
+The worked example's 0.2122292 is that identity, not a rounding of it.
+The decay table's endpoints, `decay(0)` = 1 000 000 000 and
+`decay(1825)` = 39 512, are likewise exact integers rather than the output
+of any `exp()`.
 
 ## References
 
