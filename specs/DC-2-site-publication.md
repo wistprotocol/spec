@@ -31,7 +31,8 @@ shown here.
 - **Ingest Endpoint**: the Aggregator URL that receives Pings.
 
 Terms defined in DC-1 (Publisher, Delta, Delta ID, Envelope, Key Set,
-Canonical Host, Normalized URL) are used with their DC-1 meanings. Every
+Canonical Host, Normalized URL, Payload) are used with their DC-1
+meanings. Every
 Envelope in this document carries `dc_version` (DC-1 §3.1) and the DC-1
 §4 signature block (`key_id`, `alg`, `value`).
 
@@ -42,19 +43,40 @@ A conforming Publisher serves, over HTTPS only:
 ```
 /.well-known/deltacommons/publisher.json     (identity — DC-1 §5)
 /.well-known/deltacommons/deltas/<id>.json   (one file per Delta)
+/.well-known/deltacommons/payloads/<id>.json (one file per content-bearing Delta)
 /.well-known/deltacommons/feed.json          (the Feed)
 /.well-known/deltacommons/feed/<n>.json      (sealed Feed Pages — §3.2)
 ```
 
-### 3.1. Delta Files
+### 3.1. Delta and Payload Files
 
 `deltas/<id>.json` contains exactly one Delta Envelope, where `<id>` is
 the Delta ID (including the `sha256:` prefix is NOT used in the filename;
 the filename is the 64-char hex digest, e.g.
-`deltas/e3ba905f...87b1.json`). Delta files are immutable: once published
+`deltas/7bee228c...1047.json`). Delta files are immutable: once published
 under an ID, the bytes MUST NOT change. Publishers SHOULD serve them with
 long-lived cache headers (`Cache-Control: public, max-age=31536000,
 immutable`).
+
+`payloads/<id>.json` contains the Payload (schema:
+[`schemas/payload.schema.json`](../schemas/payload.schema.json)) of the
+Delta with that ID, and MUST be served for every content-bearing Delta
+(DC-1 §3.3). The filename uses the same 64-char hex digest, so the two
+files of one Delta share a name and differ only in directory. A Payload
+is unsigned; its integrity comes from the Delta's commitment (DC-1 §3.6),
+which every fetcher recomputes. Payload files are immutable while served,
+under the same caching advice as Delta files — but unlike Delta files they
+are erasable: a Publisher MAY stop serving a Payload, and MUST stop when
+the content must be erased.
+
+**Payload retention.** A Publisher MUST keep retrievable the Payload of
+the last content-bearing Delta in a URL's chain for as long as it
+continues to emit `attest` Deltas for that URL, because that Payload is
+the reference an `attest` is audited against (DC-4 §5). A Publisher that
+must stop serving it re-anchors the chain instead, by publishing an
+`update` with a fresh Payload or a `delete`; what it MUST NOT do is keep
+attesting to content nobody can obtain. Payloads of superseded Deltas
+carry no such obligation.
 
 ### 3.2. The Feed and its Pages
 
@@ -160,7 +182,16 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
 2. Diffs `feed.deltas` against the IDs it has already seen for the
    domain, following `next` through sealed Pages as required by §3.2.
 3. Fetches each new `deltas/<id>.json`; validates each per DC-1 (§4, §7).
-4. Queues accepted Deltas for the next log block (DC-3 §3).
+   For every content-bearing Delta it also fetches the corresponding
+   `payloads/<id>.json` in the same pass and verifies it against the
+   Delta's commitment and `bytes` (DC-1 §3.6). A Delta whose Payload is
+   unavailable, malformed, or fails that verification at pull time MUST be
+   rejected with `DC2-E03` and MUST NOT be sealed: the Aggregator cannot
+   undertake to serve (DC-3 §6.1) content it never received, and a Delta
+   sealed without its Payload would be permanently unauditable.
+4. Queues accepted Deltas for the next log block (DC-3 §3), and the
+   Payloads it verified for publication alongside the Block that seals
+   them (DC-3 §6.1).
 
 Aggregators MUST also poll known feeds at a low baseline frequency
 (default: every 24 hours, a Parameter Registry value — DC-4 §9) regardless
@@ -195,7 +226,7 @@ convenience. This asymmetry is the adoption incentive for DC-1/DC-2.
 |---------|--------------------------------------------------------------|
 | DC2-E01 | Feed unreachable after Ping. Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 64 min; a fresh ping cancels a pending backoff and starts a new attempt, subject to quota. |
 | DC2-E02 | Ping produced no new feed content. Counts as noise against the domain's Ping quota. |
-| DC2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`. Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
+| DC2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (DC-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
 | DC2-E04 | Feed signature invalid. The pull is discarded; counts as noise against the quota. |
 | DC2-E05 | Feed `generated_at` regression. The pull is discarded and counts against the quota as noise. |
 
@@ -241,6 +272,9 @@ who consumes their Deltas.
 
 - [ ] Serves the well-known paths over HTTPS with the layout of §3
 - [ ] Delta files are immutable and named by hex digest (§3.1)
+- [ ] Serves a Payload for every content-bearing Delta, at the matching
+      hex-digest name, and keeps the anchor Payload of every URL it
+      attests retrievable (§3.1)
 - [ ] Seals Pages when `deltas` would exceed 1000 entries — file
       published before cutover, sealing-order numbering, no Delta
       omitted or duplicated across Pages, monotonic `generated_at` (§3.2)
@@ -251,6 +285,9 @@ who consumes their Deltas.
 
 - [ ] Implements the pull sequence of §5 with signature validation at
       every step
+- [ ] Pulls each content-bearing Delta's Payload in the same pass, checks
+      it against the Delta's commitment, and rejects with `DC2-E03` rather
+      than sealing a Delta whose Payload it does not hold (§5, §7)
 - [ ] Performs First Contact (verifies `publisher.json` before any Feed
       pull for an unknown domain) (§5)
 - [ ] Follows `next` through sealed Pages until reaching already-ingested

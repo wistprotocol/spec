@@ -4,11 +4,10 @@
     "url": "https://example.com/blog/post-1",
     "change_type": "new",
     "observed_at": "2026-08-02T12:00:00Z",
-    "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
-    "extract_hash": "sha256:280b420ff2d23150e67553ca0bca7825529e96f53b4df3f523beecfcdfd9a7c1",
-    "summary": {
-      "title": "Post 1",
-      "abstract": "An introduction to DeltaCommons."
+    "payload": {
+      "commitment": "hmac-sha256:de7cd99162e130dc9560185aef449f10d56afdbae59c1322fdb9b7b773193593",
+      "alg": "HMAC-SHA256",
+      "bytes": 156
     },
     "meta": {
       "lang": "en",
@@ -21,6 +20,6 @@
   "sig": {
     "key_id": "test-k1",
     "alg": "Ed25519",
-    "value": "aDRvbB3J4L2Chht8V_Up_-pXzBZX6quUq9XBBb2H2znmbX8TbJ3IuXYiz6f_9wePwvyTIYG-TPFj5Y_vkvAuAw"
+    "value": "HrmcgUNFqNF_k9eP3PCjhK8gpktKoJl1bWEHnezOBJvVDKGG7DvMxeWBiwy7TnY1yOghZhg3vwQQiYI_6cXHDg"
   }
 }

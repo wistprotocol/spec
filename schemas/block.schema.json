@@ -26,6 +26,7 @@
     },
     "entries": {
       "type": "array",
+      "description": "Sealed Entries. Entries carry commitments, never content: a Delta's extract and summary travel as a Payload alongside the Block (DC-3 §6.1) and are neither covered by the Block signature nor by the Merkle root.",
       "items": {
         "type": "object",
         "required": ["type", "body"],

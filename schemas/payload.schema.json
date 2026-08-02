@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/payload.schema.json",
+  "title": "DeltaCommons Content Payload (DC-3)",
+  "type": "object",
+  "required": ["dc_version", "salt", "content"],
+  "additionalProperties": false,
+  "properties": {
+    "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "salt": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22,}$"},
+    "content": {
+      "type": "object",
+      "required": ["extract", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "extract": {"type": "string", "maxLength": 32768},
+        "summary": {
+          "type": "object",
+          "required": ["title"],
+          "additionalProperties": false,
+          "properties": {
+            "title": {"type": "string", "maxLength": 256},
+            "abstract": {"type": "string", "maxLength": 1500}
+          }
+        }
+      }
+    }
+  }
+}

@@ -12,7 +12,7 @@
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation"]},
+        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal"]},
         "subject": {"type": "string", "maxLength": 256},
         "details": {"type": "object"},
         "evidence": {"type": "array", "items": {"type": "string", "maxLength": 256}},
@@ -163,7 +163,7 @@
                     "provisional_age_days", "provisional_audits", "provisional_cap_u",
                     "quota_base", "quota_slope", "latency_threshold_u", "escalation_l2",
                     "escalation_l3", "escalation_l4", "appeal_window_days", "ruling_deadline_days",
-                    "param_grace_days"
+                    "param_grace_days", "payload_window_days"
                   ]},
                   "value": {"type": "number"}
                 },
@@ -179,8 +179,33 @@
                   {
                     "if": {"properties": {"parameter": {"const": "similarity_variance_floor"}}},
                     "then": {"properties": {"value": {"minimum": 150001}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "payload_window_days"}}},
+                    "then": {"properties": {"value": {"minimum": 30}}}
                   }
                 ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"const": "payload_withdrawal"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["delta_id", "legal_basis", "jurisdiction"],
+                "properties": {
+                  "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                  "legal_basis": {"type": "string", "minLength": 1, "maxLength": 1024},
+                  "jurisdiction": {"type": "string", "minLength": 1, "maxLength": 128}
+                }
               }
             }
           }
