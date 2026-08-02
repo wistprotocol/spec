@@ -320,19 +320,31 @@ depends on content — an Auditor's coverage duty above all, which expires
 72 hours after a Block is sealed (DC-4 §4) — falls well within it.
 
 **Anchor Payloads.** One class of Payload outlives the window at the
-Aggregator. A URL's **anchor Payload** is the Payload of the most recent
-content-bearing Delta for that URL, for as long as that URL has not been
-deleted; it is what an `attest` Delta is audited against (DC-4 §5), which
-may be years after it was sealed, and it is the key under which that
-audit's own commitments are computed. An Aggregator MUST keep serving a
-URL's anchor Payload for as long as it is the anchor, regardless of the
-window, and for one further availability window after a `delete` Delta for
-that URL is sealed, so that the `delete` itself remains auditable. Neither
-obligation survives a withdrawal under §6.2. This costs nothing it was not already
-holding — the anchor Payloads of live URLs are exactly the content Tier 1
-materializes (§7) — and it means a Publisher cannot make its own freshness
-claims unauditable by dropping its copy: the Aggregator's copy is
-independent, and the commitment makes the two interchangeable.
+Aggregator. A URL's **anchor Payload as of a Delta *d*** is the Payload of
+the last content-bearing Delta at or before *d* in that URL's per-URL
+chain (DC-1 §3.5); the URL's **current anchor Payload** is its anchor as
+of the URL's most recent Delta. The definition is relative to a Delta and
+not to the present, because it is what an `attest` or `delete` Delta is
+audited against (DC-4 §5) and the key under which that audit's own
+commitments are computed: an anchor that moved whenever a later `update`
+was sealed would retroactively invalidate Records that were honest when
+they were written. A `delete` does not end the definition either — the
+Delta that a `delete` audit is measured against is the anchor as of that
+`delete`, which is exactly the content the `delete` asserts is gone.
+
+An Aggregator MUST serve a Payload for as long as it is the URL's current
+anchor Payload, regardless of the availability window, and MUST continue
+to serve it for one further availability window after it ceases to be —
+which is when a later content-bearing Delta, or a `delete`, for that URL
+is sealed. The extension covers exactly the Deltas that name it as their
+anchor and can still be audited or appealed. Neither obligation survives a
+withdrawal under §6.2, which ends both immediately.
+
+Holding current anchors costs the Aggregator nothing it was not already
+holding — they are exactly the content Tier 1 materializes (§7) — and it
+means a Publisher cannot make its own freshness claims unauditable by
+dropping its copy: the Aggregator's copy is independent, and the
+commitment makes the two interchangeable.
 
 ### 6.2. Withdrawal
 
@@ -350,8 +362,9 @@ that height:
 - the Aggregator and every Mirror MUST stop serving that Payload, and a
   Consumer MUST NOT treat its absence as a fault;
 - Consumers MUST exclude the withdrawn content from subsequent
-  materializations, and the Aggregator MUST stop serving any already
-  published Snapshot artifact that still contains it (§7);
+  materializations and remove it from any local index already built from
+  it, and the Aggregator **and every Mirror** MUST stop serving any
+  already published Snapshot artifact that still contains it (§7);
 - Auditors record `not_auditable` for that Delta (DC-4 §5) rather than a
   verdict derived from content;
 - every party holding the Payload for protocol purposes MUST destroy it,
@@ -382,11 +395,23 @@ the Delta commits to its content under the Payload salt (DC-1 §3.6), and
 every content-derived value in an Audit Record — the response, the
 Auditor's reference extraction, the WARC capture — is committed under that
 same salt (DC-4 §5). One salt keys all four, so destroying it makes all
-four unlinkable at the same instant. What remains in the Log and is
-derived from the withdrawn content is the `similarity` integer, the
-`verdict`, and the Delta's `payload.bytes` length: values that carry the
-accountability forward without letting any holder of a candidate text
-confirm it (DC-1 §9, DC-4 §11).
+four unlinkable at the same instant. The rule is general and binds any
+object a later revision adds: **a content-derived value in this suite is
+committed under the Payload salt or it is not carried at all.** No object,
+and no `details` of any Registry Update, may carry a bare digest of
+Payload content.
+
+What remains in the Log and is derived from the withdrawn content is the
+`similarity` integer, the `verdict`, and the Delta's `payload.bytes`
+length. None is a digest. Against a party holding only a candidate text
+none is confirming: `bytes` corroborates a length that unboundedly many
+texts share, and `similarity` scores an audit against a reference that
+party cannot reconstruct. Against a party that also holds the Auditor's
+reference extraction or its capture, `similarity` is recomputable and can
+be matched against the sealed integer exactly. What stands between that
+party and the content is the destroy obligation above — a duty on a named
+holder, not a property of the format, and this specification does not
+present it as one (DC-1 §9, DC-4 §11).
 
 The due process is the same the suite uses for sanctions (DC-4 §7):
 notice in the Log, a named basis, a public and permanent record. An
@@ -435,10 +460,14 @@ from it. The log itself retains full history — deletion and withdrawal
 shape the materialized present, never the recorded past.
 
 Withdrawal reaches backward into Snapshots as well, because a Snapshot
-already published carries the content in its tier files. An Aggregator
-MUST stop serving any Snapshot artifact containing withdrawn content: it
-either withdraws that Snapshot from distribution or replaces it with one
-rebuilt under the exclusion rule above, under a fresh signed manifest.
+already published carries the content in its tier files. The Aggregator
+and every Mirror MUST stop serving any Snapshot artifact containing
+withdrawn content: the Aggregator either withdraws that Snapshot from
+distribution or replaces it with one rebuilt under the exclusion rule
+above, under a fresh signed manifest, and a Mirror re-serving `/snapshots/`
+(§6) is bound identically — a Mirror that kept serving the superseded tier
+files would leave the content in distribution no matter what the
+Aggregator did, which is the whole of what withdrawal is supposed to stop.
 Neither costs a Consumer anything it cannot recover, since any state a
 Snapshot provides is reachable from the Log and the Payloads. A manifest's
 per-file `sha256` is a digest of a whole tier file rather than of any one
@@ -599,6 +628,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Serves the Payloads of every Block it serves for at least the
       availability window, and stops serving one only after a
       `payload_withdrawal` is sealed for it (§6.1, §6.2)
+- [ ] Stops serving any Snapshot artifact containing withdrawn content,
+      on the same terms as the Aggregator (§6.2, §7)
 
 **Consumer:**
 
@@ -619,7 +650,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Implements all five Error Registry behaviors, including evidence
       preservation on divergence (§9)
 - [ ] Enforces the streaming decompression cap (§10)
-- [ ] Honors the materialization rule for deletions and withdrawals (§7)
+- [ ] Excludes deleted and withdrawn content from every materialization it
+      produces, and removes withdrawn content from a local index it has
+      already built (§6.2, §7)
 - [ ] Obtains the Anchor out-of-band and resolves signing keys by height
       (§3.4)
 

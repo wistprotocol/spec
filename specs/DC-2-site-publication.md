@@ -69,14 +69,16 @@ under the same caching advice as Delta files — but unlike Delta files they
 are erasable: a Publisher MAY stop serving a Payload, and MUST stop when
 the content must be erased.
 
-**Payload retention.** A Publisher MUST keep retrievable the Payload of
-the last content-bearing Delta in a URL's chain for as long as it
-continues to emit `attest` Deltas for that URL, because that Payload is
-the reference an `attest` is audited against (DC-4 §5). A Publisher that
-must stop serving it re-anchors the chain instead, by publishing an
-`update` with a fresh Payload or a `delete`; what it MUST NOT do is keep
-attesting to content nobody can obtain. Payloads of superseded Deltas
-carry no such obligation.
+**Payload retention.** A Publisher MUST keep retrievable its URL's
+**current anchor Payload** — the Payload of the last content-bearing Delta
+in that URL's chain (DC-3 §6.1) — for as long as it continues to emit
+`attest` Deltas for that URL, because that Payload is the reference an
+`attest` is audited against (DC-4 §5). A Publisher that must stop serving
+it re-anchors the chain instead, by publishing an `update` with a fresh
+Payload or a `delete`; what it MUST NOT do is keep attesting to content
+nobody can obtain. Payloads of superseded Deltas carry no such obligation
+on the Publisher; the Aggregator's own retention of them, which is what
+keeps an already-sealed Delta auditable, is DC-3 §6.1's.
 
 ### 3.2. The Feed and its Pages
 
