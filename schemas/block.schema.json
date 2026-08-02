@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/block.schema.json",
+  "title": "DeltaCommons Log Block (DC-3)",
+  "type": "object",
+  "required": ["header", "entries", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "header": {
+      "type": "object",
+      "required": ["dc_version", "block_number", "prev_block_hash", "sealed_at", "merkle_root", "entry_count"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "block_number": {"type": "integer", "minimum": 0},
+        "prev_block_hash": {"type": "string", "pattern": "^sha256:([0-9a-f]{64}|genesis)$"},
+        "sealed_at": {"type": "string", "format": "date-time"},
+        "merkle_root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "entry_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "body"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {"enum": ["publisher_delta", "audit_record", "registry_update"]},
+          "body": {"type": "object"}
+        }
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}
