@@ -281,21 +281,21 @@ preceding it: multiplications inside a dividend are carried out first, in
 exact integer arithmetic on the full-width product, and only that quotient
 is truncated. No addition or subtraction standing outside the parentheses
 is ever folded into a dividend, and no operand is divided before being
-multiplied. There are exactly three such divisions in the whole of
-reputation and sampling; here they are, with the two misreadings that
-produce different and non-conforming results:
+multiplied. The rule governs every integer division in this suite,
+including any a later revision adds. Today there are exactly **four**, all
+of them here — §4's selection test contains none — together with the two
+misreadings that produce different and non-conforming results:
 
-| Correct | Wrong | Why it matters |
-|---|---|---|
-| `100 000 + ((900 000 × min(A, 730)) / 730)` | `(100 000 + 900 000 × min(A, 730)) / 730` | at `A` = 0 gives 100 000, not 136 — the wrong parse destroys the Provisional-cap continuity of §6.2 |
-| `100 + ((10 000 × reputation_u) / 1 000 000)` | `100 + (10 000 × (reputation_u / 1 000 000))` | at `reputation_u` = 359 236 gives 3 692, not 100 — the wrong parse truncates every sub-unit reputation to zero quota slope |
-| `(seconds(Y) − seconds(X)) / 86 400` | — | the dividend is a difference *inside* the parentheses, which is the one place a subtraction is part of a dividend, and it is written that way |
+| # | Correct | Wrong | Why it matters |
+|---|---|---|---|
+| 1 | `(seconds(Y) − seconds(X)) / 86 400` (§6.1) | — | the dividend is a difference *inside* the parentheses, the one place a subtraction is part of a dividend, and it is written that way |
+| 2 | `100 000 + ((900 000 × min(A, 730)) / 730)` (`base_u`, §6.1) | `(100 000 + 900 000 × min(A, 730)) / 730` | at `A` = 0 gives 100 000, not 136 — the wrong parse destroys the Provisional-cap continuity of §6.2 |
+| 3 | `(base_u × (C + 1) × 1 000 000 000) / ((C + 1) × 1 000 000 000 + 5 × penalty_n)` (`reputation_u`, §6.2) | — | one fully parenthesized product over one fully parenthesized sum; it has no second reading |
+| 4 | `100 + ((10 000 × reputation_u) / 1 000 000)` (`Q`, §6.4) | `100 + (10 000 × (reputation_u / 1 000 000))` | at `reputation_u` = 359 236 gives 3 692, not 100 — the wrong parse truncates every sub-unit reputation to zero quota slope |
 
-`reputation_u` itself (§6.2) is the third: it divides one fully
-parenthesized product by one fully parenthesized sum, so it has no second
-reading. Fractions that appear elsewhere in this document — `exp(−t / 180)`
-in the decay table's construction, `(C + 1) / ((C + 1) + 5 × penalty_n)` in
-the monotonicity argument below, `D / 2^64` in §4 — are rationals used to
+Fractions that appear elsewhere in this document — `exp(−t / 180)` in the
+decay table's construction, `(C + 1) / ((C + 1) + 5 × penalty_n)` in the
+monotonicity argument below, `D / 2^64` in §4 — are rationals used to
 explain a definition, and no conforming implementation ever evaluates one:
 the table is read, not computed, and §4's test multiplies both sides out.
 
