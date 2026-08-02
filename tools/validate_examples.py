@@ -522,6 +522,73 @@ def _dc4_reputation_figures():
         "DC-4 does not show what the worked p_1e7 reads as"
 check("spec:dc4-reputation-figures", _dc4_reputation_figures)
 
+def _dc4_severity_bands():
+    """DC-4 §7's severity table drives `penalty_n` directly (§6.1), so a
+    collapsed or unreachable band silently changes every domain's
+    reputation rather than merely misdocumenting one. Confirms all three
+    severities are reachable from `sim` alone and that no row rests on a
+    term needing its own definition (e.g. "wholly absent").
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
+    for row in ("| 0.15 ≤ `sim` < 0.30 | 1 (minor divergence) |",
+                "| 0.05 ≤ `sim` < 0.15 | 2 (misleading extract) |",
+                "| `sim` < 0.05 | 3 (fabricated content) |"):
+        assert row in section7, f"DC-4 §7 no longer carries the severity row {row!r}"
+    assert "wholly absent" not in section7, \
+        "DC-4 §7's severity table still conditions a band on an undefined term"
+
+    LOW, MID, HIGH = 0.05, 0.15, 0.30   # exactly the boundaries pinned above
+
+    def severity(sim):
+        assert 0 <= sim < HIGH, f"{sim} is not a valid Confirmed-Inconsistency sim (§5: < 0.30)"
+        if sim >= MID:
+            return 1
+        if sim >= LOW:
+            return 2
+        return 3
+
+    # Construct a Confirmed Inconsistency's confirming Audit Records (§5:
+    # both `inconsistent`, i.e. similarity < 0.30) at a similarity that
+    # lands the CI's `sim` (the highest of the two) in each band.
+    cases = [
+        ([0.22, 0.18], 1, "minor divergence"),
+        ([0.12, 0.09], 2, "misleading extract"),
+        ([0.04, 0.01], 3, "fabricated content"),
+    ]
+    seen = set()
+    for sims, expected, label in cases:
+        records = [{"similarity": s, "verdict": "inconsistent"} for s in sims]
+        assert all(r["verdict"] == "inconsistent" and r["similarity"] < 0.30
+                   for r in records), f"{label}: constructed records are not valid confirming Records"
+        sim = max(r["similarity"] for r in records)
+        got = severity(sim)
+        assert got == expected, f"{label}: sim={sim} produced severity {got}, expected {expected}"
+        seen.add(got)
+    assert seen == {1, 2, 3}, f"the three worked cases do not cover all three severities: {seen}"
+
+    # No reachable similarity value maps to a band the table cannot
+    # produce: scan the whole confirmable range at fine resolution and
+    # confirm every one of the three severities is actually produced. A
+    # collapsed table (e.g. severity 3 for nearly everything) would still
+    # run without error but never emit a 1.
+    reachable = set()
+    steps = 3000
+    for i in range(steps):
+        sim = round((HIGH * i) / steps, 6)
+        reachable.add(severity(sim))
+    assert reachable == {1, 2, 3}, \
+        f"severity table does not produce all three bands across [0, {HIGH}): got {reachable}"
+
+    # Exact boundary behaviour, matching the table's own "≤" / "<" reading.
+    # Pinned to literal values, not to LOW/MID/HIGH: a mutation of those
+    # variables must be caught here rather than checked against itself.
+    assert severity(0.15) == 1 and severity(0.15 - 1e-6) == 2, \
+        "the level 1 / level 2 boundary is not at sim = 0.15"
+    assert severity(0.05) == 2 and severity(0.05 - 1e-6) == 3, \
+        "the level 2 / level 3 boundary is not at sim = 0.05"
+check("spec:dc4-severity-bands", _dc4_severity_bands)
+
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""
     import copy

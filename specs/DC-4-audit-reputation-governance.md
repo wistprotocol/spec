@@ -517,7 +517,7 @@ Inconsistency, let `sim` be the highest `similarity` among the confirming
 |---|---|
 | 0.15 ≤ `sim` < 0.30 | 1 (minor divergence) |
 | 0.05 ≤ `sim` < 0.15 | 2 (misleading extract) |
-| `sim` < 0.05, or the claimed content is wholly absent | 3 (fabricated content) |
+| `sim` < 0.05 | 3 (fabricated content) |
 
 A party recomputing reputation locates every Confirmed Inconsistency
 directly from Audit Records under §5 — no `sanction` Registry Update is
@@ -540,10 +540,15 @@ Process requirements:
 
 - Levels 1–2 follow automatically from the escalation criteria; levels 3
   and 4 MUST be preceded by a `notice` naming the evidence and opening the
-  appeal window. This applies to sanction notices (`details.kind`
-  `"sanction"`); a `notice` with `details.kind` `"recovery"` opens the
-  DC-1 §5.2 recovery window instead and is not subject to the appeal
-  process below.
+  appeal window. Levels 1–2 need neither: their entire basis — the
+  confirming Audit Records and the §7 severity table below — is already
+  public and independently recomputable, so there is nothing a notice
+  would let the Publisher contest that a replaying party cannot already
+  verify for itself; this holds even for level 2's weight reduction, which
+  affects standing without suspending ingestion. This applies to sanction
+  notices (`details.kind` `"sanction"`); a `notice` with `details.kind`
+  `"recovery"` opens the DC-1 §5.2 recovery window instead and is not
+  subject to the appeal process below.
 - Escalation criteria: level 1 at a single Confirmed Inconsistency; level
   2 at 3 within 90 days; level 3 at 10 within 90 days, or any severity-3;
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
@@ -556,10 +561,16 @@ Process requirements:
   Set current at the `notice`'s Block — not the present one — so that a
   domain in key compromise or identity reset (DC-1 §5.2) can still appeal.
 - An `appeal_ruling` MUST be sealed within 30 days of the `appeal`
-  (Parameter Registry: ruling deadline). An appeal does not stay a sanction
-  unless the ruling says so; if the deadline passes with no ruling, the
-  sanction is automatically lifted by the next `sanction_lift` the
-  Aggregator MUST seal.
+  (Parameter Registry: ruling deadline). An appeal does not stay a
+  sanction unless the ruling says so, but if the deadline passes with no
+  ruling, the sanction's *state* — the level 3 ingestion rejection or the
+  level 4 exclusion from materialization — is void on recomputation as of
+  that expiry: a party replaying the Log treats it as lifted whether or
+  not a `sanction_lift` was ever sealed, so the Aggregator's inaction
+  cannot keep it in force. This governs only the sanction's state, not
+  `penalty_n`, which §6.1 derives from the evidence independently of any
+  sanction. The Aggregator MAY still seal a `sanction_lift` recording the
+  expiry, but it is descriptive: recomputation does not depend on it.
 
 ## 8. Constitutional Invariants
 
@@ -628,7 +639,7 @@ changed by publishing a new table (§6), never by a bare number.
 | Provisional reputation cap (ceiling, not floor) | `provisional_cap_u` | 0.10 = 100 000 micro-units | §6 |
 | Ping quota base / slope | `quota_base` / `quota_slope` | 100 / 10000 per day | §6 |
 | Inclusion latency threshold | `latency_threshold_u` | reputation 0.5 = 500 000 micro-units | §6 |
-| Escalation: level 2 / level 3 | `escalation_l2` / `escalation_l3` | 3 in 90 days / 10 in 90 days or severity 3 | §7 |
+| Escalation: level 2 / level 3 / level 4 | `escalation_l2` / `escalation_l3` / `escalation_l4` | 3 in 90 days / 10 in 90 days or severity 3 / 3 severity-3 in 180 days or a level-3 domain's next Confirmed Inconsistency | §7 |
 | Appeal window | `appeal_window_days` | 14 days | §7 |
 | Appeal ruling deadline | `ruling_deadline_days` | 30 days | §7 |
 | Recovery window | `recovery_window_days` | 7 days | DC-1 §5.2 |
@@ -643,8 +654,9 @@ mirroring §7 and §3:
   `public_key` (the raw Ed25519 public key, 43-character base64url).
 - `aggregator_key_remove`, `auditor_remove`: `key_id`.
 - `sanction`: `level` (1–4) and `severity` (1–3, §7); `evidence`
-  (top-level, not `details`) MUST be non-empty and name the Audit Record
-  IDs (§5) of the Records establishing the Confirmed Inconsistency.
+  (top-level, not `details`) MUST carry at least the two Audit Record IDs
+  (§5) of the concurring, independent Auditors' Records that establish
+  the Confirmed Inconsistency (§5's own minimum).
 - `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
   additionally requires `reason` and `appeal_deadline` (date-time, the
   `effective_at` + the appeal window, §7); a `"recovery"` notice requires
