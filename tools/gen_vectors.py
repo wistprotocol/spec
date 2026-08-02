@@ -10,6 +10,7 @@ import rfc8785
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+import ecvrf
 from merkle import audit_path, leaf_hash, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -212,7 +213,13 @@ print("dc3 leaves:", [l.hex() for l in leaves])
 print("dc3 nodes: n01=%s n23=%s" % (n01.hex(), n23.hex()))
 
 # ------------------------------------------------- DC-4: audit + registry
-import hmac as hmac_mod
+# The Auditor's VRF proof over the Block Hash (DC-4 §4). alpha is the 32 raw
+# octets of the Block Hash — the hex digest decoded, WITHOUT the "sha256:"
+# prefix. The VRF key is the Auditor's Ed25519 key (RFC 9381
+# ECVRF-EDWARDS25519-SHA512-TAI reuses the RFC 8032 key format).
+alpha = bytes.fromhex(block_hash.split(":")[1])
+pi = ecvrf.prove(SEED, alpha)
+beta = ecvrf.proof_to_hash(pi)
 
 audit_record = {
     "dc_version": "1.0.0",
@@ -224,6 +231,7 @@ audit_record = {
     "similarity": 0.94,
     "verdict": "consistent",
     "evidence": "warc:sha256:" + sha256_hex(b"warc-placeholder"),
+    "vrf_proof": pi.hex(),
 }
 write_json(EXAMPLES / "audit-record.json",
            sign_envelope("record", audit_record, "test-aud-k1"))
@@ -239,13 +247,42 @@ write_json(EXAMPLES / "registry-update.json",
            sign_envelope("update", registry_update, "test-agg-k1"))
 print("dc4 audit-record and registry-update examples written")
 
-# Worked sampling example (DC-4 §4): HMAC-SHA256(block hash raw, delta ID)
-raw_block_hash = bytes.fromhex(block_hash.split(":")[1])
-mac = hmac_mod.new(raw_block_hash, delta_id.encode(), hashlib.sha256).digest()
-draw = int.from_bytes(mac[:8], "big") / 2**64
-print("dc4 sampling hmac[:8] hex:", mac[:8].hex())
+# ------------------------------------------------------ DC-4: audit sampling
+# Worked VRF sampling vector (DC-4 §4). draw(d) = first 8 octets of
+# SHA-256(beta || UTF-8 of the full Delta ID string, "sha256:" prefix
+# included), read big-endian, divided by 2^64.
+draw_bytes = hashlib.sha256(beta + delta_id.encode()).digest()[:8]
+draw = int.from_bytes(draw_bytes, "big") / 2**64
+
+
+def sampling_p(reputation: float) -> float:
+    """DC-4 §4: p(domain) = clamp(0.02 + 0.30 x (1 - reputation), 0.02, 0.50)."""
+    return round(min(max(0.02 + 0.30 * (1 - reputation), 0.02), 0.50), 4)
+
+
+# Guard against the published figures drifting from the Parameter Registry.
+assert sampling_p(0.10) == 0.29 and sampling_p(0.90) == 0.05, "sampling p drifted"
+
+DC4 = ROOT / "vectors" / "dc4"
+DC4.mkdir(parents=True, exist_ok=True)
+write_json(DC4 / "sampling.json", {
+    "auditor_public_key": b64u(pub_raw),
+    "ciphersuite": "ECVRF-EDWARDS25519-SHA512-TAI",
+    "block_hash": block_hash,
+    "alpha_hex": alpha.hex(), "vrf_proof_hex": pi.hex(), "beta_hex": beta.hex(),
+    "delta_id": delta_id, "draw_first8_hex": draw_bytes.hex(),
+    "draw": draw,
+    "thresholds": [
+        {"reputation": 0.10, "p": sampling_p(0.10), "selected": draw < sampling_p(0.10)},
+        {"reputation": 0.90, "p": sampling_p(0.90), "selected": draw < sampling_p(0.90)},
+    ],
+})
+print("dc4 sampling alpha:", alpha.hex())
+print("dc4 sampling pi:", pi.hex())
+print("dc4 sampling beta:", beta.hex())
+print("dc4 sampling draw[:8] hex:", draw_bytes.hex())
 print("dc4 sampling draw: %.10f" % draw)
-for rep, label in ((0.10, "quarantined"), (0.90, "reputable")):
-    p = min(max(0.02 + 0.30 * (1 - rep), 0.02), 0.50)
-    print("dc4 sampling rep=%.2f (%s): p=%.3f -> %s" % (
-        rep, label, p, "AUDIT" if draw < p else "no audit"))
+for rep in (0.10, 0.90):
+    p = sampling_p(rep)
+    print("dc4 sampling rep=%.2f: p=%.3f -> %s" % (
+        rep, p, "AUDIT" if draw < p else "no audit"))
