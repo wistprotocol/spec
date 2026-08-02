@@ -145,13 +145,8 @@ block_sig = priv.sign(block_canonical)
 block = {"header": header, "entries": entries,
          "sig": {"key_id": "test-agg-k1", "alg": "Ed25519", "value": b64u(block_sig)}}
 
-inclusion_proof = {
-    "index": 0,
-    "path": [
-        {"side": "right", "hash": leaves[1].hex()},
-        {"side": "right", "hash": n23.hex()},
-    ],
-}
+inclusion_proof = {"index": 0, "entry_count": len(entries),
+                   "path": [leaves[1].hex(), n23.hex()]}
 
 write_json(DC3 / "block.json", block)
 write_json(DC3 / "inclusion-proof.json", inclusion_proof)
