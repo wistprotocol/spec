@@ -54,6 +54,10 @@ since when, is public and permanent.
 An Audit Record signed by a key not admitted at the Record's `fetched_at`
 MUST be rejected by validators recomputing reputation.
 
+Aggregator keys are admitted and retired by the `aggregator_key_add` /
+`aggregator_key_remove` actions defined in DC-3 §3.4; their `details`
+sub-schema is specified in §9.1.
+
 ## 4. Audit Sampling
 
 Sampling MUST be deterministic and unpredictable before sealing:

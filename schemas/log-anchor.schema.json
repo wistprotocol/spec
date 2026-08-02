@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/log-anchor.schema.json",
+  "title": "DeltaCommons Log Anchor (DC-3)",
+  "type": "object",
+  "required": ["anchor", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "anchor": {
+      "type": "object",
+      "required": ["dc_version", "log_id", "genesis_key", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "log_id": {"type": "string", "format": "hostname"},
+        "genesis_key": {
+          "type": "object",
+          "required": ["key_id", "alg", "public_key"],
+          "additionalProperties": false,
+          "properties": {
+            "key_id": {"type": "string", "maxLength": 64},
+            "alg": {"const": "Ed25519"},
+            "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"}
+          }
+        },
+        "created_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}
