@@ -78,7 +78,7 @@ publisher = {
     # Illustrative only: a real recovery key MUST be a distinct keypair,
     # generated independently and held offline, never reused as a signing
     # key. The vector reuses the same test public key purely so the suite
-    # ships one deterministic keypair; DC-1 §5.3 normatively requires
+    # ships one deterministic keypair; DC-1 §5.2 normatively requires
     # recovery keys to sign nothing but Declarations.
     "recovery_keys": [
         {"key_id": "test-r1", "alg": "Ed25519", "public_key": b64u(pub_raw),
@@ -99,6 +99,18 @@ feed = {
 }
 write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, "test-k1"))
 print("dc2 feed example written")
+
+# --------------------------------------------------------------- DC-2: status
+# Not a signed Envelope (DC-2 §7.1) — a plain JSON debugging surface.
+write_json(EXAMPLES / "status.json", {
+    "dc_version": "1.0.0", "domain": "example.com",
+    "last_pull_at": "2026-08-02T12:05:00Z", "quota_remaining": 1098,
+    "state": "new",
+    "rejections": [{"code": "DC1-E07", "at": "2026-08-02T12:05:00Z",
+                    "delta_id": "sha256:" + "0" * 64,
+                    "detail": "prev chain violation"}],
+})
+print("dc2 status example written")
 
 # ------------------------------------------------------------ DC-3: log anchor
 anchor = {

@@ -70,6 +70,7 @@ INNER_KEY = {
     "checkpoint.json": "checkpoint", "snapshot-manifest.json": "manifest",
     "audit-record.json": "record", "registry-update.json": "update",
     "log-anchor.json": "anchor",
+    "status.json": None,  # not a signed Envelope — plain JSON (DC-2 §7.1)
 }
 
 def load_test_pubkey():
