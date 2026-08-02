@@ -323,9 +323,12 @@ depends on content — an Auditor's coverage duty above all, which expires
 Aggregator. A URL's **anchor Payload** is the Payload of the most recent
 content-bearing Delta for that URL, for as long as that URL has not been
 deleted; it is what an `attest` Delta is audited against (DC-4 §5), which
-may be years after it was sealed. An Aggregator MUST keep serving a URL's
-anchor Payload for as long as it is the anchor, regardless of the window,
-unless it is withdrawn under §6.2. This costs nothing it was not already
+may be years after it was sealed, and it is the key under which that
+audit's own commitments are computed. An Aggregator MUST keep serving a
+URL's anchor Payload for as long as it is the anchor, regardless of the
+window, and for one further availability window after a `delete` Delta for
+that URL is sealed, so that the `delete` itself remains auditable. Neither
+obligation survives a withdrawal under §6.2. This costs nothing it was not already
 holding — the anchor Payloads of live URLs are exactly the content Tier 1
 materializes (§7) — and it means a Publisher cannot make its own freshness
 claims unauditable by dropping its copy: the Aggregator's copy is
@@ -347,9 +350,24 @@ that height:
 - the Aggregator and every Mirror MUST stop serving that Payload, and a
   Consumer MUST NOT treat its absence as a fault;
 - Consumers MUST exclude the withdrawn content from subsequent
-  materializations (§7);
+  materializations, and the Aggregator MUST stop serving any already
+  published Snapshot artifact that still contains it (§7);
 - Auditors record `not_auditable` for that Delta (DC-4 §5) rather than a
-  verdict derived from content.
+  verdict derived from content;
+- every party holding the Payload for protocol purposes MUST destroy it,
+  its salt, and anything it retained of the content it carried. For an
+  Auditor that means the WARC capture it preserved for its Audit Records
+  on that Delta (DC-4 §5) and any copy of the Payload it fetched to
+  compute them. The obligation reaches the Auditor because the Auditor is
+  the one party the protocol requires to keep a copy of the page; leaving
+  it out would relocate the retained content rather than erase it.
+
+Destroying the captures costs no accountability. A Confirmed
+Inconsistency's weight comes from the `verdict` and `similarity` values
+already sealed (DC-4 §6.1), which are data in the Log and are unaffected;
+the captures exist so that those verdicts can be checked while the content
+is live, and that window is the availability window, inside which every
+confirmation, sanction, appeal and ruling deadline falls.
 
 What withdrawal does not touch is the record. The Delta stays sealed, its
 commitment stays in the Log, its inclusion proofs keep verifying, and
@@ -357,6 +375,18 @@ every Audit Record ever published about it remains — including the
 verdicts that establish what the Publisher was found to have declared.
 Withdrawal removes content from distribution; it cannot remove history,
 and it cannot recall copies already served.
+
+**After a withdrawal the Log retains no unsalted digest of the withdrawn
+content.** That is a property of the object formats, not an aspiration:
+the Delta commits to its content under the Payload salt (DC-1 §3.6), and
+every content-derived value in an Audit Record — the response, the
+Auditor's reference extraction, the WARC capture — is committed under that
+same salt (DC-4 §5). One salt keys all four, so destroying it makes all
+four unlinkable at the same instant. What remains in the Log and is
+derived from the withdrawn content is the `similarity` integer, the
+`verdict`, and the Delta's `payload.bytes` length: values that carry the
+accountability forward without letting any holder of a candidate text
+confirm it (DC-1 §9, DC-4 §11).
 
 The due process is the same the suite uses for sanctions (DC-4 §7):
 notice in the Log, a named basis, a public and permanent record. An
@@ -403,6 +433,17 @@ likewise excludes that Delta's content from every Snapshot produced at or
 above its sealing height, in both tiers, including any embedding derived
 from it. The log itself retains full history — deletion and withdrawal
 shape the materialized present, never the recorded past.
+
+Withdrawal reaches backward into Snapshots as well, because a Snapshot
+already published carries the content in its tier files. An Aggregator
+MUST stop serving any Snapshot artifact containing withdrawn content: it
+either withdraws that Snapshot from distribution or replaces it with one
+rebuilt under the exclusion rule above, under a fresh signed manifest.
+Neither costs a Consumer anything it cannot recover, since any state a
+Snapshot provides is reachable from the Log and the Payloads. A manifest's
+per-file `sha256` is a digest of a whole tier file rather than of any one
+record, so it is no handle onto an individual extract — deriving one from
+it would require already holding the file, and with it the text.
 
 Anyone can rebuild a bit-identical Tier 0/Tier 1 from the raw log, the
 Payloads it references, and the manifest's declared parameters; Snapshots
@@ -542,7 +583,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       as long as it is the anchor (§6.1)
 - [ ] Withdraws a Payload only by sealing a `payload_withdrawal` naming
       the Delta, the legal basis, and the jurisdiction — and then stops
-      serving it (§6.2)
+      serving it, together with any Snapshot artifact still containing its
+      content (§6.2, §7)
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
       embedding model declaration and the materialization rule
 - [ ] Never emits a Block exceeding the decompressed cap (§6)

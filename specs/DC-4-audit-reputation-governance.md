@@ -225,21 +225,68 @@ Worked numbers for this section — real values from `vectors/dc4/sampling.json`
 
 An Audit Record's fields: `audited_delta` (the Delta ID under audit),
 `auditor_id` (the Auditor's hostname identity), `fetched_at` (when the
-Auditor fetched the URL), `response_hash` (SHA-256 of the raw response
-body), `ref_extract_hash` (SHA-256 of the Auditor's own reference
+Auditor fetched the URL), `response_commitment` (over the raw response
+body), `ref_extract_commitment` (over the Auditor's own reference
 extraction), `similarity` (the §5 metric value, an integer in micro-units),
-`verdict`, and
-`evidence` (`warc:sha256:` + hash of the WARC capture, which the Auditor
+`verdict`, `evidence_commitment` (over the WARC capture, which the Auditor
 MUST preserve), and `vrf_proof` (the §4 VRF Proof over the Block Hash of
 the Block carrying the audited Delta, 80 octets as 160 lowercase hex
 characters). The Record names no Block: the audited Block is the one Block
 whose `publisher_delta` Entries carry `audited_delta`, which DC-3 §3.2
-makes unique and permanent. `response_hash`, `ref_extract_hash`, `similarity`, and
-`evidence` are REQUIRED whenever the fetch succeeded, and omitted for
-`unreachable` and for `not_auditable`, neither of which yields a
-comparison to report; `vrf_proof` is REQUIRED in every Record,
-`unreachable` and `not_auditable` included, because it is what establishes
-the Auditor's right and duty to have audited at all.
+makes unique and permanent. `response_commitment`,
+`ref_extract_commitment`, `similarity`, and `evidence_commitment` are
+REQUIRED whenever the fetch succeeded and the audit measured against a
+Payload, and omitted otherwise — for `unreachable` and `not_auditable`,
+neither of which yields a comparison to report, and for the rare per-URL
+chain that has never carried a Payload at all; `vrf_proof` is REQUIRED in
+every Record, `unreachable` and `not_auditable` included, because it is
+what establishes the Auditor's right and duty to have audited at all.
+
+**The Auditor's commitments.** An Audit Record observes page content
+directly, so every content-derived value it seals uses the same
+construction the Delta uses, under the same key:
+
+    <commitment> = "hmac-sha256:" + hex(HMAC-SHA256(key = salt,
+                                                    message = <octets>))
+
+where `<octets>` is the raw response body, the UTF-8 bytes of the
+Auditor's reference extraction, or the bytes of the WARC capture, and
+`salt` is **the salt of the Payload the audit measured against** (DC-1
+§3.6) — the audited Delta's own Payload for a `new` or `update` Delta, and
+the URL's anchor Payload (DC-3 §6.1) for an `attest` or a `delete`. The
+Auditor holds that salt because it MUST verify the Payload before
+comparing anything, so no second salt, and no second lifecycle, is
+introduced.
+
+A bare digest here would undo the rest of this design. Moving extracts out
+of the Log accomplishes nothing if the Log keeps unsalted hashes of the
+same text: a party holding a copy could recompute one and confirm the text
+was there, which is exactly the confirmability DC-1 §3.6's salt exists to
+destroy. Binding one salt to all four commitments — the Publisher's and
+the Auditor's three — makes them expire together rather than leaving the
+weakest one governing.
+
+**Verifying a commitment, and when it stops being possible.** A party
+checking an Audit Record obtains the salt the way the Auditor did: it
+fetches the Payload the audit measured against, verifies that Payload
+against its own Delta's commitment (DC-1 §3.6), and takes the salt from
+it. It then recomputes the Record's commitments over the artifacts it
+holds — the Auditor's preserved WARC capture above all. While the Payload
+is served, every value in the Record is therefore checkable by anyone, and
+that is the window in which auditing, confirmation, sanction and appeal
+all happen: a Confirmed Inconsistency is fixed within 72 hours (§5), and
+the appeal window and ruling deadline together run 44 days (§7), all well
+inside the 180-day availability window (DC-3 §6.1).
+
+Once that Payload is withdrawn (DC-3 §6.2), the salt is destroyed and the
+Record's commitments can no longer be checked by anyone, the Auditor
+included. That is the intended outcome, not a defect: it is the same
+instant at which the Delta's own commitment stops being checkable. What
+survives is what §6.1 needs and what a bare digest was never required for —
+the `verdict` and the `similarity`, which are data in the Log rather than
+handles onto the text. A verifier that encounters an unverifiable
+commitment MUST NOT treat the Record as invalid on that ground; it reads
+the Record's verdict as the Log records it.
 
 **What an audit fetches.** The Delta commits to content it does not carry
 (DC-1 §3.6), so an Auditor holding a Block fetches two further things: the
@@ -864,29 +911,42 @@ adds.
 
 ## 11. Privacy Considerations
 
-Audit Records expose fetch timing and, via `evidence`, WARC captures of
-public pages; the DC-1 §9 rule (nothing beyond what the page itself
-publishes) applies to evidence exactly as to extracts. Appeals and
+Audit Records expose fetch timing and, via `evidence_commitment`, WARC
+captures of public pages; the DC-1 §9 rule (nothing beyond what the page
+itself publishes) applies to evidence exactly as to extracts. Appeals and
 rulings are public and permanent: the `notice` that opens a sanction
 window MUST state this, so a Publisher weighs publicity before appealing.
 Reputation scores are recomputable by anyone from public data; there is
 no private reputation channel.
 
-Audit Records are the one place where the residue of a withdrawal is
-larger than a commitment. A Record is sealed and permanent, so after the
-audited Payload is withdrawn (DC-3 §6.2) the Record's `response_hash` and
-`ref_extract_hash` remain: unsalted digests over the page as served and
-over the Auditor's own extraction of it. They do not reveal the text, and
-they are not the Publisher's commitment — they are the Auditor's
-observation of a public page — but unlike the commitment they are not
-salted, so a party already holding a candidate copy can confirm it against
-them. The Auditor's WARC capture, held off-Log, is a full copy of the
-page. Withdrawal stops new Records from being produced (§5's
-`not_auditable` rule) and stops the Log from redistributing content; it
-does not reach the Records already sealed or the captures Auditors hold,
-and this document does not claim otherwise. An erasure request that
-reaches those artifacts reaches the Auditor that holds them, as the
-controller of its own captures.
+An Audit Record is the one object in the suite that observes page content
+directly, so it is the one that would otherwise carry the residue of a
+withdrawal in a sealed, permanent form. It does not, because none of its
+content-derived values is a bare digest: the response, the Auditor's own
+extraction and the WARC capture are all committed under the audited
+Payload's salt (§5). A party holding a candidate copy of a withdrawn text
+therefore cannot confirm it against an Audit Record any more than against
+the Delta — the key that would let it is gone, and it is the same key in
+both cases.
+
+Two things do survive a withdrawal in the Log, and they are named here
+rather than glossed. The `verdict` and `similarity` are derived from the
+content: `similarity` is a single integer scoring an audit against a
+reference nobody can any longer reconstruct, and neither value lets a
+holder of a candidate text establish that it was the text. They survive
+deliberately, because reputation is a pure function of Log history (§6)
+and must remain recomputable after a withdrawal that the audited domain
+did not control.
+
+The Auditor's WARC capture is a full copy of the page, and it is held
+off-Log. DC-3 §6.2 requires the Auditor to destroy it, along with the
+Payload and its salt, when the Payload is withdrawn. That is an obligation
+on the Auditor, enforceable the way the Aggregator's and the Mirrors' are
+and no further: an Auditor that defies it retains both the capture and the
+salt, and could then confirm a candidate text. The protocol makes that a
+violation with a named holder rather than a structural inevitability,
+which is the most a specification can do about a copy in someone else's
+hands.
 
 ## 12. Conformance Checklist
 
@@ -905,7 +965,10 @@ controller of its own captures.
       withdrawn or unobtainable Payload, and treats it as discharging the
       coverage duty (§4, §5)
 - [ ] Signs Records with a key admitted at `fetched_at` (§3)
-- [ ] Preserves WARC evidence matching the `evidence` hash
+- [ ] Commits the response, its own extraction and its WARC capture under
+      the audited Payload's salt — never as bare digests (§5)
+- [ ] Preserves the WARC capture matching `evidence_commitment`, and
+      destroys it, the Payload and the salt on withdrawal (§5, DC-3 §6.2)
 
 **Aggregator (governance side):**
 
