@@ -39,6 +39,9 @@ shown here.
 - **Reputation**: the pure function of log history defined in §6.
 - **Quarantine**: the capped-reputation state of new or reset domains (§6).
 
+Every signed object in this document carries `dc_version` (DC-1 §3.1)
+and the DC-1 §4 signature block (`key_id`, `alg`, `value`).
+
 ## 3. Auditors
 
 Auditors are admitted by an `auditor_admit` Registry Update (schema:
@@ -79,6 +82,16 @@ selected**. For a reputable domain (0.90): p = 0.050 → **not selected**.
 A draw below the threshold would select the Delta for audit.
 
 ## 5. Verdicts and Tolerance
+
+An Audit Record's fields: `audited_delta` (the Delta ID under audit),
+`auditor_id` (the Auditor's hostname identity), `fetched_at` (when the
+Auditor fetched the URL), `response_hash` (SHA-256 of the raw response
+body), `ref_extract_hash` (SHA-256 of the Auditor's own reference
+extraction), `similarity` (the §5 metric value), `verdict`, and
+`evidence` (`warc:sha256:` + hash of the WARC capture, which the Auditor
+MUST preserve). `response_hash`, `ref_extract_hash`, `similarity`, and
+`evidence` are REQUIRED whenever the fetch succeeded, and omitted for
+`unreachable`.
 
 The web is not deterministic; byte equality is never the criterion.
 

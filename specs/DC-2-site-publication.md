@@ -29,7 +29,9 @@ shown here.
 - **Ingest Endpoint**: the Aggregator URL that receives Pings.
 
 Terms defined in DC-1 (Publisher, Delta, Delta ID, Envelope, Key Set) are
-used with their DC-1 meanings.
+used with their DC-1 meanings. Every Envelope in this document carries
+`dc_version` (DC-1 §3.1) and the DC-1 §4 signature block (`key_id`,
+`alg`, `value`).
 
 ## 3. Well-Known Layout
 
@@ -110,15 +112,18 @@ re-fetches of content URLs, DC-4 §5) remain subject to `robots.txt`.
 Aggregators MAY consume existing ecosystems as Change Hints: IndexNow
 pings, sitemap `<lastmod>` changes, and llms.txt updates.
 
-An unsigned hint MUST NOT produce content attributed to the domain. A
-hint MAY trigger an auditor observation, which enters the log signed by
-the auditor.
+An unsigned hint MUST NOT produce content attributed to the domain.
+
+A hint MAY trigger an auditor re-fetch of the hinted URL. If the domain
+has signed Deltas for that URL, the result enters the log as an Audit
+Record (DC-4 §5), signed by the auditor. For URLs with no signed Deltas,
+hints only inform the Aggregator's pull and audit scheduling — they
+produce no log entries.
 
 The signed path always has higher weight and lower latency: signed Deltas
-enter the log directly on the publisher's authority, while hint-triggered
-auditor observations are second-class — attributed to the auditor, and
-scheduled at the auditor's convenience. This asymmetry is the adoption
-incentive for DC-1/DC-2.
+enter the log directly on the publisher's authority, while hints are
+second-class — at most auditor-attributed, scheduled at the system's
+convenience. This asymmetry is the adoption incentive for DC-1/DC-2.
 
 ## 7. Error Registry
 
