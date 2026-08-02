@@ -29,5 +29,142 @@
         "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"enum": ["aggregator_key_add", "auditor_admit"]}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["key_id", "alg", "public_key"],
+                "properties": {
+                  "key_id": {"type": "string", "maxLength": 64},
+                  "alg": {"const": "Ed25519"},
+                  "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"enum": ["aggregator_key_remove", "auditor_remove"]}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["key_id"],
+                "properties": {
+                  "key_id": {"type": "string", "maxLength": 64}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"const": "sanction"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details", "evidence"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["level", "severity"],
+                "properties": {
+                  "level": {"type": "integer", "minimum": 1, "maximum": 4},
+                  "severity": {"type": "integer", "minimum": 1, "maximum": 3}
+                }
+              },
+              "evidence": {"type": "array", "minItems": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"const": "notice"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["kind"],
+                "properties": {
+                  "kind": {"enum": ["sanction", "recovery"]},
+                  "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
+                  "appeal_deadline": {"type": "string", "format": "date-time"}
+                },
+                "if": {"properties": {"kind": {"const": "sanction"}}},
+                "then": {"required": ["reason", "appeal_deadline"]}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"const": "appeal_ruling"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["outcome", "reasoning"],
+                "properties": {
+                  "outcome": {"enum": ["upheld", "overturned"]},
+                  "reasoning": {"type": "string", "minLength": 1, "maxLength": 1024}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"const": "parameter_change"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["parameter", "value"],
+                "properties": {
+                  "parameter": {"enum": [
+                    "block_cadence_seconds", "block_decompressed_cap_bytes", "extract_cap_bytes",
+                    "summary_cap_bytes", "feed_window", "clock_skew_seconds", "baseline_poll_seconds",
+                    "keyset_cache_ttl_seconds", "recovery_window_days", "sampling_floor",
+                    "sampling_ceiling", "sampling_slope", "similarity_consistent",
+                    "similarity_variance_floor", "shingle_size", "confirm_auditors",
+                    "confirm_window_hours", "coverage_deadline_hours", "age_norm_days",
+                    "decay_constant_days", "decay_horizon_days", "penalty_weight", "c_cap",
+                    "provisional_age_days", "provisional_audits", "provisional_cap_u",
+                    "quota_base", "quota_slope", "latency_threshold_u", "escalation_l2",
+                    "escalation_l3", "appeal_window_days", "ruling_deadline_days", "param_grace_days"
+                  ]},
+                  "value": {"type": "number"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
