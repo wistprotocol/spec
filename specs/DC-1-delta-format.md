@@ -42,6 +42,19 @@ shown here.
   Delta's Canonical Bytes.
 - **Key Set**: the list of active Ed25519 public keys in a Publisher
   Declaration.
+- **Canonical Host**: a hostname lowercased, IDN-encoded to its A-label
+  form (RFC 5890), with any trailing dot removed and no port.
+- **Normalized URL**: an `https` URL after RFC 3986 §6.2.2 syntax-based
+  normalization — percent-encoding hex digits uppercased and
+  percent-encoded octets that correspond to unreserved characters decoded,
+  and dot-segments removed from the path — with its host replaced by the
+  Canonical Host, an explicit `:443` removed, an empty path replaced by
+  `/`, and no fragment. The query string, if present, receives the same
+  percent-encoding normalization as the rest of the URL but is otherwise
+  copied byte-for-byte from the input: it is never parsed into parameters
+  or reordered, so parameter order is significant. Two URLs are **the
+  same URL** in this specification if and only if their Normalized URLs
+  are byte-identical.
 
 Hash strings throughout the suite are serialized as `"sha256:" + lowercase
 hex`. Signatures are Ed25519 [RFC 8032], detached, base64url-encoded
@@ -68,12 +81,17 @@ within the Publisher's authority: the URL's host MUST equal the Publisher's
 rule**). A validator MUST reject a Delta whose `url` is outside the signing
 Publisher's authority (error `DC1-E03`).
 
+The value of `url` MUST already be a Normalized URL; a Delta whose `url`
+is not byte-identical to its own normalization MUST be rejected with
+`DC1-E03`. The scope rule compares Canonical Hosts.
+
 ### 3.3. `change_type`
 
 One of four values:
 
-- `new` — the Publisher asserts this URL now exists and did not previously.
-  `extract` and `summary` SHOULD be present.
+- `new` — the Publisher asserts this URL now carries content; if the URL
+  has prior Deltas, `prev` MUST be present (§3.5). `extract` and `summary`
+  SHOULD be present.
 - `update` — the URL's content changed. `extract` and `summary` SHOULD be
   present. `prev` MUST be present.
 - `delete` — the URL no longer exists (or no longer carries indexable
@@ -97,6 +115,25 @@ The Delta ID of this Publisher's most recent prior Delta for the same
 verifiable history of everything the Publisher has said about one page.
 The first Delta for a URL MUST omit `prev`; every subsequent Delta for
 that URL MUST include it (error `DC1-E07` on violation).
+
+The chain for a URL never restarts. A `new` Delta for a URL that has prior
+Deltas (for example, a page recreated after a `delete`) MUST carry `prev`
+pointing at the most recent prior Delta; only the very first Delta a
+Publisher ever emits for a URL omits `prev`.
+
+**Forks are invalid.** Two Deltas from the same Publisher for the same URL
+naming the same `prev` are a fork. An Aggregator MUST accept whichever it
+seals first and MUST reject the other with `DC1-E07`; a Consumer replaying
+the Log MUST treat the first-sealed Delta as canonical and ignore any later
+Entry that forks an already-sealed chain.
+
+**Data availability.** A validator that has not seen the Delta named by
+`prev` MUST attempt to retrieve it from the Publisher (DC-2 §3.1) before
+concluding `DC1-E07`. A Publisher MUST keep every Delta it has ever
+published retrievable at its content-addressed path for as long as the
+domain participates; unavailability of a `prev` Delta is a `DC1-E07`
+rejection of the *new* Delta, never a retroactive invalidation of the
+sealed chain.
 
 ### 3.6. `extract`
 
@@ -276,11 +313,11 @@ matter". Importance is measured at consumption, outside this protocol.
 |---------|--------------------------------------------------------------|
 | DC1-E01 | Invalid signature (does not verify against the named key) |
 | DC1-E02 | Unknown key (`sig.key_id` not in the current Key Set) |
-| DC1-E03 | URL out of scope (host not covered by domain/`subdomain_scope`) |
+| DC1-E03 | URL out of scope or not normalized (host not covered by domain/`subdomain_scope`, or `url` not byte-identical to its own Normalized URL) |
 | DC1-E04 | Size cap exceeded (`extract` > 32768 bytes or `summary` > 2048 bytes) |
 | DC1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
-| DC1-E07 | `prev` chain violation (missing, non-existent, wrong URL, or non-monotonic `observed_at`) |
+| DC1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per DC-2 §3.1 |
 | DC1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
@@ -352,6 +389,8 @@ in the log permanently.
 - [ ] Rotates keys by signing the new Key Set with a previous key (§5.2)
 - [ ] Increments seq and sets prev_declaration on every new Declaration
       (§5.2)
+- [ ] Emits only Normalized URLs and keeps published Deltas retrievable
+      (§3.2, §3.5)
 
 **Validator (any party checking Deltas):**
 
@@ -363,6 +402,7 @@ in the log permanently.
 - [ ] Applies the 10-minute clock-skew allowance to `observed_at` (§3.4)
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
       by Block height (§5.2)
+- [ ] Compares URLs and hosts only after normalization (§2)
 
 ## Appendix A. Test Vectors
 
@@ -434,3 +474,6 @@ The complete envelope is
 - [RFC 8032] Edwards-Curve Digital Signature Algorithm (EdDSA)
 - [RFC 4648] The Base16, Base32, and Base64 Data Encodings
 - [RFC 3339] Date and Time on the Internet: Timestamps
+- [RFC 3986] Uniform Resource Identifier (URI): Generic Syntax
+- [RFC 5890] Internationalized Domain Names for Applications (IDNA):
+  Definitions and Document Framework
