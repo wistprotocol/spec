@@ -86,7 +86,11 @@
                   "severity": {"type": "integer", "minimum": 1, "maximum": 3}
                 }
               },
-              "evidence": {"type": "array", "minItems": 2}
+              "evidence": {
+                "type": "array",
+                "minItems": 2,
+                "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+              }
             }
           }
         }
@@ -110,7 +114,9 @@
                 "if": {"properties": {"kind": {"const": "sanction"}}},
                 "then": {"required": ["reason", "appeal_deadline"]}
               }
-            }
+            },
+            "if": {"properties": {"details": {"properties": {"kind": {"const": "sanction"}}}}},
+            "then": {"required": ["evidence"]}
           }
         }
       }
@@ -160,7 +166,21 @@
                     "param_grace_days"
                   ]},
                   "value": {"type": "number"}
-                }
+                },
+                "allOf": [
+                  {
+                    "if": {"properties": {"parameter": {"const": "penalty_weight"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "confirm_auditors"}}},
+                    "then": {"properties": {"value": {"minimum": 2}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "similarity_variance_floor"}}},
+                    "then": {"properties": {"value": {"minimum": 150001}}}
+                  }
+                ]
               }
             }
           }
