@@ -26,7 +26,7 @@
         "required": ["type", "body"],
         "additionalProperties": false,
         "properties": {
-          "type": {"enum": ["publisher_delta", "audit_record", "registry_update"]},
+          "type": {"enum": ["publisher_delta", "publisher_declaration", "audit_record", "registry_update"]},
           "body": {"type": "object"}
         }
       }
