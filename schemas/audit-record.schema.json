@@ -8,7 +8,7 @@
   "properties": {
     "record": {
       "type": "object",
-      "required": ["dc_version", "audited_delta", "auditor_id", "fetched_at", "verdict"],
+      "required": ["dc_version", "audited_delta", "auditor_id", "fetched_at", "verdict", "vrf_proof"],
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
@@ -19,7 +19,8 @@
         "ref_extract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "similarity": {"type": "number", "minimum": 0, "maximum": 1},
         "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance"]},
-        "evidence": {"type": "string", "pattern": "^warc:sha256:[0-9a-f]{64}$"}
+        "evidence": {"type": "string", "pattern": "^warc:sha256:[0-9a-f]{64}$"},
+        "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$"}
       }
     },
     "sig": {
