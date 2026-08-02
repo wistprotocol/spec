@@ -15,11 +15,19 @@
         "valid_from": "2026-08-02T12:00:00Z"
       }
     ],
+    "recovery_keys": [
+      {
+        "key_id": "test-r1",
+        "alg": "Ed25519",
+        "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "valid_from": "2026-08-02T12:00:00Z"
+      }
+    ],
     "contact": "mailto:webmaster@example.com"
   },
   "sig": {
     "key_id": "test-k1",
     "alg": "Ed25519",
-    "value": "wAf8yO_OgpRF9QHc2WRN9iwmfWBRX6QPcZphllE77emOWTbV_1_7VCht2WpK7qrNBSLksSSdFCCt8Kpthym0DQ"
+    "value": "lL4Qo7IwZ4ZO0RTPLzJT9OJS-M9S8kV7DKsUMKWlJgiThnVxL8lp-LU9-lL9HazQ8VyMu5D8i87bRAlluKyTBA"
   }
 }
