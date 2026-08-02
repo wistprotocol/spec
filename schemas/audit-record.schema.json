@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/audit-record.schema.json",
+  "title": "DeltaCommons Audit Record (DC-4)",
+  "type": "object",
+  "required": ["record", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "record": {
+      "type": "object",
+      "required": ["dc_version", "audited_delta", "auditor_id", "fetched_at", "verdict"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "audited_delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "auditor_id": {"type": "string", "format": "hostname"},
+        "fetched_at": {"type": "string", "format": "date-time"},
+        "response_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "ref_extract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "similarity": {"type": "number", "minimum": 0, "maximum": 1},
+        "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance"]},
+        "evidence": {"type": "string", "pattern": "^warc:sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}
