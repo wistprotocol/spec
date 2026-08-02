@@ -233,14 +233,38 @@ MUST preserve), and `vrf_proof` (the §4 VRF Proof over the Block Hash of
 the Block carrying the audited Delta, 80 octets as 160 lowercase hex
 characters). The Record names no Block: the audited Block is the one Block
 whose `publisher_delta` Entries carry `audited_delta`, which DC-3 §3.2
-makes unique and permanent. `response_commitment`,
-`ref_extract_commitment`, `similarity`, and `evidence_commitment` are
-REQUIRED whenever the fetch succeeded and the audit measured against a
-Payload, and omitted otherwise — for `unreachable` and `not_auditable`,
-neither of which yields a comparison to report, and for the rare per-URL
-chain that has never carried a Payload at all; `vrf_proof` is REQUIRED in
-every Record, `unreachable` and `not_auditable` included, because it is
-what establishes the Auditor's right and duty to have audited at all.
+makes unique and permanent. `vrf_proof` is REQUIRED in every Record,
+`unreachable` and `not_auditable` included, because it is what establishes
+the Auditor's right and duty to have audited at all.
+
+**The Reference Payload.** Every audit is measured against exactly one
+Payload, and which one is fixed by the audited Delta alone:
+
+- for a `new` or `update` Delta, the audited Delta's own Payload;
+- for an `attest` or a `delete` Delta, the Payload of the **last
+  content-bearing Delta at or before `audited_delta`** in that URL's
+  per-URL chain (DC-1 §3.5) — the URL's anchor Payload as of the audited
+  Delta (DC-3 §6.1).
+
+The qualifier "at or before `audited_delta`" is normative and is what
+makes a Record verifiable at any later height. Resolving the reference to
+whatever the URL's current anchor happens to be would silently change it
+whenever a later `update` is sealed, and with it the salt below, so a
+Record audited honestly would stop verifying through no act of its
+Auditor's. Because the chain, its order, and every Delta in it are in the
+Log, the resolution is deterministic from Log order alone.
+
+A `delete` audit has a Reference Payload for the same reason it has
+anything to check: the claim a `delete` makes is that the content its
+chain last committed to is no longer served, so that Payload is what
+"no longer carries indexable content" is judged against, and the capture
+the Auditor preserves may contain that very content where the claim is
+false.
+
+When an audit has no Reference Payload it can obtain — because the chain
+has never carried one, because it has been withdrawn (DC-3 §6.2), or
+because it cannot be fetched from any source — the verdict is
+`not_auditable`.
 
 **The Auditor's commitments.** An Audit Record observes page content
 directly, so every content-derived value it seals uses the same
@@ -251,12 +275,19 @@ construction the Delta uses, under the same key:
 
 where `<octets>` is the raw response body, the UTF-8 bytes of the
 Auditor's reference extraction, or the bytes of the WARC capture, and
-`salt` is **the salt of the Payload the audit measured against** (DC-1
-§3.6) — the audited Delta's own Payload for a `new` or `update` Delta, and
-the URL's anchor Payload (DC-3 §6.1) for an `attest` or a `delete`. The
-Auditor holds that salt because it MUST verify the Payload before
+`salt` is **the salt of the audit's Reference Payload** (DC-1 §3.6). The
+Auditor holds that salt because it MUST verify that Payload before
 comparing anything, so no second salt, and no second lifecycle, is
 introduced.
+
+`response_commitment`, `ref_extract_commitment`, `similarity`, and
+`evidence_commitment` are REQUIRED when the verdict is `consistent`,
+`inconsistent`, or `dynamic_variance`, and MUST be omitted — all four
+together — when it is `unreachable` or `not_auditable`. Those two verdicts
+are exactly the cases with nothing to commit to: `unreachable` means the
+fetch produced no response, no extraction and no capture, and
+`not_auditable` means there was no Reference Payload and therefore no key.
+`schemas/audit-record.schema.json` enforces both directions.
 
 A bare digest here would undo the rest of this design. Moving extracts out
 of the Log accomplishes nothing if the Log keeps unsalted hashes of the
@@ -268,25 +299,46 @@ weakest one governing.
 
 **Verifying a commitment, and when it stops being possible.** A party
 checking an Audit Record obtains the salt the way the Auditor did: it
-fetches the Payload the audit measured against, verifies that Payload
-against its own Delta's commitment (DC-1 §3.6), and takes the salt from
-it. It then recomputes the Record's commitments over the artifacts it
-holds — the Auditor's preserved WARC capture above all. While the Payload
-is served, every value in the Record is therefore checkable by anyone, and
-that is the window in which auditing, confirmation, sanction and appeal
-all happen: a Confirmed Inconsistency is fixed within 72 hours (§5), and
-the appeal window and ruling deadline together run 44 days (§7), all well
-inside the 180-day availability window (DC-3 §6.1).
+fetches the audit's Reference Payload, verifies that Payload against its
+own Delta's commitment (DC-1 §3.6), and takes the salt from it. It then
+recomputes the Record's commitments over the artifacts it holds — the
+Auditor's preserved WARC capture above all. While that Payload is served,
+every value in the Record is checkable by anyone.
 
-Once that Payload is withdrawn (DC-3 §6.2), the salt is destroyed and the
-Record's commitments can no longer be checked by anyone, the Auditor
-included. That is the intended outcome, not a defect: it is the same
-instant at which the Delta's own commitment stops being checkable. What
-survives is what §6.1 needs and what a bare digest was never required for —
-the `verdict` and the `similarity`, which are data in the Log rather than
-handles onto the text. A verifier that encounters an unverifiable
-commitment MUST NOT treat the Record as invalid on that ground; it reads
-the Record's verdict as the Log records it.
+How much of a sanction's evidence is still checkable when the Publisher
+appeals depends on how old the evidence is, and for the top of the ladder
+the answer is: not all of it. A Confirmed Inconsistency is fixed within 72
+hours of its first `inconsistent` verdict (§5), so a level 1 or level 2
+consequence rests on Records whose Reference Payloads are days old. Levels
+3 and 4 reach back much further. Level 4 triggers on three severity-3
+Confirmed Inconsistencies within 180 days, so the oldest confirming Record
+can already be 180 days old when the `notice` is sealed; add the 14-day
+appeal window and the 30-day ruling deadline (§7) and the process can run
+to 224 days, past the 180-day availability window (DC-3 §6.1). That
+Record's Reference Payload may therefore lawfully have lapsed, or been
+withdrawn, throughout the appeal it is being used to justify.
+
+What an appellant can and cannot do in that window follows directly. For
+every confirming Record whose Reference Payload is still served, it can
+obtain the salt, demand the Auditor's capture, and recompute all three
+commitments — the full check. For a Record whose Reference Payload is gone
+it can do none of that, and neither can the Aggregator, the Auditor, or
+the party ruling on the appeal: the evidence is symmetrically unverifiable
+rather than verifiable by one side only. What remains is the `verdict` and
+the `similarity` sealed in the Record, and those are sufficient for the
+ruling to have a determinate basis, because §7 derives severity from
+`similarity` alone and §6.1 derives `penalty_n` from the same values. An
+appellant contesting an unverifiable Record is contesting whether the
+Auditor judged honestly, which is what `auditor_remove` and the §4 VRF
+evidence address, not whether the arithmetic was applied correctly.
+
+Once a Reference Payload is withdrawn (DC-3 §6.2), the salt is destroyed
+and that Record's commitments can no longer be checked by anyone, the
+Auditor included. That is the intended outcome, not a defect: it is the
+same instant at which the Delta's own commitment stops being checkable. A
+verifier that encounters an unverifiable commitment MUST NOT treat the
+Record as invalid on that ground; it reads the Record's verdict as the Log
+records it.
 
 **What an audit fetches.** The Delta commits to content it does not carry
 (DC-1 §3.6), so an Auditor holding a Block fetches two further things: the
@@ -329,27 +381,27 @@ empty extracts are identical). Verdicts:
 | `dynamic_variance` | 300 000 ≤ `similarity` < 600 000 |
 | `inconsistent` | `similarity` < 300 000 **and** the Delta's claimed content is absent from the fetched page |
 | `unreachable` | network or HTTP failure fetching the URL |
-| `not_auditable` | the Payload the comparison needs is withdrawn (DC-3 §6.2) or cannot be obtained from any source |
+| `not_auditable` | the audit's Reference Payload is withdrawn (DC-3 §6.2), never existed, or cannot be obtained from any source |
 
 For `attest` and `delete` Deltas (which carry no Payload of their own),
-the audit checks the asserted state: `attest` is `consistent` if the
-page's current extraction has `similarity` ≥ 600 000 against the Payload
-of the last content-bearing Delta in the per-URL chain; `delete` is
-`consistent` if the URL returns 404/410 or no longer carries indexable
-content.
+the audit checks the asserted state against the Reference Payload defined
+above: `attest` is `consistent` if the page's current extraction has
+`similarity` ≥ 600 000 against that Payload's extract; `delete` is
+`consistent` if the URL returns 404/410 or no longer carries the content
+that Payload committed to.
 
-An `attest` audit therefore depends on a Payload that may have been sealed
-long before the Block under audit — often long before the availability
-window that covers ordinary Payloads. That Payload is the URL's **anchor
-Payload**, and two independent parties are obliged to serve it: the
-Publisher, for as long as it attests to the URL, re-anchoring the chain
-with an `update` or a `delete` when it cannot (DC-2 §3.1); and the
-Aggregator, for as long as the Payload remains the anchor, beyond the
-availability window (DC-3 §6.1). Either copy satisfies the audit, because
-the commitment makes them interchangeable, so a Publisher cannot render
-its own freshness claims unauditable by withholding its copy. Where the
-anchor Payload is nonetheless unobtainable from every source, or has been
-withdrawn, the verdict is `not_auditable`.
+Both therefore depend on a Payload that may have been sealed long before
+the Block under audit — often long before the availability window that
+covers ordinary Payloads. Two independent parties are obliged to serve it:
+the Publisher, for as long as it attests to the URL, re-anchoring the
+chain with an `update` or a `delete` when it cannot (DC-2 §3.1); and the
+Aggregator, for as long as the Payload is the URL's current anchor and for
+one further availability window after it ceases to be (DC-3 §6.1). Either
+copy satisfies the audit, because the commitment makes them
+interchangeable, so a Publisher cannot render its own freshness claims
+unauditable by withholding its copy. Where the Reference Payload is
+nonetheless unobtainable from every source, or has been withdrawn, the
+verdict is `not_auditable`.
 
 From the sealing height of a `payload_withdrawal` (DC-3 §6.2), an Auditor
 MUST record `not_auditable` for the affected Delta even if it still holds
@@ -835,6 +887,13 @@ mirroring §7 and §3:
 unconstrained `details` object; §4 and §7 govern their content in prose,
 not the schema. The same is true of any action a future major revision
 adds.
+
+No `details` object, constrained or not, may carry a bare digest of
+Payload content. A content-derived value anywhere in this suite is
+committed under the Payload salt (§5, DC-1 §3.6) or it is not carried at
+all (DC-3 §6.2). An unconstrained `details` is unconstrained in shape, not
+licensed to reintroduce the confirmability the salt exists to destroy, and
+a party replaying the Log MUST reject a Registry Update that carries one.
 
 ## 10. Security Considerations
 
