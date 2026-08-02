@@ -151,7 +151,7 @@ For a domain at evaluation time *t*:
 
 **Quarantine:** while `A < 30` or `C < 10`, reputation is capped at
 0.10. A domain whose Key Set is replaced without a valid rotation
-signature (DC-1 §5.3) resets `A` and `C` to zero and re-enters
+signature (DC-1 §5.2) resets `A` and `C` to zero and re-enters
 Quarantine.
 
 Reputation governs exactly three things:
@@ -184,7 +184,7 @@ Process requirements:
 - A `notice` Registry Update MUST precede any sanction above level 1,
   naming the evidence and opening the appeal window. This applies to
   sanction notices (`details.kind` `"sanction"`); a `notice` with
-  `details.kind` `"recovery"` opens the DC-1 §5.3 recovery window
+  `details.kind` `"recovery"` opens the DC-1 §5.2 recovery window
   instead and is not subject to the appeal process below.
 - The appeal window is 14 days from a sanction `notice`'s `effective_at`.
   The Publisher appeals with an `appeal` Registry Update signed by its
@@ -241,6 +241,7 @@ are made by `parameter_change` Registry Updates and MUST have
 | `summary` size cap | 2048 bytes | DC-1 §3.7 |
 | Feed window | 1000 IDs | DC-2 §3.2 |
 | Clock skew allowance | 10 minutes | DC-1 §3.4 |
+| Key Set cache TTL | 24 hours | DC-1 §5.1 |
 | Baseline feed poll interval | 24 hours | DC-2 §5 |
 | Sampling floor / ceiling | 0.02 / 0.50 | §4 |
 | Sampling reputation slope | 0.30 | §4 |
@@ -256,7 +257,7 @@ are made by `parameter_change` Registry Updates and MUST have
 | Inclusion latency threshold | reputation 0.5 | §6 |
 | Escalation: level 2 / level 3 | 3 in 90 days / 10 in 90 days or severity 3 | §7 |
 | Appeal window | 14 days | §7 |
-| Recovery window | 7 days | DC-1 §5.3 |
+| Recovery window | 7 days | DC-1 §5.2 |
 | Parameter change grace period | 7 days | §9 |
 
 ## 10. Security Considerations
@@ -273,7 +274,7 @@ are made by `parameter_change` Registry Updates and MUST have
   that are expensive to fake at scale.
 - **Domain resale.** Reputation attaches to key continuity, not the
   name: a Key Set replaced without rotation signature resets to
-  Quarantine (§6, DC-1 §5.3). Buying an aged domain buys no standing.
+  Quarantine (§6, DC-1 §5.2). Buying an aged domain buys no standing.
 - **Sanction censorship.** An Aggregator cannot quietly suppress a
   sanction or an appeal: withholding log entries from some observers is
   equivocation, detectable and provable per DC-3 §5.
