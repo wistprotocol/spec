@@ -1,0 +1,15 @@
+{
+  "dc_version": "1.0.0",
+  "domain": "example.com",
+  "last_pull_at": "2026-08-02T12:05:00Z",
+  "quota_remaining": 1098,
+  "state": "new",
+  "rejections": [
+    {
+      "code": "DC1-E07",
+      "at": "2026-08-02T12:05:00Z",
+      "delta_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "detail": "prev chain violation"
+    }
+  ]
+}
