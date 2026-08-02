@@ -67,6 +67,7 @@ seed, fixed timestamps, no wall-clock.
 - [ADR-0004](decisions/0004-log-centric-ct-model.md) — Append-only hash-chained log with signed checkpoints (CT model)
 - [ADR-0005](decisions/0005-odbl-for-tier-data.md) — ODbL for public tier data
 - [ADR-0006](decisions/0006-no-self-declared-importance.md) — No self-declared importance anywhere in the protocol
+- [ADR-0007](decisions/0007-content-payloads-outside-the-log.md) — Content payloads outside the immutable log
 
 ## Licenses
 
