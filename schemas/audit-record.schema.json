@@ -10,16 +10,17 @@
       "type": "object",
       "required": ["dc_version", "audited_delta", "auditor_id", "fetched_at", "verdict", "vrf_proof"],
       "additionalProperties": false,
+      "description": "Every content-derived value an Audit Record seals is a commitment keyed by the Payload salt of the Payload the audit measured against (DC-4 §5), never a bare digest: withdrawing that Payload destroys the salt and renders these commitments uncheckable at the same instant as the Delta's own.",
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "audited_delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "auditor_id": {"type": "string", "format": "hostname"},
         "fetched_at": {"type": "string", "format": "date-time"},
-        "response_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        "ref_extract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "response_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
+        "ref_extract_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "similarity": {"type": "integer", "minimum": 0, "maximum": 1000000},
         "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance", "not_auditable"]},
-        "evidence": {"type": "string", "pattern": "^warc:sha256:[0-9a-f]{64}$"},
+        "evidence_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$"}
       }
     },
