@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/registry-update.schema.json",
+  "title": "DeltaCommons Registry Update (DC-4)",
+  "type": "object",
+  "required": ["update", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "update": {
+      "type": "object",
+      "required": ["dc_version", "action", "subject", "effective_at"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "action": {"enum": ["auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change"]},
+        "subject": {"type": "string", "maxLength": 256},
+        "details": {"type": "object"},
+        "evidence": {"type": "array", "items": {"type": "string", "maxLength": 256}},
+        "effective_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}

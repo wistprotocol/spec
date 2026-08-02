@@ -186,3 +186,42 @@ print("dc3 block hash:", block_hash)
 print("dc3 merkle root:", merkle_root)
 print("dc3 leaves:", [l.hex() for l in leaves])
 print("dc3 nodes: n01=%s n23=%s" % (n01.hex(), n23.hex()))
+
+# ------------------------------------------------- DC-4: audit + registry
+import hmac as hmac_mod
+
+audit_record = {
+    "dc_version": "1.0.0",
+    "audited_delta": delta_id,
+    "auditor_id": "audit.example.org",
+    "fetched_at": "2026-08-02T14:00:00Z",
+    "response_hash": "sha256:" + sha256_hex(b"response-placeholder"),
+    "ref_extract_hash": "sha256:" + sha256_hex(EXTRACT.encode()),
+    "similarity": 0.94,
+    "verdict": "consistent",
+    "evidence": "warc:sha256:" + sha256_hex(b"warc-placeholder"),
+}
+write_json(EXAMPLES / "audit-record.json",
+           sign_envelope("record", audit_record, "test-aud-k1"))
+
+registry_update = {
+    "dc_version": "1.0.0",
+    "action": "auditor_admit",
+    "subject": "audit.example.org",
+    "details": {"public_key": b64u(pub_raw), "key_id": "test-aud-k1"},
+    "effective_at": "2026-08-02T12:00:00Z",
+}
+write_json(EXAMPLES / "registry-update.json",
+           sign_envelope("update", registry_update, "test-agg-k1"))
+print("dc4 audit-record and registry-update examples written")
+
+# Worked sampling example (DC-4 §4): HMAC-SHA256(block hash raw, delta ID)
+raw_block_hash = bytes.fromhex(block_hash.split(":")[1])
+mac = hmac_mod.new(raw_block_hash, delta_id.encode(), hashlib.sha256).digest()
+draw = int.from_bytes(mac[:8], "big") / 2**64
+print("dc4 sampling hmac[:8] hex:", mac[:8].hex())
+print("dc4 sampling draw: %.10f" % draw)
+for rep, label in ((0.10, "quarantined"), (0.90, "reputable")):
+    p = min(max(0.02 + 0.30 * (1 - rep), 0.02), 0.50)
+    print("dc4 sampling rep=%.2f (%s): p=%.3f -> %s" % (
+        rep, label, p, "AUDIT" if draw < p else "no audit"))
