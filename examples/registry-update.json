@@ -1,0 +1,17 @@
+{
+  "update": {
+    "dc_version": "1.0.0",
+    "action": "auditor_admit",
+    "subject": "audit.example.org",
+    "details": {
+      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "key_id": "test-aud-k1"
+    },
+    "effective_at": "2026-08-02T12:00:00Z"
+  },
+  "sig": {
+    "key_id": "test-agg-k1",
+    "alg": "Ed25519",
+    "value": "ew43OquRm1OoYf9STuzm2OGk2NU9yT83JW0OPEvIV8HguVNVFIyanC0jNUufYWxnk8cjpU4uRgTGcv0yeIKlBg"
+  }
+}
