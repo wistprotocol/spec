@@ -229,7 +229,7 @@ audit_record = {
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_hash": "sha256:" + sha256_hex(b"response-placeholder"),
     "ref_extract_hash": "sha256:" + sha256_hex(EXTRACT.encode()),
-    "similarity": 0.94,
+    "similarity": 940000,
     "verdict": "consistent",
     "evidence": "warc:sha256:" + sha256_hex(b"warc-placeholder"),
     "vrf_proof": pi.hex(),
