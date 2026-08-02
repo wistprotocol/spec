@@ -241,7 +241,7 @@ registry_update = {
     "dc_version": "1.0.0",
     "action": "auditor_admit",
     "subject": "audit.example.org",
-    "details": {"public_key": b64u(pub_raw), "key_id": "test-aud-k1"},
+    "details": {"key_id": "test-aud-k1", "alg": "Ed25519", "public_key": b64u(pub_raw)},
     "effective_at": "2026-08-02T12:00:00Z",
 }
 write_json(EXAMPLES / "registry-update.json",
