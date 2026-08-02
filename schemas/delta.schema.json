@@ -12,7 +12,7 @@
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-        "url": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "url": {"type": "string", "format": "uri", "pattern": "^https://[^#]*$"},
         "change_type": {"enum": ["new", "update", "delete", "attest"]},
         "observed_at": {"type": "string", "format": "date-time"},
         "prev": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
