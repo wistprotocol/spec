@@ -87,3 +87,102 @@ feed = {
 }
 write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, "test-k1"))
 print("dc2 feed example written")
+
+# ---------------------------------------------------------------- DC-3: block
+DC3 = ROOT / "vectors" / "dc3"
+DC3.mkdir(parents=True, exist_ok=True)
+
+def leaf_hash(b: bytes) -> bytes:
+    return hashlib.sha256(b"\x00" + b).digest()
+
+def node_hash(l: bytes, r: bytes) -> bytes:
+    return hashlib.sha256(b"\x01" + l + r).digest()
+
+def attest_delta(n: int, prev_id: str) -> dict:
+    inner = {
+        "dc_version": "1.0.0",
+        "url": f"https://example.com/blog/post-{n}",
+        "change_type": "attest",
+        "observed_at": "2026-08-02T12:00:00Z",
+        "prev": prev_id,
+        "meta": {"lang": "en"},
+    }
+    return sign_envelope("delta", inner, "test-k1")
+
+# prev IDs for the attest deltas: synthetic prior deltas ("new" for each URL)
+def synthetic_prior_id(n: int) -> str:
+    inner = {
+        "dc_version": "1.0.0",
+        "url": f"https://example.com/blog/post-{n}",
+        "change_type": "new",
+        "observed_at": "2026-08-01T12:00:00Z",
+        "meta": {"lang": "en"},
+    }
+    return "sha256:" + sha256_hex(rfc8785.dumps(inner))
+
+entries = [{"type": "publisher_delta", "body": delta_envelope}]
+for n in (2, 3, 4):
+    entries.append({"type": "publisher_delta",
+                    "body": attest_delta(n, synthetic_prior_id(n))})
+
+leaves = [leaf_hash(rfc8785.dumps(e)) for e in entries]
+n01 = node_hash(leaves[0], leaves[1])
+n23 = node_hash(leaves[2], leaves[3])
+merkle_root = "sha256:" + node_hash(n01, n23).hex()
+
+header = {
+    "dc_version": "1.0.0",
+    "block_number": 0,
+    "prev_block_hash": "sha256:genesis",
+    "sealed_at": "2026-08-02T13:00:00Z",
+    "merkle_root": merkle_root,
+    "entry_count": 4,
+}
+block_inner = {"header": header, "entries": entries}
+block_canonical = rfc8785.dumps(block_inner)
+block_hash = "sha256:" + sha256_hex(block_canonical)
+block_sig = priv.sign(block_canonical)
+block = {"header": header, "entries": entries,
+         "sig": {"key_id": "test-agg-k1", "alg": "Ed25519", "value": b64u(block_sig)}}
+
+inclusion_proof = {
+    "index": 0,
+    "path": [
+        {"side": "right", "hash": leaves[1].hex()},
+        {"side": "right", "hash": n23.hex()},
+    ],
+}
+
+write_json(DC3 / "block.json", block)
+write_json(DC3 / "inclusion-proof.json", inclusion_proof)
+write_json(EXAMPLES / "block.json", block)
+
+checkpoint = {
+    "dc_version": "1.0.0",
+    "block_number": 0,
+    "block_hash": block_hash,
+    "sealed_at": "2026-08-02T13:00:00Z",
+}
+write_json(EXAMPLES / "checkpoint.json", sign_envelope("checkpoint", checkpoint, "test-agg-k1"))
+
+tier0_content = b"tier0-placeholder"
+tier1_content = b"tier1-placeholder"
+manifest = {
+    "dc_version": "1.0.0",
+    "snapshot_date": "2026-08-02",
+    "log_position": 0,
+    "embedding_model": {"name": "example-embed", "version": "1",
+                        "dim": 384, "quantization": "int8"},
+    "files": [
+        {"path": "tier0/index.sqlite", "sha256": sha256_hex(tier0_content),
+         "bytes": len(tier0_content), "tier": 0},
+        {"path": "tier1/extracts.parquet", "sha256": sha256_hex(tier1_content),
+         "bytes": len(tier1_content), "tier": 1},
+    ],
+}
+write_json(EXAMPLES / "snapshot-manifest.json",
+           sign_envelope("manifest", manifest, "test-agg-k1"))
+print("dc3 block hash:", block_hash)
+print("dc3 merkle root:", merkle_root)
+print("dc3 leaves:", [l.hex() for l in leaves])
+print("dc3 nodes: n01=%s n23=%s" % (n01.hex(), n23.hex()))
