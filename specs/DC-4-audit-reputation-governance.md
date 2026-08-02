@@ -345,15 +345,19 @@ lower bound, and everything from height 0 counts.
 - **Confirmed Inconsistencies.** Only those whose confirming Audit Record
   is sealed above the domain's most recent identity reset and at a height
   ≤ N count. For each such Confirmed Inconsistency *i*: `s_i` ∈ {1 = minor
-  divergence, 2 = misleading extract, 3 = fabricated content} is the
-  severity assigned in the corresponding `sanction` Registry Update (§7),
+  divergence, 2 = misleading extract, 3 = fabricated content} is computed
+  from the confirming Audit Records by the §7 severity table —
+  independently of whether any `sanction` Registry Update exists for it —
   and `t_i` is the whole days between the `sealed_at` of the **confirming
   Block** and the `sealed_at` of Block N. The confirming Block is the one
   sealing the **earliest Audit Record, in Log order (ascending Block
   height, then ascending Entry index within a Block), at which §5's
-  confirmation predicate is first satisfied** for that Delta. Records
-  beyond that one — a third or fourth `inconsistent` verdict — do not move
-  the date and do not create a second Confirmed Inconsistency.
+  confirmation predicate is first satisfied** for that Delta: the same
+  height that fixes `t_i` is the height at which the Confirmed
+  Inconsistency begins contributing to `penalty_n`, whether or not the
+  Aggregator ever files a `sanction` for it. Records beyond that one — a
+  third or fourth `inconsistent` verdict — do not move the date and do not
+  create a second Confirmed Inconsistency.
 - **`decay(t)`** is read from the normative decay table
   ([`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json)): an
   array of 1826 integers, `decay(t) = floor(exp(−t / 180) × 1e9)` — the
@@ -515,11 +519,22 @@ Inconsistency, let `sim` be the highest `similarity` among the confirming
 | 0.05 ≤ `sim` < 0.15 | 2 (misleading extract) |
 | `sim` < 0.05, or the claimed content is wholly absent | 3 (fabricated content) |
 
-A party recomputing reputation MUST recompute severity from the referenced
-Audit Records and MUST reject a `sanction` whose `details.severity`
-disagrees, or whose `evidence` does not establish a Confirmed
-Inconsistency under §5. The Aggregator therefore records sanctions; it
-does not decide their weight.
+A party recomputing reputation locates every Confirmed Inconsistency
+directly from Audit Records under §5 — no `sanction` Registry Update is
+required to find one — and computes each one's severity from the table
+above; §6.1 counts it in `penalty_n` from the confirming Block onward
+regardless of whether the Aggregator ever records a `sanction` for it. A
+`sanction` therefore does not create the penalty: it records the ladder
+action (the numbered list above) the Aggregator is taking in response, and
+that is what a recomputing party checks it against. It MUST reject a
+`sanction` whose `details.severity` disagrees with the table's value for
+the Confirmed Inconsistency it names, or whose `evidence` does not resolve
+to Audit Record IDs (§5) establishing one, and treat the ladder level that
+sanction claims to apply as never having taken effect — but rejecting the
+sanction does not touch the underlying Confirmed Inconsistency's penalty,
+which was never conditioned on the sanction's existence. The Aggregator
+therefore records ladder actions; it does not decide, and cannot suppress,
+the reputation weight of what the evidence already shows.
 
 Process requirements:
 
@@ -700,14 +715,19 @@ adds.
 - **Sanction censorship.** An Aggregator cannot quietly suppress a
   sanction or an appeal: withholding log entries from some observers is
   equivocation, detectable and provable per DC-3 §5.
-- **Fabricated sanction severity is detectable by recomputation.** Severity
-  is derived from the confirming Audit Records' `similarity` values (§7),
-  not asserted by the Aggregator, so a `sanction` whose `details.severity`
-  overstates or understates what those Records show is objectively wrong.
-  A party recomputing reputation MUST reject such a sanction, and MUST
-  reject one whose `evidence` does not resolve to Audit Record IDs (§5)
-  establishing a Confirmed Inconsistency at all — a captured Aggregator
-  gains nothing by inflating or inventing a penalty.
+- **A sanction's severity can be neither fabricated nor suppressed.**
+  Severity is derived from the confirming Audit Records' `similarity`
+  values by the §7 table, not asserted by the Aggregator, and §6.1 counts
+  every Confirmed Inconsistency's penalty from its confirming Block onward
+  regardless of whether a `sanction` Registry Update ever names it. A
+  party recomputing reputation therefore arrives at the same `penalty_n`
+  whether the Aggregator inflates a `details.severity` past what the
+  Records show (the mismatched `sanction` is rejected and the table's
+  value used instead), invents a `sanction` with no real evidence behind
+  it (rejected outright — §5's predicate fails), or never records one at
+  all (the penalty applies anyway, computed directly from the Records). A
+  captured Aggregator has no lever over the reputation consequence of
+  evidence that is already public.
 - **Griefing via false `inconsistent` verdicts.** A single hostile
   Auditor cannot harm anyone: confirmation requires a second independent
   `inconsistent` within 72 hours, and the sampling rule (§4) makes it
@@ -764,6 +784,9 @@ no private reputation channel.
       resets `A`/`C` only for a fresh identity — never for an ordinary or
       recovery rotation (§6.3)
 - [ ] Recomputes severity from evidence and rejects unsupported sanctions (§7)
+- [ ] Counts every Confirmed Inconsistency's penalty from its confirming
+      Block onward, independent of whether a `sanction` Registry Update
+      exists for it (§6.1, §7)
 
 ## Appendix A. Worked Sampling Example
 
