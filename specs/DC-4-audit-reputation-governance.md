@@ -69,9 +69,16 @@ assignments under another.
 
 An Audit Record signed by a key not admitted at the Record's `fetched_at`
 MUST be rejected by validators recomputing reputation. So MUST a Record
-whose `vrf_proof` does not verify under that key over the audited Block's
-Block Hash, and one whose `audited_delta` is not in the selection set that
-proof determines (§4).
+whose `vrf_proof` does not verify — over the audited Block's Block Hash,
+under the key admitted at that Block's `sealed_at` (§4) — and one whose
+`audited_delta` is not in the selection set that proof determines (§4).
+
+That first rejection is scoped to reputation and does not reach coverage:
+an Auditor removed after a Block was sealed but before its coverage
+deadline still discharges its §4 duty for that Block by publishing, because
+coverage is anchored to `sealed_at` rather than to fetch time. Such a
+Record proves the Auditor met its duty; it does not enter any domain's
+reputation.
 
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
 `aggregator_key_remove` actions defined in DC-3 §3.4; their `details`
@@ -132,24 +139,33 @@ by its key and the Block, and any deviation is detectable. And assignment
 needs no coordinator: each Auditor's duties for each Block are derived, not
 allocated.
 
-**Coverage duty.** For every Delta its VRF selects, an Auditor MUST publish
-either an Audit Record or, when it cannot fetch at all, a Record with
-verdict `unreachable`, within 72 hours of the Block's `sealed_at`. The duty
-attaches to every Block sealed while the Auditor is admitted, and to no
-other Block. Because `pi` pins the selection set exactly, failure is an
-objective and recomputable fact rather than a judgement.
+**Coverage duty.** For **every** Delta its VRF selects in a Block, an
+Auditor MUST publish an Audit Record — or, when it cannot fetch at all, a
+Record with verdict `unreachable` — within 72 hours of that Block's
+`sealed_at`. When its VRF selects no Delta in a Block, it MUST instead
+publish, by the same deadline, a `coverage_attestation` Registry Update
+carrying that Block's VRF proof and nothing else.
+
+The duty is anchored to the Block's `sealed_at`: it exists only if the
+Auditor was admitted at that instant, and the Record or attestation
+discharging it MUST verify against the key admitted then, even if the
+Auditor has since been removed. Removal therefore ends an Auditor's future
+duties; it does not retroactively excuse the ones already incurred, and it
+does not strip the Auditor of the ability to discharge them.
 
 The duty is verifiable in-band, because the VRF proof reaches the Log for
-every Block whether or not anything was selected: for each sealed Block, an
-Auditor MUST publish either at least one Audit Record carrying its
-`vrf_proof` for that Block, or — when its VRF selects no Delta in that
-Block — a `coverage_attestation` Registry Update carrying the same proof
-and nothing else. An Auditor with neither, at the coverage deadline, has
-failed its duty for that Block; an Auditor that fails it for more than
-`coverage_failures_max` Blocks in any 30-day window (Parameter Registry;
-default 24) is removed by `auditor_remove` (§3), whose `evidence` MUST name
-the failed Blocks. Without the attestation, an Auditor that simply does
-nothing would be indistinguishable from one whose VRF selected nothing.
+every Block whether or not anything was selected. An Auditor has **failed
+its coverage duty for a Block** when any selected Delta lacks a Record at
+the deadline, or when its selection was empty and no attestation appears;
+publishing Records for some but not all selected Deltas is a failure, not
+partial credit. Because `pi` pins the selection set exactly, that is an
+objective and recomputable fact rather than a judgement. An Auditor that
+fails the duty for more than `coverage_failures_max` Blocks in any 30-day
+window (Parameter Registry; default 24) is removed by `auditor_remove`
+(§3), whose `evidence` MUST name the failed Blocks. Without the attestation
+an Auditor that simply does nothing would be indistinguishable from one
+whose VRF selected nothing, and coverage would rest on an out-of-band
+challenge — which §1's "nothing exists outside the Log" forbids.
 
 `coverage_attestation` is the second class of Registry Update not signed by
 the Aggregator (the first is `appeal`, §7): the Auditor signs it with its
@@ -334,7 +350,7 @@ are made by `parameter_change` Registry Updates and MUST have
 | Sampling floor / ceiling | 0.02 / 0.50 | §4 |
 | Sampling reputation slope | 0.30 | §4 |
 | Coverage duty deadline | 72 hours | §4 |
-| Coverage failures allowed | 24 Blocks per 30 days | §4 |
+| `coverage_failures_max` | 24 Blocks per 30 days | §4 |
 | Similarity thresholds (consistent / variance floor) | 0.60 / 0.30 | §5 |
 | Shingle size | 8 words | §5 |
 | Confirmation: auditors / window | 2 / 72 hours | §5 |
@@ -366,16 +382,19 @@ are made by `parameter_change` Registry Updates and MUST have
   the Aggregator MAY still commission overlapping audits and compare
   outcomes; systematic divergence by one Auditor remains grounds for
   `auditor_remove`, in the log with evidence like any sanction.
-- **Shirking is detectable from the Log alone.** Every Block in an
-  Auditor's admitted window has exactly one of two artefacts in the Log
-  bearing that Auditor's `vrf_proof`: an Audit Record, or a
-  `coverage_attestation` where the VRF selected nothing (§4). An Auditor
-  that audits nothing and attests nothing is therefore not merely suspected
-  but demonstrated, by any party replaying the Log, with no challenge
-  protocol, no side channel, and no cooperation from the Auditor. Since the
-  proof is published either way, an Auditor cannot hide behind "my VRF
-  selected nothing": that claim is now a signed, falsifiable statement whose
-  proof anyone can check against the Block Hash.
+- **Shirking is detectable from the Log alone, whole or partial.** For every
+  Block sealed in an Auditor's admitted window the Log must hold that
+  Auditor's `vrf_proof` — inside an Audit Record for each selected Delta,
+  or inside a `coverage_attestation` where the VRF selected nothing (§4).
+  An Auditor that audits nothing and attests nothing is therefore not merely
+  suspected but demonstrated, by any party replaying the Log, with no
+  challenge protocol, no side channel, and no cooperation from the Auditor.
+  Since the proof is published either way, an Auditor cannot hide behind "my
+  VRF selected nothing": that claim is a signed, falsifiable statement whose
+  proof anyone can check against the Block Hash. Nor can it shirk *part* of
+  a Block and buy silence with a single Record: the proof it publishes in
+  that Record recomputes the whole selection set, so covering some selected
+  Deltas and not others is a failure for the Block, not partial credit (§4).
 - **Reputation gaming via attest-farming.** A domain cannot inflate `C`
   by emitting torrents of trivially-true `attest` Deltas: audits of
   `attest` Deltas never increment `C` (§6). Only content-bearing Deltas
@@ -408,8 +427,8 @@ no private reputation channel.
 
 - [ ] Audits exactly its VRF-selected set and publishes `vrf_proof` (§4)
 - [ ] Meets the coverage duty for every Block sealed while admitted, within
-      72 hours of `sealed_at` — a Record, or a `coverage_attestation` when
-      its VRF selected nothing (§4)
+      72 hours of `sealed_at` — a Record for **every** selected Delta, or a
+      `coverage_attestation` when its VRF selected nothing (§4)
 - [ ] Computes similarity with the normative §5 metric and thresholds
 - [ ] Emits `unreachable` (never `inconsistent`) for robots.txt-forbidden
       or failed fetches
