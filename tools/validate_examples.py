@@ -233,6 +233,33 @@ def _dc4_audit_record_proof():
     assert rec["vrf_proof"] == v["vrf_proof_hex"], "record proof differs from vector proof"
 check("vectors:dc4-audit-record-proof", _dc4_audit_record_proof)
 
+def _dc4_coverage_attestation():
+    """§4's in-band coverage proof must be expressible as a Registry Update.
+
+    An Auditor whose VRF selects nothing in a Block publishes a
+    `coverage_attestation` carrying that Block's vrf_proof, so the proof
+    reaches the Log either way and shirking is detectable without any
+    out-of-band challenge.
+    """
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    actions = schema["properties"]["update"]["properties"]["action"]["enum"]
+    assert "coverage_attestation" in actions, "action enum lacks coverage_attestation"
+    assert actions[-1] == "coverage_attestation", "coverage_attestation must be appended, not reordered"
+    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
+    attestation = {
+        "update": {
+            "dc_version": "1.0.0",
+            "action": "coverage_attestation",
+            "subject": "audit.example.org",
+            "details": {"vrf_proof": v["vrf_proof_hex"]},
+            "effective_at": "2026-08-02T16:00:00Z",
+        },
+        "sig": json.loads(
+            (ROOT / "examples" / "registry-update.json").read_text())["sig"],
+    }
+    Draft202012Validator(schema).validate(attestation)
+check("schema:dc4-coverage-attestation", _dc4_coverage_attestation)
+
 def _dc4_appendix_figures():
     """DC-4's worked example must quote the vector, not a remembered figure.
 
