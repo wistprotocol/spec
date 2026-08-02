@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
-import base64, hashlib, json, pathlib, sys
+import base64, calendar, hashlib, json, pathlib, sys, time
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -278,6 +278,121 @@ def _dc4_appendix_figures():
         assert f"| {row['reputation']:.2f}" in flat or f"{row['reputation']:.2f} " in flat, \
             f"DC-4 does not quote reputation {row['reputation']}"
 check("spec:dc4-appendix-figures", _dc4_appendix_figures)
+
+# 5. DC-4 §6: reputation, recomputed from the normative decay table using
+# nothing but integers. A float anywhere in this check would defeat its point.
+DC4 = ROOT / "vectors" / "dc4"
+
+def _dc4_decay_table():
+    raw = (DC4 / "decay-table.json").read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    assert digest in spec, f"DC-4 §6.1 does not pin the decay table digest {digest}"
+    t = json.loads(raw)
+    assert t["scale"] == 1_000_000_000, "decay scale drifted"
+    assert t["max_days"] == 1825, "decay horizon drifted"
+    v = t["values"]
+    assert len(v) == t["max_days"] + 1, "table length does not match max_days"
+    assert all(isinstance(x, int) and not isinstance(x, bool) for x in v), \
+        "decay table must hold integers, not floats"
+    assert v[0] == 1_000_000_000, "decay(0) must be exactly 1e9"
+    assert all(v[i] > v[i + 1] for i in range(len(v) - 1)), \
+        "decay table must be strictly decreasing"
+    assert v[-1] > 0, "the horizon value must be positive (expiry is the step to 0)"
+check("vectors:dc4-decay-table", _dc4_decay_table)
+
+def _dc4_reputation():
+    """Recompute every published intermediate from §6, in integers only."""
+    r = json.loads((DC4 / "reputation.json").read_text())
+    table = json.loads((DC4 / "decay-table.json").read_text())
+    values, scale, max_days = table["values"], table["scale"], table["max_days"]
+    k, micro = r["constants"], r["micro_scale"]
+    assert r["decay_scale"] == scale, "vectors disagree about the decay scale"
+    assert micro == 1_000_000, "reputation resolution drifted"
+
+    def decay(t):
+        return values[t] if t <= max_days else 0
+
+    def recompute(case):
+        A, C = case["A"], case["C"]
+        assert C == min(case["distinct_audited_urls"], k["c_cap"]), "C_cap not applied"
+        base = k["base_at_age_0"] + (
+            (micro - k["base_at_age_0"]) * min(A, k["age_normalization_days"])
+        ) // k["age_normalization_days"]
+        assert base == case["base_u"], f"base_u mismatch in {case['label']}"
+        penalty = 0
+        prev_t = -1
+        for inc in case["inconsistencies"]:
+            assert inc["severity"] in (1, 2, 3), "severity out of range"
+            assert inc["t_days"] >= prev_t, "incidents not in ascending t_i order"
+            prev_t = inc["t_days"]
+            assert inc["decay"] == decay(inc["t_days"]), "decay value not from the table"
+            penalty += inc["severity"] * decay(inc["t_days"])
+        assert penalty == case["penalty_n"], f"penalty_n mismatch in {case['label']}"
+        num = base * (C + 1) * scale
+        den = (C + 1) * scale + k["penalty_weight"] * penalty
+        assert num == case["numerator"] and den == case["denominator"], \
+            f"numerator/denominator mismatch in {case['label']}"
+        formula = max(0, min(micro, num // den))
+        assert formula == case["formula_u"], f"formula_u mismatch in {case['label']}"
+        provisional = A < k["gate_age_days"] or C < k["gate_c"]
+        assert provisional == case["provisional"], f"gate mismatch in {case['label']}"
+        # The cap is a ceiling, never a floor: min(formula, cap).
+        rep = min(formula, k["provisional_cap_u"]) if provisional else formula
+        assert rep == case["reputation_u"], f"reputation_u mismatch in {case['label']}"
+        assert rep <= formula, "the Provisional cap acted as a floor"
+        q = k["quota_base"] + k["quota_slope"] * rep // micro
+        assert q == case["Q"], f"Q mismatch in {case['label']}"
+        p = min(max(200_000 + 3 * (micro - rep), 200_000), 5_000_000)
+        assert p == case["p_scaled_1e7"], f"p mismatch in {case['label']}"
+        assert case["p"] == "0.%07d" % p, "decimal p does not match its scaled form"
+        return rep
+
+    w = r["worked_example"]
+    # A and t_i are Block-derived, not asserted: recompute them from sealed_at.
+    def secs(ts):
+        return calendar.timegm(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ"))
+    s = w["sealed_at"]
+    assert (secs(s["block_n"]) - secs(s["first_delta_block"])) // 86400 == w["A"], \
+        "A is not the whole-day count between the two Block sealed_at values"
+    assert (secs(s["block_n"]) - secs(s["confirming_block"])) // 86400 == \
+        w["inconsistencies"][0]["t_days"], "t_i is not Block-derived"
+    block = json.loads((ROOT / "examples" / "block.json").read_text())
+    assert s["first_delta_block"] == block["header"]["sealed_at"], \
+        "worked example is not anchored to the example Block"
+    recompute(w)
+
+    by_label = {c["label"]: recompute(c) for c in r["boundary"]}
+    # Requirement: reputation MUST NOT decrease solely because a gate lifted.
+    for lo, hi in (("gate-age-below", "gate-age-at"),
+                   ("gate-age-at", "gate-age-above"),
+                   ("gate-age-below-penalized", "gate-age-at-penalized"),
+                   ("gate-c-below", "gate-c-at")):
+        assert by_label[lo] <= by_label[hi], \
+            f"reputation fell crossing the gate: {lo}={by_label[lo]} > {hi}={by_label[hi]}"
+    # The cap is met from below, not jumped past: at A = 0 the ungated formula
+    # equals the cap exactly, which is what removes the graduation cliff.
+    new = next(c for c in r["boundary"] if c["label"] == "new-domain")
+    assert new["formula_u"] == k["provisional_cap_u"] == new["reputation_u"], \
+        "a brand-new domain no longer meets the cap exactly"
+    assert new["Q"] == 1100, "the new-domain quota is not 1100"
+check("vectors:dc4-reputation", _dc4_reputation)
+
+def _dc4_reputation_figures():
+    """DC-4 §6 and Appendix B must quote the vector, not remembered figures."""
+    r = json.loads((DC4 / "reputation.json").read_text())
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    table = json.loads((DC4 / "decay-table.json").read_text())
+    def quoted(n):
+        # The spec groups long numbers with spaces; short ones it writes plain.
+        return str(n) in spec or f"{n:,}".replace(",", " ") in spec
+    for n in (table["values"][0], table["values"][-1]):
+        assert quoted(n), f"DC-4 does not quote decay value {n}"
+    for case in [r["worked_example"]] + r["boundary"]:
+        for field in ("base_u", "penalty_n", "reputation_u", "Q"):
+            assert quoted(case[field]), \
+                f"DC-4 does not quote {case['label']}.{field} = {case[field]}"
+check("spec:dc4-reputation-figures", _dc4_reputation_figures)
 
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""

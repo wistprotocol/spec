@@ -4,7 +4,8 @@
 Never uses wall-clock or randomness: fixed seed, fixed timestamps.
 Re-running always produces byte-identical output.
 """
-import base64, hashlib, json, pathlib
+import base64, calendar, hashlib, json, pathlib, time
+from decimal import Decimal, localcontext
 
 import rfc8785
 from cryptography.hazmat.primitives import serialization
@@ -286,3 +287,193 @@ for rep in (0.10, 0.90):
     p = sampling_p(rep)
     print("dc4 sampling rep=%.2f: p=%.3f -> %s" % (
         rep, p, "AUDIT" if draw < p else "no audit"))
+
+# --------------------------------------------------------- DC-4: decay table
+# DC-4 §6.1: decay(t) = floor(exp(-t/180) * 1e9) for whole days 0..1825.
+# The published table is normative; nothing at runtime evaluates exp(). It is
+# generated here in exact decimal arithmetic (never IEEE-754 doubles, whose
+# exp() differs in the last ulp between libms) via the Taylor series for
+# exp(x), which converges for every x and whose terms are exact decimals.
+DECAY_SCALE = 10**9
+DECAY_MAX_DAYS = 1825
+DECAY_TAU = 180
+
+
+def decay_scaled(t: int, prec: int) -> int:
+    """floor(exp(-t/180) * 1e9), computed at `prec` significant decimal digits."""
+    with localcontext() as ctx:
+        ctx.prec = prec
+        x = Decimal(-t) / Decimal(DECAY_TAU)
+        term = total = Decimal(1)
+        k = 1
+        # Stop once the last term added is below the working epsilon; the tail
+        # of an alternating series is bounded by its first omitted term.
+        eps = Decimal(10) ** -(prec - 10)
+        while abs(term) > eps:
+            term = term * x / k
+            total += term
+            k += 1
+        return int((total * Decimal(DECAY_SCALE)).to_integral_value(rounding="ROUND_FLOOR"))
+
+
+decay_table = [decay_scaled(t, 60) for t in range(DECAY_MAX_DAYS + 1)]
+# The floor() is only well defined if it is stable under more precision: recompute
+# the whole table at double the working precision and require byte equality. If any
+# entry sat within 1e-50 of an integer boundary this would catch it.
+assert decay_table == [decay_scaled(t, 120) for t in range(DECAY_MAX_DAYS + 1)], \
+    "decay table is not stable under increased precision"
+assert decay_table[0] == DECAY_SCALE, "decay(0) must be exactly 1e9"
+assert all(decay_table[i] > decay_table[i + 1] for i in range(DECAY_MAX_DAYS)), \
+    "decay table must be strictly decreasing"
+
+write_json(DC4 / "decay-table.json", {
+    "scale": DECAY_SCALE,
+    "max_days": DECAY_MAX_DAYS,
+    "note": "decay(t) = floor(exp(-t/180) * 1e9); decay(t) = 0 for t > 1825",
+    "values": decay_table,
+})
+print("dc4 decay table: decay(0)=%d decay(30)=%d decay(1825)=%d" % (
+    decay_table[0], decay_table[30], decay_table[DECAY_MAX_DAYS]))
+
+# ------------------------------------------------------- DC-4: reputation
+# DC-4 §6, in the integers the spec mandates. Nothing here is a float.
+MICRO = 10**6
+BASE_AT_AGE_0 = 100_000          # = the Provisional cap (§6.2)
+AGE_NORM_DAYS = 730
+C_CAP = 500
+PENALTY_WEIGHT = 5
+GATE_AGE_DAYS = 30
+GATE_C = 10
+PROVISIONAL_CAP = 100_000
+
+
+def epoch_seconds(ts: str) -> int:
+    """RFC 3339 UTC -> integer POSIX seconds (86400 s/day, no leap seconds)."""
+    return calendar.timegm(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ"))
+
+
+def whole_days(earlier: str, later: str) -> int:
+    delta = epoch_seconds(later) - epoch_seconds(earlier)
+    assert delta >= 0, "sealed_at is strictly increasing (DC-3 §3.1)"
+    return delta // 86400
+
+
+def base_u(age_days: int) -> int:
+    return BASE_AT_AGE_0 + (
+        (MICRO - BASE_AT_AGE_0) * min(age_days, AGE_NORM_DAYS)) // AGE_NORM_DAYS
+
+
+def decay(t: int) -> int:
+    return decay_table[t] if t <= DECAY_MAX_DAYS else 0
+
+
+def reputation_case(label, age_days, distinct_urls, incidents, note=""):
+    """One fully worked §6 evaluation. `incidents` = [(severity, t_days), ...]."""
+    c = min(distinct_urls, C_CAP)
+    # Ascending t_i (ties: Delta ID byte order) — integer addition, so the order
+    # cannot change the total; it only makes published intermediates agree.
+    ordered = sorted(incidents, key=lambda i: (i[1], i[0]))
+    penalty_n = sum(s * decay(t) for s, t in ordered)
+    b = base_u(age_days)
+    numerator = b * (c + 1) * DECAY_SCALE
+    denominator = (c + 1) * DECAY_SCALE + PENALTY_WEIGHT * penalty_n
+    formula_u = numerator // denominator
+    formula_u = max(0, min(MICRO, formula_u))
+    provisional = age_days < GATE_AGE_DAYS or c < GATE_C
+    reputation_u = min(formula_u, PROVISIONAL_CAP) if provisional else formula_u
+    quota = 100 + 10_000 * reputation_u // MICRO
+    # DC-4 §4's p(domain) is exact in decimal at this resolution:
+    # p x 1e7 = 200000 + 3 x (1e6 - reputation_u), clamped to [2e5, 5e6].
+    p_1e7 = min(max(200_000 + 3 * (MICRO - reputation_u), 200_000), 5_000_000)
+    return {
+        "label": label,
+        "note": note,
+        "A": age_days,
+        "distinct_audited_urls": distinct_urls,
+        "C": c,
+        "inconsistencies": [
+            {"severity": s, "t_days": t, "decay": decay(t)} for s, t in ordered],
+        "base_u": b,
+        "penalty_n": penalty_n,
+        "numerator": numerator,
+        "denominator": denominator,
+        "formula_u": formula_u,
+        "provisional": provisional,
+        "reputation_u": reputation_u,
+        "Q": quota,
+        "p_scaled_1e7": p_1e7,
+        "p": "0.%07d" % p_1e7,
+    }
+
+
+# The primary worked example, with A and t_i derived from real Block sealed_at
+# values rather than asserted: the first Delta is the one sealed in the DC-3
+# example Block, and Block N is sealed 400 days and 5 hours later, so the
+# partial day truncates away and A = 400.
+FIRST_DELTA_BLOCK_SEALED_AT = header["sealed_at"]        # 2026-08-02T13:00:00Z
+BLOCK_N_SEALED_AT = "2027-09-06T18:00:00Z"               # +400d 5h
+CONFIRMING_BLOCK_SEALED_AT = "2027-08-07T17:00:00Z"      # 30d 1h before Block N
+
+A_primary = whole_days(FIRST_DELTA_BLOCK_SEALED_AT, BLOCK_N_SEALED_AT)
+t_primary = whole_days(CONFIRMING_BLOCK_SEALED_AT, BLOCK_N_SEALED_AT)
+assert (A_primary, t_primary) == (400, 30), "worked-example day counts drifted"
+
+primary = reputation_case(
+    "worked-example", A_primary, 12, [(2, t_primary)],
+    "A = 400 days, C = 12 distinct audited URLs, one severity-2 Confirmed "
+    "Inconsistency confirmed 30 days before Block N.")
+primary["sealed_at"] = {
+    "first_delta_block": FIRST_DELTA_BLOCK_SEALED_AT,
+    "confirming_block": CONFIRMING_BLOCK_SEALED_AT,
+    "block_n": BLOCK_N_SEALED_AT,
+}
+
+# The Provisional boundary. Requirement: reputation MUST NOT fall because a
+# gate lifted. Rows 1-3 walk A across the age gate at C = 10 with a clean
+# record; rows 4-6 walk the same boundary with a severity-2 penalty in force
+# (where the cap is not even binding); rows 7-8 walk the C gate for an aged
+# domain, the only place the cap actually binds.
+boundary = [
+    reputation_case("gate-age-below", 29, 10, [], "A one day short of the age gate"),
+    reputation_case("gate-age-at", 30, 10, [], "exactly at both gates"),
+    reputation_case("gate-age-above", 31, 10, [], "one day past the age gate"),
+    reputation_case("gate-age-below-penalized", 29, 10, [(2, 30)],
+                    "same, with a severity-2 Confirmed Inconsistency at t = 30"),
+    reputation_case("gate-age-at-penalized", 30, 10, [(2, 30)],
+                    "the cap is a ceiling, so the penalty is not laundered away"),
+    reputation_case("gate-c-below", 800, 9, [], "aged but under-audited: the cap binds"),
+    reputation_case("gate-c-at", 800, 10, [], "the same domain one audited URL later"),
+    reputation_case("new-domain", 0, 0, [],
+                    "a brand-new domain: base_u equals the cap exactly, so the "
+                    "ungated formula already sits at 0.10 and Q = 1100"),
+]
+
+write_json(DC4 / "reputation.json", {
+    "micro_scale": MICRO,
+    "decay_scale": DECAY_SCALE,
+    "constants": {
+        "base_at_age_0": BASE_AT_AGE_0,
+        "age_normalization_days": AGE_NORM_DAYS,
+        "c_cap": C_CAP,
+        "penalty_weight": PENALTY_WEIGHT,
+        "gate_age_days": GATE_AGE_DAYS,
+        "gate_c": GATE_C,
+        "provisional_cap_u": PROVISIONAL_CAP,
+        "decay_tau_days": DECAY_TAU,
+        "decay_max_days": DECAY_MAX_DAYS,
+        "quota_base": 100,
+        "quota_slope": 10_000,
+        "inclusion_latency_threshold_u": 500_000,
+    },
+    "formula": ("reputation_u = base_u x (C+1) x 1e9 / ((C+1) x 1e9 + 5 x penalty_n), "
+                "integer division; then min(., 100000) while A < 30 or C < 10"),
+    "worked_example": primary,
+    "boundary": boundary,
+})
+for case in [primary] + boundary:
+    print("dc4 reputation %-24s A=%-4d C=%-3d penalty=%-12d formula=%-7d rep_u=%-7d Q=%-6d p=%s"
+          % (case["label"], case["A"], case["C"], case["penalty_n"],
+             case["formula_u"], case["reputation_u"], case["Q"], case["p"]))
+assert all(
+    boundary[i]["reputation_u"] <= boundary[i + 1]["reputation_u"]
+    for i in (0, 1, 3, 5)), "reputation fell when a gate lifted"
