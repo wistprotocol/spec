@@ -298,8 +298,9 @@ def _dc4_appendix_figures():
                   "delta_id", "draw_first8_hex", "auditor_public_key"):
         assert v[field] in flat, f"DC-4 does not quote sampling.json {field}"
     for c in v["selection"]:
-        for field in ("delta_id", "draw_first8_hex"):
-            assert c[field] in flat, f"DC-4 does not quote {c['label']} {field}"
+        for field in ("delta_id", "draw_first8_hex", "lhs_approx", "rhs_approx"):
+            assert c[field] in flat, \
+                f"DC-4 does not quote {c['label']} {field} = {c[field]}"
         for n in (c["D"], c["p_1e7"], c["reputation_u"]):
             assert str(n) in flat or f"{n:,}".replace(",", " ") in flat, \
                 f"DC-4 does not quote {c['label']} value {n}"
@@ -316,9 +317,9 @@ DC4 = ROOT / "vectors" / "dc4"
 
 def _dc4_decay_table():
     raw = (DC4 / "decay-table.json").read_bytes()
-    digest = hashlib.sha256(raw).hexdigest()
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    assert digest in spec, f"DC-4 §6.1 does not pin the decay table digest {digest}"
+    # Structural assertions run BEFORE the digest pin. The digest would catch
+    # any mutation first and report only "digest mismatch", which tells an
+    # implementer nothing about what is wrong with the table it is holding.
     t = json.loads(raw)
     assert t["scale"] == 1_000_000_000, "decay scale drifted"
     assert t["max_days"] == 1825, "decay horizon drifted"
@@ -330,6 +331,10 @@ def _dc4_decay_table():
     assert all(v[i] > v[i + 1] for i in range(len(v) - 1)), \
         "decay table must be strictly decreasing"
     assert v[-1] > 0, "the horizon value must be positive (expiry is the step to 0)"
+    # Only now the byte-level pin, which is what implementations key on.
+    digest = hashlib.sha256(raw).hexdigest()
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    assert digest in spec, f"DC-4 §6.1 does not pin the decay table digest {digest}"
 check("vectors:dc4-decay-table", _dc4_decay_table)
 
 def _dc4_reputation():
@@ -344,6 +349,8 @@ def _dc4_reputation():
     def decay(t):
         return values[t] if t <= max_days else 0
 
+    discriminating = []
+
     def recompute(case):
         A, C = case["A"], case["C"]
         assert C == min(case["distinct_audited_urls"], k["c_cap"]), "C_cap not applied"
@@ -351,6 +358,16 @@ def _dc4_reputation():
             (micro - k["base_at_age_0"]) * min(A, k["age_normalization_days"])
         ) // k["age_normalization_days"]
         assert base == case["base_u"], f"base_u mismatch in {case['label']}"
+        # §6's evaluation-order rule: the division binds to the product before
+        # it and never absorbs the leading constant. The other parse must be
+        # observably wrong at every published row, so an implementation that
+        # reads the rule the other way fails this vector instead of shipping.
+        folded = (k["base_at_age_0"]
+                  + (micro - k["base_at_age_0"]) * min(A, k["age_normalization_days"])
+                  ) // k["age_normalization_days"]
+        assert folded != base, \
+            f"{case['label']}: the mis-parsed base_u coincides here, so this row " \
+            "cannot discriminate the two readings"
         penalty = 0
         prev_t = -1
         for inc in case["inconsistencies"]:
@@ -372,8 +389,15 @@ def _dc4_reputation():
         rep = min(formula, k["provisional_cap_u"]) if provisional else formula
         assert rep == case["reputation_u"], f"reputation_u mismatch in {case['label']}"
         assert rep <= formula, "the Provisional cap acted as a floor"
-        q = k["quota_base"] + k["quota_slope"] * rep // micro
+        q = k["quota_base"] + (k["quota_slope"] * rep) // micro
         assert q == case["Q"], f"Q mismatch in {case['label']}"
+        # Same rule for Q: dividing reputation_u first collapses the slope to
+        # zero for every sub-unit reputation.
+        divided_first = k["quota_base"] + k["quota_slope"] * (rep // micro)
+        if rep < micro:
+            assert divided_first != q, \
+                f"{case['label']}: the mis-parsed Q coincides here"
+            discriminating.append(case["label"])
         # §4's integer sampling rate for this reputation, recomputed here.
         p = min(max(200_000 + 3 * (micro - rep), 200_000), 5_000_000)
         assert p == case["p_1e7"], f"p_1e7 mismatch in {case['label']}"
@@ -408,7 +432,59 @@ def _dc4_reputation():
     assert new["formula_u"] == k["provisional_cap_u"] == new["reputation_u"], \
         "a brand-new domain no longer meets the cap exactly"
     assert new["Q"] == 1100, "the new-domain quota is not 1100"
+    assert discriminating, "no published row discriminates the two readings of Q"
 check("vectors:dc4-reputation", _dc4_reputation)
+
+def _dc4_evaluation_order():
+    """§6's parenthesization is normative, so the spec must carry it verbatim.
+
+    A wording of the form "that division is its last operation" is literally
+    false for `base_u` and `Q`, both of which add after dividing: read at its
+    word it yields base_u = 136 at A = 0 instead of 100 000, which also
+    destroys the no-cliff property. This pins both the
+    corrected forms and the two counterexample values the spec quotes.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    for form in ("100 000 + ((900 000 × min(A, 730)) / 730)",
+                 "100 + ((10 000 × reputation_u) / 1 000 000)",
+                 "(base_u × (C + 1) × 1 000 000 000)",
+                 "(seconds(Y) − seconds(X)) / 86 400"):
+        assert form in spec, f"DC-4 §6 no longer writes {form!r} parenthesized"
+    # The spec quotes what the wrong parses produce; verify those numbers are
+    # real, so the warning cannot rot into a wrong warning.
+    assert (100_000 + 900_000 * 0) // 730 == 136, "quoted mis-parse of base_u is stale"
+    assert 100 + 10_000 * (359_236 // 1_000_000) == 100, "quoted mis-parse of Q is stale"
+    assert 100_000 + ((900_000 * 0) // 730) == 100_000, "correct base_u parse drifted"
+    for n in ("136", "3 692"):
+        assert n in spec, f"DC-4 no longer quotes the counterexample value {n}"
+check("spec:dc4-evaluation-order", _dc4_evaluation_order)
+
+def _dc4_sealed_at_precision():
+    """DC-4 §6.1's day counts are exact only because §6's inputs are exact.
+
+    A Block sealed at `...:00.500Z` or `...+00:00` would make the conversion
+    to integer seconds a rounding decision, and one rounded half-second can
+    move a whole-day boundary and with it A, t_i, base_u and the score. The
+    constraint therefore lives in the Block schema, not in prose downstream.
+    """
+    schema = json.loads((ROOT / "schemas" / "block.schema.json").read_text())
+    pat = schema["properties"]["header"]["properties"]["sealed_at"].get("pattern")
+    assert pat == r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", \
+        "block.schema.json does not constrain sealed_at to whole seconds + Z"
+    import re
+    block = json.loads((ROOT / "examples" / "block.json").read_text())
+    assert re.match(pat, block["header"]["sealed_at"]), \
+        "the example Block does not satisfy its own sealed_at pattern"
+    v = Draft202012Validator(schema)
+    for bad in ("2026-08-02T13:00:00.500Z", "2026-08-02T13:00:00+00:00",
+                "2026-08-02T13:00:00", "2026-08-02t13:00:00z"):
+        import copy
+        candidate = copy.deepcopy(block)
+        candidate["header"]["sealed_at"] = bad
+        assert v.iter_errors(candidate), f"schema accepts non-exact sealed_at {bad!r}"
+    dc3 = (ROOT / "specs" / "DC-3-commons-log-distribution.md").read_text()
+    assert "whole-second precision" in dc3, "DC-3 §3.1 does not state the constraint"
+check("schema:dc4-sealed-at-precision", _dc4_sealed_at_precision)
 
 def _dc4_reputation_figures():
     """DC-4 §6 and Appendix B must quote the vector, not remembered figures."""
@@ -424,6 +500,9 @@ def _dc4_reputation_figures():
         for field in ("base_u", "penalty_n", "reputation_u", "Q"):
             assert quoted(case[field]), \
                 f"DC-4 does not quote {case['label']}.{field} = {case[field]}"
+    assert quoted(r["worked_example"]["p_1e7"]), "DC-4 does not quote the worked p_1e7"
+    assert r["worked_example"]["p_readable"] in spec, \
+        "DC-4 does not show what the worked p_1e7 reads as"
 check("spec:dc4-reputation-figures", _dc4_reputation_figures)
 
 def _negative_index():

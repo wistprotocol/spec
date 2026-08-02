@@ -137,9 +137,11 @@ the slope 3 per micro-unit of reputation are the Parameter Registry values
 them** — an implementation MUST compute with the integers. Likewise
 `select` is the exact rendering of "the draw `D / 2^64` falls below the
 rate `p_1e7 / 10^7`", with both sides multiplied by `10^7 x 2^64` so that
-neither fraction is ever evaluated. The two products reach 9.3e25 and
-require at least 128-bit integers (or arbitrary precision); computing them
-in 64-bit arithmetic overflows and is non-conforming.
+neither fraction is ever evaluated. `D x 10^7` reaches
+`(2^64 − 1) x 10^7` ≈ 1.845e26, which needs 88 bits, and `p_1e7 x 2^64`
+reaches 9.223e25; implementations MUST use 128-bit or arbitrary-precision
+integers for both. Computing either product in 64-bit arithmetic overflows
+and is non-conforming.
 
 This is what makes selection *recomputable* rather than merely
 *reproducible-in-practice*. The comparison is strict and sits directly on
@@ -271,53 +273,80 @@ the Provisional cap, 0.5 for the latency threshold) is a reading of the
 integer, not a second definition of it. All constants live in the
 Parameter Registry (§9), read as of the `sealed_at` of Block N.
 
-**Evaluation order is normative.** Every expression in this section
-contains at most one division, and that division is its **last**
-operation: all multiplications, additions and subtractions are carried
-out first, in exact integer arithmetic on the full-width intermediate,
-and only the final quotient is truncated. Dividing early — for example
-computing `10 000 × (reputation_u / 1 000 000)` instead of
-`(10 000 × reputation_u) / 1 000 000` — yields different, non-conforming
-results, and is the one mistake an implementation can make while still
-using only integers.
+**Evaluation order is normative.** Every integer division an
+implementation performs is written below with its dividend and its divisor
+fully parenthesized, and **those parentheses are part of the definition**.
+Each division applies only to the parenthesized expression immediately
+preceding it: multiplications inside a dividend are carried out first, in
+exact integer arithmetic on the full-width product, and only that quotient
+is truncated. No addition or subtraction standing outside the parentheses
+is ever folded into a dividend, and no operand is divided before being
+multiplied. There are exactly three such divisions in the whole of
+reputation and sampling; here they are, with the two misreadings that
+produce different and non-conforming results:
+
+| Correct | Wrong | Why it matters |
+|---|---|---|
+| `100 000 + ((900 000 × min(A, 730)) / 730)` | `(100 000 + 900 000 × min(A, 730)) / 730` | at `A` = 0 gives 100 000, not 136 — the wrong parse destroys the Provisional-cap continuity of §6.2 |
+| `100 + ((10 000 × reputation_u) / 1 000 000)` | `100 + (10 000 × (reputation_u / 1 000 000))` | at `reputation_u` = 359 236 gives 3 692, not 100 — the wrong parse truncates every sub-unit reputation to zero quota slope |
+| `(seconds(Y) − seconds(X)) / 86 400` | — | the dividend is a difference *inside* the parentheses, which is the one place a subtraction is part of a dividend, and it is written that way |
+
+`reputation_u` itself (§6.2) is the third: it divides one fully
+parenthesized product by one fully parenthesized sum, so it has no second
+reading. Fractions that appear elsewhere in this document — `exp(−t / 180)`
+in the decay table's construction, `(C + 1) / ((C + 1) + 5 × penalty_n)` in
+the monotonicity argument below, `D / 2^64` in §4 — are rationals used to
+explain a definition, and no conforming implementation ever evaluates one:
+the table is read, not computed, and §4's test multiplies both sides out.
 
 ### 6.1. Inputs
 
 Every day count is derived from Block `sealed_at` values, never from wall
-clock time and never from a Publisher-supplied timestamp. An RFC 3339 UTC
-`sealed_at` converts to an integer count of seconds since
-1970-01-01T00:00:00Z with every day counted as exactly 86 400 seconds (no
-leap seconds), and "whole days between X and Y" is
+clock time and never from a Publisher-supplied timestamp. A Block's
+`sealed_at` carries whole-second precision and a literal trailing `Z`,
+enforced by both DC-3 §3.1 and `schemas/block.schema.json`, so
+`seconds(sealed_at)` — the count of seconds since 1970-01-01T00:00:00Z
+with every day counted as exactly 86 400 seconds and no leap seconds — is
+an exact integer for every conforming Block, with no fractional part to
+round and no offset to reduce. "Whole days between X and Y" is then
 `(seconds(Y) − seconds(X)) / 86 400` under integer division. `sealed_at`
 is strictly increasing across Blocks (DC-3 §3.1), so every such difference
 is non-negative and the rounding direction of a negative quotient never
 arises.
 
+**Identity scope.** `A`, `C`, and the set of Confirmed Inconsistencies are
+all scoped to the domain's **current identity**: every one of them counts
+only Log events sealed at a height greater than the domain's most recent
+identity reset (§6.3) and ≤ N. A domain that has never reset has no such
+lower bound, and everything from height 0 counts.
+
 - **`A`** = whole days between the `sealed_at` of the Block that first
-  contained an accepted Delta from this domain **under its current
-  identity** (§6.3) and the `sealed_at` of Block N. A domain with no
-  accepted Delta at height N has `A` = 0. Publisher-supplied `observed_at`
-  is never used, so backdating a Delta cannot age a domain.
-- **`base_u`** = `100 000 + 900 000 × min(A, 730) / 730`, integer
-  division. It rises linearly from 100 000 (exactly the Provisional cap)
-  at `A` = 0 to 1 000 000 at `A` ≥ 730.
+  contained an accepted Delta from this domain under its current identity
+  and the `sealed_at` of Block N. A domain with no accepted Delta in that
+  range has `A` = 0. Publisher-supplied `observed_at` is never used, so
+  backdating a Delta cannot age a domain.
+- **`base_u`** = `100 000 + ((900 000 × min(A, 730)) / 730)`, integer
+  division, parenthesized as written. It rises linearly from 100 000
+  (exactly the Provisional cap) at `A` = 0 to 1 000 000 at `A` ≥ 730.
 - **`C`** = the number of distinct Normalized URLs (DC-1 §3.2) of this
-  domain that have at least one `consistent` Audit Record, sealed at a
-  height ≤ N, for a content-bearing Delta (`new` or `update`) on that URL,
-  capped at `C_cap` = 500. Audits of `attest` and `delete` Deltas never
-  contribute. Counting distinct URLs rather than Records, and capping the
-  count, prevents a high-volume Publisher from diluting penalties toward
-  zero.
+  domain that have at least one `consistent` Audit Record — sealed above
+  the domain's most recent identity reset and at a height ≤ N — for a
+  content-bearing Delta (`new` or `update`) on that URL, capped at
+  `C_cap` = 500. Audits of `attest` and `delete` Deltas never contribute.
+  Counting distinct URLs rather than Records, and capping the count,
+  prevents a high-volume Publisher from diluting penalties toward zero.
 - **Confirmed Inconsistencies.** Only those whose confirming Audit Record
-  is sealed at a height ≤ N count. For each such Confirmed Inconsistency
-  *i*: `s_i` ∈ {1 = minor divergence, 2 = misleading extract,
-  3 = fabricated content} is the severity assigned in the corresponding
-  `sanction` Registry Update (§7), and `t_i` is the whole days between the
-  `sealed_at` of the **confirming Block** — the Block sealing the second
-  of the two `inconsistent` Audit Records that complete the confirmation
-  under §5, "second" being taken in Log order (ascending Block height,
-  then ascending Entry index within a Block) — and the `sealed_at` of
-  Block N.
+  is sealed above the domain's most recent identity reset and at a height
+  ≤ N count. For each such Confirmed Inconsistency *i*: `s_i` ∈ {1 = minor
+  divergence, 2 = misleading extract, 3 = fabricated content} is the
+  severity assigned in the corresponding `sanction` Registry Update (§7),
+  and `t_i` is the whole days between the `sealed_at` of the **confirming
+  Block** and the `sealed_at` of Block N. The confirming Block is the one
+  sealing the **earliest Audit Record, in Log order (ascending Block
+  height, then ascending Entry index within a Block), at which §5's
+  confirmation predicate is first satisfied** for that Delta. Records
+  beyond that one — a third or fourth `inconsistent` verdict — do not move
+  the date and do not create a second Confirmed Inconsistency.
 - **`decay(t)`** is read from the normative decay table
   ([`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json)): an
   array of 1826 integers, `decay(t) = floor(exp(−t / 180) × 1e9)` — the
@@ -343,7 +372,7 @@ arises.
 
 ### 6.2. The formula
 
-    reputation_u = base_u × (C + 1) × 1 000 000 000
+    reputation_u = (base_u × (C + 1) × 1 000 000 000)
                    / ((C + 1) × 1 000 000 000 + 5 × penalty_n)
 
 using integer division, then clamped to [0, 1 000 000]. The 1 000 000 000
@@ -394,17 +423,38 @@ step is upward.
 
 ### 6.3. Identity, reset, and Provisional
 
-`A` and `C` belong to a **key identity**, not to a name. A Declaration
-that DC-1 §5.2 classifies as a **fresh identity** — signed by neither a
-key of the previous Key Set nor a key in the previous Declaration's
-`recovery_keys` — resets `A` and `C` to zero at the height its Declaration
-Entry is sealed, and the domain re-enters Provisional; its `A` is then
-measured from the first Block sealing an accepted Delta after that height.
+`A`, `C`, and a domain's Confirmed Inconsistencies belong to a **key
+identity**, not to a name. A Declaration that DC-1 §5.2 classifies as a
+**fresh identity** — signed by neither a key of the previous Key Set nor a
+key in the previous Declaration's `recovery_keys` — is an **identity
+reset** at the height its Declaration Entry is sealed. Call that height
+`R`; the domain re-enters Provisional, and from `R` onward:
+
+- **`A`** is measured from the `sealed_at` of the first Block above `R`
+  sealing an accepted Delta from the domain. Until such a Block exists,
+  `A` = 0.
+- **`C`** counts only distinct URLs whose qualifying `consistent` Audit
+  Record is sealed above `R`. A URL audited before the reset does not
+  count again unless it is audited again after it, and the pre-reset
+  Records remain in the Log — they simply belong to the previous identity.
+- **Penalties do not carry across a reset.** Confirmed Inconsistencies
+  confirmed at or below `R` leave `penalty_n` entirely; only those
+  confirmed above `R` count. A fresh identity starts clean, for exactly
+  the reason `A` and `C` start at zero: it is a different party as far as
+  the protocol can tell, and the Provisional cap — not inherited debt — is
+  what bounds what it can claim.
+
+Resetting is therefore never an escape: it costs the domain its entire
+age, its whole audited-URL count, and its standing above 0.10, in exchange
+for shedding penalties that decay to nothing in five years anyway. A
+domain with a severity-3 Confirmed Inconsistency and two years of history
+gives up far more than it sheds.
+
 An **ordinary rotation** (signed by a previous signing key) and a
 **recovery rotation** (signed by a pre-registered offline recovery key)
-both preserve `A` and `C` in full. Replacing a Key Set is therefore not
-by itself a reset; only the loss of every cryptographic link to the prior
-identity is.
+are not resets: both preserve `A`, `C`, and every outstanding penalty in
+full. Replacing a Key Set is therefore not by itself a reset; only the
+loss of every cryptographic link to the prior identity is.
 
 Provisional is not a penalty and MUST NOT block participation: a
 Provisional domain pings, is pulled, has its Deltas sealed, and is audited
@@ -417,9 +467,10 @@ domains cannot bootstrap and is non-conforming.
 
 Exactly three things:
 
-1. **Ping quota** (DC-2 §4): `Q = 100 + 10 000 × reputation_u / 1 000 000`
-   Pings per UTC day, integer division. The new-domain quota DC-2 §5 refers
-   to is this formula at `reputation_u` = 100 000, i.e. **Q = 1100**.
+1. **Ping quota** (DC-2 §4): `Q = 100 + ((10 000 × reputation_u) /
+   1 000 000)` Pings per UTC day, integer division, parenthesized as
+   written. The new-domain quota DC-2 §5 refers to is this formula at
+   `reputation_u` = 100 000, i.e. **Q = 1100**.
 2. **Sampling rate** `p_1e7` (§4), which takes `reputation_u` directly at
    the height §4 fixes.
 3. **Inclusion latency**: `reputation_u` ≥ 500 000 → eligible for the next
@@ -679,9 +730,9 @@ the two domains differ only in reputation:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 0 | 100 000 (Provisional) | 2 900 000 | 1.818e26 | 5.352e25 | no |
+| Entry 0 | 100 000 (Provisional) | 2 900 000 | 1.818e26 | 5.350e25 | no |
 | Entry 0 | 900 000 (established) | 500 000 | 1.818e26 | 9.223e24 | no |
-| Entry 3 | 100 000 (Provisional) | 2 900 000 | 3.980e25 | 5.352e25 | **yes** |
+| Entry 3 | 100 000 (Provisional) | 2 900 000 | 3.980e25 | 5.350e25 | **yes** |
 | Entry 3 | 900 000 (established) | 500 000 | 3.980e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
@@ -711,15 +762,15 @@ Confirmed Inconsistency whose confirming Block was sealed
 |---|---|---|
 | `A` | 400 | (Block N − first Block) = 400 d 5 h; the partial day truncates |
 | `t_1` | 30 | (Block N − confirming Block) = 30 d 1 h; likewise |
-| `base_u` | 593 150 | 100 000 + 900 000 × 400 / 730 |
+| `base_u` | 593 150 | 100 000 + ((900 000 × 400) / 730) |
 | `C` | 12 | distinct Normalized URLs with a `consistent` audit, under `C_cap` |
 | `decay(30)` | 846 481 724 | table lookup, not `exp()` |
 | `penalty_n` | 1 692 963 448 | 2 × 846 481 724 |
 | numerator | 7 710 950 000 000 000 | 593 150 × 13 × 1e9 |
 | denominator | 21 464 817 240 | 13 × 1e9 + 5 × 1 692 963 448 |
 | `reputation_u` | 359 236 | integer division, not Provisional, no clamping |
-| `Q` | 3 692 | 100 + 10 000 × 359 236 / 1e6 |
-| `p` (§4) | 0.2122292 | exact in decimal at this resolution (see below) |
+| `Q` | 3 692 | 100 + ((10 000 × 359 236) / 1 000 000) |
+| `p_1e7` (§4) | 2 122 292 (reads as 0.2122292) | clamp(200 000 + 3 × (1 000 000 − 359 236), …) |
 
 **The Provisional boundary.** Reputation never falls because a gate
 lifted. Rows 1–3 cross the age gate with a clean record; rows 4–5 cross
