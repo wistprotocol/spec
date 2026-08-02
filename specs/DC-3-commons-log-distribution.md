@@ -53,9 +53,20 @@ A Block is an Envelope-like object with `header`, `entries`, and `sig`
 |-------------------|------------------------------------------------------|
 | `block_number` | Sequential from 0, no gaps. |
 | `prev_block_hash` | Block Hash of block N−1; the literal `sha256:genesis` for block 0. |
-| `sealed_at` | RFC 3339 UTC; strictly increasing across blocks. |
+| `sealed_at` | RFC 3339 UTC at **whole-second precision with a literal trailing `Z`**; strictly increasing across blocks. |
 | `merkle_root` | Root over `entries` (§4). |
 | `entry_count` | MUST equal `entries.length`. |
+
+`sealed_at` MUST match `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
+(`schemas/block.schema.json`): no fractional seconds, and no numeric offset
+even one equal to zero. A Block whose `sealed_at` carries either MUST be
+rejected. RFC 3339 permits both, but DC-4 §6.1 derives every reputation day
+count from these values by converting them to integer seconds, and a
+fractional or offset form would make that conversion a rounding decision
+that two implementations could take differently — one rounded half-second
+can move a whole-day boundary and with it a domain's age, penalty ages, and
+score. Constraining the field is cheaper than specifying a rounding rule,
+and it costs the Aggregator nothing: it chooses `sealed_at` itself.
 
 The **Block Hash** is `"sha256:" + hex(SHA-256(JCS(header)))` — the header
 alone. The Aggregator signs those same canonical bytes; `sig.key_id` names
@@ -351,7 +362,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 **Aggregator:**
 
 - [ ] Seals Blocks per §3 (sequential numbering, strict `sealed_at`
-      monotonicity, correct Block Hash and Merkle root)
+      monotonicity, whole-second `sealed_at` ending in `Z`, correct Block
+      Hash and Merkle root)
 - [ ] Publishes a Checkpoint per sealed Block at the fixed URL (§5)
 - [ ] Serves the static layout of §6 with immutable Block files
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
