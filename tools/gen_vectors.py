@@ -276,6 +276,21 @@ def selected(D: int, p_1e7: int) -> bool:
     return D * 10**7 < p_1e7 * TWO_64
 
 
+def approx4(n: int) -> str:
+    """Exact integer -> 4-significant-digit rendering, e.g. 5.350e25.
+
+    DC-4's Appendix A shows these products rounded for reading; computing the
+    rendering here (in Decimal, not float) keeps the published figure honest
+    and lets the harness pin it.
+    """
+    with localcontext() as ctx:
+        ctx.prec = 40
+        d = Decimal(n)
+        exp = len(str(n)) - 1
+        mant = (d / Decimal(10) ** exp).quantize(Decimal("1.000"))
+        return f"{mant}e{exp}"
+
+
 # Guard against the published figures drifting from the Parameter Registry:
 # 0.10 and 0.90 reputation read as p = 0.29 and 0.05.
 assert sampling_p_1e7(100_000) == 2_900_000 and sampling_p_1e7(900_000) == 500_000, \
@@ -310,6 +325,8 @@ for label, did, dbytes, D in (
             "p_1e7": p1e7,
             "lhs": D * 10**7,
             "rhs": p1e7 * TWO_64,
+            "lhs_approx": approx4(D * 10**7),
+            "rhs_approx": approx4(p1e7 * TWO_64),
             "selected": selected(D, p1e7),
         })
 assert any(c["selected"] for c in selection_cases), "no selected case in the vector"

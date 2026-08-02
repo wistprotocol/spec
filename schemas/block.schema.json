@@ -14,7 +14,12 @@
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "block_number": {"type": "integer", "minimum": 0},
         "prev_block_hash": {"type": "string", "pattern": "^sha256:([0-9a-f]{64}|genesis)$"},
-        "sealed_at": {"type": "string", "format": "date-time"},
+        "sealed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z: no fractional seconds and no numeric offset, so DC-4 §6.1's conversion to integer seconds is exact (DC-3 §3.1)."
+        },
         "merkle_root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "entry_count": {"type": "integer", "minimum": 0}
       }
