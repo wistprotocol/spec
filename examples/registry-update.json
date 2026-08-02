@@ -4,14 +4,15 @@
     "action": "auditor_admit",
     "subject": "audit.example.org",
     "details": {
-      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-      "key_id": "test-aud-k1"
+      "key_id": "test-aud-k1",
+      "alg": "Ed25519",
+      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
     },
     "effective_at": "2026-08-02T12:00:00Z"
   },
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "ew43OquRm1OoYf9STuzm2OGk2NU9yT83JW0OPEvIV8HguVNVFIyanC0jNUufYWxnk8cjpU4uRgTGcv0yeIKlBg"
+    "value": "JG0mAAhAgkI26OeummwBWgxh6yJJtEdo0JePUfUAKAMWmkpoLjW72ux0Hkjh4AWM-U70-yfpQCrpYQ7n4H2PCQ"
   }
 }
