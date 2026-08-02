@@ -1,0 +1,32 @@
+{
+  "manifest": {
+    "dc_version": "1.0.0",
+    "snapshot_date": "2026-08-02",
+    "log_position": 0,
+    "embedding_model": {
+      "name": "example-embed",
+      "version": "1",
+      "dim": 384,
+      "quantization": "int8"
+    },
+    "files": [
+      {
+        "path": "tier0/index.sqlite",
+        "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+        "bytes": 17,
+        "tier": 0
+      },
+      {
+        "path": "tier1/extracts.parquet",
+        "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+        "bytes": 17,
+        "tier": 1
+      }
+    ]
+  },
+  "sig": {
+    "key_id": "test-agg-k1",
+    "alg": "Ed25519",
+    "value": "e47LwzwGIdkruTnrIncOgLAZVnLaNBD1oA3Q_i3yENbkYcLKLm20HRXtrERCkZHda_7dAO0FG2n14N4dkR6yDw"
+  }
+}
