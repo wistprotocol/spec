@@ -8,7 +8,7 @@
   "properties": {
     "feed": {
       "type": "object",
-      "required": ["dc_version", "domain", "generated_at", "deltas"],
+      "required": ["dc_version", "domain", "generated_at", "deltas", "next"],
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
@@ -17,9 +17,10 @@
         "deltas": {
           "type": "array",
           "maxItems": 1000,
+          "uniqueItems": true,
           "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
         },
-        "next": {"type": ["string", "null"], "format": "uri"}
+        "next": {"type": ["string", "null"], "pattern": "^https://[^#]*$"}
       }
     },
     "sig": {
