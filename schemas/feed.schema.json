@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/feed.schema.json",
+  "title": "DeltaCommons Publisher Feed (DC-2)",
+  "type": "object",
+  "required": ["feed", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "feed": {
+      "type": "object",
+      "required": ["dc_version", "domain", "generated_at", "deltas"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "domain": {"type": "string", "format": "hostname"},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "deltas": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        },
+        "next": {"type": ["string", "null"], "format": "uri"}
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}
