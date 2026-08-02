@@ -68,6 +68,7 @@ print("dc1 delta id:", delta_id)
 # ------------------------------------------------------------ DC-1: publisher
 publisher = {
     "dc_version": "1.0.0",
+    "seq": 0,
     "domain": "example.com",
     "subdomain_scope": ["www.example.com", "blog.example.com"],
     "keys": [

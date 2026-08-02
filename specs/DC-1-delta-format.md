@@ -158,7 +158,10 @@ https://<domain>/.well-known/deltacommons/publisher.json
 
 The document is an Envelope whose inner object is `publisher` (schema:
 [`schemas/publisher.schema.json`](../schemas/publisher.schema.json)),
-containing: `domain`, optional `subdomain_scope` (hostnames the Key Set
+containing: `dc_version`, `domain`, `seq` (a monotonic Declaration
+counter, starting at 0; see §5.3), optional `prev_declaration` (the hash
+of the Declaration this one replaces, carried for every `seq` greater
+than 0; see §5.3), optional `subdomain_scope` (hostnames the Key Set
 also covers), the `keys` array (each entry: `key_id`, `alg`, raw Ed25519
 `public_key` base64url, `valid_from`), and optional `contact`.
 
@@ -176,19 +179,39 @@ v=dc1; k=<key_id>; p=<public_key_base64url>
 
 The `.well-known` document is authoritative when both exist.
 
-### 5.3. Rotation and Revocation
+### 5.3. Sequencing, Rotation and Revocation
 
-Key rotation is performed by publishing a new Publisher Declaration whose
-envelope is signed by a key from the **previous** Key Set (`sig.key_id`
-names the old key). The first Declaration a domain ever publishes is
-self-signed. A key is revoked by publishing a new Declaration that omits
-it; validators MUST NOT accept Deltas signed by a key absent from the
-current Key Set, except when verifying historical log entries against the
-Key Set that was current at sealing time (see DC-3).
+Every Publisher Declaration carries a monotonic `seq`, starting at 0, and
+(for `seq` > 0) `prev_declaration`, the `"sha256:" + hex(SHA-256(JCS(...)))`
+of the Declaration it replaces. A validator MUST reject a Declaration whose
+`seq` is not greater than the highest it has already accepted for that
+domain, which makes replay of a superseded Declaration (for example from a
+stale cache) detectable rather than silent.
 
-A Declaration replaced *without* a valid rotation signature (e.g. after a
-domain changes hands) is treated as a fresh identity: the domain re-enters
-quarantine per DC-4 §6.
+Key rotation is performed by publishing a Declaration whose envelope is
+signed by a key from the **previous** Key Set (`sig.key_id` names the old
+key). The first Declaration a domain publishes (`seq` 0) is self-signed. A
+key is revoked by publishing a Declaration that omits it.
+
+**Compromise recovery.** Because a stolen key can itself perform a valid
+rotation, the rotation signature is not the sole authority. Control of the
+domain's HTTPS `.well-known` endpoint is authoritative: when an Aggregator
+observes a Declaration with a higher `seq` that is *not* validly signed by
+the previous Key Set, it MUST NOT accept it silently and MUST NOT treat the
+domain as a fresh identity. It MUST record a `notice` (DC-4 §7) opening a
+recovery window (Parameter Registry: 7 days) during which Deltas from the
+domain are queued rather than sealed, and at the end of which the
+Declaration served at the well-known endpoint prevails, with the domain's
+`A` and `C` (DC-4 §6) preserved. This gives a compromised Publisher a path
+back that does not destroy its standing, while giving an attacker no way to
+seize one silently.
+
+**Historical verification.** Accepted Declarations are sealed into the Log
+as `publisher_declaration` Entries (DC-3 §3.3). The Key Set applicable to a
+`publisher_delta` Entry sealed in Block N is the one from that domain's
+highest-`seq` Declaration Entry sealed at a height ≤ N. A Consumer
+replaying the Log therefore verifies every historical Delta signature from
+the Log alone, with no fetch and no trust in the Aggregator.
 
 ## 6. Deliberate Normative Absence
 
@@ -210,22 +233,30 @@ matter". Importance is measured at consumption, outside this protocol.
 | DC1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | DC1-E07 | `prev` chain violation (missing, non-existent, wrong URL, or non-monotonic `observed_at`) |
+| DC1-E08 | Declaration sequence violation (`seq` not greater than the highest accepted, or `prev_declaration` mismatch) |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.
 
 ## 8. Security Considerations
 
-- **Key theft.** A stolen Publisher key can sign fraudulent Deltas until
-  rotated out (§5.3). Publishers SHOULD keep signing keys off the web
-  server that serves content and SHOULD rotate on any suspicion of
-  compromise. Fraud committed with a stolen key is still attributed to
-  the domain and handled by DC-4 audit and sanctions; timely rotation and
-  a public `notice` (DC-4 §7) are the mitigation path.
-- **Domain transfer.** Reputation attaches to the domain's identity
-  history, not the name alone: replacing the Key Set without a rotation
-  signature resets the identity into quarantine (DC-4 §6), so buying an
-  aged domain does not buy its standing.
+- **Key theft.** A stolen Publisher key can sign fraudulent Deltas, and
+  can even perform a rotation that looks valid on its face. §5.3's
+  compromise-recovery rule keeps that rotation from being final: an
+  Aggregator that sees a higher-`seq` Declaration not signed by the
+  previous Key Set opens a recovery window rather than accepting it
+  outright, Deltas are queued rather than sealed until the window
+  closes, and the Declaration actually served at the `.well-known`
+  endpoint prevails without loss of standing. Publishers SHOULD keep
+  signing keys off the web server that serves content and SHOULD rotate
+  on any suspicion of compromise; fraud committed before rotation is
+  still attributed to the domain and handled by DC-4 audit and
+  sanctions.
+- **Domain transfer.** A Key Set replacement does not transfer standing
+  by itself: it is arbitrated by the `seq`, `prev_declaration`, and
+  compromise-recovery rules of §5.3, not by simply overwriting the
+  Declaration, so acquiring a domain does not, on its own, acquire its
+  predecessor's history.
 - **Signature malleability.** Ed25519 signatures as specified in RFC 8032
   are deterministic; validators MUST verify against Canonical Bytes only.
 - **Canonicalization attacks.** JCS removes serialization ambiguity
@@ -258,6 +289,8 @@ in the log permanently.
 - [ ] Respects field caps: extract ≤ 32768 bytes, summary ≤ 2048 bytes (§3.6, §3.7)
 - [ ] Omits `extract`/`summary` on `attest`, omits `extract` on `delete` (§3.3)
 - [ ] Rotates keys by signing the new Key Set with a previous key (§5.3)
+- [ ] Increments seq and sets prev_declaration on every new Declaration
+      (§5.3)
 
 **Validator (any party checking Deltas):**
 
@@ -267,6 +300,8 @@ in the log permanently.
 - [ ] Treats identical resubmissions as idempotent (§4)
 - [ ] Rejects Declarations served over plain HTTP (§5.1)
 - [ ] Applies the 10-minute clock-skew allowance to `observed_at` (§3.4)
+- [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
+      by Block height (§5.3)
 
 ## Appendix A. Test Vectors
 

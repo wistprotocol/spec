@@ -26,8 +26,8 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 shown here.
 
 - **Block**: one sealed batch of log Entries with a signed header.
-- **Entry**: one typed item in a Block (`publisher_delta`, `audit_record`,
-  or `registry_update`).
+- **Entry**: one typed item in a Block (`publisher_delta`,
+  `publisher_declaration`, `audit_record`, or `registry_update`).
 - **Checkpoint**: the Aggregator's signed statement of the latest Block.
 - **Mirror**: any party re-serving the log's static files.
 - **Snapshot**: a signed, derived materialization of log state at a Block.
@@ -77,16 +77,20 @@ forever.
 
 ### 3.3. Entries
 
-Each Entry is `{"type": <t>, "body": <envelope>}` with exactly three
+Each Entry is `{"type": <t>, "body": <envelope>}` with exactly four
 types:
 
 - `publisher_delta` — body is a Delta Envelope (DC-1).
+- `publisher_declaration` — body is a Publisher Declaration Envelope
+  (DC-1 §5.1); the Aggregator MUST seal a Declaration Entry before, or in
+  the same Block as, the first Delta it authorizes.
 - `audit_record` — body is an Audit Record Envelope (DC-4 §5).
 - `registry_update` — body is a Registry Update Envelope (DC-4 §3, §7, §9).
 
-DC-3 defines only this envelope; the `body` formats of the latter two are
-normative in DC-4. Validators MUST reject Blocks containing unknown Entry
-types under the current major version.
+DC-3 defines only this envelope; the `body` formats of `audit_record` and
+`registry_update` are normative in DC-4, and of `publisher_delta` and
+`publisher_declaration` in DC-1. Validators MUST reject Blocks containing
+unknown Entry types under the current major version.
 
 ### 3.4. Aggregator Keys and the Log Anchor
 
@@ -354,6 +358,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       embedding model declaration and the materialization rule
 - [ ] Never emits a Block exceeding the decompressed cap (§6)
 - [ ] Publishes a Log Anchor and admits all later keys in-band (§3.4)
+- [ ] Seals a `publisher_declaration` Entry for a domain before, or in
+      the same Block as, the first Delta it authorizes (§3.3)
 
 **Mirror:**
 
