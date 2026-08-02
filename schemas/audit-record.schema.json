@@ -18,7 +18,7 @@
         "response_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "ref_extract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "similarity": {"type": "integer", "minimum": 0, "maximum": 1000000},
-        "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance"]},
+        "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance", "not_auditable"]},
         "evidence": {"type": "string", "pattern": "^warc:sha256:[0-9a-f]{64}$"},
         "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$"}
       }

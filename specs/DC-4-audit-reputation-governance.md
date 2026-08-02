@@ -30,7 +30,7 @@ shown here.
 - **Audit Record**: an Auditor's signed statement about one Delta
   (schema: [`schemas/audit-record.schema.json`](../schemas/audit-record.schema.json)).
 - **Verdict**: the graded outcome of one audit: `consistent`,
-  `inconsistent`, `unreachable`, or `dynamic_variance`.
+  `inconsistent`, `unreachable`, `dynamic_variance`, or `not_auditable`.
 - **VRF Proof**: the 80-octet `pi_string` an Auditor produces over a Block
   Hash with its own key under ECVRF-EDWARDS25519-SHA512-TAI ([RFC 9381]),
   carried in every Audit Record as `vrf_proof`. It lets anyone recompute
@@ -179,6 +179,20 @@ Record with verdict `unreachable` — within 72 hours of that Block's
 publish, by the same deadline, a `coverage_attestation` Registry Update
 carrying that Block's VRF proof and nothing else.
 
+**Withdrawn and unavailable Payloads discharge the duty.** A selected
+Delta whose Payload has been withdrawn (DC-3 §6.2), or which the Auditor
+cannot obtain from any source, is audited with a Record whose verdict is
+`not_auditable` (§5). That Record discharges the coverage duty for that
+Delta exactly as any other verdict does, so the Block does not count
+toward `coverage_failures_max`. Without this rule an Auditor would accrue
+coverage failures for a withdrawal it did not cause, could not foresee,
+and cannot remedy — and the cheapest way to remove an inconvenient Auditor
+would be to withdraw Payloads it was about to audit. Inside the
+availability window an Auditor SHOULD first try another Mirror and the
+Publisher, and the absence is a `DC3-E05` fault against the Mirror that
+lacked it (DC-3 §6.1); `not_auditable` records the Auditor's inability to
+judge, never the Publisher's fault, and never counts toward a sanction.
+
 The duty is anchored to the Block's `sealed_at`: it exists only if the
 Auditor was admitted at that instant, and the Record or attestation
 discharging it MUST verify against the key admitted then, even if the
@@ -222,9 +236,21 @@ characters). The Record names no Block: the audited Block is the one Block
 whose `publisher_delta` Entries carry `audited_delta`, which DC-3 §3.2
 makes unique and permanent. `response_hash`, `ref_extract_hash`, `similarity`, and
 `evidence` are REQUIRED whenever the fetch succeeded, and omitted for
-`unreachable`; `vrf_proof` is REQUIRED in every Record, `unreachable`
-included, because it is what establishes the Auditor's right and duty to
-have audited at all.
+`unreachable` and for `not_auditable`, neither of which yields a
+comparison to report; `vrf_proof` is REQUIRED in every Record,
+`unreachable` and `not_auditable` included, because it is what establishes
+the Auditor's right and duty to have audited at all.
+
+**What an audit fetches.** The Delta commits to content it does not carry
+(DC-1 §3.6), so an Auditor holding a Block fetches two further things: the
+audited Delta's Payload, from `/payloads/<delta-id-hex>.json` at the
+Aggregator, a Mirror, or the Publisher (DC-3 §6.1, DC-2 §3.1), and the URL
+itself. It MUST verify the Payload against the Delta's `commitment` and
+`bytes` before comparing anything, and MUST reject a Payload that fails
+(`DC1-E11`) rather than audit against it. The commitment was fixed when
+the Publisher signed the Delta, so a Payload that verifies is what the
+Publisher declared no matter who served it — which is what lets the
+comparison below remain an audit of the Publisher rather than of a Mirror.
 
 Every Audit Record has an **Audit Record ID**: `"sha256:" + hex(SHA-256(JCS(record)))`
 — the record's inner object canonicalized and hashed under the same
@@ -237,10 +263,10 @@ The web is not deterministic; byte equality is never the criterion.
 
 `similarity` is an integer in **micro-units** (0 … 1 000 000, the same
 resolution as `reputation_u`, §6), never a floating-point ratio. Let *A*
-be the set of word 8-grams (shingles) of the audited Delta's `extract`
-and *B* the same shingling of the Auditor's own extraction of the fetched
-page, both after Unicode NFC normalization, lowercasing, and whitespace
-collapsing:
+be the set of word 8-grams (shingles) of the `extract` in the audited
+Delta's verified Payload and *B* the same shingling of the Auditor's own
+extraction of the fetched page, both after Unicode NFC normalization,
+lowercasing, and whitespace collapsing:
 
     similarity = floor((|A ∩ B| × 1 000 000) / |A ∪ B|)
 
@@ -256,16 +282,38 @@ empty extracts are identical). Verdicts:
 | `dynamic_variance` | 300 000 ≤ `similarity` < 600 000 |
 | `inconsistent` | `similarity` < 300 000 **and** the Delta's claimed content is absent from the fetched page |
 | `unreachable` | network or HTTP failure fetching the URL |
+| `not_auditable` | the Payload the comparison needs is withdrawn (DC-3 §6.2) or cannot be obtained from any source |
 
-For `attest` and `delete` Deltas (which carry no `extract`), the audit
-checks the asserted state: `attest` is `consistent` if the page's current
-extraction has `similarity` ≥ 600 000 against the last content-bearing
-Delta in the per-URL chain; `delete` is `consistent` if the URL returns
-404/410 or no longer carries indexable content.
+For `attest` and `delete` Deltas (which carry no Payload of their own),
+the audit checks the asserted state: `attest` is `consistent` if the
+page's current extraction has `similarity` ≥ 600 000 against the Payload
+of the last content-bearing Delta in the per-URL chain; `delete` is
+`consistent` if the URL returns 404/410 or no longer carries indexable
+content.
 
-`dynamic_variance` and `unreachable` are neutral: they never contribute
-to sanctions. Auditor re-fetches of content URLs respect `robots.txt`
-(DC-2 §5); a fetch forbidden by `robots.txt` is recorded `unreachable`.
+An `attest` audit therefore depends on a Payload that may have been sealed
+long before the Block under audit — often long before the availability
+window that covers ordinary Payloads. That Payload is the URL's **anchor
+Payload**, and two independent parties are obliged to serve it: the
+Publisher, for as long as it attests to the URL, re-anchoring the chain
+with an `update` or a `delete` when it cannot (DC-2 §3.1); and the
+Aggregator, for as long as the Payload remains the anchor, beyond the
+availability window (DC-3 §6.1). Either copy satisfies the audit, because
+the commitment makes them interchangeable, so a Publisher cannot render
+its own freshness claims unauditable by withholding its copy. Where the
+anchor Payload is nonetheless unobtainable from every source, or has been
+withdrawn, the verdict is `not_auditable`.
+
+From the sealing height of a `payload_withdrawal` (DC-3 §6.2), an Auditor
+MUST record `not_auditable` for the affected Delta even if it still holds
+or can still obtain a copy of the Payload. Auditing is the one process
+that would otherwise keep re-establishing, in a permanent public record,
+the link between a withdrawn text and its commitment.
+
+`dynamic_variance`, `unreachable` and `not_auditable` are neutral: they
+never contribute to sanctions. Auditor re-fetches of content URLs respect
+`robots.txt` (DC-2 §5); a fetch forbidden by `robots.txt` is recorded
+`unreachable`.
 
 **No single audit punishes.** An `inconsistent` verdict triggers
 re-audit by additional independent Auditors. A **Confirmed
@@ -626,9 +674,13 @@ can amend them. Amending them requires a new major version of this suite
    the index's neutrality — its entire value — is gone. (Payment for
    infrastructure services that treat all Publishers identically, e.g.
    mirror bandwidth, is outside this prohibition.)
-3. **The past is not rewritable.** Sealed Blocks are immutable; history
-   is corrected by appending, never by editing (DC-3 §3.2). Every
-   mistake and its correction remain visible forever.
+3. **The record is not rewritable.** Sealed Blocks are immutable and the
+   Log is corrected by appending, never by editing; every commitment,
+   verdict and governance action ever sealed remains. Content Payloads are
+   not part of that record: they may be withdrawn, and only withdrawn,
+   through a logged entry stating its legal basis (DC-3 §6.2). The
+   distinction is deliberate — an index must be able to comply with an
+   erasure order without being able to rewrite its own history.
 4. **The data stays open.** Public tier data is licensed under ODbL 1.0,
    irrevocably. Together with invariant 3, this guarantees forkability:
    if the institution operating the Aggregator is ever captured, the
@@ -652,17 +704,27 @@ MUST NOT set a confirmation or weight parameter (`confirm_auditors`,
 value that nullifies the mechanism implementing a §8 invariant. The
 schema enforces this wherever it reduces to a single numeric floor
 (`penalty_weight` ≥ 1, `confirm_auditors` ≥ 2, `similarity_variance_floor`
-> 150 000); where it does not — a value that is individually in range but
+> 150 000, `payload_window_days` ≥ 30); where it does not — a value that is individually in range but
 collapses a band only in combination with another parameter's current
 value — a party recomputing reputation MUST reject the `parameter_change`
 directly against this sentence rather than apply it.
+
+`payload_window_days` carries a floor for the same reason. The window is
+what makes a missing Payload evidence (DC-3 §6.1): shortened toward zero
+it would leave a Mirror free to drop whatever it disliked and call the
+absence ordinary expiry, retiring the distinction between erasure and
+censorship without amending anything. The floor is set well above the
+72-hour coverage deadline and above any plausible Mirror resynchronisation
+lag, so that absence inside the window remains attributable rather than
+routine.
 
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
 | Block sealing cadence | `block_cadence_seconds` | 1 hour | DC-3 §3.2 |
 | Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | DC-3 §6 |
-| `extract` size cap | `extract_cap_bytes` | 32768 bytes | DC-1 §3.6 |
-| `summary` size cap | `summary_cap_bytes` | 2048 bytes | DC-1 §3.7 |
+| `extract` size cap | `extract_cap_bytes` | 32768 bytes | DC-1 §3.6, DC-3 §6.1 |
+| `summary` size cap | `summary_cap_bytes` | 2048 bytes | DC-1 §3.6, DC-3 §6.1 |
+| Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
 | Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
 | Clock skew allowance | `clock_skew_seconds` | 10 minutes | DC-1 §3.4 |
 | Key Set cache TTL | `keyset_cache_ttl_seconds` | 24 hours | DC-1 §5.1 |
@@ -715,6 +777,12 @@ mirroring §7 and §3:
   table above, and `value` (a number, bounded per the sentence above
   where a single numeric floor exists); `effective_at` MUST be ≥ 7 days
   after the Block's `sealed_at`, as stated above.
+- `payload_withdrawal`: `delta_id` (the Delta whose Payload is being
+  withdrawn), `legal_basis`, and `jurisdiction` (DC-3 §6.2); `subject` is
+  the Publisher's domain. All three are REQUIRED, because a withdrawal
+  that named no Delta, no basis, or no demanding jurisdiction would be an
+  unfalsifiable claim to have removed something — which is precisely what
+  a quiet drop looks like.
 
 `sanction_lift`, `appeal`, and `coverage_attestation` carry an
 unconstrained `details` object; §4 and §7 govern their content in prose,
@@ -804,6 +872,22 @@ window MUST state this, so a Publisher weighs publicity before appealing.
 Reputation scores are recomputable by anyone from public data; there is
 no private reputation channel.
 
+Audit Records are the one place where the residue of a withdrawal is
+larger than a commitment. A Record is sealed and permanent, so after the
+audited Payload is withdrawn (DC-3 §6.2) the Record's `response_hash` and
+`ref_extract_hash` remain: unsalted digests over the page as served and
+over the Auditor's own extraction of it. They do not reveal the text, and
+they are not the Publisher's commitment — they are the Auditor's
+observation of a public page — but unlike the commitment they are not
+salted, so a party already holding a candidate copy can confirm it against
+them. The Auditor's WARC capture, held off-Log, is a full copy of the
+page. Withdrawal stops new Records from being produced (§5's
+`not_auditable` rule) and stops the Log from redistributing content; it
+does not reach the Records already sealed or the captures Auditors hold,
+and this document does not claim otherwise. An erasure request that
+reaches those artifacts reaches the Auditor that holds them, as the
+controller of its own captures.
+
 ## 12. Conformance Checklist
 
 **Auditor:**
@@ -812,9 +896,14 @@ no private reputation channel.
 - [ ] Meets the coverage duty for every Block sealed while admitted, within
       72 hours of `sealed_at` — a Record for **every** selected Delta, or a
       `coverage_attestation` when its VRF selected nothing (§4)
+- [ ] Verifies the audited Delta's Payload against its commitment before
+      comparing anything, and never audits against an unverified one (§5)
 - [ ] Computes similarity with the normative §5 metric and thresholds
 - [ ] Emits `unreachable` (never `inconsistent`) for robots.txt-forbidden
       or failed fetches
+- [ ] Emits `not_auditable` (never `inconsistent` or `unreachable`) for a
+      withdrawn or unobtainable Payload, and treats it as discharging the
+      coverage duty (§4, §5)
 - [ ] Signs Records with a key admitted at `fetched_at` (§3)
 - [ ] Preserves WARC evidence matching the `evidence` hash
 
@@ -861,16 +950,16 @@ key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
 |---|---|
 | Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
 | Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| Block Hash of *B* | `sha256:d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95` |
-| `alpha` (32 octets, hex) | `d5eb92e066b027b78d8e872730bfc7e13667bc316856267ce211760b2f8f2c95` |
-| `pi` = `vrf_proof` (80 octets) | `856e908f120334751af0091a2a608197268c57170671dd4a0c5776116f4081b1`<br>`6c9445faf5482a1b43ca6b87c259750924297cd4f88daf9892e24576b7d918e7`<br>`fefb066cf325db4855dd58c11c8f5e04` |
-| `beta` (64 octets) | `cd753c76ddf3539df84f434de5d1638b84ab31c6195a36d4640d3378c6a5911e`<br>`840ebe82d2653c91785ae0fc8878f3b705f7cc1e5db0423b4d55896329529703` |
-| Delta ID of Entry 0 | `sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1` |
-| `SHA-256(beta ‖ Entry 0)[0..8]` | `fc5101e3231c0551` |
-| `D`(Entry 0) | `18181315245729645905` |
-| Delta ID of Entry 3 | `sha256:d3a22b1cedf703c2efd115dc67c8d7ff44d409b820bf45ebc9e66a803ca1c903` |
-| `SHA-256(beta ‖ Entry 3)[0..8]` | `373a3915f98ecf73` |
-| `D`(Entry 3) | `3979555987279236979` |
+| Block Hash of *B* | `sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d` |
+| `alpha` (32 octets, hex) | `28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d` |
+| `pi` = `vrf_proof` (80 octets) | `201470c521f335e0e8b5e2e6c4456234d4c408653608b0dc3f9ab3313b2eb120`<br>`df5129d19a2184e7ff670dd93d5ec63f1537c567f46c3f5ebb130908fcaee155`<br>`0fc0f5e4d2fde2cfb322bc716d54b404` |
+| `beta` (64 octets) | `bcb7005b8cbd167197a33de1fab95f9975e332379c29abdf8304005e7901c46c`<br>`fccd16973e00ac704cc7135ffed330877a3bf85d7b6d8b1b78f28e36f3210441` |
+| Delta ID of Entry 0 | `sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047` |
+| `SHA-256(beta ‖ Entry 0)[0..8]` | `80109595bb2b79e6` |
+| `D`(Entry 0) | `9228040106805000678` |
+| Delta ID of Entry 1 | `sha256:eff46e66a9a3666ead5f6ed38618cd83a130833a3c88f1628a19aa2ef0dcfd8f` |
+| `SHA-256(beta ‖ Entry 1)[0..8]` | `239b6bc74f416dc0` |
+| `D`(Entry 1) | `2565762916489981376` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
@@ -883,10 +972,10 @@ the two domains differ only in reputation:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 0 | 100 000 (Provisional) | 2 900 000 | 1.818e26 | 5.350e25 | no |
-| Entry 0 | 900 000 (established) | 500 000 | 1.818e26 | 9.223e24 | no |
-| Entry 3 | 100 000 (Provisional) | 2 900 000 | 3.980e25 | 5.350e25 | **yes** |
-| Entry 3 | 900 000 (established) | 500 000 | 3.980e25 | 9.223e24 | no |
+| Entry 0 | 100 000 (Provisional) | 2 900 000 | 9.228e25 | 5.350e25 | no |
+| Entry 0 | 900 000 (established) | 500 000 | 9.228e25 | 9.223e24 | no |
+| Entry 1 | 100 000 (Provisional) | 2 900 000 | 2.566e25 | 5.350e25 | **yes** |
+| Entry 1 | 900 000 (established) | 500 000 | 2.566e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
 are in the vector, and an implementation MUST compare the exact ones. Note

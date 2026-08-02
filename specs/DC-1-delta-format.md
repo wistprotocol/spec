@@ -33,6 +33,12 @@ shown here.
 - **Publisher**: the operator of a domain, identified by that domain, who
   signs deltas for URLs under it.
 - **Delta**: a signed statement by a Publisher about one URL at one moment.
+- **Payload**: the content a Delta describes — the page's main text and its
+  structured summary — carried as a separate, unsigned file alongside the
+  Block (DC-3 §6.1). A Payload is never part of a Delta, of a Block, or of
+  the Log.
+- **Payload Commitment**: the salted keyed hash of a Payload's content that
+  a Delta carries in place of that content (§3.6).
 - **Envelope**: the JSON container `{"<inner>": {...}, "sig": {...}}` that
   pairs an inner object with a detached signature. All signed objects in
   the suite use this shape.
@@ -90,15 +96,23 @@ is not byte-identical to its own normalization MUST be rejected with
 One of four values:
 
 - `new` — the Publisher asserts this URL now carries content; if the URL
-  has prior Deltas, `prev` MUST be present (§3.5). `extract` and `summary`
-  SHOULD be present.
-- `update` — the URL's content changed. `extract` and `summary` SHOULD be
-  present. `prev` MUST be present.
+  has prior Deltas, `prev` MUST be present (§3.5). `payload` SHOULD be
+  present.
+- `update` — the URL's content changed. `payload` SHOULD be present.
+  `prev` MUST be present.
 - `delete` — the URL no longer exists (or no longer carries indexable
-  content). The Delta MUST omit `extract`. `prev` MUST be present.
+  content). The Delta MUST omit `payload`. `prev` MUST be present.
 - `attest` — the Publisher asserts the URL's content is unchanged as of
-  `observed_at` (a freshness attestation). The Delta MUST omit `extract`
-  and `summary`. `prev` MUST be present.
+  `observed_at` (a freshness attestation). The Delta MUST omit `payload`.
+  `prev` MUST be present.
+
+A Delta that carries `payload` is **content-bearing** and MUST have the
+corresponding Payload retrievable (DC-2 §3.1); a Delta that omits it
+asserts nothing about content and has no Payload to serve. An `attest`
+Delta carries no content of its own precisely because it claims none:
+what it is measured against is the Payload of the last content-bearing
+Delta in the same per-URL chain (DC-4 §5), which is why §3.5's chain and
+DC-2 §3.1's retention obligation reach further back than the Delta itself.
 
 ### 3.4. `observed_at`
 
@@ -135,20 +149,49 @@ domain participates; unavailability of a `prev` Delta is a `DC1-E07`
 rejection of the *new* Delta, never a retroactive invalidation of the
 sealed chain.
 
-### 3.6. `extract`
+### 3.6. `payload` — the Payload commitment
 
-The main text of the page — boilerplate removed, content preserved — as
-UTF-8. Its serialized length MUST NOT exceed 32768 bytes (error
-`DC1-E04`). When present, `extract_hash` MUST equal `"sha256:"` + hex
-SHA-256 of the UTF-8 bytes of `extract`.
+A Delta commits to its content; it does not carry it. The content — the
+main text (`extract`) and the structured summary (`summary`) — travels as
+a separate **Payload** (DC-3 §6.1). The Delta carries only:
 
-### 3.7. `summary`
+    commitment = "hmac-sha256:" + hex(HMAC-SHA256(key = salt,
+                                                  message = JCS(content)))
 
-A short structured summary: `title` (REQUIRED within `summary`, ≤ 256
-characters) and optional `abstract`. The JSON-serialized `summary` object
-MUST NOT exceed 2048 bytes (error `DC1-E04`).
+where `content` is the object `{"extract": <string>, "summary": <object>}`
+and `salt` is at least 16 octets drawn from a cryptographically secure
+random source, fresh for every Delta. The salt travels with the Payload
+and never appears in the Log.
 
-### 3.8. `meta`
+The salt is what makes withdrawal effective. A bare hash of a withdrawn
+extract would still let anyone holding a copy of the text demonstrate that
+it was the text committed to; with a salt that is destroyed alongside the
+bytes, the commitment becomes unlinkable to any candidate text.
+
+`bytes` is the octet length of `JCS(content)` and MUST NOT exceed 34816
+(32768 for the extract plus 2048 for the summary). A validator MUST reject
+a Delta whose Payload, once retrieved, does not have exactly that length
+or does not reproduce `commitment` under the accompanying salt
+(`DC1-E04`, `DC1-E11`).
+
+The commitment is what carries the Publisher's accountability across the
+boundary, and it carries two distinct properties. It is **binding**:
+producing a second content and salt that reproduce a commitment already
+signed would require a SHA-256 collision, and the Publisher's freedom to
+choose its own salt does not help, because the salt is an input to that
+same hash and not a trapdoor. A Publisher therefore cannot serve one text
+and later claim it declared another, and this holds against the Publisher
+itself, not merely against third parties. It is **hiding**: once the salt
+is destroyed, the commitment is the output of a keyed function under a key
+nobody holds, so a party holding a copy of the original text cannot
+demonstrate that the copy is what was committed to. Binding survives
+withdrawal for the Deltas whose Payloads still exist and for every verdict
+already recorded; hiding begins at withdrawal. The salt is what separates
+them, which is why it MUST be unpredictable and unique per Delta: a
+Publisher that derives salts from the content, or reuses one across
+Deltas, keeps the binding and forfeits the hiding.
+
+### 3.7. `meta`
 
 Descriptive metadata: `lang` (REQUIRED; BCP 47 primary tag, e.g. `en`,
 `pt-BR`), `topics` (≤ 10 free-form strings), and `license` (the declared
@@ -182,6 +225,13 @@ Because identity is content-derived, resubmitting an identical Delta
 yields the same Delta ID; validators MUST treat duplicates as idempotent
 acceptances, not errors. Two Deltas differing in any byte of Canonical
 Bytes are distinct objects.
+
+The Payload is outside all three constructions. Canonical Bytes cover the
+Delta's `payload` commitment, never the content it commits to, so the
+Delta ID, the signature, and every Merkle root and Block Hash derived from
+them are computed without the content and stay valid when the content is
+withdrawn (DC-3 §6.2). A Payload is authenticated by recomputing the
+commitment (§3.6), not by any signature of its own.
 
 ## 5. Publisher Identity and Key Discovery
 
@@ -314,14 +364,20 @@ matter". Importance is measured at consumption, outside this protocol.
 | DC1-E01 | Invalid signature (does not verify against the named key) |
 | DC1-E02 | Unknown key (`sig.key_id` not in the current Key Set) |
 | DC1-E03 | URL out of scope or not normalized (host not covered by domain/`subdomain_scope`, or `url` not byte-identical to its own Normalized URL) |
-| DC1-E04 | Size cap exceeded (`extract` > 32768 bytes or `summary` > 2048 bytes) |
+| DC1-E04 | Size cap exceeded (`payload.bytes` > 34816, or a retrieved Payload whose `extract` exceeds 32768 bytes or whose `summary` exceeds 2048 bytes) |
 | DC1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | DC1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per DC-2 §3.1 |
 | DC1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
+| DC1-E11 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.
+
+`DC1-E11` rejects the Payload, never the Delta. A sealed Delta stays
+sealed and stays valid, because nothing in its identity or signature
+depends on content the Log never held; the party that served the
+mismatched Payload is the one at fault (DC-3 §9, `DC3-E03`).
 
 ## 8. Security Considerations
 
@@ -350,6 +406,14 @@ not an error.
   signing or recovery key therefore cannot inherit its predecessor's
   history — only cryptographic continuity does that, never possession of
   the name alone.
+- **Payload substitution.** A Mirror, a Publisher, or anyone else in the
+  serving path can offer any bytes at a Payload's URL. None of it matters:
+  a validator accepts a Payload only when it reproduces the Delta's
+  `commitment` (§3.6), which was fixed at signing time, so substituting
+  content is detectable by every party independently and rejected under
+  `DC1-E11`. What an adversary controlling the serving path can do is
+  withhold a Payload, which is an availability failure, handled by DC-3
+  §6.1 and distinguishable from a lawful withdrawal.
 - **Signature malleability.** Ed25519 signatures as specified in RFC 8032
   are deterministic; validators MUST verify against Canonical Bytes only.
 - **Canonicalization attacks.** JCS removes serialization ambiguity
@@ -366,13 +430,40 @@ not an error.
 
 ## 9. Privacy Considerations
 
-Deltas are public and, once sealed into the log (DC-3), permanent.
-Publishers MUST NOT include in `extract` or `summary` personal data beyond
-what the referenced page itself publicly serves. A `delete` Delta removes
-content from future snapshots (the materialized index honors deletion) but
-does not erase log history; publishers should understand that the *fact*
-that a page existed, and any previously published extracts of it, remain
-in the log permanently.
+Deltas are public and, once sealed into the log (DC-3), permanent. Content
+is not: it lives in Payloads, outside the Log, and is erasable under the
+logged due process of DC-3 §6.2. That split is deliberate. Extracts are
+drawn from public web pages, public web pages routinely carry personal
+data, and erasure rights attach to whoever redistributes that data. An
+index that sealed extract bytes into an append-only structure replicated
+across mirrors it does not control would be promising a deletion it could
+not perform.
+
+Publishers MUST NOT include in a Payload's `extract` or `summary` personal
+data beyond what the referenced page itself publicly serves. A `delete`
+Delta removes content from future snapshots (the materialized index honors
+deletion) but does not erase log history, and a `payload_withdrawal`
+(DC-3 §6.2) erases the content without erasing the record that the content
+existed.
+
+What remains in the Log permanently, and cannot be withdrawn, is:
+
+- the `url` itself, which is the minimum public identifier a web index
+  needs and which may contain a name — the same residue Certificate
+  Transparency carries in domain names;
+- the fact that the URL existed, changed, or was deleted, and when the
+  Publisher observed it;
+- the Payload commitment and `bytes`. The commitment reveals nothing about
+  the content once the salt is destroyed (§3.6). `bytes` reveals the
+  content's exact length: it is corroborating rather than demonstrative,
+  because unboundedly many texts share any given length, but a party
+  holding a candidate text can observe that the length is consistent with
+  it. It is carried because a Consumer must be able to bound a fetch and
+  detect truncation before it can verify anything.
+
+Publishers should understand that this residue is permanent, and that
+withdrawal removes the content from future distribution rather than from
+copies already served.
 
 ## 10. Conformance Checklist
 
@@ -384,8 +475,13 @@ in the log permanently.
 - [ ] Only emits Deltas for URLs within its authority (§3.2)
 - [ ] Maintains correct per-URL chains: first Delta omits `prev`, later
       ones reference the immediately prior Delta (§3.5)
-- [ ] Respects field caps: extract ≤ 32768 bytes, summary ≤ 2048 bytes (§3.6, §3.7)
-- [ ] Omits `extract`/`summary` on `attest`, omits `extract` on `delete` (§3.3)
+- [ ] Commits to content instead of carrying it: a fresh CSPRNG salt of
+      ≥ 16 octets per Delta, `commitment` over `JCS(content)`, `bytes`
+      equal to that length and ≤ 34816 (§3.6)
+- [ ] Serves every content-bearing Delta's Payload, and keeps the anchor
+      Payload of any URL it attests retrievable (DC-2 §3.1)
+- [ ] Respects content caps: extract ≤ 32768 bytes, summary ≤ 2048 bytes (§3.6)
+- [ ] Omits `payload` on `attest` and on `delete` (§3.3)
 - [ ] Rotates keys by signing the new Key Set with a previous key (§5.2)
 - [ ] Increments seq and sets prev_declaration on every new Declaration
       (§5.2)
@@ -396,6 +492,9 @@ in the log permanently.
 
 - [ ] Recomputes Canonical Bytes with JCS and verifies the Ed25519
       signature against them (§4)
+- [ ] Recomputes a retrieved Payload's commitment and length before using
+      its content, and rejects a mismatch under `DC1-E11` without
+      invalidating the Delta (§3.6, §7)
 - [ ] Enforces the scope rule (§3.2) and all Error Registry checks (§7)
 - [ ] Treats identical resubmissions as idempotent (§4)
 - [ ] Rejects Declarations served over plain HTTP (§5.1)
@@ -423,6 +522,26 @@ Deterministic vectors generated by `tools/gen_vectors.py` (regenerate:
 A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 ```
 
+**Payload ([`examples/payload.json`](../examples/payload.json)), served at
+`/payloads/7bee228c…1047.json`:**
+
+```json
+{
+  "dc_version": "1.0.0",
+  "salt": "GTCxEvdFpRzrjA6G5StpLQ",
+  "content": {
+    "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
+    "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."}
+  }
+}
+```
+
+`JCS(content)` is 156 octets and the salt is the 16 octets
+`1930b112f745a51ceb8c0e86e52b692d`. A conforming Publisher draws that salt
+from a CSPRNG; this vector derives it — `SHA-256("deltacommons-test-salt|"
+‖ url)[0..16]` — because the generator has no random source and must stay
+byte-reproducible.
+
 **Delta (inner object):**
 
 ```json
@@ -431,9 +550,11 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
   "url": "https://example.com/blog/post-1",
   "change_type": "new",
   "observed_at": "2026-08-02T12:00:00Z",
-  "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
-  "extract_hash": "sha256:280b420ff2d23150e67553ca0bca7825529e96f53b4df3f523beecfcdfd9a7c1",
-  "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."},
+  "payload": {
+    "commitment": "hmac-sha256:de7cd99162e130dc9560185aef449f10d56afdbae59c1322fdb9b7b773193593",
+    "alg": "HMAC-SHA256",
+    "bytes": 156
+  },
   "meta": {"lang": "en", "topics": ["software"], "license": "CC-BY-4.0"}
 }
 ```
@@ -443,7 +564,7 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 
 ```
 7b226368616e67655f74797065223a226e6577222c2264635f76657273696f6e22
-3a22312e302e30222c2265787472616374223a2244656c7461436f6d6d6f6e7320
+3a22312e302e30222c226d657461223a7b226c616e67223a22656e222c226c6963
 ...
 ```
 
@@ -453,18 +574,19 @@ order.
 **Delta ID:**
 
 ```
-sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1
+sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047
 ```
 
 **Signature (base64url):**
 
 ```
-aDRvbB3J4L2Chht8V_Up_-pXzBZX6quUq9XBBb2H2znmbX8TbJ3IuXYiz6f_9wePwvyTIYG-TPFj5Y_vkvAuAw
+HrmcgUNFqNF_k9eP3PCjhK8gpktKoJl1bWEHnezOBJvVDKGG7DvMxeWBiwy7TnY1yOghZhg3vwQQiYI_6cXHDg
 ```
 
 The complete envelope is
 [`vectors/dc1/envelope.json`](../vectors/dc1/envelope.json) and doubles as
-[`examples/delta.json`](../examples/delta.json).
+[`examples/delta.json`](../examples/delta.json). Neither the extract nor
+the summary appears anywhere in it.
 
 ## References
 
