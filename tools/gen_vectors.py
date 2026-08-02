@@ -4,7 +4,7 @@
 Never uses wall-clock or randomness: fixed seed, fixed timestamps.
 Re-running always produces byte-identical output.
 """
-import base64, calendar, hashlib, json, pathlib, time
+import base64, calendar, hashlib, hmac, json, pathlib, time
 from decimal import Decimal, localcontext
 
 import rfc8785
@@ -41,16 +41,34 @@ def sign_envelope(inner_name: str, inner: dict, key_id: str) -> dict:
 def write_json(path: pathlib.Path, obj: dict) -> None:
     path.write_text(json.dumps(obj, indent=2) + "\n")
 
-# ---------------------------------------------------------------- DC-1: delta
+# -------------------------------------------------- DC-1/DC-3: payload + delta
+# A Delta commits to its content and does not carry it (DC-1 §3.6). The content
+# travels as a Payload (DC-3 §6.1) whose salt never reaches the Log.
+#
+# A production salt is drawn from a CSPRNG, fresh per Delta. This generator has
+# no random source by construction — it must stay byte-reproducible — so the
+# vector's salt is derived from a fixed domain-separated string and the Delta's
+# URL. That is a property of the vector, never of a conforming Publisher.
+DELTA_URL = "https://example.com/blog/post-1"
 EXTRACT = "DeltaCommons is an open, verifiable, push-based web index protocol."
+CONTENT = {
+    "extract": EXTRACT,
+    "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."},
+}
+content_canonical = rfc8785.dumps(CONTENT)
+salt = hashlib.sha256(b"deltacommons-test-salt|" + DELTA_URL.encode()).digest()[:16]
+assert len(salt) >= 16, "salt must be at least 128 bits (DC-1 §3.6)"
+commitment = "hmac-sha256:" + hmac.new(salt, content_canonical, hashlib.sha256).hexdigest()
+
+payload = {"dc_version": "1.0.0", "salt": b64u(salt), "content": CONTENT}
+
 delta = {
     "dc_version": "1.0.0",
-    "url": "https://example.com/blog/post-1",
+    "url": DELTA_URL,
     "change_type": "new",
     "observed_at": "2026-08-02T12:00:00Z",
-    "extract": EXTRACT,
-    "extract_hash": "sha256:" + sha256_hex(EXTRACT.encode()),
-    "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."},
+    "payload": {"commitment": commitment, "alg": "HMAC-SHA256",
+                "bytes": len(content_canonical)},
     "meta": {"lang": "en", "topics": ["software"], "license": "CC-BY-4.0"},
 }
 
@@ -65,7 +83,11 @@ write_json(DC1 / "keypair.json",
 write_json(DC1 / "envelope.json", delta_envelope)
 (DC1 / "id.txt").write_text(delta_id + "\n")
 write_json(EXAMPLES / "delta.json", delta_envelope)
+write_json(EXAMPLES / "payload.json", payload)
 print("dc1 delta id:", delta_id)
+print("dc1 payload salt:", payload["salt"], "commitment:", commitment,
+      "bytes:", len(content_canonical))
+print("dc1 payload path: /payloads/%s.json" % delta_id.split(":")[1])
 
 # ------------------------------------------------------------ DC-1: publisher
 publisher = {
@@ -301,24 +323,33 @@ assert sampling_p_1e7(0) == 3_200_000, "slope drifted"
 DC4 = ROOT / "vectors" / "dc4"
 DC4.mkdir(parents=True, exist_ok=True)
 
-# Two real Deltas of the same example Block, drawn against the same beta: the
-# first is selected by nobody, the last is selected by a Provisional domain's
-# rate. One selected and one not-selected case is what exercises the strict
-# inequality in both directions.
-selected_delta_id = "sha256:" + sha256_hex(rfc8785.dumps(entries[3]["body"]["delta"]))
+# Two real Deltas of the same example Block, drawn against the same beta: entry
+# 0 is selected by nobody, and one further Entry is selected at a Provisional
+# domain's rate but not at an established domain's. One selected and one
+# not-selected case is what exercises the strict inequality in both directions.
+# Which Entry plays the second role follows from beta, so it is located here
+# rather than pinned: any change to the Block moves every draw at once.
 draw_bytes, D_primary = draw_D(beta, delta_id)
+selected_index = next(
+    i for i in range(1, len(entries))
+    if selected(draw_D(beta, "sha256:" + sha256_hex(
+        rfc8785.dumps(entries[i]["body"]["delta"])))[1], sampling_p_1e7(100_000))
+    and not selected(draw_D(beta, "sha256:" + sha256_hex(
+        rfc8785.dumps(entries[i]["body"]["delta"])))[1], sampling_p_1e7(900_000)))
+selected_delta_id = "sha256:" + sha256_hex(
+    rfc8785.dumps(entries[selected_index]["body"]["delta"]))
 sel_bytes, D_selected = draw_D(beta, selected_delta_id)
 
 selection_cases = []
-for label, did, dbytes, D in (
-        ("entry-0", delta_id, draw_bytes, D_primary),
-        ("entry-3", selected_delta_id, sel_bytes, D_selected)):
+for idx, did, dbytes, D in (
+        (0, delta_id, draw_bytes, D_primary),
+        (selected_index, selected_delta_id, sel_bytes, D_selected)):
     for rep_label, rep_u in (("provisional", 100_000), ("established", 900_000)):
         p1e7 = sampling_p_1e7(rep_u)
         selection_cases.append({
-            "label": f"{label}-{rep_label}",
+            "label": f"entry-{idx}-{rep_label}",
             "delta_id": did,
-            "entry_index": 0 if label == "entry-0" else 3,
+            "entry_index": idx,
             "draw_first8_hex": dbytes.hex(),
             "D": D,
             "reputation_u": rep_u,

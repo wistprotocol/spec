@@ -51,9 +51,10 @@ tools/.venv/bin/python tools/gen_vectors.py         # regenerates (byte-identica
 ```
 
 The harness validates every example against its schema, recomputes the
-DC-1 delta ID and Ed25519 signature, and recomputes the DC-3 Merkle root
-and inclusion proof. Vector generation is fully deterministic: fixed test
-seed, fixed timestamps, no wall-clock.
+DC-1 delta ID and Ed25519 signature, recomputes the payload commitment
+that binds a delta to content the log does not carry, and recomputes the
+DC-3 Merkle root and inclusion proof. Vector generation is fully
+deterministic: fixed test seed, fixed timestamps, no wall-clock.
 
 ## Design decisions
 
