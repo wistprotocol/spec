@@ -37,7 +37,10 @@ shown here.
 - **Parameter Registry**: the versioned table of every numeric constant
   in the suite (§9).
 - **Reputation**: the pure function of log history defined in §6.
-- **Quarantine**: the capped-reputation state of new or reset domains (§6).
+- **Provisional**: the starting state of every new or reset domain —
+  reputation capped, full participation otherwise (§6).
+- **Sanctioned Quarantine**: sanction level 3 (§7), a punitive state that
+  suspends ingestion.
 
 Every signed object in this document carries `dc_version` (DC-1 §3.1)
 and the DC-1 §4 signature block (`key_id`, `alg`, `value`).
@@ -81,7 +84,7 @@ exactly what the rule selected — no more (harassment) and no less
 Delta ID
 `sha256:e3ba905f6a994d67e5286ca3264c894a72283c2bdaf07b4a5600cdd0000187b1`.
 First 8 MAC bytes: `a082cb92882f0e16` → draw = `0.6269957764`. For a
-quarantined domain (reputation 0.10): p = 0.290 → 0.6270 ≥ 0.290, **not
+Provisional domain (reputation 0.10): p = 0.290 → 0.6270 ≥ 0.290, **not
 selected**. For a reputable domain (0.90): p = 0.050 → **not selected**.
 A draw below the threshold would select the Delta for audit.
 
@@ -149,10 +152,17 @@ For a domain at evaluation time *t*:
 - `reputation = age_score × (C + 1) / (C + 1 + 5 × penalty)`, clamped to
   [0, 1].
 
-**Quarantine:** while `A < 30` or `C < 10`, reputation is capped at
+**Provisional:** while `A < 30` or `C < 10`, reputation is capped at
 0.10. A domain whose Key Set is replaced without a valid rotation
 signature (DC-1 §5.2) resets `A` and `C` to zero and re-enters
-Quarantine.
+Provisional.
+
+Provisional is not a penalty and MUST NOT block participation: a
+Provisional domain pings, is pulled, has its Deltas sealed, and is audited
+exactly like any other, at the reputation-derived quota and sampling rate.
+It is the only way `A` and `C` can grow, and therefore the only path out of
+Provisional; an implementation that suspends ingestion for Provisional
+domains cannot bootstrap and is non-conforming.
 
 Reputation governs exactly three things:
 
@@ -175,7 +185,9 @@ of the Audit Records establishing the Confirmed Inconsistencies):
 1. **Intensified sampling** — `p(domain)` raised to its 0.50 maximum.
 2. **Weight reduction** — the domain's Deltas are marked reduced-weight
    in materialized snapshots.
-3. **Quarantine** — re-entry into the §6 cap.
+3. **Sanctioned Quarantine** — ingestion is suspended: the domain's Pings
+   and Feed pulls are rejected (`403`, DC-2 §4) until `sanction_lift` or
+   a successful appeal.
 4. **Delisting** — the domain's Deltas are excluded from materialization
    (the log, as always, retains history).
 
@@ -251,8 +263,8 @@ are made by `parameter_change` Registry Updates and MUST have
 | Age normalization | 730 days | §6 |
 | Penalty half-life divisor | 180 days | §6 |
 | Penalty weight | 5 | §6 |
-| Quarantine gates (age / consistent audits) | 30 days / 10 | §6 |
-| Quarantine reputation cap | 0.10 | §6 |
+| Provisional gates (age / consistent audits) | 30 days / 10 | §6 |
+| Provisional reputation cap | 0.10 | §6 |
 | Ping quota base / slope | 100 / 10000 per day | §6 |
 | Inclusion latency threshold | reputation 0.5 | §6 |
 | Escalation: level 2 / level 3 | 3 in 90 days / 10 in 90 days or severity 3 | §7 |
@@ -274,7 +286,7 @@ are made by `parameter_change` Registry Updates and MUST have
   that are expensive to fake at scale.
 - **Domain resale.** Reputation attaches to key continuity, not the
   name: a Key Set replaced without rotation signature resets to
-  Quarantine (§6, DC-1 §5.2). Buying an aged domain buys no standing.
+  Provisional (§6, DC-1 §5.2). Buying an aged domain buys no standing.
 - **Sanction censorship.** An Aggregator cannot quietly suppress a
   sanction or an appeal: withholding log entries from some observers is
   equivocation, detectable and provable per DC-3 §5.
@@ -309,6 +321,8 @@ no private reputation channel.
 - [ ] Admits/removes Auditors only via logged Registry Updates (§3)
 - [ ] Applies sanctions only per the §7 ladder, with notice, evidence,
       and appeal window
+- [ ] Never suspends ingestion for a Provisional domain; only
+      Sanctioned Quarantine or delisting rejects a Ping or pull (§6, §7)
 - [ ] Enforces the §8 invariants unconditionally
 - [ ] Changes parameters only via `parameter_change` with the grace
       period (§9)
