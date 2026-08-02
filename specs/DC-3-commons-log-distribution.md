@@ -102,12 +102,23 @@ publish in documentation or a package manifest.
 
 All subsequent Aggregator keys are admitted in-band: an
 `aggregator_key_add` Registry Update, signed by a key already valid at that
-Block, adds a key; `aggregator_key_remove` retires one. A Block sealed at
-height N MUST be signed by a key that was valid at height N, where "valid"
-means: the genesis key, or a key added by an `aggregator_key_add` sealed at
-a height ≤ N and not removed at a height ≤ N. A Consumer replaying the Log
-from the Anchor can therefore compute the set of valid keys at every height
-without external input.
+Block, adds a key; `aggregator_key_remove`, signed the same way, retires
+one. A Block sealed at height N MUST be signed by a key that was valid at
+height N, where a `key_id` is **valid at height N** if it is the genesis
+key, or a validly-signed `aggregator_key_add` naming that `key_id` was
+sealed at a height ≤ N and no validly-signed `aggregator_key_remove`
+naming that `key_id` was sealed at any height ≤ N.
+
+Removal is permanent, not a toggle: once a validly-signed
+`aggregator_key_remove` for a `key_id` is sealed, that `key_id` is invalid
+at every later height, full stop — an `aggregator_key_add` sealed at a
+later height naming the same, previously removed `key_id` MUST be
+rejected and MUST NOT be treated as restoring validity. An operator that
+needs that key's role again admits a fresh `key_id` instead; generating a
+new key costs nothing, and permanent retirement avoids any ambiguity
+about which of several add/remove events for the same `key_id` governs. A
+Consumer replaying the Log from the Anchor can therefore compute the set
+of valid keys at every height without external input.
 
 Key rotation does not repudiate the past. A signature made by a key that
 was valid when the signed object was sealed remains binding evidence
