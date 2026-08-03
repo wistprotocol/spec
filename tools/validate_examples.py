@@ -391,6 +391,49 @@ def _link_extraction_twin():
 
 check("negative:dc2-link-extraction", _link_extraction_twin)
 
+def _text_extraction_vector():
+    """DC-2 §12's text extraction and DC-4 §5's containment similarity:
+    every fixture must be reproduced from its inputs by the reference
+    implementation, and the guard default must match the Registry."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc2" / "text-extraction.json").read_text())
+    assert vec["min_observed_words"] == _registry_table_defaults()["min_observed_words"], \
+        "the vector's min_observed_words has drifted from the Parameter Registry default"
+    for case in vec["extraction"]:
+        got = link_extraction.extract_text(bytes.fromhex(case["html_hex"]))
+        assert got == case["expected"], f"{case['label']}: {got!r} != {case['expected']!r}"
+    for case in vec["similarity"]:
+        got = link_extraction.similarity(
+            case["reference"], case["observed"], vec["min_observed_words"])
+        assert got == case["similarity"], \
+            f"{case['label']}: {got!r} != {case['similarity']!r}"
+    # The guard and the branch structure, pinned by shape rather than trust:
+    # one null (mass guard), one short-reference case, one non-trivial
+    # containment strictly between the bands' endpoints.
+    sims = [c["similarity"] for c in vec["similarity"]]
+    assert None in sims, "no mass-guard case in the vector"
+    assert any(s is not None and 0 < s < 1_000_000 for s in sims), \
+        "no partial-containment case in the vector"
+
+check("vectors:dc2-text-extraction", _text_extraction_vector)
+
+def _text_extraction_twin():
+    """Mutation twin: appended visible text must change the extraction, and
+    removing the committed text from the observed side must sink the score."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc2" / "text-extraction.json").read_text())
+    case = vec["extraction"][0]
+    got = link_extraction.extract_text(
+        bytes.fromhex(case["html_hex"]) + b"<p>mutant words</p>")
+    assert got != case["expected"], "appended text changed nothing — extraction is blind"
+    full = next(c for c in vec["similarity"] if c["label"] == "containment-full")
+    sunk = link_extraction.similarity(
+        full["reference"], full["observed"].replace(full["reference"], ""),
+        vec["min_observed_words"])
+    assert sunk == 0, f"removing the committed text left similarity {sunk!r}"
+
+check("negative:dc2-text-extraction", _text_extraction_twin)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
