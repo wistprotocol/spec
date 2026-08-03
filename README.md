@@ -37,7 +37,8 @@ specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
 vectors/     deterministic test vectors (DC-1 signature, DC-2 link
-             extraction, DC-3 Merkle)
+             extraction, DC-3 Merkle and snapshot records, DC-4 sampling,
+             reputation, decay table, audit commitments, link agreement)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
