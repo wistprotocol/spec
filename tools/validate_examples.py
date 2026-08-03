@@ -111,6 +111,118 @@ if (dc1 / "envelope.json").exists():
         pub.verify(b64u_decode(env["sig"]["value"]), canonical)
     check("vectors:dc1", _dc1)
 
+# ---------------------------------------------------------------- declarations
+# Fields and values that ARE content-derived and are salted commitments. Wearing
+# the `hmac-sha256:` label earns nothing here, and neither does naming a check
+# that happens to pass: each entry names the check that RECOMPUTES this exact
+# (file, key) from the Payload salt, and that check asserts — in both
+# directions — that the set it recomputed is exactly the set declaring its name.
+# A declaration pointing at a check that never reads it is an orphan and fails.
+#
+# Only a check listed in COVERAGE_ASSERTED may be named, because only those
+# make that assertion. Paths are ROOT-relative: `examples/block.json` and
+# `vectors/dc3/block.json` are different locations and are declared separately.
+COVERAGE_ASSERTED = {"payload:commitment", "audit:commitments"}
+
+SALTED_COMMITMENTS = {          # (schema file, property name) -> proving check
+    ("delta.schema.json", "commitment"): "payload:commitment",
+    ("audit-record.schema.json", "response_commitment"): "audit:commitments",
+    ("audit-record.schema.json", "ref_extract_commitment"): "audit:commitments",
+    ("audit-record.schema.json", "evidence_commitment"): "audit:commitments",
+}
+
+SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
+    ("examples/delta.json", "commitment"): "payload:commitment",
+    ("examples/block.json", "commitment"): "payload:commitment",
+    ("vectors/dc1/envelope.json", "commitment"): "payload:commitment",
+    ("vectors/dc1/delta.canonical", "commitment"): "payload:commitment",
+    ("vectors/dc3/block.json", "commitment"): "payload:commitment",
+    ("examples/audit-record.json", "response_commitment"): "audit:commitments",
+    ("examples/audit-record.json", "ref_extract_commitment"): "audit:commitments",
+    ("examples/audit-record.json", "evidence_commitment"): "audit:commitments",
+    ("vectors/dc4/audit-commitments.json", "value"): "audit:commitments",
+}
+
+def _declared_values_for(check_name):
+    return {p for p, c in SALTED_COMMITMENT_VALUES.items() if c == check_name}
+
+def _declared_schema_for(check_name):
+    return {p for p, c in SALTED_COMMITMENTS.items() if c == check_name}
+
+def _values_at(rel_path, key):
+    """Every string carried at `key` anywhere in the shipped file at `rel_path`."""
+    path = ROOT / rel_path
+    if not path.exists():
+        return None
+    raw = path.read_text()
+    try:
+        doc = json.loads(raw)
+    except json.JSONDecodeError:
+        return [raw.strip()]
+    found = []
+    def walk(node, k):
+        if isinstance(node, dict):
+            for kk, vv in node.items():
+                walk(vv, kk)
+        elif isinstance(node, list):
+            for vv in node:
+                walk(vv, k)
+        elif isinstance(node, str) and k == key:
+            found.append(node)
+    walk(doc, None)
+    return found
+
+def _shipped_files():
+    return (sorted((ROOT / "examples").glob("*.json"))
+            + sorted(p for p in (ROOT / "vectors").rglob("*") if p.is_file()))
+
+def _locate_values(predicate):
+    """Every (ROOT-relative file, key) in the shipped tree holding such a value.
+
+    Discovering the locations rather than reading them off the declarations is
+    what makes the coverage assertion bidirectional: a copy of a commitment
+    sitting at a location nothing declares is then a failure, not an invisible.
+    """
+    found = set()
+    for path in _shipped_files():
+        rel = str(path.relative_to(ROOT))
+        raw = path.read_text()
+        try:
+            doc = json.loads(raw)
+        except json.JSONDecodeError:
+            doc = raw.strip()
+        def walk(node, k):
+            if isinstance(node, dict):
+                for kk, vv in node.items():
+                    walk(vv, kk)
+            elif isinstance(node, list):
+                for vv in node:
+                    walk(vv, k)
+            elif isinstance(node, str) and predicate(node):
+                found.add((rel, k))
+        walk(doc, None)
+    return found
+
+def _assert_coverage(check_name, covered_values, covered_schema):
+    """Each proving check proves it covered exactly what declares its name.
+
+    Asserting only that a named check passed would let any declaration launder
+    itself by pointing at the name of some unrelated passing check. The proof
+    therefore runs the other way: the check reports what it recomputed, and the
+    two sets must match exactly — an orphan declaration and an undeclared
+    recomputation are both failures.
+    """
+    for label, covered, declared in (
+            ("value", covered_values, _declared_values_for(check_name)),
+            ("schema", covered_schema, _declared_schema_for(check_name))):
+        orphans = sorted(declared - covered)
+        assert not orphans, (
+            f"{check_name} does not recompute {label} declaration(s) that name it: "
+            f"{orphans} — a declaration may not name a check that never reads it")
+        undeclared = sorted(covered - declared)
+        assert not undeclared, (
+            f"{check_name} recomputes undeclared {label} location(s): {undeclared}")
+
 # 2b. The payload commitment: the only thing binding a Delta to content that
 # the Log does not carry. Everything downstream — the audit metric, snapshot
 # materialization, the withdrawal guarantee — rests on this recomputation.
@@ -127,8 +239,31 @@ def _payload_commitment():
     payload, delta = _load_payload_and_delta()
     assert delta["payload"]["alg"] == "HMAC-SHA256", "commitment algorithm is not HMAC-SHA256"
     assert len(b64u_decode(payload["salt"])) >= 16, "salt is shorter than 128 bits (DC-1 §3.6)"
-    assert _commit(payload["salt"], payload["content"]) == delta["payload"]["commitment"], \
+    expected = _commit(payload["salt"], payload["content"])
+    assert expected == delta["payload"]["commitment"], \
         "the Payload does not reproduce the Delta's commitment"
+
+    # Every shipped copy of this commitment is recomputed here, not argued for
+    # transitively, so that each declaration naming this check is one this check
+    # actually verified.
+    covered_values = set()
+    for rel, key in _declared_values_for("payload:commitment"):
+        values = _values_at(rel, key)
+        assert values, f"{rel}: no {key!r} to recompute, but it is declared here"
+        for got in values:
+            assert got == expected, \
+                f"{rel}: {key} = {got[:28]}… is not HMAC(salt, JCS(content))"
+    # Located, not read off the declarations, so an undeclared copy also fails.
+    covered_values = _locate_values(lambda v: v == expected)
+
+    covered_schema = set()
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    field = schema["properties"]["delta"]["properties"]["payload"]["properties"]["commitment"]
+    assert re.fullmatch(field["pattern"], expected), \
+        "delta.schema.json's commitment pattern does not admit the recomputed value"
+    covered_schema.add(("delta.schema.json", "commitment"))
+
+    _assert_coverage("payload:commitment", covered_values, covered_schema)
 check("payload:commitment", _payload_commitment)
 
 def _payload_length():
@@ -356,6 +491,28 @@ def _dc4_audit_commitments():
     assert rec["ref_extract_commitment"] == "hmac-sha256:" + hmac.new(
         salt, payload["content"]["extract"].encode(), hashlib.sha256).hexdigest(), \
         "ref_extract_commitment is not keyed by the audited Payload's salt"
+
+    # Coverage, proved in this direction rather than assumed: every location
+    # declaring this check must be one whose value was just recomputed above.
+    recomputed = {e["value"] for e in v["commitments"].values()}
+    covered_values = set()
+    for rel, key in _declared_values_for("audit:commitments"):
+        values = _values_at(rel, key)
+        assert values, f"{rel}: no {key!r} to recompute, but it is declared here"
+        for got in values:
+            assert got in recomputed, \
+                f"{rel}: {key} = {got[:28]}… is not one of the recomputed commitments"
+    covered_values = _locate_values(lambda v: v in recomputed)
+
+    covered_schema = set()
+    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
+    for field in ("response_commitment", "ref_extract_commitment", "evidence_commitment"):
+        pattern = schema["properties"]["record"]["properties"][field]["pattern"]
+        assert re.fullmatch(pattern, rec[field]), \
+            f"audit-record.schema.json's {field} pattern does not admit the recomputed value"
+        covered_schema.add(("audit-record.schema.json", field))
+
+    _assert_coverage("audit:commitments", covered_values, covered_schema)
 check("audit:commitments", _dc4_audit_commitments)
 
 def _dc4_audit_commitment_tamper():
@@ -410,72 +567,49 @@ NON_CONTENT_DIGESTS = {
     ("payload.schema.json", "salt"): "the salt itself: drawn from a CSPRNG, never derived from the content it keys (DC-1 §3.6)",
 }
 
-# Fields that ARE content-derived and are salted commitments. Wearing the
-# `hmac-sha256:` label is not what earns a place here — a bare SHA-256 of the
-# content can be written with that prefix, and a new field can be patterned for
-# it without anything ever keying it to a salt. Each entry names the check that
-# recomputes it from the Payload salt, so adding a field means proving it keyed
-# rather than labelling it so.
-SALTED_COMMITMENTS = {
-    ("delta.schema.json", "commitment"): "payload:commitment",
-    ("audit-record.schema.json", "response_commitment"): "audit:commitments",
-    ("audit-record.schema.json", "ref_extract_commitment"): "audit:commitments",
-    ("audit-record.schema.json", "evidence_commitment"): "audit:commitments",
-}
-
-SALTED_COMMITMENT_VALUES = {
-    ("delta.json", "commitment"): "payload:commitment",
-    ("block.json", "commitment"): "payload:commitment",
-    ("envelope.json", "commitment"): "payload:commitment",
-    ("delta.canonical", "commitment"): "payload:commitment",
-    ("audit-record.json", "response_commitment"): "audit:commitments",
-    ("audit-record.json", "ref_extract_commitment"): "audit:commitments",
-    ("audit-record.json", "evidence_commitment"): "audit:commitments",
-    ("audit-commitments.json", "value"): "audit:commitments",
-}
-
-# Every opaque value the suite ships, by the (file, key) it appears at, with
-# what it actually is. Scoping to the pair rather than to the name matters: a
-# 64-hex string is legitimate at `block.json`'s `merkle_root` and is a bare
-# content digest at `registry-update.json`'s, and a global union of names cannot
-# tell those apart.
 NON_CONTENT_VALUES = {
-    ("audit-record.json", "audited_delta"): "a Delta ID",
-    ("audit-record.json", "vrf_proof"): "an ECVRF proof over a Block Hash",
-    ("audit-record.json", "value"): "an Ed25519 signature",
-    ("block.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("block.json", "merkle_root"): "root over Entries, which carry commitments only",
-    ("block.json", "prev"): "a Delta ID",
-    ("block.json", "value"): "an Ed25519 signature",
-    ("checkpoint.json", "block_hash"): "SHA-256 of a Block header",
-    ("checkpoint.json", "value"): "an Ed25519 signature",
-    ("delta.json", "prev"): "a Delta ID",
-    ("delta.json", "value"): "an Ed25519 signature",
-    ("envelope.json", "value"): "an Ed25519 signature",
-    ("feed.json", "deltas"): "Delta IDs",
-    ("feed.json", "value"): "an Ed25519 signature",
-    ("log-anchor.json", "public_key"): "an Ed25519 public key",
-    ("log-anchor.json", "value"): "an Ed25519 signature",
-    ("payload.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
-    ("publisher.json", "public_key"): "an Ed25519 public key",
-    ("publisher.json", "value"): "an Ed25519 signature",
-    ("registry-update.json", "public_key"): "an Ed25519 public key",
-    ("registry-update.json", "value"): "an Ed25519 signature",
-    ("snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (DC-3 §7)",
-    ("snapshot-manifest.json", "value"): "an Ed25519 signature",
-    ("status.json", "delta_id"): "a Delta ID",
-    ("id.txt", None): "the DC-1 vector's Delta ID",
-    ("keypair.json", "seed_hex"): "the test signing seed",
-    ("keypair.json", "public_key"): "an Ed25519 public key",
-    ("inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
-    ("sampling.json", "block_hash"): "SHA-256 of a Block header",
-    ("sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
-    ("sampling.json", "beta_hex"): "the VRF output",
-    ("sampling.json", "vrf_proof_hex"): "an ECVRF proof",
-    ("sampling.json", "delta_id"): "a Delta ID",
-    ("sampling.json", "auditor_public_key"): "an Ed25519 public key",
-    ("audit-commitments.json", "audited_delta"): "a Delta ID",
-    ("audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
+    ("examples/audit-record.json", "audited_delta"): "a Delta ID",
+    ("examples/audit-record.json", "vrf_proof"): "an ECVRF proof over a Block Hash",
+    ("examples/audit-record.json", "value"): "an Ed25519 signature",
+    ("examples/block.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("examples/block.json", "merkle_root"): "root over Entries, which carry commitments only",
+    ("examples/block.json", "prev"): "a Delta ID",
+    ("examples/block.json", "value"): "an Ed25519 signature",
+    ("examples/checkpoint.json", "block_hash"): "SHA-256 of a Block header",
+    ("examples/checkpoint.json", "value"): "an Ed25519 signature",
+    ("examples/delta.json", "prev"): "a Delta ID",
+    ("examples/delta.json", "value"): "an Ed25519 signature",
+    ("examples/feed.json", "deltas"): "Delta IDs",
+    ("examples/feed.json", "value"): "an Ed25519 signature",
+    ("examples/log-anchor.json", "public_key"): "an Ed25519 public key",
+    ("examples/log-anchor.json", "value"): "an Ed25519 signature",
+    ("examples/payload.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
+    ("examples/publisher.json", "public_key"): "an Ed25519 public key",
+    ("examples/publisher.json", "value"): "an Ed25519 signature",
+    ("examples/registry-update.json", "public_key"): "an Ed25519 public key",
+    ("examples/registry-update.json", "value"): "an Ed25519 signature",
+    ("examples/snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (DC-3 §7)",
+    ("examples/snapshot-manifest.json", "value"): "an Ed25519 signature",
+    ("examples/status.json", "delta_id"): "a Delta ID",
+    ("vectors/dc1/envelope.json", "prev"): "a Delta ID",
+    ("vectors/dc1/envelope.json", "value"): "an Ed25519 signature",
+    ("vectors/dc1/delta.canonical", "prev"): "a Delta ID",
+    ("vectors/dc1/id.txt", None): "the DC-1 vector's Delta ID",
+    ("vectors/dc1/keypair.json", "seed_hex"): "the test signing seed",
+    ("vectors/dc1/keypair.json", "public_key"): "an Ed25519 public key",
+    ("vectors/dc3/block.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/dc3/block.json", "merkle_root"): "root over Entries, which carry commitments only",
+    ("vectors/dc3/block.json", "prev"): "a Delta ID",
+    ("vectors/dc3/block.json", "value"): "an Ed25519 signature",
+    ("vectors/dc3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
+    ("vectors/dc4/sampling.json", "block_hash"): "SHA-256 of a Block header",
+    ("vectors/dc4/sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
+    ("vectors/dc4/sampling.json", "beta_hex"): "the VRF output",
+    ("vectors/dc4/sampling.json", "vrf_proof_hex"): "an ECVRF proof",
+    ("vectors/dc4/sampling.json", "delta_id"): "a Delta ID",
+    ("vectors/dc4/sampling.json", "auditor_public_key"): "an Ed25519 public key",
+    ("vectors/dc4/audit-commitments.json", "audited_delta"): "a Delta ID",
+    ("vectors/dc4/audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
 }
 
 DIGEST_NAME = re.compile(r"hash|digest|sha\d|checksum|commitment", re.IGNORECASE)
@@ -642,9 +776,18 @@ def _no_unsalted_content_digest():
     """
     schemas = sorted((ROOT / "schemas").glob("*.schema.json"))
     assert len(schemas) >= 9, f"only {len(schemas)} schemas enumerated; the sweep is not suite-wide"
-    for _, proving_check in {**SALTED_COMMITMENTS, **SALTED_COMMITMENT_VALUES}.items():
+    # Two conditions, and both are needed. A check must assert its own coverage
+    # (or a declaration could point at the name of any unrelated passing check
+    # and be laundered by it), and it must have run and passed (or its coverage
+    # assertion proves nothing). Together: the check ran, passed, and covered
+    # this declaration.
+    for where, proving_check in {**SALTED_COMMITMENTS, **SALTED_COMMITMENT_VALUES}.items():
+        assert proving_check in COVERAGE_ASSERTED, (
+            f"{where} is declared keyed by {proving_check!r}, which does not assert "
+            "coverage of what declares it; only these checks may be named: "
+            + ", ".join(sorted(COVERAGE_ASSERTED)))
         assert proving_check in PASSED, \
-            f"a commitment is declared keyed by {proving_check!r}, which did not run or did not pass"
+            f"{where} is declared keyed by {proving_check!r}, which did not run or did not pass"
     offenders = []
     for path in schemas:
         for name, key, pattern in _walk_schema(
@@ -693,7 +836,7 @@ def _no_unsalted_content_digest():
         except json.JSONDecodeError:
             # Not JSON (id.txt): treat the whole file as one value.
             doc = raw.strip()
-        scan(doc, None, path.name, hits)
+        scan(doc, None, str(path.relative_to(ROOT)), hits)
         scanned += 1
     assert scanned >= 20, f"only {scanned} shipped files swept; the sweep is not suite-wide"
     assert not hits, "opaque values at undeclared locations:\n  " + "\n  ".join(hits)
