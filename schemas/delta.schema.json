@@ -49,5 +49,23 @@
         "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "comment": "DC-1 §3.3: `new` and `update` are the content-bearing change types. One that commits to nothing claims content without saying what it is, and no audit could ever check it (DC-4 §5) — DC1-E09.",
+      "if": {
+        "required": ["delta"],
+        "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["new", "update"]}}}}
+      },
+      "then": {"properties": {"delta": {"required": ["payload"]}}}
+    },
+    {
+      "comment": "DC-1 §3.3: `attest` and `delete` carry no content of their own; what they are measured against is the Reference Payload (DC-4 §5).",
+      "if": {
+        "required": ["delta"],
+        "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["attest", "delete"]}}}}
+      },
+      "then": {"properties": {"delta": {"not": {"required": ["payload"]}}}}
+    }
+  ]
 }
