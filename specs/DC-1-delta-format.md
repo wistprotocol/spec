@@ -32,7 +32,14 @@ shown here.
 
 - **Publisher**: the operator of a domain, identified by that domain, who
   signs deltas for URLs under it.
+- **Aggregator**: the party that pulls Deltas from Publishers (DC-2), seals
+  them into the Commons Log (DC-3), and operates the governance actions of
+  DC-4. It is substitutable and gains no authority from the role: every
+  artifact it produces is verifiable against signatures and hashes by
+  anyone.
 - **Delta**: a signed statement by a Publisher about one URL at one moment.
+- **Publisher Declaration**: the signed document at a domain's well-known
+  path that declares its Key Set (§5.1).
 - **Payload**: the content a Delta describes — the page's main text and its
   structured summary — carried as a separate, unsigned file alongside the
   Block (DC-3 §6.1). A Payload is never part of a Delta, of a Block, or of
@@ -40,16 +47,27 @@ shown here.
 - **Payload Commitment**: the salted keyed hash of a Payload's content that
   a Delta carries in place of that content (§3.6).
 - **Envelope**: the JSON container `{"<inner>": {...}, "sig": {...}}` that
-  pairs an inner object with a detached signature. All signed objects in
-  the suite use this shape.
+  pairs an inner object with a detached signature. Every signed object in
+  the suite is signed the one way §4 defines, and every one but the Log
+  Block (DC-3 §3.1) carries exactly this shape; the Block adds `entries`
+  beside its signed `header`, which §4 accounts for.
 - **Canonical Bytes**: the octet sequence produced by applying JCS
   [RFC 8785] to the inner object.
 - **Delta ID**: `"sha256:"` followed by the lowercase hex SHA-256 of a
   Delta's Canonical Bytes.
 - **Key Set**: the list of active Ed25519 public keys in a Publisher
   Declaration.
-- **Canonical Host**: a hostname lowercased, IDN-encoded to its A-label
-  form (RFC 5890), with any trailing dot removed and no port.
+- **Canonical Host**: a hostname lowercased, then IDN-encoded to its
+  A-label form by **UTS #46 processing** with `UseSTD3ASCIIRules=true`,
+  `Transitional_Processing=false` and `VerifyDnsLength=true`, whose output
+  labels are the IDNA2008 A-labels of RFC 5891 encoded with Punycode
+  [RFC 3492]; with any trailing dot removed and no port. The algorithm is
+  pinned rather than named because IDNA2003 and IDNA2008 disagree on
+  characters such as `ß` (U+00DF) and final sigma (U+03C2) — IDNA2003 maps
+  them away, IDNA2008 keeps them — so two implementers following "IDN
+  encoding" loosely produce different bytes for the same input, which is
+  precisely the failure this definition exists to prevent. RFC 5890 defines
+  the terminology these terms come from; it defines no algorithm.
 - **Normalized URL**: an `https` URL after RFC 3986 §6.2.2 syntax-based
   normalization — percent-encoding hex digits uppercased and
   percent-encoded octets that correspond to unreserved characters decoded,
@@ -60,7 +78,12 @@ shown here.
   copied byte-for-byte from the input: it is never parsed into parameters
   or reordered, so parameter order is significant. Two URLs are **the
   same URL** in this specification if and only if their Normalized URLs
-  are byte-identical.
+  are byte-identical. Not every input has a Normalized URL: a percent-escape
+  that is not two hexadecimal digits, or a host label UTS #46 processing
+  rejects, has no normalization at all. A validator MUST reject a `url` it
+  cannot normalize with `DC1-E03` rather than repair it, guess at it, or
+  compare it unnormalized — the same treatment §3.2 gives a `url` that is
+  normalizable but not already normalized.
 
 Hash strings throughout the suite are serialized as `"sha256:" + lowercase
 hex`. Signatures are Ed25519 [RFC 8032], detached, base64url-encoded
@@ -78,6 +101,20 @@ document governs semantics.
 The version of this specification the object conforms to, as a semver
 string. This document defines version `1.0.0`. Consumers MUST reject
 objects whose major version they do not implement.
+
+**Extensibility is by major version only.** Within a major version, objects
+MUST NOT carry fields not defined by this specification; new fields are
+introduced only in a new major version. Every schema in the suite therefore
+sets `additionalProperties: false` on each object whose full field set a
+document of this suite defines, and a minor version never adds a field. Two
+places are deliberately open, and both delegate rather than extend: a Block
+Entry's `body` (DC-3 §3.3), which is an Envelope validated in full by its
+own schema, and a Registry Update's `details` (DC-4 §9.1), whose shape is
+fixed per `action` — unconstrained only for the actions DC-4 §9.1 names,
+and never licensed to carry what that section's closing rules forbid. The
+rule exists so that a consumer encountering an unknown field knows it is
+looking at a non-conforming object rather than at a newer minor version it
+could safely ignore, which is what makes rejection the safe default.
 
 ### 3.2. `url`
 
@@ -164,11 +201,12 @@ domain participates; unavailability of a `prev` Delta is a `DC1-E07`
 rejection of the *new* Delta, never a retroactive invalidation of the
 sealed chain.
 
-### 3.6. `payload` — the Payload commitment
+### 3.6. `payload` — the Payload Commitment
 
 A Delta commits to its content; it does not carry it. The content — the
 main text (`extract`) and the structured summary (`summary`) — travels as
-a separate **Payload** (DC-3 §6.1). The Delta carries only:
+a separate **Payload** (DC-3 §6.1). The Delta carries only the **Payload
+Commitment**:
 
     commitment = "hmac-sha256:" + hex(HMAC-SHA256(key = salt,
                                                   message = JCS(content)))
@@ -183,11 +221,35 @@ extract would still let anyone holding a copy of the text demonstrate that
 it was the text committed to; with a salt that is destroyed alongside the
 bytes, the commitment becomes unlinkable to any candidate text.
 
-`bytes` is the octet length of `JCS(content)` and MUST NOT exceed 34816
-(32768 for the extract plus 2048 for the summary). A validator MUST reject
-a Delta whose Payload, once retrieved, does not have exactly that length
-or does not reproduce `commitment` under the accompanying salt
-(`DC1-E04`, `DC1-E11`).
+**Size caps, and the unit they are measured in.** Every cap in this
+section counts **octets of a JCS serialization**, never characters and
+never code points, because a cap a Consumer uses to bound a fetch has to
+be a count of the bytes on the wire. Precisely:
+
+- the `extract` cap is the UTF-8 octet length of `JCS(<the extract
+  string>)` — the JSON string literal, its enclosing quotes and any
+  escapes included — and MUST NOT exceed `extract_cap_bytes` (Parameter
+  Registry: 32768);
+- the `summary` cap is the UTF-8 octet length of `JCS(<the summary
+  object>)` and MUST NOT exceed `summary_cap_bytes` (Parameter Registry:
+  2048);
+- `bytes` is the octet length of `JCS(content)` and MUST NOT exceed
+  **34839**, which is not an independent constant: `JCS(content)` is
+  `{"extract":<E>,"summary":<S>}`, whose 23 octets of structure surround
+  the two serialized values, so the bound is `extract_cap_bytes +
+  summary_cap_bytes + 23`. Amending either parameter moves it.
+
+A validator MUST reject a Delta whose Payload, once retrieved, does not
+have exactly the declared length, exceeds any of the three caps, or does
+not reproduce `commitment` under the accompanying salt (`DC1-E04`,
+`DC1-E10`).
+
+`schemas/payload.schema.json` bounds `extract`, `summary.title` and
+`summary.abstract` with JSON Schema `maxLength`, which counts **code
+points**. Those bounds are a cheap structural first pass and are neither
+equal to nor implied by the octet caps above — a code point can occupy
+four octets — so a validator MUST enforce the octet caps itself. Where the
+two differ, this section governs.
 
 The commitment is what carries the Publisher's accountability across the
 boundary, and it carries two distinct properties. It is **binding**:
@@ -230,7 +292,8 @@ JSON Canonicalization Scheme (JCS) [RFC 8785]:
    envelope.
 2. **Delta ID** = `"sha256:" + hex(SHA-256(Canonical Bytes))`.
 3. **Signature** = `Ed25519-sign(private_key, Canonical Bytes)`,
-   base64url without padding.
+   base64url without padding. A signature that does not verify against
+   Canonical Bytes under the key `sig.key_id` names is `DC1-E01`.
 
 The Envelope carries the result:
 
@@ -244,6 +307,24 @@ The Envelope carries the result:
   }
 }
 ```
+
+**One construction, for every signed object in the suite.** Every signed
+object in DeltaCommons is built exactly as above: the Envelope's single
+inner object is canonicalized with JCS, those Canonical Bytes are signed
+with Ed25519, and the signature is detached into `sig`. Where DC-2, DC-3
+and DC-4 define new signed objects — the Feed and its Pages, the Publisher
+Declaration, the Block header, the Checkpoint, the Log Anchor, the
+Snapshot Index and Manifest, the Audit Record, the Registry Update — this
+rule applies unchanged, and each of those documents names only which inner
+object it wraps. A verifier that implements it once implements it for the
+whole suite, and there is no per-object signing variant to get wrong.
+
+The Log Block (DC-3 §3.1) is the one object that carries a second member
+beside its signed one, and it does not except the rule: the inner object is
+`header`, and `entries` sits alongside it, authenticated indirectly through
+the `merkle_root` and `entry_count` the header commits to. A verifier signs
+and checks `JCS(header)` exactly as it would any other inner object, and
+recomputes those two fields over `entries` before using them.
 
 Because identity is content-derived, resubmitting an identical Delta
 yields the same Delta ID; validators MUST treat duplicates as idempotent
@@ -387,19 +468,19 @@ matter". Importance is measured at consumption, outside this protocol.
 |---------|--------------------------------------------------------------|
 | DC1-E01 | Invalid signature (does not verify against the named key) |
 | DC1-E02 | Unknown key (`sig.key_id` not in the current Key Set) |
-| DC1-E03 | URL out of scope or not normalized (host not covered by domain/`subdomain_scope`, or `url` not byte-identical to its own Normalized URL) |
-| DC1-E04 | Size cap exceeded (`payload.bytes` > 34816, or a retrieved Payload whose `extract` exceeds 32768 bytes or whose `summary` exceeds 2048 bytes) |
+| DC1-E03 | URL out of scope, not normalized, or not normalizable (host not covered by domain/`subdomain_scope`; `url` not byte-identical to its own Normalized URL; or `url` has no normalization at all — §2) |
+| DC1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 34839, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets or whose `JCS(summary)` exceeds 2048 octets) |
 | DC1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | DC1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per DC-2 §3.1 |
 | DC1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
 | DC1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (DC-4 §5) |
-| DC1-E11 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
+| DC1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.
 
-`DC1-E11` rejects the Payload, never the Delta. A sealed Delta stays
+`DC1-E10` rejects the Payload, never the Delta. A sealed Delta stays
 sealed and stays valid, because nothing in its identity or signature
 depends on content the Log never held; the party that served the
 mismatched Payload is the one at fault (DC-3 §9, `DC3-E03`).
@@ -436,7 +517,7 @@ mismatched Payload is the one at fault (DC-3 §9, `DC3-E03`).
   a validator accepts a Payload only when it reproduces the Delta's
   `commitment` (§3.6), which was fixed at signing time, so substituting
   content is detectable by every party independently and rejected under
-  `DC1-E11`. What an adversary controlling the serving path can do is
+  `DC1-E10`. What an adversary controlling the serving path can do is
   withhold a Payload, which is an availability failure, handled by DC-3
   §6.1 and distinguishable from a lawful withdrawal.
 - **Signature malleability.** Ed25519 signatures as specified in RFC 8032
@@ -451,7 +532,19 @@ mismatched Payload is the one at fault (DC-3 §9, `DC3-E03`).
   unauthenticated alternative channel would let an off-path spoofer inject
   a signing key for a domain whose HTTPS endpoint is made to fail,
   defeating every other guarantee in this document; no such channel is
-  defined.
+  defined. The concrete mechanism this rules out is worth naming, because a
+  closed door is only visible if you can see what it closed: an earlier
+  draft of this specification allowed a `_deltacommons.<domain>` DNS TXT
+  record carrying the Key Set as a fallback when the well-known path was
+  unreachable. Plain DNS is unauthenticated, and DNSSEC is neither
+  universally deployed nor universally validated, so the fallback offered an
+  attacker able to force an HTTPS failure — a strictly easier act than
+  breaking HTTPS — a path to publishing keys for a domain it does not
+  control. It was removed rather than conditioned on DNSSEC, because a
+  fallback that is only sometimes authenticated is one whose security
+  depends on a property no verifier can check at the moment it matters. No
+  DNS-based, and no other non-HTTPS, discovery mechanism may be
+  reintroduced within this major version.
 
 ## 9. Privacy Considerations
 
@@ -494,7 +587,7 @@ What remains in the Log permanently, and cannot be withdrawn, is:
 - the verdicts and `similarity` values of any Audit Records about the URL.
   Those Records observe the page directly, so every content-derived value
   in them is committed under the same Payload salt rather than digested
-  bare, and expires with it (DC-4 §5, §11);
+  bare, and expires with it (DC-4 §5, DC-4 §11);
 - the free text of any Registry Update about the URL or its Publisher — a
   withdrawal's `legal_basis`, a `notice`'s `reason`, an `appeal_ruling`'s
   `reasoning`. These are sealed and unwithdrawable like `meta`, which is
@@ -516,10 +609,11 @@ copies already served.
       ones reference the immediately prior Delta (§3.5)
 - [ ] Commits to content instead of carrying it: a fresh CSPRNG salt of
       ≥ 16 octets per Delta, `commitment` over `JCS(content)`, `bytes`
-      equal to that length and ≤ 34816 (§3.6)
+      equal to that length and ≤ 34839 (§3.6)
 - [ ] Serves every content-bearing Delta's Payload, and keeps the anchor
       Payload of any URL it attests retrievable (DC-2 §3.1)
-- [ ] Respects content caps: extract ≤ 32768 bytes, summary ≤ 2048 bytes (§3.6)
+- [ ] Respects the content caps in JCS octets: `JCS(extract)` ≤ 32768,
+      `JCS(summary)` ≤ 2048 (§3.6)
 - [ ] Carries `payload` on every `new` and `update`, and omits it on
       `attest` and on `delete` (§3.3)
 - [ ] Rotates keys by signing the new Key Set with a previous key (§5.2)
@@ -533,7 +627,7 @@ copies already served.
 - [ ] Recomputes Canonical Bytes with JCS and verifies the Ed25519
       signature against them (§4)
 - [ ] Recomputes a retrieved Payload's commitment and length before using
-      its content, and rejects a mismatch under `DC1-E11` without
+      its content, and rejects a mismatch under `DC1-E10` without
       invalidating the Delta (§3.6, §7)
 - [ ] Enforces the scope rule (§3.2) and all Error Registry checks (§7)
 - [ ] Treats identical resubmissions as idempotent (§4)
@@ -638,4 +732,12 @@ the summary appears anywhere in it.
 - [RFC 3339] Date and Time on the Internet: Timestamps
 - [RFC 3986] Uniform Resource Identifier (URI): Generic Syntax
 - [RFC 5890] Internationalized Domain Names for Applications (IDNA):
-  Definitions and Document Framework
+  Definitions and Document Framework — the terminology (A-label, U-label)
+  §2's Canonical Host uses
+- [RFC 5891] Internationalized Domain Names in Applications (IDNA):
+  Protocol — the IDNA2008 registration and lookup rules
+- [RFC 3492] Punycode: A Bootstring encoding of Unicode for IDNA — the
+  A-label encoding
+- [UTS #46] Unicode Technical Standard #46, Unicode IDNA Compatibility
+  Processing — the normative processing algorithm §2's Canonical Host is
+  computed by

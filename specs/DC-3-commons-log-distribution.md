@@ -25,10 +25,24 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 [RFC 2119] [RFC 8174] when, and only when, they appear in all capitals, as
 shown here.
 
+- **Log** (the **Commons Log**): the append-only sequence of Blocks this
+  document defines, from the genesis Block onward. "The Log" always means
+  the whole chain, never one Aggregator's current view of it.
 - **Block**: one sealed batch of log Entries with a signed header.
 - **Entry**: one typed item in a Block (`publisher_delta`,
   `publisher_declaration`, `audit_record`, or `registry_update`).
+- **Log Anchor**: the self-signed document that identifies a Log by its
+  `log_id` and declares its `genesis_key`; it is the Log's out-of-band
+  trust root, obtained through a channel the Consumer trusts rather than
+  from the Log itself (§3.4).
+- **genesis key**: the Aggregator signing key the Log Anchor declares. It
+  is the only Aggregator key not admitted in-band; every later one is
+  added and retired by Registry Updates the genesis key's chain of
+  successors signs (§3.4).
 - **Checkpoint**: the Aggregator's signed statement of the latest Block.
+- **Consumer**: any party that synchronizes the Log and materializes an
+  index from it (§8). A Consumer trusts no Aggregator and no Mirror: it
+  verifies signatures, hashes and commitments for itself.
 - **Mirror**: any party re-serving the log's static files.
 - **Snapshot**: a signed, derived materialization of log state at a Block.
 - **Tier**: a size/completeness layer of a Snapshot (Tier 0 compact,
@@ -39,10 +53,12 @@ shown here.
 - **Withdrawal**: the logged removal of a Payload from distribution,
   under §6.2.
 
-Terms from DC-1 (Envelope, Delta, Canonical Bytes, Payload) and DC-2
-(Feed) keep their defined meanings. Every signed object in this document carries
-`dc_version` (DC-1 §3.1) and the DC-1 §4 signature block (`key_id`,
-`alg`, `value`).
+Terms from DC-1 (Envelope, Delta, Delta ID, Canonical Bytes, Payload,
+Publisher, Aggregator) and DC-2 (Feed) keep their defined meanings. Every
+signed object in this document is constructed exactly as DC-1 §4 requires —
+inner object canonicalized with JCS, signed with Ed25519, signature
+detached — and carries `dc_version` (DC-1 §3.1) and the DC-1 §4 signature
+block (`key_id`, `alg`, `value`).
 
 ## 3. Block Format
 
@@ -90,10 +106,22 @@ default: hourly). A Block MAY be empty (`entry_count: 0`); empty blocks
 keep the chain's heartbeat observable. Once sealed, a Block is immutable
 forever.
 
+**A sealed Delta is sealed once.** A Delta ID MUST appear in at most one
+`publisher_delta` Entry in the whole Log. An Aggregator that receives a
+Delta it has already sealed treats the submission as the idempotent
+acceptance DC-1 §4 requires and MUST NOT seal it a second time; a Consumer
+replaying the Log MUST reject a Block containing a `publisher_delta` Entry
+whose Delta ID a lower Entry — in the same Block or an earlier one —
+already carries. Together with immutability above, this is what makes "the
+Block that sealed this Delta" a well-defined phrase: DC-4 §5's Audit
+Records name no Block and instead resolve their audited Block by finding
+the one whose `publisher_delta` Entries carry `audited_delta`, which is a
+function only because the answer is unique and permanent.
+
 ### 3.3. Entries
 
-Each Entry is `{"type": <t>, "body": <envelope>}` with exactly four
-types:
+Each Entry is `{"type": <t>, "body": <envelope>}`, where `type` is one of
+exactly four values and `body` is the Envelope that value names:
 
 - `publisher_delta` — body is a Delta Envelope (DC-1).
 - `publisher_declaration` — body is a Publisher Declaration Envelope
@@ -109,9 +137,17 @@ unknown Entry types under the current major version.
 
 ### 3.4. Aggregator Keys and the Log Anchor
 
-A Log is identified by its **Log Anchor**, a self-signed document served at
-`/log/anchor.json` (schema: `schemas/log-anchor.schema.json`) declaring the
-`log_id` and the **genesis key**. The Anchor is the Log's out-of-band trust
+A Log is identified by its **Log Anchor**, a self-signed document whose
+inner object is `anchor` (schema:
+[`schemas/log-anchor.schema.json`](../schemas/log-anchor.schema.json)),
+served at `/log/anchor.json`. It declares `dc_version`, the `log_id` (the
+Log's hostname identity), the `genesis_key` — an object carrying that key's
+`key_id`, `alg` and raw base64url `public_key` — and `created_at`, the
+instant the Log was established. The Anchor is self-signed: its `sig.key_id`
+MUST name its own `genesis_key`, and a Consumer MUST reject an Anchor whose
+signature does not verify under the very key it declares.
+
+The Anchor is the Log's out-of-band trust
 root: a Consumer MUST obtain it through a channel it trusts (bundled with
 the client, pinned by the operator, or verified against an out-of-band
 fingerprint) and MUST NOT accept an Anchor fetched from the Log itself
@@ -130,9 +166,10 @@ naming that `key_id` was sealed at any height ≤ N.
 
 Removal is permanent, not a toggle: once a validly-signed
 `aggregator_key_remove` for a `key_id` is sealed, that `key_id` is invalid
-at every later height, full stop — an `aggregator_key_add` sealed at a
-later height naming the same, previously removed `key_id` MUST be
-rejected and MUST NOT be treated as restoring validity. An operator that
+at every later height, full stop — the Aggregator MUST NOT seal an
+`aggregator_key_add` naming a previously removed `key_id`, and a Consumer
+replaying the Log MUST reject one and MUST NOT treat it as restoring
+validity. An operator that
 needs that key's role again admits a fresh `key_id` instead; generating a
 new key costs nothing, and permanent retirement avoids any ambiguity
 about which of several add/remove events for the same `key_id` governs. A
@@ -295,10 +332,12 @@ because nothing else authenticates them.
 
 **Discovery.** `/snapshots/index.json` (schema:
 [`schemas/snapshot-index.schema.json`](../schemas/snapshot-index.schema.json))
-is the discovery entry point: a signed, mutable index listing the Snapshots
-the Aggregator currently serves, newest `snapshot_date` first, each with its
-`log_position`, its `manifest_url`, and the `content_digest` (§7) that
-Snapshot's manifest declares. Cold start begins there (§8). The index
+is the discovery entry point: a signed, mutable index whose inner object is
+`index`, carrying `dc_version`, `updated_at` (when the Aggregator last
+rewrote it), and `snapshots` — the Snapshots the Aggregator currently
+serves, newest `snapshot_date` first, each with its `log_position`, its
+`manifest_url`, and the `content_digest` (§7) that Snapshot's manifest
+declares. Cold start begins there (§8). The index
 carries the digest so that a Consumer can check a manifest it fetches
 against a second, independently signed statement of what that Snapshot
 contains. An Aggregator MUST remove an entry from the index when it stops
@@ -351,6 +390,20 @@ Payload file is immutable while it is served: an Aggregator MUST serve at
 that path either the exact bytes it verified at ingest (DC-2 §5) or
 nothing at all.
 
+A Payload carries exactly three members. `dc_version` is the version of
+this suite it conforms to (DC-1 §3.1). `salt` is the base64url encoding,
+unpadded, of the ≥ 16 octets that key the Delta's commitment (DC-1 §3.6);
+it is the one place the salt is published, and destroying it is what makes
+a withdrawal effective (§6.2). `content` is the object the commitment is
+computed over: a REQUIRED `extract`, the page's main text, and a REQUIRED
+`summary` object carrying a REQUIRED `title` and an OPTIONAL `abstract`.
+Those five names and no others: `content` is the exact preimage of
+`JCS(content)`, so a Payload carrying any further field commits to
+different bytes and fails verification. DC-1 §3.6 governs the octet caps on
+`extract` and `summary` and the relationship between them and `bytes`; a
+Payload is unsigned, so nothing here is authenticated except by
+recomputing that commitment.
+
 Payloads are fetched in the same synchronisation pass as Blocks, from the
 same static file servers, by the same unauthenticated GETs. They are
 **not** covered by the Block signature and **not** covered by the Merkle
@@ -360,7 +413,7 @@ withdrawn.
 
 A Consumer MUST verify each Payload against its Delta's `commitment` and
 `bytes` (DC-1 §3.6) before applying its content, and MUST NOT apply
-content that fails (`DC1-E11`; the serving party is at fault under
+content that fails (`DC1-E10`; the serving party is at fault under
 `DC3-E03`). Verification does not depend on where the file came from, so a
 Payload MAY be fetched from any Mirror, from another Consumer, or from the
 Publisher's own `.well-known` path: the commitment decides, never the
@@ -523,8 +576,9 @@ Block N. Its `manifest.json` (schema:
 [`schemas/snapshot-manifest.schema.json`](../schemas/snapshot-manifest.schema.json))
 is signed by the Aggregator and declares `snapshot_date`, `log_position`
 (= N), `anchor_block_hash` (the Block Hash of Block N), `content_digest`
-(below), the `embedding_model`, and every file with its SHA-256 and byte
-size.
+(below), the `embedding_model`, and `files` — one entry per artifact,
+each carrying its `path` relative to the manifest, its `sha256`, its
+`bytes`, and the `tier` (`0` or `1`) it belongs to.
 
 - **Tier 0** — summaries and quantized embeddings of every live record:
   SQLite (FTS5) + Parquet. Sized for any laptop; answers most agent
@@ -693,7 +747,9 @@ requires of them separately.
    signed statements about the same Snapshot).
 3. Download the listed files; verify each SHA-256 and byte size.
 4. Fetch `/log/checkpoint.json`; verify signature.
-5. Download Blocks `log_position + 1 .. checkpoint.block_number`.
+5. Download Blocks `log_position + 1 .. checkpoint.block_number`. A Block
+   a Mirror does not hold is `DC3-E01`: fetch it from another Mirror,
+   since integrity never depends on the source.
 6. Verify each Block: chain (`prev_block_hash`), signature, `merkle_root`
    recomputation, `entry_count`.
 7. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
@@ -719,7 +775,13 @@ otherwise sync from.
 
 **Continuous operation:**
 
-1. Fetch `checkpoint.json` (SHOULD: from ≥ 2 Mirrors).
+1. Fetch `checkpoint.json` (SHOULD: from ≥ 2 Mirrors). A Checkpoint whose
+   `block_number` is lower than the highest already verified MUST be
+   rejected (§5's rollback rule) before any Block is downloaded against it,
+   and the Consumer SHOULD warn if the newest Checkpoint's `sealed_at` lags
+   the current time by more than three sealing cadences (§5) — a stale head
+   and a rolled-back head are the two ways a Mirror can leave a Consumer
+   verifying correctly against the wrong end of the chain.
 2. Download missing Blocks; verify as above.
 3. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
    and that each Block's `prev_block_hash` matches the Block Hash of its
@@ -745,7 +807,7 @@ economic.
 |---------|--------------------------------------------------------------|
 | DC3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
 | DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
-| DC3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — DC-1 §3.6, `DC1-E11`). Re-download, from another Mirror if needed, before concluding misbehavior. |
+| DC3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — DC-1 §3.6, `DC1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
 | DC3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest` (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | DC3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (DC-2 §3.1), and keep applying the Log. A Consumer that sees `DC3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
@@ -877,7 +939,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       header's (§4)
 - [ ] Binds the head Block to the Checkpoint and walks the chain backward
       from it (§5, §8)
-- [ ] Rejects Checkpoints older than the highest already verified (§5)
+- [ ] Rejects Checkpoints older than the highest already verified, before
+      downloading Blocks against them (§5, §8)
+- [ ] Warns when the newest Checkpoint's `sealed_at` lags the current time
+      by more than three sealing cadences (§5, §8)
 - [ ] Verifies manifest hashes/sizes before using a Snapshot, checks the
       manifest against the `/snapshots/index.json` entry that named it, and
       binds `anchor_block_hash` to the chain it verified (§8)
