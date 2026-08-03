@@ -46,6 +46,7 @@ A conforming Publisher serves, over HTTPS only:
 /.well-known/deltacommons/payloads/<id>.json (one file per content-bearing Delta)
 /.well-known/deltacommons/feed.json          (the Feed)
 /.well-known/deltacommons/feed/<n>.json      (sealed Feed Pages — §3.2)
+/.well-known/deltacommons/appeals/<id>.json  (one file per appeal — §3.3)
 ```
 
 ### 3.1. Delta and Payload Files
@@ -79,6 +80,19 @@ Payload or a `delete`; what it MUST NOT do is keep attesting to content
 nobody can obtain. Payloads of superseded Deltas carry no such obligation
 on the Publisher; the Aggregator's own retention of them, which is what
 keeps an already-sealed Delta auditable, is DC-3 §6.1's.
+
+**Withdrawal ends that duty and every other reason to serve.** From the
+height a `payload_withdrawal` for a Delta is sealed (DC-3 §6.2), the
+Publisher MUST stop serving that Delta's Payload at
+`payloads/<id>.json`, and the retention duty above does not survive it —
+the two do not compete, and where a Publisher would otherwise still be
+attesting to the withdrawn anchor it re-anchors the chain as above.
+Withdrawal reaching the Aggregator and the Mirrors but not the site that
+first published the content would leave the salt on the open web at a
+well-known path, and with it every commitment the salt keys: the Delta's
+own and the three an Audit Record seals (DC-1 §3.6, DC-4 §5). One serving
+path left open is the whole of the guarantee gone, which is why DC-3 §6.2
+binds all three.
 
 ### 3.2. The Feed and its Pages
 
@@ -130,7 +144,11 @@ Blocks (DC-3 §3.1), so the ordering by `sealed_at` and the ordering by
 height are the same ordering; what changes is only the key the Consumer
 looks the Declaration up by, because a Page carries a timestamp and not a
 height. Every input is in the Log, so two validators resolve the same Page
-to the same Key Set.
+to the same Key Set. Because that comparison is against a Block's
+`sealed_at`, `generated_at` carries the same whole-second, literal-`Z` form
+`sealed_at` does (`schemas/feed.schema.json`, DC-3 §3.1): the two values
+compare directly, with no normalization step for two implementations to
+perform differently.
 
 **Aggregator obligation.** On each pull, an Aggregator MUST follow `next`
 until it reaches a page whose newest Delta ID it has already ingested, or
@@ -149,6 +167,44 @@ no-cache` and an `ETag`; Aggregators SHOULD use conditional requests. A
 pull that returns `304` is not `DC2-E02` and MUST NOT count as noise.
 Sealed Pages are immutable and SHOULD instead be served with long-lived
 cache headers, as in §3.1.
+
+### 3.3. Appeals
+
+`appeals/<id>.json` contains exactly one `appeal` Registry Update Envelope
+(DC-4 §7, schema:
+[`schemas/registry-update.schema.json`](../schemas/registry-update.schema.json)),
+where `<id>` is the 64-character hex digest of the Registry Update ID
+(DC-4 §7) of the `notice` being appealed — the same
+digest-without-the-`sha256:`-prefix naming §3.1 uses for Deltas, and the
+same value the Envelope's own `details.notice` carries. A Publisher that
+appeals a sanction notice publishes the file at that path; the Aggregator
+pulls it, seals it as a `registry_update` Entry (DC-3 §3.3), and DC-4 §7
+fixes the deadline by which it MUST.
+
+**The pull is the Aggregator's duty and needs no Ping.** For every
+`"sanction"` `notice` it seals, an Aggregator MUST fetch that notice's
+appeal path from the sanctioned domain at least once after the appeal
+window closes and before DC-4 §7's sealing deadline, and SHOULD poll it at
+the baseline interval (§5) throughout the window. It MUST NOT make that
+fetch conditional on a Ping: a domain in Sanctioned Quarantine has its
+Pings answered `403` (§4), so an appeal path polled only on notification
+would be unreachable in exactly the case it exists for. The Publisher MAY
+ping as well, and MUST NOT read a `403` as the appeal having failed to
+arrive — the appeal is served, and what the Log does with it is DC-4 §7's
+subject.
+
+The path exists because an appeal is the one Publisher artifact whose
+delivery a level-3 sanction would otherwise block: Sanctioned Quarantine
+rejects that domain's Pings and Feed pulls (§4), and an appeal carried in
+no other way would depend on the goodwill of the party being appealed
+against. Publishing it at a well-known path over HTTPS makes the appeal a
+signed, dated, fetchable artifact from the instant it is served — before
+any Aggregator acts on it, and whether or not one ever does — so a party
+checking whether an appeal was suppressed fetches it and checks the Log,
+rather than taking either party's word. Appeal files are immutable under
+the same rule as Delta files: once published under an `<id>`, the bytes
+MUST NOT change, and a Publisher that wants to say more files nothing here
+— it says it in the appeal it publishes, once.
 
 ## 4. The Ping
 
@@ -172,7 +228,7 @@ subsequent HTTPS pull of the signed Feed and Deltas. Responses:
 |--------|---------------------------------------------------|
 | 202 | Accepted; a pull will follow |
 | 429 | Rate-limited; MUST include `Retry-After` |
-| 403 | Domain in Sanctioned Quarantine or delisted (DC-4 §7). New and Provisional domains MUST NOT receive 403. |
+| 403 | Domain in Sanctioned Quarantine or delisted (DC-4 §7). New and Provisional domains MUST NOT receive 403. It suspends ingestion of that domain's content and nothing else: the Aggregator's duty to fetch the domain's appeal path (§3.3) is independent of any Ping and survives the `403`. |
 
 On a 5xx, timeout, or connection failure a Publisher SHOULD retry at most
 three times with exponential backoff (1 min, 4 min, 16 min) and then rely
@@ -239,11 +295,16 @@ ensuring no second independent Auditor can ever see the page, and a
 Confirmed Inconsistency needs two.
 
 A Publisher that forbids those re-fetches keeps that right and pays a
-stated price: a URL whose audits `robots.txt` has turned away, with no
-successful audit by an independent Auditor since, is excluded from
-materialization until one succeeds (DC-4 §5, DC-3 §7). It is not a
-sanction and touches no reputation — declining audits and being
-materialized are simply not available at the same time, indefinitely.
+stated price: a URL that two Auditors independent of one another have been
+turned away from, both exclusions sealed inside the unauditable horizon, is
+excluded from materialization until an Auditor independent of both records
+a successful audit, or until those exclusions age out of the horizon with
+none replacing them. It is not a sanction and touches no reputation —
+declining audits and being materialized are simply not available at the
+same time. DC-4 §5 owns that rule and states it normatively, including why
+one Auditor's exclusion is not enough and why the clearing audit must come
+from a third: this paragraph is a pointer, and where the two differ DC-4 §5
+governs (DC-4 §5, DC-3 §7).
 
 ## 6. Unsigned Change Hints (Compatibility)
 
@@ -334,6 +395,14 @@ who consumes their Deltas.
 - [ ] Serves a Payload for every content-bearing Delta, at the matching
       hex-digest name, and keeps the anchor Payload of every URL it
       attests retrievable (§3.1)
+- [ ] Stops serving a Payload from the height a `payload_withdrawal`
+      naming its Delta is sealed — the retention duty above does not
+      survive it — and re-anchors the chain rather than keeping the
+      withdrawn Payload published in order to go on attesting
+      (§3.1, DC-3 §6.2)
+- [ ] Appeals a sanction notice by publishing a signed `appeal` at
+      `appeals/<notice-id>.json`, immutable once published, naming that
+      notice in `details.notice` (§3.3, DC-4 §7)
 - [ ] Seals Pages when `deltas` would exceed 1000 entries — file
       published before cutover, sealing-order numbering, no Delta
       omitted or duplicated across Pages, monotonic `generated_at` (§3.2)
@@ -352,6 +421,9 @@ who consumes their Deltas.
 - [ ] Follows `next` through sealed Pages until reaching already-ingested
       content or `null`; never diffs only the live `feed.json` (§3.2)
 - [ ] Runs baseline polling independent of Pings (§5)
+- [ ] Fetches every `"sanction"` notice's appeal path from the sanctioned
+      domain before DC-4 §7's sealing deadline, independent of any Ping
+      and notwithstanding the `403` that domain's Pings receive (§3.3, §4)
 - [ ] Never attributes unsigned-hint content to a domain (§6)
 - [ ] Implements the Error Registry behaviors and the status endpoint (§7)
 - [ ] Accounts pings correctly against the domain's quota — only

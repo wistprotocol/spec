@@ -417,7 +417,9 @@ content that fails (`DC1-E10`; the serving party is at fault under
 `DC3-E03`). Verification does not depend on where the file came from, so a
 Payload MAY be fetched from any Mirror, from another Consumer, or from the
 Publisher's own `.well-known` path: the commitment decides, never the
-source.
+source. That is also why §6.2 binds all three: a withdrawal reaches every
+serving path or it reaches none of them, since any one of them suffices to
+obtain the salt.
 
 A Delta whose Payload a Consumer cannot obtain remains valid, sealed, and
 part of its per-URL chain. The Consumer applies what the Delta itself
@@ -494,8 +496,18 @@ exactly what it removed and can be checked on its own.
 A withdrawal takes effect at the height of the Block that seals it. From
 that height:
 
-- the Aggregator and every Mirror MUST stop serving that Payload, and a
-  Consumer MUST NOT treat its absence as a fault;
+- the Aggregator, every Mirror **and the Publisher itself** MUST stop
+  serving that Payload, and a Consumer MUST NOT treat its absence as a
+  fault. The Publisher is bound because its `.well-known` copy is a third
+  serving path (DC-2 §3.1), the original one, and the only one this
+  document does not otherwise reach: a withdrawal that bound the two
+  downstream copies and left the source published would relocate the salt
+  rather than destroy it, and every claim below about what stops being
+  checkable would be false at one fetch. The Publisher's own retention
+  duty for an anchor Payload (DC-2 §3.1) ends at that height rather than
+  competing with this one; a Publisher that still attests to the URL
+  re-anchors the chain instead, exactly as it would if it had to stop
+  serving the Payload for any other reason;
 - Consumers MUST exclude the withdrawn content from subsequent
   materializations and remove it from any local index already built from
   it, and the Aggregator **and every Mirror** MUST stop serving any
@@ -606,8 +618,9 @@ not from whether an Aggregator sealed a `sanction`: level 2 marks every
 record of that domain reduced-weight; level 3 stops that domain's later
 Deltas from being materialized at all, from the height it takes effect;
 level 4 removes the domain's records entirely; and a `sanction_lift`, a
-successful appeal, or a lapsed ruling deadline (DC-4 §7) reverses the state
-from the height that takes effect. Deletion, withdrawal and unauditability
+successful appeal, a lapsed ruling deadline, or a lapsed appeal-sealing
+deadline (DC-4 §7) reverses the state from the height that takes effect.
+Deletion, withdrawal and unauditability
 are covered by the rule below. The Log retains every Entry in every case;
 materialization shapes only the present state.
 
@@ -695,8 +708,11 @@ artifacts the Aggregator published (§6).
 **Every input is in the Log, and none of it is content.** The digest is a
 function of the Log prefix from genesis through `log_position` and of
 nothing else. Deletion, withdrawal, unauditability and every rung of the
-sanction ladder are decided by sealed Entries — DC-4 §7 derives each ladder
-level from the evidence rather than from an Aggregator's `sanction` — and
+sanction ladder are decided by sealed Entries and by the deadlines those
+Entries start — DC-4 §7 derives each ladder
+level from the evidence rather than from an Aggregator's `sanction`, and
+lifts it on a deadline the Aggregator lets lapse rather than on a
+`sanction_lift` it chooses to file — and
 the Parameter Registry values that decide them are read as of
 `log_position`. Two consequences carry the design:
 
@@ -861,7 +877,8 @@ sealed history. Mirrors keep serving bytes and stay free of any obligation
 to re-serialize or partially reconstruct what they hold.
 
 Erasure is an obligation on operators, not a property of the network. A
-withdrawal binds the Aggregator and its Mirrors; it cannot reach a copy
+withdrawal binds the Aggregator, its Mirrors and the Publisher that first
+served the Payload; it cannot reach a copy
 already downloaded, and nothing in this specification pretends otherwise.
 What the design does guarantee is that after withdrawal the Log itself
 stops helping: with the salt destroyed, the surviving commitment does not
