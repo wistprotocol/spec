@@ -97,16 +97,46 @@ Auditor elsewhere, not an exception here. A Confirmed Inconsistency (§5)
 requires two Auditors independent in exactly this sense, not merely two
 keys.
 
-An Auditor MUST NOT audit a Delta whose Publisher domain is its own
-`auditor_id`, a parent of it, or a subdomain of it, and an `auditor_admit`
-MUST NOT name an `auditor_id` that fails the independence test above
-against the Log Anchor's `log_id` (DC-3 §3.4). Both are comparisons over
-values the Log carries: a Record breaching the first MUST be rejected by
-validators recomputing reputation, and an `auditor_admit` breaching the
-second MUST be rejected outright, so no key it names is ever an admitted
-key and no Record signed by that key counts. Neither rule makes
-independence true — §10 states exactly how far it reaches — but both remove
-the cases the Log itself already shows to be false.
+**The identity a Record claims is the admitted one.** A Record's
+`auditor_id` MUST be byte-identical to the `subject` of the
+`auditor_admit` that admitted the key named in its `sig.key_id`, and a
+Record where it is not MUST be rejected by validators recomputing
+reputation. Without that binding every test below compares a string the
+Auditor writes for itself: one admitted key could sign
+`checker.example.org` on one Record and `audit.example.net` on the next
+and pass the independence test against itself, or claim an unrelated
+hostname in order to audit its own domain. The Log already says which
+hostname that key was admitted under; the Record is required to agree with
+it, and the schema constrains the field to the same shape `subject`
+carries.
+
+An Auditor MUST NOT audit a Delta whose Publisher domain fails the
+independence test above against its own `auditor_id` — that is, whose
+Publisher domain shares a suffix of two or more labels with it — and an
+`auditor_admit` MUST NOT name an `auditor_id` that fails the same test
+against the Log Anchor's `log_id` (DC-3 §3.4). One test governs all three
+relations deliberately: a rule that put only a hostname's parents and
+subdomains beyond its audits would leave `audit.example.net` free to audit
+`blog.example.net`, which is the same operator by the very measure §5's
+confirmation rule uses. Both are comparisons over values the Log carries:
+a Record breaching the first MUST be rejected by validators recomputing
+reputation, and an `auditor_admit` breaching the second MUST be rejected
+outright, so no key it names is ever an admitted key and no Record signed
+by that key counts. Neither rule makes independence true — §10 states
+exactly how far it reaches — but both remove the cases the Log itself
+already shows to be false.
+
+**Seed the roster across suffixes.** Because the test is a suffix
+comparison, a roster whose members all sit under one two-label suffix is a
+roster in which no Confirmed Inconsistency can ever form, however many
+Auditors it holds and however diligently each audits. A deployment MUST
+therefore admit Auditors under distinct two-label suffixes, and SHOULD
+treat the number of *mutually independent* suffixes on the roster, not the
+number of admitted keys, as the measure of whether confirmation is
+possible at all. The warning is sharpest in a namespace where operators
+cluster under one public suffix — where every candidate Auditor is under
+`.com.br`, admitting eight of them yields a roster that looks healthy and
+a confirmation mechanism that is silently disabled.
 
 That one `public_key` serves both purposes: it verifies the Auditor's
 Record signatures **and** it is the VRF public key against which its
@@ -323,10 +353,9 @@ Log, the resolution is deterministic from Log order alone.
 
 A `delete` audit has a Reference Payload for the same reason it has
 anything to check: the claim a `delete` makes is that the content its
-chain last committed to is no longer served, so that Payload is what
-"no longer carries indexable content" is judged against, and the capture
-the Auditor preserves may contain that very content where the claim is
-false.
+chain last committed to is no longer served (DC-1 §3.3), so that Payload
+is what the claim is judged against, and the capture the Auditor preserves
+may contain that very content where the claim is false.
 
 When an audit has nothing to measure against, the verdict is
 `not_auditable`. That covers four cases: the Reference Payload has been
@@ -617,15 +646,36 @@ Log distinguishes a URL nobody is permitted to check from one that happened
 to be down.
 
 **Declining audits is not indefinitely free.** A URL is **unauditable** at
-height N when the Log holds an `unreachable` Record with `robots_excluded`
-true for a Delta on that URL whose Block was sealed at least 30 whole days
-(Parameter Registry: `unauditable_horizon_days`) before Block N's
-`sealed_at`, and no Record for a Delta on that URL with verdict
-`consistent`, `inconsistent` or `dynamic_variance` was sealed at or after
-that Record's Block. An unauditable URL MUST be excluded from
-materialization (DC-3 §7) from the height at which it becomes unauditable
-until such a Record is sealed, at which point it ceases to be unauditable
-and the exclusion lifts.
+height N when the Log holds two `robots_excluded` Records for Deltas on
+that URL, signed by Auditors independent of one another (§3), each of them
+sealed in a Block itself sealed no more than 30 whole days (Parameter
+Registry: `unauditable_horizon_days`) before Block N's `sealed_at`, and no
+Record for a Delta on that URL with verdict `consistent`, `inconsistent`
+or `dynamic_variance`, signed by an Auditor independent of both, was
+sealed after the later of those two. An unauditable URL MUST be excluded
+from materialization (DC-3 §7) for as long as that holds; it ceases to be
+unauditable when such a Record is sealed, or when the exclusions age out
+of the window with none replacing them.
+
+Two properties of that definition are load-bearing, and both are
+departures from the obvious shape. It arms on the **presence** of
+exclusions rather than on the absence of successes, and it clears only on
+a success by an Auditor **independent of the Auditors that were turned
+away**. A rule that cleared on any success would be defeated by a
+`robots.txt` that admits exactly one Auditor: that Auditor's Records would
+clear every exclusion the others recorded, keeping the URL materialized
+forever while guaranteeing that no second independent Auditor can ever see
+the page — and a Confirmed Inconsistency, needing two, could then never
+form for it. DC-2 §5 closes that from the other side by making a
+`robots.txt` that discriminates between admitted Auditors a prohibition
+for all of them; the independence requirement here is what holds if a
+Publisher discriminates by some means `robots.txt` does not express.
+
+It takes two Auditors to arm the horizon for the same reason it takes two
+to confirm an inconsistency. `robots_excluded` is a single Auditor's
+unverifiable claim about a file that party alone fetched, and exclusion
+from materialization is a real consequence carrying no notice and no
+appeal; one Auditor MUST NOT be able to impose it alone (§10).
 
 Nothing here is punitive and nothing here is a sanction: no reputation
 consequence attaches, no `notice` is filed, no appeal window opens, and no
@@ -634,7 +684,7 @@ for reasons that are entirely its own. What the rule removes is the
 *combination*. A Publisher may decline audits and keep publishing signed
 Deltas, or it may be materialized, but not both indefinitely — an index
 carrying content that nobody is permitted to check is exactly the
-unverified index this suite exists to replace. Both halves are recomputed
+unverified index this suite exists to replace. Every half is recomputed
 from the Log by every party alike, and the whole of the state is one URL's
 Audit Records in Log order.
 
@@ -1053,12 +1103,13 @@ censorship without amending anything. The floor is set well above the
 lag, so that absence inside the window remains attributable rather than
 routine.
 
-`unauditable_horizon_days` carries one because the horizon it sets is what
-separates a Publisher that declines audits as a policy from one whose
-audits merely have not landed yet. Below the 72-hour coverage deadline (§4)
-a URL could be excluded from materialization before any Auditor was even
-obliged to publish for the Block that named it, turning a scheduling gap
-into a delisting; the floor keeps the horizon a multiple of that deadline.
+`unauditable_horizon_days` carries one because the horizon it sets is the
+window inside which exclusions and the audits that clear them have to meet.
+The floor is set well above the 72-hour coverage deadline (§4): in a window
+shorter than the interval within which Auditors are even obliged to
+publish, whether a URL is excluded would turn on publication scheduling
+rather than on what its `robots.txt` does — two exclusions and a clearing
+audit need room to land inside the same window.
 
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
@@ -1203,8 +1254,10 @@ personal data (§11).
   sanction or an appeal: withholding log entries from some observers is
   equivocation, detectable and provable per DC-3 §5.
 - **A sanction's severity can be neither fabricated nor suppressed.**
-  Severity is derived from the confirming Audit Records' `similarity`
-  values by the §7 table, not asserted by the Aggregator, and §6.1 counts
+  Severity is derived from the confirming Audit Records' **effective
+  similarity** values (§5) by the §7 table — the sealed `similarity` read
+  directly, or mirrored where the audited Delta is a `delete` — not
+  asserted by the Aggregator, and §6.1 counts
   every Confirmed Inconsistency's penalty from its confirming Block onward
   regardless of whether a `sanction` Registry Update ever names it. A
   party recomputing reputation therefore arrives at the same `penalty_n`
@@ -1220,11 +1273,28 @@ personal data (§11).
   `inconsistent` from an Auditor independent of it under §3's suffix test,
   inside 72 hours measured on Block `sealed_at`, and the sampling rule (§4)
   makes it verifiable that each had the right to audit at all. An Auditor
-  also cannot reach a domain it is too close to: §3 puts its own domain,
-  that domain's parents and its subdomains beyond its audits, and a Record
-  breaching that is rejected on recomputation rather than argued about. Two
-  hostile Auditors under one operator are a different case, and the bullet
-  below is what this document has to say about it.
+  also cannot reach a domain it is too close to: §3 puts every Publisher
+  domain sharing a two-label suffix with its own `auditor_id` beyond its
+  audits, and a Record breaching that is rejected on recomputation rather
+  than argued about. Two hostile Auditors under one operator are a
+  different case, and the bullet below is what this document has to say
+  about it.
+- **Griefing via false `robots_excluded` verdicts.** The other verdict that
+  carries a consequence is `robots_excluded`, and its consequence —
+  exclusion from materialization — arrives with no notice, no appeal and no
+  Aggregator action, which is level 4's effect without level 4's process.
+  It is an unverifiable claim by construction: only the Auditor fetched the
+  file, and a `robots.txt` that has since changed leaves nothing anyone can
+  recompute. Three things bound it, and the first is the reason the rule is
+  written the way it is. Two Auditors independent of each other are needed
+  to arm the horizon, the same floor a Confirmed Inconsistency carries, so
+  no single Auditor imposes it. The exclusion is not permanent: it lifts on
+  a successful audit by an Auditor independent of both, and it ages out
+  when the exclusions leave the horizon window. And no reputation
+  consequence follows at all, so a false claim costs the Publisher
+  visibility for a bounded period rather than standing — while
+  contradiction by an independent Auditor's successful fetch of the same
+  URL is exactly the evidence `auditor_remove` runs on.
 - **Auditor independence is an admission-time trust assumption, and this
   document does not claim otherwise.** `auditor_admit` is signed by the
   Aggregator alone. An Aggregator holding two Auditor keys, admitted under
@@ -1252,6 +1322,22 @@ personal data (§11).
   choose, or by operating no Auditor keys at all — because nothing inside
   the protocol distinguishes an Aggregator's second Auditor from a
   stranger's.
+- **The independence test is also a suppression lever.** It cuts both ways,
+  and the second edge is the quieter one. Because confirmation requires two
+  Auditors that share no two-label suffix, an Aggregator that admits eight
+  Auditors all under one suffix has published a roster that looks healthy
+  by every visible measure — eight keys, eight Declarations, full coverage
+  attestations, `inconsistent` verdicts appearing in the Log — inside which
+  no Confirmed Inconsistency can ever form, and therefore no penalty and no
+  sanction. Nothing about that is detectable as misconduct, because each
+  admission is individually unimpeachable and the rule suppressing the
+  confirmations is this document's own. It is deniable by construction: the
+  same configuration arises by accident wherever candidate Auditors cluster
+  under one public suffix (§3). What a party replaying the Log can do is
+  compute the roster's independent suffixes directly, which is why §3 makes
+  that count, and not the key count, the measure of whether confirmation is
+  possible — a roster of one suffix is a Log-visible fact, and one that any
+  Consumer choosing which Log to follow can weigh.
 
 ## 11. Privacy Considerations
 
@@ -1319,14 +1405,16 @@ hands.
       URL's current state, and verifies it against its own Delta's
       commitment before comparing anything (§5)
 - [ ] Serves a Declaration at its own `auditor_id` carrying the admitted
-      key, and never audits a Delta from that hostname, its parents or its
-      subdomains (§3)
+      key, writes that same hostname — the one its `auditor_admit` names —
+      in every Record, and never audits a Delta from a Publisher domain
+      sharing a two-label suffix with it (§3)
 - [ ] Computes similarity with the normative §5 metric — NFC, default full
       case-folding, untailored UAX #29 segmentation — and reads the verdict
       from the effective similarity, mirrored for a `delete` (§5)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
-      (§5)
+      — including where the file discriminates between admitted Auditors,
+      whatever access it grants this one (§5, DC-2 §5)
 - [ ] Emits `not_auditable` (never `inconsistent` or `unreachable`) for a
       withdrawn, unobtainable or empty-extract Reference Payload, and
       treats it as discharging the coverage duty (§4, §5)
@@ -1363,8 +1451,9 @@ hands.
       `observed_at` or wall clock time (§6.1)
 - [ ] Verifies VRF proofs before counting a Record (§4)
 - [ ] Counts a Record only when its Auditor's key was admitted at its own
-      Block's `sealed_at`, its `fetched_at` lies in §3's interval, and the
-      audit was not a self-audit (§3)
+      Block's `sealed_at`, its `auditor_id` matches that admission's
+      `subject`, its `fetched_at` lies in §3's interval, and the audit was
+      not a self-audit (§3)
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
       Inconsistencies, confirmed by independent Auditors inside the
       `sealed_at` window (§3, §5)
