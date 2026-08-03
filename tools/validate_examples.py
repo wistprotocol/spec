@@ -117,6 +117,32 @@ if (dc1 / "envelope.json").exists():
         pub.verify(b64u_decode(env["sig"]["value"]), canonical)
     check("vectors:dc1", _dc1)
 
+def _url_bound():
+    """DC-1 §3.2: the subject URL is octet-bounded (url_cap_bytes)."""
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    url_schema = schema["properties"]["delta"]["properties"]["url"]
+    assert url_schema.get("maxLength") == 2048, \
+        "delta.url carries no maxLength 2048 first-pass bound"
+    env = json.loads((ROOT / "examples" / "delta.json").read_text())
+    url = env["delta"]["url"]
+    assert len(rfc8785.dumps(url)) <= 2048, "example url exceeds url_cap_bytes octets"
+    assert len(rfc8785.dumps("https://a.b/")) == 14, "published floor (14) drifted"
+
+check("spec:url-octet-bound", _url_bound)
+
+def _url_bound_twin():
+    """Mutation twin: an over-long URL must fail schema validation."""
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    env = json.loads((ROOT / "examples" / "delta.json").read_text())
+    env["delta"]["url"] = "https://example.com/" + "a" * 2100
+    try:
+        Draft202012Validator(schema).validate(env)
+    except Exception:
+        return
+    raise AssertionError("a 2100-char url validated — the bound does not discriminate")
+
+check("negative:url-octet-bound", _url_bound_twin)
+
 DIGEST_NAME = re.compile(r"hash|digest|sha\d|checksum|commitment", re.IGNORECASE)
 
 # Digest lengths in hex: MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512.
