@@ -3,6 +3,13 @@
   "salt": "GTCxEvdFpRzrjA6G5StpLQ",
   "content": {
     "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
+    "links": {
+      "total": 2,
+      "urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1"
+      ]
+    },
     "summary": {
       "title": "Post 1",
       "abstract": "An introduction to DeltaCommons."

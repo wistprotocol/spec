@@ -51,8 +51,13 @@ def write_json(path: pathlib.Path, obj: dict) -> None:
 # URL. That is a property of the vector, never of a conforming Publisher.
 DELTA_URL = "https://example.com/blog/post-1"
 EXTRACT = "DeltaCommons is an open, verifiable, push-based web index protocol."
+LINKS = {
+    "total": 2,
+    "urls": ["https://example.org/reference", "https://spec.example.net/dc-1"],
+}
 CONTENT = {
     "extract": EXTRACT,
+    "links": LINKS,
     "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."},
 }
 content_canonical = rfc8785.dumps(CONTENT)
@@ -225,6 +230,7 @@ write_json(EXAMPLES / "checkpoint.json", sign_envelope("checkpoint", checkpoint,
 REDUCED_URL = "https://reduced.example.org/notice"
 REDUCED_CONTENT = {
     "extract": "A second domain, materialized under a level-2 weight mark.",
+    "links": {"total": 0, "urls": []},
     "summary": {"title": "Notice", "abstract": "A reduced-weight record."},
 }
 reduced_canonical = rfc8785.dumps(REDUCED_CONTENT)

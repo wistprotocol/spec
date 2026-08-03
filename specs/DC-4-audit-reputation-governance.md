@@ -1285,6 +1285,8 @@ existing rather than a recommended setting.
 | `block_cadence_seconds` | ≥ 1 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` — every window in this document — has a clock |
 | `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (DC-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and DC-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
 | `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails DC-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
+| `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (DC-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
+| `link_url_cap_bytes` | ≥ 14 | below the 14 octets of `JCS("https://a.b/")` — the serialization of the shortest Normalized URL (DC-1 §2) — no link can ever be declared, which removes the link dimension while leaving its verdicts defined — §5's `link_inconsistent` would then rest on a set nobody can populate |
 | `summary_cap_bytes` | ≥ 12 | `JCS({"title":""})` is 12 octets and `title` is REQUIRED (DC-3 §6.1), so below that no conforming `summary` exists and no content-bearing Delta can ever be sealed |
 | `feed_window` | ≥ 1 | a Feed that can hold no Delta ID leaves nothing discoverable to pull (DC-2 §3.2) |
 | `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (DC-1 §5.2, §8) |
@@ -1325,7 +1327,11 @@ MUST NOT be shorter than `block_cadence_seconds`, or a duty falls due
 before the Block that could discharge it can be sealed;
 `block_decompressed_cap_bytes` MUST NOT be below the size of the largest
 Block the Aggregator seals, since only the pair decides whether any Block
-is applicable; and the `mirror_retention_days` sum below.
+is applicable; and the `mirror_retention_days` sum below. `links_cap_bytes`
+MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
+`JCS({"total":1,"urls":[…]})` around a single maximum-length URL literal —
+below it a page whose first link is long declares an empty prefix the
+budget rule then makes mandatory.
 
 Every remaining identifier carries no bound because none reduces to one,
 and each is named here so that "exactly those bounds" above is a claim a
@@ -1390,6 +1396,8 @@ combination cases above.
 | Block sealing cadence | `block_cadence_seconds` | 1 hour | DC-3 §3.2 |
 | Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | DC-3 §6 |
 | `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | DC-1 §3.6 |
+| `links` size cap | `links_cap_bytes` | 4096 octets of `JCS(links)` | DC-1 §3.6 |
+| Link `url` size cap | `link_url_cap_bytes` | 2048 octets of `JCS(url)` per link | DC-1 §3.6 |
 | `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | DC-1 §3.6 |
 | `url` size cap | `url_cap_bytes` | 2048 octets | DC-1 §3.2 |
 | Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
@@ -1836,16 +1844,16 @@ key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
 |---|---|
 | Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
 | Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| Block Hash of *B* | `sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d` |
-| `alpha` (32 octets, hex) | `28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d` |
-| `pi` = `vrf_proof` (80 octets) | `201470c521f335e0e8b5e2e6c4456234d4c408653608b0dc3f9ab3313b2eb120`<br>`df5129d19a2184e7ff670dd93d5ec63f1537c567f46c3f5ebb130908fcaee155`<br>`0fc0f5e4d2fde2cfb322bc716d54b404` |
-| `beta` (64 octets) | `bcb7005b8cbd167197a33de1fab95f9975e332379c29abdf8304005e7901c46c`<br>`fccd16973e00ac704cc7135ffed330877a3bf85d7b6d8b1b78f28e36f3210441` |
-| Delta ID of Entry 0 | `sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047` |
-| `SHA-256(beta ‖ Entry 0)[0..8]` | `80109595bb2b79e6` |
-| `D`(Entry 0) | `9228040106805000678` |
-| Delta ID of Entry 1 | `sha256:eff46e66a9a3666ead5f6ed38618cd83a130833a3c88f1628a19aa2ef0dcfd8f` |
-| `SHA-256(beta ‖ Entry 1)[0..8]` | `239b6bc74f416dc0` |
-| `D`(Entry 1) | `2565762916489981376` |
+| Block Hash of *B* | `sha256:0cdae7f67aa37151dbe210b02d9dfc487055b45790155c0c9420cc8832fc6a44` |
+| `alpha` (32 octets, hex) | `0cdae7f67aa37151dbe210b02d9dfc487055b45790155c0c9420cc8832fc6a44` |
+| `pi` = `vrf_proof` (80 octets) | `1f9243836a3c7690d108b5d10399d7114259f1019127bac6e9205ec633c40eb0`<br>`e58b5bc4c3a1d431181bba148adad1bed0c31e1dc3bd9f3fe110068ea04f69c7`<br>`64cbd99d07ec7ca23fa689f6deca750e` |
+| `beta` (64 octets) | `8ea46b55e0a7e03164a7f432eb24c1398411ac9c40907f3148dafaaa418303bc`<br>`0a0f6bb70986019f207d6413de603f6e2fcd7da8a71d6487d863418c6b078c76` |
+| Delta ID of Entry 0 | `sha256:8999865b7e77b51993418cd4c1738c329fb1b6b0abae3896483daf743c70e257` |
+| `SHA-256(beta ‖ Entry 0)[0..8]` | `023c84499149362a` |
+| `D`(Entry 0) | `161149138183468586` |
+| Delta ID of Entry 2 | `sha256:8d5ccbbb940151aef6a885b1d6a290265651b3029392b501d0892b566077be53` |
+| `SHA-256(beta ‖ Entry 2)[0..8]` | `16c8ed1fe7d1d8a1` |
+| `D`(Entry 2) | `1641822785465604257` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
@@ -1858,10 +1866,10 @@ the two domains differ only in reputation:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 0 | 100 000 (Provisional) | 2 900 000 | 9.228e25 | 5.350e25 | no |
-| Entry 0 | 900 000 (established) | 500 000 | 9.228e25 | 9.223e24 | no |
-| Entry 1 | 100 000 (Provisional) | 2 900 000 | 2.566e25 | 5.350e25 | **yes** |
-| Entry 1 | 900 000 (established) | 500 000 | 2.566e25 | 9.223e24 | no |
+| Entry 0 | 100 000 (Provisional) | 2 900 000 | 1.611e24 | 5.350e25 | yes |
+| Entry 0 | 900 000 (established) | 500 000 | 1.611e24 | 9.223e24 | yes |
+| Entry 2 | 100 000 (Provisional) | 2 900 000 | 1.642e25 | 5.350e25 | **yes** |
+| Entry 2 | 900 000 (established) | 500 000 | 1.642e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
 are in the vector, and an implementation MUST compare the exact ones. Note

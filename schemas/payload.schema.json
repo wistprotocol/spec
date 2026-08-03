@@ -10,11 +10,25 @@
     "salt": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22,}$"},
     "content": {
       "type": "object",
-      "required": ["extract", "summary"],
+      "required": ["extract", "links", "summary"],
       "additionalProperties": false,
-      "description": "The exact preimage of JCS(content), which the Delta's commitment covers (DC-1 §3.6). The `maxLength` bounds below count code points; the normative caps count octets of a JCS serialization and are stated in DC-1 §3.6, which governs where the two differ. A validator MUST check the octet caps itself — JSON Schema cannot express them.",
+      "description": "The exact preimage of JCS(content), which the Delta's commitment covers (DC-1 §3.6). The `maxLength` bounds below count code points; the normative caps on `extract`, `links` and `summary` count octets of a JCS serialization and are stated in DC-1 §3.6, which governs where the two differ. A validator MUST check the octet caps itself — JSON Schema cannot express them.",
       "properties": {
         "extract": {"type": "string", "maxLength": 32768},
+        "links": {
+          "type": "object",
+          "required": ["total", "urls"],
+          "additionalProperties": false,
+          "description": "The page's external links: `urls` is the first-N external Normalized URLs in raw-HTML document order (DC-2's extraction procedure), `total` the count of ALL distinct external links before truncation. Each `urls` entry's `maxLength` is a code-point first pass; the octet caps (link_url_cap_bytes per URL, links_cap_bytes for JCS of this object) are stated in DC-1 §3.6 and govern.",
+          "properties": {
+            "total": {"type": "integer", "minimum": 0},
+            "urls": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "pattern": "^https://[^#]*$", "maxLength": 2048}
+            }
+          }
+        },
         "summary": {
           "type": "object",
           "required": ["title"],

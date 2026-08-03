@@ -3,8 +3,8 @@
     "dc_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
-    "anchor_block_hash": "sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d",
-    "content_digest": "sha256:5db633a40df6a037228f7f74d72b9275a4d2e873169662628b1994afe6848cd1",
+    "anchor_block_hash": "sha256:0cdae7f67aa37151dbe210b02d9dfc487055b45790155c0c9420cc8832fc6a44",
+    "content_digest": "sha256:75f11e637933dcf2380eae44dacae5a135a4505f79fab7e463d14358fe426451",
     "embedding_model": {
       "name": "example-embed",
       "version": "1",
@@ -29,6 +29,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "Sfx16RU1GAAqUiUN7aLduSXUYj-2NloukAZunt2CSsoHPGZFmN0Fdr88o7cRP5GSr-Pac14zg4NrHguhWcFNDA"
+    "value": "8vh0R3dA5AyCqYBBwLiq2qLTmOMWjms12lGNR6mbqJ-E0zT6MEMVbJybSVvt-Ru1qsacwfMe9yjLYydeTiBkDQ"
   }
 }
