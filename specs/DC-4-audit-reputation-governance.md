@@ -1157,6 +1157,20 @@ Process requirements:
   sanction's *state* — the level 3 ingestion rejection or the level 4
   exclusion from materialization — is void on recomputation from T,
   exactly as a lapsed ruling deadline voids it below.
+- **An `"unappealed"` ruling cannot precede what it reports.** Such a
+  ruling discharges T only when the Block sealing it has a `sealed_at` at
+  or after the close of the appeal window — the notice's Block `sealed_at`
+  plus `appeal_window_days`. One sealed earlier states that a window still
+  open closed with nothing served, which the Log itself contradicts at the
+  moment it is sealed, and a party recomputing MUST treat it as absent: if
+  nothing else discharges T, the state is void from T as above. Without
+  that constraint the ruling could be sealed in the same Block as the
+  notice it closes, and an Aggregator could discharge every process it
+  opens before any Publisher could answer one — recovering, for the price
+  of a single Entry, exactly the free suppression this deadline exists to
+  end. The constraint is a comparison of two Block `sealed_at` values and
+  a parameter, so every replaying party applies it identically; no schema
+  can express it, because the two Blocks are different Entries.
 - **Why the omission carries the consequence.** Suppressing an appeal was
   otherwise strictly more effective than suppressing a ruling, which this
   section already closes: an unsealed appeal starts no clock, so a sanction
@@ -1269,6 +1283,9 @@ existing rather than a recommended setting.
 | Parameter | Bound | What a value past it removes |
 |---|---|---|
 | `block_cadence_seconds` | ≥ 1 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` — every window in this document — has a clock |
+| `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (DC-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and DC-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
+| `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails DC-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
+| `summary_cap_bytes` | ≥ 12 | `JCS({"title":""})` is 12 octets and `title` is REQUIRED (DC-3 §6.1), so below that no conforming `summary` exists and no content-bearing Delta can ever be sealed |
 | `feed_window` | ≥ 1 | a Feed that can hold no Delta ID leaves nothing discoverable to pull (DC-2 §3.2) |
 | `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (DC-1 §5.2, §8) |
 | `sampling_floor` | ≥ 1 | at zero the clamp's own lower bound is zero, so a maximum-reputation domain is never selected at all (§4) |
@@ -1304,11 +1321,28 @@ greater than `similarity_variance_floor`, or the `dynamic_variance` band
 is empty; `c_cap` MUST NOT be below `provisional_audits`, or no domain can
 leave Provisional; `confirm_window_hours` and `coverage_deadline_hours`
 MUST NOT be shorter than `block_cadence_seconds`, or a duty falls due
-before the Block that could discharge it can be sealed; and the
-`mirror_retention_days` sum below. The escalation identifiers are the one
-group carrying no bound at all, because their published values are
-compound rather than single numbers; §7's criteria, not a single integer,
-are what a party checks them against.
+before the Block that could discharge it can be sealed;
+`block_decompressed_cap_bytes` MUST NOT be below the size of the largest
+Block the Aggregator seals, since only the pair decides whether any Block
+is applicable; and the `mirror_retention_days` sum below.
+
+Every remaining identifier carries no bound because none reduces to one,
+and each is named here so that "exactly those bounds" above is a claim a
+reader can check rather than take. `escalation_l2`, `escalation_l3` and
+`escalation_l4` publish compound criteria rather than single numbers, so
+§7's criteria and not an integer are what a party checks them against.
+`clock_skew_seconds`, `keyset_cache_ttl_seconds` and `baseline_poll_seconds`
+set tolerances rather than mechanisms: at zero each is the strict reading
+of the rule it relaxes, and nothing ceases to exist. `sampling_slope` at
+zero stops the audit rate varying with reputation, while selection,
+confirmation, penalties and the level-1 rate all still run.
+`provisional_age_days`, `provisional_audits` and `provisional_cap_u` loosen
+or tighten a gate on reputation rather than removing one — unlike `c_cap`,
+whose zero leaves that gate unsatisfiable for every domain for ever.
+`quota_base` and `quota_slope` at zero silence the Ping path, which DC-2
+§5's baseline polling exists to survive. And `latency_threshold_u` at
+either extreme puts every domain on one side of a one-Block delay, which is
+a policy rather than the absence of one.
 
 `payload_window_days` carries a floor for the same reason. The window is
 what makes a missing Payload evidence (DC-3 §6.1): shortened toward zero
@@ -1781,6 +1815,9 @@ hands.
       Entry that opens it — the appeal window from the `notice`'s Block,
       the recovery window from the recovery Declaration's own (DC-1 §5.2)
       — and never from an `effective_at` (§3, §7)
+- [ ] Treats an `appeal_ruling` of `"unappealed"` whose own Block
+      `sealed_at` precedes the close of that notice's appeal window as
+      absent, so it discharges nothing and T lapses against it (§7)
 - [ ] Keeps that derivation to the sanction's state and never lets an
       appeal, a lift or a lapsed deadline touch `penalty_n`, which §6.1
       derives from the evidence alone (§6.1, §7)
