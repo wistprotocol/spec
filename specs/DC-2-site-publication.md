@@ -543,6 +543,53 @@ exercising the scan itself — a comment-wrapped link, a script-embedded
 link, a `data-href` decoy, a quoted attribute value containing `>`, a
 character reference, an uppercase tag, and an unquoted `href`.
 
+## 12. Text Extraction
+
+DC-4 §5's similarity metric compares the Publisher's committed `extract`
+against an **observed text** an Auditor produces from its own fetch, and
+this section pins how that text is produced, for the reason §11 pins
+link extraction: a metric two conforming implementations can compute
+differently is not recomputable, and every verdict, sanction and
+reputation value replays through this one. The Publisher's side is not
+touched — `extract` remains an editorial choice about what the page's
+content *is* — the pinned procedure governs only the observed side, and
+it is deliberately **whole-document**: any rule that tried to isolate
+"main content" would be a boilerplate heuristic, and heuristics are the
+disagreement this section exists to remove. What makes whole-document
+extraction safe for honest Publishers is DC-4 §5's containment reading,
+not anything here.
+
+The procedure operates on the raw HTML response octets — never a DOM,
+the same posture as §11, and shares §11's scan:
+
+1. Strip every HTML comment and skip every raw-text element
+   (`script`, `style`, `textarea`), exactly as §11 steps 1–2; each
+   stripped construct contributes a single space (0x20).
+2. Replace each remaining tag with a single space. A tag opens at `<`
+   immediately followed by an ASCII letter, `/`, `!` or `?`, and ends
+   at the first `>` not inside a `"`- or `'`-quoted attribute value
+   (§11's quote-aware rule); a `<` followed by anything else is
+   literal text. Everything outside tags is literal text.
+3. Decode the resulting octet stream as UTF-8, replacing every invalid
+   sequence with U+FFFD. The declared charset is never consulted:
+   charset sniffing is implementation-divergent, and a non-UTF-8 page
+   degrades identically for every Auditor rather than differently per
+   library.
+4. Decode character references in the text, with exactly §11 step 4's
+   repertoire; a reference that is malformed, over-long, or names a
+   non-scalar code point is left exactly as written — text is not a
+   link candidate, so there is nothing to fail closed on.
+5. Collapse every run of ASCII whitespace (tab, LF, FF, CR, space) to
+   a single space and trim the ends.
+
+The output is the observed text DC-4 §5 normalizes and measures. Two
+conforming implementations given the same response octets produce
+identical output; every choice above that deviates from rendering
+fidelity — inline tags becoming word boundaries, undeclared charsets
+ignored — deviates identically for everyone, which is the property that
+matters. `vectors/dc2/text-extraction.json` carries the conformance
+fixtures for this procedure and for DC-4 §5's metric over its output.
+
 ## References
 
 - [RFC 2119] / [RFC 8174] BCP 14 key words

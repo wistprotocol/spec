@@ -220,6 +220,67 @@ write_json(DC2V / "link-extraction.json",
             "links_cap_bytes": LINKS_CAP_BYTES, "cases": cases})
 print("dc2 link-extraction vector:", [c["label"] for c in cases])
 
+# ------------------------------------- DC-2 §12 / DC-4 §5: text + similarity
+# Extraction fixtures exercise the scan (comments, raw-text elements, tags
+# as boundaries, quote-aware `>`, bare `<`, character references, whitespace
+# collapse); similarity fixtures exercise the containment quotient, the
+# short-reference grapheme branch, and the mass guard. Texts stay in the
+# ASCII letters-and-spaces domain, where the test implementation's
+# normalization coincides exactly with DC-4 §5's (see similarity()'s note).
+TEXT_FIXTURES = []
+for label, html in (
+    ("scan-hardening",
+     b"<html><head><title>Title words</title>"
+     b"<script>var x = \"<p>not text</p>\";</script>"
+     b"<style>p { color: red }</style></head>"
+     b"<body><!-- a comment --><p>alpha <b>beta</b>\n\n gamma</p>"
+     b"<a href=\"/x\" title=\"y>z\">delta</a>"
+     b"<textarea>not text either</textarea>"
+     b"1 < 2 but &lt;tag&gt; is text &amp; so is &#65;</body></html>"),
+    ("utf8-replacement",
+     b"one \xff two"),
+):
+    TEXT_FIXTURES.append({"label": label, "html_hex": html.hex(),
+                          "expected": link_extraction.extract_text(html)})
+
+PAD = "pad " * 40                     # 40 words: exactly at the default guard
+REF9 = "one two three four five six seven eight nine"
+SIM_FIXTURES = []
+for label, ref, obs in (
+    # Whole-document containment: the committed text embedded in template
+    # furniture scores full marks — the case the quotient exists for.
+    ("containment-full", REF9, "home about " + REF9 + " contact " + PAD),
+    # 9 words -> two 8-word shingles; the observed drops the last word, so
+    # exactly one shingle survives: 500000, exercising the denominator |A|.
+    ("containment-half", REF9,
+     PAD + "one two three four five six seven eight ten"),
+    # Below the guard: a bot-interstitial-sized page is not_auditable,
+    # never similarity 0.
+    ("mass-guard", REF9, "please enable javascript to view this site"),
+    # Short reference (2 words): the grapheme branch, contained verbatim.
+    ("short-reference-graphemes", "hello world", PAD + "hello world"),
+):
+    sim = link_extraction.similarity(ref, obs)
+    SIM_FIXTURES.append({"label": label, "reference": ref, "observed": obs,
+                         "similarity": sim,
+                         "verdict_input": "not_auditable" if sim is None else sim})
+assert [f["verdict_input"] for f in SIM_FIXTURES] == \
+    [1_000_000, 500_000, "not_auditable", 1_000_000], "similarity fixtures drifted"
+
+write_json(DC2V / "text-extraction.json", {
+    "note": ("DC-2 §12's whole-document text extraction over raw HTML "
+             "octets, and DC-4 §5's reference-containment similarity over "
+             "its output. html_hex decodes to the exact input; expected is "
+             "the observed text a conforming Auditor produces. similarity "
+             "cases carry min_observed_words = 40 (the Registry default); "
+             "a null similarity is the mass guard ruling not_auditable."),
+    "min_observed_words": 40,
+    "extraction": TEXT_FIXTURES,
+    "similarity": SIM_FIXTURES,
+})
+print("dc2 text-extraction vector:",
+      [c["label"] for c in TEXT_FIXTURES + SIM_FIXTURES])
+
 # ------------------------------------------------------------ DC-3: log anchor
 anchor = {
     "dc_version": "1.0.0",
