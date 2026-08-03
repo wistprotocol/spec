@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
-import base64, calendar, collections, hashlib, hmac, json, pathlib, re, sys, time
+import base64, calendar, collections, copy, hashlib, hmac, json, pathlib, re, sys, time
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError
 
 import ecvrf
 from merkle import audit_path, leaf_hash, merkle_root, node_hash
@@ -116,6 +117,385 @@ if (dc1 / "envelope.json").exists():
         pub = Ed25519PublicKey.from_public_bytes(b64u_decode(keys["public_key"]))
         pub.verify(b64u_decode(env["sig"]["value"]), canonical)
     check("vectors:dc1", _dc1)
+
+def _registry_table_defaults():
+    """DC-4 §9's Default column, keyed by identifier, as leading integers.
+
+    A row's Identifier cell may name one identifier or a "`a` / `b`" pair
+    sharing one Default cell (e.g. `similarity_consistent` /
+    `similarity_variance_floor`, or `link_agreement_consistent` /
+    `link_variance_floor`): the Default cell then reads with the same
+    "/"-separated shape, one leading integer per identifier, in the same
+    order. A row is skipped rather than guessed at when that shape does
+    not hold — the Escalation row names three identifiers
+    (`escalation_l2/_l3/_l4`) over a Default cell of compound criteria,
+    each part a description rather than a value, and no leading integer
+    sliced out of prose is what `details.value` would mean for it.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    out = {}
+    for line in section9.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != 4 or cells[1] == "Identifier":
+            continue
+        names = re.findall(r"`([a-z0-9_]+)`", cells[1])
+        if len(names) == 1:
+            m = re.match(r"([\d ]+)", cells[2])
+            if m:
+                out[names[0]] = int(m.group(1).replace(" ", ""))
+        elif len(names) == 2:
+            # A "reads as A / B" parenthetical aside may itself contain a
+            # "/" (e.g. "600 000 / 300 000 micro-units (reads as 0.60 /
+            # 0.30)"); truncating at the first "(" keeps the split to the
+            # two primary values the identifiers actually name.
+            primary = cells[2].split("(", 1)[0]
+            parts = primary.split("/")
+            if len(parts) == 2:
+                matches = [re.match(r"\s*([\d ]+)", p) for p in parts]
+                if all(matches):
+                    for name, m in zip(names, matches):
+                        out[name] = int(m.group(1).replace(" ", ""))
+    return out
+
+def _content_wrapper_octets():
+    """The structural octets of `JCS(content)` — the 32 that
+    `{"extract":<E>,"links":<L>,"summary":<S>}` puts around its three
+    values — measured rather than written down (DC-1 §3.6)."""
+    return len(rfc8785.dumps({"extract": "", "links": {}, "summary": {}})) - \
+        len(rfc8785.dumps("")) - 2 * len(rfc8785.dumps({}))
+
+def _combined_content_cap():
+    """DC-1 §3.6's combined `bytes` bound, derived from the three field caps
+    in the DC-4 §9 registry rather than carried as a literal anywhere."""
+    caps = _registry_table_defaults()
+    return (caps["extract_cap_bytes"] + caps["links_cap_bytes"]
+            + caps["summary_cap_bytes"] + _content_wrapper_octets())
+
+def _url_bound():
+    """DC-1 §3.2: the subject URL is octet-bounded (url_cap_bytes).
+
+    The bound is read from the DC-4 §9 registry rather than written here,
+    for the reason `_payload_length` derives its own: a `parameter_change`
+    amending `url_cap_bytes` moves the schema's `maxLength` with it, and a
+    literal in this file would go on asserting the superseded number.
+    """
+    cap = _registry_table_defaults()["url_cap_bytes"]
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    url_schema = schema["properties"]["delta"]["properties"]["url"]
+    assert url_schema.get("maxLength") == cap, \
+        f"delta.url carries no maxLength {cap} first-pass bound"
+    env = json.loads((ROOT / "examples" / "delta.json").read_text())
+    url = env["delta"]["url"]
+    assert len(rfc8785.dumps(url)) <= cap, "example url exceeds url_cap_bytes octets"
+    assert len(rfc8785.dumps("https://a.b/")) == 14, "published floor (14) drifted"
+
+check("spec:url-octet-bound", _url_bound)
+
+def _url_bound_twin():
+    """Mutation twin: an over-long URL must fail schema validation, and fail
+    it *on the length bound* — a rejection by any other keyword would leave
+    the octet cap itself unexercised."""
+    cap = _registry_table_defaults()["url_cap_bytes"]
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    env = json.loads((ROOT / "examples" / "delta.json").read_text())
+    env["delta"]["url"] = "https://example.com/" + "a" * (cap + 52)
+    try:
+        Draft202012Validator(schema).validate(env)
+    except ValidationError as e:
+        assert e.validator == "maxLength", \
+            f"rejected, but not by the length bound: {e.validator} — {e.message}"
+        return
+    raise AssertionError(
+        f"a {cap + 72}-char url validated — the bound does not discriminate")
+
+check("negative:url-octet-bound", _url_bound_twin)
+
+def _assert_links_valid(payload):
+    """DC-1 §3.6 / DC-3 §6.1: structural link rules a validator enforces at ingest.
+
+    Caps are read from the DC-4 §9 registry table (the same source
+    `_payload_length` derives from), not hard-coded, so the two checks cannot
+    disagree after a `parameter_change` amends either one.
+
+    What is deliberately NOT checked here: whether the declared `urls` prefix
+    is the correct one for the page, and whether an omitted remainder would
+    have fit `links_cap_bytes`. Both are checkable only against the live page
+    (DC-4 §5's link dimension), never from the Payload alone — an ingest
+    validator sees only the already-truncated object.
+    """
+    import link_extraction
+    caps = _registry_table_defaults()
+    links = payload["content"]["links"]
+    urls, total = links["urls"], links["total"]
+    assert len(urls) <= total, "more urls than the declared total"
+    assert len(set(urls)) == len(urls), "duplicate link"
+    for u in urls:
+        assert u.startswith("https://") and "#" not in u, f"non-https or fragment: {u}"
+        # DC-1 §3.6 (DC1-E12): every entry is a Normalized URL, byte for byte.
+        # Byte-wise uniqueness above is not enough on its own — DC-1 §2 makes
+        # sameness byte-identity *of normalizations*, so an unnormalized
+        # spelling of a declared link is a second copy of one link that a
+        # `set()` sees as two, and it joins against nothing in DC-3 §7's graph.
+        assert link_extraction.normalize_url(u, u) == u, \
+            f"entry is not its own Normalized URL: {u}"
+        assert len(rfc8785.dumps(u)) <= caps["link_url_cap_bytes"], \
+            f"link exceeds link_url_cap_bytes: {u}"
+        host = u.split("/", 3)[2].split(":")[0]
+        assert host != "example.com" and not host.endswith(".example.com"), \
+            f"internal link declared external: {u}"
+    links_octets = len(rfc8785.dumps(links))
+    assert links_octets <= caps["links_cap_bytes"], "JCS(links) exceeds links_cap_bytes"
+
+def _payload_links_rules():
+    """DC-1 §3.6 / DC-3 §6.1: structural link rules a validator enforces at ingest."""
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    _assert_links_valid(payload)
+    # The shipped example is known, by construction, to declare its full set
+    # of external links (nothing was truncated) — an editorial fact about
+    # this one Payload, not a general ingest rule, so it is asserted here
+    # rather than inside the shared helper.
+    links = payload["content"]["links"]
+    assert len(links["urls"]) == links["total"], \
+        "the shipped example's link set is not fully declared (urls != total)"
+    # Derived exactly as `_payload_length` derives it — extract + links +
+    # summary caps plus the 32 structural octets of JCS(content) — never
+    # written as a literal, so a `parameter_change` to any of the three
+    # cannot leave this check asserting a superseded number.
+    combined = _combined_content_cap()
+    content_octets = len(rfc8785.dumps(payload["content"]))
+    assert content_octets <= combined, "JCS(content) exceeds the derived cap"
+    delta = json.loads((ROOT / "examples" / "delta.json").read_text())
+    assert delta["delta"]["payload"]["bytes"] == content_octets, \
+        "declared bytes != JCS(content) octets"
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    assert schema["properties"]["delta"]["properties"]["payload"]["properties"]["bytes"][
+        "maximum"] == combined, "schema bytes maximum is not the derived cap"
+
+check("spec:payload-links-rules", _payload_links_rules)
+
+def _payload_links_twin():
+    """Mutation twins: each rule must reject its own target, not merely any rule.
+
+    Every mutation that appends a URL also bumps `total` by one, so the count
+    gate (`len(urls) <= total`) still passes and the mutation actually reaches
+    the rule it is meant to exercise, rather than being rejected for the wrong
+    reason.
+    """
+    base = json.loads((ROOT / "examples" / "payload.json").read_text())
+    def rejected(mutate, expected_substring):
+        p = json.loads(json.dumps(base))
+        mutate(p)
+        try:
+            _assert_links_valid(p)          # helper factored from the check above
+        except AssertionError as e:
+            assert expected_substring in str(e), \
+                f"rejected, but not by its target rule: {e}"
+            return True
+        return False
+
+    def add(p, url):
+        p["content"]["links"]["urls"].append(url)
+        p["content"]["links"]["total"] += 1
+
+    assert rejected(lambda p: add(p, p["content"]["links"]["urls"][0]),
+                     "duplicate link"), "duplicate link passed"
+    # The unnormalized spelling of an already-declared link: an uppercased
+    # host, so the bytes differ and both `uniqueItems` and the `set()` above
+    # pass it, while DC-1 §2 makes it the same URL as the entry it shadows.
+    # It must be rejected by the normalization rule specifically — the
+    # duplicate rule cannot see it, which is the whole point of the rule.
+    def uppercase_host(u):
+        scheme, rest = u.split("://", 1)
+        host, _, path = rest.partition("/")
+        return f"{scheme}://{host.upper()}/{path}"
+
+    assert rejected(lambda p: add(p, uppercase_host(p["content"]["links"]["urls"][0])),
+                     "not its own Normalized URL"), "unnormalized link passed"
+    assert rejected(lambda p: add(p, "https://www.example.com/internal"),
+                     "internal link declared external"), "internal link passed"
+    assert rejected(lambda p: add(p, "https://spec.example.net/dc-1#frag"),
+                     "non-https or fragment"), "fragment link passed"
+    assert rejected(lambda p: add(p, "https://x.example.io/" + "a" * 2100),
+                     "link exceeds link_url_cap_bytes"), "oversize link passed"
+    assert rejected(lambda p: p["content"]["links"].update(total=0),
+                     "more urls than the declared total"), "urls > total passed"
+
+check("negative:payload-links-rules", _payload_links_twin)
+
+# Hand-written, independent of tools/link_extraction.py: the vector file is
+# generated AND checked by that same module (Step 1's vector reproduction
+# below is therefore a round-trip), so this literal is what actually pins
+# fixture 1 — a Publisher's own page — to three URLs rather than trusting
+# the generator not to have drifted alongside its own check.
+_FIXTURE1_EXPECTED = {
+    "total": 3,
+    "urls": ["https://example.org/reference", "https://spec.example.net/dc-1",
+             "https://example.org/~user"],
+}
+
+def _link_extraction_vector():
+    """DC-2's extraction procedure: the vector's (urls, total) must be
+    reproduced from the fixture HTML bytes by the reference implementation."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc2" / "link-extraction.json").read_text())
+    assert vec["links_cap_bytes"] == _registry_table_defaults()["links_cap_bytes"], \
+        "the vector's links_cap_bytes has drifted from the Parameter Registry default"
+    fixture1 = next(c for c in vec["cases"] if c["label"] == "example-delta-page")
+    assert fixture1["expected"] == _FIXTURE1_EXPECTED, \
+        "fixture 1's expected member is not the hand-pinned 3-URL set"
+    cap = vec["links_cap_bytes"]
+    # DC-4 §9's `link_url_cap_bytes` floor: `JCS("https://a.b/")`, the
+    # serialization of the shortest Normalized URL that can exist (DC-1 §2).
+    shortest_entry = len(rfc8785.dumps("https://a.b/"))
+    assert shortest_entry == 14, "the published shortest-URL floor (14) drifted"
+    for case in vec["cases"]:
+        html = bytes.fromhex(case["html_hex"])
+        urls, total = link_extraction.extract_links(
+            html, case["base_url"], case["publisher_domain"])
+        member = link_extraction.links_member(urls, total, cap)
+        assert member == case["expected"], f"{case['label']}: {member} != {case['expected']}"
+
+        # Two properties of the *published* member, asserted against the
+        # budget rather than against the module that produced it — so a
+        # generator that truncated wrongly and wrote its own answer down
+        # still fails here (DC-1 §3.6, DC-2 §11).
+        expected = case["expected"]
+        octets = len(rfc8785.dumps(expected))
+        assert octets <= cap, \
+            f"{case['label']}: JCS(expected) is {octets} octets, over the {cap}-octet budget"
+        if len(expected["urls"]) < expected["total"]:
+            # Maximality, proved without knowing which URL came next:
+            # appending any entry at all costs one `,` plus at least the 14
+            # octets of the shortest Normalized URL, so a headroom below
+            # that admits no longer prefix whatever the survivors are.
+            headroom = cap - octets
+            assert headroom < 1 + shortest_entry, (
+                f"{case['label']}: {headroom} octets of headroom would hold another "
+                f"entry ({1 + shortest_entry} at minimum) — the prefix is not maximal")
+
+check("vectors:dc2-link-extraction", _link_extraction_vector)
+
+def _link_extraction_twin():
+    """Mutation twin: a perturbed fixture must not reproduce."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc2" / "link-extraction.json").read_text())
+    case = vec["cases"][0]
+    html = bytes.fromhex(case["html_hex"]) + b'<a href="https://mutant.example.io/x">m</a>'
+    urls, total = link_extraction.extract_links(
+        html, case["base_url"], case["publisher_domain"])
+    member = link_extraction.links_member(urls, total, vec["links_cap_bytes"])
+    assert member != case["expected"], "an appended link changed nothing — extraction is blind"
+
+check("negative:dc2-link-extraction", _link_extraction_twin)
+
+_BASE = "https://example.com/blog/post-1"
+
+# Independent of the generator: a hand-written table run through
+# link_extraction.normalize_url and .extract_links directly, so a bug that
+# both derives a vector fixture AND checks it the same wrong way (the
+# round-trip `vectors:dc2-link-extraction` above cannot catch that class)
+# still gets caught here.
+_NORMALIZE_ORACLE = [
+    # (label, candidate, base, expected)
+    ("absolute dot-segment keeps trailing slash",
+     "https://example.com/blog/a/b/..", _BASE, "https://example.com/blog/a/"),
+    ("relative dot-segment keeps trailing slash",
+     "a/b/..", _BASE, "https://example.com/blog/a/"),
+    ("out-of-range port rejected", "https://example.com:99999/x", _BASE, None),
+    ("non-numeric port rejected", "https://example.com:abc/x", _BASE, None),
+    ("%7e decodes to ~", "https://example.org/%7euser", _BASE, "https://example.org/~user"),
+    ("%2f stays encoded, hex uppercased",
+     "https://example.com/a%2fb", _BASE, "https://example.com/a%2Fb"),
+    ("userinfo rejected", "https://user@example.com/x", _BASE, None),
+    ("IPv6 literal host rejected", "https://[::1]/x", _BASE, None),
+    ("space in host rejected", "https://exa mple.com/x", _BASE, None),
+    ("fragment removed", "https://example.com/x#frag", _BASE, "https://example.com/x"),
+    ("default port 443 removed", "https://example.com:443/x", _BASE, "https://example.com/x"),
+    ("empty path becomes /", "https://example.com", _BASE, "https://example.com/"),
+    ("raw tab in candidate rejected", "https://example.com/\tx", _BASE, None),
+]
+
+# (label, tiny literal HTML, expected extracted urls) — exercises the DC-2
+# §11 scan itself (comments, raw-text elements, quote-aware attributes,
+# data-href vs href, character references), independent of gen_vectors.py's
+# fixture 3.
+_SCAN_ORACLE = [
+    ("data-href is not href",
+     b'<a data-href="https://example.org/x">t</a>', []),
+    ("comment-wrapped link not extracted",
+     b'<!-- <a href="https://example.org/x">t</a> -->', []),
+    ("a bare > inside a quoted value does not end the tag",
+     b'<a title="a>b" href="https://example.org/x">t</a>', ["https://example.org/x"]),
+    ("&amp; decoded in the query",
+     b'<a href="https://example.org/x?y=1&amp;z=2">t</a>', ["https://example.org/x?y=1&z=2"]),
+    # Regression pins: an out-of-range or surrogate numeric character
+    # reference must discard just this candidate — never raise (the old
+    # `chr()` call raised ValueError past 0x10FFFF) and never emit a
+    # string `rfc8785.dumps` cannot encode (a lone surrogate).
+    ("out-of-range numeric reference discards the candidate, not the run",
+     b'<a href="https://example.org/x?y=&#99999999999;">t</a>', []),
+    ("surrogate numeric reference discards the candidate, not the run",
+     b'<a href="https://example.org/x?y=&#xD800;">t</a>', []),
+    # A digit run this long (one more than CPython 3.11+'s own 4300-digit
+    # int() string-conversion cap) must discard the candidate via the
+    # length bound alone, never via int() raising: 4301 digits cannot
+    # denote a code point <= 0x10FFFF (7 decimal digits) either way.
+    ("over-long decimal reference discards the candidate",
+     b'<a href="https://example.org/x?y=&#' + b"9" * 4301 + b';">t</a>', []),
+    # DC-2 §11 step 4 reads "&#NNN;" as decimal — ASCII digits. `_CHAR_REF`
+    # scopes `\d` with `re.ASCII`, so a reference spelled with non-ASCII
+    # decimal digits (Arabic-Indic "٦٥" = 65 below) matches none of the
+    # three alternatives and is left exactly as written, literal `#`
+    # included. That surviving `#` then reads as RFC 3986's fragment
+    # delimiter, and DC-1 §2 normalization drops the fragment — truncating
+    # the extracted URL's query at the `&` — rather than the link reading
+    # `?y=Az` the way a wrongly-decoded `&#٦٥;` (65 = 'A') would produce,
+    # with no `#` left over to start a fragment at all.
+    ("non-ASCII decimal digits in a numeric reference are not decoded",
+     ('<a href="https://example.org/x?y=&#٦٥;z">t</a>'
+      .encode("utf-8")), ["https://example.org/x?y=&"]),
+]
+
+def _link_normalization_oracle(normalize_table=_NORMALIZE_ORACLE, scan_table=_SCAN_ORACLE):
+    """Independent oracle: hand-written (candidate, expected) pairs, run
+    through link_extraction directly rather than through the vector file
+    that same module both generates and checks.
+
+    Factored to accept a supplied table so the twin below can run this
+    exact comparison over a deliberately perturbed one and prove it is
+    live, in the style of `_assert_links_valid`/`negative:payload-links-rules`.
+    """
+    import link_extraction
+    for label, candidate, base, expected in normalize_table:
+        got = link_extraction.normalize_url(candidate, base)
+        assert got == expected, \
+            f"{label}: normalize_url({candidate!r}) = {got!r}, expected {expected!r}"
+    for label, html, expected_urls in scan_table:
+        urls, total = link_extraction.extract_links(html, _BASE, "example.com")
+        assert urls == expected_urls, \
+            f"{label}: extract_links = {urls!r}, expected {expected_urls!r}"
+        assert total == len(expected_urls), \
+            f"{label}: total = {total}, expected {len(expected_urls)}"
+
+check("spec:link-normalization-oracle", _link_normalization_oracle)
+
+def _link_normalization_oracle_twin():
+    """Mutation twin: running the oracle over a table with one entry's
+    expectation flipped to a wrong literal MUST raise — proving the
+    comparison is live rather than vacuously true."""
+    perturbed = list(_NORMALIZE_ORACLE)
+    label, candidate, base, _expected = perturbed[0]
+    perturbed[0] = (label, candidate, base, "https://not-the-right-answer.example/")
+    try:
+        _link_normalization_oracle(normalize_table=perturbed)
+    except AssertionError:
+        return
+    raise AssertionError(f"{label}: a wrong expected value passed the oracle unnoticed")
+
+check("negative:link-normalization-oracle", _link_normalization_oracle_twin)
 
 DIGEST_NAME = re.compile(r"hash|digest|sha\d|checksum|commitment", re.IGNORECASE)
 
@@ -439,23 +819,6 @@ def _assert_coverage(check_name, covered_values, covered_schema):
 # 2b. The payload commitment: the only thing binding a Delta to content that
 # the Log does not carry. Everything downstream — the audit metric, snapshot
 # materialization, the withdrawal guarantee — rests on this recomputation.
-def _registry_table_defaults():
-    """DC-4 §9's Default column, keyed by identifier, as leading integers."""
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
-    out = {}
-    for line in section9.splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) != 4 or cells[1] == "Identifier":
-            continue
-        names = re.findall(r"`([a-z0-9_]+)`", cells[1])
-        m = re.match(r"([\d ]+)", cells[2])
-        if len(names) == 1 and m:
-            out[names[0]] = int(m.group(1).replace(" ", ""))
-    return out
-
 def _load_payload_and_delta():
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
@@ -495,13 +858,13 @@ check("payload:commitment", _payload_commitment)
 def _payload_length():
     """`bytes`, and every cap it is bounded by, counted in JCS octets.
 
-    DC-1 §3.6 measures all three caps as octets of a JCS serialization, never
+    DC-1 §3.6 measures every cap as octets of a JCS serialization, never
     as characters and never as code points, because a Consumer uses them to
     bound a fetch. The combined bound is derived rather than independent:
-    JCS(content) is `{"extract":<E>,"summary":<S>}`, so its 23 octets of
-    structure sit on top of the two field caps. Deriving it here rather than
-    hard-coding the total is what keeps the schema's number and DC-1 §3.6's
-    arithmetic from drifting apart again.
+    JCS(content) is `{"extract":<E>,"links":<L>,"summary":<S>}`, so its 32
+    octets of structure sit on top of the three field caps. Deriving it here
+    rather than hard-coding the total is what keeps the schema's number and
+    DC-1 §3.6's arithmetic from drifting apart again.
     """
     payload, delta = _load_payload_and_delta()
     content = payload["content"]
@@ -510,28 +873,34 @@ def _payload_length():
         f"the Delta declares {delta['payload']['bytes']} octets, JCS(content) is {n}"
 
     caps = _registry_table_defaults()
-    e_cap, s_cap = caps["extract_cap_bytes"], caps["summary_cap_bytes"]
-    wrapper = len(rfc8785.dumps({"extract": "", "summary": {}})) - \
-        len(rfc8785.dumps("")) - len(rfc8785.dumps({}))
-    assert wrapper == 23, f"JCS(content) structure is {wrapper} octets, not the 23 DC-1 §3.6 states"
-    combined = e_cap + s_cap + wrapper
+    e_cap = caps["extract_cap_bytes"]
+    lk_cap = caps["links_cap_bytes"]
+    s_cap = caps["summary_cap_bytes"]
+    wrapper = _content_wrapper_octets()
+    assert wrapper == 32, f"JCS(content) structure is {wrapper} octets, not the 32 DC-1 §3.6 states"
+    combined = _combined_content_cap()
+    assert combined == e_cap + lk_cap + s_cap + wrapper, \
+        "the combined cap helper no longer derives DC-1 §3.6's sum"
 
     e = len(rfc8785.dumps(content["extract"]))
+    lk = len(rfc8785.dumps(content["links"]))
     s = len(rfc8785.dumps(content["summary"]))
     assert e <= e_cap, f"JCS(extract) is {e} octets, over the {e_cap}-octet cap (DC-1 §3.6)"
+    assert lk <= lk_cap, f"JCS(links) is {lk} octets, over the {lk_cap}-octet cap (DC-1 §3.6)"
     assert s <= s_cap, f"JCS(summary) is {s} octets, over the {s_cap}-octet cap (DC-1 §3.6)"
     assert n <= combined, f"JCS(content) is {n} octets, over the {combined}-octet cap (DC-1 §3.6)"
-    assert e + s + wrapper == n, "the three JCS lengths do not add up; the derivation is wrong"
+    assert e + lk + s + wrapper == n, "the JCS lengths do not add up; the derivation is wrong"
 
     schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
     declared = schema["properties"]["delta"]["properties"]["payload"][
         "properties"]["bytes"]["maximum"]
     assert declared == combined, (
         f"delta.schema.json bounds payload.bytes at {declared}, but "
-        f"{e_cap} + {s_cap} + {wrapper} = {combined} (DC-1 §3.6)")
+        f"{e_cap} + {lk_cap} + {s_cap} + {wrapper} = {combined} (DC-1 §3.6)")
     spec = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
     assert str(combined) in spec, f"DC-1 §3.6 does not state the {combined}-octet bound"
     assert "34816" not in spec, "DC-1 still cites the old combined cap, which omitted the JCS wrapper"
+    assert "34839" not in spec, "DC-1 still cites the pre-links combined cap"
 check("payload:length", _payload_length)
 
 def _payload_tamper():
@@ -713,6 +1082,54 @@ def _snapshot_content_digest():
     for stale in ("bit-identical", "byte-identical tiers"):
         assert stale not in spec, f"DC-3 still claims byte-reproducible Snapshots: {stale!r}"
 check("snapshot:content-digest", _snapshot_content_digest)
+
+def _assert_links_materialization(vec_links):
+    """DC-3 §7: `tier1/links.parquet` is `(source_url, target_url, position)`
+    per declared link, derived from the live record's Payload alone.
+
+    Factored so the twin below runs this exact assertion over a perturbed
+    tuple list and proves it raises — the pattern
+    `_assert_links_valid`/`negative:payload-links-rules` uses. A twin that
+    re-derives `expected` and compares it against the mutation instead is
+    vacuous: that comparison is already entailed by the positive check
+    passing, and it stays true however weak the positive check becomes.
+    """
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
+    expected = [
+        {"source_url": delta["url"], "target_url": u, "position": i}
+        for i, u in enumerate(payload["content"]["links"]["urls"])]
+    assert vec_links == expected, "links materialization != derivation from Payload"
+
+def _snapshot_links_materialization():
+    """DC-3 §7: the links materialization is a pure function of live
+    records' Payloads — recompute it from examples/payload.json."""
+    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    _assert_links_materialization(vec["links"])
+    manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())
+    paths = {f["path"]: f["tier"] for f in manifest["manifest"]["files"]}
+    assert paths.get("tier1/links.parquet") == 1, "links.parquet missing from manifest"
+    assert paths.get("tier0/embeddings.parquet") == 0, \
+        "embeddings.parquet missing from manifest (DC-3 §6 layout lists it)"
+
+check("spec:snapshot-links", _snapshot_links_materialization)
+
+def _snapshot_links_twin():
+    """Mutation twin: a shifted `position` must be rejected by the same
+    helper the positive check runs, with the same message."""
+    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    mutated = json.loads(json.dumps(vec["links"]))
+    assert mutated, "vector carries no link tuples to mutate"
+    mutated[0]["position"] += 1
+    try:
+        _assert_links_materialization(mutated)
+    except AssertionError as e:
+        assert "links materialization != derivation from Payload" in str(e), \
+            f"rejected, but not by its target rule: {e}"
+        return
+    raise AssertionError("a shifted position still matched — the check is blind")
+
+check("negative:snapshot-links", _snapshot_links_twin)
 
 def _merkle_empty():
     expected = "sha256:" + hashlib.sha256(b"\x00").hexdigest()
@@ -1534,6 +1951,14 @@ def _dc4_appendix_figures():
         for n in (c["D"], c["p_1e7"], c["reputation_u"]):
             assert str(n) in flat or f"{n:,}".replace(",", " ") in flat, \
                 f"DC-4 does not quote {c['label']} value {n}"
+        # The Selected? cell itself, pinned to its own row via the
+        # (lhs_approx, rhs_approx) pair — unique per selection entry — so a
+        # hand-edit flipping "yes" to "no" (or vice versa) on the wrong row
+        # cannot pass unnoticed. Bold markers (`**yes**`) are tolerated.
+        word = "yes" if c["selected"] else "no"
+        row = re.escape(f"{c['lhs_approx']} | {c['rhs_approx']} |")
+        assert re.search(row + r"\s*\*{0,2}" + word + r"\*{0,2}\s*\|", flat), \
+            f"DC-4's Selected? column for {c['label']} does not say {word!r} on its own row"
     # No floating-point rendering of the sampling rate may survive in §4's
     # normative text: the integers are the definition, decimals only a reading.
     section4 = flat.split("## 4. Audit Sampling")[1].split("## 5.")[0]
@@ -1916,20 +2341,41 @@ def _dc4_reputation_figures():
         "DC-4 does not show what the worked p_1e7 reads as"
 check("spec:dc4-reputation-figures", _dc4_reputation_figures)
 
-def _dc4_similarity_thresholds():
-    """The three §5 verdict bands, read out of the specification's own table.
+def _dc4_similarity_thresholds(section5=None):
+    """The three extract §5 verdict bands and the two nested link bands,
+    read out of the specification's own table.
 
     Every check below that needs a threshold reads it here rather than
     carrying its own copy, so an edit to §5 moves what the checks exercise
     instead of drifting away from it.
+
+    `section5` is the already-sliced §5 text to parse; the default (None)
+    reads and slices it from the real spec file. A caller may instead pass
+    a perturbed copy — `negative:dc4-link-thresholds` below does, to prove
+    the link-threshold regexes and the registry cross-check actually bind
+    to the table's content rather than passing regardless of it.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
+    if section5 is None:
+        spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+        section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
     rows = {
-        "consistent_at_or_above": r"\|\s*`consistent`\s*\|\s*effective similarity\s*≥\s*([\d ]+?)\s*\|",
+        # Unlike the other two extract rows, `consistent`'s condition cell
+        # carries a second, trailing clause (DC-4 §5: the link-dimension
+        # qualifier), so this pattern reads the number off the front of the
+        # cell rather than requiring the cell to end right after it.
+        "consistent_at_or_above": r"\|\s*`consistent`\s*\|\s*effective similarity\s*≥\s*([\d ]+)",
         "variance_at_or_above": r"\|\s*`dynamic_variance`\s*\|\s*([\d ]+?)\s*≤\s*effective similarity",
         "variance_below": r"\|\s*`dynamic_variance`\s*\|.*?effective similarity\s*<\s*([\d ]+?)\s*\|",
         "inconsistent_below": r"\|\s*`inconsistent`\s*\|\s*effective similarity\s*<\s*([\d ]+?)\s*\|",
+        # The link dimension's own thresholds: the trailing clause on the
+        # `consistent` row, and the two link-verdict rows nested inside it.
+        # Parsed independently of the extract thresholds above, so a
+        # hand-edit that moves a link number without moving the qualifier
+        # (or vice versa) is caught rather than silently accepted.
+        "link_consistent_at_or_above": r"\|\s*`consistent`\s*\|.*?`link_agreement`\s*≥\s*([\d ]+?)\s*\|",
+        "link_variance_floor_at_or_above": r"\|\s*`link_variance`\s*\|.*?([\d ]+?)\s*≤\s*`link_agreement`",
+        "link_variance_below": r"\|\s*`link_variance`\s*\|.*?`link_agreement`\s*<\s*([\d ]+?)\s*\(",
+        "link_inconsistent_below": r"\|\s*`link_inconsistent`\s*\|.*?`link_agreement`\s*<\s*([\d ]+?)\s*\|",
     }
     out = {}
     for name, pattern in rows.items():
@@ -1940,7 +2386,59 @@ def _dc4_similarity_thresholds():
         "§5's `consistent` floor and `dynamic_variance` ceiling are not the same number"
     assert out["variance_at_or_above"] == out["inconsistent_below"], \
         "§5's `dynamic_variance` floor and `inconsistent` ceiling are not the same number"
+    assert out["link_consistent_at_or_above"] == out["link_variance_below"], \
+        "§5's `consistent` link floor and `link_variance` ceiling are not the same number"
+    assert out["link_variance_floor_at_or_above"] == out["link_inconsistent_below"], \
+        "§5's `link_variance` floor and `link_inconsistent` ceiling are not the same number"
+
+    # The two link thresholds are also registered constants (§9): a table
+    # that agrees with itself but not with the Parameter Registry is still
+    # wrong, and a `parameter_change` reads the registry value, never §5's
+    # own prose copy of it.
+    registered = _registry_table_defaults()
+    assert out["link_consistent_at_or_above"] == registered["link_agreement_consistent"], (
+        f"§5's verdict table reads the link consistent floor as "
+        f"{out['link_consistent_at_or_above']}, but §9 registers "
+        f"link_agreement_consistent as {registered['link_agreement_consistent']}")
+    assert out["link_variance_floor_at_or_above"] == registered["link_variance_floor"], (
+        f"§5's verdict table reads the link variance floor as "
+        f"{out['link_variance_floor_at_or_above']}, but §9 registers "
+        f"link_variance_floor as {registered['link_variance_floor']}")
     return out
+
+def _link_threshold_parser_twin():
+    """A hand-edited link threshold in a *copy* of §5's table must break
+    `_dc4_similarity_thresholds`'s own registry cross-check — proof the
+    link-threshold regexes added above bind to the table's real numbers
+    rather than passing regardless of its content. Both link rows are
+    perturbed to the same wrong value (300 000 → 250 000) so the table
+    still agrees with itself and the failure is specifically the registry
+    comparison, not the self-consistency assert a single-row edit would
+    trip instead; the disk copy is untouched throughout.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
+    variance_row = re.compile(r"(`link_variance`\s*\|.*?)300 000(\s*≤\s*`link_agreement`)")
+    inconsistent_row = re.compile(r"(`link_inconsistent`\s*\|.*?`link_agreement`\s*<\s*)300 000")
+    assert variance_row.search(section5) and inconsistent_row.search(section5), \
+        "the link threshold rows did not match for the twin to perturb"
+    mutated = variance_row.sub(r"\g<1>250 000\g<2>", section5, count=1)
+    mutated = inconsistent_row.sub(r"\g<1>250 000", mutated, count=1)
+    assert mutated != section5, "the substitution changed nothing"
+
+    try:
+        _dc4_similarity_thresholds(mutated)
+    except AssertionError as e:
+        assert str(e) == (
+            "§5's verdict table reads the link variance floor as 250000, "
+            "but §9 registers link_variance_floor as 300000"), \
+            f"raised for the wrong reason: {e!r}"
+    else:
+        raise AssertionError(
+            "perturbing both link thresholds in a copied table still "
+            "passed _dc4_similarity_thresholds")
+
+check("negative:dc4-link-thresholds", _link_threshold_parser_twin)
 
 
 def _dc4_severity_rows():
@@ -1996,6 +2494,10 @@ def _dc4_verdict_totality():
     CONSISTENT, HIGH = t["consistent_at_or_above"], t["inconsistent_below"]
     assert 0 < HIGH < CONSISTENT <= 1_000_000, \
         f"§5's thresholds are not ordered inside the micro-unit range: {t}"
+    LINK_CONSISTENT = t["link_consistent_at_or_above"]
+    LINK_VARIANCE_FLOOR = t["link_variance_floor_at_or_above"]
+    assert 0 < LINK_VARIANCE_FLOOR < LINK_CONSISTENT <= 1_000_000, \
+        f"§5's link thresholds are not ordered inside the micro-unit range: {t}"
     rows = _dc4_severity_rows()
 
     # The severity table's domain, computed from §7's rows, must be exactly
@@ -2020,11 +2522,26 @@ def _dc4_verdict_totality():
     assert re.search(r"=\s*1 000 000\s*−\s*similarity\s*\(delete\)", section5), \
         "§5 does not state the `delete` mirror as 1 000 000 − similarity"
 
-    def bands(eff):
-        return [name for name, hit in (
+    def bands(eff, link_agreement=None):
+        """DC-4 §5's full seven-row model: the three extract bands, with a
+        second partition over `link_agreement` nested inside the extract-
+        `consistent` band alone. `link_agreement=None` models the link
+        dimension being neutral for this audit — a `delete`, a non-HTML
+        representation, or an `unreachable`/`not_auditable` verdict — in
+        which case the result depends on `eff` only, exactly as before
+        this function grew a second parameter.
+        """
+        extract_hit = [name for name, hit in (
             ("consistent", eff >= CONSISTENT),
             ("dynamic_variance", HIGH <= eff < CONSISTENT),
             ("inconsistent", eff < HIGH),
+        ) if hit]
+        if len(extract_hit) != 1 or extract_hit[0] != "consistent" or link_agreement is None:
+            return extract_hit
+        return [name for name, hit in (
+            ("consistent", link_agreement >= LINK_CONSISTENT),
+            ("link_variance", LINK_VARIANCE_FLOOR <= link_agreement < LINK_CONSISTENT),
+            ("link_inconsistent", link_agreement < LINK_VARIANCE_FLOOR),
         ) if hit]
 
     def severities(eff):
@@ -2060,6 +2577,47 @@ def _dc4_verdict_totality():
         "a `delete` audit finding the committed content served verbatim is not the gravest severity"
     assert bands(1_000_000 - 0)[0] == "consistent", \
         "a `delete` audit finding none of the committed content is not `consistent`"
+
+    # The link dimension's own partition (DC-4 §5), nested inside the
+    # extract-`consistent` band alone: every `link_agreement` value is
+    # checked at two representative extract-consistent readings — the
+    # boundary itself and the top of the range — since which consistent-
+    # band `eff` it sits inside cannot move the link partition.
+    seen_link = set()
+    for eff_probe in (CONSISTENT, 1_000_000):
+        for link_agreement in range(0, 1_000_001):
+            hit = bands(eff_probe, link_agreement)
+            assert len(hit) == 1, (
+                f"eff={eff_probe}, link_agreement={link_agreement} matches "
+                f"{len(hit)} link-dimension verdicts: {hit}")
+            seen_link.add(hit[0])
+    assert seen_link == {"consistent", "link_variance", "link_inconsistent"}, \
+        f"the link dimension cannot reach every band: {seen_link}"
+
+    # Exact boundary behaviour at the two link thresholds, the shape §5's
+    # table states ("≥" / "≤ … <" / "<").
+    assert bands(CONSISTENT, LINK_CONSISTENT) == ["consistent"], \
+        "link_agreement at its own consistent floor is not `consistent`"
+    assert bands(CONSISTENT, LINK_CONSISTENT - 1) == ["link_variance"], \
+        "link_agreement one below the consistent floor is not `link_variance`"
+    assert bands(CONSISTENT, LINK_VARIANCE_FLOOR) == ["link_variance"], \
+        "link_agreement at its own variance floor is not `link_variance`"
+    assert bands(CONSISTENT, LINK_VARIANCE_FLOOR - 1) == ["link_inconsistent"], \
+        "link_agreement one below the variance floor is not `link_inconsistent`"
+
+    # The qualifier is vacuous outside the extract-`consistent` band, and
+    # when the dimension does not apply at all (`link_agreement=None`):
+    # neither moves the verdict away from the extract-only reading — the
+    # nested partition can only ever narrow the one band it sits inside.
+    for eff_probe in (0, HIGH - 1, HIGH, CONSISTENT - 1):
+        extract_only = bands(eff_probe)
+        assert bands(eff_probe, None) == extract_only, \
+            f"eff={eff_probe} with no link dimension applied is not the extract-only band"
+        for link_agreement in (0, LINK_VARIANCE_FLOOR, LINK_CONSISTENT, 1_000_000):
+            assert bands(eff_probe, link_agreement) == extract_only, (
+                f"eff={eff_probe} (outside the extract-consistent band) is "
+                f"moved by link_agreement={link_agreement}, but the link "
+                f"dimension must be vacuous there")
 check("spec:dc4-verdict-totality", _dc4_verdict_totality)
 
 def _dc4_severity_bands():
@@ -2163,6 +2721,19 @@ def _withdrawal_binds_every_serving_path():
             f"DC-3 §6.2's stop-serving obligation does not bind the {party}"
     assert "every party holding the Payload for protocol purposes MUST destroy it" in withdrawal, \
         "DC-3 §6.2 no longer requires holders to destroy the Payload and its salt"
+
+    # The Snapshot artifacts are a fourth serving path, and the link graph is
+    # one of their content tiers: a withdrawal that named `extracts.parquet`
+    # alone would leave the withdrawn Payload's declared links in
+    # distribution (DC-3 §7), which is the same one-fetch hole the
+    # stop-serving rule above exists to close. The bullet parsed above is the
+    # *first* of §6.2's obligations, so this clause is not reached by it.
+    materialization = re.search(
+        r"^- Consumers MUST exclude[^\n]*(?:\n(?!- ).*)*", withdrawal, re.M)
+    assert materialization, \
+        "DC-3 §6.2 no longer binds Snapshot artifacts already published"
+    assert "tier1/links.parquet" in materialization.group(0), \
+        "DC-3 §6.2's Snapshot-artifact rule does not name tier1/links.parquet"
 
     # The conflicting duty must be reconciled where it is stated, not only
     # overridden from another document.
@@ -2438,5 +3009,149 @@ def _single_discovery_channel():
     assert "(DNS TXT fallback)" not in adr, \
         "ADR-0002 still lists the fallback as part of the accepted decision"
 check("spec:single-discovery-channel", _single_discovery_channel)
+
+def _link_agreement_vector():
+    """DC-4 §5: recompute every published link_agreement case."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc4" / "link-agreement.json").read_text())
+    for case in vec["cases"]:
+        got = link_extraction.link_agreement(
+            case["declared_urls"], case["declared_total"],
+            case["observed_urls"], case["observed_total"])
+        assert got == case["link_agreement"], f"{case['label']}: {got}"
+
+check("vectors:dc4-link-agreement", _link_agreement_vector)
+
+def _link_agreement_twin():
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc4" / "link-agreement.json").read_text())
+    case = next(c for c in vec["cases"] if c["observed_urls"])
+    got = link_extraction.link_agreement(
+        case["declared_urls"], case["declared_total"],
+        case["observed_urls"][:-1], case["observed_total"] - 1)
+    assert got != case["link_agreement"], "dropping an observed link moved nothing"
+
+check("negative:dc4-link-agreement", _link_agreement_twin)
+
+def _verdict_pair_ok(record, effective_similarity=None):
+    """DC-4 §5: raise AssertionError when `record`'s (effective similarity,
+    link_agreement, verdict) triple does not satisfy §5's condition for
+    its own verdict — the real predicate behind DC-4 §3's malformed-
+    evidence rejection, not a copy of it, so both the positive check below
+    and its twin exercise one function rather than one each agreeing with
+    itself. Thresholds are read from the Parameter Registry's own
+    published defaults (`_registry_table_defaults()`), never as literals,
+    so a `parameter_change` to either threshold moves what this checks.
+
+    `effective_similarity` is §5's mirror applied to `record["similarity"]`
+    — the sealed value itself for `new`/`update`/`attest`, `1_000_000 -
+    similarity` for `delete` — and resolving it is the CALLER's job: a
+    Record carries `audited_delta`, not its change type, so this function
+    cannot look the mirror up itself. The default (`None`) falls back to
+    the sealed `similarity` unmirrored, which is correct only for a
+    non-`delete` audit; a caller checking a `delete` Record MUST resolve
+    the change type and pass the mirrored value explicitly, or a
+    perfectly conforming `delete` (similarity 0, effective 1 000 000) is
+    flagged malformed in exactly the direction §5's mirror exists to
+    prevent.
+
+    Only the three verdicts whose condition involves the link dimension
+    are covered — `dynamic_variance`, `inconsistent`, `unreachable` and
+    `not_auditable` are outside this pair-condition's scope and are left
+    unchecked here (DC-4 §5's full verdict totality is `spec:dc4-verdict-
+    totality`'s job, not this one's).
+    """
+    if effective_similarity is None:
+        effective_similarity = record["similarity"]
+    defaults = _registry_table_defaults()
+    sim_floor = defaults["similarity_consistent"]
+    link_floor = defaults["link_agreement_consistent"]
+    link_variance_floor = defaults["link_variance_floor"]
+    verdict = record["verdict"]
+    if verdict == "consistent":
+        assert effective_similarity >= sim_floor, \
+            "consistent verdict below the extract band"
+        if "link_agreement" in record:
+            assert record["link_agreement"] >= link_floor, \
+                "consistent verdict below the link band"
+    elif verdict == "link_variance":
+        assert effective_similarity >= sim_floor, \
+            "link_variance verdict below the extract band"
+        assert link_variance_floor <= record["link_agreement"] < link_floor, \
+            "link_variance verdict outside the link variance band"
+    elif verdict == "link_inconsistent":
+        assert effective_similarity >= sim_floor, \
+            "link_inconsistent verdict below the extract band"
+        assert record["link_agreement"] < link_variance_floor, \
+            "link_inconsistent verdict at or above the link variance floor"
+
+def _verdict_pair_condition():
+    """DC-4 §3/§5: the example Record's (similarity, link_agreement) pair
+    satisfies §5's condition for its own verdict. The example Record's
+    audited Delta is change type `new` (`vectors/dc1/id.txt`'s Delta, DC-1
+    §3.3), so `similarity` needs no §5 mirror and `_verdict_pair_ok` is
+    called with none — a `delete` Record would have to pass one (below)."""
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    assert rec["verdict"] == "consistent"
+    _verdict_pair_ok(rec)
+
+check("spec:audit-verdict-pair", _verdict_pair_condition)
+
+def _verdict_pair_twin():
+    """A link_agreement below the floor must not still read as `consistent`
+    (DC-4 §5). The mutation runs through `_verdict_pair_ok` itself — the
+    same function the positive check calls — rather than re-deriving the
+    boolean inline, and the failure is message-matched to the specific
+    link-band assertion, so a defect in the wrong branch of the checker
+    (or one that stops raising at all) cannot pass this by accident."""
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    mutated = copy.deepcopy(rec)
+    mutated["verdict"] = "consistent"
+    mutated["link_agreement"] = 299_999
+    try:
+        _verdict_pair_ok(mutated)
+    except AssertionError as e:
+        assert str(e) == "consistent verdict below the link band", \
+            f"raised for the wrong reason: {e!r}"
+    else:
+        raise AssertionError("a link_agreement below the floor still reads as consistent")
+
+check("negative:audit-verdict-pair", _verdict_pair_twin)
+
+def _verdict_pair_delete_mirror():
+    """DC-4 §5: a `delete` audit's `similarity` is mirrored before any
+    verdict condition ever reads it (`1_000_000 − similarity`), so a
+    conforming `delete` Record scoring `similarity` 0 — full agreement
+    that the committed content is gone — is `consistent` at effective
+    similarity 1 000 000, not malformed evidence. `_verdict_pair_ok`
+    cannot resolve that mirror itself (a Record carries `audited_delta`,
+    not a change type), so the caller passes it explicitly. The Record
+    seals no `link_agreement`: §5 makes the link dimension neutral for a
+    `delete` audit, and §3 rejects a Record carrying one where it is."""
+    rec = {"verdict": "consistent", "similarity": 0}
+    _verdict_pair_ok(rec, effective_similarity=1_000_000)
+
+check("spec:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror)
+
+def _verdict_pair_delete_mirror_twin():
+    """The same Record read through the sealed `similarity` unmirrored —
+    `_verdict_pair_ok`'s default, correct only for a non-`delete` audit —
+    must be flagged malformed: proof the mirror argument is load-bearing
+    and not merely accepted and ignored. This is the bug IMPORTANT-5
+    named: before the `effective_similarity` parameter existed, this
+    exact conforming `delete` Record was rejected as below the extract
+    band."""
+    rec = {"verdict": "consistent", "similarity": 0}
+    try:
+        _verdict_pair_ok(rec)
+    except AssertionError as e:
+        assert str(e) == "consistent verdict below the extract band", \
+            f"raised for the wrong reason: {e!r}"
+    else:
+        raise AssertionError(
+            "a delete Record read without the effective-similarity mirror "
+            "still passed as consistent")
+
+check("negative:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror_twin)
 
 sys.exit(1 if failures else 0)

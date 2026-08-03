@@ -4,13 +4,13 @@
     "domain": "example.com",
     "generated_at": "2026-08-02T12:00:00Z",
     "deltas": [
-      "sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047"
+      "sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120"
     ],
     "next": null
   },
   "sig": {
     "key_id": "test-k1",
     "alg": "Ed25519",
-    "value": "yuF1tBgcSjGDVkP_Q0JWfrTTUCifGBwtrWBW41fuef8AHP4tI1olsUH9Fj6-CKT6GrxxiZ0EkcgxLdc5RE29Bg"
+    "value": "rgfDggu4Vb2i337Qg4-rjeeCE7R9DguWQgROpi_6RRzC7PoO-oyGmmJyBxzKhZJqbOQ-DGSgpMSYYbkeXFTlCA"
   }
 }

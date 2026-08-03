@@ -1,5 +1,5 @@
 {
-  "note": "The live record set DC-3 \u00a77's content_digest is computed over. Each record carries Log-derived identifiers only: no page content reaches the digest, so it remains computable after a Payload is withdrawn (DC-3 \u00a76.2), while delta_id still names the Delta whose salted commitment binds the content. The reduced.example.org Delta is not an Entry of the example Block; this vector publishes the record encoding, not a materialization of Block 0.",
+  "note": "The live record set DC-3 \u00a77's content_digest is computed over. Each record carries Log-derived identifiers only: no page content reaches the digest, so it remains computable after a Payload is withdrawn (DC-3 \u00a76.2), while delta_id still names the Delta whose salted commitment binds the content. The reduced.example.org Delta is not an Entry of the example Block; this vector publishes the record encoding, not a materialization of Block 0. `links` is the tier1/links.parquet materialization: one (source_url, target_url, position) row per declared link of every live record, source_url the record's Normalized URL and target_url/position drawn in order from that record's Payload content.links.urls. Unlike the record tuple above, a link row derives from Payload content, not from the Log, and therefore leaves distribution with the Payload on a withdrawal (DC-3 \u00a76.2) rather than surviving in content_digest; the reduced.example.org record contributes no rows because its Payload declares no links.",
   "snapshot_date": "2026-08-02",
   "log_position": 0,
   "record_fields": [
@@ -13,17 +13,34 @@
     {
       "url": "https://example.com/blog/post-1",
       "publisher": "example.com",
-      "delta_id": "sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047",
+      "delta_id": "sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120",
       "observed_at": "2026-08-02T12:00:00Z",
       "weight": "full"
     },
     {
       "url": "https://reduced.example.org/notice",
       "publisher": "reduced.example.org",
-      "delta_id": "sha256:3e2104cef3773981bb822ae1053acabeac4269e0ca331d75fcb06857e3521956",
+      "delta_id": "sha256:783dc15e05848677f27fcd71470cd860e27e7c12e679cbf4af2a6235488cd6ee",
       "observed_at": "2026-08-02T11:30:00Z",
       "weight": "reduced"
     }
   ],
-  "content_digest": "sha256:5db633a40df6a037228f7f74d72b9275a4d2e873169662628b1994afe6848cd1"
+  "content_digest": "sha256:cc3e6076ef2c5e0e53955a422b2fe314d72814dea82bdb1aeec8cd675961e55c",
+  "links": [
+    {
+      "source_url": "https://example.com/blog/post-1",
+      "target_url": "https://example.org/reference",
+      "position": 0
+    },
+    {
+      "source_url": "https://example.com/blog/post-1",
+      "target_url": "https://spec.example.net/dc-1",
+      "position": 1
+    },
+    {
+      "source_url": "https://example.com/blog/post-1",
+      "target_url": "https://example.org/~user",
+      "position": 2
+    }
+  ]
 }
