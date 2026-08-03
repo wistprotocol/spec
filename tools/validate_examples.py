@@ -1189,6 +1189,102 @@ def _parameter_registry_enum():
         f"the enum accepts identifiers §9 publishes no row for: {missing_from_table}"
 check("spec:parameter-registry-enum", _parameter_registry_enum)
 
+def _registry_table_defaults():
+    """DC-4 §9's Default column, keyed by identifier, as leading integers."""
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    out = {}
+    for line in section9.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != 4 or cells[1] == "Identifier":
+            continue
+        names = re.findall(r"`([a-z0-9_]+)`", cells[1])
+        m = re.match(r"([\d ]+)", cells[2])
+        if len(names) == 1 and m:
+            out[names[0]] = int(m.group(1).replace(" ", ""))
+    return out
+
+def _parameter_change_floors():
+    """The `minimum` each `parameter_change` branch imposes, by identifier."""
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    for branch in schema["allOf"]:
+        if branch["if"]["properties"]["update"]["properties"]["action"].get("const") \
+                != "parameter_change":
+            continue
+        details = branch["then"]["properties"]["update"]["properties"]["details"]
+        return {sub["if"]["properties"]["parameter"]["const"]:
+                sub["then"]["properties"]["value"]["minimum"]
+                for sub in details["allOf"]}
+    raise AssertionError("registry-update.schema.json has no parameter_change branch")
+
+def _parameter_floors():
+    """Every floor §9 publishes is the floor the schema enforces, and bites.
+
+    A floor that lives only in prose is an argument, not a constraint: the
+    parameters that carry one carry it because setting them toward zero retires
+    a mechanism the suite depends on, and nothing but the schema stands between
+    a signed `parameter_change` and that outcome. So the two are compared in
+    both directions — a prose floor the schema does not impose, and a schema
+    floor §9 does not publish, are both failures — and each is then exercised at
+    its own boundary rather than assumed to be wired up.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    # Read the enumerated list itself, not every inequality in §9: the section
+    # also bounds `effective_at`, which is a field of the Registry Update rather
+    # than a parameter the enum can name.
+    listing = re.search(
+        r"reduces to a single numeric floor\s*\(([^)]*)\)", section9, re.S)
+    assert listing, "§9 no longer enumerates the schema-enforced floors"
+    # `≥ n` is a floor of n; `> n` is a floor of n + 1. Both spellings appear.
+    published = {}
+    for name, op, raw in re.findall(
+            r"`([a-z0-9_]+)`\s*(≥|>)\s*([\d ]+)", listing.group(1)):
+        n = int(raw.replace(" ", ""))
+        published[name] = n if op == "≥" else n + 1
+    assert published, "§9 publishes no numeric floors in the expected form"
+    enforced = _parameter_change_floors()
+    assert published == enforced, (
+        "§9's published floors and the schema's differ:\n"
+        f"  published: {dict(sorted(published.items()))}\n"
+        f"  enforced:  {dict(sorted(enforced.items()))}")
+
+    # Each floor exercised at its own boundary. A branch wired to the wrong
+    # identifier, or a `then` that constrains nothing, passes the comparison
+    # above and fails here.
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    v = Draft202012Validator(schema)
+    sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
+    def change(parameter, value):
+        return {"update": {"dc_version": "1.0.0", "action": "parameter_change",
+                           "subject": "log.example.org",
+                           "details": {"parameter": parameter, "value": value},
+                           "effective_at": "2026-08-12T16:00:00Z"},
+                "sig": sig}
+    for name, floor in sorted(enforced.items()):
+        assert v.is_valid(change(name, floor)), \
+            f"a parameter_change setting {name} to its own floor {floor} is rejected"
+        assert not v.is_valid(change(name, floor - 1)), \
+            f"a parameter_change setting {name} to {floor - 1}, below its floor, validates"
+
+    # `mirror_retention_days` is derived, not chosen: it is the longest span
+    # DC-4 §7's own due process can run, so raising either deadline without
+    # raising it would leave an appellant unable to fetch the Blocks holding
+    # the Audit Records its sanction rests on (DC-3 §6).
+    defaults = _registry_table_defaults()
+    derived = defaults["appeal_window_days"] + defaults["ruling_deadline_days"]
+    assert enforced["mirror_retention_days"] == derived, (
+        f"the mirror retention floor is {enforced['mirror_retention_days']}, but "
+        f"§7's appeal window ({defaults['appeal_window_days']}) plus its ruling "
+        f"deadline ({defaults['ruling_deadline_days']}) is {derived} days")
+    assert defaults["mirror_retention_days"] >= derived, \
+        "the published mirror retention default is below its own floor"
+    assert str(derived) in section9, \
+        f"§9 does not state the {derived}-day span the floor is derived from"
+check("spec:parameter-floors", _parameter_floors)
+
 def _dc4_payload_withdrawal():
     """A withdrawal is only distinguishable from censorship if it is typed.
 
