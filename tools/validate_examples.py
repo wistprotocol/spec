@@ -407,15 +407,71 @@ NON_CONTENT_DIGESTS = {
     ("payload.schema.json", "salt"): "the salt itself: drawn from a CSPRNG, never derived from the content it keys (DC-1 §3.6)",
 }
 
+# Every opaque value the suite ships, by the (file, key) it appears at, with
+# what it actually is. Scoping to the pair rather than to the name matters: a
+# 64-hex string is legitimate at `block.json`'s `merkle_root` and is a bare
+# content digest at `registry-update.json`'s, and a global union of names cannot
+# tell those apart.
+NON_CONTENT_VALUES = {
+    ("audit-record.json", "audited_delta"): "a Delta ID",
+    ("audit-record.json", "vrf_proof"): "an ECVRF proof over a Block Hash",
+    ("audit-record.json", "value"): "an Ed25519 signature",
+    ("block.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("block.json", "merkle_root"): "root over Entries, which carry commitments only",
+    ("block.json", "prev"): "a Delta ID",
+    ("block.json", "value"): "an Ed25519 signature",
+    ("checkpoint.json", "block_hash"): "SHA-256 of a Block header",
+    ("checkpoint.json", "value"): "an Ed25519 signature",
+    ("delta.json", "prev"): "a Delta ID",
+    ("delta.json", "value"): "an Ed25519 signature",
+    ("envelope.json", "value"): "an Ed25519 signature",
+    ("feed.json", "deltas"): "Delta IDs",
+    ("feed.json", "value"): "an Ed25519 signature",
+    ("log-anchor.json", "public_key"): "an Ed25519 public key",
+    ("log-anchor.json", "value"): "an Ed25519 signature",
+    ("payload.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
+    ("publisher.json", "public_key"): "an Ed25519 public key",
+    ("publisher.json", "value"): "an Ed25519 signature",
+    ("registry-update.json", "public_key"): "an Ed25519 public key",
+    ("registry-update.json", "value"): "an Ed25519 signature",
+    ("snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (DC-3 §7)",
+    ("snapshot-manifest.json", "value"): "an Ed25519 signature",
+    ("status.json", "delta_id"): "a Delta ID",
+    ("id.txt", None): "the DC-1 vector's Delta ID",
+    ("keypair.json", "seed_hex"): "the test signing seed",
+    ("keypair.json", "public_key"): "an Ed25519 public key",
+    ("inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
+    ("sampling.json", "block_hash"): "SHA-256 of a Block header",
+    ("sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
+    ("sampling.json", "beta_hex"): "the VRF output",
+    ("sampling.json", "vrf_proof_hex"): "an ECVRF proof",
+    ("sampling.json", "delta_id"): "a Delta ID",
+    ("sampling.json", "auditor_public_key"): "an Ed25519 public key",
+    ("audit-commitments.json", "audited_delta"): "a Delta ID",
+    ("audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
+}
+
 DIGEST_NAME = re.compile(r"hash|digest|sha\d|checksum|commitment", re.IGNORECASE)
+
+# Digest lengths in hex: MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512.
+HEX_DIGEST_LENGTHS = (32, 40, 56, 64, 96, 128)
+# The same digests base64url-encoded, plus the 16-octet floor a salt sits at.
+B64_DIGEST_LENGTHS = (22, 27, 38, 43, 64, 86)
 
 # A pattern is digest-shaped if it accepts a digest. Probing the pattern beats
 # pattern-matching the pattern: `^[0-9a-f]{64}$`, `^[0-9A-F]{64}$` and
 # `^[a-f0-9]{64}$` are the same constraint written three ways, and a regex over
 # the regex catches whichever spelling it was written to catch.
-DIGEST_PROBES = [p + "0" * n
-                 for n in (32, 40, 56, 64, 96, 128, 160)
-                 for p in ("", "sha256:", "warc:sha256:", "hmac-sha256:")]
+DIGEST_PROBES = [p + c * n
+                 for n in HEX_DIGEST_LENGTHS
+                 for c in "0a"
+                 for p in ("", "sha256:", "sha512:", "warc:sha256:", "hmac-sha256:")]
+
+VALUE_DIGEST = re.compile(
+    r"(?:[a-z0-9-]{1,16}:){0,2}(?:"
+    + "|".join(f"[0-9a-fA-F]{{{n}}}" for n in HEX_DIGEST_LENGTHS)
+    + "|" + "|".join(f"[A-Za-z0-9_-]{{{n}}}" for n in B64_DIGEST_LENGTHS)
+    + ")")
 
 def _is_digest_shaped(pattern: str) -> bool:
     if not pattern:
@@ -426,35 +482,75 @@ def _is_digest_shaped(pattern: str) -> bool:
         return True          # an unparseable pattern constrains nothing usable
     return any(rx.search(probe) for probe in DIGEST_PROBES)
 
-def _walk_schema(node, schema_name, findings, key=None):
+def _resolve(node, root, seen):
+    """Follow a local `$ref` so that `$defs` cannot hide a field from the walk."""
+    ref = node.get("$ref") if isinstance(node, dict) else None
+    if not isinstance(ref, str) or not ref.startswith("#") or ref in seen:
+        return node
+    seen = seen | {ref}
+    target = root
+    for token in ref.lstrip("#/").split("/"):
+        if not token:
+            continue
+        token = token.replace("~1", "/").replace("~0", "~")
+        if isinstance(target, list):
+            target = target[int(token)]
+        else:
+            target = target.get(token, {})
+    return target if isinstance(target, dict) else node
+
+def _walk_schema(node, schema_name, findings, key=None, root=None, seen=frozenset()):
     """Collect every digest-shaped leaf, by property name and by pattern shape.
 
     Two detectors, because either alone is escapable: a field named
     `withdrawn_content` with pattern `^[0-9a-f]{64}$` carries no telltale name,
     and a field named `extract_hash` with no pattern at all carries no telltale
-    pattern. What neither reaches is a field with an innocuous name and no
-    pattern at all — an unconstrained string can hold a digest whatever it is
-    called. The example scan below covers that for what the suite ships, and
-    DC-4 §9.1 covers it normatively for what an implementation may add.
+    pattern. Every applicator JSON Schema offers is followed, including the ones
+    that hide a subschema behind indirection (`$ref`/`$defs`), behind a key
+    regex (`patternProperties`), or behind a tuple position (`prefixItems`) —
+    a field is no less declared for being reached that way.
+
+    What neither detector reaches is a field with an innocuous name and no
+    pattern at all: an unconstrained string can hold a digest whatever it is
+    called. The example and vector scan below covers that for what the suite
+    ships, and DC-4 §9.1 covers it normatively for what an implementation adds.
     """
-    if isinstance(node, dict):
-        pattern = node.get("pattern", "")
-        if key is not None and (DIGEST_NAME.search(key) or _is_digest_shaped(pattern)):
-            findings.append((schema_name, key, pattern))
-        for name, sub in node.get("properties", {}).items():
-            _walk_schema(sub, schema_name, findings, name)
-        for kw in ("items", "then", "else", "not", "contains",
-                   "additionalProperties", "propertyNames"):
-            if isinstance(node.get(kw), dict):
-                _walk_schema(node[kw], schema_name, findings, key)
-        for kw in ("allOf", "anyOf", "oneOf"):
-            for sub in node.get(kw, []):
-                if isinstance(sub, dict):
-                    _walk_schema(sub, schema_name, findings, key)
-        # `if` shapes a branch rather than declaring a field, but a digest
-        # smuggled into one would still be a schema-blessed field name.
-        if isinstance(node.get("if"), dict):
-            _walk_schema(node["if"], schema_name, findings, key)
+    if root is None:
+        root = node
+    if not isinstance(node, dict):
+        return findings
+    node = _resolve(node, root, seen)
+    if not isinstance(node, dict):
+        return findings
+    if node.get("$ref"):
+        seen = seen | {node["$ref"]}
+    pattern = node.get("pattern", "")
+    if key is not None and (DIGEST_NAME.search(key) or _is_digest_shaped(pattern)):
+        findings.append((schema_name, key, pattern))
+    for name, sub in node.get("properties", {}).items():
+        _walk_schema(sub, schema_name, findings, name, root, seen)
+    for name, sub in node.get("patternProperties", {}).items():
+        # The key is a regex rather than a name; carry it as the key so a
+        # `.*_hash` property regex is still a name match.
+        _walk_schema(sub, schema_name, findings, name, root, seen)
+    for name, sub in node.get("$defs", {}).items():
+        _walk_schema(sub, schema_name, findings, name, root, seen)
+    for i, sub in enumerate(node.get("prefixItems", [])):
+        _walk_schema(sub, schema_name, findings, f"{key}[{i}]", root, seen)
+    for kw in ("items", "then", "else", "not", "contains", "if",
+               "additionalProperties", "propertyNames", "unevaluatedProperties",
+               "unevaluatedItems"):
+        if isinstance(node.get(kw), dict):
+            # An applicator at the root of a schema governs fields that have no
+            # property name of their own, so the walk must carry a name for it
+            # rather than skip a nameless subschema.
+            _walk_schema(node[kw], schema_name, findings,
+                         key if key is not None else f"<{kw}>", root, seen)
+    for kw in ("allOf", "anyOf", "oneOf"):
+        for sub in node.get(kw, []):
+            if isinstance(sub, dict):
+                _walk_schema(sub, schema_name, findings,
+                             key if key is not None else f"<{kw}>", root, seen)
     return findings
 
 def _no_unsalted_content_digest():
@@ -463,9 +559,10 @@ def _no_unsalted_content_digest():
     Moving extracts out of the Log achieves nothing if any object keeps an
     unsalted hash of the same text, so this holds the whole suite to the rule
     DC-3 §6.2 states: a content-derived value is committed under the Payload
-    salt or it is not carried at all. Every schema is enumerated; every
-    digest-shaped field must either be an `hmac-sha256:` commitment or appear
-    in NON_CONTENT_DIGESTS with a reason.
+    salt or it is not carried at all. Two sweeps: every schema, where every
+    digest-shaped field must be an `hmac-sha256:` commitment or a declared
+    non-content digest; and every shipped example and vector, where every
+    digest-shaped *value* must sit at a declared (file, key).
     """
     schemas = sorted((ROOT / "schemas").glob("*.schema.json"))
     assert len(schemas) >= 9, f"only {len(schemas)} schemas enumerated; the sweep is not suite-wide"
@@ -482,25 +579,40 @@ def _no_unsalted_content_digest():
         "digest-shaped fields that are neither salted commitments nor declared " \
         "content-free:\n  " + "\n  ".join(offenders)
 
-    # The examples must not smuggle one through an unconstrained object either
-    # (DC-4 §9.1): registry-update `details` is `{"type": "object"}` for several
-    # actions, so a bare digest there would satisfy every schema in the suite.
-    allowed_keys = {key for _, key in NON_CONTENT_DIGESTS}
-    def scan(node, key, where):
+    # Values, not just declarations: `registry-update`'s `details` is
+    # `{"type": "object"}` for several actions, so a bare digest there would
+    # satisfy every schema in the suite (DC-4 §9.1). Vectors are swept too — a
+    # digest parked in vectors/ is as published as one in examples/.
+    def scan(node, key, where, hits):
         if isinstance(node, dict):
             for k, v in node.items():
-                scan(v, k, where)
+                scan(v, k, where, hits)
         elif isinstance(node, list):
             for v in node:
-                scan(v, key, where)
+                scan(v, key, where, hits)
         elif isinstance(node, str):
-            bare = re.fullmatch(r"(sha256:|warc:sha256:)?[0-9a-f]{64}", node)
-            if bare and key not in allowed_keys:
-                raise AssertionError(
-                    f"{where}: bare digest at {key!r} = {node} — commit it under "
-                    "the Payload salt (DC-3 §6.2) or do not carry it")
-    for example in sorted((ROOT / "examples").glob("*.json")):
-        scan(json.loads(example.read_text()), None, example.name)
+            if node.startswith("hmac-sha256:"):
+                return hits          # a salted commitment; audit:commitments proves it
+            if VALUE_DIGEST.fullmatch(node) and (where, key) not in NON_CONTENT_VALUES:
+                hits.append(f"{where}: opaque value at {key!r} = {node[:24]}… — "
+                            "commit it under the Payload salt (DC-3 §6.2), or do "
+                            "not carry it, or declare it in NON_CONTENT_VALUES")
+        return hits
+
+    hits, scanned = [], 0
+    files = sorted((ROOT / "examples").glob("*.json"))
+    files += sorted(p for p in (ROOT / "vectors").rglob("*") if p.is_file())
+    for path in files:
+        raw = path.read_text()
+        try:
+            doc = json.loads(raw)
+        except json.JSONDecodeError:
+            # Not JSON (id.txt): treat the whole file as one value.
+            doc = raw.strip()
+        scan(doc, None, path.name, hits)
+        scanned += 1
+    assert scanned >= 20, f"only {scanned} shipped files swept; the sweep is not suite-wide"
+    assert not hits, "opaque values at undeclared locations:\n  " + "\n  ".join(hits)
 check("repo:no-unsalted-content-digest", _no_unsalted_content_digest)
 
 def _dc4_coverage_attestation():
