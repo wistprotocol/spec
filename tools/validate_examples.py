@@ -369,6 +369,18 @@ _SCAN_ORACLE = [
     # denote a code point <= 0x10FFFF (7 decimal digits) either way.
     ("over-long decimal reference discards the candidate",
      b'<a href="https://example.org/x?y=&#' + b"9" * 4301 + b';">t</a>', []),
+    # DC-2 §11 step 4 reads "&#NNN;" as decimal — ASCII digits. `_CHAR_REF`
+    # scopes `\d` with `re.ASCII`, so a reference spelled with non-ASCII
+    # decimal digits (Arabic-Indic "٦٥" = 65 below) matches none of the
+    # three alternatives and is left exactly as written, literal `#`
+    # included. That surviving `#` then reads as RFC 3986's fragment
+    # delimiter, and DC-1 §2 normalization drops the fragment — truncating
+    # the extracted URL's query at the `&` — rather than the link reading
+    # `?y=Az` the way a wrongly-decoded `&#٦٥;` (65 = 'A') would produce,
+    # with no `#` left over to start a fragment at all.
+    ("non-ASCII decimal digits in a numeric reference are not decoded",
+     ('<a href="https://example.org/x?y=&#٦٥;z">t</a>'
+      .encode("utf-8")), ["https://example.org/x?y=&"]),
 ]
 
 def _link_normalization_oracle(normalize_table=_NORMALIZE_ORACLE, scan_table=_SCAN_ORACLE):
