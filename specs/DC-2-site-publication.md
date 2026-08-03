@@ -204,12 +204,30 @@ consumption by aggregators and auditors; `robots.txt` directives do not
 apply to fetches under this path. Fetches of any other path (e.g. auditor
 re-fetches of content URLs, DC-4 §5) remain subject to `robots.txt`.
 
+An Auditor's re-fetches MUST carry the product token
+`DeltaCommons-Auditor` in `User-Agent`, and it evaluates `robots.txt`
+([RFC 9309]) under that token; the Auditor's `auditor_id` MAY appear
+elsewhere in the header for operator contact, but MUST NOT be the token
+the file is matched on. One token for every Auditor is what keeps the
+choice a Publisher makes a choice about auditing rather than about
+auditors.
+
+A `robots.txt` in force that would grant access to some admitted Auditors
+(DC-4 §3) and deny it to others — by naming individual Auditors, or by any
+other discrimination between them — MUST be treated by **every** Auditor
+as a prohibition, recorded `unreachable` with `robots_excluded` (DC-4 §5),
+whatever access it purports to grant that Auditor itself. Selective
+permission is the more dangerous case, not the lesser one: a Publisher
+that admits exactly one Auditor keeps its URL audited on paper while
+ensuring no second independent Auditor can ever see the page, and a
+Confirmed Inconsistency needs two.
+
 A Publisher that forbids those re-fetches keeps that right and pays a
-stated price: a URL whose audits `robots.txt` has turned away for the
-unauditable horizon, with no successful audit since, is excluded from
+stated price: a URL whose audits `robots.txt` has turned away, with no
+successful audit by an independent Auditor since, is excluded from
 materialization until one succeeds (DC-4 §5, DC-3 §7). It is not a
 sanction and touches no reputation — declining audits and being
-materialized are simply not available at the same time.
+materialized are simply not available at the same time, indefinitely.
 
 ## 6. Unsigned Change Hints (Compatibility)
 
@@ -312,6 +330,8 @@ who consumes their Deltas.
 ## References
 
 - [RFC 2119] / [RFC 8174] BCP 14 key words
+- [RFC 9309] Robots Exclusion Protocol — the product-token matching §5's
+  Auditor rule is stated over
 - DC-1: Delta Format & Identity — Envelope, Delta ID, Key Set, scope rule
 - DC-3: Commons Log & Distribution — block queueing
 - DC-4: Audit, Reputation & Governance — quotas, sanctions, auditor observations
