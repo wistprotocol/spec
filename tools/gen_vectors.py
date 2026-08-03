@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 import ecvrf
+import link_extraction
 from merkle import audit_path, leaf_hash, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -51,10 +52,27 @@ def write_json(path: pathlib.Path, obj: dict) -> None:
 # URL. That is a property of the vector, never of a conforming Publisher.
 DELTA_URL = "https://example.com/blog/post-1"
 EXTRACT = "DeltaCommons is an open, verifiable, push-based web index protocol."
-LINKS = {
-    "total": 2,
-    "urls": ["https://example.org/reference", "https://spec.example.net/dc-1"],
-}
+
+# The example Delta's own page, in raw HTML octets — link_extraction.py's
+# "example-delta-page" vector fixture below runs its extraction procedure
+# over this exact byte string, so the Payload's links member is derived from
+# a page rather than asserted, and the vector, the example and the audit
+# story below all agree by construction.
+LINKS_CAP_BYTES = 4096
+FIXTURE_HTML = b"""<!doctype html><html><body>
+<p>Reference: <a href="https://example.org/reference">ref</a></p>
+<a href="https://spec.example.net/dc-1">the spec</a>
+<a href="/blog/post-2">internal relative</a>
+<a href="https://www.example.com/about">internal subdomain</a>
+<a href="http://insecure.example.io/x">non-https, dropped</a>
+<a href="mailto:someone@example.org">not a URL scheme, dropped</a>
+<a href="https://EXAMPLE.ORG/reference">duplicate after normalization</a>
+<a href="https://example.org/%7euser">escape renormalized, distinct URL</a>
+</body></html>"""
+LINKS = link_extraction.links_member(
+    *link_extraction.extract_links(FIXTURE_HTML, DELTA_URL, "example.com"),
+    LINKS_CAP_BYTES)
+
 CONTENT = {
     "extract": EXTRACT,
     "links": LINKS,
@@ -140,6 +158,67 @@ write_json(EXAMPLES / "status.json", {
                     "detail": "prev chain violation"}],
 })
 print("dc2 status example written")
+
+# ------------------------------------------------- DC-2: link extraction
+DC2V = ROOT / "vectors" / "dc2"
+DC2V.mkdir(parents=True, exist_ok=True)
+
+expected_urls = ["https://example.org/reference", "https://spec.example.net/dc-1",
+                 "https://example.org/~user"]
+
+# Fixture 2: truncation. Each link serializes to 54 JCS octets, so 100 of
+# them (5400+ octets) overflow the 4096-octet budget while 74 do not,
+# ensuring the declared prefix comes out strictly shorter than total.
+OVERFLOW_LINK_COUNT = 100
+overflow_html = b"".join(
+    b'<a href="https://links.example.io/item-%03d?section=references">x</a>' % n
+    for n in range(OVERFLOW_LINK_COUNT))
+
+# Fixture 3: scan-hardening. Exercises DC-2 §11 steps 1-4 (comment/raw-text
+# skipping, quote-aware attribute parsing, `data-href` vs `href`, character
+# reference decoding), not just the resolve/normalize/dedupe steps fixtures
+# 1-2 already cover.
+scan_html = b"""<!doctype html><html><body>
+<!-- <a href="https://commented.example.io/x">hidden in comment</a> -->
+<script>var link = "<a href=\\"https://scripted.example.io/x\\">";</script>
+<a data-href="https://decoy.example.io/x">decoy, not href</a>
+<a title="a>b" href="https://quoted.example.io/x">quoted value holds a bare &gt;</a>
+<a href="https://query.example.io/x?y=1&amp;z=2">entity reference in the query</a>
+<A HREF="https://upper.example.io/x">uppercase tag and attribute name</A>
+<a href=https://unquoted.example.io/x>unquoted href value</a>
+</body></html>"""
+scan_expected_urls = ["https://quoted.example.io/x", "https://query.example.io/x?y=1&z=2",
+                      "https://upper.example.io/x", "https://unquoted.example.io/x"]
+scan_excluded_hosts = ("commented.example.io", "scripted.example.io", "decoy.example.io")
+
+cases = []
+for label, html, base, dom in (
+        ("example-delta-page", FIXTURE_HTML, DELTA_URL, "example.com"),
+        ("budget-truncation", overflow_html, DELTA_URL, "example.com"),
+        ("scan-hardening", scan_html, DELTA_URL, "example.com")):
+    urls, total = link_extraction.extract_links(html, base, dom)
+    member = link_extraction.links_member(urls, total, LINKS_CAP_BYTES)
+    cases.append({"label": label, "html_hex": html.hex(), "base_url": base,
+                  "publisher_domain": dom, "expected": member})
+
+assert cases[0]["expected"] == {"total": 3, "urls": expected_urls}, \
+    "fixture extraction drifted"
+assert cases[1]["expected"]["total"] == OVERFLOW_LINK_COUNT and \
+    0 < len(cases[1]["expected"]["urls"]) < OVERFLOW_LINK_COUNT, \
+    "truncation not exercised"
+assert cases[2]["expected"] == {"total": 4, "urls": scan_expected_urls}, \
+    "scan-hardening fixture drifted"
+assert not any(host in u for u in cases[2]["expected"]["urls"]
+              for host in scan_excluded_hosts), \
+    "a comment-, script-, or data-href-only link leaked into the declared set"
+
+write_json(DC2V / "link-extraction.json",
+           {"note": ("DC-2's extraction procedure over raw HTML bytes. "
+                     "html_hex decodes to the exact input; expected is the "
+                     "links member a conforming Publisher declares for it "
+                     "under links_cap_bytes."),
+            "links_cap_bytes": LINKS_CAP_BYTES, "cases": cases})
+print("dc2 link-extraction vector:", [c["label"] for c in cases])
 
 # ------------------------------------------------------------ DC-3: log anchor
 anchor = {
