@@ -1317,8 +1317,36 @@ def _dc4_similarity_thresholds():
     return out
 
 
+def _dc4_severity_rows():
+    """§7's severity table as intervals, parsed out of §7's own text.
+
+    Read rather than restated, so that the totality check below tests §5's
+    verdict bands against the severity table the document actually
+    publishes. A copy kept here would agree with itself while §5 and §7
+    drifted apart, which is the failure the check exists to catch.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
+    rows = []
+    for m in re.finditer(
+            r"\|\s*([\d ]+?)\s*≤\s*`sim`\s*<\s*([\d ]+?)\s*\|\s*(\d)\s*\(", section7):
+        rows.append((int(m.group(1).replace(" ", "")),
+                     int(m.group(2).replace(" ", "")), int(m.group(3))))
+    for m in re.finditer(r"\|\s*`sim`\s*<\s*([\d ]+?)\s*\|\s*(\d)\s*\(", section7):
+        rows.append((0, int(m.group(1).replace(" ", "")), int(m.group(2))))
+    assert len(rows) >= 3, f"DC-4 §7's severity table did not parse: {rows}"
+    # §7 must state its input as the *effective* similarity: reverting it to
+    # the sealed `similarity` silently un-does the `delete` mirror and leaves
+    # a false `delete` deriving severity from a value in the wrong direction.
+    assert re.search(r"let `sim` be the highest\s+\*\*effective similarity\*\*\s*\(§5\)",
+                     section7), \
+        "DC-4 §7 does not derive `sim` from the effective similarity (§5)"
+    return rows
+
+
 def _dc4_verdict_totality():
-    """Every permitted pair of texts maps to exactly one verdict (DC-4 §5).
+    """Every permitted pair of texts maps to exactly one verdict (DC-4 §5),
+    and every verdict that carries a penalty maps to exactly one severity.
 
     A verdict table with a gap leaves a conforming Auditor with nothing to
     record, and one with an overlap lets two conforming Auditors record
@@ -1326,12 +1354,15 @@ def _dc4_verdict_totality():
     and the severity ladder rest on a judgement call the specification did
     not make. `similarity` is an integer in micro-units, so the reachable
     range is finite and exactly enumerable — every value is checked, for
-    every change type, against the bands §5 actually states.
+    every change type, against the bands §5 states and the severity rows §7
+    states, each parsed from the document rather than restated here. The
+    two must meet exactly: §7's rows must cover [0, §5's `inconsistent`
+    ceiling) and nothing beyond it, or some reachable Confirmed
+    Inconsistency has two severities or none.
 
-    The `delete` direction is the one that needs the check most: its
-    verdict is read from the mirrored value, and a mirror that did not land
-    inside the severity table's domain would leave a false `delete` as a
-    Confirmed Inconsistency whose severity has no input (§7).
+    The `delete` direction needs it most: its verdict is read from the
+    mirrored value, and a mirror landing outside §7's domain would leave a
+    false `delete` as a Confirmed Inconsistency with no severity input.
     """
     spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
     section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
@@ -1339,6 +1370,21 @@ def _dc4_verdict_totality():
     CONSISTENT, HIGH = t["consistent_at_or_above"], t["inconsistent_below"]
     assert 0 < HIGH < CONSISTENT <= 1_000_000, \
         f"§5's thresholds are not ordered inside the micro-unit range: {t}"
+    rows = _dc4_severity_rows()
+
+    # The severity table's domain, computed from §7's rows, must be exactly
+    # the range §5 makes reachable for an `inconsistent` verdict. Widening
+    # §5's ceiling without widening §7's table, or narrowing §7's table
+    # without narrowing §5, fails here rather than in a deployment.
+    top = max(hi for _, hi, _ in rows)
+    bottom = min(lo for lo, _, _ in rows)
+    assert bottom == 0, f"§7's severity table does not reach 0 (lowest bound {bottom})"
+    assert top == HIGH, (
+        f"§7's severity table covers [0, {top}) but §5 makes every effective "
+        f"similarity in [0, {HIGH}) `inconsistent`: "
+        + ("a Confirmed Inconsistency in "
+           f"[{top}, {HIGH}) would have no severity" if top < HIGH else
+           f"§7 grades values in [{HIGH}, {top}) that no verdict can produce"))
 
     # The mirror itself must be stated, and stated as a reflection about the
     # full micro-unit range: any other constant would move `delete` verdicts
@@ -1355,10 +1401,10 @@ def _dc4_verdict_totality():
             ("inconsistent", eff < HIGH),
         ) if hit]
 
-    def severity_input_defined(eff):
-        return 0 <= eff < HIGH          # the domain of §7's severity table
+    def severities(eff):
+        return [s for lo, hi, s in rows if lo <= eff < hi]
 
-    seen = {"new": set(), "delete": set()}
+    seen, graded = {"new": set(), "delete": set()}, set()
     for sim in range(0, 1_000_001):
         for change_type in ("new", "delete"):
             eff = sim if change_type != "delete" else 1_000_000 - sim
@@ -1369,17 +1415,23 @@ def _dc4_verdict_totality():
                 f"{change_type} at similarity {sim} matches {len(hit)} verdicts: {hit}"
             seen[change_type].add(hit[0])
             if hit[0] == "inconsistent":
-                assert severity_input_defined(eff), \
-                    (f"a {change_type} Confirmed Inconsistency at similarity {sim} "
-                     f"has effective similarity {eff}, outside §7's severity table")
+                got = severities(eff)
+                assert len(got) == 1, (
+                    f"a {change_type} Confirmed Inconsistency at similarity {sim} "
+                    f"(effective {eff}) matches {len(got)} severity rows: {got}")
+                graded.add(got[0])
     for change_type, got in seen.items():
         assert got == {"consistent", "dynamic_variance", "inconsistent"}, \
             f"{change_type} audits cannot reach every band: {got}"
+    assert graded == {1, 2, 3}, \
+        f"the reachable `inconsistent` range does not exercise every severity: {graded}"
 
     # A `delete` whose URL still serves the committed content is the case
     # the mirror exists for, and it must be `inconsistent` with a severity.
     assert bands(1_000_000 - 1_000_000)[0] == "inconsistent", \
         "a `delete` audit finding the committed content served verbatim is not `inconsistent`"
+    assert severities(1_000_000 - 1_000_000) == [max(s for _, _, s in rows)], \
+        "a `delete` audit finding the committed content served verbatim is not the gravest severity"
     assert bands(1_000_000 - 0)[0] == "consistent", \
         "a `delete` audit finding none of the committed content is not `consistent`"
 check("spec:dc4-verdict-totality", _dc4_verdict_totality)
