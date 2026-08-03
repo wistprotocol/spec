@@ -333,27 +333,28 @@ How much of a sanction's evidence is still checkable when the Publisher
 appeals is decided by §7's ladder spans, and for one rung the answer is:
 not all of it. Levels 1 and 2 open no appeal window at all — they follow
 automatically from evidence any party can recompute — so nothing there
-depends on a capture surviving. Level 3 rests on Confirmed Inconsistencies
-within a 90-day span, so its oldest confirming Record is at least 90 days
-old by the time the criteria are met; add the 14-day appeal window and the
-30-day ruling deadline and the process runs to **at least** day 134. Level
-4's 180-day branch — three severity-3 Confirmed Inconsistencies within 180
-days — puts the same floor at 224 days, past the 180-day availability
-window (DC-3 §6.1).
+depends on a capture surviving. For levels 3 and 4 the ladder bounds
+nothing that helps. Its 90-day and 180-day spans bound how far apart the
+Confirmed Inconsistencies may lie, not how old any of them is when the
+process runs, and level 3's other branch — any severity-3 — fires on a
+single Confirmed Inconsistency of no age at all. At the other end §7 sets
+no deadline for sealing a `notice` once the criteria are met, the appeal
+window runs from the notice's `effective_at` rather than from a confirming
+Record's sealing, and level 4's second branch — a level-3 domain that
+accrues one further Confirmed Inconsistency — carries no span bound
+whatever, because the level-3 state it builds on has none. An Aggregator
+that files late moves the whole process later without limit.
 
-These are floors and not caps, and the difference matters more than the
-numbers. §7 sets no deadline for sealing a `notice` once the escalation
-criteria are met, and the appeal window runs from the notice's
-`effective_at` rather than from the confirming Record's sealing, so an
-Aggregator that files late moves the whole process later without bound.
-Level 4's second branch — a level-3 domain that accrues one further
-Confirmed Inconsistency — carries no span bound at all, because the
-level-3 state it builds on has none. Nothing in the suite therefore
-guarantees that a Reference Payload is still served when the appeal that
-rests on it is heard: it is guaranteed for confirmation, which is fixed
-within 72 hours, and for nothing beyond that. A Record's Reference Payload
-may lawfully have lapsed, or been withdrawn, throughout the appeal it is
-being used to justify.
+So the age of a confirming Record when the appeal resting on it is heard
+is unbounded above, and one reachable case is enough to show the
+consequence: on level 4's 180-day branch the oldest confirming Record can
+already be 180 days old at the `notice`, and 180 + 14 + 30 puts the ruling
+at day 224 — past the 180-day availability window (DC-3 §6.1). Nothing in
+the suite guarantees a Reference Payload is still served at that point. It
+is guaranteed for confirmation, which is fixed within 72 hours of the
+first `inconsistent` verdict, and for nothing beyond that: a Record's
+Reference Payload may lawfully have lapsed, or been withdrawn, throughout
+the appeal it is being used to justify.
 
 What an appellant can and cannot do in that window follows directly. For
 every confirming Record whose Reference Payload is still served, it can
