@@ -3125,8 +3125,10 @@ def _verdict_pair_delete_mirror():
     that the committed content is gone — is `consistent` at effective
     similarity 1 000 000, not malformed evidence. `_verdict_pair_ok`
     cannot resolve that mirror itself (a Record carries `audited_delta`,
-    not a change type), so the caller passes it explicitly."""
-    rec = {"verdict": "consistent", "similarity": 0, "link_agreement": 1_000_000}
+    not a change type), so the caller passes it explicitly. The Record
+    seals no `link_agreement`: §5 makes the link dimension neutral for a
+    `delete` audit, and §3 rejects a Record carrying one where it is."""
+    rec = {"verdict": "consistent", "similarity": 0}
     _verdict_pair_ok(rec, effective_similarity=1_000_000)
 
 check("spec:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror)
@@ -3139,7 +3141,7 @@ def _verdict_pair_delete_mirror_twin():
     named: before the `effective_similarity` parameter existed, this
     exact conforming `delete` Record was rejected as below the extract
     band."""
-    rec = {"verdict": "consistent", "similarity": 0, "link_agreement": 1_000_000}
+    rec = {"verdict": "consistent", "similarity": 0}
     try:
         _verdict_pair_ok(rec)
     except AssertionError as e:
