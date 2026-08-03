@@ -54,7 +54,7 @@ A conforming Publisher serves, over HTTPS only:
 `deltas/<id>.json` contains exactly one Delta Envelope, where `<id>` is
 the Delta ID (including the `sha256:` prefix is NOT used in the filename;
 the filename is the 64-char hex digest, e.g.
-`deltas/7bee228c...1047.json`). Delta files are immutable: once published
+`deltas/6cac5bdd...5120.json`). Delta files are immutable: once published
 under an ID, the bytes MUST NOT change. Publishers SHOULD serve them with
 long-lived cache headers (`Cache-Control: public, max-age=31536000,
 immutable`).
@@ -388,6 +388,11 @@ who consumes their Deltas.
 
 ## 10. Conformance Checklist
 
+This checklist is not the document's last section: §11 defines the link
+extraction procedure the Publisher row below is stated over, and it
+follows here rather than preceding it so that the pull sequence stays
+adjacent to the layout it walks.
+
 **Publisher:**
 
 - [ ] Serves the well-known paths over HTTPS with the layout of §3
@@ -395,6 +400,9 @@ who consumes their Deltas.
 - [ ] Serves a Payload for every content-bearing Delta, at the matching
       hex-digest name, and keeps the anchor Payload of every URL it
       attests retrievable (§3.1)
+- [ ] Declares `content.links` by §11's extraction procedure exactly,
+      truncated to the longest prefix that fits `links_cap_bytes` (§11,
+      DC-1 §3.6)
 - [ ] Stops serving a Payload from the height a `payload_withdrawal`
       naming its Delta is sealed — the retention duty above does not
       survive it — and re-anchors the chain rather than keeping the
@@ -430,6 +438,88 @@ who consumes their Deltas.
       `DC2-E02`/`DC2-E04` count as noise (§4)
 - [ ] HTTPS-only, same-authority-only fetching, per the Canonical Host /
       `subdomain_scope` redirect rule (§8)
+
+## 11. Link Extraction
+
+A Publisher declares its page's external links in the Payload's `links`
+member (DC-1 §3.6) by one procedure, and an Auditor checking the
+declaration (DC-4 §5) MUST apply the same procedure to its own fetch —
+the rule is deterministic precisely so that the two runs can disagree
+only when the page did.
+
+The procedure operates on the **raw HTML response octets** — never on a
+DOM after script execution, so a link inserted by JavaScript does not
+exist for it, and the scan below is specified precisely enough that two
+conforming implementations cannot disagree about anything else. In order
+of appearance in the octet stream:
+
+1. Strip every HTML comment: the octet run from `<!--` through the next
+   `-->`, or through the end of input if unterminated.
+2. Skip raw-text element content: everything between a case-insensitive
+   `<script`, `<style`, or `<textarea` start tag and its matching
+   case-insensitive end tag — or through the end of input if
+   unterminated — is not scanned for `<a>` elements or comments.
+3. An `<a>` element opens at a case-insensitive `<a` immediately followed
+   by whitespace (tab, LF, FF, CR, or space), `/`, or `>` — `<article>`
+   and `<aside>` MUST NOT match. Parse its attributes quote-aware: an
+   attribute name is a run of octets excluding whitespace, `=`, `>`, and
+   `/`; an optional `=` is followed by a `"`- or `'`-quoted value (a `>`
+   inside the quotes does not end the tag) or by an unquoted run up to
+   the next whitespace or `>`. The tag ends at the first `>` that is not
+   inside a quoted value. The candidate is the value of the first
+   attribute named exactly `href` (case-insensitive) — `data-href` is a
+   different attribute and MUST NOT be treated as `href`.
+4. Decode character references in the candidate before resolution:
+   `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, `&#NNN;` (decimal, ASCII
+   digits `0`-`9` only), and `&#xHH;` (hexadecimal, ASCII `0`-`9`,
+   `A`-`F` and `a`-`f` only). The repertoires are pinned because a
+   language whose "digit" class spans Unicode — and whose integer parser
+   silently folds those digits to their ASCII values — decodes
+   `&#٦٥;` to `A`, while an implementation reading this step as written
+   leaves it untouched; the two then extract different links from one
+   page. An `&` that forms none of these is left as written, digits
+   outside the repertoire included. A numeric character reference whose
+   code point is not a Unicode scalar value — above `0x10FFFF`, or a
+   surrogate `0xD800`-`0xDFFF` — makes the value have no link: it is
+   discarded, the same fail-closed posture DC-1 §2 takes toward an
+   unresolvable escape.
+5. Resolve the decoded candidate against the final response URL per RFC
+   3986 §5.
+6. Normalize per DC-1 §2. A value with no Normalized URL is discarded —
+   it is not a link, the fail-closed rule of DC-1 §2.
+7. Discard every link whose Canonical Host is the Publisher's domain or
+   a subdomain of it.
+8. Deduplicate: the first occurrence of a Normalized URL holds its
+   position; later occurrences are discarded.
+
+The count of survivors is `total`. `urls` is the longest prefix of the
+survivors, in order, whose serialized `links` object fits
+`links_cap_bytes` (DC-1 §3.6).
+
+**Which representations are HTML.** A representation is **HTML** for this
+procedure when the media type of its `Content-Type` response header —
+compared case-insensitively, with any parameters such as `charset`
+ignored — is `text/html` or `application/xhtml+xml`. Every other media
+type is not, and neither is a representation served with no
+`Content-Type` at all. A representation that is not HTML has no links
+under this procedure: its Payload MUST declare `{"total": 0, "urls":
+[]}`. Publisher and Auditor MUST decide the question from that header
+alone and MUST NOT sniff the body, because they decide it on two
+separate fetches of the same page and only the header is a declaration
+both can read the same way. The predicate is enumerated rather than left
+to "whatever a browser would parse" for the reason the whole procedure
+is: a Publisher that reads `application/xhtml+xml` as non-HTML declares
+`{"total": 0, "urls": []}` while an Auditor that reads it as HTML
+extracts a set, and the disagreement surfaces as a `link_agreement` of 0
+(DC-4 §5) with neither party having misdeclared anything.
+
+`vectors/dc2/link-extraction.json` carries the conformance fixtures: the
+exact input octets and the exact member a conforming implementation
+produces, including one fixture whose full set exceeds the budget so
+that the prefix rule is exercised, not merely stated, and one fixture
+exercising the scan itself — a comment-wrapped link, a script-embedded
+link, a `data-href` decoy, a quoted attribute value containing `>`, a
+character reference, an uppercase tag, and an unquoted `href`.
 
 ## References
 

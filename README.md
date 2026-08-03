@@ -36,7 +36,9 @@ Auditor ◄── samples deltas from sealed blocks ──┘             │
 specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
-vectors/     deterministic test vectors (DC-1 signature, DC-3 Merkle)
+vectors/     deterministic test vectors (DC-1 signature, DC-2 link
+             extraction, DC-3 Merkle and snapshot records, DC-4 sampling,
+             reputation, decay table, audit commitments, link agreement)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
@@ -65,6 +67,7 @@ deterministic: fixed test seed, fixed timestamps, no wall-clock.
 - [ADR-0005](decisions/0005-odbl-for-tier-data.md) — ODbL for public tier data
 - [ADR-0006](decisions/0006-no-self-declared-importance.md) — no self-declared importance anywhere in the protocol
 - [ADR-0007](decisions/0007-content-payloads-outside-the-log.md) — content payloads live outside the immutable log
+- [ADR-0008](decisions/0008-raw-citation-graph-never-a-score.md) — the protocol transports the raw citation graph, never a score
 
 ## Licenses
 
