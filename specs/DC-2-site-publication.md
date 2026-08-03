@@ -30,9 +30,9 @@ shown here.
   sitemap, llms.txt) that a page may have changed.
 - **Ingest Endpoint**: the Aggregator URL that receives Pings.
 
-Terms defined in DC-1 (Publisher, Delta, Delta ID, Envelope, Key Set,
-Canonical Host, Normalized URL, Payload) are used with their DC-1
-meanings. Every
+Terms defined in DC-1 (Publisher, Aggregator, Delta, Delta ID, Envelope,
+Key Set, Canonical Host, Normalized URL, Payload, Publisher Declaration)
+are used with their DC-1 meanings. Every
 Envelope in this document carries `dc_version` (DC-1 §3.1) and the DC-1
 §4 signature block (`key_id`, `alg`, `value`).
 
@@ -86,7 +86,8 @@ keeps an already-sealed Delta auditable, is DC-3 §6.1's.
 [`schemas/feed.schema.json`](../schemas/feed.schema.json)): `domain`,
 `generated_at`, `deltas` — Delta IDs in publication order, newest last —
 and `next`. `generated_at` MUST be monotonically non-decreasing across
-successive versions of `feed.json`.
+successive versions of `feed.json`; an Aggregator MUST discard a pull whose
+`generated_at` has regressed, under `DC2-E05`.
 
 **Publication order** is the order in which the Publisher first added each
 Delta to the Feed. A Delta MUST NOT appear before the Delta named by its
@@ -112,10 +113,24 @@ history: every Delta ID the Publisher has ever sealed MUST appear on
 exactly one Page, never on two and never on none.
 
 **Verification of sealed pages.** A page is verified against the Key Set
-whose Declaration was current at the page's `generated_at` (DC-1 §5.2);
-because pages are immutable they are never re-signed on rotation, and a
-validator MUST NOT reject a page solely because its signing key has since
-been retired.
+current at the page's `generated_at`; because pages are immutable they are
+never re-signed on rotation, and a validator MUST NOT reject a page solely
+because its signing key has since been retired.
+
+DC-1 §5.2's historical-verification procedure cannot be applied directly
+here: it resolves a Key Set by **Block height**, and Pages are never sealed
+into the Log, so a Page has no height. The bridge is stated once, and it is
+the only conversion permitted: the Key Set current at a `generated_at` is
+the one declared by the domain's `publisher_declaration` Entry (DC-3 §3.3)
+with the greatest `sealed_at` not later than that `generated_at` — with
+DC-1 §5.2's recovery exception applied to that comparison exactly as it is
+applied to the by-height one, so a Declaration superseded by a recovery
+rotation is excluded here too. `sealed_at` is strictly increasing across
+Blocks (DC-3 §3.1), so the ordering by `sealed_at` and the ordering by
+height are the same ordering; what changes is only the key the Consumer
+looks the Declaration up by, because a Page carries a timestamp and not a
+height. Every input is in the Log, so two validators resolve the same Page
+to the same Key Set.
 
 **Aggregator obligation.** On each pull, an Aggregator MUST follow `next`
 until it reaches a page whose newest Delta ID it has already ingested, or
@@ -180,7 +195,8 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    new-domain quota of DC-4 §6. A missing or invalid Declaration is a
    `DC2-E04` rejection.
 1. Fetches `feed.json`; verifies its signature against the domain's Key
-   Set (DC-1 §5).
+   Set (DC-1 §5). A Feed that cannot be fetched at all is `DC2-E01` and is
+   retried on the backoff schedule of §7.
 2. Diffs `feed.deltas` against the IDs it has already seen for the
    domain, following `next` through sealed Pages as required by §3.2.
 3. Fetches each new `deltas/<id>.json`; validates each per DC-1 (§4, §7).
@@ -254,18 +270,34 @@ convenience. This asymmetry is the adoption incentive for DC-1/DC-2.
 | DC2-E01 | Feed unreachable after Ping. Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 64 min; a fresh ping cancels a pending backoff and starts a new attempt, subject to quota. |
 | DC2-E02 | Ping produced no new feed content. Counts as noise against the domain's Ping quota. |
 | DC2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (DC-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
-| DC2-E04 | Feed signature invalid. The pull is discarded; counts as noise against the quota. |
+| DC2-E04 | First contact or Feed authentication failure. Two cases, one code: a Feed whose signature does not verify against the domain's Key Set, and a first-contact pull (§5 step 0) whose `publisher.json` is missing, unreachable, malformed, or fails DC-1 §5.1 verification — the second being the case where no Key Set exists to check the first against. The pull is discarded; counts as noise against the quota. The status endpoint (§7.1) MUST distinguish the two in its `detail` field, since a Publisher whose Declaration never loaded and one whose Feed signature is wrong take entirely different remedies. |
 | DC2-E05 | Feed `generated_at` regression. The pull is discarded and counts against the quota as noise. |
 
 ### 7.1. Publisher Status Endpoint
 
 Aggregators MUST expose `GET <aggregator>/status/<domain>` returning the
 `status` object (schema:
-[`schemas/status.schema.json`](../schemas/status.schema.json)) as JSON:
-the domain's last successful pull time, pending rejections with their
-DC-1/DC-2 error codes, current quota, and state. The status document is
-a plain JSON object, not a signed Envelope — it is the Publisher's
-debugging surface, not an artifact other parties verify.
+[`schemas/status.schema.json`](../schemas/status.schema.json)) as JSON. It
+carries `dc_version`, the `domain` it describes, and:
+
+- `last_pull_at` — the time of the last successful pull, or `null` if the
+  Aggregator has never completed one;
+- `quota_remaining` — Pings still available to the domain in the current
+  UTC-day window, against the `Q` of DC-4 §6;
+- `state` — the domain's **ingestion** state: one of `new` (known, not yet
+  successfully pulled), `active`, `sanctioned_quarantine` (DC-4 §7 level 3)
+  or `delisted` (level 4). The last two are exactly the states §4 answers a
+  Ping with `403` for. Provisional (DC-4 §6.3) is deliberately absent: it
+  bounds a domain's reputation and never its ingestion, so a Provisional
+  domain reports `active` like any other, and an implementation that
+  reported it here would be advertising a restriction DC-4 §6.3 forbids it
+  to apply;
+- `rejections` — the pending typed rejections, each with its `code` (a
+  DC-1 or DC-2 error code, §7 and DC-1 §7), the `at` it was recorded, the
+  `delta_id` it concerns where one applies, and a free-text `detail`.
+
+The status document is a plain JSON object, not a signed Envelope — it is
+the Publisher's debugging surface, not an artifact other parties verify.
 
 ## 8. Security Considerations
 

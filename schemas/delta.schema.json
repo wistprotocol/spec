@@ -24,7 +24,7 @@
           "properties": {
             "commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
             "alg": {"const": "HMAC-SHA256"},
-            "bytes": {"type": "integer", "minimum": 0, "maximum": 34816}
+            "bytes": {"type": "integer", "minimum": 0, "maximum": 34839, "description": "Octets of JCS(content) = extract_cap_bytes + summary_cap_bytes + the 23 octets of {\"extract\":,\"summary\":} structure that surround them (DC-1 §3.6). It is a derived bound, not an independent constant."}
           }
         },
         "meta": {
@@ -32,7 +32,7 @@
           "required": ["lang"],
           "additionalProperties": false,
           "properties": {
-            "lang": {"type": "string", "pattern": "^[a-z]{2}(-[A-Za-z0-9]+)?$"},
+            "lang": {"type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{1,8})*$", "description": "A BCP 47 language tag: a 2- or 3-letter primary subtag followed by any number of subtags of 1-8 alphanumerics. The earlier two-letter, one-subtag shape rejected conforming tags such as `yue`, `zh-Hant-HK` and `pt-BR-x-private`."},
             "topics": {"type": "array", "items": {"type": "string", "maxLength": 64}, "maxItems": 10},
             "license": {"type": "string", "maxLength": 64}
           }
@@ -66,6 +66,14 @@
         "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["attest", "delete"]}}}}
       },
       "then": {"properties": {"delta": {"not": {"required": ["payload"]}}}}
+    },
+    {
+      "comment": "DC-1 §3.3: `update`, `delete` and `attest` each say something about a URL's earlier state, so each MUST name the Delta it follows. Only `new` may omit `prev`, and only when it is the very first Delta for that URL — a condition no schema can see, which is why `new` is absent from this branch and DC1-E07 is where it is enforced.",
+      "if": {
+        "required": ["delta"],
+        "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["update", "delete", "attest"]}}}}
+      },
+      "then": {"properties": {"delta": {"required": ["prev"]}}}
     }
   ]
 }
