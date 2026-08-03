@@ -1379,6 +1379,21 @@ def _parameter_bounds():
     assert str(derived) in section9, \
         f"§9 does not state the {derived}-day span the floor is derived from"
 
+    # Three of these floors are derived from octet counts this harness can
+    # compute, so the published numbers are checked against the artifacts they
+    # describe rather than asserted. A cap below any of them is not a small cap
+    # but the absence of the thing it bounds.
+    assert enforced["extract_cap_bytes"][0] == len(rfc8785.dumps("")), \
+        "the extract cap floor is not the octet length of JCS of the empty extract"
+    assert enforced["summary_cap_bytes"][0] == len(rfc8785.dumps({"title": ""})), \
+        "the summary cap floor is not the octet length of the smallest conforming summary"
+    empty_block = json.loads((ROOT / "examples" / "block.json").read_text())
+    empty_block["entries"] = []
+    empty_block["header"]["entry_count"] = 0
+    assert enforced["block_decompressed_cap_bytes"][0] >= len(rfc8785.dumps(empty_block)), (
+        "the Block decompressed cap floor is below the size of an empty Block, which "
+        "DC-3 §3.2 requires an Aggregator to be able to seal")
+
     # The catch-all must reach the parameters that exist, not only later ones:
     # a wording scoped to `confirm_auditors`, `penalty_weight` "and any later
     # parameter serving the same role" excludes every present parameter it
@@ -2267,6 +2282,73 @@ def _derived_not_discretionary():
     assert "`appeal`'s and a `sanction_lift`'s `details` are the Publisher's" in section91, \
         "DC-4 §9.1 does not reach the Publisher-written details the rule was missing"
 check("spec:derived-not-discretionary", _derived_not_discretionary)
+
+def _unappealed_ruling_timing():
+    """An `"unappealed"` ruling may not be sealed before the window it reports.
+
+    `"unappealed"` exists so that a Publisher's silence is answered in the Log
+    rather than rewarded, and so that an Aggregator burying an appeal must make
+    a false, dated, public claim to keep the sanction standing. Both properties
+    need the ruling to come *after* the appeal window closes. Unconstrained, it
+    can be sealed in the notice's own Block: T is discharged for every process
+    the moment it opens, burying an appeal costs one Entry, and the derived
+    half of §7's deadline is gone while only the attributable half survives.
+    The rule is a comparison of two Block `sealed_at` values against a
+    parameter, so it is checked here as arithmetic and not only as prose — no
+    schema can express it, the two Blocks being different Entries.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
+    assert '**An `"unappealed"` ruling cannot precede what it reports.**' in section7, \
+        "DC-4 §7 places no timing constraint on an `unappealed` ruling"
+    assert re.search(
+        r"discharges T only when the Block sealing it has a `sealed_at` at\s*\n"
+        r"\s*or after the close of the appeal window", section7), \
+        "DC-4 §7 does not require an `unappealed` ruling to follow the window's close"
+    assert re.search(r"party recomputing MUST treat it as absent", section7), \
+        "DC-4 §7 does not require a recomputing party to ignore an early `unappealed` ruling"
+    checklist = spec.split("**Any party recomputing reputation:**")[1]
+    assert '`appeal_ruling` of `"unappealed"` whose own Block' in checklist, \
+        "DC-4 §12's recompute checklist has no row for the `unappealed` timing rule"
+
+    # The rule as arithmetic, over the parameters §9 publishes rather than
+    # numbers restated here: an edit to `appeal_window_days` moves what this
+    # exercises instead of leaving it checking a frozen boundary.
+    defaults = _registry_table_defaults()
+    window, seal = defaults["appeal_window_days"], defaults["appeal_seal_days"]
+    day = 86_400
+
+    def discharges(notice_sealed, ruling_sealed):
+        """§7: an `unappealed` ruling counts only from the window's close."""
+        return ruling_sealed >= notice_sealed + window * day
+
+    def state_void_at_T(notice_sealed, ruling_sealed):
+        # T = notice_sealed + (window + seal) days; the state is void there
+        # unless something the Log holds discharges it, and an early ruling
+        # is not something: §7 has a recomputing party treat it as absent.
+        return ruling_sealed is None or not discharges(notice_sealed, ruling_sealed)
+
+    n = 1_000_000
+    # The attack the constraint closes: a ruling batched with its own notice.
+    assert not discharges(n, n), \
+        "a ruling sealed in the notice's own Block discharges T"
+    assert not discharges(n, n + day), \
+        "a ruling sealed one day after the notice discharges T"
+    assert state_void_at_T(n, n + day), \
+        "an early `unappealed` ruling leaves the sanction state standing at T"
+    # The honest path still works, at the boundary and past it.
+    assert discharges(n, n + window * day), \
+        "a ruling sealed exactly at the window's close does not discharge T"
+    assert not state_void_at_T(n, n + window * day), \
+        "a timely `unappealed` ruling does not keep the sanction state in force"
+    assert discharges(n, n + (window + seal) * day), \
+        "a ruling sealed at T itself does not discharge T"
+    assert not discharges(n, n + window * day - 1), \
+        "a ruling one second before the window closes discharges T"
+    # And doing nothing at all still voids the state, or the rule above would
+    # be the only way the deadline ever bites.
+    assert state_void_at_T(n, None), "an unanswered notice leaves the state in force at T"
+check("spec:unappealed-ruling-timing", _unappealed_ruling_timing)
 
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""
