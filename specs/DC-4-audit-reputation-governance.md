@@ -1118,6 +1118,7 @@ audit need room to land inside the same window.
 | `extract` size cap | `extract_cap_bytes` | 32768 bytes | DC-1 §3.6, DC-3 §6.1 |
 | `summary` size cap | `summary_cap_bytes` | 2048 bytes | DC-1 §3.6, DC-3 §6.1 |
 | Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
+| Mirror Block retention floor | `mirror_retention_days` | 90 days | DC-3 §6 |
 | Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
 | Clock skew allowance | `clock_skew_seconds` | 10 minutes | DC-1 §3.4 |
 | Key Set cache TTL | `keyset_cache_ttl_seconds` | 24 hours | DC-1 §5.1 |

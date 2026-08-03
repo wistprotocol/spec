@@ -213,12 +213,81 @@ checkpoint = {
 }
 write_json(EXAMPLES / "checkpoint.json", sign_envelope("checkpoint", checkpoint, "test-agg-k1"))
 
+# ---------------------------------------- DC-3 §7: snapshot content digest
+# The record tuple carries Log-derived identifiers only — no page content — so
+# the digest stays computable after a Payload is withdrawn, while `delta_id`
+# still pins the salted commitment that binds the content itself.
+#
+# Two records, so that both `weight` values and the ordering rule are
+# exercised. The second domain's Delta is not an Entry of the example Block:
+# this vector demonstrates §7's record encoding, not a materialization of
+# Block 0.
+REDUCED_URL = "https://reduced.example.org/notice"
+REDUCED_CONTENT = {
+    "extract": "A second domain, materialized under a level-2 weight mark.",
+    "summary": {"title": "Notice", "abstract": "A reduced-weight record."},
+}
+reduced_canonical = rfc8785.dumps(REDUCED_CONTENT)
+reduced_salt = hashlib.sha256(
+    b"deltacommons-test-salt|" + REDUCED_URL.encode()).digest()[:16]
+reduced_delta = {
+    "dc_version": "1.0.0",
+    "url": REDUCED_URL,
+    "change_type": "new",
+    "observed_at": "2026-08-02T11:30:00Z",
+    "payload": {"commitment": "hmac-sha256:" + hmac.new(
+                    reduced_salt, reduced_canonical, hashlib.sha256).hexdigest(),
+                "alg": "HMAC-SHA256", "bytes": len(reduced_canonical)},
+    "meta": {"lang": "en"},
+}
+reduced_delta_id = "sha256:" + sha256_hex(rfc8785.dumps(reduced_delta))
+
+RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at", "weight"]
+
+snapshot_records = [
+    {"url": DELTA_URL, "publisher": "example.com", "delta_id": delta_id,
+     "observed_at": delta["observed_at"], "weight": "full"},
+    {"url": REDUCED_URL, "publisher": "reduced.example.org",
+     "delta_id": reduced_delta_id,
+     "observed_at": reduced_delta["observed_at"], "weight": "reduced"},
+]
+assert all(sorted(r) == sorted(RECORD_FIELDS) for r in snapshot_records), \
+    "a record carries a field §7's tuple does not name"
+
+
+def content_digest(records) -> str:
+    """DC-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
+    return "sha256:" + sha256_hex(b"".join(sorted(rfc8785.dumps(r) for r in records)))
+
+
+snapshot_digest = content_digest(snapshot_records)
+assert content_digest(list(reversed(snapshot_records))) == snapshot_digest, \
+    "the digest depends on input order"
+
+write_json(DC3 / "snapshot-records.json", {
+    "note": ("The live record set DC-3 §7's content_digest is computed over. "
+             "Each record carries Log-derived identifiers only: no page "
+             "content reaches the digest, so it remains computable after a "
+             "Payload is withdrawn (DC-3 §6.2), while delta_id still names "
+             "the Delta whose salted commitment binds the content. The "
+             "reduced.example.org Delta is not an Entry of the example "
+             "Block; this vector publishes the record encoding, not a "
+             "materialization of Block 0."),
+    "snapshot_date": "2026-08-02",
+    "log_position": 0,
+    "record_fields": RECORD_FIELDS,
+    "records": snapshot_records,
+    "content_digest": snapshot_digest,
+})
+
 tier0_content = b"tier0-placeholder"
 tier1_content = b"tier1-placeholder"
 manifest = {
     "dc_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
+    "anchor_block_hash": block_hash,
+    "content_digest": snapshot_digest,
     "embedding_model": {"name": "example-embed", "version": "1",
                         "dim": 384, "quantization": "int8"},
     "files": [
@@ -230,6 +299,21 @@ manifest = {
 }
 write_json(EXAMPLES / "snapshot-manifest.json",
            sign_envelope("manifest", manifest, "test-agg-k1"))
+
+# ------------------------------------------------------ DC-3 §6: discovery
+snapshot_index = {
+    "dc_version": "1.0.0",
+    "updated_at": "2026-08-02T13:05:00Z",
+    "snapshots": [
+        {"snapshot_date": manifest["snapshot_date"],
+         "log_position": manifest["log_position"],
+         "manifest_url": "/snapshots/%s/manifest.json" % manifest["snapshot_date"],
+         "content_digest": manifest["content_digest"]},
+    ],
+}
+write_json(EXAMPLES / "snapshot-index.json",
+           sign_envelope("index", snapshot_index, "test-agg-k1"))
+print("dc3 snapshot content digest:", snapshot_digest)
 print("dc3 block hash:", block_hash)
 print("dc3 merkle root:", merkle_root)
 print("dc3 leaves:", [l.hex() for l in leaves])
