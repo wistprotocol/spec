@@ -175,7 +175,7 @@
                     "quota_base", "quota_slope", "latency_threshold_u", "escalation_l2",
                     "escalation_l3", "escalation_l4", "appeal_window_days", "ruling_deadline_days",
                     "param_grace_days", "payload_window_days", "unauditable_horizon_days",
-                    "mirror_retention_days", "appeal_seal_days"
+                    "mirror_retention_days", "appeal_seal_days", "url_cap_bytes"
                   ]},
                   "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit DC-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying DC-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
                 },
@@ -283,6 +283,10 @@
                   {
                     "if": {"properties": {"parameter": {"const": "mirror_retention_days"}}},
                     "then": {"properties": {"value": {"minimum": 51}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "url_cap_bytes"}}},
+                    "then": {"properties": {"value": {"minimum": 14}}}
                   }
                 ]
               }

@@ -128,6 +128,13 @@ The value of `url` MUST already be a Normalized URL; a Delta whose `url`
 is not byte-identical to its own normalization MUST be rejected with
 `DC1-E03`. The scope rule compares Canonical Hosts.
 
+The UTF-8 octet length of `JCS(url)` — the JSON string literal with its
+enclosing quotes and any escapes — MUST NOT exceed `url_cap_bytes`
+(Parameter Registry: 2048). A validator MUST reject a Delta whose `url`
+exceeds the cap with `DC1-E11`. The schema's `maxLength` counts code
+points and is a structural first pass; this octet bound governs (§3.6
+states the rule once for every cap in this suite).
+
 ### 3.3. `change_type`
 
 One of four values:
@@ -490,6 +497,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | DC1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
 | DC1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (DC-4 §5) |
 | DC1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
+| DC1-E11 | `url` exceeds `url_cap_bytes` octets |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.

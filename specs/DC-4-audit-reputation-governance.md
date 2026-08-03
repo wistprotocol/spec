@@ -1308,6 +1308,7 @@ existing rather than a recommended setting.
 | `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (DC-3 §6.1) |
 | `unauditable_horizon_days` | ≥ 7 | below, whether a URL is excluded turns on publication scheduling rather than on its `robots.txt` (§5) |
 | `mirror_retention_days` | ≥ 51 | below, an appellant cannot fetch the Records its own sanction rests on (DC-3 §6) |
+| `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (DC-1 §2, §3.2) |
 
 Where the rule does not reduce to a fixed bound — a value that is
 individually in range but collapses a mechanism only in combination with
@@ -1390,6 +1391,7 @@ combination cases above.
 | Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | DC-3 §6 |
 | `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | DC-1 §3.6 |
 | `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | DC-1 §3.6 |
+| `url` size cap | `url_cap_bytes` | 2048 octets | DC-1 §3.2 |
 | Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | DC-3 §6 |
 | Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
