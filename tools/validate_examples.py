@@ -1005,7 +1005,7 @@ def _dc4_coverage_attestation():
         "update": {
             "dc_version": "1.0.0",
             "action": "coverage_attestation",
-            "subject": "audit.example.org",
+            "subject": "audit.example.net",
             "details": {"vrf_proof": v["vrf_proof_hex"]},
             "effective_at": "2026-08-02T16:00:00Z",
         },
@@ -1290,6 +1290,100 @@ def _dc4_reputation_figures():
         "DC-4 does not show what the worked p_1e7 reads as"
 check("spec:dc4-reputation-figures", _dc4_reputation_figures)
 
+def _dc4_similarity_thresholds():
+    """The three §5 verdict bands, read out of the specification's own table.
+
+    Every check below that needs a threshold reads it here rather than
+    carrying its own copy, so an edit to §5 moves what the checks exercise
+    instead of drifting away from it.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
+    rows = {
+        "consistent_at_or_above": r"\|\s*`consistent`\s*\|\s*effective similarity\s*≥\s*([\d ]+?)\s*\|",
+        "variance_at_or_above": r"\|\s*`dynamic_variance`\s*\|\s*([\d ]+?)\s*≤\s*effective similarity",
+        "variance_below": r"\|\s*`dynamic_variance`\s*\|.*?effective similarity\s*<\s*([\d ]+?)\s*\|",
+        "inconsistent_below": r"\|\s*`inconsistent`\s*\|\s*effective similarity\s*<\s*([\d ]+?)\s*\|",
+    }
+    out = {}
+    for name, pattern in rows.items():
+        m = re.search(pattern, section5)
+        assert m, f"DC-4 §5 does not state the {name} threshold in the expected form"
+        out[name] = int(m.group(1).replace(" ", "").replace(" ", ""))
+    assert out["consistent_at_or_above"] == out["variance_below"], \
+        "§5's `consistent` floor and `dynamic_variance` ceiling are not the same number"
+    assert out["variance_at_or_above"] == out["inconsistent_below"], \
+        "§5's `dynamic_variance` floor and `inconsistent` ceiling are not the same number"
+    return out
+
+
+def _dc4_verdict_totality():
+    """Every permitted pair of texts maps to exactly one verdict (DC-4 §5).
+
+    A verdict table with a gap leaves a conforming Auditor with nothing to
+    record, and one with an overlap lets two conforming Auditors record
+    different things about the same page; either way the confirmation rule
+    and the severity ladder rest on a judgement call the specification did
+    not make. `similarity` is an integer in micro-units, so the reachable
+    range is finite and exactly enumerable — every value is checked, for
+    every change type, against the bands §5 actually states.
+
+    The `delete` direction is the one that needs the check most: its
+    verdict is read from the mirrored value, and a mirror that did not land
+    inside the severity table's domain would leave a false `delete` as a
+    Confirmed Inconsistency whose severity has no input (§7).
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
+    t = _dc4_similarity_thresholds()
+    CONSISTENT, HIGH = t["consistent_at_or_above"], t["inconsistent_below"]
+    assert 0 < HIGH < CONSISTENT <= 1_000_000, \
+        f"§5's thresholds are not ordered inside the micro-unit range: {t}"
+
+    # The mirror itself must be stated, and stated as a reflection about the
+    # full micro-unit range: any other constant would move `delete` verdicts
+    # off the bands the direct reading uses.
+    assert "effective similarity = similarity" in section5, \
+        "§5 does not state the effective similarity for the direct change types"
+    assert re.search(r"=\s*1 000 000\s*−\s*similarity\s*\(delete\)", section5), \
+        "§5 does not state the `delete` mirror as 1 000 000 − similarity"
+
+    def bands(eff):
+        return [name for name, hit in (
+            ("consistent", eff >= CONSISTENT),
+            ("dynamic_variance", HIGH <= eff < CONSISTENT),
+            ("inconsistent", eff < HIGH),
+        ) if hit]
+
+    def severity_input_defined(eff):
+        return 0 <= eff < HIGH          # the domain of §7's severity table
+
+    seen = {"new": set(), "delete": set()}
+    for sim in range(0, 1_000_001):
+        for change_type in ("new", "delete"):
+            eff = sim if change_type != "delete" else 1_000_000 - sim
+            assert 0 <= eff <= 1_000_000, \
+                f"{change_type} at similarity {sim} leaves the micro-unit range"
+            hit = bands(eff)
+            assert len(hit) == 1, \
+                f"{change_type} at similarity {sim} matches {len(hit)} verdicts: {hit}"
+            seen[change_type].add(hit[0])
+            if hit[0] == "inconsistent":
+                assert severity_input_defined(eff), \
+                    (f"a {change_type} Confirmed Inconsistency at similarity {sim} "
+                     f"has effective similarity {eff}, outside §7's severity table")
+    for change_type, got in seen.items():
+        assert got == {"consistent", "dynamic_variance", "inconsistent"}, \
+            f"{change_type} audits cannot reach every band: {got}"
+
+    # A `delete` whose URL still serves the committed content is the case
+    # the mirror exists for, and it must be `inconsistent` with a severity.
+    assert bands(1_000_000 - 1_000_000)[0] == "inconsistent", \
+        "a `delete` audit finding the committed content served verbatim is not `inconsistent`"
+    assert bands(1_000_000 - 0)[0] == "consistent", \
+        "a `delete` audit finding none of the committed content is not `consistent`"
+check("spec:dc4-verdict-totality", _dc4_verdict_totality)
+
 def _dc4_severity_bands():
     """DC-4 §7's severity table drives `penalty_n` directly (§6.1), so a
     collapsed or unreachable band silently changes every domain's
@@ -1313,9 +1407,7 @@ def _dc4_severity_bands():
     # HIGH is read from §5's own `inconsistent` threshold, not copied and
     # frozen here: a future edit that narrows or widens it must change what
     # this check exercises, or a collapsed band goes undetected again.
-    m = re.search(r"\|\s*`inconsistent`\s*\|\s*`similarity`\s*<\s*([\d ]+?)\s*\*\*and\*\*", section5)
-    assert m, "DC-4 §5 does not state the `inconsistent` threshold in the expected form"
-    HIGH = int(m.group(1).replace(" ", ""))
+    HIGH = _dc4_similarity_thresholds()["inconsistent_below"]
     LOW, MID = 50_000, 150_000   # exactly the §7 table boundaries pinned above
 
     def severity(sim):

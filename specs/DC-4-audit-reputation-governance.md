@@ -36,8 +36,9 @@ shown here.
   carried in every Audit Record as `vrf_proof`. It lets anyone recompute
   that Auditor's selection set for that Block, and only that Auditor
   produce it (§4).
-- **Confirmed Inconsistency**: ≥ 2 independent Auditors returning
-  `inconsistent` for the same Delta within 72 hours (§5).
+- **Confirmed Inconsistency**: ≥ 2 Auditors, independent in the sense §3
+  defines, returning `inconsistent` for the same Delta within 72 hours
+  measured on Block `sealed_at` (§5).
 - **Sanction**: a graduated, logged penalty against a domain (§7).
 - **Parameter Registry**: the versioned table of every numeric constant
   in the suite (§9).
@@ -54,11 +55,58 @@ and the DC-1 §4 signature block (`key_id`, `alg`, `value`).
 
 Auditors are admitted by an `auditor_admit` Registry Update (schema:
 [`schemas/registry-update.schema.json`](../schemas/registry-update.schema.json))
-whose `details` MUST carry the Auditor's `key_id` and its raw Ed25519
-`public_key` (base64url, 32 octets unpadded), and removed by
-`auditor_remove`. Both are signed by the Aggregator and, like everything
-else, live in the log — the roster of who may audit, and since when, is
-public and permanent.
+whose `subject` is the Auditor's `auditor_id` and whose `details` MUST carry
+the Auditor's `key_id` and its raw Ed25519 `public_key` (base64url, 32
+octets unpadded), and removed by `auditor_remove`. Both are signed by the
+Aggregator and, like everything else, live in the log — the roster of who
+may audit, and since when, is public and permanent.
+
+**An Auditor is a domain, not a bare key.** `auditor_id` is a hostname of
+at least two labels, anchored the way a Publisher's identity is (DC-1
+§5.1): the Auditor MUST serve, at
+`https://<auditor_id>/.well-known/deltacommons/publisher.json`, a
+Declaration whose `domain` is that hostname and whose Key Set carries the
+admitted `key_id` and `public_key`, and the Aggregator MUST verify that
+document before sealing the `auditor_admit`. A bare key says nothing about
+who holds it, and an Aggregator's statement about a key it may itself hold
+is not evidence; anchoring the key to a domain gives every Audit Record an
+addressable author and lets any party check the admission against what that
+host actually publishes.
+
+That check is deliberately kept out of recomputation. Reputation is a pure
+function of Log history (§1, §6), so whether a Record counts MUST NOT depend
+on what some host serves at the moment a party replays the Log: the
+`auditor_admit` Entry is the Log-native fact, and the Declaration is what
+makes it falsifiable. A host that does not publish the admitted key
+contradicts the admission publicly, which is evidence for `auditor_remove`
+and an instance of the exposure §10 states — never a retroactive rewriting
+of Records already sealed.
+
+**Independence, and what it is worth.** Two Auditors are **independent**
+when their `auditor_id`s share no suffix of two or more labels:
+`a.example.org` and `b.example.org` share `example.org` and are not
+independent; `audit.example.net` and `checker.example.org` share nothing
+and are. The test is a label comparison over hostnames the Log already
+carries, so every party recomputes it identically with no Public Suffix
+List, no registry lookup, and no judgement, and it errs toward finding
+Auditors dependent — it withholds confirmations rather than manufacturing
+them. Two unrelated operators under one two-label suffix (`a.com.br`,
+`b.com.br`) therefore cannot confirm each other's `inconsistent` verdicts;
+both may still audit everything, and what a confirmation needs is a third
+Auditor elsewhere, not an exception here. A Confirmed Inconsistency (§5)
+requires two Auditors independent in exactly this sense, not merely two
+keys.
+
+An Auditor MUST NOT audit a Delta whose Publisher domain is its own
+`auditor_id`, a parent of it, or a subdomain of it, and an `auditor_admit`
+MUST NOT name an `auditor_id` that fails the independence test above
+against the Log Anchor's `log_id` (DC-3 §3.4). Both are comparisons over
+values the Log carries: a Record breaching the first MUST be rejected by
+validators recomputing reputation, and an `auditor_admit` breaching the
+second MUST be rejected outright, so no key it names is ever an admitted
+key and no Record signed by that key counts. Neither rule makes
+independence true — §10 states exactly how far it reaches — but both remove
+the cases the Log itself already shows to be false.
 
 That one `public_key` serves both purposes: it verifies the Auditor's
 Record signatures **and** it is the VRF public key against which its
@@ -67,23 +115,40 @@ share the [RFC 8032] key format, so no second key is admitted, and there is
 no way for an Auditor to sign under one identity while drawing its audit
 assignments under another.
 
-An Audit Record signed by a key not admitted at the Record's `fetched_at`
-MUST be rejected by validators recomputing reputation. So MUST a Record
-whose `vrf_proof` does not verify — over the audited Block's Block Hash,
-under the key admitted at that Block's `sealed_at` (§4) — and one whose
-`audited_delta` is not in the selection set that proof determines (§4). So
-MUST a Record whose `similarity` does not satisfy §5's condition for its
-own `verdict` — a `verdict: "inconsistent"` Record, for example, whose
-`similarity` is not below §5's threshold for that verdict is malformed
-evidence, not a divergent judgement call, and MUST NOT be allowed to leave
-`sim` (§7) resting on a value outside every severity band.
+**Windows and admission run on `sealed_at`.** `fetched_at` is
+Auditor-supplied and unverifiable by anyone else, so nothing anchored to it
+is recomputable. Every admission test and every window in this document
+reads Block `sealed_at` values instead (DC-3 §3.1), which are ordered,
+strictly increasing, and identical for every replaying party. Validators
+recomputing reputation MUST reject:
 
-That first rejection is scoped to reputation and does not reach coverage:
-an Auditor removed after a Block was sealed but before its coverage
-deadline still discharges its §4 duty for that Block by publishing, because
-coverage is anchored to `sealed_at` rather than to fetch time. Such a
-Record proves the Auditor met its duty; it does not enter any domain's
-reputation.
+- a Record signed by a key not admitted at, or removed at or before, the
+  `sealed_at` of the Block carrying that Record;
+- a Record whose `vrf_proof` does not verify — over the audited Block's
+  Block Hash, under the key admitted at that Block's `sealed_at` (§4) — or
+  whose `audited_delta` is not in the selection set that proof determines
+  (§4);
+- a Record whose `fetched_at` falls outside the closed interval from the
+  `sealed_at` of the audited Delta's Block to the `sealed_at` of the
+  Record's own Block. Neither end rests on trust: an Auditor's selection is
+  derived from the audited Block's Block Hash, so under this protocol it
+  cannot have fetched before that Block was sealed, and no Record is sealed
+  before it is written. A `fetched_at` outside that interval contradicts
+  the Log's own ordering;
+- a Record whose Auditor audited a domain the self-audit rule above puts
+  beyond it;
+- a Record whose `similarity` does not satisfy §5's condition for its own
+  `verdict` — a `verdict: "inconsistent"` Record whose effective similarity
+  (§5) is not below §5's threshold for that verdict is malformed evidence,
+  not a divergent judgement call, and MUST NOT be allowed to leave `sim`
+  (§7) resting on a value outside every severity band.
+
+The first rejection is scoped to reputation and does not reach coverage: an
+Auditor removed after a Block was sealed but before its coverage deadline
+still discharges its §4 duty for that Block by publishing, because coverage
+is anchored to the audited Block's `sealed_at` rather than to the height at
+which the Record lands. Such a Record proves the Auditor met its duty; it
+does not enter any domain's reputation.
 
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
 `aggregator_key_remove` actions defined in DC-3 §3.4; their `details`
@@ -229,9 +294,11 @@ Auditor fetched the URL), `response_commitment` (over the raw response
 body), `ref_extract_commitment` (over the Auditor's own reference
 extraction), `similarity` (the §5 metric value, an integer in micro-units),
 `verdict`, `evidence_commitment` (over the WARC capture, which the Auditor
-MUST preserve), and `vrf_proof` (the §4 VRF Proof over the Block Hash of
-the Block carrying the audited Delta, 80 octets as 160 lowercase hex
-characters). The Record names no Block: the audited Block is the one Block
+MUST preserve), `robots_excluded` (present only on an `unreachable` Record
+the `robots.txt` rule below produced), and `vrf_proof` (the §4 VRF Proof
+over the Block Hash of the Block carrying the audited Delta, 80 octets as
+160 lowercase hex characters). The Record names no Block: the audited
+Block is the one Block
 whose `publisher_delta` Entries carry `audited_delta`, which DC-3 §3.2
 makes unique and permanent. `vrf_proof` is REQUIRED in every Record,
 `unreachable` and `not_auditable` included, because it is what establishes
@@ -261,17 +328,22 @@ chain last committed to is no longer served, so that Payload is what
 the Auditor preserves may contain that very content where the claim is
 false.
 
-When an audit has no Reference Payload it can obtain, the verdict is
+When an audit has nothing to measure against, the verdict is
 `not_auditable`. That covers four cases: the Reference Payload has been
 withdrawn (DC-3 §6.2); it cannot be fetched from any source; the URL's
 chain has never carried a content-bearing Delta, so no anchor exists to
-resolve; and — since §3.3 makes `payload` a SHOULD rather than a MUST on
-`new` and `update` — the audited Delta is itself a `new` or `update` that
-omits `payload`. That last Delta asserts that content appeared or changed
-without saying what it changed to, so there is nothing to check it
-against; its Reference Payload is not the URL's earlier anchor, because
-the claim it makes is precisely that the content is no longer what the
-anchor holds.
+resolve; and the Reference Payload is obtained and verifies but its
+`extract` is empty under the normalization below, so the Payload exists and
+there is still no text the audit could confirm or refute.
+
+DC-1 §3.3 requires `payload` on every `new` and `update`, so a Delta
+claiming content while committing to none is rejected (`DC1-E09`) and never
+sealed by a conforming Aggregator, and this list needs no case for it.
+Should one reach a Log regardless, it is `not_auditable` for the reason the
+requirement exists: a Delta asserting that content appeared or changed
+without saying what it changed to leaves nothing to check it against, and
+its Reference Payload is not the URL's earlier anchor, because the claim it
+makes is precisely that the content is no longer what the anchor holds.
 
 **The Auditor's commitments.** An Audit Record observes page content
 directly, so every content-derived value it seals uses the same
@@ -287,31 +359,27 @@ Auditor holds that salt because it MUST verify that Payload before
 comparing anything, so no second salt, and no second lifecycle, is
 introduced.
 
-`response_commitment`, `ref_extract_commitment` and `evidence_commitment`
-are REQUIRED when the verdict is `consistent`, `inconsistent`, or
-`dynamic_variance`, and MUST be omitted — together with `similarity` —
-when it is `unreachable` or `not_auditable`. Those two verdicts are
-exactly the cases with nothing to commit to and no key to commit under:
-`unreachable` records that no representation of the page was obtained to
-compare against, whether the fetch failed outright, returned an error
-status, or was forbidden by `robots.txt`, so whatever bytes the failure
-produced are not the page and are not committed to; `not_auditable`
-records that there was no Reference Payload, and therefore no salt.
-`schemas/audit-record.schema.json` enforces both directions.
+`response_commitment`, `ref_extract_commitment`, `evidence_commitment` and
+`similarity` are REQUIRED when the verdict is `consistent`, `inconsistent`,
+or `dynamic_variance`, and MUST be omitted when it is `unreachable` or
+`not_auditable`. Those two verdicts are exactly the cases with nothing to
+commit to and no key to commit under: `unreachable` records that no
+representation of the page was obtained to compare against, whether the
+fetch failed outright, returned an error status the table below does not
+except, or was forbidden by
+`robots.txt`, so whatever bytes the failure produced are not the page and
+are not committed to; `not_auditable` records that there was no text to
+measure against, and where the Reference Payload itself is missing there is
+no salt either. `schemas/audit-record.schema.json` enforces both
+directions.
 
-`similarity` is a comparison against the Reference Payload's extract, so
-among the Records that carry the three commitments at all — those whose
-verdict is `consistent`, `inconsistent` or `dynamic_variance` — it is
-REQUIRED for `new`, `update` and `attest` audits and MUST be omitted for a
-`delete` audit, whose finding is that the URL no longer serves that
-content rather than a degree of agreement with it. An `unreachable` or
-`not_auditable` Record omits it whatever the audited Delta's change type,
-as the paragraph above requires. The verdict table's
-thresholds govern the first three accordingly; a `delete` audit's verdict
-is fixed by the separate rule below and rests on no threshold. The schema
-cannot enforce this, because a Record names a Delta rather than its change
-type; the rule is normative here and a validator resolving `audited_delta`
-MUST apply it.
+The requirement is the same for every change type, `delete` included. A
+Record carries a `similarity` whenever it carries a judgement that was read
+from one, and what the change type adjusts is the *reading* — the mirror
+below — never the presence of the field. That is what keeps §7's severity
+derivable for every Confirmed Inconsistency, and it is enforceable by the
+schema, which sees a verdict but cannot resolve `audited_delta` to a change
+type.
 
 A bare digest here would undo the rest of this design. Moving extracts out
 of the Log accomplishes nothing if the Log keeps unsalted hashes of the
@@ -352,7 +420,8 @@ already be 180 days old at the `notice`, and 180 + 14 + 30 puts the ruling
 at day 224 — past the 180-day availability window (DC-3 §6.1). Nothing in
 the suite guarantees a Reference Payload is still served at that point. It
 is guaranteed for confirmation, which is fixed within 72 hours of the
-first `inconsistent` verdict, and for nothing beyond that: a Record's
+`sealed_at` of the Block sealing the first `inconsistent` Record, and for
+nothing beyond that: a Record's
 Reference Payload may lawfully have lapsed, or been withdrawn, throughout
 the appeal it is being used to justify.
 
@@ -364,8 +433,9 @@ it can do none of that, and neither can the Aggregator, the Auditor, or
 the party ruling on the appeal: the evidence is symmetrically unverifiable
 rather than verifiable by one side only. What remains is the `verdict` and
 the `similarity` sealed in the Record, and those are sufficient for the
-ruling to have a determinate basis, because §7 derives severity from
-`similarity` alone and §6.1 derives `penalty_n` from the same values. An
+ruling to have a determinate basis, because §7 derives severity from the
+effective similarity alone and §6.1 derives `penalty_n` from the same
+values. An
 appellant contesting an unverifiable Record is contesting whether the
 Auditor judged honestly, which is what `auditor_remove` and the §4 VRF
 evidence address, not whether the arithmetic was applied correctly.
@@ -403,36 +473,122 @@ rather than trust the claim.
 The web is not deterministic; byte equality is never the criterion.
 
 `similarity` is an integer in **micro-units** (0 … 1 000 000, the same
-resolution as `reputation_u`, §6), never a floating-point ratio. Let *A*
-be the set of word 8-grams (shingles) of the `extract` in the audit's
-verified Reference Payload and *B* the same shingling of the Auditor's own
-extraction of the fetched page, both after Unicode NFC normalization,
-lowercasing, and whitespace collapsing:
+resolution as `reputation_u`, §6), never a floating-point ratio. It
+compares two texts: the `extract` of the audit's verified Reference Payload
+— the **reference text** — and the Auditor's own extraction of the fetched
+page, the **observed text**.
+
+**Normalization.** Each text is normalized on its own, in this order:
+
+1. Unicode NFC.
+2. Case-folding by the Unicode **default full case-folding** algorithm,
+   never a locale-sensitive lowercasing: locale rules map Turkish dotted
+   and dotless *i* differently from every other locale, and an Auditor's
+   server locale MUST NOT be able to move a verdict.
+3. Segmentation into words by the **default** word-boundary rules of
+   [UAX #29], with no dictionary-based or language-specific tailoring.
+   Tailorings are exactly where implementations diverge — a build carrying
+   a Thai or Khmer dictionary segments a sentence that a build without one
+   does not — and a metric that inherits that divergence is not
+   recomputable. Under the default rules, scripts written without spaces
+   still segment: Han, Thai, Khmer and Lao characters each stand as their
+   own word, so their texts yield many short words rather than one long
+   one.
+4. Every segment containing no character of Unicode General Category L\* or
+   N\* is discarded. What remains, in order, is the text's **word
+   sequence**; its **normalized form** is those words joined by a single
+   U+0020. A text whose word sequence is empty is itself **empty**.
+
+**Shingles.** Let *w* be a text's word count and *g* the count of extended
+grapheme clusters ([UAX #29]) in its normalized form. With *A* the shingle
+set of the reference text and *B* that of the observed text:
+
+- If both texts have *w* ≥ 8, the unit is the word and the shingle length
+  is 8: each set is that text's contiguous 8-word sequences.
+- Otherwise the unit is the extended grapheme cluster of the normalized
+  form and the shingle length is `n = min(8, g_A, g_B)`: each set is that
+  text's contiguous *n*-cluster sequences.
+
+Then
 
     similarity = floor((|A ∩ B| × 1 000 000) / |A ∪ B|)
 
 in exact integer arithmetic on the shingle sets' cardinalities — no
 floating-point Jaccard ratio is ever computed or compared, and no two
-conforming Auditors can disagree about a boundary case from rounding
-alone. When *A* and *B* are both empty, `similarity` = 1 000 000 (two
-empty extracts are identical). Verdicts:
+conforming Auditors can disagree about a boundary case from rounding alone.
+
+The second branch is normative, not a convenience. Eight-word shingles do
+not exist in a text of fewer than eight words, and a rule that let both
+sets come out empty would score every short text as identical to every
+other — a free `consistent` for any Publisher whose extract is a headline.
+Falling to grapheme clusters keeps a short text comparable at the
+granularity it actually has, and capping the shingle length at the shorter
+text's own length keeps both sets non-empty, so `|A ∪ B|` ≥ 1 always and
+the quotient is defined for every pair of non-empty texts.
+
+Empty texts are ruled on rather than measured, and the two are not
+symmetric. An empty **reference** text is `not_auditable` (above): a
+Publisher that committed to no text made no claim an audit could confirm or
+refute. An empty **observed** text is a finding about the URL, not an
+absence of evidence — the page was fetched and yielded no text where the
+Publisher committed to some — and scores `similarity` = 0 by definition,
+there being no shingle of the reference for it to share. Where both are
+empty the reference rule governs, because the verdict order below puts
+`not_auditable` first.
+
+**Effective similarity.** A `new`, `update` or `attest` Delta claims the
+URL carries the reference content, so agreement confirms it; a `delete`
+claims the opposite, so agreement refutes it. One table serves both, read
+over the **effective similarity**:
+
+    effective similarity = similarity                 (new, update, attest)
+                         = 1 000 000 − similarity     (delete)
+
+Every threshold in this suite is read over the effective similarity —
+the table below and §7's severity bands alike — while `similarity` is what
+the Record seals. A validator resolving `audited_delta` to its change type
+applies the mirror; nothing else in the pipeline changes shape.
 
 | Verdict | Condition |
 |---------|-----------|
-| `consistent` | `similarity` ≥ 600 000 |
-| `dynamic_variance` | 300 000 ≤ `similarity` < 600 000 |
-| `inconsistent` | `similarity` < 300 000 **and** the Delta's claimed content is absent from the fetched page |
-| `unreachable` | network or HTTP failure fetching the URL |
-| `not_auditable` | the audit's Reference Payload is withdrawn (DC-3 §6.2), never existed, or cannot be obtained from any source |
+| `consistent` | effective similarity ≥ 600 000 |
+| `dynamic_variance` | 300 000 ≤ effective similarity < 600 000 |
+| `inconsistent` | effective similarity < 300 000 |
+| `unreachable` | no representation of the URL was obtained: transport or DNS failure, an error status other than the `404`/`410` a `delete` audit expects (below), or a `robots.txt` prohibition (DC-2 §5) |
+| `not_auditable` | there is no text to measure against: the Reference Payload is withdrawn (DC-3 §6.2), never existed, cannot be obtained from any source, or carries an empty `extract` |
 
-For `attest` and `delete` Deltas (which carry no Payload of their own),
-the audit checks the asserted state against the Reference Payload defined
-above: `attest` is `consistent` if the page's current extraction has
-`similarity` ≥ 600 000 against that Payload's extract; `delete` is
-`consistent` if the URL returns 404/410 or no longer carries the content
-that Payload committed to.
+**The five are ordered, and the order is normative**, because more than one
+description can fit one audit: `not_auditable`, then `unreachable`, then
+the three bands. An Auditor with no reference text records `not_auditable`
+whether or not the fetch also failed — from a withdrawal's sealing height
+it MUST, even holding a copy — and an Auditor that obtained no
+representation records `unreachable` without computing a similarity it has
+no observed text for. A band is read only when there is a reference to
+measure against and a representation to measure. Since the three bands
+partition 0 … 1 000 000 with no gap and no overlap, exactly one verdict
+fits every audit. The `inconsistent` row rests on the number alone: a
+conjunct requiring the claimed content to be "absent from the fetched page"
+would name no procedure two Auditors could apply to one answer, and would
+leave every audit below the floor whose content was in some sense still
+present with no verdict at all — which is the one thing a verdict table may
+not do.
 
-Both therefore depend on a Payload that may have been sealed long before
+**`delete` audits.** Two consequences of the mirror are worth stating
+outright. A `404` or `410` response to a `delete` audit is not a fetch
+failure but the state the Delta claims: the Auditor treats it as a
+representation, its observed text is empty, `similarity` is 0, the
+effective similarity is 1 000 000, and the verdict is `consistent`. And a
+URL still serving the content its chain committed to after a `delete` is
+`inconsistent` — its effective similarity is below 300 000 like any other,
+so §7 derives its severity from the same bands over the same sealed field
+as for every other Confirmed Inconsistency. A `delete` is a claim like
+the rest and MUST NOT become a way to retire a false one by making it
+unmeasurable: were a false `delete` to carry no severity input, publishing
+one would be the cheapest way to end an audit trail that was about to
+contradict the Publisher.
+
+`attest` and `delete` Deltas carry no Payload of their own, so both depend
+on a Payload that may have been sealed long before
 the Block under audit — often long before the availability window that
 covers ordinary Payloads. Two independent parties are obliged to serve it:
 the Publisher, for as long as it attests to the URL, re-anchoring the
@@ -455,15 +611,44 @@ the link between a withdrawn text and its commitment.
 `dynamic_variance`, `unreachable` and `not_auditable` are neutral: they
 never contribute to sanctions. Auditor re-fetches of content URLs respect
 `robots.txt` (DC-2 §5); a fetch forbidden by `robots.txt` is recorded
-`unreachable`.
+`unreachable` with `robots_excluded` true. That flag is REQUIRED when
+`robots.txt` is the reason and MUST NOT appear on any other verdict, so the
+Log distinguishes a URL nobody is permitted to check from one that happened
+to be down.
 
-**No single audit punishes.** An `inconsistent` verdict triggers
-re-audit by additional independent Auditors. A **Confirmed
-Inconsistency** exists only when ≥ 2 independent Auditors return
-`inconsistent` for the same Delta within 72 hours of the first such
-verdict. Only Confirmed Inconsistencies enter the reputation formula and
-sanction ladder. This absorbs A/B tests, geo-variation, and legitimate
-change between push and audit.
+**Declining audits is not indefinitely free.** A URL is **unauditable** at
+height N when the Log holds an `unreachable` Record with `robots_excluded`
+true for a Delta on that URL whose Block was sealed at least 30 whole days
+(Parameter Registry: `unauditable_horizon_days`) before Block N's
+`sealed_at`, and no Record for a Delta on that URL with verdict
+`consistent`, `inconsistent` or `dynamic_variance` was sealed at or after
+that Record's Block. An unauditable URL MUST be excluded from
+materialization (DC-3 §7) from the height at which it becomes unauditable
+until such a Record is sealed, at which point it ceases to be unauditable
+and the exclusion lifts.
+
+Nothing here is punitive and nothing here is a sanction: no reputation
+consequence attaches, no `notice` is filed, no appeal window opens, and no
+Aggregator action is required, because a Publisher may exclude a crawler
+for reasons that are entirely its own. What the rule removes is the
+*combination*. A Publisher may decline audits and keep publishing signed
+Deltas, or it may be materialized, but not both indefinitely — an index
+carrying content that nobody is permitted to check is exactly the
+unverified index this suite exists to replace. Both halves are recomputed
+from the Log by every party alike, and the whole of the state is one URL's
+Audit Records in Log order.
+
+**No single audit punishes.** An `inconsistent` verdict triggers re-audit
+by additional Auditors. A **Confirmed Inconsistency** exists only when ≥ 2
+Auditors, independent of one another in the sense §3 defines, return
+`inconsistent` for the same Delta, with the `sealed_at` of the Block
+sealing the confirming Record no more than 72 hours after the `sealed_at`
+of the Block sealing the first such Record. The window is measured on
+Blocks and not on `fetched_at` for the reason §3 gives: `fetched_at` is
+Auditor-supplied, and a confirmation nobody can recompute is not evidence.
+Only Confirmed Inconsistencies enter the reputation formula and sanction
+ladder. This absorbs A/B tests, geo-variation, and legitimate change
+between push and audit.
 
 ## 6. Reputation
 
@@ -723,9 +908,16 @@ through the Record at which §5's confirmation predicate is first
 satisfied — the same closed set §6.1 uses to fix `t_i`; a Record sealed
 after that point is not a confirming Record and moves neither `t_i` nor
 `sim` (§6.1). For a Confirmed Inconsistency, let `sim` be the highest
-`similarity` among its confirming Records: the set is closed before the
-extremum is taken, so a Record arriving after confirmation cannot lower
-severity by outbidding the ones that established it.
+**effective similarity** (§5) among its confirming Records: the set is
+closed before the extremum is taken, so a Record arriving after
+confirmation cannot lower severity by outbidding the ones that established
+it. Reading the effective similarity rather than the sealed integer is what
+gives a false `delete` a severity like any other finding — its confirming
+Records seal a *high* `similarity`, because the content is still served,
+and the §5 mirror turns that into the low effective value the bands below
+are written over. Every `inconsistent` verdict has an effective similarity
+below 300 000 by §5's own table, so every Confirmed Inconsistency lands in
+exactly one row, whatever its audited Delta's change type.
 
 | Condition | `severity` |
 |---|---|
@@ -846,7 +1038,8 @@ MUST NOT set a confirmation or weight parameter (`confirm_auditors`,
 value that nullifies the mechanism implementing a §8 invariant. The
 schema enforces this wherever it reduces to a single numeric floor
 (`penalty_weight` ≥ 1, `confirm_auditors` ≥ 2, `similarity_variance_floor`
-> 150 000, `payload_window_days` ≥ 30); where it does not — a value that is individually in range but
+> 150 000, `payload_window_days` ≥ 30, `unauditable_horizon_days` ≥ 7);
+where it does not — a value that is individually in range but
 collapses a band only in combination with another parameter's current
 value — a party recomputing reputation MUST reject the `parameter_change`
 directly against this sentence rather than apply it.
@@ -859,6 +1052,13 @@ censorship without amending anything. The floor is set well above the
 72-hour coverage deadline and above any plausible Mirror resynchronisation
 lag, so that absence inside the window remains attributable rather than
 routine.
+
+`unauditable_horizon_days` carries one because the horizon it sets is what
+separates a Publisher that declines audits as a policy from one whose
+audits merely have not landed yet. Below the 72-hour coverage deadline (§4)
+a URL could be excluded from materialization before any Auditor was even
+obliged to publish for the Block that named it, turning a scheduling gap
+into a delisting; the floor keeps the horizon a multiple of that deadline.
 
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
@@ -876,7 +1076,8 @@ routine.
 | Coverage duty deadline | `coverage_deadline_hours` | 72 hours | §4 |
 | `coverage_failures_max` | — | 24 Blocks per 30 days | §4 |
 | Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
-| Shingle size | `shingle_size` | 8 words | §5 |
+| Shingle size | `shingle_size` | 8 (words, or grapheme clusters on §5's short-text branch) | §5 |
+| Unauditable horizon | `unauditable_horizon_days` | 30 days | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
 | Reputation base at age 0 | — | 100 000 micro-units (= the Provisional cap) | §6 |
@@ -902,7 +1103,11 @@ routine.
 mirroring §7 and §3:
 
 - `aggregator_key_add`, `auditor_admit`: `key_id`, `alg` (`"Ed25519"`), and
-  `public_key` (the raw Ed25519 public key, 43-character base64url).
+  `public_key` (the raw Ed25519 public key, 43-character base64url). An
+  `auditor_admit`'s `subject` additionally MUST be the Auditor's
+  `auditor_id`, a hostname of at least two labels, because §3 anchors an
+  Auditor to a domain and a Record's `auditor_id` is what §3's independence
+  and self-audit tests compare.
 - `aggregator_key_remove`, `auditor_remove`: `key_id`.
 - `sanction`: `level` (1–4) and `severity` (1–3, §7); `evidence`
   (top-level, not `details`) MUST carry at least the two Audit Record IDs
@@ -1010,10 +1215,43 @@ personal data (§11).
   all (the penalty applies anyway, computed directly from the Records). A
   captured Aggregator has no lever over the reputation consequence of
   evidence that is already public.
-- **Griefing via false `inconsistent` verdicts.** A single hostile
-  Auditor cannot harm anyone: confirmation requires a second independent
-  `inconsistent` within 72 hours, and the sampling rule (§4) makes it
-  verifiable that an Auditor had the right to audit at all.
+- **Griefing via false `inconsistent` verdicts.** A single hostile Auditor
+  confirms nothing by itself: a Confirmed Inconsistency requires a second
+  `inconsistent` from an Auditor independent of it under §3's suffix test,
+  inside 72 hours measured on Block `sealed_at`, and the sampling rule (§4)
+  makes it verifiable that each had the right to audit at all. An Auditor
+  also cannot reach a domain it is too close to: §3 puts its own domain,
+  that domain's parents and its subdomains beyond its audits, and a Record
+  breaching that is rejected on recomputation rather than argued about. Two
+  hostile Auditors under one operator are a different case, and the bullet
+  below is what this document has to say about it.
+- **Auditor independence is an admission-time trust assumption, and this
+  document does not claim otherwise.** `auditor_admit` is signed by the
+  Aggregator alone. An Aggregator holding two Auditor keys, admitted under
+  hostnames that share no two-label suffix and each publishing a matching
+  Declaration, satisfies §5's confirmation requirement literally while
+  being one party — and can seal a Confirmed Inconsistency out of two
+  substantively false Records that every schema and every recomputation
+  accepts. Nothing downstream repairs that: §6.1 counts the penalty from
+  the confirming Block whether or not a `sanction` is ever filed, and an
+  appeal reaches the sanction's state, never `penalty_n`. Four things bound
+  the exposure and none removes it. Selection is VRF-derived (§4), so both
+  keys must have *selected* the same Delta: reaching a chosen one means
+  grinding Block membership and ordering until they do, which costs
+  re-sealing work rather than being impossible. Every Record names a
+  domain-anchored identity (§3), so a fabrication has a public author with
+  a published Key Set rather than an opaque key. While the Reference
+  Payload is served, anyone holding the page — the audited Publisher above
+  all — can obtain the salt, demand the Auditor's capture, and show the
+  commitments do not reproduce (§5); after withdrawal nobody can, in either
+  direction. And an Aggregator shown to be doing this is an institution the
+  commons can leave: the Log is public, the tier data is ODbL, and §8's
+  invariant 4 makes the fork the remedy rather than an appeal to the party
+  that admitted the Auditors. A deployment that needs more than that MUST
+  obtain it outside this protocol — by admitting Auditors it did not
+  choose, or by operating no Auditor keys at all — because nothing inside
+  the protocol distinguishes an Aggregator's second Auditor from a
+  stranger's.
 
 ## 11. Privacy Considerations
 
@@ -1080,13 +1318,20 @@ hands.
 - [ ] Resolves the Reference Payload as of `audited_delta`, not as of the
       URL's current state, and verifies it against its own Delta's
       commitment before comparing anything (§5)
-- [ ] Computes similarity with the normative §5 metric and thresholds
-- [ ] Emits `unreachable` (never `inconsistent`) for robots.txt-forbidden
-      or failed fetches
+- [ ] Serves a Declaration at its own `auditor_id` carrying the admitted
+      key, and never audits a Delta from that hostname, its parents or its
+      subdomains (§3)
+- [ ] Computes similarity with the normative §5 metric — NFC, default full
+      case-folding, untailored UAX #29 segmentation — and reads the verdict
+      from the effective similarity, mirrored for a `delete` (§5)
+- [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
+      sets `robots_excluded` when and only when `robots.txt` is the reason
+      (§5)
 - [ ] Emits `not_auditable` (never `inconsistent` or `unreachable`) for a
-      withdrawn or unobtainable Payload, and treats it as discharging the
-      coverage duty (§4, §5)
-- [ ] Signs Records with a key admitted at `fetched_at` (§3)
+      withdrawn, unobtainable or empty-extract Reference Payload, and
+      treats it as discharging the coverage duty (§4, §5)
+- [ ] Signs Records with a key admitted at the `sealed_at` of the Block
+      carrying the Record, and fetches inside the interval §3 fixes
 - [ ] Commits the response, its own extraction and its WARC capture under
       the Reference Payload's salt — never as bare digests (§5)
 - [ ] Preserves the WARC capture matching `evidence_commitment`, and
@@ -1095,7 +1340,12 @@ hands.
 
 **Aggregator (governance side):**
 
-- [ ] Admits/removes Auditors only via logged Registry Updates (§3)
+- [ ] Admits/removes Auditors only via logged Registry Updates, after
+      verifying the Declaration at the Auditor's own domain, and never
+      under a hostname that fails §3's independence test against its own
+      `log_id` (§3)
+- [ ] Excludes unauditable URLs from materialization until an audit
+      succeeds (§5, DC-3 §7)
 - [ ] Applies sanctions only per the §7 ladder — evidence for every
       sanction, notice and an appeal window for levels 3–4
 - [ ] Never suspends ingestion for a Provisional domain; only
@@ -1112,8 +1362,12 @@ hands.
 - [ ] Derives `A` and every `t_i` from Block `sealed_at`, never from
       `observed_at` or wall clock time (§6.1)
 - [ ] Verifies VRF proofs before counting a Record (§4)
+- [ ] Counts a Record only when its Auditor's key was admitted at its own
+      Block's `sealed_at`, its `fetched_at` lies in §3's interval, and the
+      audit was not a self-audit (§3)
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
-      Inconsistencies (§5)
+      Inconsistencies, confirmed by independent Auditors inside the
+      `sealed_at` window (§3, §5)
 - [ ] Excludes `attest` and `delete` audits from `C`, counts distinct
       Normalized URLs, and applies `C_cap` (§6.1)
 - [ ] Applies the Provisional cap as a ceiling, not a floor (§6.2), and
@@ -1243,6 +1497,11 @@ from end to end.
   Ed25519 key format and edwards25519 group shared by signing and the VRF
 - [RFC 9381] Verifiable Random Functions (VRFs) — ECVRF-EDWARDS25519-SHA512-TAI
   (§5.5); the normative source for §4's `prove`, `proof_to_hash` and `verify`
+- [UAX #29] Unicode Standard Annex #29, Unicode Text Segmentation — the
+  default word-boundary and extended grapheme cluster rules §5's similarity
+  metric segments by, used without tailoring
+- [UAX #44] Unicode Standard Annex #44, Unicode Character Database — General
+  Category values (L\*, N\*) and the default full case-folding §5 applies
 - DC-1: Delta Format & Identity — key rotation, scope rule, §6 absence
 - DC-2: Site Publication — quotas, hints, robots.txt boundary
 - DC-3: Commons Log & Distribution — entry envelope, checkpoints,

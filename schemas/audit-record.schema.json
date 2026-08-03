@@ -21,6 +21,7 @@
         "similarity": {"type": "integer", "minimum": 0, "maximum": 1000000},
         "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance", "not_auditable"]},
         "evidence_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
+        "robots_excluded": {"const": true, "description": "Present only on an `unreachable` Record whose fetch was forbidden by robots.txt (DC-4 §5); it is what the unauditable horizon counts, so it distinguishes a URL nobody may check from one that was merely down."},
         "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$"}
       }
     },
@@ -42,8 +43,8 @@
         "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance"]}}}}
       },
       "then": {
-        "comment": "similarity is not required here: a `delete` audit reports no similarity (DC-4 §5), and a Record names a Delta rather than its change type, so the schema cannot tell the cases apart.",
-        "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "evidence_commitment"]}}
+        "comment": "similarity is required for every change type alike, `delete` included: what the change type adjusts is the reading (DC-4 §5's effective similarity), never the presence of the field, which is what keeps §7's severity derivable for every Confirmed Inconsistency.",
+        "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "similarity", "evidence_commitment"]}}
       }
     },
     {
@@ -63,6 +64,14 @@
           }
         }
       }
+    },
+    {
+      "comment": "robots_excluded says why a fetch produced no representation, so it belongs to `unreachable` and to nothing else: on any other verdict a representation was obtained (DC-4 §5), and on `not_auditable` the obstacle was the Reference Payload rather than the URL.",
+      "if": {
+        "required": ["record"],
+        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance", "not_auditable"]}}}}
+      },
+      "then": {"properties": {"record": {"not": {"required": ["robots_excluded"]}}}}
     }
   ]
 }

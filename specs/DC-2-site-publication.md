@@ -204,6 +204,13 @@ consumption by aggregators and auditors; `robots.txt` directives do not
 apply to fetches under this path. Fetches of any other path (e.g. auditor
 re-fetches of content URLs, DC-4 §5) remain subject to `robots.txt`.
 
+A Publisher that forbids those re-fetches keeps that right and pays a
+stated price: a URL whose audits `robots.txt` has turned away for the
+unauditable horizon, with no successful audit since, is excluded from
+materialization until one succeeds (DC-4 §5, DC-3 §7). It is not a
+sanction and touches no reputation — declining audits and being
+materialized are simply not available at the same time.
+
 ## 6. Unsigned Change Hints (Compatibility)
 
 Aggregators MAY consume existing ecosystems as Change Hints: IndexNow

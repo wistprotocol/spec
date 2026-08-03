@@ -478,8 +478,19 @@ MUST NOT mix vector spaces; it re-embeds from Tier 1 extracts instead.
 URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
 likewise excludes that Delta's content from every Snapshot produced at or
 above its sealing height, in both tiers, including any embedding derived
-from it. The log itself retains full history — deletion and withdrawal
-shape the materialized present, never the recorded past.
+from it. A URL that is **unauditable** at the Snapshot's `log_position`
+(DC-4 §5) — one whose audits have been forbidden by `robots.txt` for the
+unauditable horizon with no successful audit since — is excluded for as
+long as that holds, and returns to materialization at the first Snapshot
+built at or above the height of an audit that succeeds. The log itself
+retains full history in every case — deletion, withdrawal and
+unauditability shape the materialized present, never the recorded past.
+
+All three exclusions are computed from the Log, so two parties building a
+Snapshot at the same `log_position` still produce byte-identical tiers: an
+unauditable URL is decided by that URL's Audit Records in Log order and by
+the Parameter Registry value in force, not by whether the builder's own
+crawler happened to be turned away.
 
 Withdrawal reaches backward into Snapshots as well, because a Snapshot
 already published carries the content in its tier files. The Aggregator
