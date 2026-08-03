@@ -338,3 +338,112 @@ def link_agreement(declared_urls, declared_total, observed_urls, observed_total)
     hi = max(declared_total, observed_total)
     count = 1_000_000 if hi == 0 else (min(declared_total, observed_total) * 1_000_000) // hi
     return min(subset, count)
+
+
+# --------------------------------------------- DC-2 §12: text extraction
+
+def _decode_text_entities(s: str) -> str:
+    """DC-2 §12 step 3: the §11 step-4 repertoire, salvage-free.
+
+    Text is not a link candidate: there is nothing to discard fail-closed.
+    A reference that is malformed, over-long, or names a non-scalar code
+    point is left exactly as written — deterministic either way, and never
+    an exception.
+    """
+    def repl(m):
+        if m.group(1) is not None:
+            return _NAMED_REFS[m.group(1)]
+        digits, base = (m.group(2), 10) if m.group(2) is not None else (m.group(3), 16)
+        significant = digits.lstrip("0") or "0"
+        if len(significant) > (7 if base == 10 else 6):
+            return m.group(0)
+        cp = int(significant, base)
+        if cp > 0x10FFFF or 0xD800 <= cp <= 0xDFFF:
+            return m.group(0)
+        return chr(cp)
+    return _CHAR_REF.sub(repl, s)
+
+
+def extract_text(html: bytes) -> str:
+    """DC-2 §12: whole-document text extraction over raw HTML octets.
+
+    Comments, raw-text element content (script/style/textarea) and tags
+    each contribute a single space; a `<` that opens none of these is
+    literal text. Octets decode as UTF-8 with U+FFFD replacement — the
+    declared charset is never consulted, so two Auditors cannot disagree
+    via charset sniffing. Character references decode per §11's pinned
+    repertoire; ASCII whitespace runs collapse to single spaces.
+    """
+    low = html.lower()
+    n = len(html)
+    out = []
+    i = 0
+    while i < n:
+        if low.startswith(b"<!--", i):
+            end = low.find(b"-->", i + 4)
+            i = n if end == -1 else end + 3
+            out.append(b" ")
+            continue
+        raw_tag = next((t for t in _RAWTEXT_TAGS
+                        if low.startswith(b"<" + t, i)
+                        and _at_tag_boundary(low, i + 1 + len(t))), None)
+        if raw_tag is not None:
+            start_end = _tag_end(html, i)
+            close = low.find(b"</" + raw_tag, start_end)
+            i = n if close == -1 else _tag_end(html, close) + 1
+            out.append(b" ")
+            continue
+        c = html[i:i + 1]
+        if c == b"<" and i + 1 < n and (
+                chr(low[i + 1]).isascii() and chr(low[i + 1]).isalpha()
+                or html[i + 1:i + 2] in (b"/", b"!", b"?")):
+            i = _tag_end(html, i) + 1
+            out.append(b" ")
+            continue
+        nxt = html.find(b"<", i + 1) if c == b"<" else html.find(b"<", i)
+        if nxt == -1:
+            nxt = n
+        out.append(html[i:nxt])
+        i = nxt
+    text = b"".join(out).decode("utf-8", errors="replace")
+    text = _decode_text_entities(text)
+    return " ".join(text.split())
+
+
+# ----------------------- DC-4 §5: similarity (reference containment)
+
+def _shingles(units, n):
+    return {tuple(units[k:k + n]) for k in range(len(units) - n + 1)}
+
+
+def similarity(reference: str, observed: str, min_observed_words: int = 40):
+    """DC-4 §5: reference-containment similarity, integer micro-units.
+
+    Returns None where the mass guard rules the audit `not_auditable`:
+    an observed text below `min_observed_words` is a page that says
+    almost nothing, and absence is not contradiction. Otherwise
+    floor(|A ∩ B| × 1e6 / |A|) over 8-word shingles, falling to
+    grapheme shingles of length min(8, g_A, g_B) when either text has
+    fewer than 8 words.
+
+    Test-suite scope: normalization here is NFC + str.casefold(), and
+    word segmentation is whitespace splitting; fixtures are restricted
+    to the ASCII letters-and-spaces domain, on which these coincide
+    exactly with DC-4 §5's default full case folding and untailored
+    UAX #29 rules. A fixture outside that domain is a fixture bug.
+    """
+    import unicodedata
+    ref = unicodedata.normalize("NFC", reference).casefold()
+    obs = unicodedata.normalize("NFC", observed).casefold()
+    ref_words, obs_words = ref.split(), obs.split()
+    if len(obs_words) < min_observed_words:
+        return None
+    if len(ref_words) >= 8 and len(obs_words) >= 8:
+        a = _shingles(ref_words, 8)
+        b = _shingles(obs_words, 8)
+    else:
+        n = min(8, len(ref), len(obs))
+        a = _shingles(list(ref), n)
+        b = _shingles(list(obs), n)
+    assert a, "empty reference reaches similarity(); DC-4 §5 rules it not_auditable earlier"
+    return (len(a & b) * 1_000_000) // len(a)
