@@ -5,9 +5,9 @@
     "change_type": "new",
     "observed_at": "2026-08-02T12:00:00Z",
     "payload": {
-      "commitment": "hmac-sha256:36f51180b6fbfc97aa810ededbc26f6761b97d2e0afaaf76f827f144bea0ff14",
+      "commitment": "hmac-sha256:c8f33cb222aab03b8d3de0577c5bf98da4c3cf74b5db08d1959ba796c8760a79",
       "alg": "HMAC-SHA256",
-      "bytes": 249
+      "bytes": 277
     },
     "meta": {
       "lang": "en",
@@ -20,6 +20,6 @@
   "sig": {
     "key_id": "test-k1",
     "alg": "Ed25519",
-    "value": "d4JXQ5D-5TpQZGVso-OYRFj4Oe_0UAg8aGSEng7ilxxud1nmRzRW4r0_yGhf2cmseqfyWOp78JdrAeM3s8cYBA"
+    "value": "wq0yzY9UZaNYaoA1_xRLb3gGUBLqE8fmyYvOanSjfLAl9V0a8oUc-WmWZ_2BTilOCjugNZKjf9BHzvtmqUZOCg"
   }
 }

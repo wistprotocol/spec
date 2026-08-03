@@ -1742,6 +1742,9 @@ hands.
 - [ ] Computes similarity with the normative §5 metric — NFC, default full
       case-folding, untailored UAX #29 segmentation — and reads the verdict
       from the effective similarity, mirrored for a `delete` (§5)
+- [ ] Applies DC-2 §11's extraction procedure, unchanged, to its own
+      fetch of the Reference Payload's page when checking the declared
+      `links` member (§5, DC-2 §11)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
       — including where the file discriminates between admitted Auditors,
@@ -1844,16 +1847,16 @@ key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
 |---|---|
 | Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
 | Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| Block Hash of *B* | `sha256:0cdae7f67aa37151dbe210b02d9dfc487055b45790155c0c9420cc8832fc6a44` |
-| `alpha` (32 octets, hex) | `0cdae7f67aa37151dbe210b02d9dfc487055b45790155c0c9420cc8832fc6a44` |
-| `pi` = `vrf_proof` (80 octets) | `1f9243836a3c7690d108b5d10399d7114259f1019127bac6e9205ec633c40eb0`<br>`e58b5bc4c3a1d431181bba148adad1bed0c31e1dc3bd9f3fe110068ea04f69c7`<br>`64cbd99d07ec7ca23fa689f6deca750e` |
-| `beta` (64 octets) | `8ea46b55e0a7e03164a7f432eb24c1398411ac9c40907f3148dafaaa418303bc`<br>`0a0f6bb70986019f207d6413de603f6e2fcd7da8a71d6487d863418c6b078c76` |
-| Delta ID of Entry 0 | `sha256:8999865b7e77b51993418cd4c1738c329fb1b6b0abae3896483daf743c70e257` |
-| `SHA-256(beta ‖ Entry 0)[0..8]` | `023c84499149362a` |
-| `D`(Entry 0) | `161149138183468586` |
+| Block Hash of *B* | `sha256:0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809` |
+| `alpha` (32 octets, hex) | `0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809` |
+| `pi` = `vrf_proof` (80 octets) | `2b1c91a879cb2bcfd0f87420fc17a2c213ea9a44e39371c7dc5b7882b71b2af5`<br>`9282b4cd8708ada538a34273358d60a7a2d7100b8114be31055e28db5dffbc14`<br>`c87de363c1ab0fe4370e9a01e4b99e0e` |
+| `beta` (64 octets) | `6a14e671c3fa9e262a0c398a8e4660f842a167f57f9e10b0dccc264c319b1379`<br>`bf1903fc33d2ac1ca0982890a27a10bcd5fdbbe8c4bf481f68ba5e1a9e6048f5` |
+| Delta ID of Entry 0 | `sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120` |
+| `SHA-256(beta ‖ Entry 0)[0..8]` | `6aeb8247400b4a5b` |
+| `D`(Entry 0) | `7704394830076136027` |
 | Delta ID of Entry 2 | `sha256:8d5ccbbb940151aef6a885b1d6a290265651b3029392b501d0892b566077be53` |
-| `SHA-256(beta ‖ Entry 2)[0..8]` | `16c8ed1fe7d1d8a1` |
-| `D`(Entry 2) | `1641822785465604257` |
+| `SHA-256(beta ‖ Entry 2)[0..8]` | `2657a087bd2e2835` |
+| `D`(Entry 2) | `2762853401270036533` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
@@ -1866,10 +1869,10 @@ the two domains differ only in reputation:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 0 | 100 000 (Provisional) | 2 900 000 | 1.611e24 | 5.350e25 | yes |
-| Entry 0 | 900 000 (established) | 500 000 | 1.611e24 | 9.223e24 | yes |
-| Entry 2 | 100 000 (Provisional) | 2 900 000 | 1.642e25 | 5.350e25 | **yes** |
-| Entry 2 | 900 000 (established) | 500 000 | 1.642e25 | 9.223e24 | no |
+| Entry 0 | 100 000 (Provisional) | 2 900 000 | 7.704e25 | 5.350e25 | no |
+| Entry 0 | 900 000 (established) | 500 000 | 7.704e25 | 9.223e24 | no |
+| Entry 2 | 100 000 (Provisional) | 2 900 000 | 2.763e25 | 5.350e25 | **yes** |
+| Entry 2 | 900 000 (established) | 500 000 | 2.763e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
 are in the vector, and an implementation MUST compare the exact ones. Note

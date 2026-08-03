@@ -247,6 +247,143 @@ def _payload_links_twin():
 
 check("negative:payload-links-rules", _payload_links_twin)
 
+# Hand-written, independent of tools/link_extraction.py: the vector file is
+# generated AND checked by that same module (Step 1's vector reproduction
+# below is therefore a round-trip), so this literal is what actually pins
+# fixture 1 — a Publisher's own page — to three URLs rather than trusting
+# the generator not to have drifted alongside its own check.
+_FIXTURE1_EXPECTED = {
+    "total": 3,
+    "urls": ["https://example.org/reference", "https://spec.example.net/dc-1",
+             "https://example.org/~user"],
+}
+
+def _link_extraction_vector():
+    """DC-2's extraction procedure: the vector's (urls, total) must be
+    reproduced from the fixture HTML bytes by the reference implementation."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc2" / "link-extraction.json").read_text())
+    assert vec["links_cap_bytes"] == _registry_table_defaults()["links_cap_bytes"], \
+        "the vector's links_cap_bytes has drifted from the Parameter Registry default"
+    fixture1 = next(c for c in vec["cases"] if c["label"] == "example-delta-page")
+    assert fixture1["expected"] == _FIXTURE1_EXPECTED, \
+        "fixture 1's expected member is not the hand-pinned 3-URL set"
+    for case in vec["cases"]:
+        html = bytes.fromhex(case["html_hex"])
+        urls, total = link_extraction.extract_links(
+            html, case["base_url"], case["publisher_domain"])
+        member = link_extraction.links_member(urls, total, vec["links_cap_bytes"])
+        assert member == case["expected"], f"{case['label']}: {member} != {case['expected']}"
+
+check("vectors:dc2-link-extraction", _link_extraction_vector)
+
+def _link_extraction_twin():
+    """Mutation twin: a perturbed fixture must not reproduce."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc2" / "link-extraction.json").read_text())
+    case = vec["cases"][0]
+    html = bytes.fromhex(case["html_hex"]) + b'<a href="https://mutant.example.io/x">m</a>'
+    urls, total = link_extraction.extract_links(
+        html, case["base_url"], case["publisher_domain"])
+    member = link_extraction.links_member(urls, total, vec["links_cap_bytes"])
+    assert member != case["expected"], "an appended link changed nothing — extraction is blind"
+
+check("negative:dc2-link-extraction", _link_extraction_twin)
+
+_BASE = "https://example.com/blog/post-1"
+
+# Independent of the generator: a hand-written table run through
+# link_extraction.normalize_url and .extract_links directly, so a bug that
+# both derives a vector fixture AND checks it the same wrong way (the
+# round-trip `vectors:dc2-link-extraction` above cannot catch that class)
+# still gets caught here.
+_NORMALIZE_ORACLE = [
+    # (label, candidate, base, expected)
+    ("absolute dot-segment keeps trailing slash",
+     "https://example.com/blog/a/b/..", _BASE, "https://example.com/blog/a/"),
+    ("relative dot-segment keeps trailing slash",
+     "a/b/..", _BASE, "https://example.com/blog/a/"),
+    ("out-of-range port rejected", "https://example.com:99999/x", _BASE, None),
+    ("non-numeric port rejected", "https://example.com:abc/x", _BASE, None),
+    ("%7e decodes to ~", "https://example.org/%7euser", _BASE, "https://example.org/~user"),
+    ("%2f stays encoded, hex uppercased",
+     "https://example.com/a%2fb", _BASE, "https://example.com/a%2Fb"),
+    ("userinfo rejected", "https://user@example.com/x", _BASE, None),
+    ("IPv6 literal host rejected", "https://[::1]/x", _BASE, None),
+    ("space in host rejected", "https://exa mple.com/x", _BASE, None),
+    ("fragment removed", "https://example.com/x#frag", _BASE, "https://example.com/x"),
+    ("default port 443 removed", "https://example.com:443/x", _BASE, "https://example.com/x"),
+    ("empty path becomes /", "https://example.com", _BASE, "https://example.com/"),
+    ("raw tab in candidate rejected", "https://example.com/\tx", _BASE, None),
+]
+
+# (label, tiny literal HTML, expected extracted urls) — exercises the DC-2
+# §11 scan itself (comments, raw-text elements, quote-aware attributes,
+# data-href vs href, character references), independent of gen_vectors.py's
+# fixture 3.
+_SCAN_ORACLE = [
+    ("data-href is not href",
+     b'<a data-href="https://example.org/x">t</a>', []),
+    ("comment-wrapped link not extracted",
+     b'<!-- <a href="https://example.org/x">t</a> -->', []),
+    ("a bare > inside a quoted value does not end the tag",
+     b'<a title="a>b" href="https://example.org/x">t</a>', ["https://example.org/x"]),
+    ("&amp; decoded in the query",
+     b'<a href="https://example.org/x?y=1&amp;z=2">t</a>', ["https://example.org/x?y=1&z=2"]),
+    # Regression pins: an out-of-range or surrogate numeric character
+    # reference must discard just this candidate — never raise (the old
+    # `chr()` call raised ValueError past 0x10FFFF) and never emit a
+    # string `rfc8785.dumps` cannot encode (a lone surrogate).
+    ("out-of-range numeric reference discards the candidate, not the run",
+     b'<a href="https://example.org/x?y=&#99999999999;">t</a>', []),
+    ("surrogate numeric reference discards the candidate, not the run",
+     b'<a href="https://example.org/x?y=&#xD800;">t</a>', []),
+    # A digit run this long (one more than CPython 3.11+'s own 4300-digit
+    # int() string-conversion cap) must discard the candidate via the
+    # length bound alone, never via int() raising: 4301 digits cannot
+    # denote a code point <= 0x10FFFF (7 decimal digits) either way.
+    ("over-long decimal reference discards the candidate",
+     b'<a href="https://example.org/x?y=&#' + b"9" * 4301 + b';">t</a>', []),
+]
+
+def _link_normalization_oracle(normalize_table=_NORMALIZE_ORACLE, scan_table=_SCAN_ORACLE):
+    """Independent oracle: hand-written (candidate, expected) pairs, run
+    through link_extraction directly rather than through the vector file
+    that same module both generates and checks.
+
+    Factored to accept a supplied table so the twin below can run this
+    exact comparison over a deliberately perturbed one and prove it is
+    live, in the style of `_assert_links_valid`/`negative:payload-links-rules`.
+    """
+    import link_extraction
+    for label, candidate, base, expected in normalize_table:
+        got = link_extraction.normalize_url(candidate, base)
+        assert got == expected, \
+            f"{label}: normalize_url({candidate!r}) = {got!r}, expected {expected!r}"
+    for label, html, expected_urls in scan_table:
+        urls, total = link_extraction.extract_links(html, _BASE, "example.com")
+        assert urls == expected_urls, \
+            f"{label}: extract_links = {urls!r}, expected {expected_urls!r}"
+        assert total == len(expected_urls), \
+            f"{label}: total = {total}, expected {len(expected_urls)}"
+
+check("spec:link-normalization-oracle", _link_normalization_oracle)
+
+def _link_normalization_oracle_twin():
+    """Mutation twin: running the oracle over a table with one entry's
+    expectation flipped to a wrong literal MUST raise — proving the
+    comparison is live rather than vacuously true."""
+    perturbed = list(_NORMALIZE_ORACLE)
+    label, candidate, base, _expected = perturbed[0]
+    perturbed[0] = (label, candidate, base, "https://not-the-right-answer.example/")
+    try:
+        _link_normalization_oracle(normalize_table=perturbed)
+    except AssertionError:
+        return
+    raise AssertionError(f"{label}: a wrong expected value passed the oracle unnoticed")
+
+check("negative:link-normalization-oracle", _link_normalization_oracle_twin)
+
 DIGEST_NAME = re.compile(r"hash|digest|sha\d|checksum|commitment", re.IGNORECASE)
 
 # Digest lengths in hex: MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512.

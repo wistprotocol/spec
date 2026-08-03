@@ -13,7 +13,7 @@
     {
       "url": "https://example.com/blog/post-1",
       "publisher": "example.com",
-      "delta_id": "sha256:8999865b7e77b51993418cd4c1738c329fb1b6b0abae3896483daf743c70e257",
+      "delta_id": "sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120",
       "observed_at": "2026-08-02T12:00:00Z",
       "weight": "full"
     },
@@ -25,5 +25,5 @@
       "weight": "reduced"
     }
   ],
-  "content_digest": "sha256:75f11e637933dcf2380eae44dacae5a135a4505f79fab7e463d14358fe426451"
+  "content_digest": "sha256:cc3e6076ef2c5e0e53955a422b2fe314d72814dea82bdb1aeec8cd675961e55c"
 }

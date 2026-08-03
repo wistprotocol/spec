@@ -297,7 +297,7 @@ but they are the one class of file that may cease to be served, under §6.2.
 /log/blocks/000000000.json.zst          (immutable; zero-padded 9-digit block number)
 /log/blocks/000000001.json.zst
 ...
-/payloads/8999865b….json                (one per content-bearing Delta — §6.1)
+/payloads/6cac5bdd….json                (one per content-bearing Delta — §6.1)
 /snapshots/index.json                   (mutable, signed; the discovery entry point)
 /snapshots/2026-08-02/manifest.json     (signed; declares log position)
 /snapshots/2026-08-02/tier0/index.sqlite
@@ -989,7 +989,7 @@ Block 0 contains 4 `publisher_delta` Entries: the DC-1 vector Delta
 **Leaf hashes (hex):**
 
 ```
-leaf0 = ae89e9f3b573605ed9b21436df6f457aad4f598101bc5d328aee7ca3c36c141b
+leaf0 = 692b6c22035d2d93674487f07223f7ba1897737af6772d34ae9034e67d000b7f
 leaf1 = 0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260
 leaf2 = 220054dcb66d9ba11a870cc8df9de8b45f81d9906d898779dfbc98a5458e6958
 leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
@@ -998,20 +998,20 @@ leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = 3976b5404b3762ba58a7839bc6e037b43f5095d7fa1cb43db7e5f111c40dcf12
+n01 = node(leaf0, leaf1) = df099cc6c13e09fd2f857d97e986bca54e9de485bb3337469d057de061228c73
 n23 = node(leaf2, leaf3) = 71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882077495a760b
 ```
 
 **Merkle root:**
 
 ```
-sha256:7996906c9a57bd456aaa89d692b941cce51104137a6856c981109436f0b52aea
+sha256:4d035a10ecdb040e9871ff26fa2b07694cf9fbc67eac00f86982cb2b951b136d
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:0cdae7f67aa37151dbe210b02d9dfc487055b45790155c0c9420cc8832fc6a44
+sha256:0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
@@ -1019,12 +1019,12 @@ leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → 3976b540...  (= n01)   # fn=0 < sn=3: sibling on the right
-h = node(h, n23)     → 7996906c...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
+h = node(h, leaf1)   → df099cc6...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → 4d035a10...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
 
 Entry 0's Payload is [`examples/payload.json`](../examples/payload.json),
-served at `/payloads/8999865b…e257.json`. It contributes to none of the
+served at `/payloads/6cac5bdd…5120.json`. It contributes to none of the
 hashes above: every figure here is computed over Entries that carry the
 commitment alone, which is why withdrawing that Payload leaves the leaf,
 the root, the Block Hash, and this proof untouched.

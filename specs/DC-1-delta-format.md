@@ -713,7 +713,7 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 ```
 
 **Payload ([`examples/payload.json`](../examples/payload.json)), served at
-`/payloads/8999865b…e257.json`:**
+`/payloads/6cac5bdd…5120.json`:**
 
 ```json
 {
@@ -722,15 +722,16 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
   "content": {
     "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
     "links": {
-      "total": 2,
-      "urls": ["https://example.org/reference", "https://spec.example.net/dc-1"]
+      "total": 3,
+      "urls": ["https://example.org/reference", "https://spec.example.net/dc-1",
+               "https://example.org/~user"]
     },
     "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."}
   }
 }
 ```
 
-`JCS(content)` is 249 octets and the salt is the 16 octets
+`JCS(content)` is 277 octets and the salt is the 16 octets
 `1930b112f745a51ceb8c0e86e52b692d`. A conforming Publisher draws that salt
 from a CSPRNG; this vector derives it — `SHA-256("deltacommons-test-salt|"
 ‖ url)[0..16]` — because the generator has no random source and must stay
@@ -745,9 +746,9 @@ byte-reproducible.
   "change_type": "new",
   "observed_at": "2026-08-02T12:00:00Z",
   "payload": {
-    "commitment": "hmac-sha256:36f51180b6fbfc97aa810ededbc26f6761b97d2e0afaaf76f827f144bea0ff14",
+    "commitment": "hmac-sha256:c8f33cb222aab03b8d3de0577c5bf98da4c3cf74b5db08d1959ba796c8760a79",
     "alg": "HMAC-SHA256",
-    "bytes": 249
+    "bytes": 277
   },
   "meta": {"lang": "en", "topics": ["software"], "license": "CC-BY-4.0"}
 }
@@ -768,13 +769,13 @@ order.
 **Delta ID:**
 
 ```
-sha256:8999865b7e77b51993418cd4c1738c329fb1b6b0abae3896483daf743c70e257
+sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120
 ```
 
 **Signature (base64url):**
 
 ```
-d4JXQ5D-5TpQZGVso-OYRFj4Oe_0UAg8aGSEng7ilxxud1nmRzRW4r0_yGhf2cmseqfyWOp78JdrAeM3s8cYBA
+wq0yzY9UZaNYaoA1_xRLb3gGUBLqE8fmyYvOanSjfLAl9V0a8oUc-WmWZ_2BTilOCjugNZKjf9BHzvtmqUZOCg
 ```
 
 The complete envelope is
