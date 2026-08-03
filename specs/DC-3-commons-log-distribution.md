@@ -86,7 +86,18 @@ fractional or offset form would make that conversion a rounding decision
 that two implementations could take differently — one rounded half-second
 can move a whole-day boundary and with it a domain's age, penalty ages, and
 score. Constraining the field is cheaper than specifying a rounding rule,
-and it costs the Aggregator nothing: it chooses `sealed_at` itself.
+and it costs the Aggregator nothing: it chooses when to seal.
+
+What it does not choose is the timestamp inside that choice: `sealed_at`,
+converted to integer seconds since the epoch, MUST be an integer multiple
+of `block_cadence_seconds` as in force at the previous Block's
+`sealed_at`, and a Consumer replaying the Log MUST reject a Block off the
+grid. The Block Hash is an input to every Auditor's selection draw
+(DC-4 §4), and a freely chosen `sealed_at` was a free grinding dimension
+over it — the grid leaves the Aggregator its sealing cadence and removes
+its choice of digits. The first Block after a `parameter_change` to
+`block_cadence_seconds` takes effect lands on the new grid; the Anchor's
+own `created_at` is not a Block and is unconstrained.
 
 The **Block Hash** is `"sha256:" + hex(SHA-256(JCS(header)))` — the header
 alone. The Aggregator signs those same canonical bytes; `sig.key_id` names
@@ -105,6 +116,23 @@ Blocks are sealed at a fixed cadence (Parameter Registry, DC-4 §9;
 default: hourly). A Block MAY be empty (`entry_count: 0`); empty blocks
 keep the chain's heartbeat observable. Once sealed, a Block is immutable
 forever.
+
+**Per-domain Block capacity.** A Block MUST NOT carry more than
+`domain_block_entries_max` (Parameter Registry; default 10 000)
+`publisher_delta` Entries whose Publisher is one domain, and a Consumer
+replaying the Log MUST reject a Block that does. This is the one bound in
+the suite on how much a domain may publish, and it is deliberately a
+bound on *rate*, not on worth or on standing: reputation caps quota,
+sampling and latency and nothing else (DC-4 §6.4), judging content's
+worth is outside the protocol (ADR-0006), and a ceiling that grew with
+reputation would re-create the pay-for-position pressure Invariant 2
+exists to forbid — so the cap is flat, high enough that a large site's
+backfill crosses it in days, and low enough that filling the whole
+commons with honest junk is a project of years conducted in public
+rather than a weekend purchase. What the cap does not do is also stated:
+content nobody wants is not a protocol violation, and which records
+deserve a consumer's attention is ranking, decided at consumption
+(ADR-0006, ADR-0008), not admission.
 
 **A sealed Delta is sealed once.** A Delta ID MUST appear in at most one
 `publisher_delta` Entry in the whole Log. An Aggregator that receives a
@@ -134,6 +162,34 @@ DC-3 defines only this envelope; the `body` formats of `audit_record` and
 `registry_update` are normative in DC-4, and of `publisher_delta` and
 `publisher_declaration` in DC-1. Validators MUST reject Blocks containing
 unknown Entry types under the current major version.
+
+**Entry order is canonical.** Within a Block, Entries MUST appear grouped
+by type in the fixed order `publisher_declaration`, `registry_update`,
+`publisher_delta`, `audit_record`, and within each group in ascending
+octet order of each Entry's Merkle leaf hash (§4). A Consumer replaying
+the Log MUST reject a Block ordered otherwise. The rule exists for the
+same reason as the `sealed_at` grid (§3.1): Entry order feeds
+`merkle_root`, `merkle_root` feeds the Block Hash, and the Block Hash
+feeds every Auditor's selection draw (DC-4 §4) — a free permutation of
+Entries was a free grinding dimension of factorial size. Canonical order
+leaves the Aggregator its one real choice, Block membership, and §3.2's
+cadence already bounds how often that choice recurs.
+
+Storage order and application order are therefore decoupled, and
+**application order** is defined, not inherited: within a Block, apply
+`publisher_declaration` Entries first (their own precedence is `seq`, and
+DC-1 §5.2's resolution rule is height-based, so intra-Block position
+never decides between them), then `registry_update` Entries (admission
+and removal read at Block granularity — "admitted at this Block's
+`sealed_at`" — so position within the Block carries no meaning), then
+`publisher_delta` Entries **in chain order**: a Delta whose `prev` names
+a Delta in the same Block applies after it, which is well-defined because
+chains are trees rooted outside the Block and cycles are impossible
+(a Delta ID includes its `prev` in its preimage), and two Deltas with no
+chain relation apply in leaf-hash order without observable difference.
+`audit_record` Entries apply last; nothing they change reads intra-Block
+position. No conforming behavior depends on any ordering freedom this
+paragraph does not name.
 
 ### 3.4. Aggregator Keys and the Log Anchor
 
@@ -180,6 +236,40 @@ Key rotation does not repudiate the past. A signature made by a key that
 was valid when the signed object was sealed remains binding evidence
 forever — including for the equivocation proof of §5. An Aggregator MUST
 NOT be treated as exonerated by removing a key after the fact.
+
+**Succession.** A chain whose every valid key is lost can never extend —
+no in-band act can admit a new key, because every admission is signed by
+a valid one — and a chain whose keys are compromised may be one two
+parties can extend, which §5 makes detectable and nothing here makes
+recoverable. Both end the same way: the Log stops being the place where
+this commons continues. The continuation is a **successor Log**: a new
+Anchor whose optional `predecessor` names the ended Log's `log_id` and
+the exact Block — `final_block_number`, `final_block_hash` — at which it
+ended. The successor Anchor is a trust root like any Anchor: obtained
+and verified out-of-band (§3.4 above), believed because Consumers,
+Publishers and Auditors choose it, not because the old chain — which by
+hypothesis can no longer say anything trustworthy — endorses it.
+
+What the field changes is what a Consumer that accepts the successor
+MUST do with the past: verify the predecessor chain to the named final
+Block exactly as §8 verifies any chain, and carry the state at that
+Block — materialized records, Declarations, reputation inputs, sanction
+and exclusion states, every §7 state-artifact category — into the
+successor's genesis, exactly as if the successor's Block 0 were Block
+`final_block_number + 1`. Windows anchored to a `sealed_at` of the dead
+chain keep their instants; Blocks of the successor discharge them. The
+carry is the point: a fork is this suite's stated remedy for a captured
+or colluding operator (DC-4 §8, §10), and a remedy that reset every
+domain to Provisional and erased every sanction would punish every
+honest Publisher and amnesty every delisted one — a successor without
+`predecessor` does exactly that, lawfully, as a new Log that inherits
+nothing. Competing successors are resolved the way the Anchor itself
+is: by which one the ecosystem verifiably pins, a choice this
+specification makes falsifiable (each candidate names its final Block,
+and §5's evidence rules say whether that Block was honestly reached)
+but deliberately does not make. A major-version migration uses the same
+field: a v2 Log naming a v1 predecessor is a continuation, and DC-1
+§1's "reject unknown major versions" governs objects, not history.
 
 ## 4. Merkle Tree and Inclusion Proofs
 
@@ -259,7 +349,15 @@ the fixed URL `/log/checkpoint.json` after sealing each Block: the
 
 - Mirrors MUST retain every Checkpoint they have ever served.
 - Consumers SHOULD fetch Checkpoints from more than one Mirror and
-  SHOULD retain the Checkpoints they act on.
+  SHOULD retain the Checkpoints they act on. The instruction is
+  performable because Mirrors are discoverable in-band: the Aggregator
+  SHOULD publish `/log/mirrors.json` — signed, listing the base URLs of
+  Mirrors it knows to re-serve the Log — and a Consumer SHOULD also
+  retain Mirror URLs from any other source it trusts, because a list the
+  Aggregator curates is exactly the wrong sole source for the parties
+  meant to catch the Aggregator equivocating: its value is bootstrap
+  convenience, and independence of at least one comparison source is
+  the property that matters.
 - A Consumer MUST verify that the Block Hash of the Block it treats as the
   chain head equals the `block_hash` of the Checkpoint it is syncing to,
   and MUST verify the chain backward from that head via `prev_block_hash`.
@@ -281,6 +379,22 @@ signed by *any* key valid at their `block_number` count; an Aggregator
 cannot escape an equivocation proof by removing the signing key afterward
 (§3.4).
 
+The division of labor here is deliberate and worth stating exactly:
+**detection is in-band, dissemination is not.** The proof is two small
+signed files anyone can verify, but no channel this specification
+defines carries it — "publish it widely" names no venue, and v1
+deliberately ships no gossip or witness layer (the mechanism CT grew
+for exactly this), because in-band objects cannot be added within a
+major version and a half-specified witness protocol would be worse
+than a recorded absence. Two consequences follow honestly. The
+self-incrimination guarantee is scoped: an Aggregator that partitions
+its audiences perfectly — distinct Checkpoints to distinct populations
+that never compare notes — is caught only when a bundle crosses the
+partition, which multi-Mirror fetching (above) makes likely but
+nothing here makes certain. And the remedy runs on evidence, not
+plumbing: a proof, however it traveled, justifies the fork/succession
+path (§3.4) everywhere it lands. A witness layer is v2's to add.
+
 ## 6. Static Layout
 
 The log is distributed as static files. Transport is out of scope: any
@@ -300,8 +414,8 @@ but they are the one class of file that may cease to be served, under §6.2.
 /payloads/6cac5bdd….json                (one per content-bearing Delta — §6.1)
 /snapshots/index.json                   (mutable, signed; the discovery entry point)
 /snapshots/2026-08-02/manifest.json     (signed; declares log position)
+/snapshots/2026-08-02/state.json        (signed; the state artifact — §7)
 /snapshots/2026-08-02/tier0/index.sqlite
-/snapshots/2026-08-02/tier0/embeddings.parquet
 /snapshots/2026-08-02/tier1/extracts.parquet
 /snapshots/2026-08-02/tier1/links.parquet
 ```
@@ -586,6 +700,17 @@ adjudicate a basis; it can only make the claim permanent and attributable
 to the party that made it — the same standard this suite applies to every
 other exercise of operator power.
 
+**A withdrawal binds one Log.** Every obligation in this section runs on
+Entries of the Log the withdrawal was sealed in: an Aggregator, its
+Mirrors, and the Auditors admitted to *that* Log. A second, independent
+Log that sealed the same Publisher's Deltas — nothing forbids one, and
+DC-2's publication surface is one site serving whomever pulls — is
+unreached by it, and a Publisher who needs content erased from two Logs
+files two withdrawals. Stated once, plainly, because the alternative is
+a Publisher discovering it at the worst moment: this suite's erasure
+guarantees are per-Log, and every "the Aggregator", "every Mirror" and
+"the Auditor" in this section quantifies over one Log's roster.
+
 ## 7. Snapshots and Tiers
 
 A Snapshot is a derived artifact: the materialized state of the log up to
@@ -593,13 +718,14 @@ Block N. Its `manifest.json` (schema:
 [`schemas/snapshot-manifest.schema.json`](../schemas/snapshot-manifest.schema.json))
 is signed by the Aggregator and declares `snapshot_date`, `log_position`
 (= N), `anchor_block_hash` (the Block Hash of Block N), `content_digest`
-(below), the `embedding_model`, and `files` — one entry per artifact,
-each carrying its `path` relative to the manifest, its `sha256`, its
-`bytes`, and the `tier` (`0` or `1`) it belongs to.
+(below), `state` (the state artifact, below), optionally `shards`
+(below), and `files` — one entry per artifact, each carrying its `path`
+relative to the manifest, its `sha256`, its `bytes`, the `tier` (`0` or
+`1`) it belongs to, and, where the manifest declares `shards`, its
+`shard` index.
 
-- **Tier 0** — summaries and quantized embeddings of every live record:
-  SQLite (FTS5) + Parquet. Sized for any laptop; answers most agent
-  queries alone.
+- **Tier 0** — summaries of every live record: SQLite (FTS5) + Parquet.
+  Sized for any laptop; answers most agent queries alone.
 - **Tier 1** — full extracts of live records, and the link graph their
   Payloads declare, as Parquet.
 
@@ -608,10 +734,31 @@ carries commitments, and a Snapshot is where the content a Consumer
 actually queries is materialized. A Snapshot MUST NOT include content
 whose commitment it did not verify.
 
-**Embedding model declaration.** Embeddings are meaningful only within
-one model's vector space. The manifest MUST declare the model `name`,
-`version`, `dim`, and `quantization`. A Consumer using a different model
-MUST NOT mix vector spaces; it re-embeds from Tier 1 extracts instead.
+**Companion packs.** Neither tier carries embeddings, and no artifact
+this specification defines does. A vector is a content-derived value no
+verification in this suite can reach: `content_digest` deliberately
+covers Log-derived tuples only, float inference admits no exact
+equivalence criterion, and an inexact one — a tolerance — is an attack
+budget, since manipulation inside the tolerance is invisible by
+construction (ADR-0009). Instead, any party — the Aggregator included —
+MAY publish a **companion pack**: a signed artifact of vectors computed
+over a named Snapshot. A conforming pack declares the `content_digest`
+and `log_position` it was computed against; declares its model — `name`,
+`version`, `weights_hash`, `dim`, `quantization`, the distance `metric`,
+and the record field embedded (`source`, e.g. `summary`) — precisely
+enough that any holder of the named Snapshot can re-embed any record and
+compare; and covers only records the bound digest covers, which excludes
+records withdrawn at that height by construction. A pack's signature
+binds provenance and its bound digest binds scope; the honesty of the
+vectors themselves is neither, and this specification deliberately
+defines no equivalence criterion for them — a Consumer's trust in a pack
+is trust in its publisher, chosen the way a client is chosen, never a
+property the protocol asserts. Packs published by the Aggregator are
+Snapshot artifacts for the purposes of §6.2's withdrawal obligations; a
+third-party pack containing a since-withdrawn record is a copy already
+served, in the position DC-1 §6 names, with a named holder. Discovery of
+packs is out of scope: a Consumer verifies a pack against the digest of
+a Snapshot it already holds, wherever the pack came from.
 
 **The link graph.** `tier1/links.parquet` carries one row per declared
 link of every live record: `(source_url, target_url, position)`, where
@@ -643,17 +790,35 @@ not from whether an Aggregator sealed a `sanction`: level 2 marks every
 record of that domain reduced-weight; level 3 stops that domain's later
 Deltas from being materialized at all, from the height it takes effect;
 level 4 removes the domain's records entirely; and a `sanction_lift`, a
-successful appeal, a lapsed ruling deadline, or a lapsed appeal-sealing
-deadline (DC-4 §7) reverses the state from the height that takes effect.
+successful appeal, a lapsed ruling deadline, a lapsed appeal-sealing
+deadline, or an identity reset (DC-4 §7, §6.3) reverses the state from
+the height that takes effect.
 Deletion, withdrawal and unauditability
 are covered by the rule below. The Log retains every Entry in every case;
 materialization shapes only the present state.
 
+**One URL, one Publisher.** A URL's host can lawfully sit inside two
+authorities at once: its own domain's, and a parent domain whose
+`subdomain_scope` names it (DC-1 §3.2). The record key is (Publisher
+domain, Normalized URL), so without a tiebreak the same URL could carry
+two live records, one under each Publisher, and nothing below would say
+which one a query should believe. The tiebreak is self-governance: from
+the height at which the subdomain's own `seq`-0 Declaration Entry is
+sealed, Deltas for that host's URLs materialize only under the
+subdomain's Publisher domain — the parent's records for those URLs are
+excluded from that height, exactly as a `delete` would exclude them,
+and the parent's later Deltas for those URLs are not materialized while
+the subdomain's Declaration stands. Below that height the parent's scope
+governs alone. Every input to the rule — the Declaration Entry, its
+height, the scope — is in the Log, so any two replayers agree; the
+parent's excluded Entries remain in the Log like every other superseded
+state.
+
 **Materialization rule.** A `delete` Delta (DC-1 §3.3) excludes that
 URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
 likewise excludes that Delta's content from every Snapshot produced at or
-above its sealing height, in both tiers, including any embedding or
-declared link derived from it. A URL that is **unauditable** at the
+above its sealing height, in both tiers, including any declared link
+derived from it. A URL that is **unauditable** at the
 Snapshot's `log_position` (DC-4 §5) — one that two independent Auditors
 have been forbidden to fetch by `robots.txt` inside the unauditable
 horizon, with no successful audit by an Auditor independent of both
@@ -779,7 +944,91 @@ non-conforming builder: it proves two parties materialized the same
 records, not that either verified the Payloads it indexed, which §6.1
 requires of them separately.
 
-## 8. Consumer Synchronization
+**Sharding.** A manifest MAY declare `shards`: a `count` ≥ 1 and a
+`digests` array of exactly `count` entries. When it does, every `files`
+entry carries a `shard` index in `[0, count)`, a record belongs to the
+shard
+
+    first 8 octets of SHA-256(UTF-8 of the Publisher domain),
+    read big-endian, mod count
+
+— by Publisher domain, so every domain's records travel together and a
+Consumer holding a shard holds whole domains, never fragments — and
+`digests[i]` is the §7 construction computed over shard *i*'s records
+alone. The whole-set `content_digest` is unchanged and remains REQUIRED:
+the shards partition the records, so any party holding all shards
+recomputes it, and any party holding some verifies each held shard
+against its own digest. A **partial Consumer** MAY materialize any
+subset of shards, MUST verify each held shard's digest and MUST treat
+its coverage as partial — absence of a record it holds no shard for is
+not evidence of anything. Sharding is what keeps two obligations
+compatible at scale: a withdrawal (§6.2) invalidates the files of one
+shard and the manifest, not every artifact of the Snapshot, so Mirrors
+re-fetch one shard rather than terabytes; and a Consumer whose hardware
+fits a fraction of the corpus verifies the fraction it holds instead of
+trusting it. `shards.count` is the Aggregator's choice per Snapshot; a
+manifest without `shards` is the `count` = 1 case with the bookkeeping
+elided.
+
+**Tier layout is normative.** A conforming rebuild MUST produce, per
+shard where sharded: `tier0/index.sqlite` — a SQLite database whose
+table `records` has columns `url`, `publisher`, `delta_id`,
+`observed_at`, `weight`, `title`, `abstract`, `lang` (the record tuple's
+fields plus the Payload `summary`'s members, `NULL` where the Payload
+declares none), with an FTS5 index over `title` and `abstract` — and
+`tier1/extracts.parquet` (`url`, `publisher`, `delta_id`, `extract`) and
+`tier1/links.parquet` (above). An implementation MAY add columns and
+auxiliary tables; a Consumer MUST ignore columns it does not know, and
+MUST NOT require any column this paragraph does not name. The layout is
+normative for the same reason the digest is: "anyone can rebuild an
+equivalent Tier 0" is exercisable only if two rebuilds answer the same
+query the same way, and a first implementation's private layout would
+otherwise become a de facto standard nothing checks.
+
+**The state artifact.** The record tuples are the index's content; they
+are not its law. Key validity, admissions, governance states and
+reputation are all defined by replay from genesis, and a Consumer that
+starts from a Snapshot instead of genesis needs that state or it cannot
+verify the first post-rotation signature, continue a sanction ladder,
+or compute a reputation. The manifest therefore declares `state`: the
+`path`, `sha256` and `bytes` of a state file, and its `state_digest`.
+The state file is a signed Envelope whose inner object is `state`
+(schema:
+[`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json)),
+carrying `dc_version`, the `log_position` (= the manifest's), and
+`entries`: one tuple per item of live protocol state, each a JSON array
+whose first member is its kind. The kinds, their key fields and their
+value fields are:
+
+| Kind | Key fields | Value fields | Defined by |
+|---|---|---|---|
+| `aggregator_key` | `key_id` | `public_key`, added height, removed height or `null` | §3.4 |
+| `auditor` | `auditor_id`, `key_id` | `public_key`, admitted height, removed height or `null` | DC-4 §3 |
+| `declaration` | domain | the current Declaration Envelope, its sealing height | DC-1 §5 |
+| `parameter` | identifier | value, `effective_at` | DC-4 §9 |
+| `sanction_state` | domain | level, establishing Registry Update IDs, each open deadline instant | DC-4 §7 |
+| `recovery_window` | domain | recovery Declaration height, window end | DC-1 §5.2 |
+| `exclusion` | publisher, URL | excluded-since height | DC-4 §5 |
+| `coverage_failure` | `auditor_id`, block number | — | DC-4 §4 |
+| `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted URL set, penalties as (confirming `sealed_at`, severity) pairs | DC-4 §6 |
+| `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
+
+A `parameter` tuple exists only for a parameter amended since genesis:
+Registry defaults are constants of this suite and are not restated. A
+`record` tuple carries the chain tip — the newest Delta of the chain,
+which the content tuple does not name (its `delta_id` is the anchor) —
+because a resuming Consumer must reject a fork of the live chain
+exactly as a replaying one would (DC-1 §3.5). `state_digest` is the §7
+construction verbatim — `sha256:` over the concatenation of the sorted
+JCS bytes of every tuple — and every field above is Log-derived, so the
+digest is computable after any withdrawal, for the §7 reasons. A
+Consumer that replays from genesis MAY recompute it and MUST obtain the
+manifest's value; recomputability from public inputs, not the
+Aggregator's signature, is what makes the artifact state rather than
+testimony. Field-level encodings ride with the schema; the table is the
+normative inventory, and a state file omitting a kind with live
+instances at `log_position`, or carrying one this table does not name,
+does not verify.
 
 **Cold start:**
 
@@ -789,7 +1038,9 @@ requires of them separately.
    `snapshot_date`, `log_position` and `content_digest` are the ones the
    index entry named (`DC3-E04` on disagreement — the two are independently
    signed statements about the same Snapshot).
-3. Download the listed files; verify each SHA-256 and byte size.
+3. Download the listed files — all of them, or, under a manifest that
+   declares `shards` (§7), the state file and any subset of shards —
+   and verify each SHA-256 and byte size.
 4. Fetch `/log/checkpoint.json`; verify signature.
 5. Download Blocks `log_position + 1 .. checkpoint.block_number`. A Block
    a Mirror does not hold is `DC3-E01`: fetch it from another Mirror,
@@ -808,14 +1059,25 @@ requires of them separately.
 9. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
    in those Blocks whose Payload has not been withdrawn (§6.2); verify
    each against its Delta's commitment and `bytes` (§6.1).
-10. Apply Entries in order to the local index, materializing content only
+10. Load the state artifact (§7): verify its signature and its
+    `log_position`, and adopt its tuples as the protocol state at
+    `log_position` — key registries, Declarations, governance states,
+    reputation inputs, chain tips. Every Entry applied in the next step
+    is validated against this state exactly as a replaying Consumer
+    validates against state it derived itself: a signature under a key
+    the state does not admit, a Delta forking a chain tip the state
+    carries, a Record from an Auditor the state shows removed, all fail
+    as they would on full replay.
+11. Apply Entries in order to the local index, materializing content only
     from Payloads that verified.
 
 A Consumer that also replays the Log from genesis MAY recompute the
-Snapshot's `content_digest` (§7) and compare it with the manifest's. Doing
-so needs no Payload and no tier file, so it is available to any party
-holding the Blocks — including one checking an Aggregator it does not
-otherwise sync from.
+Snapshot's `content_digest` and `state_digest` (§7) and compare them with
+the manifest's. Doing so needs no Payload and no tier file, so it is
+available to any party holding the Blocks — including one checking an
+Aggregator it does not otherwise sync from — and it is what keeps the
+state artifact an assertion anyone can falsify rather than testimony a
+cold-starting Consumer must take on trust.
 
 **Continuous operation:**
 
@@ -842,8 +1104,13 @@ first is ever a reason to stop.
 **Catch-up decision.** A Consumer offline for a long period compares the
 Block distance from its position to the newest Checkpoint against the
 distance covered by the newest Snapshot, and chooses whichever costs less
-to process. Both paths converge to identical state; the choice is purely
-economic.
+to process. Both paths converge to identical state — the record tuples by
+`content_digest`, the protocol state by `state_digest`, each recomputable
+from the Blocks alone (§7) — so the choice is purely economic. Without
+the state artifact the sentence before this one would be false: record
+tuples alone carry no key registry, no governance state and no chain
+tips, and the two paths would converge only on content while disagreeing
+on law.
 
 ## 9. Error Registry
 
@@ -852,7 +1119,7 @@ economic.
 | DC3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
 | DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
 | DC3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — DC-1 §3.6, `DC1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
-| DC3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest` (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
+| DC3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | DC3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (DC-2 §3.1), and keep applying the Log. A Consumer that sees `DC3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
 ## 10. Security Considerations
@@ -924,8 +1191,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 **Aggregator:**
 
 - [ ] Seals Blocks per §3 (sequential numbering, strict `sealed_at`
-      monotonicity, whole-second `sealed_at` ending in `Z`, correct Block
-      Hash and Merkle root)
+      monotonicity on the cadence grid, whole-second `sealed_at` ending
+      in `Z`, canonical Entry order, the per-domain Entry capacity,
+      correct Block Hash and Merkle root)
 - [ ] Publishes a Checkpoint per sealed Block at the fixed URL (§5)
 - [ ] Serves the static layout of §6 with immutable Block files
 - [ ] Serves every sealed Delta's Payload at `/payloads/<delta-id-hex>.json`
@@ -939,9 +1207,11 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       serving it, together with any Snapshot artifact still containing its
       content (§6.2, §7)
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
-      embedding model declaration, the materialization rule, the
-      `content_digest`, and an `anchor_block_hash` equal to the Block Hash
-      of Block `log_position`
+      materialization rule, the `content_digest`, the state artifact and
+      its `state_digest`, per-shard digests where sharded, and an
+      `anchor_block_hash` equal to the Block Hash of Block `log_position`
+- [ ] Treats any companion pack it publishes itself as a Snapshot
+      artifact for §6.2's withdrawal obligations (§7)
 - [ ] Publishes `/snapshots/index.json`, signed, newest first, agreeing
       with each manifest it points to, and removes an entry when it stops
       serving that Snapshot (§6)
@@ -1002,6 +1272,14 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       already built (§6.2, §7)
 - [ ] Obtains the Anchor out-of-band and resolves signing keys by height
       (§3.4)
+- [ ] Rejects Blocks off the `sealed_at` grid, out of canonical Entry
+      order, or over the per-domain Entry capacity (§3.1–§3.3)
+- [ ] On cold start from a Snapshot, loads the state artifact and
+      validates subsequent Entries against it; on a sharded Snapshot,
+      verifies each held shard's digest and treats coverage as partial
+      (§7, §8)
+- [ ] On accepting a successor Anchor, verifies the predecessor chain to
+      its declared final Block and carries state forward (§3.4)
 
 ## Appendix A. Test Vectors
 
@@ -1010,35 +1288,38 @@ Generated by `tools/gen_vectors.py`; verified by
 [`vectors/dc3/block.json`](../vectors/dc3/block.json),
 [`vectors/dc3/inclusion-proof.json`](../vectors/dc3/inclusion-proof.json).
 
-Block 0 contains 4 `publisher_delta` Entries: the DC-1 vector Delta
-(entry 0) and three `attest` Deltas for `post-2..4`.
+Block 0 contains 4 `publisher_delta` Entries: the DC-1 vector Delta and
+three `attest` Deltas for `post-2..4`. Their positions follow §3.3's
+canonical order — one type group, ascending leaf-hash order — which puts
+the DC-1 vector Delta at entry 2 and the `attest` Deltas at entries 0, 1
+and 3; no Entry's position is chosen.
 
 **Leaf hashes (hex):**
 
 ```
-leaf0 = 692b6c22035d2d93674487f07223f7ba1897737af6772d34ae9034e67d000b7f
-leaf1 = 0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260
-leaf2 = 220054dcb66d9ba11a870cc8df9de8b45f81d9906d898779dfbc98a5458e6958
+leaf0 = 0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260
+leaf1 = 220054dcb66d9ba11a870cc8df9de8b45f81d9906d898779dfbc98a5458e6958
+leaf2 = 692b6c22035d2d93674487f07223f7ba1897737af6772d34ae9034e67d000b7f
 leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
 ```
 
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = df099cc6c13e09fd2f857d97e986bca54e9de485bb3337469d057de061228c73
-n23 = node(leaf2, leaf3) = 71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882077495a760b
+n01 = node(leaf0, leaf1) = 8f76270cd95f93f2a2a91f19deb5d1dc2cef31aeacdbfe42e8ff22a1544430bc
+n23 = node(leaf2, leaf3) = 046d8f0d84ff9c080f5e33d31c191f0841b281a442f4abb874ddad7e190ad763
 ```
 
 **Merkle root:**
 
 ```
-sha256:4d035a10ecdb040e9871ff26fa2b07694cf9fbc67eac00f86982cb2b951b136d
+sha256:2665ae59c2decdc0559d7ab10563e73563966d3db25eaa0fda567ed50f29995e
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809
+sha256:8c3c0bbbdfc09d9abae80b261dcdc9b71f2e2bd6f124b5f2ce076a140f8750e5
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
@@ -1046,11 +1327,11 @@ leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → df099cc6...  (= n01)   # fn=0 < sn=3: sibling on the right
-h = node(h, n23)     → 4d035a10...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
+h = node(h, leaf1)   → 8f76270c...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → 2665ae59...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
 
-Entry 0's Payload is [`examples/payload.json`](../examples/payload.json),
+Entry 2's Payload is [`examples/payload.json`](../examples/payload.json),
 served at `/payloads/6cac5bdd…5120.json`. It contributes to none of the
 hashes above: every figure here is computed over Entries that carry the
 commitment alone, which is why withdrawing that Payload leaves the leaf,

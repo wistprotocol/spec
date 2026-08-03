@@ -250,6 +250,22 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    as a `publisher_declaration` Entry (DC-3 §3.3), and apply the
    new-domain quota of DC-4 §6. A missing or invalid Declaration is a
    `DC2-E04` rejection.
+
+   **Ingest budget.** §3.2's obligation to walk sealed Pages has no page
+   cap, so a first contact — or a long-dormant domain's return — can
+   demand a domain's entire history, and a hostile domain can make that
+   history arbitrarily deep: a single Ping would otherwise oblige
+   terabytes of pulls, an amplification no quota reaches because
+   productive pings are unmetered (§4). The Aggregator therefore
+   applies a per-domain budget: it MUST fetch no more than
+   `ingest_budget_bytes_day` (Parameter Registry; default 1 GiB) of
+   Feed pages, Deltas and Payloads for one domain per UTC day, MAY
+   suspend the walk when the budget is spent, and MUST resume it —
+   from where it stopped, which §3.2's "until already-ingested" rule
+   makes well-defined — on a later day rather than treat the suspension
+   as completion. The budget bounds the walk without breaking it: an
+   honest large site backfills across days; a hostile deep feed costs
+   its own hosting bill, not the Aggregator's month.
 1. Fetches `feed.json`; verifies its signature against the domain's Key
    Set (DC-1 §5). A Feed that cannot be fetched at all is `DC2-E01` and is
    retried on the backoff schedule of §7.
@@ -364,9 +380,13 @@ the Publisher's debugging surface, not an artifact other parties verify.
 
 - **Ping flooding.** Pings are the cheapest object in the system by
   design: no content, no crypto, one small POST. Amplification is
-  minimal — a Ping triggers at most one conditional Feed fetch — and
-  quotas (DC-4 §6) throttle abusive domains. Ingest Endpoints SHOULD
-  additionally apply source-IP rate limits below the per-domain quotas.
+  bounded, not minimal by nature: in steady state a Ping triggers one
+  conditional Feed fetch, but a first contact obliges the §3.2 page
+  walk, whose depth the pinging domain controls — which is why §5's
+  per-domain ingest budget, not the Ping's own cheapness, is the
+  actual bound. Quotas (DC-4 §6) throttle abusive domains; Ingest
+  Endpoints SHOULD additionally apply source-IP rate limits below the
+  per-domain quotas.
 - **Feed replay.** An attacker replaying an old `feed.json` cannot
   regress state: signatures bind content, `generated_at` monotonicity
   detects rollback, and Deltas already seen are idempotent (DC-1 §4).
@@ -428,6 +448,8 @@ adjacent to the layout it walks.
       pull for an unknown domain) (§5)
 - [ ] Follows `next` through sealed Pages until reaching already-ingested
       content or `null`; never diffs only the live `feed.json` (§3.2)
+- [ ] Applies the per-domain ingest budget to that walk, suspending and
+      resuming across days rather than truncating it (§5)
 - [ ] Runs baseline polling independent of Pings (§5)
 - [ ] Fetches every `"sanction"` notice's appeal path from the sanctioned
       domain before DC-4 §7's sealing deadline, independent of any Ping
