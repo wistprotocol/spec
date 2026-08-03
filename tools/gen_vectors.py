@@ -262,6 +262,12 @@ for n in (2, 3, 4):
     entries.append({"type": "publisher_delta",
                     "body": attest_delta(n, synthetic_prior_id(n))})
 
+# DC-3 §3.3: Entry order is canonical — grouped by type (all four here are
+# publisher_delta), ascending leaf-hash order within the group. None of the
+# attest chains reference each other inside the Block, so leaf-hash order
+# and chain order impose no conflicting demand on this vector.
+entries.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
+
 leaves = [leaf_hash(rfc8785.dumps(e)) for e in entries]
 n01 = node_hash(leaves[0], leaves[1])
 n23 = node_hash(leaves[2], leaves[3])
@@ -388,8 +394,32 @@ write_json(DC3 / "snapshot-records.json", {
     "links": snapshot_links,
 })
 
+# ------------------------------------------- DC-3 §7: the state artifact
+# The protocol state at log_position, one tuple per live item, kinds and
+# fields per DC-3 §7's table. Aligned with snapshot-records above: the same
+# two records (chain tips = their only Deltas), their two domains'
+# reputation inputs, and the genesis Aggregator key. No `parameter` tuples:
+# nothing is amended at height 0, and Registry defaults are not restated.
+state_entries = [
+    ["aggregator_key", "test-agg-k1", b64u(pub_raw), 0, None],
+    ["record", "example.com", DELTA_URL, delta_id],
+    ["record", "reduced.example.org", REDUCED_URL, reduced_delta_id],
+    ["reputation_inputs", "example.com", "2026-08-02T13:00:00Z", None, 0, [], []],
+    ["reputation_inputs", "reduced.example.org", "2026-08-02T13:00:00Z", None, 0, [], []],
+]
+
+
+def state_digest_of(entries) -> str:
+    """DC-3 §7: the content_digest construction verbatim, over state tuples."""
+    return "sha256:" + sha256_hex(b"".join(sorted(rfc8785.dumps(e) for e in entries)))
+
+
+state_inner = {"dc_version": "1.0.0", "log_position": 0, "entries": state_entries}
+state_envelope = sign_envelope("state", state_inner, "test-agg-k1")
+write_json(EXAMPLES / "snapshot-state.json", state_envelope)
+state_bytes = rfc8785.dumps(state_envelope)
+
 tier0_content = b"tier0-placeholder"
-tier0_embeddings_content = b"embeddings-placeholder"
 tier1_content = b"tier1-placeholder"
 links_parquet_content = b"links-placeholder"
 manifest = {
@@ -398,13 +428,12 @@ manifest = {
     "log_position": 0,
     "anchor_block_hash": block_hash,
     "content_digest": snapshot_digest,
-    "embedding_model": {"name": "example-embed", "version": "1",
-                        "dim": 384, "quantization": "int8"},
+    "state": {"path": "state.json", "sha256": sha256_hex(state_bytes),
+              "bytes": len(state_bytes),
+              "state_digest": state_digest_of(state_entries)},
     "files": [
         {"path": "tier0/index.sqlite", "sha256": sha256_hex(tier0_content),
          "bytes": len(tier0_content), "tier": 0},
-        {"path": "tier0/embeddings.parquet", "sha256": sha256_hex(tier0_embeddings_content),
-         "bytes": len(tier0_embeddings_content), "tier": 0},
         {"path": "tier1/extracts.parquet", "sha256": sha256_hex(tier1_content),
          "bytes": len(tier1_content), "tier": 1},
         {"path": "tier1/links.parquet", "sha256": sha256_hex(links_parquet_content),
@@ -472,6 +501,10 @@ audit_record = {
     "verdict": "consistent",
     "evidence_commitment": audit_commit(WARC_CAPTURE),
     "vrf_proof": pi.hex(),
+    # The example Auditor's first-ever publication (DC-4 §4's per-auditor
+    # chain starts at null); a later Record would carry the previous
+    # Record-or-attestation ID here.
+    "prev_record": None,
 }
 write_json(EXAMPLES / "audit-record.json",
            sign_envelope("record", audit_record, "test-aud-k1"))
@@ -599,9 +632,15 @@ assert sampling_p_1e7(0) == 3_200_000, "slope drifted"
 # Which Entry plays the second role follows from beta, so it is located here
 # rather than pinned: any change to the Block moves every draw at once.
 draw_bytes, D_primary = draw_D(beta, delta_id)
+# DC-3 §3.3's canonical order decides where each Entry sits, so the primary
+# Delta's index is located, not assumed.
+primary_index = next(
+    i for i, e in enumerate(entries)
+    if "sha256:" + sha256_hex(rfc8785.dumps(e["body"]["delta"])) == delta_id)
 selected_index = next(
-    i for i in range(1, len(entries))
-    if selected(draw_D(beta, "sha256:" + sha256_hex(
+    i for i in range(len(entries))
+    if i != primary_index
+    and selected(draw_D(beta, "sha256:" + sha256_hex(
         rfc8785.dumps(entries[i]["body"]["delta"])))[1], sampling_p_1e7(100_000))
     and not selected(draw_D(beta, "sha256:" + sha256_hex(
         rfc8785.dumps(entries[i]["body"]["delta"])))[1], sampling_p_1e7(900_000)))
@@ -611,7 +650,7 @@ sel_bytes, D_selected = draw_D(beta, selected_delta_id)
 
 selection_cases = []
 for idx, did, dbytes, D in (
-        (0, delta_id, draw_bytes, D_primary),
+        (primary_index, delta_id, draw_bytes, D_primary),
         (selected_index, selected_delta_id, sel_bytes, D_selected)):
     for rep_label, rep_u in (("provisional", 100_000), ("established", 900_000)):
         p1e7 = sampling_p_1e7(rep_u)

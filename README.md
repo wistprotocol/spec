@@ -72,6 +72,7 @@ deterministic: fixed test seed, fixed timestamps, no wall-clock.
 - [ADR-0006](decisions/0006-no-self-declared-importance.md) — No self-declared importance anywhere in the protocol
 - [ADR-0007](decisions/0007-content-payloads-outside-the-log.md) — Content payloads outside the immutable log
 - [ADR-0008](decisions/0008-raw-citation-graph-never-a-score.md) — The protocol transports the raw citation graph, never a score
+- [ADR-0009](decisions/0009-embeddings-outside-the-trust-boundary.md) — Embeddings live outside the trust boundary, as companion packs
 
 ## Licenses
 

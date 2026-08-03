@@ -122,7 +122,11 @@ The URL the Delta describes. It MUST use the `https` scheme. It MUST be
 within the Publisher's authority: the URL's host MUST equal the Publisher's
 `domain` or one of the hostnames in its `subdomain_scope` (the **scope
 rule**). A validator MUST reject a Delta whose `url` is outside the signing
-Publisher's authority (error `DC1-E03`).
+Publisher's authority (error `DC1-E03`). A host inside a parent's
+`subdomain_scope` may also declare for itself; both Publishers' Deltas for
+it are valid, and which one materializes is decided by DC-3 §7's
+one-URL-one-Publisher rule — self-declaration prevails from the height its
+Declaration seals.
 
 The value of `url` MUST already be a Normalized URL; a Delta whose `url`
 is not byte-identical to its own normalization MUST be rejected with
@@ -482,7 +486,27 @@ by what signs it:
   choosing to file — and a recovery whose effect depended on that entry
   would leave "took effect under the Compromise recovery rule" with no
   truth value for the resolution below, and the thief's ordinary rotation
-  standing.
+  standing. The window is derived from the sealing height, and the
+  sealing itself is a duty with a deadline for the same reason: on
+  discovering a served recovery Declaration that verifies — by pull, by
+  hint, or by the Publisher's Ping — the Aggregator MUST seal its Entry
+  within the number of Blocks `record_seal_blocks` fixes (DC-4 §4's
+  sealing-latency constant, default 24). A recovery the operator can
+  shelve indefinitely is the notice-layer goodwill dependency
+  reconstituted one layer down. The violation is attributable — the
+  Declaration is signed, dated by its own `seq` and `prev_declaration`,
+  and any third party can fetch the well-known path and observe the Log
+  not sealing it — but it is not derivable from the Log alone, because
+  the Log cannot see an unserved file; that residue is recorded here
+  rather than papered over, and it is the fork-level remedy (DC-3 §3.4)
+  that ultimately answers an Aggregator that sits on recoveries.
+  Two recovery Declarations sealed inside one open window — two holders
+  of recovery keys, or one holder twice — are resolved by Log order
+  like every other race in this suite: the first-sealed recovery
+  Declaration is the one the window belongs to, and a second sealed
+  inside that window is a competing claim that does not open a second
+  window and does not supersede the first; whichever party prevails does
+  so by holding the recovery keys the *first* Declaration now lists.
 - Signed by neither — a **fresh identity**. The Declaration is accepted,
   but `A` and `C` reset to zero and the domain re-enters Provisional
   (DC-4 §6).
@@ -653,9 +677,9 @@ What remains in the Log permanently, and cannot be withdrawn, is:
   in them is committed under the same Payload salt rather than digested
   bare, and expires with it (DC-4 §5, DC-4 §11);
 - everything any Registry Update about the URL or its Publisher carries in
-  its `details` and `evidence` — the Aggregator's `legal_basis`, `reason`
-  and `reasoning`, and the Publisher's own text on an `appeal` or a
-  `sanction_lift` alike. These are sealed and unwithdrawable like `meta`,
+  its `details` and `evidence` — the Aggregator's `legal_basis`, `reason`,
+  `reasoning` and `sanction_lift` text, and the Publisher's own text on an
+  `appeal` alike. These are sealed and unwithdrawable like `meta`,
   which is why DC-4 §9.1 and §11 forbid personal data in any of them
   outright rather than in a list of named fields.
 

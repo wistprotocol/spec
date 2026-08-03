@@ -78,7 +78,7 @@ INNER_KEY = {
     "delta.json": "delta", "publisher.json": "publisher", "feed.json": "feed",
     "block.json": None,  # block signs its header only — checked separately
     "checkpoint.json": "checkpoint", "snapshot-manifest.json": "manifest",
-    "snapshot-index.json": "index",
+    "snapshot-index.json": "index", "snapshot-state.json": "state",
     "audit-record.json": "record", "registry-update.json": "update",
     "log-anchor.json": "anchor",
     "status.json": None,  # not a signed Envelope — plain JSON (DC-2 §7.1)
@@ -1109,8 +1109,8 @@ def _snapshot_links_materialization():
     manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())
     paths = {f["path"]: f["tier"] for f in manifest["manifest"]["files"]}
     assert paths.get("tier1/links.parquet") == 1, "links.parquet missing from manifest"
-    assert paths.get("tier0/embeddings.parquet") == 0, \
-        "embeddings.parquet missing from manifest (DC-3 §6 layout lists it)"
+    assert "tier0/embeddings.parquet" not in paths, \
+        "embeddings in the manifest: the protocol carries none (ADR-0009)"
 
 check("spec:snapshot-links", _snapshot_links_materialization)
 
@@ -1339,12 +1339,26 @@ NON_CONTENT_DIGESTS = {
         "Delta IDs",
     ("block.schema.json", "properties/header/properties/prev_block_hash"):
         "SHA-256 of a Block header",
+    ("log-anchor.schema.json",
+     "properties/anchor/properties/predecessor/properties/final_block_hash"):
+        "SHA-256 of a Block header (the predecessor Log's final Block, DC-3 §3.4)",
     ("block.schema.json", "properties/header/properties/merkle_root"):
         "root over Entries, which carry commitments and no content",
     ("checkpoint.schema.json", "properties/checkpoint/properties/block_hash"):
         "SHA-256 of a Block header",
     ("audit-record.schema.json", "properties/record/properties/audited_delta"):
         "a Delta ID",
+    ("audit-record.schema.json", "properties/record/properties/prev_record/oneOf[0]"):
+        "an Audit Record or coverage_attestation ID: SHA-256 over an object that carries only commitments (DC-4 §4's per-auditor chain)",
+    ("registry-update.schema.json",
+     "allOf[9]/then/properties/update/properties/details/properties/block"):
+        "SHA-256 of a Block header (the audited Block a pull_attestation names, DC-4 §4)",
+    ("registry-update.schema.json",
+     "allOf[9]/then/properties/update/properties/details/properties/found/items"):
+        "Audit Record and coverage_attestation IDs a pull returned (DC-4 §4) — objects that carry only commitments",
+    ("registry-update.schema.json",
+     "allOf[10]/then/properties/update/properties/details/properties/prev_record/oneOf[0]"):
+        "the same per-auditor chain ID an Audit Record's prev_record carries (DC-4 §4)",
     ("registry-update.schema.json",
      "allOf[2]/then/properties/update/properties/evidence/items"):
         "Audit Record IDs: SHA-256 over Records that themselves carry only commitments",
@@ -1368,6 +1382,18 @@ NON_CONTENT_DIGESTS = {
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/content_digest"):
         "a digest over the record tuples of DC-3 §7 — url, publisher, delta_id, observed_at, weight — every one of which the Log already carries in the clear; no page content is in its preimage",
+    ("snapshot-manifest.schema.json",
+     "properties/manifest/properties/state/properties/sha256"):
+        "the whole state file, a Log-derived artifact (DC-3 §7); transport integrity, same as any files[] sha256",
+    ("snapshot-manifest.schema.json",
+     "properties/manifest/properties/state/properties/state_digest"):
+        "the content_digest construction over state tuples, every field of which is Log-derived (DC-3 §7); no page content is in its preimage",
+    ("snapshot-manifest.schema.json",
+     "properties/manifest/properties/shards/properties/digests"):
+        "an array of per-shard record-tuple digests (DC-3 §7); the items entry below is the pattern-bearing one, this is the array shell",
+    ("snapshot-manifest.schema.json",
+     "properties/manifest/properties/shards/properties/digests/items"):
+        "the same DC-3 §7 record-tuple digest, computed per shard; no page content is in its preimage",
     ("snapshot-index.schema.json",
      "properties/index/properties/snapshots/items/properties/content_digest"):
         "the same DC-3 §7 record-tuple digest the manifest declares, restated by the index",
@@ -1398,6 +1424,11 @@ NON_CONTENT_VALUES = {
     ("examples/snapshot-manifest.json", "content_digest"):
         "DC-3 §7's record-tuple digest: url, publisher, delta_id, observed_at, weight — no content in the preimage",
     ("examples/snapshot-manifest.json", "value"): "an Ed25519 signature",
+    ("examples/snapshot-manifest.json", "state_digest"):
+        "DC-3 §7's digest construction over state tuples — every field Log-derived, no content in the preimage",
+    ("examples/snapshot-state.json", "entries"):
+        "state tuples (DC-3 §7): key IDs, Delta IDs, heights, an Ed25519 public key — Log-derived identifiers, no page content",
+    ("examples/snapshot-state.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-index.json", "content_digest"):
         "the manifest's record-tuple digest, restated by the index (DC-3 §6, §7)",
     ("examples/snapshot-index.json", "value"): "an Ed25519 signature",
@@ -1606,7 +1637,7 @@ def _dc4_coverage_attestation():
             "dc_version": "1.0.0",
             "action": "coverage_attestation",
             "subject": "audit.example.net",
-            "details": {"vrf_proof": v["vrf_proof_hex"]},
+            "details": {"vrf_proof": v["vrf_proof_hex"], "prev_record": None},
             "effective_at": "2026-08-02T16:00:00Z",
         },
         "sig": json.loads(
@@ -2850,8 +2881,14 @@ def _derived_not_discretionary():
     assert not re.search(r"The same applies to the free-text fields `legal_basis`, `reason` and",
                          section91), \
         "DC-4 §9.1 still enumerates the fields the personal-data rule covers"
-    assert "`appeal`'s and a `sanction_lift`'s `details` are the Publisher's" in section91, \
+    # The rule reaches the Publisher-written details, and the authorship it
+    # states matches who seals what: `appeal` is the Publisher's, while
+    # `sanction_lift` is an Aggregator-sealed Registry Update (§7) — text
+    # bracketing the two as both-Publisher would contradict §7.
+    assert "an `appeal`'s `details` are the\nPublisher's" in section91, \
         "DC-4 §9.1 does not reach the Publisher-written details the rule was missing"
+    assert "`sanction_lift`'s\n`details` are the Aggregator's" in section91, \
+        "DC-4 §9.1 misattributes a `sanction_lift`'s `details` (an Aggregator-sealed entry, §7)"
 check("spec:derived-not-discretionary", _derived_not_discretionary)
 
 def _unappealed_ruling_timing():

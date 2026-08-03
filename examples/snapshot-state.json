@@ -1,0 +1,50 @@
+{
+  "state": {
+    "dc_version": "1.0.0",
+    "log_position": 0,
+    "entries": [
+      [
+        "aggregator_key",
+        "test-agg-k1",
+        "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        0,
+        null
+      ],
+      [
+        "record",
+        "example.com",
+        "https://example.com/blog/post-1",
+        "sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120"
+      ],
+      [
+        "record",
+        "reduced.example.org",
+        "https://reduced.example.org/notice",
+        "sha256:783dc15e05848677f27fcd71470cd860e27e7c12e679cbf4af2a6235488cd6ee"
+      ],
+      [
+        "reputation_inputs",
+        "example.com",
+        "2026-08-02T13:00:00Z",
+        null,
+        0,
+        [],
+        []
+      ],
+      [
+        "reputation_inputs",
+        "reduced.example.org",
+        "2026-08-02T13:00:00Z",
+        null,
+        0,
+        [],
+        []
+      ]
+    ]
+  },
+  "sig": {
+    "key_id": "test-agg-k1",
+    "alg": "Ed25519",
+    "value": "6Qnej3FVsbnqYsMn6T1GWbmsCxGd-G-EF-sX-KiTFw9UTnmwEIUy8p-Kiv30bQXVK3gr5-_xh5urXB-vpp5EBA"
+  }
+}
