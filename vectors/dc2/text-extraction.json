@@ -1,0 +1,46 @@
+{
+  "note": "DC-2 \u00a712's whole-document text extraction over raw HTML octets, and DC-4 \u00a75's reference-containment similarity over its output. html_hex decodes to the exact input; expected is the observed text a conforming Auditor produces. similarity cases carry min_observed_words = 40 (the Registry default); a null similarity is the mass guard ruling not_auditable.",
+  "min_observed_words": 40,
+  "extraction": [
+    {
+      "label": "scan-hardening",
+      "html_hex": "3c68746d6c3e3c686561643e3c7469746c653e5469746c6520776f7264733c2f7469746c653e3c7363726970743e7661722078203d20223c703e6e6f7420746578743c2f703e223b3c2f7363726970743e3c7374796c653e70207b20636f6c6f723a20726564207d3c2f7374796c653e3c2f686561643e3c626f64793e3c212d2d206120636f6d6d656e74202d2d3e3c703e616c706861203c623e626574613c2f623e0a0a2067616d6d613c2f703e3c6120687265663d222f7822207469746c653d22793e7a223e64656c74613c2f613e3c74657874617265613e6e6f742074657874206569746865723c2f74657874617265613e31203c20322062757420266c743b7461672667743b20697320746578742026616d703b20736f20697320262336353b3c2f626f64793e3c2f68746d6c3e",
+      "expected": "Title words alpha beta gamma delta 1 < 2 but <tag> is text & so is A"
+    },
+    {
+      "label": "utf8-replacement",
+      "html_hex": "6f6e6520ff2074776f",
+      "expected": "one \ufffd two"
+    }
+  ],
+  "similarity": [
+    {
+      "label": "containment-full",
+      "reference": "one two three four five six seven eight nine",
+      "observed": "home about one two three four five six seven eight nine contact pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad ",
+      "similarity": 1000000,
+      "verdict_input": 1000000
+    },
+    {
+      "label": "containment-half",
+      "reference": "one two three four five six seven eight nine",
+      "observed": "pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad one two three four five six seven eight ten",
+      "similarity": 500000,
+      "verdict_input": 500000
+    },
+    {
+      "label": "mass-guard",
+      "reference": "one two three four five six seven eight nine",
+      "observed": "please enable javascript to view this site",
+      "similarity": null,
+      "verdict_input": "not_auditable"
+    },
+    {
+      "label": "short-reference-graphemes",
+      "reference": "hello world",
+      "observed": "pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad hello world",
+      "similarity": 1000000,
+      "verdict_input": 1000000
+    }
+  ]
+}

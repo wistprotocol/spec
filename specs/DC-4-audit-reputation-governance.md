@@ -693,8 +693,11 @@ The web is not deterministic; byte equality is never the criterion.
 `similarity` is an integer in **micro-units** (0 … 1 000 000, the same
 resolution as `reputation_u`, §6), never a floating-point ratio. It
 compares two texts: the `extract` of the audit's verified Reference Payload
-— the **reference text** — and the Auditor's own extraction of the fetched
-page, the **observed text**.
+— the **reference text** — and the DC-2 §12 whole-document extraction of
+the Auditor's own fetch, the **observed text**. Both sides are pinned:
+the reference by the Payload's commitment, the observed by §12's
+procedure over the raw response octets — no step between the fetched
+bytes and the sealed integer is an implementation's choice.
 
 **Normalization.** Each text is normalized on its own, in this order:
 
@@ -729,45 +732,69 @@ set of the reference text and *B* that of the observed text:
 
 Then
 
-    similarity = floor((|A ∩ B| × 1 000 000) / |A ∪ B|)
+    similarity = floor((|A ∩ B| × 1 000 000) / |A|)
 
 in exact integer arithmetic on the shingle sets' cardinalities — no
-floating-point Jaccard ratio is ever computed or compared, and no two
-conforming Auditors can disagree about a boundary case from rounding alone.
+floating-point ratio is ever computed or compared, and no two conforming
+Auditors can disagree about a boundary case from rounding alone.
+
+**The quotient is containment, not resemblance, and the denominator is
+the reference alone.** The observed text is the whole document (DC-2
+§12), so *B* carries every navigation link, footer and template string
+the page serves; a symmetric ratio over `|A ∪ B|` would dilute an honest
+Publisher's score with its own page furniture, and a heavy template
+could sink a faithfully served extract below the `consistent` band.
+Containment reads the one question an audit asks — *how much of the
+committed text does the page carry?* — and boilerplate lands only in
+*B*, where it costs nothing. What containment forgoes is also stated: a
+page can carry the committed text and other content besides, up to and
+including a page whose visible emphasis is elsewhere, and score full
+marks. That is in-page manipulation, visible to any human or ranking
+layer reading the page itself, and the suite's posture on it is
+ADR-0008's: what a page says is the Publisher's editorial act; what the
+audit checks is that the declaration and the page agree. The `delete`
+mirror below is unaffected — effective similarity `1 000 000 −
+similarity` reads "the committed text is still being served", which is
+exactly what refutes a `delete`.
 
 The second branch is normative, not a convenience. Eight-word shingles do
-not exist in a text of fewer than eight words, and a rule that let both
-sets come out empty would score every short text as identical to every
-other — a free `consistent` for any Publisher whose extract is a headline.
-Falling to grapheme clusters keeps a short text comparable at the
-granularity it actually has, and capping the shingle length at the shorter
-text's own length keeps both sets non-empty, so `|A ∪ B|` ≥ 1 always and
-the quotient is defined for every pair of non-empty texts.
+not exist in a text of fewer than eight words, and a rule that let the
+reference set come out empty would leave the quotient undefined exactly
+where a Publisher's extract is a headline. Falling to grapheme clusters
+keeps a short text comparable at the granularity it actually has, and
+capping the shingle length at the shorter text's own length keeps `|A|`
+≥ 1 — the empty-reference case never reaches the quotient, because the
+rule below sends it to `not_auditable` first.
 
-Empty texts are ruled on rather than measured, and both rulings are
-`not_auditable`. An empty **reference** text is `not_auditable` (above): a
-Publisher that committed to no text made no claim an audit could confirm
-or refute. An empty **observed** text — a `200` response whose extraction
-yields nothing — is `not_auditable` too, and the reason is what the
-emptiness cannot distinguish: a script-shell page whose text exists only
-after execution, a bot interstitial served to every Auditor at once, and
-a genuinely blanked page all produce it, the first two from perfectly
-honest Publishers, and correlated across Auditors — every Auditor meets
-the same interstitial, so the two `inconsistent` Records a confirmation
-needs would not be the independent evidence §5 requires but the same
-failure observed twice. A `similarity` of 0 here would put honest
-Publishers one correlated artifact away from a severity-3 band. What the
-verdict protects is bounded by what it forgoes: a page that persistently
-yields no text where its Publisher committed to some accumulates
-`not_auditable` Records, its claims go unconfirmed, `C` stops growing,
-and the unauditable horizon (below) — exclusion, not sanction — is the
-consequence, which is the correct one for content the audit mechanism
-cannot see. The `delete` mirror below is unaffected: a `404` or `410` to
-a `delete` audit is a ruled-on response, not an empty extraction.
+Texts too small to measure are ruled on rather than measured, and both
+rulings are `not_auditable`. An empty **reference** text is
+`not_auditable` (above): a Publisher that committed to no text made no
+claim an audit could confirm or refute. On the observed side the rule is
+the **mass guard**: an observed text of fewer than `min_observed_words`
+words (Parameter Registry; default 40), counted after normalization, is
+`not_auditable` — absence is not contradiction. The guard exists because
+a low-mass page cannot distinguish the cases that matter: a script-shell
+whose text exists only after execution, a bot interstitial served to
+every Auditor at once, and a genuinely blanked page all produce a
+near-empty extraction, the first two from perfectly honest Publishers —
+and correlated across Auditors, since every Auditor meets the same
+interstitial, so the two `inconsistent` Records a confirmation needs
+would not be independent evidence but the same failure observed twice,
+one correlated artifact from a severity-3 band. Above the guard the
+ambiguity inverts: forty words is no longer a page that says nothing
+but a page that says *something else*, which is precisely the fraud
+case, and a fraudster padding junk past the guard to dodge it walks
+into the `inconsistent` band containment gives junk. What the guard
+forgoes is bounded and correct: a page persistently below it
+accumulates `not_auditable` Records, its claims go unconfirmed, `C`
+stops growing, and the unauditable horizon (below) — exclusion, not
+sanction — is the consequence for content the audit mechanism cannot
+see. The `delete` mirror below is unaffected: a `404` or `410` to a
+`delete` audit is a ruled-on response, not a measured extraction.
 
 **The similarity dimension is defined over HTML.** The observed text is
-produced by extraction from a fetched HTML representation, and this
-specification pins that procedure for no other media type — a PDF, an
+produced by DC-2 §12's extraction from a fetched HTML representation,
+and no such procedure is pinned for any other media type — a PDF, an
 image, or a media stream has no extraction two Auditors are bound to
 compute identically, and a metric that inherits a parser disagreement is
 not recomputable (the reason the link dimension already skips non-HTML,
@@ -810,11 +837,11 @@ reference text records `not_auditable` whether or not the fetch also
 failed — from a withdrawal's sealing height it MUST, even holding a copy —
 and an Auditor that obtained no representation records `unreachable`
 without computing a similarity it has no observed text for; one whose
-representation is non-HTML, or whose extraction of it is empty, records
-`not_auditable` under the two rules above — except on the `delete`
-mirror's ruled-on `404`/`410`. A band is read only when there is a
-reference to measure against, an HTML representation to measure, and a
-non-empty observed text to measure it by. Since the three extract bands partition 0 … 1 000 000 with no gap
+representation is non-HTML, or whose observed text falls below the mass
+guard, records `not_auditable` under the two rules above — except on
+the `delete` mirror's ruled-on `404`/`410`. A band is read only when
+there is a reference to measure against, an HTML representation to
+measure, and an observed text past the guard to measure it by. Since the three extract bands partition 0 … 1 000 000 with no gap
 and no overlap, exactly one of `consistent`, `dynamic_variance` or
 `inconsistent` fits every audit's effective similarity. The `inconsistent`
 row rests on the number alone: a conjunct requiring the claimed content to
@@ -1602,6 +1629,7 @@ existing rather than a recommended setting.
 | `link_agreement_consistent` | ≥ 2 and ≤ 1 000 000 | at or below `link_variance_floor`'s own floor the `link_variance` band is empty; above the micro-unit range no audit of a page with links can ever be `consistent`, so `C` stops growing for every conforming Publisher (§5, §6) |
 | `link_variance_floor` | ≥ 1 and ≤ 999 999 | at zero no declaration can ever be `link_inconsistent` and the dimension audits nothing; at the range's top the neutral band vanishes and every dynamic page's link churn becomes a finding (§5) |
 | `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
+| `min_observed_words` | ≥ 1 | at zero the mass guard admits the empty observed text, and §5's quotient is read against a page that said nothing (§5) |
 | `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
 | `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (DC-3 §3.1) |
 | `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
@@ -1735,6 +1763,7 @@ combination cases above.
 | Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
 | Link agreement thresholds (consistent / variance floor) | `link_agreement_consistent` / `link_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
 | Shingle size | `shingle_size` | 8 (words, or grapheme clusters on §5's short-text branch) | §5 |
+| Observed-text mass guard | `min_observed_words` | 40 words | §5 |
 | Unauditable horizon | `unauditable_horizon_days` | 30 days | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
@@ -2091,9 +2120,11 @@ hands.
       key, writes that same hostname — the one its `auditor_admit` names —
       in every Record, and never audits a Delta from a Publisher domain
       sharing a two-label suffix with it (§3)
-- [ ] Computes similarity with the normative §5 metric — NFC, default full
-      case-folding, untailored UAX #29 segmentation — and reads the verdict
-      from the effective similarity, mirrored for a `delete` (§5)
+- [ ] Computes similarity with the normative §5 metric — the DC-2 §12
+      observed text, NFC, default full case-folding, untailored UAX #29
+      segmentation, reference-containment quotient, mass guard — and
+      reads the verdict from the effective similarity, mirrored for a
+      `delete` (§5, DC-2 §12)
 - [ ] Applies DC-2 §11's extraction procedure, unchanged, to its own
       fetch of the Reference Payload's page when checking the declared
       `links` member (§5, DC-2 §11)
@@ -2109,9 +2140,9 @@ hands.
       whatever access it grants this one (§5, DC-2 §5)
 - [ ] Emits `not_auditable` (never `inconsistent` or `unreachable`) for a
       withdrawn, unobtainable or empty-extract Reference Payload, for an
-      empty observed extraction from a `200` (outside the `delete`
-      mirror's ruled-on `404`/`410`), and for a non-HTML representation —
-      each discharging the coverage duty (§4, §5)
+      observed text below the mass guard (outside the `delete` mirror's
+      ruled-on `404`/`410`), and for a non-HTML representation — each
+      discharging the coverage duty (§4, §5)
 - [ ] Audits every Delta §4's extension rule names for it, within the
       extension deadline, exactly as a VRF selection (§4)
 - [ ] Serves its Records and attestations per audited Block at its
