@@ -100,8 +100,12 @@ One of four values:
   present.
 - `update` — the URL's content changed. `payload` MUST be present.
   `prev` MUST be present.
-- `delete` — the URL no longer exists (or no longer carries indexable
-  content). The Delta MUST omit `payload`. `prev` MUST be present.
+- `delete` — the URL no longer serves the content its chain last committed
+  to: it is gone, or what it now serves is no longer that content. That is
+  the claim an audit measures (DC-4 §5), so a page whose text has merely
+  been replaced by unrelated text is a truthful `delete` and one still
+  serving the committed content is a false one. The Delta MUST omit
+  `payload`. `prev` MUST be present.
 - `attest` — the Publisher asserts the URL's content is unchanged as of
   `observed_at` (a freshness attestation). The Delta MUST omit `payload`.
   `prev` MUST be present.

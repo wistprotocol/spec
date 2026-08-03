@@ -14,7 +14,7 @@
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "audited_delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        "auditor_id": {"type": "string", "format": "hostname"},
+        "auditor_id": {"type": "string", "format": "hostname", "maxLength": 253, "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The hostname the Auditor was admitted under: DC-4 §3 requires it to be byte-identical to the `subject` of the `auditor_admit` covering `sig.key_id`, and the pattern is the one that `subject` carries, so a Record cannot claim a shape no admission could have."},
         "fetched_at": {"type": "string", "format": "date-time"},
         "response_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "ref_extract_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
