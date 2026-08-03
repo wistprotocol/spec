@@ -10,11 +10,12 @@
     "link_agreement": 1000000,
     "verdict": "consistent",
     "evidence_commitment": "hmac-sha256:e787d4cf09890f43da957730a1452cb58bc7860bb8f81fdf7898d61023b198d3",
-    "vrf_proof": "2b1c91a879cb2bcfd0f87420fc17a2c213ea9a44e39371c7dc5b7882b71b2af59282b4cd8708ada538a34273358d60a7a2d7100b8114be31055e28db5dffbc14c87de363c1ab0fe4370e9a01e4b99e0e"
+    "vrf_proof": "d65b9b43e383382b4ac77e73a5185eef6499033b2b7ee376bfe2669e73de66c5e8a0cf9252b1c1a82afa850a1a8343dee524efd90e4e8e4ffc1a069bb221200009a9bad562335e963d014063f63ed10d",
+    "prev_record": null
   },
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "m3XAd2t_wCkC_nZLs0cZ5i3Gwz-hNAPEguTcStmsdB1JOx1huN4IVXJMnseoKMe0Je75vu4mqFP0AQNo9cJYCg"
+    "value": "xwp1EnZVbG61eWZiMl143exTmBdUFV1LeJUvvdVqxdXqABYjEmrx7OhQ_e1THo4TmghECfqFeASF1OpdUWJFBA"
   }
 }

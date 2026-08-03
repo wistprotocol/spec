@@ -23,7 +23,18 @@
             "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"}
           }
         },
-        "created_at": {"type": "string", "format": "date-time"}
+        "created_at": {"type": "string", "format": "date-time"},
+        "predecessor": {
+          "type": "object",
+          "required": ["log_id", "final_block_number", "final_block_hash"],
+          "additionalProperties": false,
+          "description": "Present only on a successor Anchor (DC-3 §3.4): the Log this one continues, ended at exactly the named Block. Succession carries state — materialized records, reputation inputs, sanction states — forward from that Block; a successor that omits this field starts a Log, not a continuation, and launders no standing because it inherits none.",
+          "properties": {
+            "log_id": {"type": "string", "format": "hostname"},
+            "final_block_number": {"type": "integer", "minimum": 0},
+            "final_block_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        }
       }
     },
     "sig": {
