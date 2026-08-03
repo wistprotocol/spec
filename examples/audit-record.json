@@ -1,7 +1,7 @@
 {
   "record": {
     "dc_version": "1.0.0",
-    "audited_delta": "sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047",
+    "audited_delta": "sha256:8999865b7e77b51993418cd4c1738c329fb1b6b0abae3896483daf743c70e257",
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": "hmac-sha256:8652be7fd06816b6998fb3c7325a35ada44d8b350ac88b4c8005530472bfb928",
@@ -9,11 +9,11 @@
     "similarity": 940000,
     "verdict": "consistent",
     "evidence_commitment": "hmac-sha256:e787d4cf09890f43da957730a1452cb58bc7860bb8f81fdf7898d61023b198d3",
-    "vrf_proof": "201470c521f335e0e8b5e2e6c4456234d4c408653608b0dc3f9ab3313b2eb120df5129d19a2184e7ff670dd93d5ec63f1537c567f46c3f5ebb130908fcaee1550fc0f5e4d2fde2cfb322bc716d54b404"
+    "vrf_proof": "1f9243836a3c7690d108b5d10399d7114259f1019127bac6e9205ec633c40eb0e58b5bc4c3a1d431181bba148adad1bed0c31e1dc3bd9f3fe110068ea04f69c764cbd99d07ec7ca23fa689f6deca750e"
   },
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "dE42qFXvETnNd5-CkwWFnb1lbEWK9CBDyE5GtvFeCK009qWaGxiaNFXg6N8HzYo-7Q1dozznAolER6KNyIURAg"
+    "value": "LUs09lO8gitdZlBn9hN5we5jlHx-Fb0fhwg1MIsE8rIoHJDhuN33wn6_t4rRLhCsj8fqNihtIyUDli4A3pW1AQ"
   }
 }
