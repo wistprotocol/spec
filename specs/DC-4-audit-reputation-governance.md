@@ -174,8 +174,8 @@ recomputing reputation MUST reject:
   `sealed_at` of the Block carrying that Record;
 - a Record whose `vrf_proof` does not verify — over the audited Block's
   Block Hash, under the key admitted at that Block's `sealed_at` (§4) — or
-  whose `audited_delta` is not in the selection set that proof determines
-  (§4);
+  whose `audited_delta` is neither in the selection set that proof
+  determines nor named for that Auditor by §4's extension rule;
 - a Record whose `fetched_at` falls outside the closed interval from the
   `sealed_at` of the audited Delta's Block to the `sealed_at` of the
   Record's own Block. Neither end rests on trust: an Auditor's selection is
@@ -246,7 +246,9 @@ octets and nothing else: not the `sha256:`-prefixed string, not its ASCII
 hex, not the header bytes.
 
 For each Delta *d* carried by a `publisher_delta` Entry of *B*, the Auditor
-MUST audit *d* if and only if
+MUST audit *d* if and only if the VRF test below selects it — or the
+**extension rule** below names it, which is the one path into any
+Auditor's selection set that no VRF draw gates. For the VRF test:
 
     D(d)  = first 8 octets of SHA-256(beta || d.delta_id_utf8),
             read big-endian: an integer in [0, 2^64)
@@ -295,8 +297,9 @@ The Auditor publishes the VRF proof `pi`, lowercase hex, in every Audit
 Record it emits for Block *B* (`vrf_proof`). Anyone can verify with the
 Auditor's public key that `beta` is the unique correct output for that
 Block, and can therefore recompute the Auditor's entire selection set for
-*B* and check it audited exactly that set — no more (harassment) and no
-less (favoritism).
+*B* — the VRF draw plus any Deltas the extension rule below names, every
+input to which is itself in the Log — and check it audited exactly that
+set: no more (harassment) and no less (favoritism).
 
 This construction closes three problems at once. The Aggregator cannot
 steer audits: it does not hold Auditor keys, so grinding the Block Hash
@@ -339,7 +342,11 @@ every Block whether or not anything was selected. An Auditor has **failed
 its coverage duty for a Block** when any selected Delta lacks a Record at
 the deadline, or when its selection was empty and no attestation appears;
 publishing Records for some but not all selected Deltas is a failure, not
-partial credit. Because `pi` pins the selection set exactly, that is an
+partial credit. Whether a failure so defined *counts* is a further
+question the transport below answers: it enters the failure count only
+under the `pull_attestation` condition there, because an absence the
+Aggregator can manufacture is not evidence until the Aggregator has
+signed what it found. Because `pi` pins the selection set exactly, that is an
 objective and recomputable fact rather than a judgement. Without the
 attestation an Auditor that simply does nothing would be indistinguishable
 from one whose VRF selected nothing, and coverage would rest on an
@@ -367,7 +374,28 @@ failures age out of the 30-day window with none replacing them, the Auditor
 is no longer in coverage failure and its later Records count again. A
 sealed `auditor_remove` does not age out — removal is the Log-native fact
 §3 reads for admission, and it is permanent — so the derivation is a floor
-under the duty, never a way around removal. The exclusion is scoped to
+under the duty, never a way around removal.
+
+**What removal binds, and how an Auditor rotates.** An `auditor_remove`
+retires its `key_id` permanently, exactly as an `aggregator_key_remove`
+does (DC-3 §3.4): no later `auditor_admit` may name that `key_id`, and a
+replayer MUST reject one. Whether it also bars the *`auditor_id`* is
+decided by the removal's own `evidence`. A removal carrying evidence —
+failed Blocks, void Records, systematic divergence — is for cause, and an
+`auditor_admit` whose `subject` is that `auditor_id` MUST thereafter be
+rejected by any party replaying the Log: without this, "removal is
+permanent" would be permanent for a key that costs nothing to replace and
+porous for the operator behind it, and a removed Auditor would re-enter
+by generating thirty-two fresh octets. A removal carrying no evidence is
+an exit or a rotation, and bars nothing — which *is* the key-rotation
+mechanism: an Auditor rotates by having an evidence-less `auditor_remove`
+for the old key and an `auditor_admit` for the new one sealed, same
+`auditor_id`, each duty still anchored to whichever key was admitted at
+the relevant Block's `sealed_at` (§4). A compromised Auditor key is the
+rotation case with urgency: the removal ends the key's authority from
+its sealing height forward, and Records the stolen key signed for Blocks
+after the removal verify against no admitted key and are void without
+any further rule. The exclusion is scoped to
 reputation and carries no notice and no appeal, for the reason §5 gives for
 the unauditable horizon: nothing here is punitive, and what it withdraws is
 the weight of Records from a party the Log already shows was not doing the
@@ -376,6 +404,73 @@ work they claim to be part of.
 `coverage_attestation` is the second class of Registry Update not signed by
 the Aggregator (the first is `appeal`, §7): the Auditor signs it with its
 own admitted key, and its `subject` is the Auditor's `auditor_id`.
+
+**The extension rule.** When a Block *B₁* seals an `inconsistent` or
+`link_inconsistent` Record for a Delta *d*, and no earlier such Record for
+*d* was sealed inside the §5 confirmation window ending at *B₁*, then *d*
+enters the selection set of **every** Auditor admitted at *B₁*'s
+`sealed_at` that is independent (§3) of every Auditor whose such Record
+for *d* is already sealed — and that is not barred from auditing *d* by
+§3's self-audit rule. Each such Auditor MUST audit *d* and publish the
+Record within `confirm_window_hours / 2` hours (integer division) of
+*B₁*'s `sealed_at`; the duty is a coverage duty exactly as for a VRF
+selection, discharged by any verdict, `unreachable` and `not_auditable`
+included, and counted by the same failure arithmetic. A Record produced
+under this rule carries the `vrf_proof` for *B₁* like any Record for a
+selection in *B₁* — the proof demonstrates the draw that did *not* select
+*d*, and the extension is why the Record is nonetheless valid. Without
+this rule the document would promise what §3 forbids: §5's "re-audit by
+additional Auditors" would name an act that voids the Record of any
+Auditor performing it, confirmation would exist only where two VRF draws
+coincided — at the sampling floor, a chance a fraudulent Delta survives
+thousands of times over — and the sanction ladder would police exactly
+the established domains it was built to reach last. The duty's span is
+half the confirmation window so that a Record published at the deadline
+can still seal inside the window it exists to serve; §9's combination
+rules bound the pair. The cost is one fetch per admitted Auditor per
+triggering Record: only fraud pays it — or a lying Auditor, whose false
+`inconsistent` now summons every independent peer to contradict it on
+the record.
+
+**How Records reach the Log.** Every duty above is discharged by a
+Record or attestation *sealed* in the Log, and this paragraph is the
+transport that makes sealing depend on no party's goodwill. An Auditor
+MUST serve everything it publishes for an audited Block — its Audit
+Records and any `coverage_attestation` — as a single JSON array at
+
+    https://<auditor_id>/.well-known/deltacommons/records/<block-hash-hex>.json
+
+(the audited Block's Block Hash in hex, without its `sha256:` prefix),
+by its §4 deadline for that Block, and MUST keep serving it until every
+item in it is sealed. Each Record and each `coverage_attestation` an
+Auditor publishes carries `prev_record`: the ID of the same Auditor's
+immediately preceding Record or attestation in its own publication
+order, or `null` for its first ever. The chain is what turns selective
+suppression into evidence: a sealed item whose `prev_record` names an
+ID the Log does not contain proves, to any replaying party, that the
+missing item existed and was published before its successor — so the
+absence is suppression or a failed pull, never shirking, and a coverage
+failure MUST NOT be derived from it. For each sealed Block and each
+Auditor admitted at its `sealed_at`, the Aggregator MUST fetch that
+Auditor's path for the Block after the Auditor's deadline passes and
+MUST seal everything it finds within `record_seal_blocks` Blocks
+(Parameter Registry; default 24) of the fetch, and MUST seal alongside
+it a `pull_attestation` Registry Update — `subject` the `auditor_id`,
+details naming the audited Block and the IDs found, empty where the
+fetch found nothing to seal. A coverage failure for an (Auditor, Block)
+pair enters the §4 failure count **only** when the Log carries the
+Aggregator's `pull_attestation` for that pair showing the duty unmet
+and no later-sealed item contradicts it by chain. The asymmetry is
+deliberate, and it is the appeal pattern (§7, DC-2 §3.3) applied to the
+one evidence class that lacked it: without the attestation requirement,
+an Aggregator could manufacture an honest Auditor's removal by silently
+declining to pull — a coverage failure needs no `auditor_remove`, so
+suppression and shirking would be indistinguishable on replay, the
+opposite of what §10 claims. With it, silence stops counting against
+the Auditor and starts counting against the Aggregator, whose missing
+attestation for a duty it owes is itself derivable by replay; and a
+false attestation is a permanent signed statement that any third party
+who fetched the Auditor's path during the window can contradict.
 
 Worked numbers for this section — real values from `vectors/dc4/sampling.json`
 — are in the Appendix.
@@ -388,8 +483,8 @@ and its fields are: `audited_delta` (the Delta ID under audit),
 Auditor fetched the URL), `response_commitment` (over the raw response
 body), `ref_extract_commitment` (over the Auditor's own reference
 extraction), `similarity` (the §5 metric value, an integer in micro-units),
-`verdict`, `evidence_commitment` (over the WARC capture, which the Auditor
-MUST preserve), `link_agreement` (the §5 link-dimension reading, an
+`verdict`, `evidence_commitment` (over the WARC capture; §5 fixes which
+captures the Auditor preserves and for how long), `link_agreement` (the §5 link-dimension reading, an
 integer in micro-units, present only where that dimension applies),
 `robots_excluded` (present only on an `unreachable` Record the
 `robots.txt` rule below produced), and `vrf_proof` (the §4 VRF Proof
@@ -484,6 +579,29 @@ was there, which is exactly the confirmability DC-1 §3.6's salt exists to
 destroy. Binding one salt to all four commitments — the Publisher's and
 the Auditor's three — makes them expire together rather than leaving the
 weakest one governing.
+
+**Which captures are preserved.** The preservation duty is scoped to the
+Records that can ever become evidence. An Auditor MUST preserve the WARC
+capture behind an `inconsistent` or `link_inconsistent` Record for
+`warc_retention_days` (Parameter Registry; default 90) from the
+`sealed_at` of the Block sealing the Record — and for as long beyond that
+as a `notice` naming the Record in its `evidence` has an appeal window,
+sealing deadline or ruling deadline still open (§7). While such a notice
+is pending, the Auditor MUST serve the capture at
+`https://<auditor_id>/.well-known/deltacommons/evidence/<record-id-hex>.warc`
+(the Record ID's hex, without its `sha256:` prefix), so an appellant can
+recompute `evidence_commitment` without the Auditor's cooperation being a
+favor. For every other verdict the capture MAY be discarded once the
+Record is sealed: only `inconsistent` and `link_inconsistent` Records can
+join a Confirmed Inconsistency or Confirmed Link Inconsistency, so only
+they can ever be the evidence a sanction or an appeal turns on, and a
+duty to hold every capture for every audit would grow with system
+throughput while securing nothing — its cost would fall precisely on the
+role this suite gives no revenue, and pricing Auditors out is itself a
+security failure (§10). `evidence_commitment` is still sealed on every
+Record that carries one; for a discarded capture it remains what any
+commitment is after its artifact lapses — binding on what the Auditor
+held, checkable while the Auditor still holds it, and nothing further.
 
 **Verifying a commitment, and when it stops being possible.** A party
 checking an Audit Record obtains the salt the way the Auditor did: it
@@ -626,15 +744,41 @@ granularity it actually has, and capping the shingle length at the shorter
 text's own length keeps both sets non-empty, so `|A ∪ B|` ≥ 1 always and
 the quotient is defined for every pair of non-empty texts.
 
-Empty texts are ruled on rather than measured, and the two are not
-symmetric. An empty **reference** text is `not_auditable` (above): a
-Publisher that committed to no text made no claim an audit could confirm or
-refute. An empty **observed** text is a finding about the URL, not an
-absence of evidence — the page was fetched and yielded no text where the
-Publisher committed to some — and scores `similarity` = 0 by definition,
-there being no shingle of the reference for it to share. Where both are
-empty the reference rule governs, because the verdict order below puts
-`not_auditable` first.
+Empty texts are ruled on rather than measured, and both rulings are
+`not_auditable`. An empty **reference** text is `not_auditable` (above): a
+Publisher that committed to no text made no claim an audit could confirm
+or refute. An empty **observed** text — a `200` response whose extraction
+yields nothing — is `not_auditable` too, and the reason is what the
+emptiness cannot distinguish: a script-shell page whose text exists only
+after execution, a bot interstitial served to every Auditor at once, and
+a genuinely blanked page all produce it, the first two from perfectly
+honest Publishers, and correlated across Auditors — every Auditor meets
+the same interstitial, so the two `inconsistent` Records a confirmation
+needs would not be the independent evidence §5 requires but the same
+failure observed twice. A `similarity` of 0 here would put honest
+Publishers one correlated artifact away from a severity-3 band. What the
+verdict protects is bounded by what it forgoes: a page that persistently
+yields no text where its Publisher committed to some accumulates
+`not_auditable` Records, its claims go unconfirmed, `C` stops growing,
+and the unauditable horizon (below) — exclusion, not sanction — is the
+consequence, which is the correct one for content the audit mechanism
+cannot see. The `delete` mirror below is unaffected: a `404` or `410` to
+a `delete` audit is a ruled-on response, not an empty extraction.
+
+**The similarity dimension is defined over HTML.** The observed text is
+produced by extraction from a fetched HTML representation, and this
+specification pins that procedure for no other media type — a PDF, an
+image, or a media stream has no extraction two Auditors are bound to
+compute identically, and a metric that inherits a parser disagreement is
+not recomputable (the reason the link dimension already skips non-HTML,
+DC-2 §11). An audit whose fetched representation is not HTML in the
+sense of DC-2 §11 is `not_auditable` for the similarity dimension,
+whatever its bytes: an honest Publisher of un-parseable-by-Auditor
+content MUST NOT be sanctionable for the tooling gap. The same horizon
+consequence governs. This is an auditability boundary, recorded as such:
+a later revision MAY pin per-media-type extraction procedures and move
+the boundary, and until it does, the index carries non-HTML claims as
+what they are — declared, committed, and unaudited.
 
 **Effective similarity.** A `new`, `update` or `attest` Delta claims the
 URL carries the reference content, so agreement confirms it; a `delete`
@@ -665,9 +809,12 @@ then the three extract bands, then the two link bands. An Auditor with no
 reference text records `not_auditable` whether or not the fetch also
 failed — from a withdrawal's sealing height it MUST, even holding a copy —
 and an Auditor that obtained no representation records `unreachable`
-without computing a similarity it has no observed text for. A band is read
-only when there is a reference to measure against and a representation to
-measure. Since the three extract bands partition 0 … 1 000 000 with no gap
+without computing a similarity it has no observed text for; one whose
+representation is non-HTML, or whose extraction of it is empty, records
+`not_auditable` under the two rules above — except on the `delete`
+mirror's ruled-on `404`/`410`. A band is read only when there is a
+reference to measure against, an HTML representation to measure, and a
+non-empty observed text to measure it by. Since the three extract bands partition 0 … 1 000 000 with no gap
 and no overlap, exactly one of `consistent`, `dynamic_variance` or
 `inconsistent` fits every audit's effective similarity. The `inconsistent`
 row rests on the number alone: a conjunct requiring the claimed content to
@@ -829,7 +976,8 @@ from the Log by every party alike, and the whole of the state is one URL's
 Audit Records in Log order.
 
 **No single audit punishes.** An `inconsistent` verdict triggers re-audit
-by additional Auditors. A **Confirmed Inconsistency** exists only when ≥ 2
+by additional Auditors — §4's extension rule is the mechanism, and it is
+a duty, not an invitation. A **Confirmed Inconsistency** exists only when ≥ 2
 Auditors, independent of one another in the sense §3 defines, return
 `inconsistent` for the same Delta, with the `sealed_at` of the Block
 sealing the confirming Record no more than 72 hours after the `sealed_at`
@@ -1043,6 +1191,29 @@ reset** at the height its Declaration Entry is sealed. Call that height
   the protocol can tell, and the Provisional cap — not inherited debt — is
   what bounds what it can claim.
 
+**Sanction state binds the key identity too.** The §7 ladder is state
+about the same party `A`, `C` and `penalty_n` are state about, and it
+follows them: every rung in force at or below `R` — intensified
+sampling, weight reduction, quarantine, delisting — lifts at `R`, and
+the fresh identity enters Provisional like any other, which under DC-2
+§4 means no `403`: the two rules agree because a reset domain *is*
+Provisional. Both alternatives are worse, and both were live before
+this paragraph said otherwise. Were sanction state to survive a reset,
+an innocent buyer of a lapsed level-3 domain would inherit a quarantine
+it could never appeal — the appeal must verify against the notice-era
+Key Set, which is exactly what a fresh identity does not hold — and
+DC-2's "Provisional domains MUST NOT receive 403" would contradict
+level 3's required `403` for the same domain at the same instant. And
+the lift is not the escape §6.3 forbids: what a reset sanctioned party
+buys is Provisional's cap, the sampling ceiling §4 applies at that
+reputation, zero `A`, zero `C` — level 3's practical effect (nothing it
+publishes is materialized with standing) reconstituted from the other
+end, plus the permanent Log record tying the old identity's evidence
+to the domain name for any consumer that cares to look. Replayers MUST
+derive the lift from the reset Declaration itself, as with every §7
+state: no `sanction_lift` is involved, and an Aggregator's failure to
+file one changes nothing.
+
 Resetting is therefore never an escape: it costs the domain its entire
 age, its whole audited-URL count, and its standing above 0.10, in exchange
 for shedding penalties that decay to nothing in five years anyway. A
@@ -1074,7 +1245,22 @@ Exactly three things:
    the height §4 fixes.
 3. **Inclusion latency**: `reputation_u` ≥ 500 000 → eligible for the next
    Block; below → eligible for the Block after the next (one full Block
-   of delay).
+   of delay). Eligibility is a floor, and it has a ceiling: an accepted
+   Delta MUST be sealed no later than `max_inclusion_blocks` (Parameter
+   Registry; default 4) Blocks after the Block it became eligible for.
+   The ceiling exists because both ends of the eligible-to-sealed gap
+   are otherwise the Aggregator's, and operator revenue —
+   subscriptions to the fresh stream — is proportional to the free
+   stream's staleness: without a ceiling, "eligible for the next Block"
+   bounds nothing and position *in time, on the read side* is lawfully
+   for sale, one hop removed from the payment Invariant 2 forbids. The
+   duty is not derivable from the Log alone — the Log cannot see an
+   acceptance the Aggregator shelved — but it is observable by every
+   Publisher against its own status endpoint (DC-2 §7.1, which shows
+   acceptance) and Feed, so a breach is a pattern any Publisher can
+   document; and `block_cadence_seconds` carries a hard upper bound
+   (§9) for the same reason, so the ceiling cannot be reconstituted by
+   stretching the Block itself.
 
 **Invariant: reputation is not a ranking signal.** It MUST NOT be used
 by, exported to, or interpreted as an input for content relevance. It
@@ -1401,7 +1587,7 @@ existing rather than a recommended setting.
 
 | Parameter | Bound | What a value past it removes |
 |---|---|---|
-| `block_cadence_seconds` | ≥ 1 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` — every window in this document — has a clock |
+| `block_cadence_seconds` | ≥ 1 and ≤ 86 400 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` — every window in this document — has a clock; above a day, "eligible for the next Block" is lawful staleness measured in weeks, and the read-side position sale §6.4's inclusion ceiling forbids returns through the cadence |
 | `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (DC-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and DC-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
 | `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails DC-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
 | `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (DC-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
@@ -1431,6 +1617,11 @@ existing rather than a recommended setting.
 | `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (DC-3 §6.1) |
 | `unauditable_horizon_days` | ≥ 7 | below, whether a URL is excluded turns on publication scheduling rather than on its `robots.txt` (§5) |
 | `mirror_retention_days` | ≥ 51 | below, an appellant cannot fetch the Records its own sanction rests on (DC-3 §6) |
+| `warc_retention_days` | ≥ 51 | below, the capture behind a confirming Record can lawfully be gone before the appeal that contests it can conclude (§5, §7) |
+| `record_seal_blocks` | ≥ 1 | at zero the Aggregator must seal what it pulled in the Block of the pull itself, so every pull is a breach the instant it completes (§4) |
+| `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (DC-3 §3.2) |
+| `max_inclusion_blocks` | ≥ 1 | at zero an eligible Delta must seal in its eligibility Block itself, a deadline no Aggregator can meet for a Delta accepted mid-Block (§6.4) |
+| `ingest_budget_bytes_day` | ≥ 1 048 576 | below one MiB the §3.2 walk cannot fetch a single capped Payload with its Feed page, and every backfill starves (DC-2 §5) |
 | `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (DC-1 §2, §3.2) |
 
 Where the rule does not reduce to a fixed bound — a value that is
@@ -1445,7 +1636,10 @@ greater than `similarity_variance_floor`, or the `dynamic_variance` band
 is empty; `c_cap` MUST NOT be below `provisional_audits`, or no domain can
 leave Provisional; `confirm_window_hours` and `coverage_deadline_hours`
 MUST NOT be shorter than `block_cadence_seconds`, or a duty falls due
-before the Block that could discharge it can be sealed;
+before the Block that could discharge it can be sealed — and
+`confirm_window_hours / 2` (integer division), the extension duty's own
+span (§4), MUST NOT be shorter than `block_cadence_seconds` either, or a
+re-audit can never seal inside the window it exists to serve;
 `block_decompressed_cap_bytes` MUST NOT be below the size of the largest
 Block the Aggregator seals, since only the pair decides whether any Block
 is applicable; and the `mirror_retention_days` sum below. `links_cap_bytes`
@@ -1525,6 +1719,11 @@ combination cases above.
 | `url` size cap | `url_cap_bytes` | 2048 octets of `JCS(url)` | DC-1 §3.2 |
 | Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | DC-3 §6 |
+| WARC retention floor (`inconsistent` / `link_inconsistent` Records) | `warc_retention_days` | 90 days | §5 |
+| Pull sealing deadline | `record_seal_blocks` | 24 Blocks | §4 |
+| Per-domain Block capacity | `domain_block_entries_max` | 10 000 Entries | DC-3 §3.2 |
+| Inclusion ceiling | `max_inclusion_blocks` | 4 Blocks | §6.4 |
+| Per-domain daily ingest budget | `ingest_budget_bytes_day` | 1 GiB | DC-2 §5 |
 | Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
 | Clock skew allowance | `clock_skew_seconds` | 10 minutes | DC-1 §3.4 |
 | Key Set cache TTL | `keyset_cache_ttl_seconds` | 24 hours | DC-1 §5.1 |
@@ -1601,10 +1800,19 @@ mirroring §7 and §3:
   that named no Delta, no basis, or no demanding jurisdiction would be an
   unfalsifiable claim to have removed something — which is precisely what
   a quiet drop looks like.
+- `pull_attestation`: `block` (the audited Block's Block Hash) and
+  `found` (the IDs the §4 pull returned, an array, empty where the fetch
+  found nothing to seal); `subject` is the Auditor's `auditor_id`. Both
+  are REQUIRED, because the attestation exists to be the signed statement
+  a coverage failure is derived against (§4), and an attestation naming
+  no Block or no result set would attest to nothing a replayer could
+  hold the Aggregator to.
 
 `sanction_lift` and `coverage_attestation` carry an unconstrained `details`
 object, and an `appeal`'s is unconstrained beyond the `notice` it MUST
-name; §4 and §7 govern the rest of their content in prose, not the schema.
+name; a `coverage_attestation` and every Audit Record additionally carry
+`prev_record` (§4), the same Auditor's preceding publication or `null`.
+§4 and §7 govern the rest of their content in prose, not the schema.
 The same is true of any action a future major revision adds.
 
 No `details` object, constrained or not, may carry a bare digest of
@@ -1620,11 +1828,12 @@ over a list of field names, because the position is what makes it
 necessary: everything a Registry Update carries is sealed, permanent, and
 outside the withdrawal mechanism entirely (DC-3 §6.2), so any of it recited
 once is recited for ever. It binds whoever writes the value, not only the
-Aggregator — a `payload_withdrawal`'s `legal_basis`, a `notice`'s `reason`
-and an `appeal_ruling`'s `reasoning` are the Aggregator's, and an
-`appeal`'s and a `sanction_lift`'s `details` are the Publisher's, written
-by the party with the strongest reason to recite a data subject's
-circumstances and the least reason to have read this paragraph. A
+Aggregator — a `payload_withdrawal`'s `legal_basis`, a `notice`'s
+`reason`, an `appeal_ruling`'s `reasoning` and a `sanction_lift`'s
+`details` are the Aggregator's, and an `appeal`'s `details` are the
+Publisher's, written by the party with the strongest reason to recite a
+data subject's circumstances and the least reason to have read this
+paragraph. A
 `legal_basis` names a legal ground, not the person invoking it; a `reason`,
 a `reasoning` and an appeal's grounds name their evidence by Audit Record
 ID (§5) or Registry Update ID (§7) rather than reciting what was found.
@@ -1635,17 +1844,26 @@ record why an action was taken or contested (§11).
 
 - **Audit selection is unforgeable and unsteerable.** Who audits what is
   fixed by each Auditor's own VRF over the Block Hash (§4), so no party
-  chooses it. The Aggregator holds no Auditor key: grinding `sealed_at`,
-  Entry order, or Block membership — all of which it does control — moves
-  every Auditor's selection at once and in no direction it can predict, so
+  chooses it. Two of the three inputs the Aggregator once chose freely
+  are now pinned — `sealed_at` to the cadence grid, Entry order to
+  canonical order (DC-3 §3.1, §3.3) — leaving Block membership as its one
+  grinding dimension, bounded by the cadence: one candidate hash per
+  deferral, hours apart, in a Log where deferral itself is bounded by
+  §6.4's inclusion ceiling. And the direction of any grind is blind: the
+  Aggregator holds no Auditor key, so a changed Block Hash moves every
+  Auditor's selection at once and in no direction it can predict, and
   the sub-two-trial steer that a single log-wide draw permitted no longer
   exists. The Auditor cannot steer its own draw either, because `beta` is
   uniquely determined by its key and the Block. Auditing *outside* the VRF
-  set is detectable by anyone: the published `pi` recomputes the set, and a
-  Record for a Delta outside it is void (§3) and is evidence for
-  `auditor_remove`. Confirmation still requires *independent* Auditors, and
-  the Aggregator MAY still commission overlapping audits and compare
-  outcomes; systematic divergence by one Auditor remains grounds for
+  set is detectable by anyone: the published `pi` recomputes the set, §4's
+  extension rule is the one further path in and every input to it is
+  sealed, and a Record for a Delta outside both is void (§3) and is
+  evidence for `auditor_remove`. Confirmation requires *independent*
+  Auditors and does not wait on coincidence: the extension rule summons
+  every independent Auditor to the first `inconsistent` Record, so a
+  fraudulent Delta's chance of escaping confirmation is the chance of
+  escaping the whole roster, not of escaping a second simultaneous VRF
+  draw; systematic divergence by one Auditor remains grounds for
   `auditor_remove`, in the log with evidence like any sanction.
 - **Shirking is detectable from the Log alone, whole or partial.** For every
   Block sealed in an Auditor's admitted window the Log must hold that
@@ -1653,7 +1871,12 @@ record why an action was taken or contested (§11).
   or inside a `coverage_attestation` where the VRF selected nothing (§4).
   An Auditor that audits nothing and attests nothing is therefore not merely
   suspected but demonstrated, by any party replaying the Log, with no
-  challenge protocol, no side channel, and no cooperation from the Auditor.
+  challenge protocol, no side channel, and no cooperation from the Auditor
+  — demonstrated, that is, once the Aggregator's `pull_attestation` for the
+  pair is sealed, which §4 requires before any failure counts: absence
+  alone is never evidence against the Auditor, because absence is exactly
+  what suppression would manufacture, and the `prev_record` chain turns
+  any selectively suppressed item into proof of its own existence.
   Since the proof is published either way, an Auditor cannot hide behind "my
   VRF selected nothing": that claim is a signed, falsifiable statement whose
   proof anyone can check against the Block Hash. Nor can it shirk *part* of
@@ -1828,10 +2051,11 @@ mechanism entirely — the same class as a Delta's `meta` (DC-1 §3.7) — and
 constrains that field or leaves it open, and whoever writes it. The
 enumeration matters less than the position, but the positions are worth
 naming: the Aggregator writes a `payload_withdrawal`'s `legal_basis`, a
-`notice`'s `reason` and an `appeal_ruling`'s `reasoning`; the Publisher
-writes an `appeal`'s and a `sanction_lift`'s `details`, and an appeal is
-the one place in this suite where a party is contesting a finding about
-itself and is most likely to recite a person's circumstances in doing so.
+`notice`'s `reason`, an `appeal_ruling`'s `reasoning` and a
+`sanction_lift`'s `details`; the Publisher writes an `appeal`'s
+`details`, and an appeal is the one place in this suite where a party is
+contesting a finding about itself and is most likely to recite a
+person's circumstances in doing so.
 A `legal_basis` names a legal ground, not the person invoking it; a
 `reason`, a `reasoning` and an appeal's grounds name their evidence by
 Audit Record ID (§5) or Registry Update ID (§7) rather than reciting what
@@ -1839,7 +2063,10 @@ was found. Nothing in this suite requires identifying a data subject in
 order to record why an action was taken or contested, and doing so would
 seal into the Log precisely the data an erasure is meant to remove.
 
-The Auditor's WARC capture is a full copy of the page, and it is held
+The Auditor's WARC capture is a full copy of the fetched exchange — the
+request, the response headers, and the response body whose bytes
+`response_commitment` covers, never subresources the audit did not fetch —
+and it is held
 off-Log. DC-3 §6.2 requires the Auditor to destroy it, along with the
 Payload and its salt, when the Payload is withdrawn. That is an obligation
 on the Auditor, enforceable the way the Aggregator's and the Mirrors' are
@@ -1881,8 +2108,15 @@ hands.
       — including where the file discriminates between admitted Auditors,
       whatever access it grants this one (§5, DC-2 §5)
 - [ ] Emits `not_auditable` (never `inconsistent` or `unreachable`) for a
-      withdrawn, unobtainable or empty-extract Reference Payload, and
-      treats it as discharging the coverage duty (§4, §5)
+      withdrawn, unobtainable or empty-extract Reference Payload, for an
+      empty observed extraction from a `200` (outside the `delete`
+      mirror's ruled-on `404`/`410`), and for a non-HTML representation —
+      each discharging the coverage duty (§4, §5)
+- [ ] Audits every Delta §4's extension rule names for it, within the
+      extension deadline, exactly as a VRF selection (§4)
+- [ ] Serves its Records and attestations per audited Block at its
+      well-known records path until sealed, each carrying `prev_record`
+      in its own publication order (§4)
 - [ ] Signs Records with a key admitted at the `sealed_at` of the Block
       carrying the Record, and fetches inside the interval §3 fixes — with
       the coverage carve-out: an Auditor removed after a Block was sealed
@@ -1892,9 +2126,11 @@ hands.
       entering any domain's reputation (§3, §4)
 - [ ] Commits the response, its own extraction and its WARC capture under
       the Reference Payload's salt — never as bare digests (§5)
-- [ ] Preserves the WARC capture matching `evidence_commitment`, and
-      destroys it, the Reference Payload and the salt on withdrawal
-      (§5, DC-3 §6.2)
+- [ ] Preserves the WARC capture behind every `inconsistent` and
+      `link_inconsistent` Record for `warc_retention_days`, extended and
+      served at the §5 evidence path while a notice naming the Record is
+      pending, and destroys any capture, the Reference Payload and the
+      salt on withdrawal (§5, DC-3 §6.2)
 
 **Aggregator (governance side):**
 
@@ -1917,6 +2153,14 @@ hands.
       deadline (§7)
 - [ ] Never suspends ingestion for a Provisional domain; only
       Sanctioned Quarantine or delisting rejects a Ping or pull (§6, §7)
+- [ ] Pulls every admitted Auditor's well-known records path per Block
+      after its deadline, seals what it finds within
+      `record_seal_blocks`, and seals a `pull_attestation` for every
+      pull — including the empty ones (§4)
+- [ ] Seals an accepted Delta within `max_inclusion_blocks` of its
+      eligibility Block (§6.4)
+- [ ] Seals a served, valid recovery Declaration within
+      `record_seal_blocks` of discovering it (DC-1 §5.2)
 - [ ] Enforces the §8 invariants unconditionally
 - [ ] Changes parameters only via `parameter_change` with the grace
       period (§9)
@@ -1954,8 +2198,9 @@ hands.
       escalation criteria at the height they are met, whether or not the
       Aggregator sealed the `notice` and `sanction` that record them, and
       lifts each at the height a `sanction_lift`, an `"overturned"`
-      `appeal_ruling`, a lapsed ruling deadline, or a lapsed
-      appeal-sealing deadline takes effect (§7, DC-3 §7)
+      `appeal_ruling`, a lapsed ruling deadline, a lapsed
+      appeal-sealing deadline, or an identity reset (§6.3) takes
+      effect (§7, DC-3 §7)
 - [ ] Runs every window from the `sealed_at` of the Block sealing the
       Entry that opens it — the appeal window from the `notice`'s Block,
       the recovery window from the recovery Declaration's own (DC-1 §5.2)
@@ -1979,16 +2224,16 @@ key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
 |---|---|
 | Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
 | Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| Block Hash of *B* | `sha256:0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809` |
-| `alpha` (32 octets, hex) | `0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809` |
-| `pi` = `vrf_proof` (80 octets) | `2b1c91a879cb2bcfd0f87420fc17a2c213ea9a44e39371c7dc5b7882b71b2af5`<br>`9282b4cd8708ada538a34273358d60a7a2d7100b8114be31055e28db5dffbc14`<br>`c87de363c1ab0fe4370e9a01e4b99e0e` |
-| `beta` (64 octets) | `6a14e671c3fa9e262a0c398a8e4660f842a167f57f9e10b0dccc264c319b1379`<br>`bf1903fc33d2ac1ca0982890a27a10bcd5fdbbe8c4bf481f68ba5e1a9e6048f5` |
-| Delta ID of Entry 0 | `sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120` |
-| `SHA-256(beta ‖ Entry 0)[0..8]` | `6aeb8247400b4a5b` |
-| `D`(Entry 0) | `7704394830076136027` |
-| Delta ID of Entry 2 | `sha256:8d5ccbbb940151aef6a885b1d6a290265651b3029392b501d0892b566077be53` |
-| `SHA-256(beta ‖ Entry 2)[0..8]` | `2657a087bd2e2835` |
-| `D`(Entry 2) | `2762853401270036533` |
+| Block Hash of *B* | `sha256:8c3c0bbbdfc09d9abae80b261dcdc9b71f2e2bd6f124b5f2ce076a140f8750e5` |
+| `alpha` (32 octets, hex) | `8c3c0bbbdfc09d9abae80b261dcdc9b71f2e2bd6f124b5f2ce076a140f8750e5` |
+| `pi` = `vrf_proof` (80 octets) | `d65b9b43e383382b4ac77e73a5185eef6499033b2b7ee376bfe2669e73de66c5`<br>`e8a0cf9252b1c1a82afa850a1a8343dee524efd90e4e8e4ffc1a069bb2212000`<br>`09a9bad562335e963d014063f63ed10d` |
+| `beta` (64 octets) | `260b0e6d121a164cc1bd9b7950d2a03d4fc6d58c1dca23dff0f6cea234c64f84`<br>`1abb3be702dd61808e2c9daaa558e98ccc9b30e88e8985b290479871d620f5d8` |
+| Delta ID of Entry 2 | `sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120` |
+| `SHA-256(beta ‖ Entry 2)[0..8]` | `db50a84965ded13f` |
+| `D`(Entry 2) | `15803316125638250815` |
+| Delta ID of Entry 1 | `sha256:8d5ccbbb940151aef6a885b1d6a290265651b3029392b501d0892b566077be53` |
+| `SHA-256(beta ‖ Entry 1)[0..8]` | `19a90554dcb44f18` |
+| `D`(Entry 1) | `1849014984050495256` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
@@ -2001,10 +2246,10 @@ the two domains differ only in reputation:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 0 | 100 000 (Provisional) | 2 900 000 | 7.704e25 | 5.350e25 | no |
-| Entry 0 | 900 000 (established) | 500 000 | 7.704e25 | 9.223e24 | no |
-| Entry 2 | 100 000 (Provisional) | 2 900 000 | 2.763e25 | 5.350e25 | **yes** |
-| Entry 2 | 900 000 (established) | 500 000 | 2.763e25 | 9.223e24 | no |
+| Entry 2 | 100 000 (Provisional) | 2 900 000 | 1.580e26 | 5.350e25 | no |
+| Entry 2 | 900 000 (established) | 500 000 | 1.580e26 | 9.223e24 | no |
+| Entry 1 | 100 000 (Provisional) | 2 900 000 | 1.849e25 | 5.350e25 | **yes** |
+| Entry 1 | 900 000 (established) | 500 000 | 1.849e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
 are in the vector, and an implementation MUST compare the exact ones. Note
