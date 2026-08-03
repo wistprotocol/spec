@@ -12,9 +12,12 @@ from merkle import audit_path, leaf_hash, merkle_root, node_hash
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 failures = []
 
+PASSED = set()
+
 def check(label, fn):
     try:
         fn()
+        PASSED.add(label)
         print(f"PASS {label}")
     except Exception as e:
         failures.append(label)
@@ -407,6 +410,30 @@ NON_CONTENT_DIGESTS = {
     ("payload.schema.json", "salt"): "the salt itself: drawn from a CSPRNG, never derived from the content it keys (DC-1 §3.6)",
 }
 
+# Fields that ARE content-derived and are salted commitments. Wearing the
+# `hmac-sha256:` label is not what earns a place here — a bare SHA-256 of the
+# content can be written with that prefix, and a new field can be patterned for
+# it without anything ever keying it to a salt. Each entry names the check that
+# recomputes it from the Payload salt, so adding a field means proving it keyed
+# rather than labelling it so.
+SALTED_COMMITMENTS = {
+    ("delta.schema.json", "commitment"): "payload:commitment",
+    ("audit-record.schema.json", "response_commitment"): "audit:commitments",
+    ("audit-record.schema.json", "ref_extract_commitment"): "audit:commitments",
+    ("audit-record.schema.json", "evidence_commitment"): "audit:commitments",
+}
+
+SALTED_COMMITMENT_VALUES = {
+    ("delta.json", "commitment"): "payload:commitment",
+    ("block.json", "commitment"): "payload:commitment",
+    ("envelope.json", "commitment"): "payload:commitment",
+    ("delta.canonical", "commitment"): "payload:commitment",
+    ("audit-record.json", "response_commitment"): "audit:commitments",
+    ("audit-record.json", "ref_extract_commitment"): "audit:commitments",
+    ("audit-record.json", "evidence_commitment"): "audit:commitments",
+    ("audit-commitments.json", "value"): "audit:commitments",
+}
+
 # Every opaque value the suite ships, by the (file, key) it appears at, with
 # what it actually is. Scoping to the pair rather than to the name matters: a
 # 64-hex string is legitimate at `block.json`'s `merkle_root` and is a bare
@@ -535,8 +562,14 @@ def _walk_schema(node, schema_name, findings, key=None, root=None, seen=frozense
         _walk_schema(sub, schema_name, findings, name, root, seen)
     for name, sub in node.get("$defs", {}).items():
         _walk_schema(sub, schema_name, findings, name, root, seen)
+    for name, sub in node.get("dependentSchemas", {}).items():
+        _walk_schema(sub, schema_name, findings, name, root, seen)
     for i, sub in enumerate(node.get("prefixItems", [])):
         _walk_schema(sub, schema_name, findings, f"{key}[{i}]", root, seen)
+    # Draft-04-style tuple form: `items` as an array of subschemas.
+    if isinstance(node.get("items"), list):
+        for i, sub in enumerate(node["items"]):
+            _walk_schema(sub, schema_name, findings, f"{key}[{i}]", root, seen)
     for kw in ("items", "then", "else", "not", "contains", "if",
                "additionalProperties", "propertyNames", "unevaluatedProperties",
                "unevaluatedItems"):
@@ -553,36 +586,84 @@ def _walk_schema(node, schema_name, findings, key=None, root=None, seen=frozense
                              key if key is not None else f"<{kw}>", root, seen)
     return findings
 
+def _spec_derived_constants():
+    """Digest-shaped figures the specs publish that are not literal in a vector.
+
+    Each is *computed* here from a shipped artifact rather than pasted, so a
+    spec figure that drifts from what the suite actually produces stops being a
+    published figure and the sweep flags it.
+    """
+    out = set()
+    canonical = (ROOT / "vectors" / "dc1" / "delta.canonical").read_bytes()
+    out.add(canonical.hex())                      # DC-1 App A quotes leading chunks
+    out.add(hashlib.sha256(b"\x00").hexdigest())  # DC-3 §4's empty-tree constant
+    out.add(hashlib.sha256(
+        (ROOT / "vectors" / "dc4" / "decay-table.json").read_bytes()).hexdigest())
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    out.add(b64u_decode(payload["salt"]).hex())   # DC-1 App A shows the salt in hex
+    # The 160-hex ECVRF proof: longer than any digest, so the value sweep's
+    # digest lengths never reach it, but DC-4 App A wraps it into 64-char cells
+    # that are digest-shaped on their own.
+    out.add(json.loads(
+        (ROOT / "vectors" / "dc4" / "sampling.json").read_text())["vrf_proof_hex"])
+    dc3 = json.loads((ROOT / "vectors" / "dc3" / "block.json").read_text())
+    leaves = [leaf_hash(rfc8785.dumps(e)) for e in dc3["entries"]]
+    out.update(h.hex() for h in leaves)           # DC-3 App A's leaf and node figures
+    out.add(node_hash(leaves[0], leaves[1]).hex())
+    out.add(node_hash(leaves[2], leaves[3]).hex())
+    return out
+
+# In prose there are no keys, so base64url detection needs a shape rule that
+# does not fire on ordinary identifiers: a digest carries mixed case and digits,
+# `deltacommons-test-salt` and `similarity_variance_floor` do not.
+def _prose_digest_shaped(token: str) -> bool:
+    body = token.split(":")[-1]
+    if re.fullmatch(r"[0-9a-fA-F]+", body) and len(body) in HEX_DIGEST_LENGTHS:
+        return True
+    return (len(body) in B64_DIGEST_LENGTHS
+            and re.fullmatch(r"[A-Za-z0-9_-]+", body) is not None
+            and any(c.isdigit() for c in body)
+            and any(c.islower() for c in body)
+            and any(c.isupper() for c in body))
+
 def _no_unsalted_content_digest():
     """No object in the suite carries a bare digest of page content.
 
     Moving extracts out of the Log achieves nothing if any object keeps an
     unsalted hash of the same text, so this holds the whole suite to the rule
     DC-3 §6.2 states: a content-derived value is committed under the Payload
-    salt or it is not carried at all. Two sweeps: every schema, where every
-    digest-shaped field must be an `hmac-sha256:` commitment or a declared
-    non-content digest; and every shipped example and vector, where every
-    digest-shaped *value* must sit at a declared (file, key).
+    salt or it is not carried at all. Three sweeps: every schema, every shipped
+    example and vector, and every specification document. In each, a
+    digest-shaped thing passes only by being *declared* — as a non-content
+    digest, or as a salted commitment with the check that proves it keyed.
+    Nothing passes for carrying the `hmac-sha256:` label, because a bare
+    SHA-256 of the content can wear that label and a new field can be patterned
+    for it without anything keying it to a salt.
     """
     schemas = sorted((ROOT / "schemas").glob("*.schema.json"))
     assert len(schemas) >= 9, f"only {len(schemas)} schemas enumerated; the sweep is not suite-wide"
+    for _, proving_check in {**SALTED_COMMITMENTS, **SALTED_COMMITMENT_VALUES}.items():
+        assert proving_check in PASSED, \
+            f"a commitment is declared keyed by {proving_check!r}, which did not run or did not pass"
     offenders = []
     for path in schemas:
         for name, key, pattern in _walk_schema(
                 json.loads(path.read_text()), path.name, []):
-            if pattern.startswith("^hmac-sha256:"):
-                continue                       # a salted commitment
+            if (name, key) in SALTED_COMMITMENTS:
+                continue                       # salted, and proven so by a named check
             if (name, key) in NON_CONTENT_DIGESTS:
                 continue                       # declared to carry no content
             offenders.append(f"{name}: {key} (pattern {pattern!r})")
     assert not offenders, \
-        "digest-shaped fields that are neither salted commitments nor declared " \
-        "content-free:\n  " + "\n  ".join(offenders)
+        "digest-shaped fields that are neither declared salted commitments nor " \
+        "declared content-free:\n  " + "\n  ".join(offenders)
 
     # Values, not just declarations: `registry-update`'s `details` is
     # `{"type": "object"}` for several actions, so a bare digest there would
     # satisfy every schema in the suite (DC-4 §9.1). Vectors are swept too — a
     # digest parked in vectors/ is as published as one in examples/.
+    published = set()
+
     def scan(node, key, where, hits):
         if isinstance(node, dict):
             for k, v in node.items():
@@ -591,12 +672,15 @@ def _no_unsalted_content_digest():
             for v in node:
                 scan(v, key, where, hits)
         elif isinstance(node, str):
-            if node.startswith("hmac-sha256:"):
-                return hits          # a salted commitment; audit:commitments proves it
-            if VALUE_DIGEST.fullmatch(node) and (where, key) not in NON_CONTENT_VALUES:
-                hits.append(f"{where}: opaque value at {key!r} = {node[:24]}… — "
-                            "commit it under the Payload salt (DC-3 §6.2), or do "
-                            "not carry it, or declare it in NON_CONTENT_VALUES")
+            if not VALUE_DIGEST.fullmatch(node):
+                return hits
+            if (where, key) in SALTED_COMMITMENT_VALUES or (where, key) in NON_CONTENT_VALUES:
+                published.add(node)
+                published.add(node.split(":")[-1])
+                return hits
+            hits.append(f"{where}: opaque value at {key!r} = {node[:24]}… — "
+                        "commit it under the Payload salt (DC-3 §6.2), or do "
+                        "not carry it, or declare it")
         return hits
 
     hits, scanned = [], 0
@@ -613,6 +697,28 @@ def _no_unsalted_content_digest():
         scanned += 1
     assert scanned >= 20, f"only {scanned} shipped files swept; the sweep is not suite-wide"
     assert not hits, "opaque values at undeclared locations:\n  " + "\n  ".join(hits)
+
+    # The specifications themselves. Appendix A is where digests live in prose,
+    # and prose has no keys to scope an allowlist to — so the rule is that every
+    # digest-shaped token in specs/ must be a *published figure*: a value the
+    # swept examples and vectors already carry at a declared location, or a
+    # fragment of one (the appendices wrap long hex across table cells and code
+    # blocks), or one of the few constants declared below with what it is.
+    published |= {v for v in _spec_derived_constants()}
+    corpus = "\n".join(sorted(published))
+    spec_hits = []
+    for path in sorted((ROOT / "specs").glob("*.md")):
+        for token in re.findall(r"[A-Za-z0-9_:.-]{16,}", path.read_text()):
+            token = token.strip(".,;:`")
+            if not _prose_digest_shaped(token):
+                continue
+            bare = token.split(":")[-1]
+            if bare in corpus or token in corpus:
+                continue
+            spec_hits.append(f"{path.name}: undeclared digest-shaped token {token}")
+    assert not spec_hits, \
+        "digest-shaped tokens in specs/ that are not published figures:\n  " \
+        + "\n  ".join(spec_hits)
 check("repo:no-unsalted-content-digest", _no_unsalted_content_digest)
 
 def _dc4_coverage_attestation():
