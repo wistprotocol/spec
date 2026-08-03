@@ -419,14 +419,24 @@ by what signs it:
 - Signed by a key in the previous Key Set — an ordinary rotation.
   Accepted; `A` and `C` (DC-4 §6) are preserved.
 - Signed by a key in the previous Declaration's `recovery_keys` — a
-  **recovery rotation**. The Aggregator MUST record a `notice` (DC-4 §7)
-  carrying `details.kind` `"recovery"`, opening a recovery window
-  (Parameter Registry: recovery window, 7 days) during which the
-  domain's Deltas are queued rather than sealed. At the end of the
+  **recovery rotation**. The recovery window (Parameter Registry:
+  `recovery_window_days`, 7 days) opens at the `sealed_at` of the Block
+  sealing that Declaration's own `publisher_declaration` Entry, and during
+  it the domain's Deltas are queued rather than sealed. At the end of the
   window the recovery Declaration takes effect with `A` and `C`
   preserved, and it supersedes any ordinary rotation sealed during that
   window — so a thief holding only a signing key cannot outrun the
-  holder of the recovery key.
+  holder of the recovery key. The Aggregator MUST also record a `notice`
+  (DC-4 §7) carrying `details.kind` `"recovery"`, but that entry
+  **describes** the window and does not open it: the window is derived
+  from the Declaration's own sealing height, so a Consumer replaying the
+  Log computes the same window, the same effective height, and the same
+  historical Key Set whether or not the notice was ever sealed. The suite's
+  only answer to a stolen signing key MUST NOT rest on the Aggregator
+  choosing to file — and a recovery whose effect depended on that entry
+  would leave "took effect under the Compromise recovery rule" with no
+  truth value for the resolution below, and the thief's ordinary rotation
+  standing.
 - Signed by neither — a **fresh identity**. The Declaration is accepted,
   but `A` and `C` reset to zero and the domain re-enters Provisional
   (DC-4 §6).
@@ -448,10 +458,14 @@ therefore excludes any such superseded rotation from the "highest `seq`"
 comparison and treats the recovery Declaration (and whatever legitimately
 follows it) as applicable instead, for every height from the recovery
 Declaration's own sealing height onward. Because `seq`, `prev_declaration`,
-each Declaration's signer, and Entry order are all present in the Log
+each Declaration's signer, Entry order, and the recovery window's own
+anchor — the `sealed_at` of the Block sealing the recovery Declaration —
+are all present in the Log
 itself, this resolution — ordinary case and recovery exception alike — is
 fully deterministic from log order alone, with no fetch and no trust in
-the Aggregator.
+the Aggregator. "Took effect under the Compromise recovery rule" is
+therefore a predicate every replaying party evaluates identically, rather
+than a claim resting on an entry the Aggregator may or may not have filed.
 
 ## 6. Deliberate Normative Absence
 
@@ -588,10 +602,12 @@ What remains in the Log permanently, and cannot be withdrawn, is:
   Those Records observe the page directly, so every content-derived value
   in them is committed under the same Payload salt rather than digested
   bare, and expires with it (DC-4 §5, DC-4 §11);
-- the free text of any Registry Update about the URL or its Publisher — a
-  withdrawal's `legal_basis`, a `notice`'s `reason`, an `appeal_ruling`'s
-  `reasoning`. These are sealed and unwithdrawable like `meta`, which is
-  why DC-4 §11 forbids personal data in them outright.
+- everything any Registry Update about the URL or its Publisher carries in
+  its `details` and `evidence` — the Aggregator's `legal_basis`, `reason`
+  and `reasoning`, and the Publisher's own text on an `appeal` or a
+  `sanction_lift` alike. These are sealed and unwithdrawable like `meta`,
+  which is why DC-4 §9.1 and §11 forbid personal data in any of them
+  outright rather than in a list of named fields.
 
 Publishers should understand that this residue is permanent, and that
 withdrawal removes the content from future distribution rather than from

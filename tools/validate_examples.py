@@ -934,6 +934,12 @@ NON_CONTENT_DIGESTS = {
     ("registry-update.schema.json",
      "allOf[6]/then/properties/update/properties/details/properties/delta_id"):
         "a Delta ID",
+    ("registry-update.schema.json",
+     "allOf[4]/then/properties/update/properties/details/properties/notice"):
+        "a Registry Update ID: SHA-256 over a `notice`'s inner object, which carries a kind, a reason, a deadline and Audit Record IDs — no page content",
+    ("registry-update.schema.json",
+     "allOf[8]/then/properties/update/properties/details/properties/notice"):
+        "the same Registry Update ID, named by the `appeal` that answers that notice",
     ("status.schema.json", "properties/rejections/items/properties/delta_id"):
         "a Delta ID",
     ("snapshot-manifest.schema.json",
@@ -1240,54 +1246,80 @@ def _parameter_registry_enum():
         f"the enum accepts identifiers §9 publishes no row for: {missing_from_table}"
 check("spec:parameter-registry-enum", _parameter_registry_enum)
 
-def _parameter_change_floors():
-    """The `minimum` each `parameter_change` branch imposes, by identifier."""
+def _parameter_change_bounds():
+    """The bounds each `parameter_change` branch imposes, by identifier.
+
+    A bound is a (minimum, maximum) pair with `None` for an absent side: some
+    parameters are nullified by a value below a floor, some by one above a
+    ceiling, and `similarity_consistent` and `similarity_variance_floor` by
+    both — read them as one shape rather than assuming every bound is a floor.
+    """
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     for branch in schema["allOf"]:
         if branch["if"]["properties"]["update"]["properties"]["action"].get("const") \
                 != "parameter_change":
             continue
         details = branch["then"]["properties"]["update"]["properties"]["details"]
-        return {sub["if"]["properties"]["parameter"]["const"]:
-                sub["then"]["properties"]["value"]["minimum"]
-                for sub in details["allOf"]}
+        out = {}
+        for sub in details["allOf"]:
+            value = sub["then"]["properties"]["value"]
+            out[sub["if"]["properties"]["parameter"]["const"]] = (
+                value.get("minimum"), value.get("maximum"))
+        return out
     raise AssertionError("registry-update.schema.json has no parameter_change branch")
 
-def _parameter_floors():
-    """Every floor §9 publishes is the floor the schema enforces, and bites.
+def _parameter_bounds():
+    """Every bound §9 publishes is the bound the schema enforces, and bites.
 
-    A floor that lives only in prose is an argument, not a constraint: the
-    parameters that carry one carry it because setting them toward zero retires
-    a mechanism the suite depends on, and nothing but the schema stands between
+    A bound that lives only in prose is an argument, not a constraint: the
+    parameters that carry one carry it because a value past it retires a
+    mechanism the suite depends on, and nothing but the schema stands between
     a signed `parameter_change` and that outcome. So the two are compared in
-    both directions — a prose floor the schema does not impose, and a schema
-    floor §9 does not publish, are both failures — and each is then exercised at
-    its own boundary rather than assumed to be wired up.
+    both directions — a published bound the schema does not impose, and a
+    schema bound §9 does not publish, are both failures — and each side of each
+    bound is then exercised at its own boundary rather than assumed to be
+    wired up.
+
+    The table is read out of §9 rather than restated here for the same reason
+    every other check in this file reads its thresholds from the document: a
+    copy kept here would agree with itself while §9 drifted.
     """
     spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
     section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
-    # Read the enumerated list itself, not every inequality in §9: the section
-    # also bounds `effective_at`, which is a field of the Registry Update rather
-    # than a parameter the enum can name.
-    listing = re.search(
-        r"reduces to a single numeric floor\s*\(([^)]*)\)", section9, re.S)
-    assert listing, "§9 no longer enumerates the schema-enforced floors"
-    # `≥ n` is a floor of n; `> n` is a floor of n + 1. Both spellings appear.
+    # §9's bounds table is the three-column one: | `parameter` | bound | why |.
+    # The four-column Parameter Registry table is the defaults table and is
+    # parsed elsewhere; keying on the column count keeps the two apart.
     published = {}
-    for name, op, raw in re.findall(
-            r"`([a-z0-9_]+)`\s*(≥|>)\s*([\d ]+)", listing.group(1)):
-        n = int(raw.replace(" ", ""))
-        published[name] = n if op == "≥" else n + 1
-    assert published, "§9 publishes no numeric floors in the expected form"
-    enforced = _parameter_change_floors()
+    for line in section9.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != 3 or set(cells[0]) <= set("-: "):
+            continue
+        names = re.findall(r"^`([a-z0-9_]+)`$", cells[0])
+        if not names:
+            continue
+        lo = hi = None
+        for op, raw in re.findall(r"(≥|>|≤|<)\s*([\d ]+)", cells[1]):
+            n = int(raw.replace(" ", ""))
+            if op in ("≥", ">"):
+                lo = n if op == "≥" else n + 1
+            else:
+                hi = n if op == "≤" else n - 1
+        assert lo is not None or hi is not None, \
+            f"§9's bounds table gives {names[0]} no parseable bound: {cells[1]!r}"
+        assert cells[2], f"§9's bounds table gives {names[0]} no stated consequence"
+        published[names[0]] = (lo, hi)
+    assert len(published) >= 20, \
+        f"only {len(published)} bounds parsed from §9; the table is not being read"
+    enforced = _parameter_change_bounds()
     assert published == enforced, (
-        "§9's published floors and the schema's differ:\n"
+        "§9's published bounds and the schema's differ:\n"
         f"  published: {dict(sorted(published.items()))}\n"
         f"  enforced:  {dict(sorted(enforced.items()))}")
 
-    # Each floor exercised at its own boundary. A branch wired to the wrong
-    # identifier, or a `then` that constrains nothing, passes the comparison
-    # above and fails here.
+    # Bounds may only be placed on parameters that exist: a bound on an
+    # identifier the enum does not carry constrains nothing at all.
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     v = Draft202012Validator(schema)
     sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
@@ -1297,27 +1329,138 @@ def _parameter_floors():
                            "details": {"parameter": parameter, "value": value},
                            "effective_at": "2026-08-12T16:00:00Z"},
                 "sig": sig}
-    for name, floor in sorted(enforced.items()):
-        assert v.is_valid(change(name, floor)), \
-            f"a parameter_change setting {name} to its own floor {floor} is rejected"
-        assert not v.is_valid(change(name, floor - 1)), \
-            f"a parameter_change setting {name} to {floor - 1}, below its floor, validates"
+    enum = None
+    for branch in schema["allOf"]:
+        if branch["if"]["properties"]["update"]["properties"]["action"].get("const") \
+                == "parameter_change":
+            enum = set(branch["then"]["properties"]["update"]["properties"]["details"][
+                "properties"]["parameter"]["enum"])
+    unknown = sorted(set(enforced) - enum)
+    assert not unknown, f"bounds are declared for identifiers the enum lacks: {unknown}"
+
+    # Each side of each bound exercised at its own boundary. A branch wired to
+    # the wrong identifier, or a `then` that constrains nothing, passes the
+    # comparison above and fails here.
+    for name, (lo, hi) in sorted(enforced.items()):
+        if lo is not None:
+            assert v.is_valid(change(name, lo)), \
+                f"a parameter_change setting {name} to its own floor {lo} is rejected"
+            assert not v.is_valid(change(name, lo - 1)), \
+                f"a parameter_change setting {name} to {lo - 1}, below its floor, validates"
+        if hi is not None:
+            assert v.is_valid(change(name, hi)), \
+                f"a parameter_change setting {name} to its own ceiling {hi} is rejected"
+            assert not v.is_valid(change(name, hi + 1)), \
+                f"a parameter_change setting {name} to {hi + 1}, above its ceiling, validates"
+
+    # The parameters whose extremes most completely nullify §8 must each be
+    # bounded, by name: a generalization that quietly dropped one of them
+    # would still satisfy every comparison above.
+    for name in ("sampling_floor", "sampling_ceiling", "confirm_window_hours",
+                 "coverage_deadline_hours", "confirm_auditors", "penalty_weight"):
+        assert enforced.get(name, (None, None))[0], \
+            f"{name} carries no floor, so a parameter_change may zero it"
+        assert not v.is_valid(change(name, 0)), f"{name} may still be set to zero"
 
     # `mirror_retention_days` is derived, not chosen: it is the longest span
-    # DC-4 §7's own due process can run, so raising either deadline without
+    # DC-4 §7's own due process can run, so raising any deadline without
     # raising it would leave an appellant unable to fetch the Blocks holding
     # the Audit Records its sanction rests on (DC-3 §6).
     defaults = _registry_table_defaults()
-    derived = defaults["appeal_window_days"] + defaults["ruling_deadline_days"]
-    assert enforced["mirror_retention_days"] == derived, (
-        f"the mirror retention floor is {enforced['mirror_retention_days']}, but "
-        f"§7's appeal window ({defaults['appeal_window_days']}) plus its ruling "
-        f"deadline ({defaults['ruling_deadline_days']}) is {derived} days")
+    derived = (defaults["appeal_window_days"] + defaults["appeal_seal_days"]
+               + defaults["ruling_deadline_days"])
+    assert enforced["mirror_retention_days"][0] == derived, (
+        f"the mirror retention floor is {enforced['mirror_retention_days'][0]}, but "
+        f"§7's appeal window ({defaults['appeal_window_days']}) plus its sealing "
+        f"deadline ({defaults['appeal_seal_days']}) plus its ruling deadline "
+        f"({defaults['ruling_deadline_days']}) is {derived} days")
     assert defaults["mirror_retention_days"] >= derived, \
         "the published mirror retention default is below its own floor"
     assert str(derived) in section9, \
         f"§9 does not state the {derived}-day span the floor is derived from"
-check("spec:parameter-floors", _parameter_floors)
+
+    # The catch-all must reach the parameters that exist, not only later ones:
+    # a wording scoped to `confirm_auditors`, `penalty_weight` "and any later
+    # parameter serving the same role" excludes every present parameter it
+    # does not happen to name.
+    assert re.search(r"MUST\s*\n?NOT set \*\*any\*\* parameter", section9), \
+        "§9's nullification rule no longer reaches every present parameter"
+    assert "any later parameter serving the same role" not in section9, \
+        "§9's nullification rule is still scoped to parameters a later revision adds"
+check("spec:parameter-bounds", _parameter_bounds)
+
+def _parameter_change_integer():
+    """`parameter_change.value` is the one field that rewrites a constant.
+
+    DC-4 §6 states that every input to reputation is an integer and §10 that
+    "there is no conforming path that uses `double`"; DC-4 §4 says the same of
+    the sampling test. Both claims are about the constants as much as the
+    variables, and this field is the only way a constant is ever rewritten — so
+    a `number` here is the one hole through which a rational reaches §6.2's
+    denominator (`penalty_weight`), §4's clamp (`sampling_slope`) or §5's
+    thresholds. Every default §9 publishes is already an integer in its own
+    unit, so nothing conforming is lost by typing it.
+    """
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    branch = next(b for b in schema["allOf"]
+                  if b["if"]["properties"]["update"]["properties"]["action"].get("const")
+                  == "parameter_change")
+    details = branch["then"]["properties"]["update"]["properties"]["details"]
+    assert details["properties"]["value"]["type"] == "integer", \
+        "parameter_change.value is not typed integer"
+
+    # No other numeric anywhere in the suite may be looser: an `integer` field
+    # that a later edit relaxes to `number` would reopen the same hole under a
+    # different name, so the whole schema tree is swept rather than this field.
+    loose = []
+    for path in sorted((ROOT / "schemas").glob("*.schema.json")):
+        def walk(node, where):
+            if isinstance(node, dict):
+                if node.get("type") == "number":
+                    loose.append(f"{path.name}: {where}")
+                for k, sub in node.items():
+                    walk(sub, f"{where}/{k}")
+            elif isinstance(node, list):
+                for i, sub in enumerate(node):
+                    walk(sub, f"{where}[{i}]")
+        walk(json.loads(path.read_text()), "")
+    assert not loose, \
+        "numeric fields typed `number` rather than `integer`:\n  " + "\n  ".join(loose)
+
+    # Mutation proof: the rationals that validated before this field was typed
+    # must each be rejected now, and the integer next to each must be accepted,
+    # so the check cannot pass by rejecting everything.
+    v = Draft202012Validator(schema)
+    sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
+    def change(parameter, value):
+        return {"update": {"dc_version": "1.0.0", "action": "parameter_change",
+                           "subject": "log.example.org",
+                           "details": {"parameter": parameter, "value": value},
+                           "effective_at": "2026-08-12T16:00:00Z"},
+                "sig": sig}
+    for parameter, rational, whole in (("penalty_weight", 1.5, 2),
+                                       ("c_cap", 2.5, 3),
+                                       ("provisional_cap_u", 100000.5, 100000),
+                                       ("sampling_slope", 0.5, 1),
+                                       ("similarity_consistent", 600000.25, 600000),
+                                       ("age_norm_days", 730.5, 730)):
+        assert not v.is_valid(change(parameter, rational)), \
+            f"a parameter_change setting {parameter} to the rational {rational} validates"
+        assert v.is_valid(change(parameter, whole)), \
+            f"a parameter_change setting {parameter} to the integer {whole} is rejected"
+    # JSON has one number type, so a whole-valued float is the same value as
+    # the integer beside it; the guard must not turn on the Python literal.
+    assert v.is_valid(change("penalty_weight", 5.0)), \
+        "5.0 and 5 are one JSON value, and the schema must not distinguish them"
+
+    # DC-4 §9 must say so, or an implementer reading prose alone sees a number.
+    section9 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text() \
+        .split("## 9. Parameter Registry")[1]
+    assert "**Every value the registry carries is an integer**" in section9, \
+        "DC-4 §9 does not state that every registry value is an integer"
+    assert "`value` (a number" not in section9, \
+        "DC-4 §9.1 still describes `value` as a number"
+check("schema:parameter-change-integer", _parameter_change_integer)
 
 def _dc4_payload_withdrawal():
     """A withdrawal is only distinguishable from censorship if it is typed.
@@ -1575,6 +1718,170 @@ def _dc4_sealed_at_precision():
     assert "whole-second precision" in dc3, "DC-3 §3.1 does not state the constraint"
 check("schema:dc4-sealed-at-precision", _dc4_sealed_at_precision)
 
+# DC-4 §3: every window and every admission test in the suite reads a Block
+# `sealed_at`, and every timestamp compared against one is written in that
+# field's own whole-second-plus-literal-Z form. That is a claim about every
+# `date-time` in every schema, so the guard below enumerates them all rather
+# than any single field.
+#
+# Each entry is either ANCHORED — the value takes part in a comparison against
+# a Block `sealed_at`, so it MUST carry the pattern — or a stated reason why it
+# does not. Declaring a field unanchored is the deliberate act of asserting
+# that nothing recomputable is decided by comparing it to the Log's own clock.
+ANCHORED = "anchored to a Block `sealed_at`"
+SEALED_AT_PATTERN = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
+
+TIMESTAMP_FIELDS = {
+    ("block.schema.json", "properties/header/properties/sealed_at"): ANCHORED,
+    ("checkpoint.schema.json", "properties/checkpoint/properties/sealed_at"): ANCHORED,
+    ("feed.schema.json", "properties/feed/properties/generated_at"): ANCHORED,
+    ("audit-record.schema.json", "properties/record/properties/fetched_at"): ANCHORED,
+    ("registry-update.schema.json", "properties/update/properties/effective_at"): ANCHORED,
+    ("registry-update.schema.json",
+     "allOf[3]/then/properties/update/properties/details/properties/appeal_deadline"): ANCHORED,
+    ("delta.schema.json", "properties/delta/properties/observed_at"):
+        "Publisher-supplied and never compared to a Block: DC-4 §6.1 excludes it from every "
+        "derived quantity, and its only comparisons are to the `observed_at` of the Delta named "
+        "by `prev` and to the validator's own clock under DC-1 §3.4's 10-minute skew allowance",
+    ("publisher.schema.json", "properties/publisher/properties/keys/items/properties/valid_from"):
+        "compared only to a Delta's own `observed_at` (DC-1 §5.1), never to a Block",
+    ("publisher.schema.json",
+     "properties/publisher/properties/recovery_keys/items/properties/valid_from"):
+        "compared only to a Delta's own `observed_at` (DC-1 §5.1), never to a Block",
+    ("log-anchor.schema.json", "properties/anchor/properties/created_at"):
+        "descriptive: the Anchor is authenticated by its own signature and its out-of-band "
+        "fingerprint (DC-3 §3.4), and nothing compares this value to anything",
+    ("snapshot-index.schema.json", "properties/index/properties/updated_at"):
+        "descriptive: when the Aggregator last rewrote a mutable index (DC-3 §6); a Snapshot is "
+        "bound to the chain by `log_position` and `anchor_block_hash`, never by this",
+    ("status.schema.json", "properties/last_pull_at"):
+        "the Publisher's debugging surface (DC-2 §7.1), not a signed Envelope and not an "
+        "artifact any party verifies",
+    ("status.schema.json", "properties/rejections/items/properties/at"):
+        "the same unsigned debugging surface (DC-2 §7.1): when the Aggregator recorded a typed "
+        "rejection, reported to the Publisher and compared to nothing",
+}
+
+def _walk_timestamps(node, schema_name, found, key=None, root=None,
+                     seen=frozenset(), path=""):
+    """Every `format: date-time` leaf in a schema, by the JSON path reaching it."""
+    if root is None:
+        root = node
+    if not isinstance(node, dict):
+        return found
+    node = _resolve(node, root, seen)
+    if not isinstance(node, dict):
+        return found
+    if node.get("$ref"):
+        seen = seen | {node["$ref"]}
+    if node.get("format") == "date-time":
+        found.append((schema_name, path, node.get("pattern")))
+
+    def step(sub, sub_key, seg):
+        _walk_timestamps(sub, schema_name, found, sub_key, root, seen,
+                         f"{path}/{seg}" if path else seg)
+
+    for kw in ("properties", "patternProperties", "$defs", "dependentSchemas"):
+        for name, sub in node.get(kw, {}).items():
+            step(sub, name, f"{kw}/{name}")
+    for kw in ("prefixItems", "items", "allOf", "anyOf", "oneOf"):
+        if isinstance(node.get(kw), list):
+            for i, sub in enumerate(node[kw]):
+                if isinstance(sub, dict):
+                    step(sub, key, f"{kw}[{i}]")
+    for kw in ("items", "then", "else", "not", "contains", "if",
+               "additionalProperties", "propertyNames", "unevaluatedProperties",
+               "unevaluatedItems"):
+        if isinstance(node.get(kw), dict):
+            step(node[kw], key, kw)
+    return found
+
+def _timestamp_anchoring():
+    """No window in the suite runs off a timestamp its writer chooses freely.
+
+    DC-4 §3 states that every window and admission test reads a Block
+    `sealed_at`. A `date-time` field that takes part in such a comparison and
+    is not constrained to that field's own form reopens, one field at a time,
+    exactly what block.schema.json's pattern closed: an Aggregator writing
+    `effective_at` a month in the past closed an appeal window before the
+    notice existed, and every recomputing party agreed. So this enumerates
+    every `date-time` in every schema, in both directions, and requires each
+    to be declared either anchored — and then patterned — or unanchored with
+    the reason it is.
+    """
+    found, present = [], set()
+    schemas = sorted((ROOT / "schemas").glob("*.schema.json"))
+    assert len(schemas) >= 9, f"only {len(schemas)} schemas enumerated; the sweep is not suite-wide"
+    for path in schemas:
+        _walk_timestamps(json.loads(path.read_text()), path.name, found)
+    undeclared = []
+    for schema_name, spath, pattern in found:
+        present.add((schema_name, spath))
+        declared = TIMESTAMP_FIELDS.get((schema_name, spath))
+        if declared is None:
+            undeclared.append(f"{schema_name}: {spath}")
+            continue
+        if declared is ANCHORED:
+            assert pattern == SEALED_AT_PATTERN, (
+                f"{schema_name}: {spath} is compared against a Block `sealed_at` but carries "
+                f"pattern {pattern!r}, not the whole-second-plus-Z form that field carries")
+        else:
+            assert pattern is None, (
+                f"{schema_name}: {spath} is declared unanchored yet constrained; declare it "
+                "anchored or drop the pattern")
+            assert len(declared) > 40, \
+                f"{schema_name}: {spath} is declared unanchored with no stated reason"
+    assert not undeclared, (
+        "date-time fields declared neither anchored to a Block nor unanchored:\n  "
+        + "\n  ".join(undeclared))
+    stale = sorted(set(TIMESTAMP_FIELDS) - present)
+    assert not stale, ("declarations for date-time fields that do not exist:\n  "
+                       + "\n  ".join(f"{f}: {p}" for f, p in stale))
+    anchored = {k for k, v in TIMESTAMP_FIELDS.items() if v is ANCHORED}
+    assert len(anchored) >= 6, \
+        f"only {len(anchored)} anchored timestamps; the class is wider than that"
+
+    # Mutation proof, on the two fields the appeal and grace-period windows read:
+    # the pattern must reject exactly the forms RFC 3339 permits and DC-3 §3.1
+    # does not, and must still accept what the suite ships.
+    v = Draft202012Validator(
+        json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text()))
+    import copy
+    example = json.loads((ROOT / "examples" / "registry-update.json").read_text())
+    assert v.is_valid(example), "the shipped Registry Update no longer validates"
+    for bad in ("2026-08-02T12:00:00.500Z", "2026-08-02T12:00:00+00:00",
+                "2026-08-02T12:00:00", "2026-08-02t12:00:00z"):
+        candidate = copy.deepcopy(example)
+        candidate["update"]["effective_at"] = bad
+        assert not v.is_valid(candidate), \
+            f"registry-update.schema.json accepts non-exact effective_at {bad!r}"
+    notice = {"update": {"dc_version": "1.0.0", "action": "notice",
+                         "subject": "example.com",
+                         "details": {"kind": "sanction", "reason": "see evidence",
+                                     "appeal_deadline": "2026-08-16T12:00:00Z"},
+                         "evidence": ["sha256:" + "0" * 64],
+                         "effective_at": "2026-08-02T12:00:00Z"},
+              "sig": example["sig"]}
+    assert v.is_valid(notice), "a well-formed sanction notice does not validate"
+    for bad in ("2026-08-16T12:00:00.500Z", "2026-08-16T12:00:00+00:00"):
+        candidate = copy.deepcopy(notice)
+        candidate["update"]["details"]["appeal_deadline"] = bad
+        assert not v.is_valid(candidate), \
+            f"registry-update.schema.json accepts non-exact appeal_deadline {bad!r}"
+
+    # And the documents must say which value a window reads, or an implementer
+    # reading prose alone still runs the appeal window off `effective_at`.
+    dc4 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section7 = dc4.split("## 7. Sanctions")[1].split("## 8.")[0]
+    assert re.search(
+        r"appeal window is `appeal_window_days` \(14\) from the `sealed_at` of\s*\n"
+        r"\s*the Block sealing the `notice`, never from its `effective_at`", section7), \
+        "DC-4 §7 no longer runs the appeal window from the notice's Block `sealed_at`"
+    dc1 = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
+    assert "opens at the `sealed_at` of the Block" in dc1, \
+        "DC-1 §5.2 no longer anchors the recovery window to the Declaration's own Entry"
+check("schema:timestamp-anchoring", _timestamp_anchoring)
+
 def _dc4_reputation_figures():
     """DC-4 §6 and Appendix B must quote the vector, not remembered figures."""
     r = json.loads((DC4 / "reputation.json").read_text())
@@ -1811,6 +2118,155 @@ def _dc4_severity_bands():
     assert severity(50_000) == 2 and severity(49_999) == 3, \
         "the level 2 / level 3 boundary is not at sim = 50 000"
 check("spec:dc4-severity-bands", _dc4_severity_bands)
+
+def _withdrawal_binds_every_serving_path():
+    """A withdrawal reaches every path the Payload is served from, or none.
+
+    The salt is published in exactly one kind of file, and three parties serve
+    it: the Aggregator, every Mirror, and the Publisher's own well-known path
+    (DC-2 §3.1, DC-3 §6.1). "After withdrawal the Log itself stops helping"
+    (DC-3 §11) and "the salt is destroyed and that Record's commitments can no
+    longer be checked by anyone" (DC-4 §5) are false at one fetch if any one of
+    the three keeps serving — and DC-2 separately obliges a Publisher to keep
+    its anchor Payload retrievable, so leaving it unbound was not an omission
+    but a conflict.
+    """
+    dc2 = (ROOT / "specs" / "DC-2-site-publication.md").read_text()
+    dc3 = (ROOT / "specs" / "DC-3-commons-log-distribution.md").read_text()
+    dc4 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    withdrawal = dc3.split("### 6.2. Withdrawal")[1].split("## 7.")[0]
+    stop = re.search(r"^- the Aggregator[^\n]*(?:\n(?!- ).*)*", withdrawal, re.M)
+    assert stop, "DC-3 §6.2 no longer opens its obligations with the stop-serving rule"
+    # The *obligation* must name all three, not the paragraph explaining it: a
+    # rule that binds two parties and then discusses the third at length reads
+    # as covering it while binding nothing.
+    clause = re.split(r"\.\s", stop.group(0))[0]
+    assert "MUST stop" in clause, \
+        "DC-3 §6.2's first obligation is no longer the stop-serving rule"
+    for party in ("Aggregator", "Mirror", "Publisher"):
+        assert party in clause, \
+            f"DC-3 §6.2's stop-serving obligation does not bind the {party}"
+    assert "every party holding the Payload for protocol purposes MUST destroy it" in withdrawal, \
+        "DC-3 §6.2 no longer requires holders to destroy the Payload and its salt"
+
+    # The conflicting duty must be reconciled where it is stated, not only
+    # overridden from another document.
+    retention = dc2.split("**Payload retention.**")[1].split("### 3.2.")[0]
+    assert "payload_withdrawal" in retention and "MUST stop serving" in retention, \
+        "DC-2 §3.1's retention duty does not say that a withdrawal ends it"
+    checklist = dc2.split("## 10. Conformance Checklist")[1].split("**Aggregator")[0]
+    assert "payload_withdrawal" in checklist, \
+        "DC-2's Publisher checklist has no row for stopping service on a withdrawal"
+    assert "appeals/<notice-id>.json" in checklist, \
+        "DC-2's Publisher checklist has no row for publishing an appeal"
+
+    # And the claims that rest on it must still be the claims being made, or
+    # this check is guarding a guarantee the suite no longer states.
+    assert "the Log itself\nstops helping" in dc3, \
+        "DC-3 §11 no longer claims the Log stops helping after a withdrawal"
+    assert "can no longer be checked by anyone" in dc4, \
+        "DC-4 §5 no longer claims a withdrawn Record's commitments are uncheckable"
+check("spec:withdrawal-serving-paths", _withdrawal_binds_every_serving_path)
+
+def _rule_ownership():
+    """A rule restated in a second document must be the rule, not an older one.
+
+    DC-4 §5 owns the unauditable-URL rule: two `robots_excluded` Records from
+    mutually independent Auditors inside the horizon, cleared only by an
+    Auditor independent of both, ageing out when they leave the window. The
+    pre-Task shape — "no successful audit by an independent Auditor since,
+    until one succeeds" — restores exactly the single-permitted-Auditor attack
+    the two-Auditor requirement exists to close, so a restatement carrying it
+    is not a summary but a second, weaker rule.
+    """
+    specs = {p.name: p.read_text() for p in sorted((ROOT / "specs").glob("*.md"))}
+    stale = re.compile(r"by an independent Auditor since|"
+                       r"until an audit succeeds\b|"
+                       r"excluded from\s*\n?\s*materialization until one succeeds")
+    hits = [f"{name}: {m.group(0)!r}"
+            for name, text in specs.items() for m in stale.finditer(text)]
+    assert not hits, ("a document restates the unauditable rule in its "
+                      "single-Auditor form:\n  " + "\n  ".join(hits))
+    # Every site that states the rule states both load-bearing halves.
+    for name, marker in (("DC-2-site-publication.md", "two Auditors independent of one another"),
+                         ("DC-3-commons-log-distribution.md", "two independent Auditors"),
+                         ("DC-4-audit-reputation-governance.md", "signed by Auditors independent of one another")):
+        assert marker in specs[name], \
+            f"{name} no longer states that two independent Auditors are needed to exclude a URL"
+        assert "independent of both" in specs[name], \
+            f"{name} no longer states that the clearing audit must come from a third Auditor"
+    # DC-2 defers rather than legislating: it owns the robots.txt boundary, not
+    # the materialization consequence.
+    dc2_section5 = specs["DC-2-site-publication.md"].split("## 5. Aggregator Pull Behavior")[1] \
+        .split("## 6.")[0]
+    assert "DC-4 §5 owns that rule" in dc2_section5, \
+        "DC-2 §5 no longer defers to the document that owns the rule it summarizes"
+check("spec:rule-ownership", _rule_ownership)
+
+def _derived_not_discretionary():
+    """Consequences the suite derives from the Log may not wait on an Entry.
+
+    Three mechanisms were gated on a discretionary act by the one party the
+    design refuses to trust: an appeal nobody was obliged to seal, a recovery
+    window that opened only on a `notice`, and a coverage failure whose
+    consequence was an `auditor_remove` the Aggregator files. In each the
+    Aggregator's entry must now record the consequence rather than cause it,
+    and the omission must itself have a derived effect.
+    """
+    dc1 = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
+    dc4 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section4 = dc4.split("## 4. Audit Sampling")[1].split("## 5.")[0]
+    section7 = dc4.split("## 7. Sanctions")[1].split("## 8.")[0]
+    section10 = dc4.split("## 10. Security Considerations")[1].split("## 11.")[0]
+
+    # I1: the appeal has a path, a deadline, and a consequence for the omission.
+    assert "/.well-known/deltacommons/appeals/" in section7, \
+        "DC-4 §7 gives an appeal no in-band publication path"
+    for fragment in ("`appeal_seal_days`",
+                     "is void on recomputation from T",
+                     '`"unappealed"`'):
+        assert fragment in section7, f"DC-4 §7 no longer states {fragment}"
+    assert "appeal_seal_days" in json.loads(
+        (ROOT / "schemas" / "registry-update.schema.json").read_text())["allOf"][5][
+            "then"]["properties"]["update"]["properties"]["details"][
+            "properties"]["parameter"]["enum"], \
+        "the parameter enum does not carry appeal_seal_days"
+
+    # …and §10 no longer defends appeals with an argument that is false.
+    assert "Omission is not equivocation" in section10, \
+        "DC-4 §10 no longer corrects the claim that suppression is equivocation"
+    assert not re.search(r"suppress a\s*\n?\s*sanction or an appeal: withholding log entries",
+                         section10), \
+        "DC-4 §10 still answers appeal suppression with the equivocation argument"
+
+    # I3: the recovery window opens on the Declaration's own Entry.
+    recovery = dc1.split("**Compromise recovery.**")[1].split("**Historical verification.**")[0]
+    assert "opens at the `sealed_at` of the Block" in recovery, \
+        "DC-1 §5.2's recovery window is not anchored to the recovery Declaration's Entry"
+    assert "does not open it" in recovery, \
+        "DC-1 §5.2 does not say the `notice` describes the window rather than opening it"
+    assert not re.search(r"MUST record a `notice`[^.]*opening a recovery window", recovery), \
+        "DC-1 §5.2 still has the `notice` open the recovery window"
+
+    # I4: coverage failure withdraws the Records itself.
+    assert "in coverage failure" in section4, \
+        "DC-4 §4 does not define the derived coverage-failure state"
+    assert "records\nthe consequence and does not create it" in section4, \
+        "DC-4 §4 does not say `auditor_remove` records the consequence rather than creating it"
+    section3 = dc4.split("## 3. Auditors")[1].split("## 4.")[0]
+    assert "in coverage failure" in section3, \
+        "DC-4 §3's rejection list does not reach an Auditor in coverage failure"
+
+    # I5: the personal-data rule is general, not a list of three field names.
+    section91 = dc4.split("### 9.1. Registry Update")[1].split("## 10.")[0]
+    assert "no `evidence` element, may\ncarry personal data" in section91, \
+        "DC-4 §9.1's personal-data rule is not written over the position"
+    assert not re.search(r"The same applies to the free-text fields `legal_basis`, `reason` and",
+                         section91), \
+        "DC-4 §9.1 still enumerates the fields the personal-data rule covers"
+    assert "`appeal`'s and a `sanction_lift`'s `details` are the Publisher's" in section91, \
+        "DC-4 §9.1 does not reach the Publisher-written details the rule was missing"
+check("spec:derived-not-discretionary", _derived_not_discretionary)
 
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""
