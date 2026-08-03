@@ -397,12 +397,12 @@ already sealed (DC-4 §6.1), which are data in the Log and are unaffected;
 the captures exist so that those verdicts can be checked while the content
 is served. That covers confirmation always: a Confirmed Inconsistency is
 fixed within 72 hours (DC-4 §5). It does not reliably cover the sanction
-ladder built on top of it. Level 3's 90-day span plus the 14-day appeal
-window and 30-day ruling deadline runs to at least day 134, level 4's
-180-day branch to at least 224, and both are floors rather than caps —
-§7 sets no deadline for sealing a `notice`, and level 4's second branch
-has no span bound at all. DC-4 §5 states what an appellant can and cannot
-re-verify once a Reference Payload has lapsed.
+ladder built on top of it, whose spans bound how far apart Confirmed
+Inconsistencies may lie rather than how old any of them is when a sanction
+is filed — and §7 sets no deadline for filing one. A level-4 appeal can
+therefore be heard on a Record whose Reference Payload lapsed months
+earlier; DC-4 §5 works the case through and states what an appellant can
+and cannot re-verify once that has happened.
 
 What withdrawal does not touch is the record. The Delta stays sealed, its
 commitment stays in the Log, its inclusion proofs keep verifying, and
