@@ -395,12 +395,14 @@ Destroying the captures costs no accountability. A Confirmed
 Inconsistency's weight comes from the `verdict` and `similarity` values
 already sealed (DC-4 §6.1), which are data in the Log and are unaffected;
 the captures exist so that those verdicts can be checked while the content
-is served. That covers confirmation always — a Confirmed Inconsistency is
-fixed within 72 hours (DC-4 §5) — and it covers the ladder up to level 3,
-whose 90-day span plus the 14-day appeal window and 30-day ruling deadline
-closes by day 134. It does not cover level 4, which reaches back 180 days
-and can therefore run past the availability window; DC-4 §5 states what an
-appellant can and cannot re-verify there.
+is served. That covers confirmation always: a Confirmed Inconsistency is
+fixed within 72 hours (DC-4 §5). It does not reliably cover the sanction
+ladder built on top of it. Level 3's 90-day span plus the 14-day appeal
+window and 30-day ruling deadline runs to at least day 134, level 4's
+180-day branch to at least 224, and both are floors rather than caps —
+§7 sets no deadline for sealing a `notice`, and level 4's second branch
+has no span bound at all. DC-4 §5 states what an appellant can and cannot
+re-verify once a Reference Payload has lapsed.
 
 What withdrawal does not touch is the record. The Delta stays sealed, its
 commitment stays in the Log, its inclusion proofs keep verifying, and
