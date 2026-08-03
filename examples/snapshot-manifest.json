@@ -19,8 +19,20 @@
         "tier": 0
       },
       {
+        "path": "tier0/embeddings.parquet",
+        "sha256": "4f0bde6cdbac63c3ac33b5315238b9c80de578be57c74a16f9eca8e8fd9a1a01",
+        "bytes": 22,
+        "tier": 0
+      },
+      {
         "path": "tier1/extracts.parquet",
         "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+        "bytes": 17,
+        "tier": 1
+      },
+      {
+        "path": "tier1/links.parquet",
+        "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
         "bytes": 17,
         "tier": 1
       }
@@ -29,6 +41,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "kG7aIK6UW-MqcTJmxPPrYGgtnySeImOpcfWPkrJRsQHFTU26evdIp7ZoF9Y-hmDETccsK4hbYJwc7DT8LpIwAg"
+    "value": "GOaoJZSTmRrTxc3AsN0hx5lGgXJyzrccvHMrZBW6JehNZczZIe8f0CvAJJpimksUg4SwbPRXa8mAlF47UVNqBw"
   }
 }
