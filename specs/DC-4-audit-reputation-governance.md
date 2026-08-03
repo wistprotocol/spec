@@ -300,9 +300,13 @@ records that there was no Reference Payload, and therefore no salt.
 `schemas/audit-record.schema.json` enforces both directions.
 
 `similarity` is a comparison against the Reference Payload's extract, so
-it is REQUIRED for `new`, `update` and `attest` audits and MUST be omitted
-for a `delete` audit, whose finding is that the URL no longer serves that
-content rather than a degree of agreement with it. The verdict table's
+among the Records that carry the three commitments at all — those whose
+verdict is `consistent`, `inconsistent` or `dynamic_variance` — it is
+REQUIRED for `new`, `update` and `attest` audits and MUST be omitted for a
+`delete` audit, whose finding is that the URL no longer serves that
+content rather than a degree of agreement with it. An `unreachable` or
+`not_auditable` Record omits it whatever the audited Delta's change type,
+as the paragraph above requires. The verdict table's
 thresholds govern the first three accordingly; a `delete` audit's verdict
 is fixed by the separate rule below and rests on no threshold. The schema
 cannot enforce this, because a Record names a Delta rather than its change
@@ -330,15 +334,26 @@ appeals is decided by §7's ladder spans, and for one rung the answer is:
 not all of it. Levels 1 and 2 open no appeal window at all — they follow
 automatically from evidence any party can recompute — so nothing there
 depends on a capture surviving. Level 3 rests on Confirmed Inconsistencies
-within a 90-day span, so its oldest confirming Record is at most 90 days
-old when the `notice` is sealed; add the 14-day appeal window and the
-30-day ruling deadline and the process closes by day 134, inside the
-180-day availability window (DC-3 §6.1). Level 4 is the rung that does not
-fit: on its 180-day branch — three severity-3 Confirmed Inconsistencies
-within 180 days — the oldest confirming Record can already be 180 days old
-at the `notice`, and 180 + 14 + 30 runs to 224 days. That Record's
-Reference Payload may therefore lawfully have lapsed, or been withdrawn,
-throughout the appeal it is being used to justify.
+within a 90-day span, so its oldest confirming Record is at least 90 days
+old by the time the criteria are met; add the 14-day appeal window and the
+30-day ruling deadline and the process runs to **at least** day 134. Level
+4's 180-day branch — three severity-3 Confirmed Inconsistencies within 180
+days — puts the same floor at 224 days, past the 180-day availability
+window (DC-3 §6.1).
+
+These are floors and not caps, and the difference matters more than the
+numbers. §7 sets no deadline for sealing a `notice` once the escalation
+criteria are met, and the appeal window runs from the notice's
+`effective_at` rather than from the confirming Record's sealing, so an
+Aggregator that files late moves the whole process later without bound.
+Level 4's second branch — a level-3 domain that accrues one further
+Confirmed Inconsistency — carries no span bound at all, because the
+level-3 state it builds on has none. Nothing in the suite therefore
+guarantees that a Reference Payload is still served when the appeal that
+rests on it is heard: it is guaranteed for confirmation, which is fixed
+within 72 hours, and for nothing beyond that. A Record's Reference Payload
+may lawfully have lapsed, or been withdrawn, throughout the appeal it is
+being used to justify.
 
 What an appellant can and cannot do in that window follows directly. For
 every confirming Record whose Reference Payload is still served, it can
@@ -421,8 +436,9 @@ the Block under audit — often long before the availability window that
 covers ordinary Payloads. Two independent parties are obliged to serve it:
 the Publisher, for as long as it attests to the URL, re-anchoring the
 chain with an `update` or a `delete` when it cannot (DC-2 §3.1); and the
-Aggregator, for as long as the Payload is the URL's current anchor and for
-one further availability window after it ceases to be (DC-3 §6.1). Either
+Aggregator, with no expiry until the first superseding content-bearing
+Delta or `delete` for that URL is sealed, and then for one further
+availability window (DC-3 §6.1). Either
 copy satisfies the audit, because the commitment makes them
 interchangeable, so a Publisher cannot render its own freshness claims
 unauditable by withholding its copy. Where the Reference Payload is
