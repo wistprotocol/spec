@@ -248,26 +248,92 @@ cannot escape an equivocation proof by removing the signing key afterward
 
 The log is distributed as static files. Transport is out of scope: any
 HTTP server, CDN, torrent, or IPFS gateway works, because every file
-except `checkpoint.json` is immutable and integrity is verified by hash,
-signature, or commitment, never by source. Payload files are immutable in
-the same sense — their bytes never change — but they are the one class of
-file that may cease to be served, under §6.2.
+except `/log/checkpoint.json` and `/snapshots/index.json` is immutable and
+integrity is verified by hash, signature, or commitment, never by source.
+Payload files are immutable in the same sense — their bytes never change —
+but they are the one class of file that may cease to be served, under §6.2.
 
 ```
-/log/checkpoint.json                    (mutable, small, signed)
+/log/anchor.json                        (immutable, signed; a copy of the §3.4 trust root)
+/log/checkpoint.json                    (mutable, small, signed; the current head — §5)
+/log/checkpoints/000000000.json         (immutable; every Checkpoint published — §5)
 /log/blocks/000000000.json.zst          (immutable; zero-padded 9-digit block number)
 /log/blocks/000000001.json.zst
 ...
 /payloads/7bee228c….json                (one per content-bearing Delta — §6.1)
+/snapshots/index.json                   (mutable, signed; the discovery entry point)
 /snapshots/2026-08-02/manifest.json     (signed; declares log position)
 /snapshots/2026-08-02/tier0/index.sqlite
 /snapshots/2026-08-02/tier0/embeddings.parquet
 /snapshots/2026-08-02/tier1/extracts.parquet
 ```
 
-Blocks are zstandard-compressed JSON. The decompressed size of a Block
-MUST NOT exceed 256 MiB (Parameter Registry); consumers MUST enforce this
-cap while decompressing (§10).
+`/log/anchor.json` is served here for convenience only. It is the Log's
+out-of-band trust root, and a Consumer MUST NOT accept the copy served at
+this path without the verification §3.4 requires; a file an operator serves
+about itself is not a trust root because of where it sits.
+
+**Block files.** A Block file is the JCS canonical bytes of the Block
+object — `header`, `entries` and `sig` — compressed with zstandard. The
+compression level is unconstrained, but the frame MUST declare its
+decompressed size (zstandard's `Frame_Content_Size`), and that size MUST
+NOT exceed the Block decompressed cap (Parameter Registry; default
+256 MiB). A Consumer MUST reject a frame declaring more than the cap
+without decompressing it, and MUST still abort decompression at the cap if
+the declared size proves to be a lie (§10): a declared size is a claim, not
+a guarantee, and the streaming limit is what makes it safe to read one.
+
+Because compression parameters are not constrained, Block *files* are not
+byte-comparable across Mirrors. Integrity is recovered on the far side of
+decompression: recompute `merkle_root` over `entries`, check `entry_count`,
+recompute the Block Hash over `JCS(header)`, and verify the signature
+against those same bytes (§3.1). §12's Mirror obligation is therefore to
+serve content that verifies, not identical octets. The one class of file
+for which the two coincide is the Snapshot tier files, whose octets a
+signed manifest hashes directly (§7): those a Mirror MUST serve unchanged,
+because nothing else authenticates them.
+
+**Discovery.** `/snapshots/index.json` (schema:
+[`schemas/snapshot-index.schema.json`](../schemas/snapshot-index.schema.json))
+is the discovery entry point: a signed, mutable index listing the Snapshots
+the Aggregator currently serves, newest `snapshot_date` first, each with its
+`log_position`, its `manifest_url`, and the `content_digest` (§7) that
+Snapshot's manifest declares. Cold start begins there (§8). The index
+carries the digest so that a Consumer can check a manifest it fetches
+against a second, independently signed statement of what that Snapshot
+contains. An Aggregator MUST remove an entry from the index when it stops
+serving that Snapshot; a withdrawal (§6.2) is the case that forces it.
+
+**Retention.** The Aggregator MUST keep every Block from genesis
+retrievable at its `/log/blocks/` path. Replay from the Log Anchor is what
+makes key validity (§3.4), reputation (DC-4 §6) and historical signature
+verification recomputable, so a Log missing a Block in the middle is a Log
+no party can verify from the Anchor at all. The Aggregator MUST likewise
+retain every Checkpoint it has published, at
+`/log/checkpoints/<block_number>.json` with the block number zero-padded to
+nine digits: `/log/checkpoint.json` names the current head and is
+overwritten, so without the archive an equivocation proof (§5) would rest
+on whoever happened to have kept the superseded copy.
+
+A Mirror that serves a Block MUST retain it for at least the Mirror
+retention floor (Parameter Registry: `mirror_retention_days`; default 90
+days), so that an evidence bundle can be assembled after the fact rather
+than only while an operator finds it convenient. §5's obligation on
+Checkpoints is stricter and this floor does not relax it: a Mirror retains
+every Checkpoint it has ever served, without expiry, because Checkpoints
+are the equivocation evidence itself and are small enough that no retention
+argument applies to them.
+
+**Sizing.** The Log has a permanent volume floor that does not depend on
+how much anyone publishes. An admitted Auditor whose VRF selects nothing in
+a Block MUST still publish a `coverage_attestation` for that Block (DC-4
+§4), so an entirely idle Log still accrues roughly one Entry per admitted
+Auditor per Block — at the default hourly cadence (§3.2), about 8 760
+Entries per Auditor per year. Permanent volume therefore scales with roster
+size multiplied by Blocks per year, before any Delta is ever sealed.
+Governance deciding how large an Auditor roster to admit and how fast to
+seal Blocks is deciding the Log's storage growth, and SHOULD treat those as
+one decision rather than two.
 
 ### 6.1. Payloads
 
@@ -456,7 +522,8 @@ A Snapshot is a derived artifact: the materialized state of the log up to
 Block N. Its `manifest.json` (schema:
 [`schemas/snapshot-manifest.schema.json`](../schemas/snapshot-manifest.schema.json))
 is signed by the Aggregator and declares `snapshot_date`, `log_position`
-(= N), the `embedding_model`, and every file with its SHA-256 and byte
+(= N), `anchor_block_hash` (the Block Hash of Block N), `content_digest`
+(below), the `embedding_model`, and every file with its SHA-256 and byte
 size.
 
 - **Tier 0** — summaries and quantized embeddings of every live record:
@@ -474,6 +541,22 @@ one model's vector space. The manifest MUST declare the model `name`,
 `version`, `dim`, and `quantization`. A Consumer using a different model
 MUST NOT mix vector spaces; it re-embeds from Tier 1 extracts instead.
 
+**The materialized state.** The materialized state is a set of records
+keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
+a `new` or `update` Delta replaces the record's content and becomes the
+record's **anchor Delta** (§6.1); an `attest` Delta updates the record's
+freshness only and leaves the anchor where it was; a `delete` removes the
+record. A Delta that forks an already-materialized chain (DC-1 §3.5) is
+ignored. Sanction levels apply as DC-4 §7 derives them — from the evidence,
+not from whether an Aggregator sealed a `sanction`: level 2 marks every
+record of that domain reduced-weight; level 3 stops that domain's later
+Deltas from being materialized at all, from the height it takes effect;
+level 4 removes the domain's records entirely; and a `sanction_lift`, a
+successful appeal, or a lapsed ruling deadline (DC-4 §7) reverses the state
+from the height that takes effect. Deletion, withdrawal and unauditability
+are covered by the rule below. The Log retains every Entry in every case;
+materialization shapes only the present state.
+
 **Materialization rule.** A `delete` Delta (DC-1 §3.3) excludes that
 URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
 likewise excludes that Delta's content from every Snapshot produced at or
@@ -488,9 +571,9 @@ retains full history in every case — deletion, withdrawal and
 unauditability shape the materialized present, never the recorded past.
 
 All three exclusions are computed from the Log, so two parties building a
-Snapshot at the same `log_position` still produce byte-identical tiers: an
-unauditable URL is decided by that URL's Audit Records in Log order and by
-the Parameter Registry value in force, not by whether the builder's own
+Snapshot at the same `log_position` still materialize the same record set:
+an unauditable URL is decided by that URL's Audit Records in Log order and
+by the Parameter Registry value in force, not by whether the builder's own
 crawler happened to be turned away.
 
 Withdrawal reaches backward into Snapshots as well, because a Snapshot
@@ -498,7 +581,10 @@ already published carries the content in its tier files. The Aggregator
 and every Mirror MUST stop serving any Snapshot artifact containing
 withdrawn content: the Aggregator either withdraws that Snapshot from
 distribution or replaces it with one rebuilt under the exclusion rule
-above, under a fresh signed manifest, and a Mirror re-serving `/snapshots/`
+above, under a fresh signed manifest and at a `log_position` at or above
+the withdrawal's sealing height — below that height the exclusion does not
+apply and the rebuild would simply reproduce the content — and a Mirror
+re-serving `/snapshots/`
 (§6) is bound identically — a Mirror that kept serving the superseded tier
 files would leave the content in distribution no matter what the
 Aggregator did, which is the whole of what withdrawal is supposed to stop.
@@ -508,33 +594,128 @@ per-file `sha256` is a digest of a whole tier file rather than of any one
 record, so it is no handle onto an individual extract — deriving one from
 it would require already holding the file, and with it the text.
 
-Anyone can rebuild a bit-identical Tier 0/Tier 1 from the raw log, the
+Anyone can rebuild an equivalent Tier 0/Tier 1 from the raw log, the
 Payloads it references, and the manifest's declared parameters; Snapshots
 are a convenience, not an authority. Withdrawal does not cost that
 property: because the exclusion is triggered by a logged entry rather than
 by whether a given rebuilder happens to hold the file, two parties with
-different Payload collections still produce the same Snapshot. A party
-missing a Payload that was never withdrawn cannot rebuild, and MUST report
-that rather than emit a Snapshot silently missing a record.
+different Payload collections still materialize the same record set. A
+party missing a Payload that was never withdrawn cannot rebuild, and MUST
+report that rather than emit a Snapshot silently missing a record.
+
+**Verifying a rebuild.** Snapshot files are not byte-reproducible: SQLite
+and Parquet outputs vary with library version, page size, insertion order,
+and compression settings, and none of that is a property of the state being
+described. This specification therefore does not require byte equality
+between independent builds. It requires **semantic equivalence**, verified
+by the manifest's `content_digest`:
+
+```
+record(r)       = {"url": r.url, "publisher": r.publisher,
+                   "delta_id": r.delta_id, "observed_at": r.observed_at,
+                   "weight": r.weight}
+record_bytes(r) = JCS(record(r))
+content_digest  = "sha256:" + hex(SHA-256(concat(
+                      sorted(record_bytes(r) for r in records))))
+```
+
+where `records` is every live record materialized at `log_position`;
+`r.delta_id` is the record's anchor Delta (§6.1) — the last content-bearing
+Delta in its per-URL chain at that height, and therefore the Delta whose
+Payload supplied the content the tiers carry; `r.observed_at` is the
+`observed_at` of the newest Delta in that chain, which is the freshness the
+tiers carry and is what makes an `attest` visible in the digest;
+`r.weight` is `"full"` or `"reduced"` (DC-4 §7 level 2); and `sorted` is
+ascending octet order. Records are keyed by (Publisher domain, Normalized
+URL) and the tuple carries both, so the ordering is total and no two
+records can produce equal bytes. JCS objects are self-delimiting, so the
+concatenation is unambiguous; an empty live set digests the empty octet
+string.
+
+Two parties that materialize the same Log prefix MUST obtain the same
+`content_digest` regardless of their storage libraries; a mismatch — not a
+differing file hash — is what indicates divergence. Per-file `sha256`
+values remain in the manifest for transport integrity of the specific
+artifacts the Aggregator published (§6).
+
+**Every input is in the Log, and none of it is content.** The digest is a
+function of the Log prefix from genesis through `log_position` and of
+nothing else. Deletion, withdrawal, unauditability and every rung of the
+sanction ladder are decided by sealed Entries — DC-4 §7 derives each ladder
+level from the evidence rather than from an Aggregator's `sanction` — and
+the Parameter Registry values that decide them are read as of
+`log_position`. Two consequences carry the design:
+
+- **A rebuilder needs no Payload to compute it.** That is deliberate. A
+  Payload may have been withdrawn since the Snapshot was published (§6.2),
+  and a digest whose preimage included the withdrawn text could never be
+  recomputed again — the guarantee would expire exactly when it is most
+  contested. Because a withdrawal excludes the record only from Snapshots
+  at or above its sealing height, and a replacement Snapshot is built at or
+  above that height (above), every withdrawal a digest accounts for lies
+  inside the prefix the digest is computed over: no second horizon is
+  needed to say which ones those are.
+- **Agreement still pins the content.** `delta_id` is the SHA-256 of a
+  Delta's Canonical Bytes, and those carry the salted commitment to the
+  Payload (DC-1 §3.6). Two parties whose digests agree therefore hold the
+  same commitment for every record, and §6.1 forbids materializing content
+  that does not reproduce its commitment. The digest itself carries no
+  content and confirms nothing a holder of a candidate text could not
+  already confirm from the Log, since every field of the tuple is sealed
+  there in the clear; the per-record commitment, not the digest, is what
+  binds the text.
+
+**What the digest does not say.** It describes a record set, not a height.
+Two `log_position`s whose live sets are identical digest identically, which
+is correct — they are the same state. The height is carried by
+`log_position` and bound to a single chain by `anchor_block_hash`, the
+Block Hash of Block `log_position`, which §8 checks against the chain the
+Consumer verified. A Consumer that rebuilds to a height whose live set
+differs therefore sees a `content_digest` mismatch (`DC3-E04`) rather than
+silent agreement; one that rebuilds to a different height whose live set is
+the same agrees, and is right to, since the manifest's `log_position`
+already says which height was meant. A manifest from a forked chain shows
+an `anchor_block_hash` the Consumer's chain does not produce (`DC3-E02`),
+whatever its digest says. Nor does the digest speak for a
+non-conforming builder: it proves two parties materialized the same
+records, not that either verified the Payloads it indexed, which §6.1
+requires of them separately.
 
 ## 8. Consumer Synchronization
 
 **Cold start:**
 
-1. Fetch the latest Snapshot `manifest.json`; verify its signature.
-2. Download the listed files; verify each SHA-256 and byte size.
-3. Fetch `/log/checkpoint.json`; verify signature.
-4. Download Blocks `log_position + 1 .. checkpoint.block_number`.
-5. Verify each Block: chain (`prev_block_hash`), signature, `merkle_root`
+1. Fetch `/snapshots/index.json`; verify its signature; choose an entry
+   (normally the newest).
+2. Fetch that entry's `manifest_url`; verify its signature; verify that its
+   `snapshot_date`, `log_position` and `content_digest` are the ones the
+   index entry named (`DC3-E04` on disagreement — the two are independently
+   signed statements about the same Snapshot).
+3. Download the listed files; verify each SHA-256 and byte size.
+4. Fetch `/log/checkpoint.json`; verify signature.
+5. Download Blocks `log_position + 1 .. checkpoint.block_number`.
+6. Verify each Block: chain (`prev_block_hash`), signature, `merkle_root`
    recomputation, `entry_count`.
-6. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
+7. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
    and that each Block's `prev_block_hash` matches the Block Hash of its
    predecessor, walking backward from the head to `log_position`.
-7. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
+8. Verify that the manifest's `anchor_block_hash` is the Block Hash of
+   Block `log_position` on that same chain: against the `prev_block_hash`
+   of Block `log_position + 1` when one was downloaded, or against the
+   Checkpoint's `block_hash` when the Snapshot is already at the head. A
+   mismatch is chain divergence (`DC3-E02`), not a corrupt file: it means
+   the Snapshot describes a different chain from the one just verified.
+9. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
    in those Blocks whose Payload has not been withdrawn (§6.2); verify
    each against its Delta's commitment and `bytes` (§6.1).
-8. Apply Entries in order to the local index, materializing content only
-   from Payloads that verified.
+10. Apply Entries in order to the local index, materializing content only
+    from Payloads that verified.
+
+A Consumer that also replays the Log from genesis MAY recompute the
+Snapshot's `content_digest` (§7) and compare it with the manifest's. Doing
+so needs no Payload and no tier file, so it is available to any party
+holding the Blocks — including one checking an Aggregator it does not
+otherwise sync from.
 
 **Continuous operation:**
 
@@ -563,9 +744,9 @@ economic.
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
 | DC3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
-| DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, or head Block Hash does not match the Checkpoint's `block_hash`). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
+| DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
 | DC3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — DC-1 §3.6, `DC1-E11`). Re-download, from another Mirror if needed, before concluding misbehavior. |
-| DC3-E04 | Manifest file hash or size mismatch. Reject the entire Snapshot. |
+| DC3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest` (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | DC3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (DC-2 §3.1), and keep applying the Log. A Consumer that sees `DC3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
 ## 10. Security Considerations
@@ -651,16 +832,34 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       serving it, together with any Snapshot artifact still containing its
       content (§6.2, §7)
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
-      embedding model declaration and the materialization rule
-- [ ] Never emits a Block exceeding the decompressed cap (§6)
+      embedding model declaration, the materialization rule, the
+      `content_digest`, and an `anchor_block_hash` equal to the Block Hash
+      of Block `log_position`
+- [ ] Publishes `/snapshots/index.json`, signed, newest first, agreeing
+      with each manifest it points to, and removes an entry when it stops
+      serving that Snapshot (§6)
+- [ ] Retains every Block from genesis and every Checkpoint it has
+      published, the latter at `/log/checkpoints/<block_number>.json` (§6)
+- [ ] Rebuilds a Snapshot superseded by a withdrawal at a `log_position`
+      at or above the withdrawal's height, or withdraws it (§6.2, §7)
+- [ ] Never emits a Block exceeding the decompressed cap, and declares each
+      Block frame's decompressed size (§6)
 - [ ] Publishes a Log Anchor and admits all later keys in-band (§3.4)
 - [ ] Seals a `publisher_declaration` Entry for a domain before, or in
       the same Block as, the first Delta it authorizes (§3.3)
 
 **Mirror:**
 
-- [ ] Serves files byte-identical to origin (verifiable by consumers)
-- [ ] Retains all Checkpoints ever served (§5)
+- [ ] Serves content that verifies: a Block file that decompresses to a
+      Block reproducing its Block Hash, `merkle_root` and `entry_count`,
+      and a signed object whose canonical bytes reproduce its signature —
+      not necessarily the origin's octets, which compression settings make
+      Mirror-specific (§6)
+- [ ] Serves Snapshot tier files byte-identical to origin, since only the
+      manifest's per-file `sha256` authenticates them (§6, §7)
+- [ ] Retains every Block it serves for at least `mirror_retention_days`
+      (§6)
+- [ ] Retains all Checkpoints ever served, without expiry (§5, §6)
 - [ ] Serves the Payloads of every Block it serves for at least the
       availability window, and stops serving one only after a
       `payload_withdrawal` is sealed for it (§6.1, §6.2)
@@ -679,7 +878,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Binds the head Block to the Checkpoint and walks the chain backward
       from it (§5, §8)
 - [ ] Rejects Checkpoints older than the highest already verified (§5)
-- [ ] Verifies manifest hashes/sizes before using a Snapshot (§8)
+- [ ] Verifies manifest hashes/sizes before using a Snapshot, checks the
+      manifest against the `/snapshots/index.json` entry that named it, and
+      binds `anchor_block_hash` to the chain it verified (§8)
 - [ ] Verifies every Payload against its Delta's commitment and `bytes`
       before materializing its content, and never lets a missing Payload
       stop chain verification (§6.1, §8)
@@ -757,7 +958,20 @@ The corresponding Checkpoint is
 manifest ([`examples/snapshot-manifest.json`](../examples/snapshot-manifest.json))
 uses synthetic file hashes — the SHA-256 of the literal strings
 `tier0-placeholder` / `tier1-placeholder` — so the vector is verifiable
-without shipping binary artifacts.
+without shipping binary artifacts. Its `anchor_block_hash` is the Block
+Hash above, Block 0 being its `log_position`.
+
+Its `content_digest` is computed over the two records in
+[`vectors/dc3/snapshot-records.json`](../vectors/dc3/snapshot-records.json),
+which publishes the record tuples themselves so that §7's formula is
+reproducible from the file: one full-weight record for the Delta above, and
+one reduced-weight record for a domain under a DC-4 §7 level-2 mark, so
+that both `weight` values and the ordering rule are exercised. That second
+domain's Delta is not an Entry of the example Block; the vector demonstrates
+the record encoding, not a materialization of Block 0.
+[`examples/snapshot-index.json`](../examples/snapshot-index.json) is the
+corresponding discovery index, carrying the same `snapshot_date`,
+`log_position` and `content_digest` the manifest declares.
 
 ## References
 
