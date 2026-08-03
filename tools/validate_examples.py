@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
-import base64, calendar, collections, hashlib, hmac, json, pathlib, re, sys, time
+import base64, calendar, collections, copy, hashlib, hmac, json, pathlib, re, sys, time
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -144,7 +144,19 @@ def _url_bound_twin():
 check("negative:url-octet-bound", _url_bound_twin)
 
 def _registry_table_defaults():
-    """DC-4 §9's Default column, keyed by identifier, as leading integers."""
+    """DC-4 §9's Default column, keyed by identifier, as leading integers.
+
+    A row's Identifier cell may name one identifier or a "`a` / `b`" pair
+    sharing one Default cell (e.g. `similarity_consistent` /
+    `similarity_variance_floor`, or `link_agreement_consistent` /
+    `link_variance_floor`): the Default cell then reads with the same
+    "/"-separated shape, one leading integer per identifier, in the same
+    order. A row is skipped rather than guessed at when that shape does
+    not hold — the Escalation row names three identifiers
+    (`escalation_l2/_l3/_l4`) over a Default cell of compound criteria,
+    each part a description rather than a value, and no leading integer
+    sliced out of prose is what `details.value` would mean for it.
+    """
     spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
     section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
     out = {}
@@ -155,9 +167,22 @@ def _registry_table_defaults():
         if len(cells) != 4 or cells[1] == "Identifier":
             continue
         names = re.findall(r"`([a-z0-9_]+)`", cells[1])
-        m = re.match(r"([\d ]+)", cells[2])
-        if len(names) == 1 and m:
-            out[names[0]] = int(m.group(1).replace(" ", ""))
+        if len(names) == 1:
+            m = re.match(r"([\d ]+)", cells[2])
+            if m:
+                out[names[0]] = int(m.group(1).replace(" ", ""))
+        elif len(names) == 2:
+            # A "reads as A / B" parenthetical aside may itself contain a
+            # "/" (e.g. "600 000 / 300 000 micro-units (reads as 0.60 /
+            # 0.30)"); truncating at the first "(" keeps the split to the
+            # two primary values the identifiers actually name.
+            primary = cells[2].split("(", 1)[0]
+            parts = primary.split("/")
+            if len(parts) == 2:
+                matches = [re.match(r"\s*([\d ]+)", p) for p in parts]
+                if all(matches):
+                    for name, m in zip(names, matches):
+                        out[name] = int(m.group(1).replace(" ", ""))
     return out
 
 def _assert_links_valid(payload):
@@ -2211,20 +2236,41 @@ def _dc4_reputation_figures():
         "DC-4 does not show what the worked p_1e7 reads as"
 check("spec:dc4-reputation-figures", _dc4_reputation_figures)
 
-def _dc4_similarity_thresholds():
-    """The three §5 verdict bands, read out of the specification's own table.
+def _dc4_similarity_thresholds(section5=None):
+    """The three extract §5 verdict bands and the two nested link bands,
+    read out of the specification's own table.
 
     Every check below that needs a threshold reads it here rather than
     carrying its own copy, so an edit to §5 moves what the checks exercise
     instead of drifting away from it.
+
+    `section5` is the already-sliced §5 text to parse; the default (None)
+    reads and slices it from the real spec file. A caller may instead pass
+    a perturbed copy — `negative:dc4-link-thresholds` below does, to prove
+    the link-threshold regexes and the registry cross-check actually bind
+    to the table's content rather than passing regardless of it.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
+    if section5 is None:
+        spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+        section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
     rows = {
-        "consistent_at_or_above": r"\|\s*`consistent`\s*\|\s*effective similarity\s*≥\s*([\d ]+?)\s*\|",
+        # Unlike the other two extract rows, `consistent`'s condition cell
+        # carries a second, trailing clause (DC-4 §5: the link-dimension
+        # qualifier), so this pattern reads the number off the front of the
+        # cell rather than requiring the cell to end right after it.
+        "consistent_at_or_above": r"\|\s*`consistent`\s*\|\s*effective similarity\s*≥\s*([\d ]+)",
         "variance_at_or_above": r"\|\s*`dynamic_variance`\s*\|\s*([\d ]+?)\s*≤\s*effective similarity",
         "variance_below": r"\|\s*`dynamic_variance`\s*\|.*?effective similarity\s*<\s*([\d ]+?)\s*\|",
         "inconsistent_below": r"\|\s*`inconsistent`\s*\|\s*effective similarity\s*<\s*([\d ]+?)\s*\|",
+        # The link dimension's own thresholds: the trailing clause on the
+        # `consistent` row, and the two link-verdict rows nested inside it.
+        # Parsed independently of the extract thresholds above, so a
+        # hand-edit that moves a link number without moving the qualifier
+        # (or vice versa) is caught rather than silently accepted.
+        "link_consistent_at_or_above": r"\|\s*`consistent`\s*\|.*?`link_agreement`\s*≥\s*([\d ]+?)\s*\|",
+        "link_variance_floor_at_or_above": r"\|\s*`link_variance`\s*\|.*?([\d ]+?)\s*≤\s*`link_agreement`",
+        "link_variance_below": r"\|\s*`link_variance`\s*\|.*?`link_agreement`\s*<\s*([\d ]+?)\s*\(",
+        "link_inconsistent_below": r"\|\s*`link_inconsistent`\s*\|.*?`link_agreement`\s*<\s*([\d ]+?)\s*\|",
     }
     out = {}
     for name, pattern in rows.items():
@@ -2235,7 +2281,59 @@ def _dc4_similarity_thresholds():
         "§5's `consistent` floor and `dynamic_variance` ceiling are not the same number"
     assert out["variance_at_or_above"] == out["inconsistent_below"], \
         "§5's `dynamic_variance` floor and `inconsistent` ceiling are not the same number"
+    assert out["link_consistent_at_or_above"] == out["link_variance_below"], \
+        "§5's `consistent` link floor and `link_variance` ceiling are not the same number"
+    assert out["link_variance_floor_at_or_above"] == out["link_inconsistent_below"], \
+        "§5's `link_variance` floor and `link_inconsistent` ceiling are not the same number"
+
+    # The two link thresholds are also registered constants (§9): a table
+    # that agrees with itself but not with the Parameter Registry is still
+    # wrong, and a `parameter_change` reads the registry value, never §5's
+    # own prose copy of it.
+    registered = _registry_table_defaults()
+    assert out["link_consistent_at_or_above"] == registered["link_agreement_consistent"], (
+        f"§5's verdict table reads the link consistent floor as "
+        f"{out['link_consistent_at_or_above']}, but §9 registers "
+        f"link_agreement_consistent as {registered['link_agreement_consistent']}")
+    assert out["link_variance_floor_at_or_above"] == registered["link_variance_floor"], (
+        f"§5's verdict table reads the link variance floor as "
+        f"{out['link_variance_floor_at_or_above']}, but §9 registers "
+        f"link_variance_floor as {registered['link_variance_floor']}")
     return out
+
+def _link_threshold_parser_twin():
+    """A hand-edited link threshold in a *copy* of §5's table must break
+    `_dc4_similarity_thresholds`'s own registry cross-check — proof the
+    link-threshold regexes added above bind to the table's real numbers
+    rather than passing regardless of its content. Both link rows are
+    perturbed to the same wrong value (300 000 → 250 000) so the table
+    still agrees with itself and the failure is specifically the registry
+    comparison, not the self-consistency assert a single-row edit would
+    trip instead; the disk copy is untouched throughout.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
+    variance_row = re.compile(r"(`link_variance`\s*\|.*?)300 000(\s*≤\s*`link_agreement`)")
+    inconsistent_row = re.compile(r"(`link_inconsistent`\s*\|.*?`link_agreement`\s*<\s*)300 000")
+    assert variance_row.search(section5) and inconsistent_row.search(section5), \
+        "the link threshold rows did not match for the twin to perturb"
+    mutated = variance_row.sub(r"\g<1>250 000\g<2>", section5, count=1)
+    mutated = inconsistent_row.sub(r"\g<1>250 000", mutated, count=1)
+    assert mutated != section5, "the substitution changed nothing"
+
+    try:
+        _dc4_similarity_thresholds(mutated)
+    except AssertionError as e:
+        assert str(e) == (
+            "§5's verdict table reads the link variance floor as 250000, "
+            "but §9 registers link_variance_floor as 300000"), \
+            f"raised for the wrong reason: {e!r}"
+    else:
+        raise AssertionError(
+            "perturbing both link thresholds in a copied table still "
+            "passed _dc4_similarity_thresholds")
+
+check("negative:dc4-link-thresholds", _link_threshold_parser_twin)
 
 
 def _dc4_severity_rows():
@@ -2291,6 +2389,10 @@ def _dc4_verdict_totality():
     CONSISTENT, HIGH = t["consistent_at_or_above"], t["inconsistent_below"]
     assert 0 < HIGH < CONSISTENT <= 1_000_000, \
         f"§5's thresholds are not ordered inside the micro-unit range: {t}"
+    LINK_CONSISTENT = t["link_consistent_at_or_above"]
+    LINK_VARIANCE_FLOOR = t["link_variance_floor_at_or_above"]
+    assert 0 < LINK_VARIANCE_FLOOR < LINK_CONSISTENT <= 1_000_000, \
+        f"§5's link thresholds are not ordered inside the micro-unit range: {t}"
     rows = _dc4_severity_rows()
 
     # The severity table's domain, computed from §7's rows, must be exactly
@@ -2315,11 +2417,26 @@ def _dc4_verdict_totality():
     assert re.search(r"=\s*1 000 000\s*−\s*similarity\s*\(delete\)", section5), \
         "§5 does not state the `delete` mirror as 1 000 000 − similarity"
 
-    def bands(eff):
-        return [name for name, hit in (
+    def bands(eff, link_agreement=None):
+        """DC-4 §5's full seven-row model: the three extract bands, with a
+        second partition over `link_agreement` nested inside the extract-
+        `consistent` band alone. `link_agreement=None` models the link
+        dimension being neutral for this audit — a `delete`, a non-HTML
+        representation, or an `unreachable`/`not_auditable` verdict — in
+        which case the result depends on `eff` only, exactly as before
+        this function grew a second parameter.
+        """
+        extract_hit = [name for name, hit in (
             ("consistent", eff >= CONSISTENT),
             ("dynamic_variance", HIGH <= eff < CONSISTENT),
             ("inconsistent", eff < HIGH),
+        ) if hit]
+        if len(extract_hit) != 1 or extract_hit[0] != "consistent" or link_agreement is None:
+            return extract_hit
+        return [name for name, hit in (
+            ("consistent", link_agreement >= LINK_CONSISTENT),
+            ("link_variance", LINK_VARIANCE_FLOOR <= link_agreement < LINK_CONSISTENT),
+            ("link_inconsistent", link_agreement < LINK_VARIANCE_FLOOR),
         ) if hit]
 
     def severities(eff):
@@ -2355,6 +2472,47 @@ def _dc4_verdict_totality():
         "a `delete` audit finding the committed content served verbatim is not the gravest severity"
     assert bands(1_000_000 - 0)[0] == "consistent", \
         "a `delete` audit finding none of the committed content is not `consistent`"
+
+    # The link dimension's own partition (DC-4 §5), nested inside the
+    # extract-`consistent` band alone: every `link_agreement` value is
+    # checked at two representative extract-consistent readings — the
+    # boundary itself and the top of the range — since which consistent-
+    # band `eff` it sits inside cannot move the link partition.
+    seen_link = set()
+    for eff_probe in (CONSISTENT, 1_000_000):
+        for link_agreement in range(0, 1_000_001):
+            hit = bands(eff_probe, link_agreement)
+            assert len(hit) == 1, (
+                f"eff={eff_probe}, link_agreement={link_agreement} matches "
+                f"{len(hit)} link-dimension verdicts: {hit}")
+            seen_link.add(hit[0])
+    assert seen_link == {"consistent", "link_variance", "link_inconsistent"}, \
+        f"the link dimension cannot reach every band: {seen_link}"
+
+    # Exact boundary behaviour at the two link thresholds, the shape §5's
+    # table states ("≥" / "≤ … <" / "<").
+    assert bands(CONSISTENT, LINK_CONSISTENT) == ["consistent"], \
+        "link_agreement at its own consistent floor is not `consistent`"
+    assert bands(CONSISTENT, LINK_CONSISTENT - 1) == ["link_variance"], \
+        "link_agreement one below the consistent floor is not `link_variance`"
+    assert bands(CONSISTENT, LINK_VARIANCE_FLOOR) == ["link_variance"], \
+        "link_agreement at its own variance floor is not `link_variance`"
+    assert bands(CONSISTENT, LINK_VARIANCE_FLOOR - 1) == ["link_inconsistent"], \
+        "link_agreement one below the variance floor is not `link_inconsistent`"
+
+    # The qualifier is vacuous outside the extract-`consistent` band, and
+    # when the dimension does not apply at all (`link_agreement=None`):
+    # neither moves the verdict away from the extract-only reading — the
+    # nested partition can only ever narrow the one band it sits inside.
+    for eff_probe in (0, HIGH - 1, HIGH, CONSISTENT - 1):
+        extract_only = bands(eff_probe)
+        assert bands(eff_probe, None) == extract_only, \
+            f"eff={eff_probe} with no link dimension applied is not the extract-only band"
+        for link_agreement in (0, LINK_VARIANCE_FLOOR, LINK_CONSISTENT, 1_000_000):
+            assert bands(eff_probe, link_agreement) == extract_only, (
+                f"eff={eff_probe} (outside the extract-consistent band) is "
+                f"moved by link_agreement={link_agreement}, but the link "
+                f"dimension must be vacuous there")
 check("spec:dc4-verdict-totality", _dc4_verdict_totality)
 
 def _dc4_severity_bands():
@@ -2733,5 +2891,147 @@ def _single_discovery_channel():
     assert "(DNS TXT fallback)" not in adr, \
         "ADR-0002 still lists the fallback as part of the accepted decision"
 check("spec:single-discovery-channel", _single_discovery_channel)
+
+def _link_agreement_vector():
+    """DC-4 §5: recompute every published link_agreement case."""
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc4" / "link-agreement.json").read_text())
+    for case in vec["cases"]:
+        got = link_extraction.link_agreement(
+            case["declared_urls"], case["declared_total"],
+            case["observed_urls"], case["observed_total"])
+        assert got == case["link_agreement"], f"{case['label']}: {got}"
+
+check("vectors:dc4-link-agreement", _link_agreement_vector)
+
+def _link_agreement_twin():
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "dc4" / "link-agreement.json").read_text())
+    case = next(c for c in vec["cases"] if c["observed_urls"])
+    got = link_extraction.link_agreement(
+        case["declared_urls"], case["declared_total"],
+        case["observed_urls"][:-1], case["observed_total"] - 1)
+    assert got != case["link_agreement"], "dropping an observed link moved nothing"
+
+check("negative:dc4-link-agreement", _link_agreement_twin)
+
+def _verdict_pair_ok(record, effective_similarity=None):
+    """DC-4 §5: raise AssertionError when `record`'s (effective similarity,
+    link_agreement, verdict) triple does not satisfy §5's condition for
+    its own verdict — the real predicate behind DC-4 §3's malformed-
+    evidence rejection, not a copy of it, so both the positive check below
+    and its twin exercise one function rather than one each agreeing with
+    itself. Thresholds are read from the Parameter Registry's own
+    published defaults (`_registry_table_defaults()`), never as literals,
+    so a `parameter_change` to either threshold moves what this checks.
+
+    `effective_similarity` is §5's mirror applied to `record["similarity"]`
+    — the sealed value itself for `new`/`update`/`attest`, `1_000_000 -
+    similarity` for `delete` — and resolving it is the CALLER's job: a
+    Record carries `audited_delta`, not its change type, so this function
+    cannot look the mirror up itself. The default (`None`) falls back to
+    the sealed `similarity` unmirrored, which is correct only for a
+    non-`delete` audit; a caller checking a `delete` Record MUST resolve
+    the change type and pass the mirrored value explicitly, or a
+    perfectly conforming `delete` (similarity 0, effective 1 000 000) is
+    flagged malformed in exactly the direction §5's mirror exists to
+    prevent.
+
+    Only the three verdicts whose condition involves the link dimension
+    are covered — `dynamic_variance`, `inconsistent`, `unreachable` and
+    `not_auditable` are outside this pair-condition's scope and are left
+    unchecked here (DC-4 §5's full verdict totality is `spec:dc4-verdict-
+    totality`'s job, not this one's).
+    """
+    if effective_similarity is None:
+        effective_similarity = record["similarity"]
+    defaults = _registry_table_defaults()
+    sim_floor = defaults["similarity_consistent"]
+    link_floor = defaults["link_agreement_consistent"]
+    link_variance_floor = defaults["link_variance_floor"]
+    verdict = record["verdict"]
+    if verdict == "consistent":
+        assert effective_similarity >= sim_floor, \
+            "consistent verdict below the extract band"
+        if "link_agreement" in record:
+            assert record["link_agreement"] >= link_floor, \
+                "consistent verdict below the link band"
+    elif verdict == "link_variance":
+        assert effective_similarity >= sim_floor, \
+            "link_variance verdict below the extract band"
+        assert link_variance_floor <= record["link_agreement"] < link_floor, \
+            "link_variance verdict outside the link variance band"
+    elif verdict == "link_inconsistent":
+        assert effective_similarity >= sim_floor, \
+            "link_inconsistent verdict below the extract band"
+        assert record["link_agreement"] < link_variance_floor, \
+            "link_inconsistent verdict at or above the link variance floor"
+
+def _verdict_pair_condition():
+    """DC-4 §3/§5: the example Record's (similarity, link_agreement) pair
+    satisfies §5's condition for its own verdict. The example Record's
+    audited Delta is change type `new` (`vectors/dc1/id.txt`'s Delta, DC-1
+    §3.3), so `similarity` needs no §5 mirror and `_verdict_pair_ok` is
+    called with none — a `delete` Record would have to pass one (below)."""
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    assert rec["verdict"] == "consistent"
+    _verdict_pair_ok(rec)
+
+check("spec:audit-verdict-pair", _verdict_pair_condition)
+
+def _verdict_pair_twin():
+    """A link_agreement below the floor must not still read as `consistent`
+    (DC-4 §5). The mutation runs through `_verdict_pair_ok` itself — the
+    same function the positive check calls — rather than re-deriving the
+    boolean inline, and the failure is message-matched to the specific
+    link-band assertion, so a defect in the wrong branch of the checker
+    (or one that stops raising at all) cannot pass this by accident."""
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    mutated = copy.deepcopy(rec)
+    mutated["verdict"] = "consistent"
+    mutated["link_agreement"] = 299_999
+    try:
+        _verdict_pair_ok(mutated)
+    except AssertionError as e:
+        assert str(e) == "consistent verdict below the link band", \
+            f"raised for the wrong reason: {e!r}"
+    else:
+        raise AssertionError("a link_agreement below the floor still reads as consistent")
+
+check("negative:audit-verdict-pair", _verdict_pair_twin)
+
+def _verdict_pair_delete_mirror():
+    """DC-4 §5: a `delete` audit's `similarity` is mirrored before any
+    verdict condition ever reads it (`1_000_000 − similarity`), so a
+    conforming `delete` Record scoring `similarity` 0 — full agreement
+    that the committed content is gone — is `consistent` at effective
+    similarity 1 000 000, not malformed evidence. `_verdict_pair_ok`
+    cannot resolve that mirror itself (a Record carries `audited_delta`,
+    not a change type), so the caller passes it explicitly."""
+    rec = {"verdict": "consistent", "similarity": 0, "link_agreement": 1_000_000}
+    _verdict_pair_ok(rec, effective_similarity=1_000_000)
+
+check("spec:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror)
+
+def _verdict_pair_delete_mirror_twin():
+    """The same Record read through the sealed `similarity` unmirrored —
+    `_verdict_pair_ok`'s default, correct only for a non-`delete` audit —
+    must be flagged malformed: proof the mirror argument is load-bearing
+    and not merely accepted and ignored. This is the bug IMPORTANT-5
+    named: before the `effective_similarity` parameter existed, this
+    exact conforming `delete` Record was rejected as below the extract
+    band."""
+    rec = {"verdict": "consistent", "similarity": 0, "link_agreement": 1_000_000}
+    try:
+        _verdict_pair_ok(rec)
+    except AssertionError as e:
+        assert str(e) == "consistent verdict below the extract band", \
+            f"raised for the wrong reason: {e!r}"
+    else:
+        raise AssertionError(
+            "a delete Record read without the effective-similarity mirror "
+            "still passed as consistent")
+
+check("negative:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror_twin)
 
 sys.exit(1 if failures else 0)
