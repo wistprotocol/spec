@@ -65,6 +65,7 @@ deterministic: fixed test seed, fixed timestamps, no wall-clock.
 - [ADR-0005](decisions/0005-odbl-for-tier-data.md) — ODbL for public tier data
 - [ADR-0006](decisions/0006-no-self-declared-importance.md) — no self-declared importance anywhere in the protocol
 - [ADR-0007](decisions/0007-content-payloads-outside-the-log.md) — content payloads live outside the immutable log
+- [ADR-0008](decisions/0008-raw-citation-graph-never-a-score.md) — the protocol transports the raw citation graph, never a score
 
 ## Licenses
 
