@@ -624,7 +624,13 @@ Log-derived tuples only, so that it remains computable after a
 withdrawal, and the artifact's transport integrity is already pinned by
 its `files` entry. It transports declarations, never a judgement: which
 links are trustworthy, and what importance follows from being linked,
-is ranking, and ranking is outside this protocol (DC-4 §8, ADR-0006).
+is ranking, and ranking is outside this protocol (DC-4 §8, ADR-0006,
+ADR-0008). That boundary is what makes carrying the graph admissible at
+all: ADR-0006 keeps importance out of the protocol, and ADR-0008 records
+that a page's own outbound links are a verifiable statement about the
+Publisher's content rather than a claim about its own importance, so the
+raw edges may be distributed while no rank, weight or aggregate of them
+ever is.
 
 **The materialized state.** The materialized state is a set of records
 keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
@@ -668,16 +674,15 @@ already published carries the content in its tier files —
 `tier1/extracts.parquet`'s text and `tier1/links.parquet`'s declared
 links alike, per §6.2's rule that both are content. The Aggregator and
 every Mirror MUST stop serving any Snapshot artifact containing
-withdrawn content: the Aggregator
-either withdraws that Snapshot from distribution or replaces it with
-one rebuilt under the exclusion rule above, under a fresh signed
-manifest and at a `log_position` at or above the withdrawal's sealing
-height — below that height the exclusion does not apply and the
-rebuild would simply reproduce the content — and a Mirror re-serving
-`/snapshots/` (§6) is bound identically — a Mirror that kept serving
-the superseded tier files would leave the content in distribution no
-matter what the Aggregator did, which is the whole of what withdrawal
-is supposed to stop.
+withdrawn content: the Aggregator either withdraws that Snapshot from
+distribution or replaces it with one rebuilt under the exclusion rule
+above, under a fresh signed manifest and at a `log_position` at or above
+the withdrawal's sealing height — below that height the exclusion does
+not apply and the rebuild would simply reproduce the content — and a
+Mirror re-serving `/snapshots/` (§6) is bound identically — a Mirror
+that kept serving the superseded tier files would leave the content in
+distribution no matter what the Aggregator did, which is the whole of
+what withdrawal is supposed to stop.
 Neither costs a Consumer anything it cannot recover, since any state a
 Snapshot provides is reachable from the Log and the Payloads. A manifest's
 per-file `sha256` is a digest of a whole tier file rather than of any one

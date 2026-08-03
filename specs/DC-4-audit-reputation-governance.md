@@ -196,7 +196,19 @@ recomputing reputation MUST reject:
   carrying a `link_agreement` below `link_agreement_consistent` — is
   malformed evidence, not a divergent judgement call, and MUST NOT be
   allowed to leave `sim` (§7) resting on a value outside every severity
-  band.
+  band;
+- a Record carrying a `link_agreement` where §5 makes the link dimension
+  neutral: a `delete` audit, or a verdict of `unreachable` or
+  `not_auditable`. A reading of a dimension that was not audited is
+  malformed for the same reason a reading outside its band is — it
+  asserts a comparison against a reference set the audit had none of.
+  Both cases are decidable from the Log by the party doing the
+  rejecting: the verdict is in the Record, and a validator already
+  resolves `audited_delta` to its change type to apply §5's `delete`
+  mirror. The one neutral case this rejection does not reach is a
+  non-HTML representation (DC-2 §11), which no party can settle from the
+  Log alone; there the reading is evidence like the rest of the Record's
+  and is weighed with it.
 
 The first and the coverage-failure rejections are scoped to reputation and
 do not reach coverage: an Auditor removed after a Block was sealed but
@@ -687,10 +699,12 @@ second over `link_agreement` where and only where the first admits it:
 exactly one verdict fits every audit, seven rows included.
 
 **The link dimension.** Where the audited change type is `new`, `update`
-or `attest` and the fetched representation is HTML, the Auditor also
-applies DC-2 §11's extraction procedure to its own fetched octets and
-compares the result against the Reference Payload's `links` member. Two
-integer readings, each in micro-units, combine by minimum:
+or `attest` and the fetched representation is HTML in the sense DC-2 §11
+fixes — by the `Content-Type` media type alone, never by sniffing the
+body — the Auditor also applies that section's extraction procedure to
+its own fetched octets and compares the result against the Reference
+Payload's `links` member. Two integer readings, each in micro-units,
+combine by minimum:
 
     subset  = floor(|D ∩ O| × 1 000 000 / |D ∪ O|)        D, O non-empty union
             = 1 000 000                                    D = O = ∅
@@ -709,12 +723,19 @@ representation (whose conforming declaration is `{"total": 0, "urls":
 []}` and whose extraction DC-2 does not define), and wherever the
 verdict is `unreachable` or `not_auditable`.
 
-A Record for a non-`delete` audit of an HTML representation SHOULD carry
-`link_agreement`. Omission leaves the link dimension unaudited for that
-Delta, and it is visible in the Record itself: a Record whose change type
-and representation say the dimension applied, and which nonetheless
-carries no `link_agreement`, is a fact any party recomputing reputation
-can see and weigh, not a silent gap.
+A Record that produced a measured verdict for a non-`delete` audit of an
+HTML representation SHOULD carry `link_agreement`. "Measured" excludes an
+`unreachable` and a `not_auditable` Record, for which the dimension is
+neutral above and which therefore never carry the field however the
+change type and the media type read: the first observed no
+representation to extract from, the second has no reference set to
+compare one against, and `schemas/audit-record.schema.json` rejects
+either sealing a reading it cannot have taken. Omission where the
+dimension does apply leaves it unaudited for that Delta, and it is
+visible in the Record itself: a Record whose change type, representation
+and verdict all say the dimension applied, and which nonetheless carries
+no `link_agreement`, is a fact any party recomputing reputation can see
+and weigh, not a silent gap.
 
 **`delete` audits.** Two consequences of the mirror are worth stating
 outright. A `404` or `410` response to a `delete` audit is not a fetch
@@ -1109,11 +1130,19 @@ section defines, a Confirmed Link Inconsistency **counts as a Confirmed
 Inconsistency with severity 1 fixed** — never derived from
 `link_agreement`'s magnitude, unlike the severity table above — and it
 satisfies no rule that names severity 3, so no accumulation of link
-findings alone reaches the fast path to Delisting: declaring a distorted
-link set is gaming a signal, not fabricating content, and the graph's
-consumers can weigh a domain's link record for themselves. Severity is
-derived from the evidence, not chosen, here as everywhere: a link finding
-carries level 1 whatever its magnitude.
+findings alone reaches the **fast path** to Delisting: neither level 3's
+any-severity-3 branch nor level 4's three-severity-3 branch can ever
+fire on them. The counting route stays open, by design — 10 link
+findings inside 90 days reach level 3 and one further finding reaches
+level 4, exactly as 10 severity-1 findings of any other kind would,
+because a domain misdeclaring its links at that rate is no longer doing
+it by accident. What the fixed severity settles is which route: the
+slow, countable one, with the notice and the appeal window §7 attaches
+to levels 3 and 4, never a single finding that delists on its own.
+Declaring a distorted link set is gaming a signal, not fabricating
+content, and the graph's consumers can weigh a domain's link record for
+themselves. Severity is derived from the evidence, not chosen, here as
+everywhere: a link finding carries level 1 whatever its magnitude.
 
 A party recomputing reputation locates every Confirmed Inconsistency
 directly from Audit Records under §5 — no `sanction` Registry Update is
@@ -1679,15 +1708,15 @@ record why an action was taken or contested (§11).
   asserted by the Aggregator, and §6.1 counts every Confirmed
   Inconsistency's and Confirmed Link Inconsistency's penalty from its
   confirming Block onward regardless of whether a `sanction` Registry
-  Update ever names it. A
-  party recomputing reputation therefore arrives at the same `penalty_n`
-  whether the Aggregator inflates a `details.severity` past what the
-  Records show (the mismatched `sanction` is rejected and the table's
-  value used instead), invents a `sanction` with no real evidence behind
-  it (rejected outright — §5's predicate fails), or never records one at
-  all (the penalty applies anyway, computed directly from the Records). A
-  captured Aggregator has no lever over the reputation consequence of
-  evidence that is already public.
+  Update ever names it. A party recomputing reputation therefore arrives
+  at the same `penalty_n` whether the Aggregator inflates a
+  `details.severity` past what the Records show (the mismatched
+  `sanction` is rejected and the table's value used instead), invents a
+  `sanction` with no real evidence behind it (rejected outright — §5's
+  predicate fails), or never records one at all (the penalty applies
+  anyway, computed directly from the Records). A captured Aggregator has
+  no lever over the reputation consequence of evidence that is already
+  public.
 - **Griefing via false `inconsistent` verdicts.** A single hostile Auditor
   confirms nothing by itself: a Confirmed Inconsistency requires a second
   `inconsistent` from an Auditor independent of it under §3's suffix test,
@@ -1843,9 +1872,10 @@ hands.
       `links` member (§5, DC-2 §11)
 - [ ] Computes `link_agreement` and seals the field on the Record
       whenever the link dimension applies — a `new`, `update` or `attest`
-      audit of an HTML representation — and reads `link_variance` or
-      `link_inconsistent` from it once the extract reading is also
-      `consistent` (§5)
+      audit of an HTML representation (DC-2 §11) that produced a measured
+      verdict, never on an `unreachable` or `not_auditable` Record — and
+      reads `link_variance` or `link_inconsistent` from it once the
+      extract reading is also `consistent` (§5)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
       — including where the file discriminates between admitted Auditors,

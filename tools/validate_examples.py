@@ -5,6 +5,7 @@ import base64, calendar, collections, copy, hashlib, hmac, json, pathlib, re, sy
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError
 
 import ecvrf
 from merkle import audit_path, leaf_hash, merkle_root, node_hash
@@ -117,32 +118,6 @@ if (dc1 / "envelope.json").exists():
         pub.verify(b64u_decode(env["sig"]["value"]), canonical)
     check("vectors:dc1", _dc1)
 
-def _url_bound():
-    """DC-1 §3.2: the subject URL is octet-bounded (url_cap_bytes)."""
-    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
-    url_schema = schema["properties"]["delta"]["properties"]["url"]
-    assert url_schema.get("maxLength") == 2048, \
-        "delta.url carries no maxLength 2048 first-pass bound"
-    env = json.loads((ROOT / "examples" / "delta.json").read_text())
-    url = env["delta"]["url"]
-    assert len(rfc8785.dumps(url)) <= 2048, "example url exceeds url_cap_bytes octets"
-    assert len(rfc8785.dumps("https://a.b/")) == 14, "published floor (14) drifted"
-
-check("spec:url-octet-bound", _url_bound)
-
-def _url_bound_twin():
-    """Mutation twin: an over-long URL must fail schema validation."""
-    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
-    env = json.loads((ROOT / "examples" / "delta.json").read_text())
-    env["delta"]["url"] = "https://example.com/" + "a" * 2100
-    try:
-        Draft202012Validator(schema).validate(env)
-    except Exception:
-        return
-    raise AssertionError("a 2100-char url validated — the bound does not discriminate")
-
-check("negative:url-octet-bound", _url_bound_twin)
-
 def _registry_table_defaults():
     """DC-4 §9's Default column, keyed by identifier, as leading integers.
 
@@ -185,6 +160,59 @@ def _registry_table_defaults():
                         out[name] = int(m.group(1).replace(" ", ""))
     return out
 
+def _content_wrapper_octets():
+    """The structural octets of `JCS(content)` — the 32 that
+    `{"extract":<E>,"links":<L>,"summary":<S>}` puts around its three
+    values — measured rather than written down (DC-1 §3.6)."""
+    return len(rfc8785.dumps({"extract": "", "links": {}, "summary": {}})) - \
+        len(rfc8785.dumps("")) - 2 * len(rfc8785.dumps({}))
+
+def _combined_content_cap():
+    """DC-1 §3.6's combined `bytes` bound, derived from the three field caps
+    in the DC-4 §9 registry rather than carried as a literal anywhere."""
+    caps = _registry_table_defaults()
+    return (caps["extract_cap_bytes"] + caps["links_cap_bytes"]
+            + caps["summary_cap_bytes"] + _content_wrapper_octets())
+
+def _url_bound():
+    """DC-1 §3.2: the subject URL is octet-bounded (url_cap_bytes).
+
+    The bound is read from the DC-4 §9 registry rather than written here,
+    for the reason `_payload_length` derives its own: a `parameter_change`
+    amending `url_cap_bytes` moves the schema's `maxLength` with it, and a
+    literal in this file would go on asserting the superseded number.
+    """
+    cap = _registry_table_defaults()["url_cap_bytes"]
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    url_schema = schema["properties"]["delta"]["properties"]["url"]
+    assert url_schema.get("maxLength") == cap, \
+        f"delta.url carries no maxLength {cap} first-pass bound"
+    env = json.loads((ROOT / "examples" / "delta.json").read_text())
+    url = env["delta"]["url"]
+    assert len(rfc8785.dumps(url)) <= cap, "example url exceeds url_cap_bytes octets"
+    assert len(rfc8785.dumps("https://a.b/")) == 14, "published floor (14) drifted"
+
+check("spec:url-octet-bound", _url_bound)
+
+def _url_bound_twin():
+    """Mutation twin: an over-long URL must fail schema validation, and fail
+    it *on the length bound* — a rejection by any other keyword would leave
+    the octet cap itself unexercised."""
+    cap = _registry_table_defaults()["url_cap_bytes"]
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    env = json.loads((ROOT / "examples" / "delta.json").read_text())
+    env["delta"]["url"] = "https://example.com/" + "a" * (cap + 52)
+    try:
+        Draft202012Validator(schema).validate(env)
+    except ValidationError as e:
+        assert e.validator == "maxLength", \
+            f"rejected, but not by the length bound: {e.validator} — {e.message}"
+        return
+    raise AssertionError(
+        f"a {cap + 72}-char url validated — the bound does not discriminate")
+
+check("negative:url-octet-bound", _url_bound_twin)
+
 def _assert_links_valid(payload):
     """DC-1 §3.6 / DC-3 §6.1: structural link rules a validator enforces at ingest.
 
@@ -198,6 +226,7 @@ def _assert_links_valid(payload):
     (DC-4 §5's link dimension), never from the Payload alone — an ingest
     validator sees only the already-truncated object.
     """
+    import link_extraction
     caps = _registry_table_defaults()
     links = payload["content"]["links"]
     urls, total = links["urls"], links["total"]
@@ -205,6 +234,13 @@ def _assert_links_valid(payload):
     assert len(set(urls)) == len(urls), "duplicate link"
     for u in urls:
         assert u.startswith("https://") and "#" not in u, f"non-https or fragment: {u}"
+        # DC-1 §3.6 (DC1-E12): every entry is a Normalized URL, byte for byte.
+        # Byte-wise uniqueness above is not enough on its own — DC-1 §2 makes
+        # sameness byte-identity *of normalizations*, so an unnormalized
+        # spelling of a declared link is a second copy of one link that a
+        # `set()` sees as two, and it joins against nothing in DC-3 §7's graph.
+        assert link_extraction.normalize_url(u, u) == u, \
+            f"entry is not its own Normalized URL: {u}"
         assert len(rfc8785.dumps(u)) <= caps["link_url_cap_bytes"], \
             f"link exceeds link_url_cap_bytes: {u}"
         host = u.split("/", 3)[2].split(":")[0]
@@ -224,14 +260,19 @@ def _payload_links_rules():
     links = payload["content"]["links"]
     assert len(links["urls"]) == links["total"], \
         "the shipped example's link set is not fully declared (urls != total)"
+    # Derived exactly as `_payload_length` derives it — extract + links +
+    # summary caps plus the 32 structural octets of JCS(content) — never
+    # written as a literal, so a `parameter_change` to any of the three
+    # cannot leave this check asserting a superseded number.
+    combined = _combined_content_cap()
     content_octets = len(rfc8785.dumps(payload["content"]))
-    assert content_octets <= 38944, "JCS(content) exceeds the derived cap"
+    assert content_octets <= combined, "JCS(content) exceeds the derived cap"
     delta = json.loads((ROOT / "examples" / "delta.json").read_text())
     assert delta["delta"]["payload"]["bytes"] == content_octets, \
         "declared bytes != JCS(content) octets"
     schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
     assert schema["properties"]["delta"]["properties"]["payload"]["properties"]["bytes"][
-        "maximum"] == 38944, "schema bytes maximum is not the derived cap"
+        "maximum"] == combined, "schema bytes maximum is not the derived cap"
 
 check("spec:payload-links-rules", _payload_links_rules)
 
@@ -261,6 +302,18 @@ def _payload_links_twin():
 
     assert rejected(lambda p: add(p, p["content"]["links"]["urls"][0]),
                      "duplicate link"), "duplicate link passed"
+    # The unnormalized spelling of an already-declared link: an uppercased
+    # host, so the bytes differ and both `uniqueItems` and the `set()` above
+    # pass it, while DC-1 §2 makes it the same URL as the entry it shadows.
+    # It must be rejected by the normalization rule specifically — the
+    # duplicate rule cannot see it, which is the whole point of the rule.
+    def uppercase_host(u):
+        scheme, rest = u.split("://", 1)
+        host, _, path = rest.partition("/")
+        return f"{scheme}://{host.upper()}/{path}"
+
+    assert rejected(lambda p: add(p, uppercase_host(p["content"]["links"]["urls"][0])),
+                     "not its own Normalized URL"), "unnormalized link passed"
     assert rejected(lambda p: add(p, "https://www.example.com/internal"),
                      "internal link declared external"), "internal link passed"
     assert rejected(lambda p: add(p, "https://spec.example.net/dc-1#frag"),
@@ -293,12 +346,35 @@ def _link_extraction_vector():
     fixture1 = next(c for c in vec["cases"] if c["label"] == "example-delta-page")
     assert fixture1["expected"] == _FIXTURE1_EXPECTED, \
         "fixture 1's expected member is not the hand-pinned 3-URL set"
+    cap = vec["links_cap_bytes"]
+    # DC-4 §9's `link_url_cap_bytes` floor: `JCS("https://a.b/")`, the
+    # serialization of the shortest Normalized URL that can exist (DC-1 §2).
+    shortest_entry = len(rfc8785.dumps("https://a.b/"))
+    assert shortest_entry == 14, "the published shortest-URL floor (14) drifted"
     for case in vec["cases"]:
         html = bytes.fromhex(case["html_hex"])
         urls, total = link_extraction.extract_links(
             html, case["base_url"], case["publisher_domain"])
-        member = link_extraction.links_member(urls, total, vec["links_cap_bytes"])
+        member = link_extraction.links_member(urls, total, cap)
         assert member == case["expected"], f"{case['label']}: {member} != {case['expected']}"
+
+        # Two properties of the *published* member, asserted against the
+        # budget rather than against the module that produced it — so a
+        # generator that truncated wrongly and wrote its own answer down
+        # still fails here (DC-1 §3.6, DC-2 §11).
+        expected = case["expected"]
+        octets = len(rfc8785.dumps(expected))
+        assert octets <= cap, \
+            f"{case['label']}: JCS(expected) is {octets} octets, over the {cap}-octet budget"
+        if len(expected["urls"]) < expected["total"]:
+            # Maximality, proved without knowing which URL came next:
+            # appending any entry at all costs one `,` plus at least the 14
+            # octets of the shortest Normalized URL, so a headroom below
+            # that admits no longer prefix whatever the survivors are.
+            headroom = cap - octets
+            assert headroom < 1 + shortest_entry, (
+                f"{case['label']}: {headroom} octets of headroom would hold another "
+                f"entry ({1 + shortest_entry} at minimum) — the prefix is not maximal")
 
 check("vectors:dc2-link-extraction", _link_extraction_vector)
 
@@ -800,10 +876,11 @@ def _payload_length():
     e_cap = caps["extract_cap_bytes"]
     lk_cap = caps["links_cap_bytes"]
     s_cap = caps["summary_cap_bytes"]
-    wrapper = len(rfc8785.dumps({"extract": "", "links": {}, "summary": {}})) - \
-        len(rfc8785.dumps("")) - 2 * len(rfc8785.dumps({}))
+    wrapper = _content_wrapper_octets()
     assert wrapper == 32, f"JCS(content) structure is {wrapper} octets, not the 32 DC-1 §3.6 states"
-    combined = e_cap + lk_cap + s_cap + wrapper
+    combined = _combined_content_cap()
+    assert combined == e_cap + lk_cap + s_cap + wrapper, \
+        "the combined cap helper no longer derives DC-1 §3.6's sum"
 
     e = len(rfc8785.dumps(content["extract"]))
     lk = len(rfc8785.dumps(content["links"]))
@@ -1006,16 +1083,29 @@ def _snapshot_content_digest():
         assert stale not in spec, f"DC-3 still claims byte-reproducible Snapshots: {stale!r}"
 check("snapshot:content-digest", _snapshot_content_digest)
 
-def _snapshot_links_materialization():
-    """DC-3 §7: the links materialization is a pure function of live
-    records' Payloads — recompute it from examples/payload.json."""
-    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+def _assert_links_materialization(vec_links):
+    """DC-3 §7: `tier1/links.parquet` is `(source_url, target_url, position)`
+    per declared link, derived from the live record's Payload alone.
+
+    Factored so the twin below runs this exact assertion over a perturbed
+    tuple list and proves it raises — the pattern
+    `_assert_links_valid`/`negative:payload-links-rules` uses. A twin that
+    re-derives `expected` and compares it against the mutation instead is
+    vacuous: that comparison is already entailed by the positive check
+    passing, and it stays true however weak the positive check becomes.
+    """
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
     expected = [
         {"source_url": delta["url"], "target_url": u, "position": i}
         for i, u in enumerate(payload["content"]["links"]["urls"])]
-    assert vec["links"] == expected, "links materialization != derivation from Payload"
+    assert vec_links == expected, "links materialization != derivation from Payload"
+
+def _snapshot_links_materialization():
+    """DC-3 §7: the links materialization is a pure function of live
+    records' Payloads — recompute it from examples/payload.json."""
+    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    _assert_links_materialization(vec["links"])
     manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())
     paths = {f["path"]: f["tier"] for f in manifest["manifest"]["files"]}
     assert paths.get("tier1/links.parquet") == 1, "links.parquet missing from manifest"
@@ -1025,16 +1115,19 @@ def _snapshot_links_materialization():
 check("spec:snapshot-links", _snapshot_links_materialization)
 
 def _snapshot_links_twin():
+    """Mutation twin: a shifted `position` must be rejected by the same
+    helper the positive check runs, with the same message."""
     vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
     mutated = json.loads(json.dumps(vec["links"]))
     assert mutated, "vector carries no link tuples to mutate"
     mutated[0]["position"] += 1
-    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
-    expected = [
-        {"source_url": delta["url"], "target_url": u, "position": i}
-        for i, u in enumerate(payload["content"]["links"]["urls"])]
-    assert mutated != expected, "a shifted position still matched — check is blind"
+    try:
+        _assert_links_materialization(mutated)
+    except AssertionError as e:
+        assert "links materialization != derivation from Payload" in str(e), \
+            f"rejected, but not by its target rule: {e}"
+        return
+    raise AssertionError("a shifted position still matched — the check is blind")
 
 check("negative:snapshot-links", _snapshot_links_twin)
 
@@ -2628,6 +2721,19 @@ def _withdrawal_binds_every_serving_path():
             f"DC-3 §6.2's stop-serving obligation does not bind the {party}"
     assert "every party holding the Payload for protocol purposes MUST destroy it" in withdrawal, \
         "DC-3 §6.2 no longer requires holders to destroy the Payload and its salt"
+
+    # The Snapshot artifacts are a fourth serving path, and the link graph is
+    # one of their content tiers: a withdrawal that named `extracts.parquet`
+    # alone would leave the withdrawn Payload's declared links in
+    # distribution (DC-3 §7), which is the same one-fetch hole the
+    # stop-serving rule above exists to close. The bullet parsed above is the
+    # *first* of §6.2's obligations, so this clause is not reached by it.
+    materialization = re.search(
+        r"^- Consumers MUST exclude[^\n]*(?:\n(?!- ).*)*", withdrawal, re.M)
+    assert materialization, \
+        "DC-3 §6.2 no longer binds Snapshot artifacts already published"
+    assert "tier1/links.parquet" in materialization.group(0), \
+        "DC-3 §6.2's Snapshot-artifact rule does not name tier1/links.parquet"
 
     # The conflicting duty must be reconciled where it is stated, not only
     # overridden from another document.

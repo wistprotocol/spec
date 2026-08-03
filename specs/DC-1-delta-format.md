@@ -268,10 +268,21 @@ normalization — a non-`https` scheme, a malformed percent-escape, a
 rejected host label — is not a link for this specification, the same
 fail-closed posture §2 takes for the subject URL. `{"total": 0, "urls":
 []}` is the REQUIRED form for a page with no external links and for any
-non-HTML representation. A validator MUST reject with `DC1-E12` a
-`links` member carrying a duplicate, a fragment, a non-`https` entry, an
-entry whose Canonical Host is internal to the Publisher, or `len(urls)`
-greater than `total`. Which links a page has, and whether the declared
+non-HTML representation (DC-2 §11 fixes which representations are HTML).
+A validator MUST reject with `DC1-E12` a `links` member carrying a
+duplicate, an entry that is not byte-identical to its own Normalized URL
+(§2), a fragment, a non-`https` entry, an entry whose Canonical Host is
+internal to the Publisher, or `len(urls)` greater than `total`. The
+normalization rule is what makes the dedup rule mean anything: sameness
+in this specification is byte-identity *of Normalized URLs* (§2), so
+`https://EXAMPLE.ORG/reference` and `https://example.org/reference` are
+one link declared twice. A member carrying both passes a bare byte-wise
+uniqueness test, and the entry that is not its own Normalized URL then
+joins against nothing in the graph consumers build across Payloads
+(DC-3 §7), where the URL string is itself the join key. Requiring each
+entry to be already normalized is what keeps that key exact and the
+dedup rule above enforceable at ingest, against a Payload the validator
+sees on its own. Which links a page has, and whether the declared
 prefix is the correct (longest-fitting) prefix — equality of `len(urls)`
 and `total` follows automatically once the full set fits, per the
 truncation rule above — is checkable only against the page; that is
