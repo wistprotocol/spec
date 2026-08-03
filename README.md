@@ -36,7 +36,8 @@ Auditor ◄── samples deltas from sealed blocks ──┘             │
 specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
-vectors/     deterministic test vectors (DC-1 signature, DC-3 Merkle)
+vectors/     deterministic test vectors (DC-1 signature, DC-2 link
+             extraction, DC-3 Merkle)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
