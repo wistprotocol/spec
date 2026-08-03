@@ -480,7 +480,11 @@ What remains in the Log permanently, and cannot be withdrawn, is:
 - the verdicts and `similarity` values of any Audit Records about the URL.
   Those Records observe the page directly, so every content-derived value
   in them is committed under the same Payload salt rather than digested
-  bare, and expires with it (DC-4 §5, §11).
+  bare, and expires with it (DC-4 §5, §11);
+- the free text of any Registry Update about the URL or its Publisher — a
+  withdrawal's `legal_basis`, a `notice`'s `reason`, an `appeal_ruling`'s
+  `reasoning`. These are sealed and unwithdrawable like `meta`, which is
+  why DC-4 §11 forbids personal data in them outright.
 
 Publishers should understand that this residue is permanent, and that
 withdrawal removes the content from future distribution rather than from
