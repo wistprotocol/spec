@@ -260,7 +260,7 @@ WARC_CAPTURE = b"warc-placeholder"
 audit_record = {
     "dc_version": "1.0.0",
     "audited_delta": delta_id,
-    "auditor_id": "audit.example.org",
+    "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": audit_commit(RESPONSE_BODY),
     "ref_extract_commitment": audit_commit(REF_EXTRACTION),
@@ -298,7 +298,7 @@ write_json(DC4 / "audit-commitments.json", {
 registry_update = {
     "dc_version": "1.0.0",
     "action": "auditor_admit",
-    "subject": "audit.example.org",
+    "subject": "audit.example.net",
     "details": {"key_id": "test-aud-k1", "alg": "Ed25519", "public_key": b64u(pub_raw)},
     "effective_at": "2026-08-02T12:00:00Z",
 }

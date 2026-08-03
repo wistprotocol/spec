@@ -96,9 +96,9 @@ is not byte-identical to its own normalization MUST be rejected with
 One of four values:
 
 - `new` — the Publisher asserts this URL now carries content; if the URL
-  has prior Deltas, `prev` MUST be present (§3.5). `payload` SHOULD be
+  has prior Deltas, `prev` MUST be present (§3.5). `payload` MUST be
   present.
-- `update` — the URL's content changed. `payload` SHOULD be present.
+- `update` — the URL's content changed. `payload` MUST be present.
   `prev` MUST be present.
 - `delete` — the URL no longer exists (or no longer carries indexable
   content). The Delta MUST omit `payload`. `prev` MUST be present.
@@ -108,13 +108,22 @@ One of four values:
 
 A Delta that carries `payload` is **content-bearing** and MUST have the
 corresponding Payload retrievable (DC-2 §3.1); a Delta that omits it
-asserts nothing about content and has no Payload to serve. An `attest`
-Delta carries no content of its own precisely because it claims none:
-what it is measured against is the Payload of the last content-bearing
-Delta *at or before it* in the same per-URL chain (DC-4 §5's Reference
-Payload), which is why §3.5's chain and DC-2 §3.1's retention obligation
-reach further back than the Delta itself. The same holds for a `delete`,
-whose claim is that exactly that content is no longer served.
+asserts nothing about content and has no Payload to serve. The two
+requirements above therefore make `new` and `update` exactly the
+content-bearing change types: a validator MUST reject a `new` or an
+`update` with no `payload` under `DC1-E09`, and such a Delta MUST NOT be
+sealed. A Delta claiming that content appeared or changed while committing
+to none says what happened and not what it is, so no audit could ever
+confirm or refute it (DC-4 §5 would record `not_auditable` forever) — a
+claim that is unfalsifiable by construction, sealed permanently, and free.
+
+An `attest` Delta carries no content of its own precisely because it claims
+none: what it is measured against is the Payload of the last
+content-bearing Delta *at or before it* in the same per-URL chain (DC-4
+§5's Reference Payload), which is why §3.5's chain and DC-2 §3.1's
+retention obligation reach further back than the Delta itself. The same
+holds for a `delete`, whose claim is that exactly that content is no longer
+served.
 
 ### 3.4. `observed_at`
 
@@ -380,6 +389,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | DC1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per DC-2 §3.1 |
 | DC1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
+| DC1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (DC-4 §5) |
 | DC1-E11 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
@@ -506,7 +516,8 @@ copies already served.
 - [ ] Serves every content-bearing Delta's Payload, and keeps the anchor
       Payload of any URL it attests retrievable (DC-2 §3.1)
 - [ ] Respects content caps: extract ≤ 32768 bytes, summary ≤ 2048 bytes (§3.6)
-- [ ] Omits `payload` on `attest` and on `delete` (§3.3)
+- [ ] Carries `payload` on every `new` and `update`, and omits it on
+      `attest` and on `delete` (§3.3)
 - [ ] Rotates keys by signing the new Key Set with a previous key (§5.2)
 - [ ] Increments seq and sets prev_declaration on every new Declaration
       (§5.2)

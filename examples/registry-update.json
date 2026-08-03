@@ -2,7 +2,7 @@
   "update": {
     "dc_version": "1.0.0",
     "action": "auditor_admit",
-    "subject": "audit.example.org",
+    "subject": "audit.example.net",
     "details": {
       "key_id": "test-aud-k1",
       "alg": "Ed25519",
@@ -13,6 +13,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "JG0mAAhAgkI26OeummwBWgxh6yJJtEdo0JePUfUAKAMWmkpoLjW72ux0Hkjh4AWM-U70-yfpQCrpYQ7n4H2PCQ"
+    "value": "KipC_S8K0LIPARrY3Sn9QEsNhDsCEaUW29uvDLZ9BpXleO4SmAiF33rYvaBw3mQK-8Amq499iyZ9kdY9QqJ7Bg"
   }
 }

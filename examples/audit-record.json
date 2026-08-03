@@ -2,7 +2,7 @@
   "record": {
     "dc_version": "1.0.0",
     "audited_delta": "sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047",
-    "auditor_id": "audit.example.org",
+    "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": "hmac-sha256:8652be7fd06816b6998fb3c7325a35ada44d8b350ac88b4c8005530472bfb928",
     "ref_extract_commitment": "hmac-sha256:6379342666cfdee8f80015a9e3d7f46085bf8a7d93f1e7de4b6aef2608f332da",
@@ -14,6 +14,6 @@
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "VhemNI3UyEaLCBA8JACFOWlMN8RgrRu3g1I-ntw5nPkQEXJLcdtortJQyfPLbxjPcHc2fyOsgVj6UqMBtlLsDg"
+    "value": "dE42qFXvETnNd5-CkwWFnb1lbEWK9CBDyE5GtvFeCK009qWaGxiaNFXg6N8HzYo-7Q1dozznAolER6KNyIURAg"
   }
 }
