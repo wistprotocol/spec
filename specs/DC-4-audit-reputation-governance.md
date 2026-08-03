@@ -154,7 +154,15 @@ assignments under another.
 Auditor-supplied and unverifiable by anyone else, so nothing anchored to it
 is recomputable. Every admission test and every window in this document
 reads Block `sealed_at` values instead (DC-3 §3.1), which are ordered,
-strictly increasing, and identical for every replaying party. Validators
+strictly increasing, and identical for every replaying party — the appeal
+window of §7 and the recovery window of DC-1 §5.2 included, neither of
+which reads the `effective_at` of the Entry that records it. Every
+timestamp this suite compares against a Block `sealed_at` is written in the
+same whole-second, literal-`Z` form that field carries, so no comparison
+rests on a normalization step two implementations could perform
+differently: `fetched_at` below, a Feed's `generated_at` (DC-2 §3.2), a
+Registry Update's `effective_at`, and a `notice`'s `appeal_deadline` (§9.1)
+are all constrained to it by their schemas. Validators
 recomputing reputation MUST reject:
 
 - a Record signed by a key not admitted at, or removed at or before, the
@@ -172,18 +180,25 @@ recomputing reputation MUST reject:
   the Log's own ordering;
 - a Record whose Auditor audited a domain the self-audit rule above puts
   beyond it;
+- a Record whose Auditor was **in coverage failure** at the `sealed_at` of
+  the Block carrying that Record — that is, one for which the Log shows
+  more than `coverage_failures_max` failed coverage duties inside the 30
+  days ending there (§4). The predicate is computed from the Log like every
+  other test here, and it does not wait on an `auditor_remove`;
 - a Record whose `similarity` does not satisfy §5's condition for its own
   `verdict` — a `verdict: "inconsistent"` Record whose effective similarity
   (§5) is not below §5's threshold for that verdict is malformed evidence,
   not a divergent judgement call, and MUST NOT be allowed to leave `sim`
   (§7) resting on a value outside every severity band.
 
-The first rejection is scoped to reputation and does not reach coverage: an
-Auditor removed after a Block was sealed but before its coverage deadline
-still discharges its §4 duty for that Block by publishing, because coverage
-is anchored to the audited Block's `sealed_at` rather than to the height at
-which the Record lands. Such a Record proves the Auditor met its duty; it
-does not enter any domain's reputation.
+The first and the coverage-failure rejections are scoped to reputation and
+do not reach coverage: an Auditor removed after a Block was sealed but
+before its coverage deadline still discharges its §4 duty for that Block by
+publishing, because coverage is anchored to the audited Block's `sealed_at`
+rather than to the height at which the Record lands, and an Auditor in
+coverage failure still discharges — and can still recover from — the duty
+by publishing. Such a Record proves the Auditor met its duty; it does not
+enter any domain's reputation.
 
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
 `aggregator_key_remove` actions defined in DC-3 §3.4; their `details`
@@ -306,13 +321,38 @@ its coverage duty for a Block** when any selected Delta lacks a Record at
 the deadline, or when its selection was empty and no attestation appears;
 publishing Records for some but not all selected Deltas is a failure, not
 partial credit. Because `pi` pins the selection set exactly, that is an
-objective and recomputable fact rather than a judgement. An Auditor that
-fails the duty for more than `coverage_failures_max` Blocks in any 30-day
-window (Parameter Registry; default 24) is removed by `auditor_remove`
-(§3), whose `evidence` MUST name the failed Blocks. Without the attestation
-an Auditor that simply does nothing would be indistinguishable from one
-whose VRF selected nothing, and coverage would rest on an out-of-band
-challenge — which §1's "nothing exists outside the Log" forbids.
+objective and recomputable fact rather than a judgement. Without the
+attestation an Auditor that simply does nothing would be indistinguishable
+from one whose VRF selected nothing, and coverage would rest on an
+out-of-band challenge — which §1's "nothing exists outside the Log"
+forbids.
+
+**The consequence is derived from the same fact.** An Auditor is **in
+coverage failure** at a height N when the Log shows it failing the duty for
+more than `coverage_failures_max` Blocks (Parameter Registry; default 24)
+inside the 30 whole days ending at Block N's `sealed_at`. From that height,
+and for as long as that holds, its Records do not count: a validator
+recomputing reputation rejects every Record it signs (§3), so its verdicts
+enter no domain's `C`, no `penalty_n`, and no Confirmed Inconsistency.
+The Aggregator MUST also remove it by `auditor_remove` (§3), whose
+`evidence` MUST name the failed Blocks — but the `auditor_remove` records
+the consequence and does not create it. A failure count is exactly as
+recomputable as the selection set that produced it, and the state a
+provably shirking Auditor's Records are in MUST NOT depend on whether the
+one party those Records are evidence against chooses to file: an Aggregator
+holding an Auditor key of its own would otherwise keep a demonstrably
+shirking Auditor on the roster and keep counting whatever it did publish.
+
+The derived exclusion tracks the predicate rather than outliving it: as
+failures age out of the 30-day window with none replacing them, the Auditor
+is no longer in coverage failure and its later Records count again. A
+sealed `auditor_remove` does not age out — removal is the Log-native fact
+§3 reads for admission, and it is permanent — so the derivation is a floor
+under the duty, never a way around removal. The exclusion is scoped to
+reputation and carries no notice and no appeal, for the reason §5 gives for
+the unauditable horizon: nothing here is punitive, and what it withdraws is
+the weight of Records from a party the Log already shows was not doing the
+work they claim to be part of.
 
 `coverage_attestation` is the second class of Registry Update not signed by
 the Aggregator (the first is `appeal`, §7): the Auditor signs it with its
@@ -442,8 +482,9 @@ Confirmed Inconsistencies may lie, not how old any of them is when the
 process runs, and level 3's other branch — any severity-3 — fires on a
 single Confirmed Inconsistency of no age at all. At the other end §7 sets
 no deadline for sealing a `notice` once the criteria are met, the appeal
-window runs from the notice's `effective_at` rather than from a confirming
-Record's sealing, and level 4's second branch — a level-3 domain that
+window runs from the `sealed_at` of the Block sealing that notice rather
+than from a confirming Record's sealing, and level 4's second branch — a
+level-3 domain that
 accrues one further Confirmed Inconsistency — carries no span bound
 whatever, because the level-3 state it builds on has none. An Aggregator
 that files late moves the whole process later without limit.
@@ -451,9 +492,10 @@ that files late moves the whole process later without limit.
 So the age of a confirming Record when the appeal resting on it is heard
 is unbounded above, and one reachable case is enough to show the
 consequence: on level 4's 180-day branch the oldest confirming Record can
-already be 180 days old at the `notice`, and 180 + 14 + 30 puts the ruling
-at day 224 — past the 180-day availability window (DC-3 §6.1). Nothing in
-the suite guarantees a Reference Payload is still served at that point. It
+already be 180 days old at the `notice`, and 180 + 14 + 7 + 30 — the appeal
+window, the sealing deadline and the ruling deadline of §7 — puts the
+ruling at day 231, past the 180-day availability window (DC-3 §6.1).
+Nothing in the suite guarantees a Reference Payload is still served at that point. It
 is guaranteed for confirmation, which is fixed within 72 hours of the
 `sealed_at` of the Block sealing the first `inconsistent` Record, and for
 nothing beyond that: a Record's
@@ -475,8 +517,10 @@ appellant contesting an unverifiable Record is contesting whether the
 Auditor judged honestly, which is what `auditor_remove` and the §4 VRF
 evidence address, not whether the arithmetic was applied correctly.
 
-Once a Reference Payload is withdrawn (DC-3 §6.2), the salt is destroyed
-and that Record's commitments can no longer be checked by anyone, the
+Once a Reference Payload is withdrawn (DC-3 §6.2), the salt is destroyed at
+every serving path that rule binds — the Aggregator's, every Mirror's, and
+the Publisher's own well-known copy (DC-2 §3.1) — and that Record's
+commitments can no longer be checked by anyone, the
 Auditor included. That is the intended outcome, not a defect: it is the
 same instant at which the Delta's own commitment stops being checkable. A
 verifier that encounters an unverifiable commitment MUST NOT treat the
@@ -1001,16 +1045,18 @@ the reputation weight of what the evidence already shows.
 Process requirements:
 
 - Levels 1–2 follow automatically from the escalation criteria; levels 3
-  and 4 MUST be preceded by a `notice` naming the evidence and opening the
-  appeal window. Levels 1–2 need neither: their entire basis — the
-  confirming Audit Records and the §7 severity table above — is already
+  and 4 MUST be preceded by a `notice` naming the evidence, whose sealing
+  starts the appeal window below. Levels 1–2 need neither: their entire
+  basis — the confirming Audit Records and the §7 severity table above — is already
   public and independently recomputable, so there is nothing a notice
   would let the Publisher contest that a replaying party cannot already
   verify for itself; this holds even for level 2's weight reduction, which
   affects standing without suspending ingestion. This applies to sanction
   notices (`details.kind` `"sanction"`); a `notice` with `details.kind`
-  `"recovery"` opens the DC-1 §5.2 recovery window instead and is not
-  subject to the appeal process below.
+  `"recovery"` *records* the DC-1 §5.2 recovery window instead — that
+  window opens at the `sealed_at` of the Block sealing the recovery
+  Declaration itself, so it opens whether or not the notice is ever sealed
+  — and is not subject to the appeal process below.
 - Escalation criteria: level 1 at a single Confirmed Inconsistency; level
   2 at 3 within 90 days; level 3 at 10 within 90 days, or any severity-3;
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
@@ -1048,15 +1094,17 @@ Process requirements:
   nothing it could not read for itself — it fixes *who is obliged to tell
   it*, and it binds the one party that also holds the ingestion lever.
   Reversal propagates the same way the state does: a `sanction_lift`, an
-  `appeal_ruling` of `"overturned"`, and a ruling deadline that lapses are
-  all sealed facts, so every recomputing party lifts the state at the same
+  `appeal_ruling` of `"overturned"`, a ruling deadline that lapses, and an
+  appeal-sealing deadline that lapses with neither an `appeal` nor an
+  `"unappealed"` ruling sealed against the notice are all facts of the Log,
+  so every recomputing party lifts the state at the same
   height without waiting on the Aggregator (DC-3 §7). This is also why the
   derivation is bounded to the sanction's *state* and never to `penalty_n`:
   §6.1 counts the penalty from the evidence regardless, and an appeal has
   never reached it.
 
   The limit is worth naming rather than glossing. The appeal window is
-  anchored to a `notice`'s `effective_at`, so where the criteria are met
+  anchored to a `notice`'s Block, so where the criteria are met
   and the Aggregator seals no `notice`, the derived state is in force on
   recomputation with no window ever opening against it. The Publisher's
   remedy in that case is not an appeal but the evidence: the confirming
@@ -1066,13 +1114,77 @@ Process requirements:
   Aggregator that suppresses notices while the derivation runs is visible
   as exactly that, and §8's invariant 4 is what the commons has instead of
   an appeal to it.
-- The appeal window is 14 days from the `notice`'s `effective_at`. If it
-  lapses with no `appeal`, the sanction takes effect unchanged; there is no
-  silent reprieve and no penalty for silence.
-- An `appeal` is signed by the Publisher and MUST verify against the Key
-  Set current at the `notice`'s Block — not the present one — so that a
-  domain in key compromise or identity reset (DC-1 §5.2) can still appeal.
-- An `appeal_ruling` MUST be sealed within 30 days of the `appeal`
+- **Every Registry Update has a Registry Update ID**:
+  `"sha256:" + hex(SHA-256(JCS(update)))` — the update's inner object
+  canonicalized and hashed under the same content-addressing construction
+  DC-1 §4 uses for a Delta ID and §5 for an Audit Record ID. An `appeal`
+  and an `appeal_ruling` name by that ID the `notice` they belong to
+  (§9.1), which is what attaches each to one process rather than to
+  whatever processes a domain has open.
+- The appeal window is `appeal_window_days` (14) from the `sealed_at` of
+  the Block sealing the `notice`, never from its `effective_at`.
+  `effective_at` is a value the Aggregator writes for itself, bounded by
+  nothing: a notice sealed today and dated a month ago would arrive with
+  its own appeal window already closed, and every recomputing party would
+  agree that it was. Every window in this document reads Block `sealed_at`
+  for exactly that reason (§3), and the notice's `appeal_deadline` (§9.1)
+  restates the derived instant rather than setting it — where the two
+  disagree, the Block governs.
+- **An appeal is published, then recorded.** A Publisher appeals by
+  serving a signed `appeal` Registry Update at
+  `/.well-known/deltacommons/appeals/<notice-id-hex>.json` (DC-2 §3.3),
+  where `<notice-id-hex>` is the 64-character hex digest of the notice's
+  Registry Update ID. That is the publish-then-pull path every other
+  Publisher artifact takes, and it is the only one still open to a domain
+  whose ingestion a level-3 sanction has suspended: the Publisher MAY ping
+  (DC-2 §4), but that domain's Pings are answered `403`, so DC-2 §3.3 puts
+  the fetch on the Aggregator as a duty that no notification gates. The
+  appeal exists from the moment it is served; the
+  Aggregator's Entry records it rather than creating it, and any party can
+  fetch the served copy and verify it for itself. An `appeal` is signed by
+  the Publisher and MUST verify against the Key Set current at the
+  `notice`'s Block — not the present one — so that a domain in key
+  compromise or identity reset (DC-1 §5.2) can still appeal.
+- **Sealing an appeal is a duty with a derived deadline.** An `appeal`
+  served inside the appeal window MUST be sealed within `appeal_seal_days`
+  (Parameter Registry; default 7) of the Aggregator obtaining it, and in no
+  case later than `appeal_seal_days` after the window closes. Call that
+  instant **T**: the notice's Block `sealed_at`, plus `appeal_window_days`,
+  plus `appeal_seal_days` — a function of the Log and nothing else. By T
+  the Aggregator MUST have sealed, for that notice, either the `appeal` it
+  received or an `appeal_ruling` with `outcome` `"unappealed"` recording
+  that the window closed with none. If the Log holds neither at T, the
+  sanction's *state* — the level 3 ingestion rejection or the level 4
+  exclusion from materialization — is void on recomputation from T,
+  exactly as a lapsed ruling deadline voids it below.
+- **Why the omission carries the consequence.** Suppressing an appeal was
+  otherwise strictly more effective than suppressing a ruling, which this
+  section already closes: an unsealed appeal starts no clock, so a sanction
+  the Publisher had contested stood forever while one it had not was
+  eventually void. Anchoring the duty to T removes the asymmetry without
+  making any party's silence a reprieve. A Publisher that does not appeal
+  is answered by the `"unappealed"` ruling and its sanction takes effect
+  unchanged — there is no silent reprieve and no penalty for silence. An
+  Aggregator that receives an appeal and buries it must seal an
+  `"unappealed"` ruling to keep the sanction standing, and that ruling is a
+  signed, permanent, public claim that the Publisher's own served,
+  signed appeal falsifies at a path anyone can fetch. What was invisible
+  and free becomes attributable and dated, and doing nothing at all lifts
+  the state on the same clock as an unmet ruling deadline.
+
+  One consequence is worth naming rather than leaving to be discovered:
+  sealing a `notice` now starts a clock the Aggregator must answer, so an
+  Aggregator looking only at its own workload is better off sealing none.
+  That path is already closed from the other side and at a price the same
+  §7 sets — the Aggregator MUST issue the `notice` before it enforces the
+  rejection or exclusion itself, so an Aggregator that files nothing keeps
+  no ingestion lever and no exclusion of its own; what remains is the
+  derived state that every other party applies without it. The bargain is
+  the intended one. An Aggregator that wants a level-3 or level-4 sanction
+  it can act on takes on a bounded, public duty to run the process it
+  opened, and one that will not take that on does not get to act.
+- An `appeal_ruling` MUST be sealed within `ruling_deadline_days` (30) of
+  the `sealed_at` of the Block sealing the `appeal`
   (Parameter Registry: ruling deadline). An appeal does not stay a
   sanction unless the ruling says so, but if the deadline passes with no
   ruling, the sanction's *state* — the level 3 ingestion rejection or the
@@ -1122,22 +1234,81 @@ are made by `parameter_change` Registry Updates and MUST have
 — itself a parameter, changeable only by the same process). The
 **Identifier** column is the value `details.parameter` MUST carry
 (schema: `schemas/registry-update.schema.json`, §9.1); a parameter with no
-identifier is not independently amendable by `parameter_change` — it is
-either a fixed structural definition or, for the decay table digest,
-changed by publishing a new table (§6), never by a bare number.
+identifier is not independently amendable by `parameter_change`, for one of
+three reasons. It is a fixed structural definition, like the reputation
+resolution. It is changed by publishing a new artifact rather than a bare
+number, as the decay table digest is (§6). Or its value is meaningful only
+against another parameter, which is the case for `coverage_failures_max`:
+it counts **Blocks**, so at the default hourly cadence 24 Blocks is a
+tolerance of about one day in thirty, and halving `block_cadence_seconds`
+halves that tolerance in wall-clock terms without anyone amending this
+number. The coupling is stated rather than removed, and it binds the
+cadence: a `parameter_change` to `block_cadence_seconds` is also a change
+to how much shirking §4 tolerates, and MUST be weighed as both.
 
-A `parameter_change` MUST NOT make a §7 severity band unreachable, and
-MUST NOT set a confirmation or weight parameter (`confirm_auditors`,
-`penalty_weight`, and any later parameter serving the same role) to a
-value that nullifies the mechanism implementing a §8 invariant. The
-schema enforces this wherever it reduces to a single numeric floor
-(`penalty_weight` ≥ 1, `confirm_auditors` ≥ 2, `similarity_variance_floor`
-> 150 000, `payload_window_days` ≥ 30, `unauditable_horizon_days` ≥ 7,
-`mirror_retention_days` ≥ 44);
-where it does not — a value that is individually in range but
-collapses a band only in combination with another parameter's current
-value — a party recomputing reputation MUST reject the `parameter_change`
-directly against this sentence rather than apply it.
+**Every value the registry carries is an integer** in the unit its row
+states, and `details.value` is typed `integer` for that reason (§9.1).
+The suite computes reputation, sampling and similarity in integers end to
+end (§4, §5, §6); a rational reaching `penalty_weight` would land in
+§6.2's denominator and a rational reaching `sampling_slope` in §4's clamp,
+which is the one way §6's "every input is an integer" could be falsified
+from inside a conforming Log.
+
+A `parameter_change` MUST NOT make a §7 severity band unreachable, and MUST
+NOT set **any** parameter — those in the table below as much as any a later
+revision adds — to a value that nullifies the mechanism implementing a §8
+invariant, or the audit, due-process or availability guarantee this suite
+states elsewhere. That is a rule about what a value does, not about which
+parameters were foreseen when it was written: a rate of zero is not a low
+rate but the absence of the mechanism, and a deadline of zero is not a
+tight deadline but an unmeetable one. The schema enforces it wherever it
+reduces to a fixed numeric bound; the table below publishes exactly those
+bounds, and each is the point at which the mechanism named beside it stops
+existing rather than a recommended setting.
+
+| Parameter | Bound | What a value past it removes |
+|---|---|---|
+| `block_cadence_seconds` | ≥ 1 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` — every window in this document — has a clock |
+| `feed_window` | ≥ 1 | a Feed that can hold no Delta ID leaves nothing discoverable to pull (DC-2 §3.2) |
+| `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (DC-1 §5.2, §8) |
+| `sampling_floor` | ≥ 1 | at zero the clamp's own lower bound is zero, so a maximum-reputation domain is never selected at all (§4) |
+| `sampling_ceiling` | ≥ 1 | at zero no Delta is ever selected by any Auditor, which voids every Audit Record before it is written and with it every confirmation, penalty and sanction — a more complete nullification than `confirm_auditors` = 1, which this section already forbids |
+| `similarity_consistent` | ≥ 150 002 and ≤ 1 000 000 | below `similarity_variance_floor`'s own floor the `dynamic_variance` band is empty; above the micro-unit range no audit can ever be `consistent`, so `C` never grows and every domain stays Provisional for ever (§5, §6) |
+| `similarity_variance_floor` | ≥ 150 001 and ≤ 300 000 | below, §7's severity-1 band is empty; above, a Confirmed Inconsistency between 300 000 and the new floor lands in no severity row at all (§5, §7) |
+| `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
+| `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
+| `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (DC-3 §3.1) |
+| `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
+| `age_norm_days` | ≥ 1 | zero is a division by zero in `base_u` (§6.1) |
+| `decay_constant_days` | ≥ 1 | zero is a division by zero in the decay table's own construction (§6.1) |
+| `decay_horizon_days` | ≥ 1 | a horizon of zero expires every penalty after a single day |
+| `penalty_weight` | ≥ 1 | at zero `penalty_n` leaves the formula entirely and no Confirmed Inconsistency costs anything (§6.2) |
+| `c_cap` | ≥ 1 | at zero `C` is always zero, so no domain ever satisfies the `provisional_audits` gate and reputation is capped at the Provisional cap for ever (§6) |
+| `appeal_window_days` | ≥ 1 | a window of zero days closes before the notice can be read, which is the whole of the due process levels 3 and 4 carry (§7) |
+| `appeal_seal_days` | ≥ 1 | at zero the Aggregator must seal a received appeal in the Block that closes the window, so the state voids for reasons no Aggregator can avoid (§7) |
+| `ruling_deadline_days` | ≥ 1 | at zero every level-3 and level-4 state voids at T, whatever the evidence (§7) |
+| `param_grace_days` | ≥ 1 | at zero a parameter changes in the Block that announces it, and the notice period this very section rests on is gone |
+| `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (DC-3 §6.1) |
+| `unauditable_horizon_days` | ≥ 7 | below, whether a URL is excluded turns on publication scheduling rather than on its `robots.txt` (§5) |
+| `mirror_retention_days` | ≥ 51 | below, an appellant cannot fetch the Records its own sanction rests on (DC-3 §6) |
+
+Where the rule does not reduce to a fixed bound — a value that is
+individually in range but collapses a mechanism only in combination with
+another parameter's current value — a party recomputing reputation MUST
+reject the `parameter_change` directly against the rule rather than apply
+it. The combinations the present table cannot express are named so that no
+party has to discover them: `sampling_ceiling` MUST NOT be below
+`sampling_floor`, or the level-1 sanction's intensified sampling is
+indistinguishable from no sanction; `similarity_consistent` MUST be
+greater than `similarity_variance_floor`, or the `dynamic_variance` band
+is empty; `c_cap` MUST NOT be below `provisional_audits`, or no domain can
+leave Provisional; `confirm_window_hours` and `coverage_deadline_hours`
+MUST NOT be shorter than `block_cadence_seconds`, or a duty falls due
+before the Block that could discharge it can be sealed; and the
+`mirror_retention_days` sum below. The escalation identifiers are the one
+group carrying no bound at all, because their published values are
+compound rather than single numbers; §7's criteria, not a single integer,
+are what a party checks them against.
 
 `payload_window_days` carries a floor for the same reason. The window is
 what makes a missing Payload evidence (DC-3 §6.1): shortened toward zero
@@ -1159,8 +1330,10 @@ audit need room to land inside the same window.
 `mirror_retention_days` carries one because the retention it sets is what
 makes an evidence bundle assemblable after the fact (DC-3 §6), and the
 proceedings that need one run on this suite's own clocks. An appeal opens
-within `appeal_window_days` of the `notice` and MUST be ruled on within
-`ruling_deadline_days` of the appeal, so at present defaults 44 days is the
+within `appeal_window_days` of the `notice`'s Block, MUST be sealed within
+`appeal_seal_days` of that window closing, and MUST be ruled on within
+`ruling_deadline_days` of the Block sealing it, so at present defaults 51
+days is the
 longest span the process itself guarantees between the sanction complained
 of and the ruling on it. A Mirror free to drop a Block sooner could leave an
 appellant unable to fetch the Audit Records its own sanction rests on, which
@@ -1170,11 +1343,11 @@ deadlines it protects have the same derivation rather than merely the same
 order of magnitude. The floor is a floor, not a target: the default is 90
 days, and the sum is the point below which the process stops working at all.
 
-Because that sum is of two amendable parameters, the schema can pin the
+Because that sum is of three amendable parameters, the schema can pin the
 constant but not the combination. A `parameter_change` raising
-`appeal_window_days` or `ruling_deadline_days` MUST NOT leave
-`mirror_retention_days` below their sum, and a party replaying the Log MUST
-reject one that does directly against this sentence, exactly as for the
+`appeal_window_days`, `appeal_seal_days` or `ruling_deadline_days` MUST NOT
+leave `mirror_retention_days` below their sum, and a party replaying the Log
+MUST reject one that does directly against this sentence, exactly as for the
 combination cases above.
 
 | Parameter | Identifier | Default | Defined in |
@@ -1211,6 +1384,7 @@ combination cases above.
 | Inclusion latency threshold | `latency_threshold_u` | reputation 0.5 = 500 000 micro-units | §6 |
 | Escalation: level 2 / level 3 / level 4 | `escalation_l2` / `escalation_l3` / `escalation_l4` | 3 in 90 days / 10 in 90 days or severity 3 / 3 severity-3 in 180 days or a level-3 domain's next Confirmed Inconsistency | §7 |
 | Appeal window | `appeal_window_days` | 14 days | §7 |
+| Appeal sealing deadline | `appeal_seal_days` | 7 days | §7 |
 | Appeal ruling deadline | `ruling_deadline_days` | 30 days | §7 |
 | Recovery window | `recovery_window_days` | 7 days | DC-1 §5.2 |
 | Parameter change grace period | `param_grace_days` | 7 days | §9 |
@@ -1232,15 +1406,26 @@ mirroring §7 and §3:
   (§5) of the concurring, independent Auditors' Records that establish
   the Confirmed Inconsistency (§5's own minimum).
 - `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
-  additionally requires `reason`, `appeal_deadline` (date-time, the
-  `effective_at` + the appeal window, §7), and a top-level `evidence`
-  naming what the notice is about; a `"recovery"` notice requires nothing
-  further (DC-1 §5.2).
-- `appeal_ruling`: `outcome` (`"upheld"` or `"overturned"`) and
-  `reasoning`.
+  additionally requires `reason`, `appeal_deadline`, and a top-level
+  `evidence` naming what the notice is about; a `"recovery"` notice
+  requires nothing further (DC-1 §5.2). `appeal_deadline` restates the
+  instant §7 derives — the `sealed_at` of the Block sealing this notice
+  plus `appeal_window_days` — and carries the whole-second-plus-`Z` form
+  `sealed_at` carries, so the restatement and the value it is computed
+  from compare without normalization. It is descriptive: where it and the
+  Block disagree, §7's derivation governs.
+- `appeal`: `notice`, the Registry Update ID (§7) of the `notice` being
+  appealed. REQUIRED, because §7's sealing deadline and void rule are
+  evaluated per notice: an appeal naming none would attach to every open
+  process of that domain or to none of them.
+- `appeal_ruling`: `notice` (the Registry Update ID of the `notice` this
+  ruling closes), `outcome` (`"upheld"`, `"overturned"`, or
+  `"unappealed"` — the last recording that the appeal window closed with
+  no appeal served, §7) and `reasoning`.
 - `parameter_change`: `parameter`, one of the Identifier values in the
-  table above, and `value` (a number, bounded per the sentence above
-  where a single numeric floor exists); `effective_at` MUST be ≥ 7 days
+  table above, and `value` — an **integer** in that parameter's own unit,
+  bounded by the table of bounds above where a fixed bound exists;
+  `effective_at` MUST be ≥ 7 days
   after the Block's `sealed_at`, as stated above.
 - `payload_withdrawal`: `delta_id` (the Delta whose Payload is being
   withdrawn), `legal_basis`, and `jurisdiction` (DC-3 §6.2); `subject` is
@@ -1249,10 +1434,10 @@ mirroring §7 and §3:
   unfalsifiable claim to have removed something — which is precisely what
   a quiet drop looks like.
 
-`sanction_lift`, `appeal`, and `coverage_attestation` carry an
-unconstrained `details` object; §4 and §7 govern their content in prose,
-not the schema. The same is true of any action a future major revision
-adds.
+`sanction_lift` and `coverage_attestation` carry an unconstrained `details`
+object, and an `appeal`'s is unconstrained beyond the `notice` it MUST
+name; §4 and §7 govern the rest of their content in prose, not the schema.
+The same is true of any action a future major revision adds.
 
 No `details` object, constrained or not, may carry a bare digest of
 Payload content. A content-derived value anywhere in this suite is
@@ -1261,9 +1446,22 @@ all (DC-3 §6.2). An unconstrained `details` is unconstrained in shape, not
 licensed to reintroduce the confirmability the salt exists to destroy, and
 a party replaying the Log MUST reject a Registry Update that carries one.
 
-The same applies to the free-text fields `legal_basis`, `reason` and
-`reasoning`: they are sealed and unwithdrawable, and MUST NOT carry
-personal data (§11).
+**No `details` object, constrained or not, and no `evidence` element, may
+carry personal data.** The rule is written over the position rather than
+over a list of field names, because the position is what makes it
+necessary: everything a Registry Update carries is sealed, permanent, and
+outside the withdrawal mechanism entirely (DC-3 §6.2), so any of it recited
+once is recited for ever. It binds whoever writes the value, not only the
+Aggregator — a `payload_withdrawal`'s `legal_basis`, a `notice`'s `reason`
+and an `appeal_ruling`'s `reasoning` are the Aggregator's, and an
+`appeal`'s and a `sanction_lift`'s `details` are the Publisher's, written
+by the party with the strongest reason to recite a data subject's
+circumstances and the least reason to have read this paragraph. A
+`legal_basis` names a legal ground, not the person invoking it; a `reason`,
+a `reasoning` and an appeal's grounds name their evidence by Audit Record
+ID (§5) or Registry Update ID (§7) rather than reciting what was found.
+Nothing in this suite requires identifying a data subject in order to
+record why an action was taken or contested (§11).
 
 ## 10. Security Considerations
 
@@ -1317,9 +1515,24 @@ personal data (§11).
   possibility rather than tolerating it: every quantity is an integer,
   `exp()` is replaced by a published table, and division order and
   rounding are pinned. There is no conforming path that uses `double`.
-- **Sanction censorship.** An Aggregator cannot quietly suppress a
-  sanction or an appeal: withholding log entries from some observers is
-  equivocation, detectable and provable per DC-3 §5.
+- **Sanction censorship, and why equivocation is not the answer to it.**
+  Omission is not equivocation. An Aggregator that seals a Block without an
+  entry it should have sealed produces one chain, consistent with itself,
+  which every observer sees identically — DC-3 §5's proof needs two
+  Checkpoints with one `block_number` and two `block_hash`es, and uniform
+  omission produces neither. Nothing about suppression is detectable that
+  way, and this document does not rest on the claim that it is. What
+  bounds it is that the consequences of the entries an Aggregator would
+  want to suppress do not depend on the entries. A `sanction` it never
+  files leaves the penalty in place, because §6.1 computes `penalty_n` from
+  the Audit Records (§7). A ladder rung it never records is in force on
+  recomputation from the height the criteria were met (§7). A `notice` it
+  never seals opens no window, and the Publisher's remedy there is the
+  evidence rather than an appeal (§7). And an `appeal` it never seals
+  voids the sanction's state at T unless it also seals an `"unappealed"`
+  ruling, which the Publisher's own served appeal falsifies (§7). Each is
+  a derivation the Aggregator cannot reach, not a detection it cannot
+  evade.
 - **A sanction's severity can be neither fabricated nor suppressed.**
   Severity is derived from the confirming Audit Records' **effective
   similarity** values (§5) by the §7 table — the sealed `similarity` read
@@ -1439,16 +1652,23 @@ deliberately, because reputation is a pure function of Log history (§6)
 and must remain recomputable after a withdrawal that the audited domain
 did not control.
 
-A third residue is free text. A `payload_withdrawal`'s `legal_basis`, a
-`notice`'s `reason` and an `appeal_ruling`'s `reasoning` are sealed in the
-Log, permanent, and outside the withdrawal mechanism entirely — the same
-class as a Delta's `meta` (DC-1 §3.7). The party writing one MUST NOT
-include personal data in it. A `legal_basis` names a legal ground, not the
-person invoking it; a `reason` and a `reasoning` name their evidence by
-Audit Record ID (§5) rather than reciting what was found. Nothing in this
-suite requires identifying a data subject in order to record why an action
-was taken, and doing so would seal into the Log precisely the data an
-erasure is meant to remove.
+A third residue is everything a Registry Update carries. Its `details` and
+its `evidence` are sealed in the Log, permanent, and outside the withdrawal
+mechanism entirely — the same class as a Delta's `meta` (DC-1 §3.7) — and
+§9.1 therefore forbids personal data in any of it, whether the schema
+constrains that field or leaves it open, and whoever writes it. The
+enumeration matters less than the position, but the positions are worth
+naming: the Aggregator writes a `payload_withdrawal`'s `legal_basis`, a
+`notice`'s `reason` and an `appeal_ruling`'s `reasoning`; the Publisher
+writes an `appeal`'s and a `sanction_lift`'s `details`, and an appeal is
+the one place in this suite where a party is contesting a finding about
+itself and is most likely to recite a person's circumstances in doing so.
+A `legal_basis` names a legal ground, not the person invoking it; a
+`reason`, a `reasoning` and an appeal's grounds name their evidence by
+Audit Record ID (§5) or Registry Update ID (§7) rather than reciting what
+was found. Nothing in this suite requires identifying a data subject in
+order to record why an action was taken or contested, and doing so would
+seal into the Log precisely the data an erasure is meant to remove.
 
 The Auditor's WARC capture is a full copy of the page, and it is held
 off-Log. DC-3 §6.2 requires the Auditor to destroy it, along with the
@@ -1504,10 +1724,19 @@ hands.
       verifying the Declaration at the Auditor's own domain, and never
       under a hostname that fails §3's independence test against its own
       `log_id` (§3)
-- [ ] Excludes unauditable URLs from materialization until an audit
-      succeeds (§5, DC-3 §7)
+- [ ] Excludes unauditable URLs from materialization for as long as §5's
+      predicate holds — two independent `robots_excluded` Records inside
+      the horizon, cleared only by a successful audit from an Auditor
+      independent of both, or by their ageing out (§5, DC-3 §7)
+- [ ] Removes an Auditor past `coverage_failures_max` by `auditor_remove`
+      naming the failed Blocks — recording an exclusion that §4 already
+      derives, never creating it (§3, §4)
 - [ ] Applies sanctions only per the §7 ladder — evidence for every
       sanction, notice and an appeal window for levels 3–4
+- [ ] Fetches every sanction notice's appeal path (DC-2 §3.3) and seals
+      the `appeal` it finds, or an `"unappealed"` `appeal_ruling`, by the
+      §7 sealing deadline — and rules on a sealed appeal within the ruling
+      deadline (§7)
 - [ ] Never suspends ingestion for a Provisional domain; only
       Sanctioned Quarantine or delisting rejects a Ping or pull (§6, §7)
 - [ ] Enforces the §8 invariants unconditionally
@@ -1529,6 +1758,10 @@ hands.
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
       Inconsistencies, confirmed by independent Auditors inside the
       `sealed_at` window (§3, §5)
+- [ ] Stops counting the Records of an Auditor in coverage failure at
+      their own Block's `sealed_at`, whether or not an `auditor_remove`
+      was ever sealed, and counts them again once the failures age out of
+      the 30-day window (§3, §4)
 - [ ] Excludes `attest` and `delete` audits from `C`, counts distinct
       Normalized URLs, and applies `C_cap` (§6.1)
 - [ ] Applies the Provisional cap as a ceiling, not a floor (§6.2), and
@@ -1542,8 +1775,12 @@ hands.
       escalation criteria at the height they are met, whether or not the
       Aggregator sealed the `notice` and `sanction` that record them, and
       lifts each at the height a `sanction_lift`, an `"overturned"`
-      `appeal_ruling`, or a lapsed ruling deadline takes effect (§7,
-      DC-3 §7)
+      `appeal_ruling`, a lapsed ruling deadline, or a lapsed
+      appeal-sealing deadline takes effect (§7, DC-3 §7)
+- [ ] Runs every window from the `sealed_at` of the Block sealing the
+      Entry that opens it — the appeal window from the `notice`'s Block,
+      the recovery window from the recovery Declaration's own (DC-1 §5.2)
+      — and never from an `effective_at` (§3, §7)
 - [ ] Keeps that derivation to the sanction's state and never lets an
       appeal, a lift or a lapsed deadline touch `penalty_n`, which §6.1
       derives from the evidence alone (§6.1, §7)

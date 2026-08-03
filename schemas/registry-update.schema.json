@@ -16,7 +16,12 @@
         "subject": {"type": "string", "maxLength": 256},
         "details": {"type": "object"},
         "evidence": {"type": "array", "items": {"type": "string", "maxLength": 256}},
-        "effective_at": {"type": "string", "format": "date-time"}
+        "effective_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (DC-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the §9 grace period above all — so the two are written in one form and compare without normalization. It is descriptive of when the act takes effect and never the anchor of a window: DC-4 §7 runs the appeal window, and DC-1 §5.2 the recovery window, from the `sealed_at` of the Block sealing the Entry."
+        }
       }
     },
     "sig": {
@@ -109,7 +114,12 @@
                 "properties": {
                   "kind": {"enum": ["sanction", "recovery"]},
                   "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
-                  "appeal_deadline": {"type": "string", "format": "date-time"}
+                  "appeal_deadline": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+                    "description": "The instant DC-4 §7's appeal window closes, restated for the Publisher's convenience: the `sealed_at` of the Block sealing this notice plus `appeal_window_days`. It is descriptive — every party derives the same deadline from the Block — and carries the whole-second-plus-Z form so that the restatement and the Block value it is computed from compare without normalization."
+                  }
                 },
                 "if": {"properties": {"kind": {"const": "sanction"}}},
                 "then": {"required": ["reason", "appeal_deadline"]}
@@ -130,9 +140,10 @@
             "properties": {
               "details": {
                 "type": "object",
-                "required": ["outcome", "reasoning"],
+                "required": ["notice", "outcome", "reasoning"],
                 "properties": {
-                  "outcome": {"enum": ["upheld", "overturned"]},
+                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (DC-4 §7) of the `notice` whose process this ruling closes. Required because the ruling deadline and the void rule of §7 are evaluated per notice: a ruling that named none would close every open process of that domain at once, or none of them."},
+                  "outcome": {"enum": ["upheld", "overturned", "unappealed"]},
                   "reasoning": {"type": "string", "minLength": 1, "maxLength": 1024}
                 }
               }
@@ -164,13 +175,41 @@
                     "quota_base", "quota_slope", "latency_threshold_u", "escalation_l2",
                     "escalation_l3", "escalation_l4", "appeal_window_days", "ruling_deadline_days",
                     "param_grace_days", "payload_window_days", "unauditable_horizon_days",
-                    "mirror_retention_days"
+                    "mirror_retention_days", "appeal_seal_days"
                   ]},
-                  "value": {"type": "number"}
+                  "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit DC-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying DC-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
                 },
                 "allOf": [
                   {
-                    "if": {"properties": {"parameter": {"const": "penalty_weight"}}},
+                    "if": {"properties": {"parameter": {"const": "block_cadence_seconds"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "feed_window"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "recovery_window_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "sampling_floor"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "sampling_ceiling"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "similarity_consistent"}}},
+                    "then": {"properties": {"value": {"minimum": 150002, "maximum": 1000000}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "similarity_variance_floor"}}},
+                    "then": {"properties": {"value": {"minimum": 150001, "maximum": 300000}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "shingle_size"}}},
                     "then": {"properties": {"value": {"minimum": 1}}}
                   },
                   {
@@ -178,8 +217,48 @@
                     "then": {"properties": {"value": {"minimum": 2}}}
                   },
                   {
-                    "if": {"properties": {"parameter": {"const": "similarity_variance_floor"}}},
-                    "then": {"properties": {"value": {"minimum": 150001}}}
+                    "if": {"properties": {"parameter": {"const": "confirm_window_hours"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "coverage_deadline_hours"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "age_norm_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "decay_constant_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "decay_horizon_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "penalty_weight"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "c_cap"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "appeal_window_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "appeal_seal_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "ruling_deadline_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "param_grace_days"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
                   },
                   {
                     "if": {"properties": {"parameter": {"const": "payload_window_days"}}},
@@ -191,7 +270,7 @@
                   },
                   {
                     "if": {"properties": {"parameter": {"const": "mirror_retention_days"}}},
-                    "then": {"properties": {"value": {"minimum": 44}}}
+                    "then": {"properties": {"value": {"minimum": 51}}}
                   }
                 ]
               }
@@ -229,6 +308,26 @@
           "update": {
             "properties": {
               "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253}
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "DC-4 §7: an appeal is signed by the Publisher and answers exactly one `notice`. The sealing deadline and the void rule are evaluated per notice, so an appeal that named none would be unattachable to the process it belongs to. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "appeal"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["notice"],
+                "properties": {
+                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (DC-4 §7) of the `notice` being appealed."}
+                }
+              }
             }
           }
         }
