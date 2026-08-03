@@ -969,6 +969,38 @@ def _snapshot_content_digest():
         assert stale not in spec, f"DC-3 still claims byte-reproducible Snapshots: {stale!r}"
 check("snapshot:content-digest", _snapshot_content_digest)
 
+def _snapshot_links_materialization():
+    """DC-3 §7: the links materialization is a pure function of live
+    records' Payloads — recompute it from examples/payload.json."""
+    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
+    expected = [
+        {"source_url": delta["url"], "target_url": u, "position": i}
+        for i, u in enumerate(payload["content"]["links"]["urls"])]
+    assert vec["links"] == expected, "links materialization != derivation from Payload"
+    manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())
+    paths = {f["path"]: f["tier"] for f in manifest["manifest"]["files"]}
+    assert paths.get("tier1/links.parquet") == 1, "links.parquet missing from manifest"
+    assert paths.get("tier0/embeddings.parquet") == 0, \
+        "embeddings.parquet missing from manifest (DC-3 §6 layout lists it)"
+
+check("spec:snapshot-links", _snapshot_links_materialization)
+
+def _snapshot_links_twin():
+    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    mutated = json.loads(json.dumps(vec["links"]))
+    assert mutated, "vector carries no link tuples to mutate"
+    mutated[0]["position"] += 1
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
+    expected = [
+        {"source_url": delta["url"], "target_url": u, "position": i}
+        for i, u in enumerate(payload["content"]["links"]["urls"])]
+    assert mutated != expected, "a shifted position still matched — check is blind"
+
+check("negative:snapshot-links", _snapshot_links_twin)
+
 def _merkle_empty():
     expected = "sha256:" + hashlib.sha256(b"\x00").hexdigest()
     assert expected == "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", \
