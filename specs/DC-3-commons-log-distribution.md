@@ -624,7 +624,7 @@ Log-derived tuples only, so that it remains computable after a
 withdrawal, and the artifact's transport integrity is already pinned by
 its `files` entry. It transports declarations, never a judgement: which
 links are trustworthy, and what importance follows from being linked,
-is ranking, and ranking is outside this protocol (DC-4 §8; ADR-0006).
+is ranking, and ranking is outside this protocol (DC-4 §8, ADR-0006).
 
 **The materialized state.** The materialized state is a set of records
 keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
@@ -666,9 +666,9 @@ crawler happened to be turned away.
 Withdrawal reaches backward into Snapshots as well, because a Snapshot
 already published carries the content in its tier files —
 `tier1/extracts.parquet`'s text and `tier1/links.parquet`'s declared
-links alike, since a withdrawn Payload's links are content and leave
-distribution with it. The Aggregator and every Mirror MUST stop serving
-any Snapshot artifact containing withdrawn content: the Aggregator
+links alike, per §6.2's rule that both are content. The Aggregator and
+every Mirror MUST stop serving any Snapshot artifact containing
+withdrawn content: the Aggregator
 either withdraws that Snapshot from distribution or replaces it with
 one rebuilt under the exclusion rule above, under a fresh signed
 manifest and at a `log_position` at or above the withdrawal's sealing

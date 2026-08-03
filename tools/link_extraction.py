@@ -23,7 +23,8 @@ _UNRESERVED = set(
 _HOST_LDH = re.compile(
     r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$")
 
-_CHAR_REF = re.compile(r"&(amp|lt|gt|quot|apos);|&#(\d+);|&#[xX]([0-9A-Fa-f]+);")
+_CHAR_REF = re.compile(
+    r"&(amp|lt|gt|quot|apos);|&#(\d+);|&#[xX]([0-9A-Fa-f]+);", re.ASCII)
 _NAMED_REFS = {"amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'"}
 
 _RAWTEXT_TAGS = (b"script", b"style", b"textarea")
@@ -32,7 +33,11 @@ _RAWTEXT_TAGS = (b"script", b"style", b"textarea")
 def _decode_entities(s: str):
     """DC-2 §11 step 4: decode the five named references and numeric
     character references (decimal and hex). An `&` that forms none of
-    these is left exactly as written.
+    these is left exactly as written. The digit runs are ASCII `0-9`
+    only (`re.ASCII` on `_CHAR_REF`): `\\d` on a `str` pattern otherwise
+    matches any Unicode decimal digit, and Python's `int()` normalizes
+    those before conversion, so a non-ASCII-digit reference would
+    silently decode against `&#NNN;` (decimal)'s plain reading.
 
     A numeric reference whose code point is not a Unicode scalar value —
     above 0x10FFFF, or a surrogate 0xD800-0xDFFF — makes the whole

@@ -680,12 +680,11 @@ reads `link_variance`, and `link_agreement` < `link_variance_floor` reads
 `link_inconsistent`. That second partition is nested inside the one
 extract band it can move a verdict out of — an extract-`dynamic_variance`
 or extract-`inconsistent` audit is already decided and never reaches
-it — and it is vacuous, the qualifying clause simply not applying,
-wherever the link dimension is neutral (`delete`, a non-HTML
-representation, or an extract band other than `consistent`). One
-partition over the extract reading, nested with a second over
-`link_agreement` where and only where the first admits it: exactly one
-verdict fits every audit, seven rows included.
+it — and the qualifying clause is simply vacuous, not applying, for a
+`delete` audit, a non-HTML representation, or an extract band other than
+`consistent`. One partition over the extract reading, nested with a
+second over `link_agreement` where and only where the first admits it:
+exactly one verdict fits every audit, seven rows included.
 
 **The link dimension.** Where the audited change type is `new`, `update`
 or `attest` and the fetched representation is HTML, the Auditor also
@@ -816,9 +815,9 @@ sealing the confirming Record no more than 72 hours after the `sealed_at`
 of the Block sealing the first such Record. The window is measured on
 Blocks and not on `fetched_at` for the reason §3 gives: `fetched_at` is
 Auditor-supplied, and a confirmation nobody can recompute is not evidence.
-Only Confirmed Inconsistencies enter the reputation formula and sanction
-ladder. This absorbs A/B tests, geo-variation, and legitimate change
-between push and audit.
+Only Confirmed Inconsistencies and Confirmed Link Inconsistencies enter
+the reputation formula and sanction ladder. This absorbs A/B tests,
+geo-variation, and legitimate change between push and audit.
 
 ## 6. Reputation
 
@@ -1494,7 +1493,7 @@ combination cases above.
 | `links` size cap | `links_cap_bytes` | 4096 octets of `JCS(links)` | DC-1 §3.6 |
 | Link `url` size cap | `link_url_cap_bytes` | 2048 octets of `JCS(url)` per link | DC-1 §3.6 |
 | `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | DC-1 §3.6 |
-| `url` size cap | `url_cap_bytes` | 2048 octets | DC-1 §3.2 |
+| `url` size cap | `url_cap_bytes` | 2048 octets of `JCS(url)` | DC-1 §3.2 |
 | Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | DC-3 §6 |
 | Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
@@ -1677,9 +1676,10 @@ record why an action was taken or contested (§11).
   Severity is derived from the confirming Audit Records' **effective
   similarity** values (§5) by the §7 table — the sealed `similarity` read
   directly, or mirrored where the audited Delta is a `delete` — not
-  asserted by the Aggregator, and §6.1 counts
-  every Confirmed Inconsistency's penalty from its confirming Block onward
-  regardless of whether a `sanction` Registry Update ever names it. A
+  asserted by the Aggregator, and §6.1 counts every Confirmed
+  Inconsistency's and Confirmed Link Inconsistency's penalty from its
+  confirming Block onward regardless of whether a `sanction` Registry
+  Update ever names it. A
   party recomputing reputation therefore arrives at the same `penalty_n`
   whether the Aggregator inflates a `details.severity` past what the
   Records show (the mismatched `sanction` is rejected and the table's
@@ -1841,11 +1841,11 @@ hands.
 - [ ] Applies DC-2 §11's extraction procedure, unchanged, to its own
       fetch of the Reference Payload's page when checking the declared
       `links` member (§5, DC-2 §11)
-- [ ] Computes `link_agreement` and reads `link_variance` or
-      `link_inconsistent` from it whenever the link dimension applies — a
-      `new`, `update` or `attest` audit of an HTML representation whose
-      extract reading is `consistent` — and seals the field on the Record
-      (§5)
+- [ ] Computes `link_agreement` and seals the field on the Record
+      whenever the link dimension applies — a `new`, `update` or `attest`
+      audit of an HTML representation — and reads `link_variance` or
+      `link_inconsistent` from it once the extract reading is also
+      `consistent` (§5)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
       — including where the file discriminates between admitted Auditors,
@@ -1904,8 +1904,8 @@ hands.
       `subject`, its `fetched_at` lies in §3's interval, and the audit was
       not a self-audit (§3)
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
-      Inconsistencies, confirmed by independent Auditors inside the
-      `sealed_at` window (§3, §5)
+      Inconsistencies and Confirmed Link Inconsistencies, confirmed by
+      independent Auditors inside the `sealed_at` window (§3, §5, §7)
 - [ ] Stops counting the Records of an Auditor in coverage failure at
       their own Block's `sealed_at`, whether or not an `auditor_remove`
       was ever sealed, and counts them again once the failures age out of
@@ -1916,9 +1916,10 @@ hands.
       resets `A`/`C` only for a fresh identity — never for an ordinary or
       recovery rotation (§6.3)
 - [ ] Recomputes severity from evidence and rejects unsupported sanctions (§7)
-- [ ] Counts every Confirmed Inconsistency's penalty from its confirming
-      Block onward, independent of whether a `sanction` Registry Update
-      exists for it (§6.1, §7)
+- [ ] Counts every Confirmed Inconsistency's and Confirmed Link
+      Inconsistency's penalty from its confirming Block onward,
+      independent of whether a `sanction` Registry Update exists for it
+      (§6.1, §7)
 - [ ] Derives the level-3 and level-4 sanction *states* from the §7
       escalation criteria at the height they are met, whether or not the
       Aggregator sealed the `notice` and `sanction` that record them, and
