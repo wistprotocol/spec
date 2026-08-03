@@ -439,6 +439,23 @@ def _assert_coverage(check_name, covered_values, covered_schema):
 # 2b. The payload commitment: the only thing binding a Delta to content that
 # the Log does not carry. Everything downstream — the audit metric, snapshot
 # materialization, the withdrawal guarantee — rests on this recomputation.
+def _registry_table_defaults():
+    """DC-4 §9's Default column, keyed by identifier, as leading integers."""
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    out = {}
+    for line in section9.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != 4 or cells[1] == "Identifier":
+            continue
+        names = re.findall(r"`([a-z0-9_]+)`", cells[1])
+        m = re.match(r"([\d ]+)", cells[2])
+        if len(names) == 1 and m:
+            out[names[0]] = int(m.group(1).replace(" ", ""))
+    return out
+
 def _load_payload_and_delta():
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
@@ -476,11 +493,45 @@ def _payload_commitment():
 check("payload:commitment", _payload_commitment)
 
 def _payload_length():
+    """`bytes`, and every cap it is bounded by, counted in JCS octets.
+
+    DC-1 §3.6 measures all three caps as octets of a JCS serialization, never
+    as characters and never as code points, because a Consumer uses them to
+    bound a fetch. The combined bound is derived rather than independent:
+    JCS(content) is `{"extract":<E>,"summary":<S>}`, so its 23 octets of
+    structure sit on top of the two field caps. Deriving it here rather than
+    hard-coding the total is what keeps the schema's number and DC-1 §3.6's
+    arithmetic from drifting apart again.
+    """
     payload, delta = _load_payload_and_delta()
-    n = len(rfc8785.dumps(payload["content"]))
+    content = payload["content"]
+    n = len(rfc8785.dumps(content))
     assert delta["payload"]["bytes"] == n, \
         f"the Delta declares {delta['payload']['bytes']} octets, JCS(content) is {n}"
-    assert n <= 34816, "JCS(content) exceeds the 34816-octet cap (DC-1 §3.6)"
+
+    caps = _registry_table_defaults()
+    e_cap, s_cap = caps["extract_cap_bytes"], caps["summary_cap_bytes"]
+    wrapper = len(rfc8785.dumps({"extract": "", "summary": {}})) - \
+        len(rfc8785.dumps("")) - len(rfc8785.dumps({}))
+    assert wrapper == 23, f"JCS(content) structure is {wrapper} octets, not the 23 DC-1 §3.6 states"
+    combined = e_cap + s_cap + wrapper
+
+    e = len(rfc8785.dumps(content["extract"]))
+    s = len(rfc8785.dumps(content["summary"]))
+    assert e <= e_cap, f"JCS(extract) is {e} octets, over the {e_cap}-octet cap (DC-1 §3.6)"
+    assert s <= s_cap, f"JCS(summary) is {s} octets, over the {s_cap}-octet cap (DC-1 §3.6)"
+    assert n <= combined, f"JCS(content) is {n} octets, over the {combined}-octet cap (DC-1 §3.6)"
+    assert e + s + wrapper == n, "the three JCS lengths do not add up; the derivation is wrong"
+
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    declared = schema["properties"]["delta"]["properties"]["payload"][
+        "properties"]["bytes"]["maximum"]
+    assert declared == combined, (
+        f"delta.schema.json bounds payload.bytes at {declared}, but "
+        f"{e_cap} + {s_cap} + {wrapper} = {combined} (DC-1 §3.6)")
+    spec = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
+    assert str(combined) in spec, f"DC-1 §3.6 does not state the {combined}-octet bound"
+    assert "34816" not in spec, "DC-1 still cites the old combined cap, which omitted the JCS wrapper"
 check("payload:length", _payload_length)
 
 def _payload_tamper():
@@ -1189,23 +1240,6 @@ def _parameter_registry_enum():
         f"the enum accepts identifiers §9 publishes no row for: {missing_from_table}"
 check("spec:parameter-registry-enum", _parameter_registry_enum)
 
-def _registry_table_defaults():
-    """DC-4 §9's Default column, keyed by identifier, as leading integers."""
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
-    out = {}
-    for line in section9.splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) != 4 or cells[1] == "Identifier":
-            continue
-        names = re.findall(r"`([a-z0-9_]+)`", cells[1])
-        m = re.match(r"([\d ]+)", cells[2])
-        if len(names) == 1 and m:
-            out[names[0]] = int(m.group(1).replace(" ", ""))
-    return out
-
 def _parameter_change_floors():
     """The `minimum` each `parameter_change` branch imposes, by identifier."""
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
@@ -1825,5 +1859,46 @@ def _no_process_narration():
                     hits.append(f"{path.relative_to(ROOT)}:{n}: {line.strip()}")
     assert not hits, "process narration in published files:\n  " + "\n  ".join(hits)
 check("repo:no-process-narration", _no_process_narration)
+
+def _single_discovery_channel():
+    """No non-HTTPS key-discovery mechanism may reappear (DC-1 §5.1, §8).
+
+    The rule guards a *mechanism*, not a word. Banning the string "DNS"
+    outright would forbid DC-1 §8 from naming the fallback it removed, and a
+    door whose closing is undocumented is one a later editor reopens in good
+    faith; it would also miss a reintroduction under any other name. So the
+    guard is written over what an implementation would actually have to
+    publish: the well-known record label, and a section heading offering the
+    fallback as a defined alternative.
+    """
+    label = re.compile(r"_deltacommons\.")
+    heading = re.compile(r"^#{2,6}\s.*\b(DNS|TXT)\b.*\bfallback\b", re.I | re.M)
+    dc1 = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
+    security = dc1.split("## 8. Security Considerations")[1].split("## 9.")[0]
+    allowed = set(security.splitlines())     # the one place the label may appear
+    hits = []
+    for path in sorted((ROOT / "specs").glob("*.md")):
+        text = path.read_text()
+        for n, line in enumerate(text.splitlines(), 1):
+            if label.search(line) and line not in allowed:
+                hits.append(f"{path.relative_to(ROOT)}:{n}: names the TXT record label "
+                            f"outside DC-1 §8, where only its removal is recorded")
+        for m in heading.finditer(text):
+            hits.append(f"{path.relative_to(ROOT)}: defines a fallback section: {m.group(0).strip()!r}")
+    assert not hits, "a non-HTTPS discovery channel has reappeared:\n  " + "\n  ".join(hits)
+
+    # The removal must stay documented, or the guard above protects nothing a
+    # reader can see: DC-1 §8 names the mechanism and ADR-0002 records why.
+    assert "_deltacommons." in security, \
+        "DC-1 §8 no longer names the removed TXT-record mechanism, so the closed door is invisible"
+    assert re.search(r"there is no alternative channel", dc1), \
+        "DC-1 §5.1 no longer states that HTTPS is the only discovery channel"
+    adr = (ROOT / "decisions" / "0002-ed25519-domain-anchored-identity.md").read_text()
+    decision = adr.split("## Decision")[1].split("## Consequences")[0]
+    assert "fallback" in decision and "_deltacommons." in decision, \
+        "ADR-0002's accepted decision no longer records the removed fallback"
+    assert "(DNS TXT fallback)" not in adr, \
+        "ADR-0002 still lists the fallback as part of the accepted decision"
+check("spec:single-discovery-channel", _single_discovery_channel)
 
 sys.exit(1 if failures else 0)
