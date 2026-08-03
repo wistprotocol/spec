@@ -1,0 +1,29 @@
+{
+  "note": "The live record set DC-3 \u00a77's content_digest is computed over. Each record carries Log-derived identifiers only: no page content reaches the digest, so it remains computable after a Payload is withdrawn (DC-3 \u00a76.2), while delta_id still names the Delta whose salted commitment binds the content. The reduced.example.org Delta is not an Entry of the example Block; this vector publishes the record encoding, not a materialization of Block 0.",
+  "snapshot_date": "2026-08-02",
+  "log_position": 0,
+  "record_fields": [
+    "url",
+    "publisher",
+    "delta_id",
+    "observed_at",
+    "weight"
+  ],
+  "records": [
+    {
+      "url": "https://example.com/blog/post-1",
+      "publisher": "example.com",
+      "delta_id": "sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047",
+      "observed_at": "2026-08-02T12:00:00Z",
+      "weight": "full"
+    },
+    {
+      "url": "https://reduced.example.org/notice",
+      "publisher": "reduced.example.org",
+      "delta_id": "sha256:3e2104cef3773981bb822ae1053acabeac4269e0ca331d75fcb06857e3521956",
+      "observed_at": "2026-08-02T11:30:00Z",
+      "weight": "reduced"
+    }
+  ],
+  "content_digest": "sha256:5db633a40df6a037228f7f74d72b9275a4d2e873169662628b1994afe6848cd1"
+}

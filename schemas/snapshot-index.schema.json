@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deltacommons.org/schemas/snapshot-index.schema.json",
+  "title": "DeltaCommons Snapshot Index (DC-3)",
+  "type": "object",
+  "required": ["index", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "index": {
+      "type": "object",
+      "required": ["dc_version", "updated_at", "snapshots"],
+      "additionalProperties": false,
+      "properties": {
+        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "snapshots": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "required": ["snapshot_date", "log_position", "manifest_url", "content_digest"],
+            "additionalProperties": false,
+            "properties": {
+              "snapshot_date": {"type": "string", "format": "date"},
+              "log_position": {"type": "integer", "minimum": 0},
+              "manifest_url": {"type": "string", "pattern": "^[^\\s\"]{1,500}/manifest\\.json$"},
+              "content_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+            }
+          }
+        }
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}

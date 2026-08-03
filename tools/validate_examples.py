@@ -77,6 +77,7 @@ INNER_KEY = {
     "delta.json": "delta", "publisher.json": "publisher", "feed.json": "feed",
     "block.json": None,  # block signs its header only — checked separately
     "checkpoint.json": "checkpoint", "snapshot-manifest.json": "manifest",
+    "snapshot-index.json": "index",
     "audit-record.json": "record", "registry-update.json": "update",
     "log-anchor.json": "anchor",
     "status.json": None,  # not a signed Envelope — plain JSON (DC-2 §7.1)
@@ -555,6 +556,113 @@ def _block_checks():
         b64u_decode(block["sig"]["value"]), signed_bytes)
 check("blockhash+binding+entrycount", _block_checks)
 
+RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at", "weight"]
+
+def _content_digest(records):
+    """DC-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
+    return "sha256:" + hashlib.sha256(
+        b"".join(sorted(rfc8785.dumps(r) for r in records))).hexdigest()
+
+def _snapshot_content_digest():
+    """DC-3 §7's semantic-equivalence digest, recomputed from its own records.
+
+    The point of the digest is that two parties rebuilding the same Log prefix
+    agree without producing byte-identical SQLite or Parquet, so the check has
+    to hold two properties at once: the digest is a function of the record set
+    alone (order-independent, storage-independent), and its preimage contains
+    no page content — otherwise a Payload withdrawn after publication would
+    make the digest permanently unrecomputable, which is when it matters most.
+    """
+    v = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    records = v["records"]
+    assert v["record_fields"] == RECORD_FIELDS, \
+        "the vector's record encoding is not §7's tuple"
+    for r in records:
+        assert sorted(r) == sorted(RECORD_FIELDS), \
+            f"a record carries {sorted(r)}, not §7's tuple"
+    digest = _content_digest(records)
+    assert digest == v["content_digest"], "the vector's content_digest is not its own records'"
+
+    # Order-independence: the sort is what makes two builders agree, so a digest
+    # that moved with insertion order would verify nothing about a rebuild.
+    assert _content_digest(list(reversed(records))) == digest, \
+        "the digest depends on the order records were fed in"
+
+    manifest = json.loads(
+        (ROOT / "examples" / "snapshot-manifest.json").read_text())["manifest"]
+    index = json.loads(
+        (ROOT / "examples" / "snapshot-index.json").read_text())["index"]
+    assert manifest["content_digest"] == digest, \
+        "the example manifest does not declare the digest of the published records"
+
+    # The index and the manifest are two independently signed statements about
+    # one Snapshot; DC-3 §8 has a Consumer check them against each other.
+    assert len(index["snapshots"]) >= 1, "the example index lists no Snapshot"
+    entry = index["snapshots"][0]
+    for field in ("snapshot_date", "log_position", "content_digest"):
+        assert entry[field] == manifest[field], \
+            f"the index entry's {field} disagrees with the manifest it names"
+    assert entry["manifest_url"] == "/snapshots/%s/manifest.json" % entry["snapshot_date"], \
+        "the index entry does not name the §6 layout path for its snapshot_date"
+    dates = [s["snapshot_date"] for s in index["snapshots"]]
+    assert dates == sorted(dates, reverse=True), "the index is not newest first"
+
+    # `anchor_block_hash` binds the Snapshot to one chain (§7, §8).
+    block = json.loads((ROOT / "examples" / "block.json").read_text())
+    assert manifest["log_position"] == block["header"]["block_number"], \
+        "the example manifest is not positioned at the example Block"
+    assert manifest["anchor_block_hash"] == "sha256:" + hashlib.sha256(
+        rfc8785.dumps(block["header"])).hexdigest(), \
+        "anchor_block_hash is not the Block Hash of Block log_position"
+
+    # No page content in the preimage. Withdrawal destroys the Payload and its
+    # salt (§6.2); a digest that needed either could never be recomputed after
+    # one, so this asserts the preimage against the actual Payload text rather
+    # than against the field names alone.
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    forbidden = [payload["content"]["extract"],
+                 payload["content"]["summary"]["title"],
+                 payload["content"]["summary"]["abstract"],
+                 payload["salt"]]
+    preimage = b"".join(sorted(rfc8785.dumps(r) for r in records)).decode()
+    for text in forbidden:
+        assert text not in preimage, \
+            f"content reached the content_digest preimage: {text[:32]!r}"
+
+    # Every field of the tuple must move the digest, or a rebuild could diverge
+    # on it undetected. `weight` is the DC-4 §7 level-2 mark and `observed_at`
+    # is what an `attest` moves; both are exactly the cases a record-identity-
+    # only digest would miss.
+    import copy
+    for field, other in (("url", "https://example.com/blog/post-9"),
+                         ("publisher", "other.example.com"),
+                         ("delta_id", "sha256:" + "0" * 64),
+                         ("observed_at", "2026-08-02T12:00:01Z"),
+                         ("weight", "reduced")):
+        mutated = copy.deepcopy(records)
+        assert mutated[0][field] != other, f"{field}: the mutation changes nothing"
+        mutated[0][field] = other
+        assert _content_digest(mutated) != digest, \
+            f"the digest does not depend on {field}"
+    assert _content_digest(records[:1]) != digest, \
+        "dropping a record leaves the digest unchanged"
+    assert _content_digest([]) == "sha256:" + hashlib.sha256(b"").hexdigest(), \
+        "an empty live set does not digest the empty octet string (§7)"
+
+    # Both `weight` values are exercised, so the level-2 mark is a case the
+    # vector actually covers rather than one the format merely admits.
+    assert {r["weight"] for r in records} == {"full", "reduced"}, \
+        "the vector does not exercise both weight values"
+
+    spec = (ROOT / "specs" / "DC-3-commons-log-distribution.md").read_text()
+    assert "semantic equivalence" in spec, "DC-3 §7 no longer states the rebuild rule"
+    for field in RECORD_FIELDS:
+        assert f'"{field}": r.{field}' in spec, \
+            f"DC-3 §7's record tuple no longer names {field}"
+    for stale in ("bit-identical", "byte-identical tiers"):
+        assert stale not in spec, f"DC-3 still claims byte-reproducible Snapshots: {stale!r}"
+check("snapshot:content-digest", _snapshot_content_digest)
+
 def _merkle_empty():
     expected = "sha256:" + hashlib.sha256(b"\x00").hexdigest()
     assert expected == "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", \
@@ -780,6 +888,15 @@ NON_CONTENT_DIGESTS = {
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/files/items/properties/sha256"):
         "a whole tier file, not any one record (DC-3 §7); and a manifest is a static artifact, not a Log Entry",
+    ("snapshot-manifest.schema.json",
+     "properties/manifest/properties/anchor_block_hash"):
+        "SHA-256 of a Block header",
+    ("snapshot-manifest.schema.json",
+     "properties/manifest/properties/content_digest"):
+        "a digest over the record tuples of DC-3 §7 — url, publisher, delta_id, observed_at, weight — every one of which the Log already carries in the clear; no page content is in its preimage",
+    ("snapshot-index.schema.json",
+     "properties/index/properties/snapshots/items/properties/content_digest"):
+        "the same DC-3 §7 record-tuple digest the manifest declares, restated by the index",
     ("payload.schema.json", "properties/salt"):
         "the salt itself: drawn from a CSPRNG, never derived from the content it keys (DC-1 §3.6)",
 }
@@ -803,7 +920,16 @@ NON_CONTENT_VALUES = {
     ("examples/registry-update.json", "public_key"): "an Ed25519 public key",
     ("examples/registry-update.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (DC-3 §7)",
+    ("examples/snapshot-manifest.json", "anchor_block_hash"): "SHA-256 of a Block header",
+    ("examples/snapshot-manifest.json", "content_digest"):
+        "DC-3 §7's record-tuple digest: url, publisher, delta_id, observed_at, weight — no content in the preimage",
     ("examples/snapshot-manifest.json", "value"): "an Ed25519 signature",
+    ("examples/snapshot-index.json", "content_digest"):
+        "the manifest's record-tuple digest, restated by the index (DC-3 §6, §7)",
+    ("examples/snapshot-index.json", "value"): "an Ed25519 signature",
+    ("vectors/dc3/snapshot-records.json", "delta_id"): "a Delta ID",
+    ("vectors/dc3/snapshot-records.json", "content_digest"):
+        "DC-3 §7's record-tuple digest, recomputed by `snapshot:content-digest` from the records this file publishes",
     ("examples/status.json", "delta_id"): "a Delta ID",
         ("vectors/dc1/envelope.json", "value"): "an Ed25519 signature",
         ("vectors/dc1/id.txt", None): "the DC-1 vector's Delta ID",
@@ -1014,6 +1140,54 @@ def _dc4_coverage_attestation():
     }
     Draft202012Validator(schema).validate(attestation)
 check("schema:dc4-coverage-attestation", _dc4_coverage_attestation)
+
+def _parameter_registry_enum():
+    """DC-4 §9's table and the `parameter_change` enum must correspond exactly.
+
+    The table is what a human reads and the enum is what a validator enforces.
+    An identifier in one and not the other means either a parameter nobody can
+    amend in-band, or an amendable parameter with no published default and no
+    stated owner — both of which turn a governance action into a guess. The
+    correspondence is therefore checked in both directions, and a row that is
+    deliberately not amendable must say so with an em dash rather than by
+    omitting a cell.
+    """
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    ids, rows = set(), 0
+    for line in section9.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != 4 or cells[1] == "Identifier":
+            continue
+        if set(cells[0]) <= set("-: "):     # the header separator row
+            continue
+        rows += 1
+        found = set(re.findall(r"`([a-z0-9_]+)`", cells[1]))
+        assert found or cells[1] == "—", (
+            f"§9 row {cells[0]!r} has an Identifier cell that is neither a "
+            f"backticked identifier nor an em dash: {cells[1]!r}")
+        overlap = ids & found
+        assert not overlap, f"§9 lists {sorted(overlap)} in more than one row"
+        ids |= found
+    assert rows >= 30, f"only {rows} Parameter Registry rows parsed; the sweep is not table-wide"
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    enum = None
+    for branch in schema["allOf"]:
+        if branch["if"]["properties"]["update"]["properties"]["action"].get("const") \
+                == "parameter_change":
+            enum = branch["then"]["properties"]["update"]["properties"]["details"][
+                "properties"]["parameter"]["enum"]
+    assert enum is not None, "registry-update.schema.json has no parameter_change branch"
+    assert len(enum) == len(set(enum)), "the parameter enum repeats an identifier"
+    missing_from_enum = sorted(ids - set(enum))
+    missing_from_table = sorted(set(enum) - ids)
+    assert not missing_from_enum, \
+        f"§9 publishes identifiers the enum will not accept: {missing_from_enum}"
+    assert not missing_from_table, \
+        f"the enum accepts identifiers §9 publishes no row for: {missing_from_table}"
+check("spec:parameter-registry-enum", _parameter_registry_enum)
 
 def _dc4_payload_withdrawal():
     """A withdrawal is only distinguishable from censorship if it is typed.
