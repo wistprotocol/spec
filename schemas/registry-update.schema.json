@@ -185,6 +185,18 @@
                     "then": {"properties": {"value": {"minimum": 1}}}
                   },
                   {
+                    "if": {"properties": {"parameter": {"const": "block_decompressed_cap_bytes"}}},
+                    "then": {"properties": {"value": {"minimum": 1024}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "extract_cap_bytes"}}},
+                    "then": {"properties": {"value": {"minimum": 2}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "summary_cap_bytes"}}},
+                    "then": {"properties": {"value": {"minimum": 12}}}
+                  },
+                  {
                     "if": {"properties": {"parameter": {"const": "feed_window"}}},
                     "then": {"properties": {"value": {"minimum": 1}}}
                   },
