@@ -463,6 +463,12 @@ audit_record = {
     "response_commitment": audit_commit(RESPONSE_BODY),
     "ref_extract_commitment": audit_commit(REF_EXTRACTION),
     "similarity": 940000,
+    # The vector page's observed links reproduce the declared ones exactly
+    # (fixture 1 *is* the audited page), so this is link_agreement's own
+    # exact-match case (DC-4 §5) rather than a bare 1_000_000 literal.
+    "link_agreement": link_extraction.link_agreement(
+        CONTENT["links"]["urls"], CONTENT["links"]["total"],
+        CONTENT["links"]["urls"], CONTENT["links"]["total"]),
     "verdict": "consistent",
     "evidence_commitment": audit_commit(WARC_CAPTURE),
     "vrf_proof": pi.hex(),
@@ -492,6 +498,38 @@ write_json(DC4 / "audit-commitments.json", {
             "value": audit_record["evidence_commitment"]},
     },
 })
+
+# ------------------------------------------------ DC-4: link agreement
+AGREE_D = CONTENT["links"]["urls"]          # the example Payload's declaration
+AGREE_TOTAL = CONTENT["links"]["total"]     # ditto, its total (DC-1 §3.6 links.total)
+write_json(DC4 / "link-agreement.json", {
+    "note": ("Worked link_agreement cases (DC-4 §5): "
+             "min(subset Jaccard, count agreement), integer micro-units."),
+    "cases": [
+        {"label": "exact-match", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": AGREE_D, "observed_total": AGREE_TOTAL,
+         "link_agreement": link_extraction.link_agreement(
+             AGREE_D, AGREE_TOTAL, AGREE_D, AGREE_TOTAL)},
+        {"label": "one-dropped", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": AGREE_D[:-1], "observed_total": AGREE_TOTAL - 1,
+         "link_agreement": link_extraction.link_agreement(
+             AGREE_D, AGREE_TOTAL, AGREE_D[:-1], AGREE_TOTAL - 1)},
+        {"label": "disjoint", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": ["https://unrelated.example.io/a"], "observed_total": 1,
+         "link_agreement": link_extraction.link_agreement(
+             AGREE_D, AGREE_TOTAL, ["https://unrelated.example.io/a"], 1)},
+        {"label": "count-fraud", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": AGREE_D, "observed_total": 40,
+         "link_agreement": link_extraction.link_agreement(AGREE_D, AGREE_TOTAL, AGREE_D, 40)},
+        {"label": "both-empty", "declared_urls": [], "declared_total": 0,
+         "observed_urls": [], "observed_total": 0,
+         "link_agreement": link_extraction.link_agreement([], 0, [], 0)},
+    ],
+})
+assert [c["link_agreement"] for c in
+        json.loads((DC4 / "link-agreement.json").read_text())["cases"]] == \
+    [1_000_000, 666_666, 0, 75_000, 1_000_000], "agreement worked values drifted"
+print("dc4 link-agreement vector written")
 
 registry_update = {
     "dc_version": "1.0.0",
