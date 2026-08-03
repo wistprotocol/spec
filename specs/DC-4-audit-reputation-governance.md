@@ -30,7 +30,8 @@ shown here.
 - **Audit Record**: an Auditor's signed statement about one Delta
   (schema: [`schemas/audit-record.schema.json`](../schemas/audit-record.schema.json)).
 - **Verdict**: the graded outcome of one audit: `consistent`,
-  `inconsistent`, `unreachable`, `dynamic_variance`, or `not_auditable`.
+  `inconsistent`, `unreachable`, `dynamic_variance`, `not_auditable`,
+  `link_variance`, or `link_inconsistent`.
 - **VRF Proof**: the 80-octet `pi_string` an Auditor produces over a Block
   Hash with its own key under ECVRF-EDWARDS25519-SHA512-TAI ([RFC 9381]),
   carried in every Audit Record as `vrf_proof`. It lets anyone recompute
@@ -39,6 +40,10 @@ shown here.
 - **Confirmed Inconsistency**: ≥ 2 Auditors, independent in the sense §3
   defines, returning `inconsistent` for the same Delta within 72 hours
   measured on Block `sealed_at` (§5).
+- **Confirmed Link Inconsistency**: ≥ 2 Auditors, independent in the sense
+  §3 defines, returning `link_inconsistent` for the same Delta, the
+  confirming Record sealed within `confirm_window_hours` of the first,
+  measured on Block `sealed_at` (§5, §7).
 - **Registry Update**: the signed governance object this document defines,
   sealed as a `registry_update` Entry (DC-3 §3.3). Its `action` selects one
   of the twelve governance acts of §3, §4, §7 and §9.1; `subject` names
@@ -185,11 +190,25 @@ recomputing reputation MUST reject:
   more than `coverage_failures_max` failed coverage duties inside the 30
   days ending there (§4). The predicate is computed from the Log like every
   other test here, and it does not wait on an `auditor_remove`;
-- a Record whose `similarity` does not satisfy §5's condition for its own
-  `verdict` — a `verdict: "inconsistent"` Record whose effective similarity
-  (§5) is not below §5's threshold for that verdict is malformed evidence,
-  not a divergent judgement call, and MUST NOT be allowed to leave `sim`
-  (§7) resting on a value outside every severity band.
+- a Record whose `similarity` **or `link_agreement`** does not satisfy
+  §5's condition for its own `verdict` — including a link verdict whose
+  `link_agreement` sits outside its band, and a `consistent` Record
+  carrying a `link_agreement` below `link_agreement_consistent` — is
+  malformed evidence, not a divergent judgement call, and MUST NOT be
+  allowed to leave `sim` (§7) resting on a value outside every severity
+  band;
+- a Record carrying a `link_agreement` where §5 makes the link dimension
+  neutral: a `delete` audit, or a verdict of `unreachable` or
+  `not_auditable`. A reading of a dimension that was not audited is
+  malformed for the same reason a reading outside its band is — it
+  asserts a comparison against a reference set the audit had none of.
+  Both cases are decidable from the Log by the party doing the
+  rejecting: the verdict is in the Record, and a validator already
+  resolves `audited_delta` to its change type to apply §5's `delete`
+  mirror. The one neutral case this rejection does not reach is a
+  non-HTML representation (DC-2 §11), which no party can settle from the
+  Log alone; there the reading is evidence like the rest of the Record's
+  and is weighed with it.
 
 The first and the coverage-failure rejections are scoped to reputation and
 do not reach coverage: an Auditor removed after a Block was sealed but
@@ -370,8 +389,10 @@ Auditor fetched the URL), `response_commitment` (over the raw response
 body), `ref_extract_commitment` (over the Auditor's own reference
 extraction), `similarity` (the §5 metric value, an integer in micro-units),
 `verdict`, `evidence_commitment` (over the WARC capture, which the Auditor
-MUST preserve), `robots_excluded` (present only on an `unreachable` Record
-the `robots.txt` rule below produced), and `vrf_proof` (the §4 VRF Proof
+MUST preserve), `link_agreement` (the §5 link-dimension reading, an
+integer in micro-units, present only where that dimension applies),
+`robots_excluded` (present only on an `unreachable` Record the
+`robots.txt` rule below produced), and `vrf_proof` (the §4 VRF Proof
 over the Block Hash of the Block carrying the audited Delta, 80 octets as
 160 lowercase hex characters). The Record names no Block: the audited
 Block is the one Block
@@ -436,12 +457,12 @@ introduced.
 
 `response_commitment`, `ref_extract_commitment`, `evidence_commitment` and
 `similarity` are REQUIRED when the verdict is `consistent`, `inconsistent`,
-or `dynamic_variance`, and MUST be omitted when it is `unreachable` or
-`not_auditable`. Those two verdicts are exactly the cases with nothing to
-commit to and no key to commit under: `unreachable` records that no
-representation of the page was obtained to compare against, whether the
-fetch failed outright, returned an error status the table below does not
-except, or was forbidden by
+`dynamic_variance`, `link_variance`, or `link_inconsistent`, and MUST be
+omitted when it is `unreachable` or `not_auditable`. Those two verdicts
+are exactly the cases with nothing to commit to and no key to commit
+under: `unreachable` records that no representation of the page was
+obtained to compare against, whether the fetch failed outright, returned
+an error status the table below does not except, or was forbidden by
 `robots.txt`, so whatever bytes the failure produced are not the page and
 are not committed to; `not_auditable` records that there was no text to
 measure against, and where the Reference Payload itself is missing there is
@@ -630,27 +651,91 @@ applies the mirror; nothing else in the pipeline changes shape.
 
 | Verdict | Condition |
 |---------|-----------|
-| `consistent` | effective similarity ≥ 600 000 |
+| `consistent` | effective similarity ≥ 600 000 and, where the link dimension applies, `link_agreement` ≥ 600 000 |
 | `dynamic_variance` | 300 000 ≤ effective similarity < 600 000 |
 | `inconsistent` | effective similarity < 300 000 |
 | `unreachable` | no representation of the URL was obtained: transport or DNS failure, an error status other than the `404`/`410` a `delete` audit expects (below), or a `robots.txt` prohibition (DC-2 §5) |
 | `not_auditable` | there is no text to measure against: the Reference Payload is withdrawn (DC-3 §6.2), never existed, cannot be obtained from any source, or carries an empty `extract` |
+| `link_variance` | effective similarity ≥ 600 000 and 300 000 ≤ `link_agreement` < 600 000 (neutral: it never contributes to sanctions) |
+| `link_inconsistent` | effective similarity ≥ 600 000 and `link_agreement` < 300 000 |
 
-**The five are ordered, and the order is normative**, because more than one
-description can fit one audit: `not_auditable`, then `unreachable`, then
-the three bands. An Auditor with no reference text records `not_auditable`
-whether or not the fetch also failed — from a withdrawal's sealing height
-it MUST, even holding a copy — and an Auditor that obtained no
-representation records `unreachable` without computing a similarity it has
-no observed text for. A band is read only when there is a reference to
-measure against and a representation to measure. Since the three bands
-partition 0 … 1 000 000 with no gap and no overlap, exactly one verdict
-fits every audit. The `inconsistent` row rests on the number alone: a
-conjunct requiring the claimed content to be "absent from the fetched page"
-would name no procedure two Auditors could apply to one answer, and would
-leave every audit below the floor whose content was in some sense still
-present with no verdict at all — which is the one thing a verdict table may
-not do.
+**The seven are ordered, and the order is normative**, because more than
+one description can fit one audit: `not_auditable`, then `unreachable`,
+then the three extract bands, then the two link bands. An Auditor with no
+reference text records `not_auditable` whether or not the fetch also
+failed — from a withdrawal's sealing height it MUST, even holding a copy —
+and an Auditor that obtained no representation records `unreachable`
+without computing a similarity it has no observed text for. A band is read
+only when there is a reference to measure against and a representation to
+measure. Since the three extract bands partition 0 … 1 000 000 with no gap
+and no overlap, exactly one of `consistent`, `dynamic_variance` or
+`inconsistent` fits every audit's effective similarity. The `inconsistent`
+row rests on the number alone: a conjunct requiring the claimed content to
+be "absent from the fetched page" would name no procedure two Auditors
+could apply to one answer, and would leave every audit below the floor
+whose content was in some sense still present with no verdict at all —
+which is the one thing a verdict table may not do. The extract reading is
+resolved first, and only an extract in the `consistent` band can yield a
+link verdict, because a fabricated page makes every reading of its links
+moot and extract fraud already sanctions harder. The thresholds are
+`link_agreement_consistent` and `link_variance_floor` (Parameter
+Registry), read directly — no mirror applies, the dimension being neutral
+for `delete`.
+
+The totality claim extends to the full seven rows the same way. Inside
+the extract-`consistent` band, where the link dimension applies, the
+amended `consistent` condition and the two link bands partition
+`link_agreement`'s own 0 … 1 000 000 with no gap and no overlap in turn:
+`link_agreement` ≥ `link_agreement_consistent` reads `consistent`,
+`link_variance_floor` ≤ `link_agreement` < `link_agreement_consistent`
+reads `link_variance`, and `link_agreement` < `link_variance_floor` reads
+`link_inconsistent`. That second partition is nested inside the one
+extract band it can move a verdict out of — an extract-`dynamic_variance`
+or extract-`inconsistent` audit is already decided and never reaches
+it — and the qualifying clause is simply vacuous, not applying, for a
+`delete` audit, a non-HTML representation, or an extract band other than
+`consistent`. One partition over the extract reading, nested with a
+second over `link_agreement` where and only where the first admits it:
+exactly one verdict fits every audit, seven rows included.
+
+**The link dimension.** Where the audited change type is `new`, `update`
+or `attest` and the fetched representation is HTML in the sense DC-2 §11
+fixes — by the `Content-Type` media type alone, never by sniffing the
+body — the Auditor also applies that section's extraction procedure to
+its own fetched octets and compares the result against the Reference
+Payload's `links` member. Two integer readings, each in micro-units,
+combine by minimum:
+
+    subset  = floor(|D ∩ O| × 1 000 000 / |D ∪ O|)        D, O non-empty union
+            = 1 000 000                                    D = O = ∅
+    count   = floor(min(Td, To) × 1 000 000 / max(Td, To)) max > 0
+            = 1 000 000                                    Td = To = 0
+    link_agreement = min(subset, count)
+
+where `D` is the set of declared `urls`, `O` the first-prefix set the
+Auditor's own extraction yields under the same budget, and `Td`, `To`
+the two totals. Exact integer arithmetic on set cardinalities — no
+floating-point ratio is ever computed or compared, the rule §5 already
+states for `similarity`. The dimension is **neutral** — `link_agreement`
+is not computed and no link verdict can arise — for a `delete` audit
+(the expected `404`/`410` has no links to observe), for a non-HTML
+representation (whose conforming declaration is `{"total": 0, "urls":
+[]}` and whose extraction DC-2 does not define), and wherever the
+verdict is `unreachable` or `not_auditable`.
+
+A Record that produced a measured verdict for a non-`delete` audit of an
+HTML representation SHOULD carry `link_agreement`. "Measured" excludes an
+`unreachable` and a `not_auditable` Record, for which the dimension is
+neutral above and which therefore never carry the field however the
+change type and the media type read: the first observed no
+representation to extract from, the second has no reference set to
+compare one against, and `schemas/audit-record.schema.json` rejects
+either sealing a reading it cannot have taken. Omission where the
+dimension does apply leaves it unaudited for that Delta, and it is
+visible in the Record itself: a Record whose change type, representation
+and verdict all say the dimension applied, and which nonetheless carries
+no `link_agreement`, is a fact any party recomputing reputation can see
+and weigh, not a silent gap.
 
 **`delete` audits.** Two consequences of the mirror are worth stating
 outright. A `404` or `410` response to a `delete` audit is not a fetch
@@ -687,25 +772,30 @@ or can still obtain a copy of the Payload. Auditing is the one process
 that would otherwise keep re-establishing, in a permanent public record,
 the link between a withdrawn text and its commitment.
 
-`dynamic_variance`, `unreachable` and `not_auditable` are neutral: they
-never contribute to sanctions. Auditor re-fetches of content URLs respect
-`robots.txt` (DC-2 §5); a fetch forbidden by `robots.txt` is recorded
-`unreachable` with `robots_excluded` true. That flag is REQUIRED when
-`robots.txt` is the reason and MUST NOT appear on any other verdict, so the
-Log distinguishes a URL nobody is permitted to check from one that happened
-to be down.
+`dynamic_variance`, `unreachable`, `not_auditable` and `link_variance` are
+neutral: they never contribute to sanctions. Like `dynamic_variance`, a
+`link_variance` Record never adds its URL to §6's `C` — only a
+`consistent` verdict does — so persistent link churn holds a URL outside
+the reputation numerator exactly as content churn does: neutrality means
+no sanction, not no consequence. Auditor re-fetches of content URLs
+respect `robots.txt` (DC-2 §5); a fetch forbidden by `robots.txt` is
+recorded `unreachable` with `robots_excluded` true. That flag is REQUIRED
+when `robots.txt` is the reason and MUST NOT appear on any other verdict,
+so the Log distinguishes a URL nobody is permitted to check from one that
+happened to be down.
 
 **Declining audits is not indefinitely free.** A URL is **unauditable** at
 height N when the Log holds two `robots_excluded` Records for Deltas on
 that URL, signed by Auditors independent of one another (§3), each of them
 sealed in a Block itself sealed no more than 30 whole days (Parameter
 Registry: `unauditable_horizon_days`) before Block N's `sealed_at`, and no
-Record for a Delta on that URL with verdict `consistent`, `inconsistent`
-or `dynamic_variance`, signed by an Auditor independent of both, was
-sealed after the later of those two. An unauditable URL MUST be excluded
-from materialization (DC-3 §7) for as long as that holds; it ceases to be
-unauditable when such a Record is sealed, or when the exclusions age out
-of the window with none replacing them.
+Record for a Delta on that URL with verdict `consistent`, `inconsistent`,
+`dynamic_variance`, `link_variance` or `link_inconsistent`, signed by an
+Auditor independent of both, was sealed after the later of those two. An
+unauditable URL MUST be excluded from materialization (DC-3 §7) for as
+long as that holds; it ceases to be unauditable when such a Record is
+sealed, or when the exclusions age out of the window with none replacing
+them.
 
 Two properties of that definition are load-bearing, and both are
 departures from the obvious shape. It arms on the **presence** of
@@ -746,9 +836,9 @@ sealing the confirming Record no more than 72 hours after the `sealed_at`
 of the Block sealing the first such Record. The window is measured on
 Blocks and not on `fetched_at` for the reason §3 gives: `fetched_at` is
 Auditor-supplied, and a confirmation nobody can recompute is not evidence.
-Only Confirmed Inconsistencies enter the reputation formula and sanction
-ladder. This absorbs A/B tests, geo-variation, and legitimate change
-between push and audit.
+Only Confirmed Inconsistencies and Confirmed Link Inconsistencies enter
+the reputation formula and sanction ladder. This absorbs A/B tests,
+geo-variation, and legitimate change between push and audit.
 
 ## 6. Reputation
 
@@ -833,22 +923,29 @@ lower bound, and everything from height 0 counts.
   `C_cap` = 500. Audits of `attest` and `delete` Deltas never contribute.
   Counting distinct URLs rather than Records, and capping the count,
   prevents a high-volume Publisher from diluting penalties toward zero.
-- **Confirmed Inconsistencies.** Only those whose confirming Audit Record
-  is sealed above the domain's most recent identity reset and at a height
-  ≤ N count. For each such Confirmed Inconsistency *i*: `s_i` ∈ {1 = minor
-  divergence, 2 = misleading extract, 3 = fabricated content} is computed
-  from its confirming Records (§7) by the §7 severity table —
-  independently of whether any `sanction` Registry Update exists for it —
-  and `t_i` is the whole days between the `sealed_at` of the **confirming
+- **Confirmed Inconsistencies and Confirmed Link Inconsistencies.** Only
+  those whose confirming Audit Record is sealed above the domain's most
+  recent identity reset and at a height ≤ N count. For each such Confirmed
+  Inconsistency or Confirmed Link Inconsistency *i*: `s_i` is computed
+  from its confirming Records (§7) by the §7 severity table — {1 = minor
+  divergence, 2 = misleading extract, 3 = fabricated content} — for a
+  Confirmed Inconsistency, and is fixed at 1, satisfying no rule that
+  names severity 3, for a Confirmed Link Inconsistency; in both cases
+  independently of whether any `sanction` Registry Update exists for it.
+  `t_i` is the whole days between the `sealed_at` of the **confirming
   Block** and the `sealed_at` of Block N. The confirming Block is the one
   sealing the **earliest Audit Record, in Log order (ascending Block
-  height, then ascending Entry index within a Block), at which §5's
-  confirmation predicate is first satisfied** for that Delta: the same
-  height that fixes `t_i` is the height at which the Confirmed
-  Inconsistency begins contributing to `penalty_n`, whether or not the
-  Aggregator ever files a `sanction` for it. Records beyond that one — a
-  third or fourth `inconsistent` verdict — do not move the date, do not
-  move `sim` (§7), and do not create a second Confirmed Inconsistency.
+  height, then ascending Entry index within a Block), at which the
+  applicable confirmation predicate is first satisfied** for that Delta —
+  §5's for a Confirmed Inconsistency, §7's for a Confirmed Link
+  Inconsistency: the same height that fixes `t_i` is the height at which
+  it begins contributing to `penalty_n`, whether or not the Aggregator
+  ever files a `sanction` for it. Records beyond that one — a third or
+  fourth `inconsistent` or `link_inconsistent` verdict — do not move the
+  date and do not create a second Confirmed Inconsistency or Confirmed
+  Link Inconsistency; for a Confirmed Inconsistency they additionally do
+  not move `sim` (§7), which a Confirmed Link Inconsistency's fixed
+  severity has none of.
 - **`decay(t)`** is read from the normative decay table
   ([`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json)): an
   array of 1826 integers, `decay(t) = floor(exp(−t / 180) × 1e9)` — the
@@ -869,8 +966,8 @@ lower bound, and everything from height 0 counts.
   sum is over integers, so its value does not depend on summation order;
   implementations that publish intermediate sums SHOULD nevertheless
   accumulate in ascending `t_i`, ties broken by ascending byte order of
-  the UTF-8 Delta ID of the inconsistent Delta, so that intermediates
-  agree too.
+  the UTF-8 Delta ID of the inconsistent or link-inconsistent Delta, so
+  that intermediates agree too.
 
 ### 6.2. The formula
 
@@ -1024,6 +1121,28 @@ exactly one row, whatever its audited Delta's change type.
 | 150 000 ≤ `sim` < 300 000 | 1 (minor divergence) |
 | 50 000 ≤ `sim` < 150 000 | 2 (misleading extract) |
 | `sim` < 50 000 | 3 (fabricated content) |
+
+**Confirmed Link Inconsistency.** Two `link_inconsistent` Records for
+the same Delta from Auditors independent under §3, the second sealed
+within `confirm_window_hours` of the first, are a Confirmed Link
+Inconsistency. For §6.1's `penalty_n` and every escalation count this
+section defines, a Confirmed Link Inconsistency **counts as a Confirmed
+Inconsistency with severity 1 fixed** — never derived from
+`link_agreement`'s magnitude, unlike the severity table above — and it
+satisfies no rule that names severity 3, so no accumulation of link
+findings alone reaches the **fast path** to Delisting: neither level 3's
+any-severity-3 branch nor level 4's three-severity-3 branch can ever
+fire on them. The counting route stays open, by design — 10 link
+findings inside 90 days reach level 3 and one further finding reaches
+level 4, exactly as 10 severity-1 findings of any other kind would,
+because a domain misdeclaring its links at that rate is no longer doing
+it by accident. What the fixed severity settles is which route: the
+slow, countable one, with the notice and the appeal window §7 attaches
+to levels 3 and 4, never a single finding that delists on its own.
+Declaring a distorted link set is gaming a signal, not fabricating
+content, and the graph's consumers can weigh a domain's link record for
+themselves. Severity is derived from the evidence, not chosen, here as
+everywhere: a link finding carries level 1 whatever its magnitude.
 
 A party recomputing reputation locates every Confirmed Inconsistency
 directly from Audit Records under §5 — no `sanction` Registry Update is
@@ -1285,6 +1404,8 @@ existing rather than a recommended setting.
 | `block_cadence_seconds` | ≥ 1 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` — every window in this document — has a clock |
 | `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (DC-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and DC-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
 | `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails DC-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
+| `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (DC-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
+| `link_url_cap_bytes` | ≥ 14 | below the 14 octets of `JCS("https://a.b/")` — the serialization of the shortest Normalized URL (DC-1 §2) — no link can ever be declared, which removes the link dimension while leaving its verdicts defined — §5's `link_inconsistent` would then rest on a set nobody can populate |
 | `summary_cap_bytes` | ≥ 12 | `JCS({"title":""})` is 12 octets and `title` is REQUIRED (DC-3 §6.1), so below that no conforming `summary` exists and no content-bearing Delta can ever be sealed |
 | `feed_window` | ≥ 1 | a Feed that can hold no Delta ID leaves nothing discoverable to pull (DC-2 §3.2) |
 | `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (DC-1 §5.2, §8) |
@@ -1292,6 +1413,8 @@ existing rather than a recommended setting.
 | `sampling_ceiling` | ≥ 1 | at zero no Delta is ever selected by any Auditor, which voids every Audit Record before it is written and with it every confirmation, penalty and sanction — a more complete nullification than `confirm_auditors` = 1, which this section already forbids |
 | `similarity_consistent` | ≥ 150 002 and ≤ 1 000 000 | below `similarity_variance_floor`'s own floor the `dynamic_variance` band is empty; above the micro-unit range no audit can ever be `consistent`, so `C` never grows and every domain stays Provisional for ever (§5, §6) |
 | `similarity_variance_floor` | ≥ 150 001 and ≤ 300 000 | below, §7's severity-1 band is empty; above, a Confirmed Inconsistency between 300 000 and the new floor lands in no severity row at all (§5, §7) |
+| `link_agreement_consistent` | ≥ 2 and ≤ 1 000 000 | at or below `link_variance_floor`'s own floor the `link_variance` band is empty; above the micro-unit range no audit of a page with links can ever be `consistent`, so `C` stops growing for every conforming Publisher (§5, §6) |
+| `link_variance_floor` | ≥ 1 and ≤ 999 999 | at zero no declaration can ever be `link_inconsistent` and the dimension audits nothing; at the range's top the neutral band vanishes and every dynamic page's link churn becomes a finding (§5) |
 | `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
 | `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
 | `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (DC-3 §3.1) |
@@ -1308,6 +1431,7 @@ existing rather than a recommended setting.
 | `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (DC-3 §6.1) |
 | `unauditable_horizon_days` | ≥ 7 | below, whether a URL is excluded turns on publication scheduling rather than on its `robots.txt` (§5) |
 | `mirror_retention_days` | ≥ 51 | below, an appellant cannot fetch the Records its own sanction rests on (DC-3 §6) |
+| `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (DC-1 §2, §3.2) |
 
 Where the rule does not reduce to a fixed bound — a value that is
 individually in range but collapses a mechanism only in combination with
@@ -1324,7 +1448,13 @@ MUST NOT be shorter than `block_cadence_seconds`, or a duty falls due
 before the Block that could discharge it can be sealed;
 `block_decompressed_cap_bytes` MUST NOT be below the size of the largest
 Block the Aggregator seals, since only the pair decides whether any Block
-is applicable; and the `mirror_retention_days` sum below.
+is applicable; and the `mirror_retention_days` sum below. `links_cap_bytes`
+MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
+`JCS({"total":1,"urls":[…]})` around a single maximum-length URL literal —
+below it a page whose first link is long declares an empty prefix the
+budget rule then makes mandatory. `link_variance_floor` MUST be below
+`link_agreement_consistent`, or the two link bands overlap and one audit
+fits two verdicts.
 
 Every remaining identifier carries no bound because none reduces to one,
 and each is named here so that "exactly those bounds" above is a claim a
@@ -1389,7 +1519,10 @@ combination cases above.
 | Block sealing cadence | `block_cadence_seconds` | 1 hour | DC-3 §3.2 |
 | Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | DC-3 §6 |
 | `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | DC-1 §3.6 |
+| `links` size cap | `links_cap_bytes` | 4096 octets of `JCS(links)` | DC-1 §3.6 |
+| Link `url` size cap | `link_url_cap_bytes` | 2048 octets of `JCS(url)` per link | DC-1 §3.6 |
 | `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | DC-1 §3.6 |
+| `url` size cap | `url_cap_bytes` | 2048 octets of `JCS(url)` | DC-1 §3.2 |
 | Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | DC-3 §6 |
 | Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
@@ -1401,6 +1534,7 @@ combination cases above.
 | Coverage duty deadline | `coverage_deadline_hours` | 72 hours | §4 |
 | `coverage_failures_max` | — | 24 Blocks per 30 days | §4 |
 | Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
+| Link agreement thresholds (consistent / variance floor) | `link_agreement_consistent` / `link_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
 | Shingle size | `shingle_size` | 8 (words, or grapheme clusters on §5's short-text branch) | §5 |
 | Unauditable horizon | `unauditable_horizon_days` | 30 days | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
@@ -1571,17 +1705,18 @@ record why an action was taken or contested (§11).
   Severity is derived from the confirming Audit Records' **effective
   similarity** values (§5) by the §7 table — the sealed `similarity` read
   directly, or mirrored where the audited Delta is a `delete` — not
-  asserted by the Aggregator, and §6.1 counts
-  every Confirmed Inconsistency's penalty from its confirming Block onward
-  regardless of whether a `sanction` Registry Update ever names it. A
-  party recomputing reputation therefore arrives at the same `penalty_n`
-  whether the Aggregator inflates a `details.severity` past what the
-  Records show (the mismatched `sanction` is rejected and the table's
-  value used instead), invents a `sanction` with no real evidence behind
-  it (rejected outright — §5's predicate fails), or never records one at
-  all (the penalty applies anyway, computed directly from the Records). A
-  captured Aggregator has no lever over the reputation consequence of
-  evidence that is already public.
+  asserted by the Aggregator, and §6.1 counts every Confirmed
+  Inconsistency's and Confirmed Link Inconsistency's penalty from its
+  confirming Block onward regardless of whether a `sanction` Registry
+  Update ever names it. A party recomputing reputation therefore arrives
+  at the same `penalty_n` whether the Aggregator inflates a
+  `details.severity` past what the Records show (the mismatched
+  `sanction` is rejected and the table's value used instead), invents a
+  `sanction` with no real evidence behind it (rejected outright — §5's
+  predicate fails), or never records one at all (the penalty applies
+  anyway, computed directly from the Records). A captured Aggregator has
+  no lever over the reputation consequence of evidence that is already
+  public.
 - **Griefing via false `inconsistent` verdicts.** A single hostile Auditor
   confirms nothing by itself: a Confirmed Inconsistency requires a second
   `inconsistent` from an Auditor independent of it under §3's suffix test,
@@ -1732,6 +1867,15 @@ hands.
 - [ ] Computes similarity with the normative §5 metric — NFC, default full
       case-folding, untailored UAX #29 segmentation — and reads the verdict
       from the effective similarity, mirrored for a `delete` (§5)
+- [ ] Applies DC-2 §11's extraction procedure, unchanged, to its own
+      fetch of the Reference Payload's page when checking the declared
+      `links` member (§5, DC-2 §11)
+- [ ] Computes `link_agreement` and seals the field on the Record
+      whenever the link dimension applies — a `new`, `update` or `attest`
+      audit of an HTML representation (DC-2 §11) that produced a measured
+      verdict, never on an `unreachable` or `not_auditable` Record — and
+      reads `link_variance` or `link_inconsistent` from it once the
+      extract reading is also `consistent` (§5)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
       — including where the file discriminates between admitted Auditors,
@@ -1790,8 +1934,8 @@ hands.
       `subject`, its `fetched_at` lies in §3's interval, and the audit was
       not a self-audit (§3)
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
-      Inconsistencies, confirmed by independent Auditors inside the
-      `sealed_at` window (§3, §5)
+      Inconsistencies and Confirmed Link Inconsistencies, confirmed by
+      independent Auditors inside the `sealed_at` window (§3, §5, §7)
 - [ ] Stops counting the Records of an Auditor in coverage failure at
       their own Block's `sealed_at`, whether or not an `auditor_remove`
       was ever sealed, and counts them again once the failures age out of
@@ -1802,9 +1946,10 @@ hands.
       resets `A`/`C` only for a fresh identity — never for an ordinary or
       recovery rotation (§6.3)
 - [ ] Recomputes severity from evidence and rejects unsupported sanctions (§7)
-- [ ] Counts every Confirmed Inconsistency's penalty from its confirming
-      Block onward, independent of whether a `sanction` Registry Update
-      exists for it (§6.1, §7)
+- [ ] Counts every Confirmed Inconsistency's and Confirmed Link
+      Inconsistency's penalty from its confirming Block onward,
+      independent of whether a `sanction` Registry Update exists for it
+      (§6.1, §7)
 - [ ] Derives the level-3 and level-4 sanction *states* from the §7
       escalation criteria at the height they are met, whether or not the
       Aggregator sealed the `notice` and `sanction` that record them, and
@@ -1834,16 +1979,16 @@ key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
 |---|---|
 | Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
 | Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| Block Hash of *B* | `sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d` |
-| `alpha` (32 octets, hex) | `28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d` |
-| `pi` = `vrf_proof` (80 octets) | `201470c521f335e0e8b5e2e6c4456234d4c408653608b0dc3f9ab3313b2eb120`<br>`df5129d19a2184e7ff670dd93d5ec63f1537c567f46c3f5ebb130908fcaee155`<br>`0fc0f5e4d2fde2cfb322bc716d54b404` |
-| `beta` (64 octets) | `bcb7005b8cbd167197a33de1fab95f9975e332379c29abdf8304005e7901c46c`<br>`fccd16973e00ac704cc7135ffed330877a3bf85d7b6d8b1b78f28e36f3210441` |
-| Delta ID of Entry 0 | `sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047` |
-| `SHA-256(beta ‖ Entry 0)[0..8]` | `80109595bb2b79e6` |
-| `D`(Entry 0) | `9228040106805000678` |
-| Delta ID of Entry 1 | `sha256:eff46e66a9a3666ead5f6ed38618cd83a130833a3c88f1628a19aa2ef0dcfd8f` |
-| `SHA-256(beta ‖ Entry 1)[0..8]` | `239b6bc74f416dc0` |
-| `D`(Entry 1) | `2565762916489981376` |
+| Block Hash of *B* | `sha256:0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809` |
+| `alpha` (32 octets, hex) | `0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809` |
+| `pi` = `vrf_proof` (80 octets) | `2b1c91a879cb2bcfd0f87420fc17a2c213ea9a44e39371c7dc5b7882b71b2af5`<br>`9282b4cd8708ada538a34273358d60a7a2d7100b8114be31055e28db5dffbc14`<br>`c87de363c1ab0fe4370e9a01e4b99e0e` |
+| `beta` (64 octets) | `6a14e671c3fa9e262a0c398a8e4660f842a167f57f9e10b0dccc264c319b1379`<br>`bf1903fc33d2ac1ca0982890a27a10bcd5fdbbe8c4bf481f68ba5e1a9e6048f5` |
+| Delta ID of Entry 0 | `sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120` |
+| `SHA-256(beta ‖ Entry 0)[0..8]` | `6aeb8247400b4a5b` |
+| `D`(Entry 0) | `7704394830076136027` |
+| Delta ID of Entry 2 | `sha256:8d5ccbbb940151aef6a885b1d6a290265651b3029392b501d0892b566077be53` |
+| `SHA-256(beta ‖ Entry 2)[0..8]` | `2657a087bd2e2835` |
+| `D`(Entry 2) | `2762853401270036533` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
@@ -1856,10 +2001,10 @@ the two domains differ only in reputation:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 0 | 100 000 (Provisional) | 2 900 000 | 9.228e25 | 5.350e25 | no |
-| Entry 0 | 900 000 (established) | 500 000 | 9.228e25 | 9.223e24 | no |
-| Entry 1 | 100 000 (Provisional) | 2 900 000 | 2.566e25 | 5.350e25 | **yes** |
-| Entry 1 | 900 000 (established) | 500 000 | 2.566e25 | 9.223e24 | no |
+| Entry 0 | 100 000 (Provisional) | 2 900 000 | 7.704e25 | 5.350e25 | no |
+| Entry 0 | 900 000 (established) | 500 000 | 7.704e25 | 9.223e24 | no |
+| Entry 2 | 100 000 (Provisional) | 2 900 000 | 2.763e25 | 5.350e25 | **yes** |
+| Entry 2 | 900 000 (established) | 500 000 | 2.763e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
 are in the vector, and an implementation MUST compare the exact ones. Note

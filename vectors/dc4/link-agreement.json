@@ -1,0 +1,74 @@
+{
+  "note": "Worked link_agreement cases (DC-4 \u00a75): min(subset Jaccard, count agreement), integer micro-units.",
+  "cases": [
+    {
+      "label": "exact-match",
+      "declared_urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1",
+        "https://example.org/~user"
+      ],
+      "declared_total": 3,
+      "observed_urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1",
+        "https://example.org/~user"
+      ],
+      "observed_total": 3,
+      "link_agreement": 1000000
+    },
+    {
+      "label": "one-dropped",
+      "declared_urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1",
+        "https://example.org/~user"
+      ],
+      "declared_total": 3,
+      "observed_urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1"
+      ],
+      "observed_total": 2,
+      "link_agreement": 666666
+    },
+    {
+      "label": "disjoint",
+      "declared_urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1",
+        "https://example.org/~user"
+      ],
+      "declared_total": 3,
+      "observed_urls": [
+        "https://unrelated.example.io/a"
+      ],
+      "observed_total": 1,
+      "link_agreement": 0
+    },
+    {
+      "label": "count-fraud",
+      "declared_urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1",
+        "https://example.org/~user"
+      ],
+      "declared_total": 3,
+      "observed_urls": [
+        "https://example.org/reference",
+        "https://spec.example.net/dc-1",
+        "https://example.org/~user"
+      ],
+      "observed_total": 40,
+      "link_agreement": 75000
+    },
+    {
+      "label": "both-empty",
+      "declared_urls": [],
+      "declared_total": 0,
+      "observed_urls": [],
+      "observed_total": 0,
+      "link_agreement": 1000000
+    }
+  ]
+}

@@ -3,8 +3,8 @@
     "dc_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
-    "anchor_block_hash": "sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d",
-    "content_digest": "sha256:5db633a40df6a037228f7f74d72b9275a4d2e873169662628b1994afe6848cd1",
+    "anchor_block_hash": "sha256:0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809",
+    "content_digest": "sha256:cc3e6076ef2c5e0e53955a422b2fe314d72814dea82bdb1aeec8cd675961e55c",
     "embedding_model": {
       "name": "example-embed",
       "version": "1",
@@ -19,8 +19,20 @@
         "tier": 0
       },
       {
+        "path": "tier0/embeddings.parquet",
+        "sha256": "4f0bde6cdbac63c3ac33b5315238b9c80de578be57c74a16f9eca8e8fd9a1a01",
+        "bytes": 22,
+        "tier": 0
+      },
+      {
         "path": "tier1/extracts.parquet",
         "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+        "bytes": 17,
+        "tier": 1
+      },
+      {
+        "path": "tier1/links.parquet",
+        "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
         "bytes": 17,
         "tier": 1
       }
@@ -29,6 +41,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "Sfx16RU1GAAqUiUN7aLduSXUYj-2NloukAZunt2CSsoHPGZFmN0Fdr88o7cRP5GSr-Pac14zg4NrHguhWcFNDA"
+    "value": "GOaoJZSTmRrTxc3AsN0hx5lGgXJyzrccvHMrZBW6JehNZczZIe8f0CvAJJpimksUg4SwbPRXa8mAlF47UVNqBw"
   }
 }

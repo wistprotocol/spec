@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 import ecvrf
+import link_extraction
 from merkle import audit_path, leaf_hash, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -51,8 +52,30 @@ def write_json(path: pathlib.Path, obj: dict) -> None:
 # URL. That is a property of the vector, never of a conforming Publisher.
 DELTA_URL = "https://example.com/blog/post-1"
 EXTRACT = "DeltaCommons is an open, verifiable, push-based web index protocol."
+
+# The example Delta's own page, in raw HTML octets — link_extraction.py's
+# "example-delta-page" vector fixture below runs its extraction procedure
+# over this exact byte string, so the Payload's links member is derived from
+# a page rather than asserted, and the vector, the example and the audit
+# story below all agree by construction.
+LINKS_CAP_BYTES = 4096
+FIXTURE_HTML = b"""<!doctype html><html><body>
+<p>Reference: <a href="https://example.org/reference">ref</a></p>
+<a href="https://spec.example.net/dc-1">the spec</a>
+<a href="/blog/post-2">internal relative</a>
+<a href="https://www.example.com/about">internal subdomain</a>
+<a href="http://insecure.example.io/x">non-https, dropped</a>
+<a href="mailto:someone@example.org">not a URL scheme, dropped</a>
+<a href="https://EXAMPLE.ORG/reference">duplicate after normalization</a>
+<a href="https://example.org/%7euser">escape renormalized, distinct URL</a>
+</body></html>"""
+LINKS = link_extraction.links_member(
+    *link_extraction.extract_links(FIXTURE_HTML, DELTA_URL, "example.com"),
+    LINKS_CAP_BYTES)
+
 CONTENT = {
     "extract": EXTRACT,
+    "links": LINKS,
     "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."},
 }
 content_canonical = rfc8785.dumps(CONTENT)
@@ -135,6 +158,67 @@ write_json(EXAMPLES / "status.json", {
                     "detail": "prev chain violation"}],
 })
 print("dc2 status example written")
+
+# ------------------------------------------------- DC-2: link extraction
+DC2V = ROOT / "vectors" / "dc2"
+DC2V.mkdir(parents=True, exist_ok=True)
+
+expected_urls = ["https://example.org/reference", "https://spec.example.net/dc-1",
+                 "https://example.org/~user"]
+
+# Fixture 2: truncation. Each link serializes to 54 JCS octets, so 100 of
+# them (5400+ octets) overflow the 4096-octet budget while 74 do not,
+# ensuring the declared prefix comes out strictly shorter than total.
+OVERFLOW_LINK_COUNT = 100
+overflow_html = b"".join(
+    b'<a href="https://links.example.io/item-%03d?section=references">x</a>' % n
+    for n in range(OVERFLOW_LINK_COUNT))
+
+# Fixture 3: scan-hardening. Exercises DC-2 §11 steps 1-4 (comment/raw-text
+# skipping, quote-aware attribute parsing, `data-href` vs `href`, character
+# reference decoding), not just the resolve/normalize/dedupe steps fixtures
+# 1-2 already cover.
+scan_html = b"""<!doctype html><html><body>
+<!-- <a href="https://commented.example.io/x">hidden in comment</a> -->
+<script>var link = "<a href=\\"https://scripted.example.io/x\\">";</script>
+<a data-href="https://decoy.example.io/x">decoy, not href</a>
+<a title="a>b" href="https://quoted.example.io/x">quoted value holds a bare &gt;</a>
+<a href="https://query.example.io/x?y=1&amp;z=2">entity reference in the query</a>
+<A HREF="https://upper.example.io/x">uppercase tag and attribute name</A>
+<a href=https://unquoted.example.io/x>unquoted href value</a>
+</body></html>"""
+scan_expected_urls = ["https://quoted.example.io/x", "https://query.example.io/x?y=1&z=2",
+                      "https://upper.example.io/x", "https://unquoted.example.io/x"]
+scan_excluded_hosts = ("commented.example.io", "scripted.example.io", "decoy.example.io")
+
+cases = []
+for label, html, base, dom in (
+        ("example-delta-page", FIXTURE_HTML, DELTA_URL, "example.com"),
+        ("budget-truncation", overflow_html, DELTA_URL, "example.com"),
+        ("scan-hardening", scan_html, DELTA_URL, "example.com")):
+    urls, total = link_extraction.extract_links(html, base, dom)
+    member = link_extraction.links_member(urls, total, LINKS_CAP_BYTES)
+    cases.append({"label": label, "html_hex": html.hex(), "base_url": base,
+                  "publisher_domain": dom, "expected": member})
+
+assert cases[0]["expected"] == {"total": 3, "urls": expected_urls}, \
+    "fixture extraction drifted"
+assert cases[1]["expected"]["total"] == OVERFLOW_LINK_COUNT and \
+    0 < len(cases[1]["expected"]["urls"]) < OVERFLOW_LINK_COUNT, \
+    "truncation not exercised"
+assert cases[2]["expected"] == {"total": 4, "urls": scan_expected_urls}, \
+    "scan-hardening fixture drifted"
+assert not any(host in u for u in cases[2]["expected"]["urls"]
+              for host in scan_excluded_hosts), \
+    "a comment-, script-, or data-href-only link leaked into the declared set"
+
+write_json(DC2V / "link-extraction.json",
+           {"note": ("DC-2's extraction procedure over raw HTML bytes. "
+                     "html_hex decodes to the exact input; expected is the "
+                     "links member a conforming Publisher declares for it "
+                     "under links_cap_bytes."),
+            "links_cap_bytes": LINKS_CAP_BYTES, "cases": cases})
+print("dc2 link-extraction vector:", [c["label"] for c in cases])
 
 # ------------------------------------------------------------ DC-3: log anchor
 anchor = {
@@ -225,6 +309,7 @@ write_json(EXAMPLES / "checkpoint.json", sign_envelope("checkpoint", checkpoint,
 REDUCED_URL = "https://reduced.example.org/notice"
 REDUCED_CONTENT = {
     "extract": "A second domain, materialized under a level-2 weight mark.",
+    "links": {"total": 0, "urls": []},
     "summary": {"title": "Notice", "abstract": "A reduced-weight record."},
 }
 reduced_canonical = rfc8785.dumps(REDUCED_CONTENT)
@@ -264,6 +349,19 @@ snapshot_digest = content_digest(snapshot_records)
 assert content_digest(list(reversed(snapshot_records))) == snapshot_digest, \
     "the digest depends on input order"
 
+# tier1/links.parquet materialization (DC-3 §7): one row per declared link of
+# every live record, (source_url, target_url, position). source_url is the
+# record's Normalized URL; target_url and position come from that record's
+# Payload content.links.urls, in declared order. This is a function of
+# Payload content, not of the Log, so — unlike the record tuple above — a
+# link row leaves distribution together with its Payload on a withdrawal
+# (DC-3 §6.2) rather than surviving in content_digest. The reduced.example.org
+# record contributes no rows: its Payload declares no links.
+snapshot_links = [
+    {"source_url": DELTA_URL, "target_url": u, "position": i}
+    for i, u in enumerate(CONTENT["links"]["urls"])
+]
+
 write_json(DC3 / "snapshot-records.json", {
     "note": ("The live record set DC-3 §7's content_digest is computed over. "
              "Each record carries Log-derived identifiers only: no page "
@@ -272,16 +370,28 @@ write_json(DC3 / "snapshot-records.json", {
              "the Delta whose salted commitment binds the content. The "
              "reduced.example.org Delta is not an Entry of the example "
              "Block; this vector publishes the record encoding, not a "
-             "materialization of Block 0."),
+             "materialization of Block 0. `links` is the tier1/links.parquet "
+             "materialization: one (source_url, target_url, position) row "
+             "per declared link of every live record, source_url the "
+             "record's Normalized URL and target_url/position drawn in "
+             "order from that record's Payload content.links.urls. Unlike "
+             "the record tuple above, a link row derives from Payload "
+             "content, not from the Log, and therefore leaves distribution "
+             "with the Payload on a withdrawal (DC-3 §6.2) rather than "
+             "surviving in content_digest; the reduced.example.org record "
+             "contributes no rows because its Payload declares no links."),
     "snapshot_date": "2026-08-02",
     "log_position": 0,
     "record_fields": RECORD_FIELDS,
     "records": snapshot_records,
     "content_digest": snapshot_digest,
+    "links": snapshot_links,
 })
 
 tier0_content = b"tier0-placeholder"
+tier0_embeddings_content = b"embeddings-placeholder"
 tier1_content = b"tier1-placeholder"
+links_parquet_content = b"links-placeholder"
 manifest = {
     "dc_version": "1.0.0",
     "snapshot_date": "2026-08-02",
@@ -293,8 +403,12 @@ manifest = {
     "files": [
         {"path": "tier0/index.sqlite", "sha256": sha256_hex(tier0_content),
          "bytes": len(tier0_content), "tier": 0},
+        {"path": "tier0/embeddings.parquet", "sha256": sha256_hex(tier0_embeddings_content),
+         "bytes": len(tier0_embeddings_content), "tier": 0},
         {"path": "tier1/extracts.parquet", "sha256": sha256_hex(tier1_content),
          "bytes": len(tier1_content), "tier": 1},
+        {"path": "tier1/links.parquet", "sha256": sha256_hex(links_parquet_content),
+         "bytes": len(links_parquet_content), "tier": 1},
     ],
 }
 write_json(EXAMPLES / "snapshot-manifest.json",
@@ -349,6 +463,12 @@ audit_record = {
     "response_commitment": audit_commit(RESPONSE_BODY),
     "ref_extract_commitment": audit_commit(REF_EXTRACTION),
     "similarity": 940000,
+    # The vector page's observed links reproduce the declared ones exactly
+    # (fixture 1 *is* the audited page), so this is link_agreement's own
+    # exact-match case (DC-4 §5) rather than a bare 1_000_000 literal.
+    "link_agreement": link_extraction.link_agreement(
+        CONTENT["links"]["urls"], CONTENT["links"]["total"],
+        CONTENT["links"]["urls"], CONTENT["links"]["total"]),
     "verdict": "consistent",
     "evidence_commitment": audit_commit(WARC_CAPTURE),
     "vrf_proof": pi.hex(),
@@ -378,6 +498,38 @@ write_json(DC4 / "audit-commitments.json", {
             "value": audit_record["evidence_commitment"]},
     },
 })
+
+# ------------------------------------------------ DC-4: link agreement
+AGREE_D = CONTENT["links"]["urls"]          # the example Payload's declaration
+AGREE_TOTAL = CONTENT["links"]["total"]     # ditto, its total (DC-1 §3.6 links.total)
+write_json(DC4 / "link-agreement.json", {
+    "note": ("Worked link_agreement cases (DC-4 §5): "
+             "min(subset Jaccard, count agreement), integer micro-units."),
+    "cases": [
+        {"label": "exact-match", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": AGREE_D, "observed_total": AGREE_TOTAL,
+         "link_agreement": link_extraction.link_agreement(
+             AGREE_D, AGREE_TOTAL, AGREE_D, AGREE_TOTAL)},
+        {"label": "one-dropped", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": AGREE_D[:-1], "observed_total": AGREE_TOTAL - 1,
+         "link_agreement": link_extraction.link_agreement(
+             AGREE_D, AGREE_TOTAL, AGREE_D[:-1], AGREE_TOTAL - 1)},
+        {"label": "disjoint", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": ["https://unrelated.example.io/a"], "observed_total": 1,
+         "link_agreement": link_extraction.link_agreement(
+             AGREE_D, AGREE_TOTAL, ["https://unrelated.example.io/a"], 1)},
+        {"label": "count-fraud", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
+         "observed_urls": AGREE_D, "observed_total": 40,
+         "link_agreement": link_extraction.link_agreement(AGREE_D, AGREE_TOTAL, AGREE_D, 40)},
+        {"label": "both-empty", "declared_urls": [], "declared_total": 0,
+         "observed_urls": [], "observed_total": 0,
+         "link_agreement": link_extraction.link_agreement([], 0, [], 0)},
+    ],
+})
+assert [c["link_agreement"] for c in
+        json.loads((DC4 / "link-agreement.json").read_text())["cases"]] == \
+    [1_000_000, 666_666, 0, 75_000, 1_000_000], "agreement worked values drifted"
+print("dc4 link-agreement vector written")
 
 registry_update = {
     "dc_version": "1.0.0",

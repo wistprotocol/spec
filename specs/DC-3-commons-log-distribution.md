@@ -46,7 +46,7 @@ shown here.
 - **Mirror**: any party re-serving the log's static files.
 - **Snapshot**: a signed, derived materialization of log state at a Block.
 - **Tier**: a size/completeness layer of a Snapshot (Tier 0 compact,
-  Tier 1 full extracts).
+  Tier 1 full extracts and the link graph).
 - **Inclusion Proof**: a Merkle path proving an Entry is in a Block.
 - **Payload**: the content a Delta commits to (DC-1 §3.6), distributed
   alongside the Block that seals that Delta and not inside it (§6.1).
@@ -297,12 +297,13 @@ but they are the one class of file that may cease to be served, under §6.2.
 /log/blocks/000000000.json.zst          (immutable; zero-padded 9-digit block number)
 /log/blocks/000000001.json.zst
 ...
-/payloads/7bee228c….json                (one per content-bearing Delta — §6.1)
+/payloads/6cac5bdd….json                (one per content-bearing Delta — §6.1)
 /snapshots/index.json                   (mutable, signed; the discovery entry point)
 /snapshots/2026-08-02/manifest.json     (signed; declares log position)
 /snapshots/2026-08-02/tier0/index.sqlite
 /snapshots/2026-08-02/tier0/embeddings.parquet
 /snapshots/2026-08-02/tier1/extracts.parquet
+/snapshots/2026-08-02/tier1/links.parquet
 ```
 
 `/log/anchor.json` is served here for convenience only. It is the Log's
@@ -395,14 +396,15 @@ this suite it conforms to (DC-1 §3.1). `salt` is the base64url encoding,
 unpadded, of the ≥ 16 octets that key the Delta's commitment (DC-1 §3.6);
 it is the one place the salt is published, and destroying it is what makes
 a withdrawal effective (§6.2). `content` is the object the commitment is
-computed over: a REQUIRED `extract`, the page's main text, and a REQUIRED
-`summary` object carrying a REQUIRED `title` and an OPTIONAL `abstract`.
-Those five names and no others: `content` is the exact preimage of
-`JCS(content)`, so a Payload carrying any further field commits to
-different bytes and fails verification. DC-1 §3.6 governs the octet caps on
-`extract` and `summary` and the relationship between them and `bytes`; a
-Payload is unsigned, so nothing here is authenticated except by
-recomputing that commitment.
+computed over: a REQUIRED `extract`, the page's main text; a REQUIRED
+`links` object carrying a REQUIRED `total` and REQUIRED `urls` (DC-1 §3.6);
+and a REQUIRED `summary` object carrying a REQUIRED `title` and an OPTIONAL
+`abstract`. Those eight names and no others: `content` is the exact
+preimage of `JCS(content)`, so a Payload carrying any further field
+commits to different bytes and fails verification. DC-1 §3.6 governs the
+octet caps on `extract`, `links` and `summary` and the relationship
+between them and `bytes`; a Payload is unsigned, so nothing here is
+authenticated except by recomputing that commitment.
 
 Payloads are fetched in the same synchronisation pass as Blocks, from the
 same static file servers, by the same unauthenticated GETs. They are
@@ -511,7 +513,10 @@ that height:
 - Consumers MUST exclude the withdrawn content from subsequent
   materializations and remove it from any local index already built from
   it, and the Aggregator **and every Mirror** MUST stop serving any
-  already published Snapshot artifact that still contains it (§7);
+  already published Snapshot artifact that still contains it —
+  `tier1/links.parquet` no less than `tier1/extracts.parquet`, since a
+  withdrawn Payload's declared links are content and leave distribution
+  with it (§7);
 - Auditors record `not_auditable` for that Delta (DC-4 §5) rather than a
   verdict derived from content;
 - every party holding the Payload for protocol purposes MUST destroy it,
@@ -595,7 +600,8 @@ each carrying its `path` relative to the manifest, its `sha256`, its
 - **Tier 0** — summaries and quantized embeddings of every live record:
   SQLite (FTS5) + Parquet. Sized for any laptop; answers most agent
   queries alone.
-- **Tier 1** — full extracts of live records, as Parquet.
+- **Tier 1** — full extracts of live records, and the link graph their
+  Payloads declare, as Parquet.
 
 Both tiers are built from Payloads (§6.1), not from the Log: the Log
 carries commitments, and a Snapshot is where the content a Consumer
@@ -606,6 +612,25 @@ whose commitment it did not verify.
 one model's vector space. The manifest MUST declare the model `name`,
 `version`, `dim`, and `quantization`. A Consumer using a different model
 MUST NOT mix vector spaces; it re-embeds from Tier 1 extracts instead.
+
+**The link graph.** `tier1/links.parquet` carries one row per declared
+link of every live record: `(source_url, target_url, position)`, where
+`source_url` is the record's Normalized URL, `target_url` a member of
+its Payload's `links.urls`, and `position` that member's zero-based
+index. The artifact is a pure function of the live records' Payloads —
+any party holding them can rebuild and compare it row for row — and it
+carries no digest of its own: `content_digest` deliberately covers
+Log-derived tuples only, so that it remains computable after a
+withdrawal, and the artifact's transport integrity is already pinned by
+its `files` entry. It transports declarations, never a judgement: which
+links are trustworthy, and what importance follows from being linked,
+is ranking, and ranking is outside this protocol (DC-4 §8, ADR-0006,
+ADR-0008). That boundary is what makes carrying the graph admissible at
+all: ADR-0006 keeps importance out of the protocol, and ADR-0008 records
+that a page's own outbound links are a verifiable statement about the
+Publisher's content rather than a claim about its own importance, so the
+raw edges may be distributed while no rank, weight or aggregate of them
+ever is.
 
 **The materialized state.** The materialized state is a set of records
 keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
@@ -627,13 +652,14 @@ materialization shapes only the present state.
 **Materialization rule.** A `delete` Delta (DC-1 §3.3) excludes that
 URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
 likewise excludes that Delta's content from every Snapshot produced at or
-above its sealing height, in both tiers, including any embedding derived
-from it. A URL that is **unauditable** at the Snapshot's `log_position`
-(DC-4 §5) — one that two independent Auditors have been forbidden to fetch
-by `robots.txt` inside the unauditable horizon, with no successful audit by
-an Auditor independent of both since — is excluded for as long as that
-holds, and returns to materialization at the first Snapshot built at or
-above the height of such an audit. The log itself
+above its sealing height, in both tiers, including any embedding or
+declared link derived from it. A URL that is **unauditable** at the
+Snapshot's `log_position` (DC-4 §5) — one that two independent Auditors
+have been forbidden to fetch by `robots.txt` inside the unauditable
+horizon, with no successful audit by an Auditor independent of both
+since — is excluded for as long as that holds, and returns to
+materialization at the first Snapshot built at or above the height of
+such an audit. The log itself
 retains full history in every case — deletion, withdrawal and
 unauditability shape the materialized present, never the recorded past.
 
@@ -644,17 +670,19 @@ by the Parameter Registry value in force, not by whether the builder's own
 crawler happened to be turned away.
 
 Withdrawal reaches backward into Snapshots as well, because a Snapshot
-already published carries the content in its tier files. The Aggregator
-and every Mirror MUST stop serving any Snapshot artifact containing
+already published carries the content in its tier files —
+`tier1/extracts.parquet`'s text and `tier1/links.parquet`'s declared
+links alike, per §6.2's rule that both are content. The Aggregator and
+every Mirror MUST stop serving any Snapshot artifact containing
 withdrawn content: the Aggregator either withdraws that Snapshot from
 distribution or replaces it with one rebuilt under the exclusion rule
 above, under a fresh signed manifest and at a `log_position` at or above
-the withdrawal's sealing height — below that height the exclusion does not
-apply and the rebuild would simply reproduce the content — and a Mirror
-re-serving `/snapshots/`
-(§6) is bound identically — a Mirror that kept serving the superseded tier
-files would leave the content in distribution no matter what the
-Aggregator did, which is the whole of what withdrawal is supposed to stop.
+the withdrawal's sealing height — below that height the exclusion does
+not apply and the rebuild would simply reproduce the content — and a
+Mirror re-serving `/snapshots/` (§6) is bound identically — a Mirror
+that kept serving the superseded tier files would leave the content in
+distribution no matter what the Aggregator did, which is the whole of
+what withdrawal is supposed to stop.
 Neither costs a Consumer anything it cannot recover, since any state a
 Snapshot provides is reachable from the Log and the Payloads. A manifest's
 per-file `sha256` is a digest of a whole tier file rather than of any one
@@ -988,7 +1016,7 @@ Block 0 contains 4 `publisher_delta` Entries: the DC-1 vector Delta
 **Leaf hashes (hex):**
 
 ```
-leaf0 = f9b2ad1998bba159c08fa3b0706eef2bfe11839061955dc2172afca9f41d60a5
+leaf0 = 692b6c22035d2d93674487f07223f7ba1897737af6772d34ae9034e67d000b7f
 leaf1 = 0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260
 leaf2 = 220054dcb66d9ba11a870cc8df9de8b45f81d9906d898779dfbc98a5458e6958
 leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
@@ -997,20 +1025,20 @@ leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = adc5908010c74bf4b4fc295d788178e921e94436b91cebe19308e869b3faa00f
+n01 = node(leaf0, leaf1) = df099cc6c13e09fd2f857d97e986bca54e9de485bb3337469d057de061228c73
 n23 = node(leaf2, leaf3) = 71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882077495a760b
 ```
 
 **Merkle root:**
 
 ```
-sha256:80cf0dccbce6b385a278468fb7db80ba5c2d926c1fb8e80b9a4d64b527c8e131
+sha256:4d035a10ecdb040e9871ff26fa2b07694cf9fbc67eac00f86982cb2b951b136d
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d
+sha256:0336a883ede9f0059239ac30649b7be91e4d5fef6b2bc2c938f3d32bbdb14809
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
@@ -1018,12 +1046,12 @@ leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → adc59080...  (= n01)   # fn=0 < sn=3: sibling on the right
-h = node(h, n23)     → 80cf0dcc...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
+h = node(h, leaf1)   → df099cc6...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → 4d035a10...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
 
 Entry 0's Payload is [`examples/payload.json`](../examples/payload.json),
-served at `/payloads/7bee228c…1047.json`. It contributes to none of the
+served at `/payloads/6cac5bdd…5120.json`. It contributes to none of the
 hashes above: every figure here is computed over Entries that carry the
 commitment alone, which is why withdrawing that Payload leaves the leaf,
 the root, the Block Hash, and this proof untouched.

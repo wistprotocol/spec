@@ -19,8 +19,9 @@
         "response_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "ref_extract_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "similarity": {"type": "integer", "minimum": 0, "maximum": 1000000},
-        "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance", "not_auditable"]},
+        "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance", "not_auditable", "link_variance", "link_inconsistent"]},
         "evidence_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
+        "link_agreement": {"type": "integer", "minimum": 0, "maximum": 1000000},
         "robots_excluded": {"const": true, "description": "Present only on an `unreachable` Record whose fetch was forbidden by robots.txt (DC-4 §5); it is what the unauditable horizon counts, so it distinguishes a URL nobody may check from one that was merely down."},
         "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$"}
       }
@@ -40,10 +41,10 @@
     {
       "if": {
         "required": ["record"],
-        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance"]}}}}
+        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance", "link_variance", "link_inconsistent"]}}}}
       },
       "then": {
-        "comment": "similarity is required for every change type alike, `delete` included: what the change type adjusts is the reading (DC-4 §5's effective similarity), never the presence of the field, which is what keeps §7's severity derivable for every Confirmed Inconsistency.",
+        "comment": "similarity is required for every change type alike, `delete` included: what the change type adjusts is the reading (DC-4 §5's effective similarity), never the presence of the field, which is what keeps §7's severity derivable for every Confirmed Inconsistency. link_variance and link_inconsistent both obtained a representation and a measured extract similarity (DC-4 §5: only a consistent-band extract can yield a link verdict), so they carry the same commitments.",
         "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "similarity", "evidence_commitment"]}}
       }
     },
@@ -59,7 +60,8 @@
               {"not": {"required": ["response_commitment"]}},
               {"not": {"required": ["ref_extract_commitment"]}},
               {"not": {"required": ["similarity"]}},
-              {"not": {"required": ["evidence_commitment"]}}
+              {"not": {"required": ["evidence_commitment"]}},
+              {"not": {"required": ["link_agreement"]}}
             ]
           }
         }
@@ -69,9 +71,17 @@
       "comment": "robots_excluded says why a fetch produced no representation, so it belongs to `unreachable` and to nothing else: on any other verdict a representation was obtained (DC-4 §5), and on `not_auditable` the obstacle was the Reference Payload rather than the URL.",
       "if": {
         "required": ["record"],
-        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance", "not_auditable"]}}}}
+        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance", "not_auditable", "link_variance", "link_inconsistent"]}}}}
       },
       "then": {"properties": {"record": {"not": {"required": ["robots_excluded"]}}}}
+    },
+    {
+      "comment": "A link verdict asserts a link_agreement reading, so the Record must seal it; on the other measured verdicts the field is present when the link dimension applied and absent when it was neutral (a non-HTML representation, or a delete audit — DC-4 §5).",
+      "if": {
+        "required": ["record"],
+        "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["link_variance", "link_inconsistent"]}}}}
+      },
+      "then": {"properties": {"record": {"required": ["link_agreement"]}}}
     }
   ]
 }

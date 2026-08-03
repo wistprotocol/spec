@@ -128,6 +128,13 @@ The value of `url` MUST already be a Normalized URL; a Delta whose `url`
 is not byte-identical to its own normalization MUST be rejected with
 `DC1-E03`. The scope rule compares Canonical Hosts.
 
+The UTF-8 octet length of `JCS(url)` — the JSON string literal with its
+enclosing quotes and any escapes — MUST NOT exceed `url_cap_bytes`
+(Parameter Registry: 2048). A validator MUST reject a Delta whose `url`
+exceeds the cap with `DC1-E11`. The schema's `maxLength` counts code
+points and is a structural first pass; this octet bound governs (§3.6
+states the rule once for every cap in this suite).
+
 ### 3.3. `change_type`
 
 One of four values:
@@ -204,17 +211,17 @@ sealed chain.
 ### 3.6. `payload` — the Payload Commitment
 
 A Delta commits to its content; it does not carry it. The content — the
-main text (`extract`) and the structured summary (`summary`) — travels as
-a separate **Payload** (DC-3 §6.1). The Delta carries only the **Payload
-Commitment**:
+main text (`extract`), the page's external links (`links`), and the
+structured summary (`summary`) — travels as a separate **Payload** (DC-3
+§6.1). The Delta carries only the **Payload Commitment**:
 
     commitment = "hmac-sha256:" + hex(HMAC-SHA256(key = salt,
                                                   message = JCS(content)))
 
-where `content` is the object `{"extract": <string>, "summary": <object>}`
-and `salt` is at least 16 octets drawn from a cryptographically secure
-random source, fresh for every Delta. The salt travels with the Payload
-and never appears in the Log.
+where `content` is the object `{"extract": <string>, "links": <object>,
+"summary": <object>}` and `salt` is at least 16 octets drawn from a
+cryptographically secure random source, fresh for every Delta. The salt
+travels with the Payload and never appears in the Log.
 
 The salt is what makes withdrawal effective. A bare hash of a withdrawn
 extract would still let anyone holding a copy of the text demonstrate that
@@ -230,26 +237,65 @@ be a count of the bytes on the wire. Precisely:
   string>)` — the JSON string literal, its enclosing quotes and any
   escapes included — and MUST NOT exceed `extract_cap_bytes` (Parameter
   Registry: 32768);
+- the `links` cap is the UTF-8 octet length of `JCS(<the links
+  object>)` and MUST NOT exceed `links_cap_bytes` (Parameter Registry:
+  4096), and each member of `links.urls`, measured as the UTF-8 octet
+  length of `JCS(<the url string>)`, MUST NOT exceed
+  `link_url_cap_bytes` (Parameter Registry: 2048);
 - the `summary` cap is the UTF-8 octet length of `JCS(<the summary
   object>)` and MUST NOT exceed `summary_cap_bytes` (Parameter Registry:
   2048);
 - `bytes` is the octet length of `JCS(content)` and MUST NOT exceed
-  **34839**, which is not an independent constant: `JCS(content)` is
-  `{"extract":<E>,"summary":<S>}`, whose 23 octets of structure surround
-  the two serialized values, so the bound is `extract_cap_bytes +
-  summary_cap_bytes + 23`. Amending either parameter moves it.
+  **38944**, which is not an independent constant: `JCS(content)` is
+  `{"extract":<E>,"links":<L>,"summary":<S>}`, whose 32 octets of
+  structure surround the three serialized values, so the bound is
+  `extract_cap_bytes + summary_cap_bytes + links_cap_bytes + 32`.
+  Amending any of the three parameters moves it.
 
 A validator MUST reject a Delta whose Payload, once retrieved, does not
-have exactly the declared length, exceeds any of the three caps, or does
+have exactly the declared length, exceeds any of the caps above, or does
 not reproduce `commitment` under the accompanying salt (`DC1-E04`,
 `DC1-E10`).
 
-`schemas/payload.schema.json` bounds `extract`, `summary.title` and
-`summary.abstract` with JSON Schema `maxLength`, which counts **code
-points**. Those bounds are a cheap structural first pass and are neither
-equal to nor implied by the octet caps above — a code point can occupy
-four octets — so a validator MUST enforce the octet caps itself. Where the
-two differ, this section governs.
+**The `links` member.** `urls` carries the page's external links as
+Normalized URLs (§2) in raw-HTML document order, deduplicated (the first
+occurrence holds the position), truncated to the longest prefix whose
+serialized `links` object fits `links_cap_bytes`; `total` is the count
+of all distinct external links before truncation. A link is **external**
+when its Canonical Host (§2) is neither the Publisher's domain nor a
+subdomain of it. Only a Normalized URL can be a link: an href with no
+normalization — a non-`https` scheme, a malformed percent-escape, a
+rejected host label — is not a link for this specification, the same
+fail-closed posture §2 takes for the subject URL. `{"total": 0, "urls":
+[]}` is the REQUIRED form for a page with no external links and for any
+non-HTML representation (DC-2 §11 fixes which representations are HTML).
+A validator MUST reject with `DC1-E12` a `links` member carrying a
+duplicate, an entry that is not byte-identical to its own Normalized URL
+(§2), a fragment, a non-`https` entry, an entry whose Canonical Host is
+internal to the Publisher, or `len(urls)` greater than `total`. The
+normalization rule is what makes the dedup rule mean anything: sameness
+in this specification is byte-identity *of Normalized URLs* (§2), so
+`https://EXAMPLE.ORG/reference` and `https://example.org/reference` are
+one link declared twice. A member carrying both passes a bare byte-wise
+uniqueness test, and the entry that is not its own Normalized URL then
+joins against nothing in the graph consumers build across Payloads
+(DC-3 §7), where the URL string is itself the join key. Requiring each
+entry to be already normalized is what keeps that key exact and the
+dedup rule above enforceable at ingest, against a Payload the validator
+sees on its own. Which links a page has, and whether the declared
+prefix is the correct (longest-fitting) prefix — equality of `len(urls)`
+and `total` follows automatically once the full set fits, per the
+truncation rule above — is checkable only against the page; that is
+DC-4 §5's link dimension, not an ingest rule. The extraction procedure
+itself is defined in DC-2 and is the same procedure for the Publisher
+declaring and the Auditor checking.
+
+`schemas/payload.schema.json` bounds `extract`, `links.urls` and
+`summary.title`/`summary.abstract` with JSON Schema `maxLength`, which
+counts **code points**. Those bounds are a cheap structural first pass and
+are neither equal to nor implied by the octet caps above — a code point
+can occupy four octets — so a validator MUST enforce the octet caps
+itself. Where the two differ, this section governs.
 
 The commitment is what carries the Publisher's accountability across the
 boundary, and it carries two distinct properties. It is **binding**:
@@ -483,13 +529,15 @@ matter". Importance is measured at consumption, outside this protocol.
 | DC1-E01 | Invalid signature (does not verify against the named key) |
 | DC1-E02 | Unknown key (`sig.key_id` not in the current Key Set) |
 | DC1-E03 | URL out of scope, not normalized, or not normalizable (host not covered by domain/`subdomain_scope`; `url` not byte-identical to its own Normalized URL; or `url` has no normalization at all — §2) |
-| DC1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 34839, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets or whose `JCS(summary)` exceeds 2048 octets) |
+| DC1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
 | DC1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | DC1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | DC1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per DC-2 §3.1 |
 | DC1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
 | DC1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (DC-4 §5) |
 | DC1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
+| DC1-E11 | `url` exceeds `url_cap_bytes` octets |
+| DC1-E12 | `links` violates a structural rule of §3.6 |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.
@@ -571,8 +619,10 @@ index that sealed extract bytes into an append-only structure replicated
 across mirrors it does not control would be promising a deletion it could
 not perform.
 
-Publishers MUST NOT include in a Payload's `extract` or `summary` personal
-data beyond what the referenced page itself publicly serves, and MUST NOT
+Publishers MUST NOT include in a Payload's `extract`, `links`, or `summary`
+personal data beyond what the referenced page itself publicly serves —
+a link URL carrying a profile path or a query-string identifier is as
+much a carrier of personal data as extract text is — and MUST NOT
 include personal data in a Delta's `meta` at all (§3.7) — the difference
 being that a Payload can be withdrawn and `meta`, sealed in the Delta,
 cannot. A `delete` Delta removes content from future snapshots (the
@@ -625,10 +675,11 @@ copies already served.
       ones reference the immediately prior Delta (§3.5)
 - [ ] Commits to content instead of carrying it: a fresh CSPRNG salt of
       ≥ 16 octets per Delta, `commitment` over `JCS(content)`, `bytes`
-      equal to that length and ≤ 34839 (§3.6)
+      equal to that length and ≤ 38944 (§3.6)
 - [ ] Serves every content-bearing Delta's Payload, and keeps the anchor
       Payload of any URL it attests retrievable (DC-2 §3.1)
 - [ ] Respects the content caps in JCS octets: `JCS(extract)` ≤ 32768,
+      `JCS(links)` ≤ 4096 (each `links.urls` entry's `JCS(url)` ≤ 2048),
       `JCS(summary)` ≤ 2048 (§3.6)
 - [ ] Carries `payload` on every `new` and `update`, and omits it on
       `attest` and on `delete` (§3.3)
@@ -673,7 +724,7 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 ```
 
 **Payload ([`examples/payload.json`](../examples/payload.json)), served at
-`/payloads/7bee228c…1047.json`:**
+`/payloads/6cac5bdd…5120.json`:**
 
 ```json
 {
@@ -681,12 +732,17 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
   "salt": "GTCxEvdFpRzrjA6G5StpLQ",
   "content": {
     "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
+    "links": {
+      "total": 3,
+      "urls": ["https://example.org/reference", "https://spec.example.net/dc-1",
+               "https://example.org/~user"]
+    },
     "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."}
   }
 }
 ```
 
-`JCS(content)` is 156 octets and the salt is the 16 octets
+`JCS(content)` is 277 octets and the salt is the 16 octets
 `1930b112f745a51ceb8c0e86e52b692d`. A conforming Publisher draws that salt
 from a CSPRNG; this vector derives it — `SHA-256("deltacommons-test-salt|"
 ‖ url)[0..16]` — because the generator has no random source and must stay
@@ -701,9 +757,9 @@ byte-reproducible.
   "change_type": "new",
   "observed_at": "2026-08-02T12:00:00Z",
   "payload": {
-    "commitment": "hmac-sha256:de7cd99162e130dc9560185aef449f10d56afdbae59c1322fdb9b7b773193593",
+    "commitment": "hmac-sha256:c8f33cb222aab03b8d3de0577c5bf98da4c3cf74b5db08d1959ba796c8760a79",
     "alg": "HMAC-SHA256",
-    "bytes": 156
+    "bytes": 277
   },
   "meta": {"lang": "en", "topics": ["software"], "license": "CC-BY-4.0"}
 }
@@ -724,19 +780,19 @@ order.
 **Delta ID:**
 
 ```
-sha256:7bee228cf3db50847cdf2e8b82e99e455c6091a7678b51153025378fd80a1047
+sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120
 ```
 
 **Signature (base64url):**
 
 ```
-HrmcgUNFqNF_k9eP3PCjhK8gpktKoJl1bWEHnezOBJvVDKGG7DvMxeWBiwy7TnY1yOghZhg3vwQQiYI_6cXHDg
+wq0yzY9UZaNYaoA1_xRLb3gGUBLqE8fmyYvOanSjfLAl9V0a8oUc-WmWZ_2BTilOCjugNZKjf9BHzvtmqUZOCg
 ```
 
 The complete envelope is
 [`vectors/dc1/envelope.json`](../vectors/dc1/envelope.json) and doubles as
-[`examples/delta.json`](../examples/delta.json). Neither the extract nor
-the summary appears anywhere in it.
+[`examples/delta.json`](../examples/delta.json). Neither the extract, the
+links, nor the summary appears anywhere in it.
 
 ## References
 
