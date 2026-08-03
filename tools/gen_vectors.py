@@ -349,6 +349,19 @@ snapshot_digest = content_digest(snapshot_records)
 assert content_digest(list(reversed(snapshot_records))) == snapshot_digest, \
     "the digest depends on input order"
 
+# tier1/links.parquet materialization (DC-3 §7): one row per declared link of
+# every live record, (source_url, target_url, position). source_url is the
+# record's Normalized URL; target_url and position come from that record's
+# Payload content.links.urls, in declared order. This is a function of
+# Payload content, not of the Log, so — unlike the record tuple above — a
+# link row leaves distribution together with its Payload on a withdrawal
+# (DC-3 §6.2) rather than surviving in content_digest. The reduced.example.org
+# record contributes no rows: its Payload declares no links.
+snapshot_links = [
+    {"source_url": DELTA_URL, "target_url": u, "position": i}
+    for i, u in enumerate(CONTENT["links"]["urls"])
+]
+
 write_json(DC3 / "snapshot-records.json", {
     "note": ("The live record set DC-3 §7's content_digest is computed over. "
              "Each record carries Log-derived identifiers only: no page "
@@ -357,16 +370,28 @@ write_json(DC3 / "snapshot-records.json", {
              "the Delta whose salted commitment binds the content. The "
              "reduced.example.org Delta is not an Entry of the example "
              "Block; this vector publishes the record encoding, not a "
-             "materialization of Block 0."),
+             "materialization of Block 0. `links` is the tier1/links.parquet "
+             "materialization: one (source_url, target_url, position) row "
+             "per declared link of every live record, source_url the "
+             "record's Normalized URL and target_url/position drawn in "
+             "order from that record's Payload content.links.urls. Unlike "
+             "the record tuple above, a link row derives from Payload "
+             "content, not from the Log, and therefore leaves distribution "
+             "with the Payload on a withdrawal (DC-3 §6.2) rather than "
+             "surviving in content_digest; the reduced.example.org record "
+             "contributes no rows because its Payload declares no links."),
     "snapshot_date": "2026-08-02",
     "log_position": 0,
     "record_fields": RECORD_FIELDS,
     "records": snapshot_records,
     "content_digest": snapshot_digest,
+    "links": snapshot_links,
 })
 
 tier0_content = b"tier0-placeholder"
+tier0_embeddings_content = b"embeddings-placeholder"
 tier1_content = b"tier1-placeholder"
+links_parquet_content = b"links-placeholder"
 manifest = {
     "dc_version": "1.0.0",
     "snapshot_date": "2026-08-02",
@@ -378,8 +403,12 @@ manifest = {
     "files": [
         {"path": "tier0/index.sqlite", "sha256": sha256_hex(tier0_content),
          "bytes": len(tier0_content), "tier": 0},
+        {"path": "tier0/embeddings.parquet", "sha256": sha256_hex(tier0_embeddings_content),
+         "bytes": len(tier0_embeddings_content), "tier": 0},
         {"path": "tier1/extracts.parquet", "sha256": sha256_hex(tier1_content),
          "bytes": len(tier1_content), "tier": 1},
+        {"path": "tier1/links.parquet", "sha256": sha256_hex(links_parquet_content),
+         "bytes": len(links_parquet_content), "tier": 1},
     ],
 }
 write_json(EXAMPLES / "snapshot-manifest.json",

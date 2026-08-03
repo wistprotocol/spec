@@ -46,7 +46,7 @@ shown here.
 - **Mirror**: any party re-serving the log's static files.
 - **Snapshot**: a signed, derived materialization of log state at a Block.
 - **Tier**: a size/completeness layer of a Snapshot (Tier 0 compact,
-  Tier 1 full extracts).
+  Tier 1 full extracts and the link graph).
 - **Inclusion Proof**: a Merkle path proving an Entry is in a Block.
 - **Payload**: the content a Delta commits to (DC-1 §3.6), distributed
   alongside the Block that seals that Delta and not inside it (§6.1).
@@ -303,6 +303,7 @@ but they are the one class of file that may cease to be served, under §6.2.
 /snapshots/2026-08-02/tier0/index.sqlite
 /snapshots/2026-08-02/tier0/embeddings.parquet
 /snapshots/2026-08-02/tier1/extracts.parquet
+/snapshots/2026-08-02/tier1/links.parquet
 ```
 
 `/log/anchor.json` is served here for convenience only. It is the Log's
@@ -512,7 +513,10 @@ that height:
 - Consumers MUST exclude the withdrawn content from subsequent
   materializations and remove it from any local index already built from
   it, and the Aggregator **and every Mirror** MUST stop serving any
-  already published Snapshot artifact that still contains it (§7);
+  already published Snapshot artifact that still contains it —
+  `tier1/links.parquet` no less than `tier1/extracts.parquet`, since a
+  withdrawn Payload's declared links are content and leave distribution
+  with it (§7);
 - Auditors record `not_auditable` for that Delta (DC-4 §5) rather than a
   verdict derived from content;
 - every party holding the Payload for protocol purposes MUST destroy it,
@@ -596,7 +600,8 @@ each carrying its `path` relative to the manifest, its `sha256`, its
 - **Tier 0** — summaries and quantized embeddings of every live record:
   SQLite (FTS5) + Parquet. Sized for any laptop; answers most agent
   queries alone.
-- **Tier 1** — full extracts of live records, as Parquet.
+- **Tier 1** — full extracts of live records, and the link graph their
+  Payloads declare, as Parquet.
 
 Both tiers are built from Payloads (§6.1), not from the Log: the Log
 carries commitments, and a Snapshot is where the content a Consumer
@@ -607,6 +612,19 @@ whose commitment it did not verify.
 one model's vector space. The manifest MUST declare the model `name`,
 `version`, `dim`, and `quantization`. A Consumer using a different model
 MUST NOT mix vector spaces; it re-embeds from Tier 1 extracts instead.
+
+**The link graph.** `tier1/links.parquet` carries one row per declared
+link of every live record: `(source_url, target_url, position)`, where
+`source_url` is the record's Normalized URL, `target_url` a member of
+its Payload's `links.urls`, and `position` that member's zero-based
+index. The artifact is a pure function of the live records' Payloads —
+any party holding them can rebuild and compare it row for row — and it
+carries no digest of its own: `content_digest` deliberately covers
+Log-derived tuples only, so that it remains computable after a
+withdrawal, and the artifact's transport integrity is already pinned by
+its `files` entry. It transports declarations, never a judgement: which
+links are trustworthy, and what importance follows from being linked,
+is ranking, and ranking is outside this protocol (DC-4 §8; ADR-0006).
 
 **The materialized state.** The materialized state is a set of records
 keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
@@ -628,13 +646,14 @@ materialization shapes only the present state.
 **Materialization rule.** A `delete` Delta (DC-1 §3.3) excludes that
 URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
 likewise excludes that Delta's content from every Snapshot produced at or
-above its sealing height, in both tiers, including any embedding derived
-from it. A URL that is **unauditable** at the Snapshot's `log_position`
-(DC-4 §5) — one that two independent Auditors have been forbidden to fetch
-by `robots.txt` inside the unauditable horizon, with no successful audit by
-an Auditor independent of both since — is excluded for as long as that
-holds, and returns to materialization at the first Snapshot built at or
-above the height of such an audit. The log itself
+above its sealing height, in both tiers, including any embedding or
+declared link derived from it. A URL that is **unauditable** at the
+Snapshot's `log_position` (DC-4 §5) — one that two independent Auditors
+have been forbidden to fetch by `robots.txt` inside the unauditable
+horizon, with no successful audit by an Auditor independent of both
+since — is excluded for as long as that holds, and returns to
+materialization at the first Snapshot built at or above the height of
+such an audit. The log itself
 retains full history in every case — deletion, withdrawal and
 unauditability shape the materialized present, never the recorded past.
 
@@ -645,17 +664,20 @@ by the Parameter Registry value in force, not by whether the builder's own
 crawler happened to be turned away.
 
 Withdrawal reaches backward into Snapshots as well, because a Snapshot
-already published carries the content in its tier files. The Aggregator
-and every Mirror MUST stop serving any Snapshot artifact containing
-withdrawn content: the Aggregator either withdraws that Snapshot from
-distribution or replaces it with one rebuilt under the exclusion rule
-above, under a fresh signed manifest and at a `log_position` at or above
-the withdrawal's sealing height — below that height the exclusion does not
-apply and the rebuild would simply reproduce the content — and a Mirror
-re-serving `/snapshots/`
-(§6) is bound identically — a Mirror that kept serving the superseded tier
-files would leave the content in distribution no matter what the
-Aggregator did, which is the whole of what withdrawal is supposed to stop.
+already published carries the content in its tier files —
+`tier1/extracts.parquet`'s text and `tier1/links.parquet`'s declared
+links alike, since a withdrawn Payload's links are content and leave
+distribution with it. The Aggregator and every Mirror MUST stop serving
+any Snapshot artifact containing withdrawn content: the Aggregator
+either withdraws that Snapshot from distribution or replaces it with
+one rebuilt under the exclusion rule above, under a fresh signed
+manifest and at a `log_position` at or above the withdrawal's sealing
+height — below that height the exclusion does not apply and the
+rebuild would simply reproduce the content — and a Mirror re-serving
+`/snapshots/` (§6) is bound identically — a Mirror that kept serving
+the superseded tier files would leave the content in distribution no
+matter what the Aggregator did, which is the whole of what withdrawal
+is supposed to stop.
 Neither costs a Consumer anything it cannot recover, since any state a
 Snapshot provides is reachable from the Log and the Payloads. A manifest's
 per-file `sha256` is a digest of a whole tier file rather than of any one
