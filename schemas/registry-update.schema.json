@@ -163,7 +163,8 @@
                     "provisional_age_days", "provisional_audits", "provisional_cap_u",
                     "quota_base", "quota_slope", "latency_threshold_u", "escalation_l2",
                     "escalation_l3", "escalation_l4", "appeal_window_days", "ruling_deadline_days",
-                    "param_grace_days", "payload_window_days", "unauditable_horizon_days"
+                    "param_grace_days", "payload_window_days", "unauditable_horizon_days",
+                    "mirror_retention_days"
                   ]},
                   "value": {"type": "number"}
                 },

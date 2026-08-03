@@ -8,12 +8,15 @@
   "properties": {
     "manifest": {
       "type": "object",
-      "required": ["dc_version", "snapshot_date", "log_position", "embedding_model", "files"],
+      "required": ["dc_version", "snapshot_date", "log_position", "anchor_block_hash",
+                   "content_digest", "embedding_model", "files"],
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "snapshot_date": {"type": "string", "format": "date"},
         "log_position": {"type": "integer", "minimum": 0},
+        "anchor_block_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "content_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "embedding_model": {
           "type": "object",
           "required": ["name", "version", "dim", "quantization"],
