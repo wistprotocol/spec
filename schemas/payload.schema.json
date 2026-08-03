@@ -12,6 +12,7 @@
       "type": "object",
       "required": ["extract", "summary"],
       "additionalProperties": false,
+      "description": "The exact preimage of JCS(content), which the Delta's commitment covers (DC-1 §3.6). The `maxLength` bounds below count code points; the normative caps count octets of a JCS serialization and are stated in DC-1 §3.6, which governs where the two differ. A validator MUST check the octet caps itself — JSON Schema cannot express them.",
       "properties": {
         "extract": {"type": "string", "maxLength": 32768},
         "summary": {

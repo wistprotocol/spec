@@ -39,6 +39,11 @@ shown here.
 - **Confirmed Inconsistency**: ≥ 2 Auditors, independent in the sense §3
   defines, returning `inconsistent` for the same Delta within 72 hours
   measured on Block `sealed_at` (§5).
+- **Registry Update**: the signed governance object this document defines,
+  sealed as a `registry_update` Entry (DC-3 §3.3). Its `action` selects one
+  of the twelve governance acts of §3, §4, §7 and §9.1; `subject` names
+  what the act is about; `details` and `evidence` are constrained per
+  `action` by §9.1.
 - **Sanction**: a graduated, logged penalty against a domain (§7).
 - **Parameter Registry**: the versioned table of every numeric constant
   in the suite (§9).
@@ -318,7 +323,8 @@ Worked numbers for this section — real values from `vectors/dc4/sampling.json`
 
 ## 5. Verdicts and Tolerance
 
-An Audit Record's fields: `audited_delta` (the Delta ID under audit),
+An Audit Record is an Envelope whose inner object is `record` (DC-1 §4),
+and its fields are: `audited_delta` (the Delta ID under audit),
 `auditor_id` (the Auditor's hostname identity), `fetched_at` (when the
 Auditor fetched the URL), `response_commitment` (over the raw response
 body), `ref_extract_commitment` (over the Auditor's own reference
@@ -486,7 +492,7 @@ names the Delta whose Payload that is, which for an `attest` or a `delete`
 is an earlier Delta in the chain and not `audited_delta` — and the URL
 itself. It MUST verify that Payload against **its own** Delta's
 `commitment` and `bytes` before comparing anything, and MUST reject a
-Payload that fails (`DC1-E11`) rather than audit against it. The
+Payload that fails (`DC1-E10`) rather than audit against it. The
 commitment was fixed when the Publisher signed that Delta, so a Payload
 that verifies is what the Publisher declared no matter who served it —
 which is what lets the comparison below remain an audit of the Publisher
@@ -1010,18 +1016,56 @@ Process requirements:
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
   a level-3 domain that accrues a further Confirmed Inconsistency**. Level
   4 is never conditioned on whether the Publisher appealed.
-- Levels 3 and 4 are themselves derived, mirroring severity above and the
-  deadline rule below: once the escalation criteria above are met at some
-  height N, the corresponding state — ingestion rejected (level 3) or
-  excluded from materialization (level 4) — is in force on recomputation
-  from N's Block onward, whether or not the Aggregator has sealed the
-  `notice` and `sanction` that formally record it. This governs
+- **Every rung is derived, levels 3 and 4 included.** Once the escalation
+  criteria above are met at some height N, the corresponding state is in
+  force on recomputation from N's Block onward, whether or not the
+  Aggregator has sealed a `sanction` recording it. For levels 1 and 2 this
+  is what "follow automatically" above already says, and it is not
+  optional: §4's sampling rate reads a level-1 sanction as an input, and
+  §6.4 and DC-3 §7 read level 2 as one, so a rung that took effect only
+  when an Aggregator chose to file would make audit selection and
+  materialization depend on an act outside the Log — which §1 forbids and
+  §4's recomputability claim could not survive. Levels 3 and 4 are derived
+  on the same terms, mirroring severity above and the deadline rule below,
+  and the derivation reaches their states — ingestion rejected (level 3),
+  excluded from materialization (level 4). This governs
   recomputation only: the Aggregator's own conduct still MUST issue the
   `notice` before it enforces the rejection or exclusion in real time, so
   a Publisher retains its chance to appeal before the Aggregator itself
   acts. A captured Aggregator that never files either cannot spare a
   qualifying domain — a party replaying the Log arrives at the level-3 or
   level-4 state independently of what the Aggregator chose to record.
+- **Derivation and due process, reconciled.** The rule above lets a party
+  that operates no Aggregator — a Consumer, a Snapshot rebuilder, any
+  third-party materializer — treat a domain as level-3 or level-4 when no
+  `notice` has ever been sealed and no appeal window has ever opened. That
+  is deliberate, and what makes it compatible with due process is what due
+  process here is for. It is not a guarantee that no consequence precedes a
+  notice; it is a guarantee that no consequence rests on facts the affected
+  Publisher cannot see, recompute and contest. The derived state rests on
+  nothing but Audit Records already sealed in the public Log, under the
+  same §7 table every party applies, so a `notice` tells the Publisher
+  nothing it could not read for itself — it fixes *who is obliged to tell
+  it*, and it binds the one party that also holds the ingestion lever.
+  Reversal propagates the same way the state does: a `sanction_lift`, an
+  `appeal_ruling` of `"overturned"`, and a ruling deadline that lapses are
+  all sealed facts, so every recomputing party lifts the state at the same
+  height without waiting on the Aggregator (DC-3 §7). This is also why the
+  derivation is bounded to the sanction's *state* and never to `penalty_n`:
+  §6.1 counts the penalty from the evidence regardless, and an appeal has
+  never reached it.
+
+  The limit is worth naming rather than glossing. The appeal window is
+  anchored to a `notice`'s `effective_at`, so where the criteria are met
+  and the Aggregator seals no `notice`, the derived state is in force on
+  recomputation with no window ever opening against it. The Publisher's
+  remedy in that case is not an appeal but the evidence: the confirming
+  Records are public, and a Record that is void under §3, or a severity the
+  §7 table does not support, is rejected by every recomputing party alike,
+  which removes the derived state at its root rather than pardoning it. An
+  Aggregator that suppresses notices while the derivation runs is visible
+  as exactly that, and §8's invariant 4 is what the commons has instead of
+  an appeal to it.
 - The appeal window is 14 days from the `notice`'s `effective_at`. If it
   lapses with no `appeal`, the sanction takes effect unchanged; there is no
   silent reprieve and no penalty for silence.
@@ -1137,8 +1181,8 @@ combination cases above.
 |---|---|---|---|
 | Block sealing cadence | `block_cadence_seconds` | 1 hour | DC-3 §3.2 |
 | Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | DC-3 §6 |
-| `extract` size cap | `extract_cap_bytes` | 32768 bytes | DC-1 §3.6, DC-3 §6.1 |
-| `summary` size cap | `summary_cap_bytes` | 2048 bytes | DC-1 §3.6, DC-3 §6.1 |
+| `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | DC-1 §3.6 |
+| `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | DC-1 §3.6 |
 | Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | DC-3 §6 |
 | Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
@@ -1442,7 +1486,12 @@ hands.
       withdrawn, unobtainable or empty-extract Reference Payload, and
       treats it as discharging the coverage duty (§4, §5)
 - [ ] Signs Records with a key admitted at the `sealed_at` of the Block
-      carrying the Record, and fetches inside the interval §3 fixes
+      carrying the Record, and fetches inside the interval §3 fixes — with
+      the coverage carve-out: an Auditor removed after a Block was sealed
+      but before that Block's coverage deadline still discharges its §4
+      duty by publishing under the key admitted at the *audited* Block's
+      `sealed_at`, and such a Record proves the duty was met without
+      entering any domain's reputation (§3, §4)
 - [ ] Commits the response, its own extraction and its WARC capture under
       the Reference Payload's salt — never as bare digests (§5)
 - [ ] Preserves the WARC capture matching `evidence_commitment`, and
@@ -1489,6 +1538,15 @@ hands.
 - [ ] Counts every Confirmed Inconsistency's penalty from its confirming
       Block onward, independent of whether a `sanction` Registry Update
       exists for it (§6.1, §7)
+- [ ] Derives the level-3 and level-4 sanction *states* from the §7
+      escalation criteria at the height they are met, whether or not the
+      Aggregator sealed the `notice` and `sanction` that record them, and
+      lifts each at the height a `sanction_lift`, an `"overturned"`
+      `appeal_ruling`, or a lapsed ruling deadline takes effect (§7,
+      DC-3 §7)
+- [ ] Keeps that derivation to the sanction's state and never lets an
+      appeal, a lift or a lapsed deadline touch `penalty_n`, which §6.1
+      derives from the evidence alone (§6.1, §7)
 
 ## Appendix A. Worked Sampling Example
 
@@ -1617,4 +1675,4 @@ from end to end.
 - DC-1: Delta Format & Identity — key rotation, scope rule, §6 absence
 - DC-2: Site Publication — quotas, hints, robots.txt boundary
 - DC-3: Commons Log & Distribution — entry envelope, checkpoints,
-  immutability, Block Hash (§3.1)
+  immutability, Block Hash (DC-3 §3.1)
