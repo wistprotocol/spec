@@ -7,6 +7,7 @@
     "response_commitment": "hmac-sha256:8652be7fd06816b6998fb3c7325a35ada44d8b350ac88b4c8005530472bfb928",
     "ref_extract_commitment": "hmac-sha256:6379342666cfdee8f80015a9e3d7f46085bf8a7d93f1e7de4b6aef2608f332da",
     "similarity": 940000,
+    "link_agreement": 1000000,
     "verdict": "consistent",
     "evidence_commitment": "hmac-sha256:e787d4cf09890f43da957730a1452cb58bc7860bb8f81fdf7898d61023b198d3",
     "vrf_proof": "2b1c91a879cb2bcfd0f87420fc17a2c213ea9a44e39371c7dc5b7882b71b2af59282b4cd8708ada538a34273358d60a7a2d7100b8114be31055e28db5dffbc14c87de363c1ab0fe4370e9a01e4b99e0e"
@@ -14,6 +15,6 @@
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "xQR5Uwganv4RaMruP3OcwzeqGCduxlXcPg2n5rPpid2xRT0oYQy0BENIYEw73uoD_SN6RoPM-9iHl40AIWeZCg"
+    "value": "m3XAd2t_wCkC_nZLs0cZ5i3Gwz-hNAPEguTcStmsdB1JOx1huN4IVXJMnseoKMe0Je75vu4mqFP0AQNo9cJYCg"
   }
 }
