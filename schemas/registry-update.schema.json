@@ -188,6 +188,10 @@
                   {
                     "if": {"properties": {"parameter": {"const": "unauditable_horizon_days"}}},
                     "then": {"properties": {"value": {"minimum": 7}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "mirror_retention_days"}}},
+                    "then": {"properties": {"value": {"minimum": 44}}}
                   }
                 ]
               }

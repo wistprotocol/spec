@@ -1088,7 +1088,8 @@ MUST NOT set a confirmation or weight parameter (`confirm_auditors`,
 value that nullifies the mechanism implementing a §8 invariant. The
 schema enforces this wherever it reduces to a single numeric floor
 (`penalty_weight` ≥ 1, `confirm_auditors` ≥ 2, `similarity_variance_floor`
-> 150 000, `payload_window_days` ≥ 30, `unauditable_horizon_days` ≥ 7);
+> 150 000, `payload_window_days` ≥ 30, `unauditable_horizon_days` ≥ 7,
+`mirror_retention_days` ≥ 44);
 where it does not — a value that is individually in range but
 collapses a band only in combination with another parameter's current
 value — a party recomputing reputation MUST reject the `parameter_change`
@@ -1110,6 +1111,27 @@ shorter than the interval within which Auditors are even obliged to
 publish, whether a URL is excluded would turn on publication scheduling
 rather than on what its `robots.txt` does — two exclusions and a clearing
 audit need room to land inside the same window.
+
+`mirror_retention_days` carries one because the retention it sets is what
+makes an evidence bundle assemblable after the fact (DC-3 §6), and the
+proceedings that need one run on this suite's own clocks. An appeal opens
+within `appeal_window_days` of the `notice` and MUST be ruled on within
+`ruling_deadline_days` of the appeal, so at present defaults 44 days is the
+longest span the process itself guarantees between the sanction complained
+of and the ruling on it. A Mirror free to drop a Block sooner could leave an
+appellant unable to fetch the Audit Records its own sanction rests on, which
+would decide an appeal on retention policy rather than on evidence; the floor
+is therefore set at exactly that span, so the schema's number and the
+deadlines it protects have the same derivation rather than merely the same
+order of magnitude. The floor is a floor, not a target: the default is 90
+days, and the sum is the point below which the process stops working at all.
+
+Because that sum is of two amendable parameters, the schema can pin the
+constant but not the combination. A `parameter_change` raising
+`appeal_window_days` or `ruling_deadline_days` MUST NOT leave
+`mirror_retention_days` below their sum, and a party replaying the Log MUST
+reject one that does directly against this sentence, exactly as for the
+combination cases above.
 
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
