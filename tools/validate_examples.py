@@ -143,6 +143,110 @@ def _url_bound_twin():
 
 check("negative:url-octet-bound", _url_bound_twin)
 
+def _registry_table_defaults():
+    """DC-4 §9's Default column, keyed by identifier, as leading integers."""
+    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    out = {}
+    for line in section9.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != 4 or cells[1] == "Identifier":
+            continue
+        names = re.findall(r"`([a-z0-9_]+)`", cells[1])
+        m = re.match(r"([\d ]+)", cells[2])
+        if len(names) == 1 and m:
+            out[names[0]] = int(m.group(1).replace(" ", ""))
+    return out
+
+def _assert_links_valid(payload):
+    """DC-1 §3.6 / DC-3 §6.1: structural link rules a validator enforces at ingest.
+
+    Caps are read from the DC-4 §9 registry table (the same source
+    `_payload_length` derives from), not hard-coded, so the two checks cannot
+    disagree after a `parameter_change` amends either one.
+
+    What is deliberately NOT checked here: whether the declared `urls` prefix
+    is the correct one for the page, and whether an omitted remainder would
+    have fit `links_cap_bytes`. Both are checkable only against the live page
+    (DC-4 §5's link dimension), never from the Payload alone — an ingest
+    validator sees only the already-truncated object.
+    """
+    caps = _registry_table_defaults()
+    links = payload["content"]["links"]
+    urls, total = links["urls"], links["total"]
+    assert len(urls) <= total, "more urls than the declared total"
+    assert len(set(urls)) == len(urls), "duplicate link"
+    for u in urls:
+        assert u.startswith("https://") and "#" not in u, f"non-https or fragment: {u}"
+        assert len(rfc8785.dumps(u)) <= caps["link_url_cap_bytes"], \
+            f"link exceeds link_url_cap_bytes: {u}"
+        host = u.split("/", 3)[2].split(":")[0]
+        assert host != "example.com" and not host.endswith(".example.com"), \
+            f"internal link declared external: {u}"
+    links_octets = len(rfc8785.dumps(links))
+    assert links_octets <= caps["links_cap_bytes"], "JCS(links) exceeds links_cap_bytes"
+
+def _payload_links_rules():
+    """DC-1 §3.6 / DC-3 §6.1: structural link rules a validator enforces at ingest."""
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    _assert_links_valid(payload)
+    # The shipped example is known, by construction, to declare its full set
+    # of external links (nothing was truncated) — an editorial fact about
+    # this one Payload, not a general ingest rule, so it is asserted here
+    # rather than inside the shared helper.
+    links = payload["content"]["links"]
+    assert len(links["urls"]) == links["total"], \
+        "the shipped example's link set is not fully declared (urls != total)"
+    content_octets = len(rfc8785.dumps(payload["content"]))
+    assert content_octets <= 38944, "JCS(content) exceeds the derived cap"
+    delta = json.loads((ROOT / "examples" / "delta.json").read_text())
+    assert delta["delta"]["payload"]["bytes"] == content_octets, \
+        "declared bytes != JCS(content) octets"
+    schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
+    assert schema["properties"]["delta"]["properties"]["payload"]["properties"]["bytes"][
+        "maximum"] == 38944, "schema bytes maximum is not the derived cap"
+
+check("spec:payload-links-rules", _payload_links_rules)
+
+def _payload_links_twin():
+    """Mutation twins: each rule must reject its own target, not merely any rule.
+
+    Every mutation that appends a URL also bumps `total` by one, so the count
+    gate (`len(urls) <= total`) still passes and the mutation actually reaches
+    the rule it is meant to exercise, rather than being rejected for the wrong
+    reason.
+    """
+    base = json.loads((ROOT / "examples" / "payload.json").read_text())
+    def rejected(mutate, expected_substring):
+        p = json.loads(json.dumps(base))
+        mutate(p)
+        try:
+            _assert_links_valid(p)          # helper factored from the check above
+        except AssertionError as e:
+            assert expected_substring in str(e), \
+                f"rejected, but not by its target rule: {e}"
+            return True
+        return False
+
+    def add(p, url):
+        p["content"]["links"]["urls"].append(url)
+        p["content"]["links"]["total"] += 1
+
+    assert rejected(lambda p: add(p, p["content"]["links"]["urls"][0]),
+                     "duplicate link"), "duplicate link passed"
+    assert rejected(lambda p: add(p, "https://www.example.com/internal"),
+                     "internal link declared external"), "internal link passed"
+    assert rejected(lambda p: add(p, "https://spec.example.net/dc-1#frag"),
+                     "non-https or fragment"), "fragment link passed"
+    assert rejected(lambda p: add(p, "https://x.example.io/" + "a" * 2100),
+                     "link exceeds link_url_cap_bytes"), "oversize link passed"
+    assert rejected(lambda p: p["content"]["links"].update(total=0),
+                     "more urls than the declared total"), "urls > total passed"
+
+check("negative:payload-links-rules", _payload_links_twin)
+
 DIGEST_NAME = re.compile(r"hash|digest|sha\d|checksum|commitment", re.IGNORECASE)
 
 # Digest lengths in hex: MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512.
@@ -465,23 +569,6 @@ def _assert_coverage(check_name, covered_values, covered_schema):
 # 2b. The payload commitment: the only thing binding a Delta to content that
 # the Log does not carry. Everything downstream — the audit metric, snapshot
 # materialization, the withdrawal guarantee — rests on this recomputation.
-def _registry_table_defaults():
-    """DC-4 §9's Default column, keyed by identifier, as leading integers."""
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
-    out = {}
-    for line in section9.splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) != 4 or cells[1] == "Identifier":
-            continue
-        names = re.findall(r"`([a-z0-9_]+)`", cells[1])
-        m = re.match(r"([\d ]+)", cells[2])
-        if len(names) == 1 and m:
-            out[names[0]] = int(m.group(1).replace(" ", ""))
-    return out
-
 def _load_payload_and_delta():
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     delta = json.loads((ROOT / "examples" / "delta.json").read_text())["delta"]
@@ -521,13 +608,13 @@ check("payload:commitment", _payload_commitment)
 def _payload_length():
     """`bytes`, and every cap it is bounded by, counted in JCS octets.
 
-    DC-1 §3.6 measures all three caps as octets of a JCS serialization, never
+    DC-1 §3.6 measures every cap as octets of a JCS serialization, never
     as characters and never as code points, because a Consumer uses them to
     bound a fetch. The combined bound is derived rather than independent:
-    JCS(content) is `{"extract":<E>,"summary":<S>}`, so its 23 octets of
-    structure sit on top of the two field caps. Deriving it here rather than
-    hard-coding the total is what keeps the schema's number and DC-1 §3.6's
-    arithmetic from drifting apart again.
+    JCS(content) is `{"extract":<E>,"links":<L>,"summary":<S>}`, so its 32
+    octets of structure sit on top of the three field caps. Deriving it here
+    rather than hard-coding the total is what keeps the schema's number and
+    DC-1 §3.6's arithmetic from drifting apart again.
     """
     payload, delta = _load_payload_and_delta()
     content = payload["content"]
@@ -536,28 +623,33 @@ def _payload_length():
         f"the Delta declares {delta['payload']['bytes']} octets, JCS(content) is {n}"
 
     caps = _registry_table_defaults()
-    e_cap, s_cap = caps["extract_cap_bytes"], caps["summary_cap_bytes"]
-    wrapper = len(rfc8785.dumps({"extract": "", "summary": {}})) - \
-        len(rfc8785.dumps("")) - len(rfc8785.dumps({}))
-    assert wrapper == 23, f"JCS(content) structure is {wrapper} octets, not the 23 DC-1 §3.6 states"
-    combined = e_cap + s_cap + wrapper
+    e_cap = caps["extract_cap_bytes"]
+    lk_cap = caps["links_cap_bytes"]
+    s_cap = caps["summary_cap_bytes"]
+    wrapper = len(rfc8785.dumps({"extract": "", "links": {}, "summary": {}})) - \
+        len(rfc8785.dumps("")) - 2 * len(rfc8785.dumps({}))
+    assert wrapper == 32, f"JCS(content) structure is {wrapper} octets, not the 32 DC-1 §3.6 states"
+    combined = e_cap + lk_cap + s_cap + wrapper
 
     e = len(rfc8785.dumps(content["extract"]))
+    lk = len(rfc8785.dumps(content["links"]))
     s = len(rfc8785.dumps(content["summary"]))
     assert e <= e_cap, f"JCS(extract) is {e} octets, over the {e_cap}-octet cap (DC-1 §3.6)"
+    assert lk <= lk_cap, f"JCS(links) is {lk} octets, over the {lk_cap}-octet cap (DC-1 §3.6)"
     assert s <= s_cap, f"JCS(summary) is {s} octets, over the {s_cap}-octet cap (DC-1 §3.6)"
     assert n <= combined, f"JCS(content) is {n} octets, over the {combined}-octet cap (DC-1 §3.6)"
-    assert e + s + wrapper == n, "the three JCS lengths do not add up; the derivation is wrong"
+    assert e + lk + s + wrapper == n, "the JCS lengths do not add up; the derivation is wrong"
 
     schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
     declared = schema["properties"]["delta"]["properties"]["payload"][
         "properties"]["bytes"]["maximum"]
     assert declared == combined, (
         f"delta.schema.json bounds payload.bytes at {declared}, but "
-        f"{e_cap} + {s_cap} + {wrapper} = {combined} (DC-1 §3.6)")
+        f"{e_cap} + {lk_cap} + {s_cap} + {wrapper} = {combined} (DC-1 §3.6)")
     spec = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
     assert str(combined) in spec, f"DC-1 §3.6 does not state the {combined}-octet bound"
     assert "34816" not in spec, "DC-1 still cites the old combined cap, which omitted the JCS wrapper"
+    assert "34839" not in spec, "DC-1 still cites the pre-links combined cap"
 check("payload:length", _payload_length)
 
 def _payload_tamper():
@@ -1560,6 +1652,14 @@ def _dc4_appendix_figures():
         for n in (c["D"], c["p_1e7"], c["reputation_u"]):
             assert str(n) in flat or f"{n:,}".replace(",", " ") in flat, \
                 f"DC-4 does not quote {c['label']} value {n}"
+        # The Selected? cell itself, pinned to its own row via the
+        # (lhs_approx, rhs_approx) pair — unique per selection entry — so a
+        # hand-edit flipping "yes" to "no" (or vice versa) on the wrong row
+        # cannot pass unnoticed. Bold markers (`**yes**`) are tolerated.
+        word = "yes" if c["selected"] else "no"
+        row = re.escape(f"{c['lhs_approx']} | {c['rhs_approx']} |")
+        assert re.search(row + r"\s*\*{0,2}" + word + r"\*{0,2}\s*\|", flat), \
+            f"DC-4's Selected? column for {c['label']} does not say {word!r} on its own row"
     # No floating-point rendering of the sampling rate may survive in §4's
     # normative text: the integers are the definition, decimals only a reading.
     section4 = flat.split("## 4. Audit Sampling")[1].split("## 5.")[0]

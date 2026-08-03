@@ -297,7 +297,7 @@ but they are the one class of file that may cease to be served, under §6.2.
 /log/blocks/000000000.json.zst          (immutable; zero-padded 9-digit block number)
 /log/blocks/000000001.json.zst
 ...
-/payloads/7bee228c….json                (one per content-bearing Delta — §6.1)
+/payloads/8999865b….json                (one per content-bearing Delta — §6.1)
 /snapshots/index.json                   (mutable, signed; the discovery entry point)
 /snapshots/2026-08-02/manifest.json     (signed; declares log position)
 /snapshots/2026-08-02/tier0/index.sqlite
@@ -395,14 +395,15 @@ this suite it conforms to (DC-1 §3.1). `salt` is the base64url encoding,
 unpadded, of the ≥ 16 octets that key the Delta's commitment (DC-1 §3.6);
 it is the one place the salt is published, and destroying it is what makes
 a withdrawal effective (§6.2). `content` is the object the commitment is
-computed over: a REQUIRED `extract`, the page's main text, and a REQUIRED
-`summary` object carrying a REQUIRED `title` and an OPTIONAL `abstract`.
-Those five names and no others: `content` is the exact preimage of
-`JCS(content)`, so a Payload carrying any further field commits to
-different bytes and fails verification. DC-1 §3.6 governs the octet caps on
-`extract` and `summary` and the relationship between them and `bytes`; a
-Payload is unsigned, so nothing here is authenticated except by
-recomputing that commitment.
+computed over: a REQUIRED `extract`, the page's main text; a REQUIRED
+`links` object carrying a REQUIRED `total` and REQUIRED `urls` (DC-1 §3.6);
+and a REQUIRED `summary` object carrying a REQUIRED `title` and an OPTIONAL
+`abstract`. Those eight names and no others: `content` is the exact
+preimage of `JCS(content)`, so a Payload carrying any further field
+commits to different bytes and fails verification. DC-1 §3.6 governs the
+octet caps on `extract`, `links` and `summary` and the relationship
+between them and `bytes`; a Payload is unsigned, so nothing here is
+authenticated except by recomputing that commitment.
 
 Payloads are fetched in the same synchronisation pass as Blocks, from the
 same static file servers, by the same unauthenticated GETs. They are
@@ -988,7 +989,7 @@ Block 0 contains 4 `publisher_delta` Entries: the DC-1 vector Delta
 **Leaf hashes (hex):**
 
 ```
-leaf0 = f9b2ad1998bba159c08fa3b0706eef2bfe11839061955dc2172afca9f41d60a5
+leaf0 = ae89e9f3b573605ed9b21436df6f457aad4f598101bc5d328aee7ca3c36c141b
 leaf1 = 0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260
 leaf2 = 220054dcb66d9ba11a870cc8df9de8b45f81d9906d898779dfbc98a5458e6958
 leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
@@ -997,20 +998,20 @@ leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = adc5908010c74bf4b4fc295d788178e921e94436b91cebe19308e869b3faa00f
+n01 = node(leaf0, leaf1) = 3976b5404b3762ba58a7839bc6e037b43f5095d7fa1cb43db7e5f111c40dcf12
 n23 = node(leaf2, leaf3) = 71d4bc08c95e21599e144e3b0b70ab1e9d804a6ce149feaaec882077495a760b
 ```
 
 **Merkle root:**
 
 ```
-sha256:80cf0dccbce6b385a278468fb7db80ba5c2d926c1fb8e80b9a4d64b527c8e131
+sha256:7996906c9a57bd456aaa89d692b941cce51104137a6856c981109436f0b52aea
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:28418b34f83186c1af6014500c87baa2bd73b3aad4565d6534e9db0bbc7b493d
+sha256:0cdae7f67aa37151dbe210b02d9dfc487055b45790155c0c9420cc8832fc6a44
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
@@ -1018,12 +1019,12 @@ leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → adc59080...  (= n01)   # fn=0 < sn=3: sibling on the right
-h = node(h, n23)     → 80cf0dcc...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
+h = node(h, leaf1)   → 3976b540...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → 7996906c...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
 
 Entry 0's Payload is [`examples/payload.json`](../examples/payload.json),
-served at `/payloads/7bee228c…1047.json`. It contributes to none of the
+served at `/payloads/8999865b…e257.json`. It contributes to none of the
 hashes above: every figure here is computed over Entries that carry the
 commitment alone, which is why withdrawing that Payload leaves the leaf,
 the root, the Block Hash, and this proof untouched.

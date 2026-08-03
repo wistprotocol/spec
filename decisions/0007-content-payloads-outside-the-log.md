@@ -36,9 +36,9 @@ re-serialisation and partially-removed entries during verification.
 
 Signed objects commit to content; they do not carry it.
 
-- A Delta carries a **salted commitment** to its `extract` and `summary`
-  (HMAC-SHA256 under a per-Delta random salt of at least 128 bits), not
-  their bytes.
+- A Delta carries a **salted commitment** to its `extract`, `links` and
+  `summary` (HMAC-SHA256 under a per-Delta random salt of at least 128
+  bits), not their bytes.
 - The bytes and the salt travel as **content-addressed payload files
   alongside** the Block, in the same hourly synchronisation, served as
   static files exactly as Blocks are.

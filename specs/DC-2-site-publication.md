@@ -54,7 +54,7 @@ A conforming Publisher serves, over HTTPS only:
 `deltas/<id>.json` contains exactly one Delta Envelope, where `<id>` is
 the Delta ID (including the `sha256:` prefix is NOT used in the filename;
 the filename is the 64-char hex digest, e.g.
-`deltas/7bee228c...1047.json`). Delta files are immutable: once published
+`deltas/8999865b...e257.json`). Delta files are immutable: once published
 under an ID, the bytes MUST NOT change. Publishers SHOULD serve them with
 long-lived cache headers (`Cache-Control: public, max-age=31536000,
 immutable`).
