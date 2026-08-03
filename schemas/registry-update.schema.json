@@ -12,7 +12,7 @@
       "additionalProperties": false,
       "properties": {
         "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal"]},
+        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal", "pull_attestation"]},
         "subject": {"type": "string", "maxLength": 256},
         "details": {"type": "object"},
         "evidence": {"type": "array", "items": {"type": "string", "maxLength": 256}},
@@ -177,14 +177,28 @@
                     "param_grace_days", "payload_window_days", "unauditable_horizon_days",
                     "mirror_retention_days", "appeal_seal_days", "url_cap_bytes",
                     "links_cap_bytes", "link_url_cap_bytes", "link_agreement_consistent",
-                    "link_variance_floor"
+                    "link_variance_floor", "warc_retention_days", "record_seal_blocks",
+                    "domain_block_entries_max", "max_inclusion_blocks",
+                    "ingest_budget_bytes_day"
                   ]},
                   "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit DC-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying DC-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
                 },
                 "allOf": [
                   {
                     "if": {"properties": {"parameter": {"const": "block_cadence_seconds"}}},
+                    "then": {"properties": {"value": {"minimum": 1, "maximum": 86400}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "domain_block_entries_max"}}},
                     "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "max_inclusion_blocks"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "ingest_budget_bytes_day"}}},
+                    "then": {"properties": {"value": {"minimum": 1048576}}}
                   },
                   {
                     "if": {"properties": {"parameter": {"const": "block_decompressed_cap_bytes"}}},
@@ -287,6 +301,14 @@
                     "then": {"properties": {"value": {"minimum": 51}}}
                   },
                   {
+                    "if": {"properties": {"parameter": {"const": "warc_retention_days"}}},
+                    "then": {"properties": {"value": {"minimum": 51}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "record_seal_blocks"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
                     "if": {"properties": {"parameter": {"const": "url_cap_bytes"}}},
                     "then": {"properties": {"value": {"minimum": 14}}}
                   },
@@ -360,6 +382,48 @@
                 "required": ["notice"],
                 "properties": {
                   "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (DC-4 §7) of the `notice` being appealed."}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "DC-4 §4: the pull attestation is the Aggregator's signed statement of what its pull of an Auditor's well-known path returned, and it is the precondition for any coverage failure to count against that Auditor. `subject` is the Auditor's `auditor_id`; `block` names the audited Block; `found` lists the IDs the fetch returned, empty where it returned nothing to seal. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "pull_attestation"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "details": {
+                "type": "object",
+                "required": ["block", "found"],
+                "properties": {
+                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The audited Block's Block Hash — the same value that names the Auditor's well-known records file (DC-4 §4)."},
+                  "found": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "description": "The Record and coverage_attestation IDs the pull returned. Empty is a claim like any other: it is what a third party who fetched the same path during the window can contradict."}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "DC-4 §4: a coverage_attestation carries the same per-auditor chain link an Audit Record carries, so a suppressed attestation is provable from its sealed successor exactly as a suppressed Record is. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "coverage_attestation"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "details": {
+                "type": "object",
+                "required": ["prev_record"],
+                "properties": {
+                  "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}]}
                 }
               }
             }

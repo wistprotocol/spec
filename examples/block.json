@@ -4,38 +4,10 @@
     "block_number": 0,
     "prev_block_hash": "sha256:genesis",
     "sealed_at": "2026-08-02T13:00:00Z",
-    "merkle_root": "sha256:4d035a10ecdb040e9871ff26fa2b07694cf9fbc67eac00f86982cb2b951b136d",
+    "merkle_root": "sha256:2665ae59c2decdc0559d7ab10563e73563966d3db25eaa0fda567ed50f29995e",
     "entry_count": 4
   },
   "entries": [
-    {
-      "type": "publisher_delta",
-      "body": {
-        "delta": {
-          "dc_version": "1.0.0",
-          "url": "https://example.com/blog/post-1",
-          "change_type": "new",
-          "observed_at": "2026-08-02T12:00:00Z",
-          "payload": {
-            "commitment": "hmac-sha256:c8f33cb222aab03b8d3de0577c5bf98da4c3cf74b5db08d1959ba796c8760a79",
-            "alg": "HMAC-SHA256",
-            "bytes": 277
-          },
-          "meta": {
-            "lang": "en",
-            "topics": [
-              "software"
-            ],
-            "license": "CC-BY-4.0"
-          }
-        },
-        "sig": {
-          "key_id": "test-k1",
-          "alg": "Ed25519",
-          "value": "wq0yzY9UZaNYaoA1_xRLb3gGUBLqE8fmyYvOanSjfLAl9V0a8oUc-WmWZ_2BTilOCjugNZKjf9BHzvtmqUZOCg"
-        }
-      }
-    },
     {
       "type": "publisher_delta",
       "body": {
@@ -81,6 +53,34 @@
       "body": {
         "delta": {
           "dc_version": "1.0.0",
+          "url": "https://example.com/blog/post-1",
+          "change_type": "new",
+          "observed_at": "2026-08-02T12:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:c8f33cb222aab03b8d3de0577c5bf98da4c3cf74b5db08d1959ba796c8760a79",
+            "alg": "HMAC-SHA256",
+            "bytes": 277
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "software"
+            ],
+            "license": "CC-BY-4.0"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "wq0yzY9UZaNYaoA1_xRLb3gGUBLqE8fmyYvOanSjfLAl9V0a8oUc-WmWZ_2BTilOCjugNZKjf9BHzvtmqUZOCg"
+        }
+      }
+    },
+    {
+      "type": "publisher_delta",
+      "body": {
+        "delta": {
+          "dc_version": "1.0.0",
           "url": "https://example.com/blog/post-4",
           "change_type": "attest",
           "observed_at": "2026-08-02T12:00:00Z",
@@ -100,6 +100,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "HrnSorFS9SY-pFq5vGoZDqrZJw7iJs708S0tkKybwWrhXddGWp4N8TtDC2q4-aCycJVspErgONP-X15wvzPCAg"
+    "value": "goNPIOGFD1cyc2Eu_UlQukDcYcbskqCJ7dfeDyKSPFjR5qejwNMllgZ-1mOPeO-Sh5B0jM_gdsYX0VnVNIpODQ"
   }
 }
