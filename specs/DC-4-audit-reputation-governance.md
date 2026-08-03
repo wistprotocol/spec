@@ -261,10 +261,17 @@ chain last committed to is no longer served, so that Payload is what
 the Auditor preserves may contain that very content where the claim is
 false.
 
-When an audit has no Reference Payload it can obtain — because the chain
-has never carried one, because it has been withdrawn (DC-3 §6.2), or
-because it cannot be fetched from any source — the verdict is
-`not_auditable`.
+When an audit has no Reference Payload it can obtain, the verdict is
+`not_auditable`. That covers four cases: the Reference Payload has been
+withdrawn (DC-3 §6.2); it cannot be fetched from any source; the URL's
+chain has never carried a content-bearing Delta, so no anchor exists to
+resolve; and — since §3.3 makes `payload` a SHOULD rather than a MUST on
+`new` and `update` — the audited Delta is itself a `new` or `update` that
+omits `payload`. That last Delta asserts that content appeared or changed
+without saying what it changed to, so there is nothing to check it
+against; its Reference Payload is not the URL's earlier anchor, because
+the claim it makes is precisely that the content is no longer what the
+anchor holds.
 
 **The Auditor's commitments.** An Audit Record observes page content
 directly, so every content-derived value it seals uses the same
@@ -280,14 +287,27 @@ Auditor holds that salt because it MUST verify that Payload before
 comparing anything, so no second salt, and no second lifecycle, is
 introduced.
 
-`response_commitment`, `ref_extract_commitment`, `similarity`, and
-`evidence_commitment` are REQUIRED when the verdict is `consistent`,
-`inconsistent`, or `dynamic_variance`, and MUST be omitted — all four
-together — when it is `unreachable` or `not_auditable`. Those two verdicts
-are exactly the cases with nothing to commit to: `unreachable` means the
-fetch produced no response, no extraction and no capture, and
-`not_auditable` means there was no Reference Payload and therefore no key.
+`response_commitment`, `ref_extract_commitment` and `evidence_commitment`
+are REQUIRED when the verdict is `consistent`, `inconsistent`, or
+`dynamic_variance`, and MUST be omitted — together with `similarity` —
+when it is `unreachable` or `not_auditable`. Those two verdicts are
+exactly the cases with nothing to commit to and no key to commit under:
+`unreachable` records that no representation of the page was obtained to
+compare against, whether the fetch failed outright, returned an error
+status, or was forbidden by `robots.txt`, so whatever bytes the failure
+produced are not the page and are not committed to; `not_auditable`
+records that there was no Reference Payload, and therefore no salt.
 `schemas/audit-record.schema.json` enforces both directions.
+
+`similarity` is a comparison against the Reference Payload's extract, so
+it is REQUIRED for `new`, `update` and `attest` audits and MUST be omitted
+for a `delete` audit, whose finding is that the URL no longer serves that
+content rather than a degree of agreement with it. The verdict table's
+thresholds govern the first three accordingly; a `delete` audit's verdict
+is fixed by the separate rule below and rests on no threshold. The schema
+cannot enforce this, because a Record names a Delta rather than its change
+type; the rule is normative here and a validator resolving `audited_delta`
+MUST apply it.
 
 A bare digest here would undo the rest of this design. Moving extracts out
 of the Log accomplishes nothing if the Log keeps unsalted hashes of the
@@ -306,17 +326,19 @@ Auditor's preserved WARC capture above all. While that Payload is served,
 every value in the Record is checkable by anyone.
 
 How much of a sanction's evidence is still checkable when the Publisher
-appeals depends on how old the evidence is, and for the top of the ladder
-the answer is: not all of it. A Confirmed Inconsistency is fixed within 72
-hours of its first `inconsistent` verdict (§5), so a level 1 or level 2
-consequence rests on Records whose Reference Payloads are days old. Levels
-3 and 4 reach back much further. Level 4 triggers on three severity-3
-Confirmed Inconsistencies within 180 days, so the oldest confirming Record
-can already be 180 days old when the `notice` is sealed; add the 14-day
-appeal window and the 30-day ruling deadline (§7) and the process can run
-to 224 days, past the 180-day availability window (DC-3 §6.1). That
-Record's Reference Payload may therefore lawfully have lapsed, or been
-withdrawn, throughout the appeal it is being used to justify.
+appeals is decided by §7's ladder spans, and for one rung the answer is:
+not all of it. Levels 1 and 2 open no appeal window at all — they follow
+automatically from evidence any party can recompute — so nothing there
+depends on a capture surviving. Level 3 rests on Confirmed Inconsistencies
+within a 90-day span, so its oldest confirming Record is at most 90 days
+old when the `notice` is sealed; add the 14-day appeal window and the
+30-day ruling deadline and the process closes by day 134, inside the
+180-day availability window (DC-3 §6.1). Level 4 is the rung that does not
+fit: on its 180-day branch — three severity-3 Confirmed Inconsistencies
+within 180 days — the oldest confirming Record can already be 180 days old
+at the `notice`, and 180 + 14 + 30 runs to 224 days. That Record's
+Reference Payload may therefore lawfully have lapsed, or been withdrawn,
+throughout the appeal it is being used to justify.
 
 What an appellant can and cannot do in that window follows directly. For
 every confirming Record whose Reference Payload is still served, it can
@@ -342,14 +364,18 @@ records it.
 
 **What an audit fetches.** The Delta commits to content it does not carry
 (DC-1 §3.6), so an Auditor holding a Block fetches two further things: the
-audited Delta's Payload, from `/payloads/<delta-id-hex>.json` at the
-Aggregator, a Mirror, or the Publisher (DC-3 §6.1, DC-2 §3.1), and the URL
-itself. It MUST verify the Payload against the Delta's `commitment` and
-`bytes` before comparing anything, and MUST reject a Payload that fails
-(`DC1-E11`) rather than audit against it. The commitment was fixed when
-the Publisher signed the Delta, so a Payload that verifies is what the
-Publisher declared no matter who served it — which is what lets the
-comparison below remain an audit of the Publisher rather than of a Mirror.
+audit's **Reference Payload**, defined below, from
+`/payloads/<reference-delta-id-hex>.json` at the Aggregator, a Mirror, or
+the Publisher (DC-3 §6.1, DC-2 §3.1) — where `<reference-delta-id-hex>`
+names the Delta whose Payload that is, which for an `attest` or a `delete`
+is an earlier Delta in the chain and not `audited_delta` — and the URL
+itself. It MUST verify that Payload against **its own** Delta's
+`commitment` and `bytes` before comparing anything, and MUST reject a
+Payload that fails (`DC1-E11`) rather than audit against it. The
+commitment was fixed when the Publisher signed that Delta, so a Payload
+that verifies is what the Publisher declared no matter who served it —
+which is what lets the comparison below remain an audit of the Publisher
+rather than of a Mirror.
 
 Every Audit Record has an **Audit Record ID**: `"sha256:" + hex(SHA-256(JCS(record)))`
 — the record's inner object canonicalized and hashed under the same
@@ -362,8 +388,8 @@ The web is not deterministic; byte equality is never the criterion.
 
 `similarity` is an integer in **micro-units** (0 … 1 000 000, the same
 resolution as `reputation_u`, §6), never a floating-point ratio. Let *A*
-be the set of word 8-grams (shingles) of the `extract` in the audited
-Delta's verified Payload and *B* the same shingling of the Auditor's own
+be the set of word 8-grams (shingles) of the `extract` in the audit's
+verified Reference Payload and *B* the same shingling of the Auditor's own
 extraction of the fetched page, both after Unicode NFC normalization,
 lowercasing, and whitespace collapsing:
 
@@ -895,6 +921,10 @@ all (DC-3 §6.2). An unconstrained `details` is unconstrained in shape, not
 licensed to reintroduce the confirmability the salt exists to destroy, and
 a party replaying the Log MUST reject a Registry Update that carries one.
 
+The same applies to the free-text fields `legal_basis`, `reason` and
+`reasoning`: they are sealed and unwithdrawable, and MUST NOT carry
+personal data (§11).
+
 ## 10. Security Considerations
 
 - **Audit selection is unforgeable and unsteerable.** Who audits what is
@@ -990,12 +1020,27 @@ both cases.
 
 Two things do survive a withdrawal in the Log, and they are named here
 rather than glossed. The `verdict` and `similarity` are derived from the
-content: `similarity` is a single integer scoring an audit against a
-reference nobody can any longer reconstruct, and neither value lets a
-holder of a candidate text establish that it was the text. They survive
+content. Against a party holding only a candidate text neither is
+confirming: `similarity` scores an audit against a reference that party
+cannot reconstruct. Against a party that also holds the Auditor's
+reference extraction or its capture, `similarity` is recomputable and can
+be matched against the sealed integer exactly — what stands between that
+party and the content is the destroy obligation of DC-3 §6.2, a duty on a
+named holder rather than a property of the format. Both values survive
 deliberately, because reputation is a pure function of Log history (§6)
 and must remain recomputable after a withdrawal that the audited domain
 did not control.
+
+A third residue is free text. A `payload_withdrawal`'s `legal_basis`, a
+`notice`'s `reason` and an `appeal_ruling`'s `reasoning` are sealed in the
+Log, permanent, and outside the withdrawal mechanism entirely — the same
+class as a Delta's `meta` (DC-1 §3.7). The party writing one MUST NOT
+include personal data in it. A `legal_basis` names a legal ground, not the
+person invoking it; a `reason` and a `reasoning` name their evidence by
+Audit Record ID (§5) rather than reciting what was found. Nothing in this
+suite requires identifying a data subject in order to record why an action
+was taken, and doing so would seal into the Log precisely the data an
+erasure is meant to remove.
 
 The Auditor's WARC capture is a full copy of the page, and it is held
 off-Log. DC-3 §6.2 requires the Auditor to destroy it, along with the
@@ -1015,8 +1060,9 @@ hands.
 - [ ] Meets the coverage duty for every Block sealed while admitted, within
       72 hours of `sealed_at` — a Record for **every** selected Delta, or a
       `coverage_attestation` when its VRF selected nothing (§4)
-- [ ] Verifies the audited Delta's Payload against its commitment before
-      comparing anything, and never audits against an unverified one (§5)
+- [ ] Resolves the Reference Payload as of `audited_delta`, not as of the
+      URL's current state, and verifies it against its own Delta's
+      commitment before comparing anything (§5)
 - [ ] Computes similarity with the normative §5 metric and thresholds
 - [ ] Emits `unreachable` (never `inconsistent`) for robots.txt-forbidden
       or failed fetches
@@ -1025,9 +1071,10 @@ hands.
       coverage duty (§4, §5)
 - [ ] Signs Records with a key admitted at `fetched_at` (§3)
 - [ ] Commits the response, its own extraction and its WARC capture under
-      the audited Payload's salt — never as bare digests (§5)
+      the Reference Payload's salt — never as bare digests (§5)
 - [ ] Preserves the WARC capture matching `evidence_commitment`, and
-      destroys it, the Payload and the salt on withdrawal (§5, DC-3 §6.2)
+      destroys it, the Reference Payload and the salt on withdrawal
+      (§5, DC-3 §6.2)
 
 **Aggregator (governance side):**
 

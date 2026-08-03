@@ -320,25 +320,41 @@ depends on content — an Auditor's coverage duty above all, which expires
 72 hours after a Block is sealed (DC-4 §4) — falls well within it.
 
 **Anchor Payloads.** One class of Payload outlives the window at the
-Aggregator. A URL's **anchor Payload as of a Delta *d*** is the Payload of
-the last content-bearing Delta at or before *d* in that URL's per-URL
-chain (DC-1 §3.5); the URL's **current anchor Payload** is its anchor as
-of the URL's most recent Delta. The definition is relative to a Delta and
-not to the present, because it is what an `attest` or `delete` Delta is
-audited against (DC-4 §5) and the key under which that audit's own
-commitments are computed: an anchor that moved whenever a later `update`
-was sealed would retroactively invalidate Records that were honest when
-they were written. A `delete` does not end the definition either — the
-Delta that a `delete` audit is measured against is the anchor as of that
-`delete`, which is exactly the content the `delete` asserts is gone.
+Aggregator. Two separate rules govern it — which Payload an audit names,
+and how long that Payload must be served — and they are stated separately
+because they end at different times and for different reasons.
 
-An Aggregator MUST serve a Payload for as long as it is the URL's current
-anchor Payload, regardless of the availability window, and MUST continue
-to serve it for one further availability window after it ceases to be —
-which is when a later content-bearing Delta, or a `delete`, for that URL
-is sealed. The extension covers exactly the Deltas that name it as their
-anchor and can still be audited or appealed. Neither obligation survives a
-withdrawal under §6.2, which ends both immediately.
+*Resolution.* A URL's **anchor Payload as of a Delta *d*** is the Payload
+of the last content-bearing Delta at or before *d* in that URL's per-URL
+chain (DC-1 §3.5). It is what an `attest` or `delete` Delta is audited
+against (DC-4 §5) and the key under which that audit's own commitments are
+computed. The rule is relative to *d* rather than to the present, and
+carries no liveness qualifier: an anchor that moved whenever a later
+`update` was sealed would retroactively invalidate Records that were
+honest when they were written, and an anchor that a `delete` erased would
+leave a `delete` audit unable to name what it measured. Resolution never
+expires — the chain is in the Log — and it says nothing about whether the
+Payload can still be fetched.
+
+*Serving.* An Aggregator MUST serve a Payload P, regardless of the
+availability window, until one availability window after the sealing of
+the **first** Delta for P's URL, above P's own Delta, that is either
+
+- a content-bearing Delta, which supersedes P as the URL's anchor, or
+- a `delete`, which ends the URL.
+
+Until such a Delta is sealed the obligation has no expiry and displaces
+the ordinary window; once that window elapses the obligation ends and
+nothing requires P to be served any longer. **A deleted URL's anchor
+Payload is therefore served for one window after the `delete` and no
+longer**: withdrawal is how content is removed *before* that point, not a
+precondition for removing it at all. A withdrawal under §6.2 ends the
+obligation immediately, at any point in its life.
+
+Resolution outliving serving is not a contradiction but the ordinary case:
+an audit whose Reference Payload it can name but cannot fetch is
+`not_auditable` (DC-4 §5), which is exactly how the suite records "there
+was a thing to check and it is no longer available".
 
 Holding current anchors costs the Aggregator nothing it was not already
 holding — they are exactly the content Tier 1 materializes (§7) — and it
@@ -379,8 +395,12 @@ Destroying the captures costs no accountability. A Confirmed
 Inconsistency's weight comes from the `verdict` and `similarity` values
 already sealed (DC-4 §6.1), which are data in the Log and are unaffected;
 the captures exist so that those verdicts can be checked while the content
-is live, and that window is the availability window, inside which every
-confirmation, sanction, appeal and ruling deadline falls.
+is served. That covers confirmation always — a Confirmed Inconsistency is
+fixed within 72 hours (DC-4 §5) — and it covers the ladder up to level 3,
+whose 90-day span plus the 14-day appeal window and 30-day ruling deadline
+closes by day 134. It does not cover level 4, which reaches back 180 days
+and can therefore run past the availability window; DC-4 §5 states what an
+appellant can and cannot re-verify there.
 
 What withdrawal does not touch is the record. The Delta stays sealed, its
 commitment stays in the Log, its inclusion proofs keep verifying, and
@@ -608,8 +628,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Serves the static layout of §6 with immutable Block files
 - [ ] Serves every sealed Delta's Payload at `/payloads/<delta-id-hex>.json`
       for at least the availability window, byte-identical to what it
-      verified at ingest, and serves every live URL's anchor Payload for
-      as long as it is the anchor (§6.1)
+      verified at ingest (§6.1)
+- [ ] Serves a URL's anchor Payload with no expiry until a superseding
+      content-bearing Delta or a `delete` is sealed for that URL, then for
+      one further availability window, then no longer (§6.1)
 - [ ] Withdraws a Payload only by sealing a `payload_withdrawal` naming
       the Delta, the legal basis, and the jurisdiction — and then stops
       serving it, together with any Snapshot artifact still containing its

@@ -42,7 +42,8 @@
         "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance"]}}}}
       },
       "then": {
-        "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "similarity", "evidence_commitment"]}}
+        "comment": "similarity is not required here: a `delete` audit reports no similarity (DC-4 §5), and a Record names a Delta rather than its change type, so the schema cannot tell the cases apart.",
+        "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "evidence_commitment"]}}
       }
     },
     {
