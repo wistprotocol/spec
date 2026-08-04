@@ -427,10 +427,45 @@ thousands of times over — and the sanction ladder would police exactly
 the established domains it was built to reach last. The duty's span is
 half the confirmation window so that a Record published at the deadline
 can still seal inside the window it exists to serve; §9's combination
-rules bound the pair. The cost is one fetch per admitted Auditor per
-triggering Record: only fraud pays it — or a lying Auditor, whose false
-`inconsistent` now summons every independent peer to contradict it on
-the record.
+rules bound the pair.
+
+**Extensions are rationed, and the ration is per triggering Auditor.**
+A triggering Record extends selection sets only while its signing
+Auditor has triggered fewer than `extension_triggers_max` (Parameter
+Registry; default 3) extensions in the 30 whole days ending at *B₁*'s
+`sealed_at`; beyond that the Record is valid, counts toward
+confirmation if peers happen to audit *d* anyway, and simply summons
+nobody. Without the ration the rule is an amplifier pointed at the
+roster: one Auditor's `inconsistent` costs every independent peer a
+fetch, so a hostile or captured Auditor filing false verdicts across
+25 Blocks in a month would push every honest peer past
+`coverage_failures_max` — voiding their Records and *mandating* their
+removal — at a cost to itself of one fetch per attack. Rationing makes
+the ceiling on that attack 3 forced fetches per Auditor per month,
+while leaving the honest case untouched: a roster meeting real fraud
+triggers on the fraud, not on one member's say-so, and a genuine wave
+of fraud reaches the roster through many Auditors' VRF draws rather
+than one Auditor's filings.
+
+**Contradiction is derived, and it costs the filer.** An `inconsistent`
+or `link_inconsistent` Record is **contradicted** when the extension it
+triggered closes with no Confirmed Inconsistency and at least two
+independent Auditors sealed `consistent` for the same Delta inside the
+window. An Auditor whose Records were contradicted more than
+`contradictions_max` times (Parameter Registry; default 5) in the 30
+whole days ending at height N is in **divergence** from that height, and
+for as long as it holds: a validator recomputing reputation rejects
+every Record it signs, exactly as for coverage failure (§4), and the
+Aggregator MUST remove it by `auditor_remove` naming the contradicted
+Records — recording the consequence, never creating it. The state
+tracks the predicate rather than outliving it, and the derivation is
+what matters: §10 claimed systematic divergence was "grounds for
+`auditor_remove`", which left the suite's answer to a lying Auditor
+resting on the one party the design refuses to trust to file. The cost
+of the extension rule is therefore one fetch per admitted Auditor per
+*rationed* triggering Record: fraud pays it, and a lying Auditor pays
+it three times before its own removal is derivable from the Log by
+anyone.
 
 **How Records reach the Log.** Every duty above is discharged by a
 Record or attestation *sealed* in the Log, and this paragraph is the
@@ -471,6 +506,28 @@ the Auditor and starts counting against the Aggregator, whose missing
 attestation for a duty it owes is itself derivable by replay; and a
 false attestation is a permanent signed statement that any third party
 who fetched the Auditor's path during the window can contradict.
+
+**The gate is not an amnesty.** Gating the failure count on the
+attestation protects an honest Auditor from a silent Aggregator, but
+read alone it would hand every shirking Auditor the same protection:
+an Aggregator that simply never attests would make coverage failure
+uncountable for the whole roster, and §10's "shirking is detectable
+from the Log alone" would be true of the detection and false of the
+consequence. So the omission resolves rather than suspends. When the
+Log carries no `pull_attestation` for an (Auditor, Block) pair by
+`record_seal_blocks` Blocks after that Auditor's coverage deadline,
+the pair is **unattested**, and an unattested pair counts toward the
+§4 failure count exactly as an attested unmet duty does — unless the
+Log carries, for that Auditor, any sealed item whose `prev_record`
+chain shows a published item the Aggregator did not seal, in which
+case every unattested pair for that Auditor in the same 30-day window
+is excluded from the count instead. The chain is the discriminator the
+attestation cannot be: an Auditor that published has proof it
+published, and one that published nothing has none. An Aggregator that
+stops attesting therefore stops shielding shirkers without gaining any
+lever over the Auditors who serve their duty, which is the only
+division of the two cases that rests on evidence rather than on
+either party's word.
 
 Worked numbers for this section — real values from `vectors/wist4/sampling.json`
 — are in the Appendix.
@@ -749,10 +806,20 @@ committed text does the page carry?* — and boilerplate lands only in
 *B*, where it costs nothing. What containment forgoes is also stated: a
 page can carry the committed text and other content besides, up to and
 including a page whose visible emphasis is elsewhere, and score full
-marks. That is in-page manipulation, visible to any human or ranking
-layer reading the page itself, and the suite's posture on it is
-ADR-0008's: what a page says is the Publisher's editorial act; what the
-audit checks is that the declaration and the page agree. The `delete`
+marks — including where the committed text is present in the response
+octets but hidden from a reader by CSS or layout, since §12 extracts
+from the octets and never from a rendered page. Naming that plainly
+matters more than narrowing it: detecting hidden text means resolving
+styles, which means a rendering engine, which is precisely the
+implementation-divergent step §12 exists to remove — a metric that
+disagreed between Auditors would be worse than one with a stated
+blind spot. What the metric therefore certifies is exact: **the
+response carries the committed text**, not that a reader sees it
+foremost. The suite's posture on the gap is ADR-0008's — what a page
+serves is the Publisher's editorial act, and what a served page
+deserves is ranking's judgement, computed by consumers over the same
+commons, on evidence including the raw octets every Consumer can
+fetch for itself. The `delete`
 mirror below is unaffected — effective similarity `1 000 000 −
 similarity` reads "the committed text is still being served", which is
 exactly what refutes a `delete`.
@@ -787,9 +854,13 @@ case, and a fraudster padding junk past the guard to dodge it walks
 into the `inconsistent` band containment gives junk. What the guard
 forgoes is bounded and correct: a page persistently below it
 accumulates `not_auditable` Records, its claims go unconfirmed, `C`
-stops growing, and the unauditable horizon (below) — exclusion, not
-sanction — is the consequence for content the audit mechanism cannot
-see. The `delete` mirror below is unaffected: a `404` or `410` to a
+stops growing, and — these being **blocking Records** in the sense the
+unauditable horizon below defines — two independent ones exclude the
+URL from materialization. Exclusion, not sanction, is the consequence
+for content the audit mechanism cannot see, and it is a consequence
+rather than an exemption: the guard protects an honest Publisher from
+being punished for a page nobody can measure, never from having an
+unmeasurable page's declared extract dropped from the index. The `delete` mirror below is unaffected: a `404` or `410` to a
 `delete` audit is a ruled-on response, not a measured extraction.
 
 **The similarity dimension is defined over HTML.** The observed text is
@@ -802,10 +873,14 @@ WIST-2 §11). An audit whose fetched representation is not HTML in the
 sense of WIST-2 §11 is `not_auditable` for the similarity dimension,
 whatever its bytes: an honest Publisher of un-parseable-by-Auditor
 content MUST NOT be sanctionable for the tooling gap. The same horizon
-consequence governs. This is an auditability boundary, recorded as such:
-a later revision MAY pin per-media-type extraction procedures and move
-the boundary, and until it does, the index carries non-HTML claims as
-what they are — declared, committed, and unaudited.
+consequence governs — such a Record is a **blocking Record** below, so
+non-HTML claims are excluded from materialization on the same terms as
+any other unmeasurable page rather than carried unaudited. This is an
+auditability boundary, recorded as such: a later revision MAY pin
+per-media-type extraction procedures and move it, and the cost until
+then is borne where it belongs — a Publisher whose PDFs the tiers omit
+has a remedy (serve an HTML representation), while a suite that indexed
+them unauditably would give its Consumers none.
 
 **Effective similarity.** A `new`, `update` or `attest` Delta claims the
 URL carries the reference content, so agreement confirms it; a `delete`
@@ -959,7 +1034,7 @@ so the Log distinguishes a URL nobody is permitted to check from one that
 happened to be down.
 
 **Declining audits is not indefinitely free.** A URL is **unauditable** at
-height N when the Log holds two `robots_excluded` Records for Deltas on
+height N when the Log holds two **blocking Records** for Deltas on
 that URL, signed by Auditors independent of one another (§3), each of them
 sealed in a Block itself sealed no more than 30 whole days (Parameter
 Registry: `unauditable_horizon_days`) before Block N's `sealed_at`, and no
@@ -968,8 +1043,25 @@ Record for a Delta on that URL with verdict `consistent`, `inconsistent`,
 Auditor independent of both, was sealed after the later of those two. An
 unauditable URL MUST be excluded from materialization (WIST-3 §7) for as
 long as that holds; it ceases to be unauditable when such a Record is
-sealed, or when the exclusions age out of the window with none replacing
-them.
+sealed, or when the blocking Records age out of the window with none
+replacing them.
+
+A **blocking Record** is a `robots_excluded` Record — the URL nobody is
+permitted to check — or a `not_auditable` Record produced by the observed
+side: the mass guard or the non-HTML rule below. It is not a
+`not_auditable` Record produced by a missing or empty **reference**,
+which says the Publisher committed to nothing an audit could measure and
+is the Publisher's own claim to have made no claim. The distinction is
+what the predicate turns on: a URL whose *page* cannot be measured is a
+URL whose declared `extract` no Auditor can ever confirm, and carrying
+an unconfirmable extract in the tiers indefinitely is exactly the
+unverified index this suite exists to replace. Exclusion, not sanction,
+remains the answer — the Publisher is not accused of anything, and
+serving one measurable page restores the URL — but the answer has to
+exist: without this clause a Publisher committing to a rich `extract`
+while serving a twenty-word shell, or a PDF, would be permanently
+unauditable, permanently unsanctionable, and permanently materialized,
+which is the one combination no rule here may produce.
 
 Two properties of that definition are load-bearing, and both are
 departures from the obvious shape. It arms on the **presence** of
@@ -1630,6 +1722,8 @@ existing rather than a recommended setting.
 | `link_variance_floor` | ≥ 1 and ≤ 999 999 | at zero no declaration can ever be `link_inconsistent` and the dimension audits nothing; at the range's top the neutral band vanishes and every dynamic page's link churn becomes a finding (§5) |
 | `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
 | `min_observed_words` | ≥ 1 | at zero the mass guard admits the empty observed text, and §5's quotient is read against a page that said nothing (§5) |
+| `extension_triggers_max` | ≥ 1 | at zero no `inconsistent` Record ever extends a selection set, and §4's extension rule — the only path to confirmation that does not wait on coincidence — is disabled entirely (§4, §5) |
+| `contradictions_max` | ≥ 1 | at zero an Auditor is in divergence before it has filed anything, so no Auditor's Records ever count (§4) |
 | `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
 | `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (WIST-3 §3.1) |
 | `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
@@ -1764,6 +1858,8 @@ combination cases above.
 | Link agreement thresholds (consistent / variance floor) | `link_agreement_consistent` / `link_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
 | Shingle size | `shingle_size` | 8 (words, or grapheme clusters on §5's short-text branch) | §5 |
 | Observed-text mass guard | `min_observed_words` | 40 words | §5 |
+| Extension ration (per Auditor per 30 days) | `extension_triggers_max` | 3 | §4 |
+| Divergence threshold (per Auditor per 30 days) | `contradictions_max` | 5 | §4 |
 | Unauditable horizon | `unauditable_horizon_days` | 30 days | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
