@@ -13,19 +13,19 @@
     {
       "url": "https://example.com/blog/post-1",
       "publisher": "example.com",
-      "delta_id": "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c",
+      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
       "observed_at": "2026-08-02T12:00:00Z",
       "weight": "full"
     },
     {
       "url": "https://reduced.example.org/notice",
       "publisher": "reduced.example.org",
-      "delta_id": "sha256:a73a3888387d3e457dc619a98f09a5bf0f49ff50f4b61ea67a076fe2b0fc3d7d",
+      "delta_id": "sha256:8c6bba6e9b10e50e49add730368bcdc5d455a2f7311f372cb01b53137567e346",
       "observed_at": "2026-08-02T11:30:00Z",
       "weight": "reduced"
     }
   ],
-  "content_digest": "sha256:fab8db7b95661cc69afcea638397213824cb3983e1a3b72c4058dd217f105da6",
+  "content_digest": "sha256:2571c0b9cdcb6aa5bb4c94581fb186c55f07fdcc94c737017e162781052af488",
   "links": [
     {
       "source_url": "https://example.com/blog/post-1",
