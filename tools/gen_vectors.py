@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deterministic DC-1/DC-3 test vectors and signed examples.
+"""Generate deterministic WIST-1/WIST-3 test vectors and signed examples.
 
 Never uses wall-clock or randomness: fixed seed, fixed timestamps.
 Re-running always produces byte-identical output.
@@ -16,9 +16,9 @@ import link_extraction
 from merkle import audit_path, leaf_hash, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DC1 = ROOT / "vectors" / "dc1"
+WIST1 = ROOT / "vectors" / "wist1"
 EXAMPLES = ROOT / "examples"
-DC1.mkdir(parents=True, exist_ok=True)
+WIST1.mkdir(parents=True, exist_ok=True)
 EXAMPLES.mkdir(parents=True, exist_ok=True)
 
 SEED = bytes(range(32))  # TEST ONLY — never use in production
@@ -42,16 +42,16 @@ def sign_envelope(inner_name: str, inner: dict, key_id: str) -> dict:
 def write_json(path: pathlib.Path, obj: dict) -> None:
     path.write_text(json.dumps(obj, indent=2) + "\n")
 
-# -------------------------------------------------- DC-1/DC-3: payload + delta
-# A Delta commits to its content and does not carry it (DC-1 §3.6). The content
-# travels as a Payload (DC-3 §6.1) whose salt never reaches the Log.
+# -------------------------------------------------- WIST-1/WIST-3: payload + delta
+# A Delta commits to its content and does not carry it (WIST-1 §3.6). The content
+# travels as a Payload (WIST-3 §6.1) whose salt never reaches the Log.
 #
 # A production salt is drawn from a CSPRNG, fresh per Delta. This generator has
 # no random source by construction — it must stay byte-reproducible — so the
 # vector's salt is derived from a fixed domain-separated string and the Delta's
 # URL. That is a property of the vector, never of a conforming Publisher.
 DELTA_URL = "https://example.com/blog/post-1"
-EXTRACT = "DeltaCommons is an open, verifiable, push-based web index protocol."
+EXTRACT = "WIST is an open, verifiable, push-based web index protocol."
 
 # The example Delta's own page, in raw HTML octets — link_extraction.py's
 # "example-delta-page" vector fixture below runs its extraction procedure
@@ -61,7 +61,7 @@ EXTRACT = "DeltaCommons is an open, verifiable, push-based web index protocol."
 LINKS_CAP_BYTES = 4096
 FIXTURE_HTML = b"""<!doctype html><html><body>
 <p>Reference: <a href="https://example.org/reference">ref</a></p>
-<a href="https://spec.example.net/dc-1">the spec</a>
+<a href="https://spec.example.net/wist-1">the spec</a>
 <a href="/blog/post-2">internal relative</a>
 <a href="https://www.example.com/about">internal subdomain</a>
 <a href="http://insecure.example.io/x">non-https, dropped</a>
@@ -76,17 +76,17 @@ LINKS = link_extraction.links_member(
 CONTENT = {
     "extract": EXTRACT,
     "links": LINKS,
-    "summary": {"title": "Post 1", "abstract": "An introduction to DeltaCommons."},
+    "summary": {"title": "Post 1", "abstract": "An introduction to WIST."},
 }
 content_canonical = rfc8785.dumps(CONTENT)
-salt = hashlib.sha256(b"deltacommons-test-salt|" + DELTA_URL.encode()).digest()[:16]
-assert len(salt) >= 16, "salt must be at least 128 bits (DC-1 §3.6)"
+salt = hashlib.sha256(b"wist-test-salt|" + DELTA_URL.encode()).digest()[:16]
+assert len(salt) >= 16, "salt must be at least 128 bits (WIST-1 §3.6)"
 commitment = "hmac-sha256:" + hmac.new(salt, content_canonical, hashlib.sha256).hexdigest()
 
-payload = {"dc_version": "1.0.0", "salt": b64u(salt), "content": CONTENT}
+payload = {"wist_version": "1.0.0", "salt": b64u(salt), "content": CONTENT}
 
 delta = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "url": DELTA_URL,
     "change_type": "new",
     "observed_at": "2026-08-02T12:00:00Z",
@@ -99,22 +99,22 @@ delta_canonical = rfc8785.dumps(delta)
 delta_id = "sha256:" + sha256_hex(delta_canonical)
 delta_envelope = sign_envelope("delta", delta, "test-k1")
 
-write_json(DC1 / "keypair.json",
+write_json(WIST1 / "keypair.json",
            {"seed_hex": SEED.hex(), "public_key": b64u(pub_raw),
             "warning": "test vector key — NEVER use in production"})
-(DC1 / "delta.canonical").write_bytes(delta_canonical)
-write_json(DC1 / "envelope.json", delta_envelope)
-(DC1 / "id.txt").write_text(delta_id + "\n")
+(WIST1 / "delta.canonical").write_bytes(delta_canonical)
+write_json(WIST1 / "envelope.json", delta_envelope)
+(WIST1 / "id.txt").write_text(delta_id + "\n")
 write_json(EXAMPLES / "delta.json", delta_envelope)
 write_json(EXAMPLES / "payload.json", payload)
-print("dc1 delta id:", delta_id)
-print("dc1 payload salt:", payload["salt"], "commitment:", commitment,
+print("wist1 delta id:", delta_id)
+print("wist1 payload salt:", payload["salt"], "commitment:", commitment,
       "bytes:", len(content_canonical))
-print("dc1 payload path: /payloads/%s.json" % delta_id.split(":")[1])
+print("wist1 payload path: /payloads/%s.json" % delta_id.split(":")[1])
 
-# ------------------------------------------------------------ DC-1: publisher
+# ------------------------------------------------------------ WIST-1: publisher
 publisher = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "seq": 0,
     "domain": "example.com",
     "subdomain_scope": ["www.example.com", "blog.example.com"],
@@ -125,7 +125,7 @@ publisher = {
     # Illustrative only: a real recovery key MUST be a distinct keypair,
     # generated independently and held offline, never reused as a signing
     # key. The vector reuses the same test public key purely so the suite
-    # ships one deterministic keypair; DC-1 §5.2 normatively requires
+    # ships one deterministic keypair; WIST-1 §5.2 normatively requires
     # recovery keys to sign nothing but Declarations.
     "recovery_keys": [
         {"key_id": "test-r1", "alg": "Ed25519", "public_key": b64u(pub_raw),
@@ -134,36 +134,36 @@ publisher = {
     "contact": "mailto:webmaster@example.com",
 }
 write_json(EXAMPLES / "publisher.json", sign_envelope("publisher", publisher, "test-k1"))
-print("dc1 publisher example written")
+print("wist1 publisher example written")
 
-# ----------------------------------------------------------------- DC-2: feed
+# ----------------------------------------------------------------- WIST-2: feed
 feed = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "domain": "example.com",
     "generated_at": "2026-08-02T12:00:00Z",
     "deltas": [delta_id],
     "next": None,
 }
 write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, "test-k1"))
-print("dc2 feed example written")
+print("wist2 feed example written")
 
-# --------------------------------------------------------------- DC-2: status
-# Not a signed Envelope (DC-2 §7.1) — a plain JSON debugging surface.
+# --------------------------------------------------------------- WIST-2: status
+# Not a signed Envelope (WIST-2 §7.1) — a plain JSON debugging surface.
 write_json(EXAMPLES / "status.json", {
-    "dc_version": "1.0.0", "domain": "example.com",
+    "wist_version": "1.0.0", "domain": "example.com",
     "last_pull_at": "2026-08-02T12:05:00Z", "quota_remaining": 1098,
     "state": "new",
-    "rejections": [{"code": "DC1-E07", "at": "2026-08-02T12:05:00Z",
+    "rejections": [{"code": "WIST1-E07", "at": "2026-08-02T12:05:00Z",
                     "delta_id": "sha256:" + "0" * 64,
                     "detail": "prev chain violation"}],
 })
-print("dc2 status example written")
+print("wist2 status example written")
 
-# ------------------------------------------------- DC-2: link extraction
-DC2V = ROOT / "vectors" / "dc2"
-DC2V.mkdir(parents=True, exist_ok=True)
+# ------------------------------------------------- WIST-2: link extraction
+WIST2V = ROOT / "vectors" / "wist2"
+WIST2V.mkdir(parents=True, exist_ok=True)
 
-expected_urls = ["https://example.org/reference", "https://spec.example.net/dc-1",
+expected_urls = ["https://example.org/reference", "https://spec.example.net/wist-1",
                  "https://example.org/~user"]
 
 # Fixture 2: truncation. Each link serializes to 54 JCS octets, so 100 of
@@ -174,7 +174,7 @@ overflow_html = b"".join(
     b'<a href="https://links.example.io/item-%03d?section=references">x</a>' % n
     for n in range(OVERFLOW_LINK_COUNT))
 
-# Fixture 3: scan-hardening. Exercises DC-2 §11 steps 1-4 (comment/raw-text
+# Fixture 3: scan-hardening. Exercises WIST-2 §11 steps 1-4 (comment/raw-text
 # skipping, quote-aware attribute parsing, `data-href` vs `href`, character
 # reference decoding), not just the resolve/normalize/dedupe steps fixtures
 # 1-2 already cover.
@@ -212,21 +212,21 @@ assert not any(host in u for u in cases[2]["expected"]["urls"]
               for host in scan_excluded_hosts), \
     "a comment-, script-, or data-href-only link leaked into the declared set"
 
-write_json(DC2V / "link-extraction.json",
-           {"note": ("DC-2's extraction procedure over raw HTML bytes. "
+write_json(WIST2V / "link-extraction.json",
+           {"note": ("WIST-2's extraction procedure over raw HTML bytes. "
                      "html_hex decodes to the exact input; expected is the "
                      "links member a conforming Publisher declares for it "
                      "under links_cap_bytes."),
             "links_cap_bytes": LINKS_CAP_BYTES, "cases": cases})
-print("dc2 link-extraction vector:", [c["label"] for c in cases])
+print("wist2 link-extraction vector:", [c["label"] for c in cases])
 
-# ------------------------------------- DC-2 §12 / DC-4 §5: text + similarity
+# ------------------------------------- WIST-2 §12 / WIST-4 §5: text + similarity
 # Extraction fixtures exercise the scan (comments, raw-text elements, tags
 # as boundaries, quote-aware `>`, bare `<`, character references, whitespace
 # collapse); similarity fixtures exercise the containment quotient, the
 # short-reference grapheme branch, and the mass guard. Texts stay in the
 # ASCII letters-and-spaces domain, where the test implementation's
-# normalization coincides exactly with DC-4 §5's (see similarity()'s note).
+# normalization coincides exactly with WIST-4 §5's (see similarity()'s note).
 TEXT_FIXTURES = []
 for label, html in (
     ("scan-hardening",
@@ -267,9 +267,9 @@ for label, ref, obs in (
 assert [f["verdict_input"] for f in SIM_FIXTURES] == \
     [1_000_000, 500_000, "not_auditable", 1_000_000], "similarity fixtures drifted"
 
-write_json(DC2V / "text-extraction.json", {
-    "note": ("DC-2 §12's whole-document text extraction over raw HTML "
-             "octets, and DC-4 §5's reference-containment similarity over "
+write_json(WIST2V / "text-extraction.json", {
+    "note": ("WIST-2 §12's whole-document text extraction over raw HTML "
+             "octets, and WIST-4 §5's reference-containment similarity over "
              "its output. html_hex decodes to the exact input; expected is "
              "the observed text a conforming Auditor produces. similarity "
              "cases carry min_observed_words = 40 (the Registry default); "
@@ -278,27 +278,27 @@ write_json(DC2V / "text-extraction.json", {
     "extraction": TEXT_FIXTURES,
     "similarity": SIM_FIXTURES,
 })
-print("dc2 text-extraction vector:",
+print("wist2 text-extraction vector:",
       [c["label"] for c in TEXT_FIXTURES + SIM_FIXTURES])
 
-# ------------------------------------------------------------ DC-3: log anchor
+# ------------------------------------------------------------ WIST-3: log anchor
 anchor = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "log_id": "log.example.org",
     "genesis_key": {"key_id": "test-agg-k1", "alg": "Ed25519",
                     "public_key": b64u(pub_raw)},
     "created_at": "2026-08-02T00:00:00Z",
 }
 write_json(EXAMPLES / "log-anchor.json", sign_envelope("anchor", anchor, "test-agg-k1"))
-print("dc3 log anchor example written")
+print("wist3 log anchor example written")
 
-# ---------------------------------------------------------------- DC-3: block
-DC3 = ROOT / "vectors" / "dc3"
-DC3.mkdir(parents=True, exist_ok=True)
+# ---------------------------------------------------------------- WIST-3: block
+WIST3 = ROOT / "vectors" / "wist3"
+WIST3.mkdir(parents=True, exist_ok=True)
 
 def attest_delta(n: int, prev_id: str) -> dict:
     inner = {
-        "dc_version": "1.0.0",
+        "wist_version": "1.0.0",
         "url": f"https://example.com/blog/post-{n}",
         "change_type": "attest",
         "observed_at": "2026-08-02T12:00:00Z",
@@ -310,7 +310,7 @@ def attest_delta(n: int, prev_id: str) -> dict:
 # prev IDs for the attest deltas: synthetic prior deltas ("new" for each URL)
 def synthetic_prior_id(n: int) -> str:
     inner = {
-        "dc_version": "1.0.0",
+        "wist_version": "1.0.0",
         "url": f"https://example.com/blog/post-{n}",
         "change_type": "new",
         "observed_at": "2026-08-01T12:00:00Z",
@@ -323,7 +323,7 @@ for n in (2, 3, 4):
     entries.append({"type": "publisher_delta",
                     "body": attest_delta(n, synthetic_prior_id(n))})
 
-# DC-3 §3.3: Entry order is canonical — grouped by type (all four here are
+# WIST-3 §3.3: Entry order is canonical — grouped by type (all four here are
 # publisher_delta), ascending leaf-hash order within the group. None of the
 # attest chains reference each other inside the Block, so leaf-hash order
 # and chain order impose no conflicting demand on this vector.
@@ -335,14 +335,14 @@ n23 = node_hash(leaves[2], leaves[3])
 merkle_root = "sha256:" + node_hash(n01, n23).hex()
 
 header = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "block_number": 0,
     "prev_block_hash": "sha256:genesis",
     "sealed_at": "2026-08-02T13:00:00Z",
     "merkle_root": merkle_root,
     "entry_count": 4,
 }
-block_inner = header                      # header only — DC-3 §3.1
+block_inner = header                      # header only — WIST-3 §3.1
 block_canonical = rfc8785.dumps(block_inner)
 block_hash = "sha256:" + sha256_hex(block_canonical)
 block_sig = priv.sign(block_canonical)
@@ -352,19 +352,19 @@ block = {"header": header, "entries": entries,
 inclusion_proof = {"index": 0, "entry_count": len(entries),
                    "path": [h.hex() for h in audit_path(0, leaves)]}
 
-write_json(DC3 / "block.json", block)
-write_json(DC3 / "inclusion-proof.json", inclusion_proof)
+write_json(WIST3 / "block.json", block)
+write_json(WIST3 / "inclusion-proof.json", inclusion_proof)
 write_json(EXAMPLES / "block.json", block)
 
 checkpoint = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "block_number": 0,
     "block_hash": block_hash,
     "sealed_at": "2026-08-02T13:00:00Z",
 }
 write_json(EXAMPLES / "checkpoint.json", sign_envelope("checkpoint", checkpoint, "test-agg-k1"))
 
-# ---------------------------------------- DC-3 §7: snapshot content digest
+# ---------------------------------------- WIST-3 §7: snapshot content digest
 # The record tuple carries Log-derived identifiers only — no page content — so
 # the digest stays computable after a Payload is withdrawn, while `delta_id`
 # still pins the salted commitment that binds the content itself.
@@ -381,9 +381,9 @@ REDUCED_CONTENT = {
 }
 reduced_canonical = rfc8785.dumps(REDUCED_CONTENT)
 reduced_salt = hashlib.sha256(
-    b"deltacommons-test-salt|" + REDUCED_URL.encode()).digest()[:16]
+    b"wist-test-salt|" + REDUCED_URL.encode()).digest()[:16]
 reduced_delta = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "url": REDUCED_URL,
     "change_type": "new",
     "observed_at": "2026-08-02T11:30:00Z",
@@ -408,7 +408,7 @@ assert all(sorted(r) == sorted(RECORD_FIELDS) for r in snapshot_records), \
 
 
 def content_digest(records) -> str:
-    """DC-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
+    """WIST-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
     return "sha256:" + sha256_hex(b"".join(sorted(rfc8785.dumps(r) for r in records)))
 
 
@@ -416,24 +416,24 @@ snapshot_digest = content_digest(snapshot_records)
 assert content_digest(list(reversed(snapshot_records))) == snapshot_digest, \
     "the digest depends on input order"
 
-# tier1/links.parquet materialization (DC-3 §7): one row per declared link of
+# tier1/links.parquet materialization (WIST-3 §7): one row per declared link of
 # every live record, (source_url, target_url, position). source_url is the
 # record's Normalized URL; target_url and position come from that record's
 # Payload content.links.urls, in declared order. This is a function of
 # Payload content, not of the Log, so — unlike the record tuple above — a
 # link row leaves distribution together with its Payload on a withdrawal
-# (DC-3 §6.2) rather than surviving in content_digest. The reduced.example.org
+# (WIST-3 §6.2) rather than surviving in content_digest. The reduced.example.org
 # record contributes no rows: its Payload declares no links.
 snapshot_links = [
     {"source_url": DELTA_URL, "target_url": u, "position": i}
     for i, u in enumerate(CONTENT["links"]["urls"])
 ]
 
-write_json(DC3 / "snapshot-records.json", {
-    "note": ("The live record set DC-3 §7's content_digest is computed over. "
+write_json(WIST3 / "snapshot-records.json", {
+    "note": ("The live record set WIST-3 §7's content_digest is computed over. "
              "Each record carries Log-derived identifiers only: no page "
              "content reaches the digest, so it remains computable after a "
-             "Payload is withdrawn (DC-3 §6.2), while delta_id still names "
+             "Payload is withdrawn (WIST-3 §6.2), while delta_id still names "
              "the Delta whose salted commitment binds the content. The "
              "reduced.example.org Delta is not an Entry of the example "
              "Block; this vector publishes the record encoding, not a "
@@ -444,7 +444,7 @@ write_json(DC3 / "snapshot-records.json", {
              "order from that record's Payload content.links.urls. Unlike "
              "the record tuple above, a link row derives from Payload "
              "content, not from the Log, and therefore leaves distribution "
-             "with the Payload on a withdrawal (DC-3 §6.2) rather than "
+             "with the Payload on a withdrawal (WIST-3 §6.2) rather than "
              "surviving in content_digest; the reduced.example.org record "
              "contributes no rows because its Payload declares no links."),
     "snapshot_date": "2026-08-02",
@@ -455,9 +455,9 @@ write_json(DC3 / "snapshot-records.json", {
     "links": snapshot_links,
 })
 
-# ------------------------------------------- DC-3 §7: the state artifact
+# ------------------------------------------- WIST-3 §7: the state artifact
 # The protocol state at log_position, one tuple per live item, kinds and
-# fields per DC-3 §7's table. Aligned with snapshot-records above: the same
+# fields per WIST-3 §7's table. Aligned with snapshot-records above: the same
 # two records (chain tips = their only Deltas), their two domains'
 # reputation inputs, and the genesis Aggregator key. No `parameter` tuples:
 # nothing is amended at height 0, and Registry defaults are not restated.
@@ -471,11 +471,11 @@ state_entries = [
 
 
 def state_digest_of(entries) -> str:
-    """DC-3 §7: the content_digest construction verbatim, over state tuples."""
+    """WIST-3 §7: the content_digest construction verbatim, over state tuples."""
     return "sha256:" + sha256_hex(b"".join(sorted(rfc8785.dumps(e) for e in entries)))
 
 
-state_inner = {"dc_version": "1.0.0", "log_position": 0, "entries": state_entries}
+state_inner = {"wist_version": "1.0.0", "log_position": 0, "entries": state_entries}
 state_envelope = sign_envelope("state", state_inner, "test-agg-k1")
 write_json(EXAMPLES / "snapshot-state.json", state_envelope)
 state_bytes = rfc8785.dumps(state_envelope)
@@ -484,7 +484,7 @@ tier0_content = b"tier0-placeholder"
 tier1_content = b"tier1-placeholder"
 links_parquet_content = b"links-placeholder"
 manifest = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
     "anchor_block_hash": block_hash,
@@ -504,9 +504,9 @@ manifest = {
 write_json(EXAMPLES / "snapshot-manifest.json",
            sign_envelope("manifest", manifest, "test-agg-k1"))
 
-# ------------------------------------------------------ DC-3 §6: discovery
+# ------------------------------------------------------ WIST-3 §6: discovery
 snapshot_index = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "updated_at": "2026-08-02T13:05:00Z",
     "snapshots": [
         {"snapshot_date": manifest["snapshot_date"],
@@ -517,14 +517,14 @@ snapshot_index = {
 }
 write_json(EXAMPLES / "snapshot-index.json",
            sign_envelope("index", snapshot_index, "test-agg-k1"))
-print("dc3 snapshot content digest:", snapshot_digest)
-print("dc3 block hash:", block_hash)
-print("dc3 merkle root:", merkle_root)
-print("dc3 leaves:", [l.hex() for l in leaves])
-print("dc3 nodes: n01=%s n23=%s" % (n01.hex(), n23.hex()))
+print("wist3 snapshot content digest:", snapshot_digest)
+print("wist3 block hash:", block_hash)
+print("wist3 merkle root:", merkle_root)
+print("wist3 leaves:", [l.hex() for l in leaves])
+print("wist3 nodes: n01=%s n23=%s" % (n01.hex(), n23.hex()))
 
-# ------------------------------------------------- DC-4: audit + registry
-# The Auditor's VRF proof over the Block Hash (DC-4 §4). alpha is the 32 raw
+# ------------------------------------------------- WIST-4: audit + registry
+# The Auditor's VRF proof over the Block Hash (WIST-4 §4). alpha is the 32 raw
 # octets of the Block Hash — the hex digest decoded, WITHOUT the "sha256:"
 # prefix. The VRF key is the Auditor's Ed25519 key (RFC 9381
 # ECVRF-EDWARDS25519-SHA512-TAI reuses the RFC 8032 key format).
@@ -533,9 +533,9 @@ pi = ecvrf.prove(SEED, alpha)
 beta = ecvrf.proof_to_hash(pi)
 
 # Every content-derived value an Audit Record seals is committed under the
-# Payload salt of the Payload the audit measured against (DC-4 §5), so one
+# Payload salt of the Payload the audit measured against (WIST-4 §5), so one
 # salt lifecycle governs the Delta's commitment and the Auditor's alike.
-# The audited Delta here is the DC-1 vector Delta, so that salt is `salt`.
+# The audited Delta here is the WIST-1 vector Delta, so that salt is `salt`.
 def audit_commit(message: bytes) -> str:
     return "hmac-sha256:" + hmac.new(salt, message, hashlib.sha256).hexdigest()
 
@@ -546,7 +546,7 @@ REF_EXTRACTION = EXTRACT.encode()      # a `consistent` audit: the Auditor's own
 WARC_CAPTURE = b"warc-placeholder"
 
 audit_record = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "audited_delta": delta_id,
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
@@ -555,14 +555,14 @@ audit_record = {
     "similarity": 940000,
     # The vector page's observed links reproduce the declared ones exactly
     # (fixture 1 *is* the audited page), so this is link_agreement's own
-    # exact-match case (DC-4 §5) rather than a bare 1_000_000 literal.
+    # exact-match case (WIST-4 §5) rather than a bare 1_000_000 literal.
     "link_agreement": link_extraction.link_agreement(
         CONTENT["links"]["urls"], CONTENT["links"]["total"],
         CONTENT["links"]["urls"], CONTENT["links"]["total"]),
     "verdict": "consistent",
     "evidence_commitment": audit_commit(WARC_CAPTURE),
     "vrf_proof": pi.hex(),
-    # The example Auditor's first-ever publication (DC-4 §4's per-auditor
+    # The example Auditor's first-ever publication (WIST-4 §4's per-auditor
     # chain starts at null); a later Record would carry the previous
     # Record-or-attestation ID here.
     "prev_record": None,
@@ -570,13 +570,13 @@ audit_record = {
 write_json(EXAMPLES / "audit-record.json",
            sign_envelope("record", audit_record, "test-aud-k1"))
 
-DC4 = ROOT / "vectors" / "dc4"
-DC4.mkdir(parents=True, exist_ok=True)
-write_json(DC4 / "audit-commitments.json", {
+WIST4 = ROOT / "vectors" / "wist4"
+WIST4.mkdir(parents=True, exist_ok=True)
+write_json(WIST4 / "audit-commitments.json", {
     "note": ("Preimages of the example Audit Record's commitments. Each is "
              "HMAC-SHA256 keyed by the salt of the Payload the audit measured "
              "against — here examples/payload.json, the audited Delta's own "
-             "Payload (DC-4 §5). Once that Payload is withdrawn the salt is "
+             "Payload (WIST-4 §5). Once that Payload is withdrawn the salt is "
              "gone and none of these commitments can be checked again."),
     "audited_delta": delta_id,
     "salt_source": "examples/payload.json",
@@ -593,11 +593,11 @@ write_json(DC4 / "audit-commitments.json", {
     },
 })
 
-# ------------------------------------------------ DC-4: link agreement
+# ------------------------------------------------ WIST-4: link agreement
 AGREE_D = CONTENT["links"]["urls"]          # the example Payload's declaration
-AGREE_TOTAL = CONTENT["links"]["total"]     # ditto, its total (DC-1 §3.6 links.total)
-write_json(DC4 / "link-agreement.json", {
-    "note": ("Worked link_agreement cases (DC-4 §5): "
+AGREE_TOTAL = CONTENT["links"]["total"]     # ditto, its total (WIST-1 §3.6 links.total)
+write_json(WIST4 / "link-agreement.json", {
+    "note": ("Worked link_agreement cases (WIST-4 §5): "
              "min(subset Jaccard, count agreement), integer micro-units."),
     "cases": [
         {"label": "exact-match", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
@@ -621,12 +621,12 @@ write_json(DC4 / "link-agreement.json", {
     ],
 })
 assert [c["link_agreement"] for c in
-        json.loads((DC4 / "link-agreement.json").read_text())["cases"]] == \
+        json.loads((WIST4 / "link-agreement.json").read_text())["cases"]] == \
     [1_000_000, 666_666, 0, 75_000, 1_000_000], "agreement worked values drifted"
-print("dc4 link-agreement vector written")
+print("wist4 link-agreement vector written")
 
 registry_update = {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "action": "auditor_admit",
     "subject": "audit.example.net",
     "details": {"key_id": "test-aud-k1", "alg": "Ed25519", "public_key": b64u(pub_raw)},
@@ -634,10 +634,10 @@ registry_update = {
 }
 write_json(EXAMPLES / "registry-update.json",
            sign_envelope("update", registry_update, "test-agg-k1"))
-print("dc4 audit-record and registry-update examples written")
+print("wist4 audit-record and registry-update examples written")
 
-# ------------------------------------------------------ DC-4: audit sampling
-# Worked VRF sampling vector (DC-4 §4), computed the way §4 mandates: in
+# ------------------------------------------------------ WIST-4: audit sampling
+# Worked VRF sampling vector (WIST-4 §4), computed the way §4 mandates: in
 # integers, with no float anywhere in the selection test.
 #   D(d)  = first 8 octets of SHA-256(beta || UTF-8 of the full Delta ID
 #           string, "sha256:" prefix included), big-endian
@@ -655,7 +655,7 @@ def draw_D(beta_bytes: bytes, did: str) -> tuple[bytes, int]:
 
 
 def sampling_p_1e7(reputation_u: int) -> int:
-    """DC-4 §4's sampling rate, scaled by 1e7. Exact: no rounding occurs."""
+    """WIST-4 §4's sampling rate, scaled by 1e7. Exact: no rounding occurs."""
     return min(max(SAMPLING_FLOOR_1E7 + SAMPLING_SLOPE * (10**6 - reputation_u),
                    SAMPLING_FLOOR_1E7), SAMPLING_CEILING_1E7)
 
@@ -667,7 +667,7 @@ def selected(D: int, p_1e7: int) -> bool:
 def approx4(n: int) -> str:
     """Exact integer -> 4-significant-digit rendering, e.g. 5.350e25.
 
-    DC-4's Appendix A shows these products rounded for reading; computing the
+    WIST-4's Appendix A shows these products rounded for reading; computing the
     rendering here (in Decimal, not float) keeps the published figure honest
     and lets the harness pin it.
     """
@@ -693,7 +693,7 @@ assert sampling_p_1e7(0) == 3_200_000, "slope drifted"
 # Which Entry plays the second role follows from beta, so it is located here
 # rather than pinned: any change to the Block moves every draw at once.
 draw_bytes, D_primary = draw_D(beta, delta_id)
-# DC-3 §3.3's canonical order decides where each Entry sits, so the primary
+# WIST-3 §3.3's canonical order decides where each Entry sits, so the primary
 # Delta's index is located, not assumed.
 primary_index = next(
     i for i, e in enumerate(entries)
@@ -732,13 +732,13 @@ for idx, did, dbytes, D in (
 assert any(c["selected"] for c in selection_cases), "no selected case in the vector"
 assert not all(c["selected"] for c in selection_cases), "no rejected case in the vector"
 
-write_json(DC4 / "sampling.json", {
+write_json(WIST4 / "sampling.json", {
     "auditor_public_key": b64u(pub_raw),
     "ciphersuite": "ECVRF-EDWARDS25519-SHA512-TAI",
     "block_hash": block_hash,
     "alpha_hex": alpha.hex(), "vrf_proof_hex": pi.hex(), "beta_hex": beta.hex(),
     "delta_id": delta_id, "draw_first8_hex": draw_bytes.hex(), "D": D_primary,
-    "test": "select <=> D x 10^7 < p_1e7 x 2^64  (integers only, DC-4 §4)",
+    "test": "select <=> D x 10^7 < p_1e7 x 2^64  (integers only, WIST-4 §4)",
     "note": ("D, lhs and rhs exceed 2^53; a consumer whose JSON parser uses "
              "IEEE-754 doubles MUST read D from draw_first8_hex and recompute "
              "lhs/rhs as big integers."),
@@ -746,17 +746,17 @@ write_json(DC4 / "sampling.json", {
                    "slope_per_micro": SAMPLING_SLOPE},
     "selection": selection_cases,
 })
-print("dc4 sampling alpha:", alpha.hex())
-print("dc4 sampling pi:", pi.hex())
-print("dc4 sampling beta:", beta.hex())
-print("dc4 sampling draw[:8] hex:", draw_bytes.hex(), "D:", D_primary)
+print("wist4 sampling alpha:", alpha.hex())
+print("wist4 sampling pi:", pi.hex())
+print("wist4 sampling beta:", beta.hex())
+print("wist4 sampling draw[:8] hex:", draw_bytes.hex(), "D:", D_primary)
 for c in selection_cases:
-    print("dc4 sampling %-22s D=%-20d rep_u=%-7d p_1e7=%-8d -> %s" % (
+    print("wist4 sampling %-22s D=%-20d rep_u=%-7d p_1e7=%-8d -> %s" % (
         c["label"], c["D"], c["reputation_u"], c["p_1e7"],
         "AUDIT" if c["selected"] else "no audit"))
 
-# --------------------------------------------------------- DC-4: decay table
-# DC-4 §6.1: decay(t) = floor(exp(-t/180) * 1e9) for whole days 0..1825.
+# --------------------------------------------------------- WIST-4: decay table
+# WIST-4 §6.1: decay(t) = floor(exp(-t/180) * 1e9) for whole days 0..1825.
 # The published table is normative; nothing at runtime evaluates exp(). It is
 # generated here in exact decimal arithmetic (never IEEE-754 doubles, whose
 # exp() differs in the last ulp between libms) via the Taylor series for
@@ -793,17 +793,17 @@ assert decay_table[0] == DECAY_SCALE, "decay(0) must be exactly 1e9"
 assert all(decay_table[i] > decay_table[i + 1] for i in range(DECAY_MAX_DAYS)), \
     "decay table must be strictly decreasing"
 
-write_json(DC4 / "decay-table.json", {
+write_json(WIST4 / "decay-table.json", {
     "scale": DECAY_SCALE,
     "max_days": DECAY_MAX_DAYS,
     "note": "decay(t) = floor(exp(-t/180) * 1e9); decay(t) = 0 for t > 1825",
     "values": decay_table,
 })
-print("dc4 decay table: decay(0)=%d decay(30)=%d decay(1825)=%d" % (
+print("wist4 decay table: decay(0)=%d decay(30)=%d decay(1825)=%d" % (
     decay_table[0], decay_table[30], decay_table[DECAY_MAX_DAYS]))
 
-# ------------------------------------------------------- DC-4: reputation
-# DC-4 §6, in the integers the spec mandates. Nothing here is a float.
+# ------------------------------------------------------- WIST-4: reputation
+# WIST-4 §6, in the integers the spec mandates. Nothing here is a float.
 MICRO = 10**6
 BASE_AT_AGE_0 = 100_000          # = the Provisional cap (§6.2)
 AGE_NORM_DAYS = 730
@@ -821,7 +821,7 @@ def epoch_seconds(ts: str) -> int:
 
 def whole_days(earlier: str, later: str) -> int:
     delta = epoch_seconds(later) - epoch_seconds(earlier)
-    assert delta >= 0, "sealed_at is strictly increasing (DC-3 §3.1)"
+    assert delta >= 0, "sealed_at is strictly increasing (WIST-3 §3.1)"
     return delta // 86400
 
 
@@ -873,7 +873,7 @@ def reputation_case(label, age_days, distinct_urls, incidents, note=""):
 
 
 # The primary worked example, with A and t_i derived from real Block sealed_at
-# values rather than asserted: the first Delta is the one sealed in the DC-3
+# values rather than asserted: the first Delta is the one sealed in the WIST-3
 # example Block, and Block N is sealed 400 days and 5 hours later, so the
 # partial day truncates away and A = 400.
 FIRST_DELTA_BLOCK_SEALED_AT = header["sealed_at"]        # 2026-08-02T13:00:00Z
@@ -914,7 +914,7 @@ boundary = [
                     "ungated formula already sits at 0.10 and Q = 1100"),
 ]
 
-write_json(DC4 / "reputation.json", {
+write_json(WIST4 / "reputation.json", {
     "micro_scale": MICRO,
     "decay_scale": DECAY_SCALE,
     "constants": {
@@ -937,7 +937,7 @@ write_json(DC4 / "reputation.json", {
     "boundary": boundary,
 })
 for case in [primary] + boundary:
-    print("dc4 reputation %-24s A=%-4d C=%-3d penalty=%-12d formula=%-7d rep_u=%-7d Q=%-6d p=%s"
+    print("wist4 reputation %-24s A=%-4d C=%-3d penalty=%-12d formula=%-7d rep_u=%-7d Q=%-6d p=%s"
           % (case["label"], case["A"], case["C"], case["penalty_n"],
              case["formula_u"], case["reputation_u"], case["Q"], case["p_readable"]))
 assert all(

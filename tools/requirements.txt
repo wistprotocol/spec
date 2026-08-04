@@ -2,7 +2,7 @@ rfc8785
 cryptography
 jsonschema
 
-# DC-4 §4's VRF (ECVRF-EDWARDS25519-SHA512-TAI, RFC 9381) adds no dependency
+# WIST-4 §4's VRF (ECVRF-EDWARDS25519-SHA512-TAI, RFC 9381) adds no dependency
 # on purpose: `cryptography` exposes no edwards25519 group operations, and
 # every third-party ECVRF package would be an unaudited trust root for the
 # rule that decides who audits whom. tools/ecvrf.py implements it in pure

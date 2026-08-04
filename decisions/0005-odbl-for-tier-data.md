@@ -4,7 +4,7 @@
 
 ## Context
 
-DC-4's constitutional invariants promise that the data stays open and
+WIST-4's constitutional invariants promise that the data stays open and
 that the commons is forkable if its operating institution is ever
 captured. The data license must make that promise legally binding.
 

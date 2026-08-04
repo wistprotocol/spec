@@ -1,6 +1,6 @@
 {
   "state": {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "log_position": 0,
     "entries": [
       [
@@ -14,13 +14,13 @@
         "record",
         "example.com",
         "https://example.com/blog/post-1",
-        "sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120"
+        "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c"
       ],
       [
         "record",
         "reduced.example.org",
         "https://reduced.example.org/notice",
-        "sha256:783dc15e05848677f27fcd71470cd860e27e7c12e679cbf4af2a6235488cd6ee"
+        "sha256:a73a3888387d3e457dc619a98f09a5bf0f49ff50f4b61ea67a076fe2b0fc3d7d"
       ],
       [
         "reputation_inputs",
@@ -45,6 +45,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "6Qnej3FVsbnqYsMn6T1GWbmsCxGd-G-EF-sX-KiTFw9UTnmwEIUy8p-Kiv30bQXVK3gr5-_xh5urXB-vpp5EBA"
+    "value": "q2T3lW5ZE0S3Z9raorogxRNoGyo1Wl5GNoyjDwxS41hjVdXjpNGq4sa9h-PKHx3g_CwG9xgMi8M-UiwcgG5wAw"
   }
 }

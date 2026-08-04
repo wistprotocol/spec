@@ -1,17 +1,17 @@
 {
-  "note": "Worked link_agreement cases (DC-4 \u00a75): min(subset Jaccard, count agreement), integer micro-units.",
+  "note": "Worked link_agreement cases (WIST-4 \u00a75): min(subset Jaccard, count agreement), integer micro-units.",
   "cases": [
     {
       "label": "exact-match",
       "declared_urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1",
+        "https://spec.example.net/wist-1",
         "https://example.org/~user"
       ],
       "declared_total": 3,
       "observed_urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1",
+        "https://spec.example.net/wist-1",
         "https://example.org/~user"
       ],
       "observed_total": 3,
@@ -21,13 +21,13 @@
       "label": "one-dropped",
       "declared_urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1",
+        "https://spec.example.net/wist-1",
         "https://example.org/~user"
       ],
       "declared_total": 3,
       "observed_urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1"
+        "https://spec.example.net/wist-1"
       ],
       "observed_total": 2,
       "link_agreement": 666666
@@ -36,7 +36,7 @@
       "label": "disjoint",
       "declared_urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1",
+        "https://spec.example.net/wist-1",
         "https://example.org/~user"
       ],
       "declared_total": 3,
@@ -50,13 +50,13 @@
       "label": "count-fraud",
       "declared_urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1",
+        "https://spec.example.net/wist-1",
         "https://example.org/~user"
       ],
       "declared_total": 3,
       "observed_urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1",
+        "https://spec.example.net/wist-1",
         "https://example.org/~user"
       ],
       "observed_total": 40,

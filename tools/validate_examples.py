@@ -33,7 +33,7 @@ def b64u_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
 def verify_inclusion(block, proof):
-    """RFC 6962 audit-path verification (DC-3 §4).
+    """RFC 6962 audit-path verification (WIST-3 §4).
 
     Walks from the leaf to the root using the node's own index (`fn`) and
     the index of the last node at the current level (`sn`), rather than
@@ -81,13 +81,13 @@ INNER_KEY = {
     "snapshot-index.json": "index", "snapshot-state.json": "state",
     "audit-record.json": "record", "registry-update.json": "update",
     "log-anchor.json": "anchor",
-    "status.json": None,  # not a signed Envelope — plain JSON (DC-2 §7.1)
+    "status.json": None,  # not a signed Envelope — plain JSON (WIST-2 §7.1)
     "payload.json": None,  # unsigned: its integrity comes from the Delta's
-                           # commitment, not from a signature (DC-3 §6.1)
+                           # commitment, not from a signature (WIST-3 §6.1)
 }
 
 def load_test_pubkey():
-    return b64u_decode(json.loads((ROOT / "vectors" / "dc1" / "keypair.json").read_text())["public_key"])
+    return b64u_decode(json.loads((ROOT / "vectors" / "wist1" / "keypair.json").read_text())["public_key"])
 
 def verify_envelope(obj, inner_key, pub_raw):
     canonical = rfc8785.dumps(obj[inner_key])
@@ -104,22 +104,22 @@ for example in sorted((ROOT / "examples").glob("*.json")):
               lambda e=example, i=inner: verify_envelope(
                   json.loads(e.read_text()), i, load_test_pubkey()))
 
-# 2. DC-1 vectors: recompute ID and verify signature
-dc1 = ROOT / "vectors" / "dc1"
-if (dc1 / "envelope.json").exists():
+# 2. WIST-1 vectors: recompute ID and verify signature
+wist1 = ROOT / "vectors" / "wist1"
+if (wist1 / "envelope.json").exists():
     def _dc1():
-        env = json.loads((dc1 / "envelope.json").read_text())
-        keys = json.loads((dc1 / "keypair.json").read_text())
+        env = json.loads((wist1 / "envelope.json").read_text())
+        keys = json.loads((wist1 / "keypair.json").read_text())
         canonical = rfc8785.dumps(env["delta"])
-        assert canonical == (dc1 / "delta.canonical").read_bytes(), "canonical bytes mismatch"
+        assert canonical == (wist1 / "delta.canonical").read_bytes(), "canonical bytes mismatch"
         delta_id = "sha256:" + hashlib.sha256(canonical).hexdigest()
-        assert delta_id == (dc1 / "id.txt").read_text().strip(), "delta ID mismatch"
+        assert delta_id == (wist1 / "id.txt").read_text().strip(), "delta ID mismatch"
         pub = Ed25519PublicKey.from_public_bytes(b64u_decode(keys["public_key"]))
         pub.verify(b64u_decode(env["sig"]["value"]), canonical)
-    check("vectors:dc1", _dc1)
+    check("vectors:wist1", _dc1)
 
 def _registry_table_defaults():
-    """DC-4 §9's Default column, keyed by identifier, as leading integers.
+    """WIST-4 §9's Default column, keyed by identifier, as leading integers.
 
     A row's Identifier cell may name one identifier or a "`a` / `b`" pair
     sharing one Default cell (e.g. `similarity_consistent` /
@@ -132,7 +132,7 @@ def _registry_table_defaults():
     each part a description rather than a value, and no leading integer
     sliced out of prose is what `details.value` would mean for it.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
     out = {}
     for line in section9.splitlines():
@@ -163,21 +163,21 @@ def _registry_table_defaults():
 def _content_wrapper_octets():
     """The structural octets of `JCS(content)` — the 32 that
     `{"extract":<E>,"links":<L>,"summary":<S>}` puts around its three
-    values — measured rather than written down (DC-1 §3.6)."""
+    values — measured rather than written down (WIST-1 §3.6)."""
     return len(rfc8785.dumps({"extract": "", "links": {}, "summary": {}})) - \
         len(rfc8785.dumps("")) - 2 * len(rfc8785.dumps({}))
 
 def _combined_content_cap():
-    """DC-1 §3.6's combined `bytes` bound, derived from the three field caps
-    in the DC-4 §9 registry rather than carried as a literal anywhere."""
+    """WIST-1 §3.6's combined `bytes` bound, derived from the three field caps
+    in the WIST-4 §9 registry rather than carried as a literal anywhere."""
     caps = _registry_table_defaults()
     return (caps["extract_cap_bytes"] + caps["links_cap_bytes"]
             + caps["summary_cap_bytes"] + _content_wrapper_octets())
 
 def _url_bound():
-    """DC-1 §3.2: the subject URL is octet-bounded (url_cap_bytes).
+    """WIST-1 §3.2: the subject URL is octet-bounded (url_cap_bytes).
 
-    The bound is read from the DC-4 §9 registry rather than written here,
+    The bound is read from the WIST-4 §9 registry rather than written here,
     for the reason `_payload_length` derives its own: a `parameter_change`
     amending `url_cap_bytes` moves the schema's `maxLength` with it, and a
     literal in this file would go on asserting the superseded number.
@@ -214,16 +214,16 @@ def _url_bound_twin():
 check("negative:url-octet-bound", _url_bound_twin)
 
 def _assert_links_valid(payload):
-    """DC-1 §3.6 / DC-3 §6.1: structural link rules a validator enforces at ingest.
+    """WIST-1 §3.6 / WIST-3 §6.1: structural link rules a validator enforces at ingest.
 
-    Caps are read from the DC-4 §9 registry table (the same source
+    Caps are read from the WIST-4 §9 registry table (the same source
     `_payload_length` derives from), not hard-coded, so the two checks cannot
     disagree after a `parameter_change` amends either one.
 
     What is deliberately NOT checked here: whether the declared `urls` prefix
     is the correct one for the page, and whether an omitted remainder would
     have fit `links_cap_bytes`. Both are checkable only against the live page
-    (DC-4 §5's link dimension), never from the Payload alone — an ingest
+    (WIST-4 §5's link dimension), never from the Payload alone — an ingest
     validator sees only the already-truncated object.
     """
     import link_extraction
@@ -234,11 +234,11 @@ def _assert_links_valid(payload):
     assert len(set(urls)) == len(urls), "duplicate link"
     for u in urls:
         assert u.startswith("https://") and "#" not in u, f"non-https or fragment: {u}"
-        # DC-1 §3.6 (DC1-E12): every entry is a Normalized URL, byte for byte.
-        # Byte-wise uniqueness above is not enough on its own — DC-1 §2 makes
+        # WIST-1 §3.6 (WIST1-E12): every entry is a Normalized URL, byte for byte.
+        # Byte-wise uniqueness above is not enough on its own — WIST-1 §2 makes
         # sameness byte-identity *of normalizations*, so an unnormalized
         # spelling of a declared link is a second copy of one link that a
-        # `set()` sees as two, and it joins against nothing in DC-3 §7's graph.
+        # `set()` sees as two, and it joins against nothing in WIST-3 §7's graph.
         assert link_extraction.normalize_url(u, u) == u, \
             f"entry is not its own Normalized URL: {u}"
         assert len(rfc8785.dumps(u)) <= caps["link_url_cap_bytes"], \
@@ -250,7 +250,7 @@ def _assert_links_valid(payload):
     assert links_octets <= caps["links_cap_bytes"], "JCS(links) exceeds links_cap_bytes"
 
 def _payload_links_rules():
-    """DC-1 §3.6 / DC-3 §6.1: structural link rules a validator enforces at ingest."""
+    """WIST-1 §3.6 / WIST-3 §6.1: structural link rules a validator enforces at ingest."""
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     _assert_links_valid(payload)
     # The shipped example is known, by construction, to declare its full set
@@ -304,7 +304,7 @@ def _payload_links_twin():
                      "duplicate link"), "duplicate link passed"
     # The unnormalized spelling of an already-declared link: an uppercased
     # host, so the bytes differ and both `uniqueItems` and the `set()` above
-    # pass it, while DC-1 §2 makes it the same URL as the entry it shadows.
+    # pass it, while WIST-1 §2 makes it the same URL as the entry it shadows.
     # It must be rejected by the normalization rule specifically — the
     # duplicate rule cannot see it, which is the whole point of the rule.
     def uppercase_host(u):
@@ -316,7 +316,7 @@ def _payload_links_twin():
                      "not its own Normalized URL"), "unnormalized link passed"
     assert rejected(lambda p: add(p, "https://www.example.com/internal"),
                      "internal link declared external"), "internal link passed"
-    assert rejected(lambda p: add(p, "https://spec.example.net/dc-1#frag"),
+    assert rejected(lambda p: add(p, "https://spec.example.net/wist-1#frag"),
                      "non-https or fragment"), "fragment link passed"
     assert rejected(lambda p: add(p, "https://x.example.io/" + "a" * 2100),
                      "link exceeds link_url_cap_bytes"), "oversize link passed"
@@ -332,23 +332,23 @@ check("negative:payload-links-rules", _payload_links_twin)
 # the generator not to have drifted alongside its own check.
 _FIXTURE1_EXPECTED = {
     "total": 3,
-    "urls": ["https://example.org/reference", "https://spec.example.net/dc-1",
+    "urls": ["https://example.org/reference", "https://spec.example.net/wist-1",
              "https://example.org/~user"],
 }
 
 def _link_extraction_vector():
-    """DC-2's extraction procedure: the vector's (urls, total) must be
+    """WIST-2's extraction procedure: the vector's (urls, total) must be
     reproduced from the fixture HTML bytes by the reference implementation."""
     import link_extraction
-    vec = json.loads((ROOT / "vectors" / "dc2" / "link-extraction.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist2" / "link-extraction.json").read_text())
     assert vec["links_cap_bytes"] == _registry_table_defaults()["links_cap_bytes"], \
         "the vector's links_cap_bytes has drifted from the Parameter Registry default"
     fixture1 = next(c for c in vec["cases"] if c["label"] == "example-delta-page")
     assert fixture1["expected"] == _FIXTURE1_EXPECTED, \
         "fixture 1's expected member is not the hand-pinned 3-URL set"
     cap = vec["links_cap_bytes"]
-    # DC-4 §9's `link_url_cap_bytes` floor: `JCS("https://a.b/")`, the
-    # serialization of the shortest Normalized URL that can exist (DC-1 §2).
+    # WIST-4 §9's `link_url_cap_bytes` floor: `JCS("https://a.b/")`, the
+    # serialization of the shortest Normalized URL that can exist (WIST-1 §2).
     shortest_entry = len(rfc8785.dumps("https://a.b/"))
     assert shortest_entry == 14, "the published shortest-URL floor (14) drifted"
     for case in vec["cases"]:
@@ -361,7 +361,7 @@ def _link_extraction_vector():
         # Two properties of the *published* member, asserted against the
         # budget rather than against the module that produced it — so a
         # generator that truncated wrongly and wrote its own answer down
-        # still fails here (DC-1 §3.6, DC-2 §11).
+        # still fails here (WIST-1 §3.6, WIST-2 §11).
         expected = case["expected"]
         octets = len(rfc8785.dumps(expected))
         assert octets <= cap, \
@@ -376,12 +376,12 @@ def _link_extraction_vector():
                 f"{case['label']}: {headroom} octets of headroom would hold another "
                 f"entry ({1 + shortest_entry} at minimum) — the prefix is not maximal")
 
-check("vectors:dc2-link-extraction", _link_extraction_vector)
+check("vectors:wist2-link-extraction", _link_extraction_vector)
 
 def _link_extraction_twin():
     """Mutation twin: a perturbed fixture must not reproduce."""
     import link_extraction
-    vec = json.loads((ROOT / "vectors" / "dc2" / "link-extraction.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist2" / "link-extraction.json").read_text())
     case = vec["cases"][0]
     html = bytes.fromhex(case["html_hex"]) + b'<a href="https://mutant.example.io/x">m</a>'
     urls, total = link_extraction.extract_links(
@@ -389,14 +389,14 @@ def _link_extraction_twin():
     member = link_extraction.links_member(urls, total, vec["links_cap_bytes"])
     assert member != case["expected"], "an appended link changed nothing — extraction is blind"
 
-check("negative:dc2-link-extraction", _link_extraction_twin)
+check("negative:wist2-link-extraction", _link_extraction_twin)
 
 def _text_extraction_vector():
-    """DC-2 §12's text extraction and DC-4 §5's containment similarity:
+    """WIST-2 §12's text extraction and WIST-4 §5's containment similarity:
     every fixture must be reproduced from its inputs by the reference
     implementation, and the guard default must match the Registry."""
     import link_extraction
-    vec = json.loads((ROOT / "vectors" / "dc2" / "text-extraction.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist2" / "text-extraction.json").read_text())
     assert vec["min_observed_words"] == _registry_table_defaults()["min_observed_words"], \
         "the vector's min_observed_words has drifted from the Parameter Registry default"
     for case in vec["extraction"]:
@@ -415,13 +415,13 @@ def _text_extraction_vector():
     assert any(s is not None and 0 < s < 1_000_000 for s in sims), \
         "no partial-containment case in the vector"
 
-check("vectors:dc2-text-extraction", _text_extraction_vector)
+check("vectors:wist2-text-extraction", _text_extraction_vector)
 
 def _text_extraction_twin():
     """Mutation twin: appended visible text must change the extraction, and
     removing the committed text from the observed side must sink the score."""
     import link_extraction
-    vec = json.loads((ROOT / "vectors" / "dc2" / "text-extraction.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist2" / "text-extraction.json").read_text())
     case = vec["extraction"][0]
     got = link_extraction.extract_text(
         bytes.fromhex(case["html_hex"]) + b"<p>mutant words</p>")
@@ -432,14 +432,14 @@ def _text_extraction_twin():
         vec["min_observed_words"])
     assert sunk == 0, f"removing the committed text left similarity {sunk!r}"
 
-check("negative:dc2-text-extraction", _text_extraction_twin)
+check("negative:wist2-text-extraction", _text_extraction_twin)
 
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
 # link_extraction.normalize_url and .extract_links directly, so a bug that
 # both derives a vector fixture AND checks it the same wrong way (the
-# round-trip `vectors:dc2-link-extraction` above cannot catch that class)
+# round-trip `vectors:wist2-link-extraction` above cannot catch that class)
 # still gets caught here.
 _NORMALIZE_ORACLE = [
     # (label, candidate, base, expected)
@@ -461,7 +461,7 @@ _NORMALIZE_ORACLE = [
     ("raw tab in candidate rejected", "https://example.com/\tx", _BASE, None),
 ]
 
-# (label, tiny literal HTML, expected extracted urls) — exercises the DC-2
+# (label, tiny literal HTML, expected extracted urls) — exercises the WIST-2
 # §11 scan itself (comments, raw-text elements, quote-aware attributes,
 # data-href vs href, character references), independent of gen_vectors.py's
 # fixture 3.
@@ -488,12 +488,12 @@ _SCAN_ORACLE = [
     # denote a code point <= 0x10FFFF (7 decimal digits) either way.
     ("over-long decimal reference discards the candidate",
      b'<a href="https://example.org/x?y=&#' + b"9" * 4301 + b';">t</a>', []),
-    # DC-2 §11 step 4 reads "&#NNN;" as decimal — ASCII digits. `_CHAR_REF`
+    # WIST-2 §11 step 4 reads "&#NNN;" as decimal — ASCII digits. `_CHAR_REF`
     # scopes `\d` with `re.ASCII`, so a reference spelled with non-ASCII
     # decimal digits (Arabic-Indic "٦٥" = 65 below) matches none of the
     # three alternatives and is left exactly as written, literal `#`
     # included. That surviving `#` then reads as RFC 3986's fragment
-    # delimiter, and DC-1 §2 normalization drops the fragment — truncating
+    # delimiter, and WIST-1 §2 normalization drops the fragment — truncating
     # the extracted URL's query at the `&` — rather than the link reading
     # `?y=Az` the way a wrongly-decoded `&#٦٥;` (65 = 'A') would produce,
     # with no `#` left over to start a fragment at all.
@@ -608,7 +608,7 @@ def _walk_schema(node, schema_name, findings, key=None, root=None,
     What neither detector reaches is a field with an innocuous name and no
     pattern at all: an unconstrained string can hold a digest whatever it is
     called. The example and vector scan below covers that for what the suite
-    ships, and DC-4 §9.1 covers it normatively for what an implementation adds.
+    ships, and WIST-4 §9.1 covers it normatively for what an implementation adds.
     """
     if root is None:
         root = node
@@ -694,7 +694,7 @@ def _schema_node_at(schema_file, path):
 #
 # Only a check listed in COVERAGE_ASSERTED may be named, because only those
 # make that assertion. Paths are ROOT-relative: `examples/block.json` and
-# `vectors/dc3/block.json` are different locations and are declared separately.
+# `vectors/wist3/block.json` are different locations and are declared separately.
 COVERAGE_ASSERTED = {"payload:commitment", "audit:commitments"}
 
 SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
@@ -711,13 +711,13 @@ SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
 SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("examples/delta.json", "commitment"): "payload:commitment",
     ("examples/block.json", "commitment"): "payload:commitment",
-    ("vectors/dc1/envelope.json", "commitment"): "payload:commitment",
-    ("vectors/dc1/delta.canonical", "commitment"): "payload:commitment",
-    ("vectors/dc3/block.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
+    ("vectors/wist3/block.json", "commitment"): "payload:commitment",
     ("examples/audit-record.json", "response_commitment"): "audit:commitments",
     ("examples/audit-record.json", "ref_extract_commitment"): "audit:commitments",
     ("examples/audit-record.json", "evidence_commitment"): "audit:commitments",
-    ("vectors/dc4/audit-commitments.json", "value"): "audit:commitments",
+    ("vectors/wist4/audit-commitments.json", "value"): "audit:commitments",
 }
 
 def _declared_values_for(check_name):
@@ -874,7 +874,7 @@ def _commit(salt_b64: str, content: dict) -> str:
 def _payload_commitment():
     payload, delta = _load_payload_and_delta()
     assert delta["payload"]["alg"] == "HMAC-SHA256", "commitment algorithm is not HMAC-SHA256"
-    assert len(b64u_decode(payload["salt"])) >= 16, "salt is shorter than 128 bits (DC-1 §3.6)"
+    assert len(b64u_decode(payload["salt"])) >= 16, "salt is shorter than 128 bits (WIST-1 §3.6)"
     expected = _commit(payload["salt"], payload["content"])
     assert expected == delta["payload"]["commitment"], \
         "the Payload does not reproduce the Delta's commitment"
@@ -901,13 +901,13 @@ check("payload:commitment", _payload_commitment)
 def _payload_length():
     """`bytes`, and every cap it is bounded by, counted in JCS octets.
 
-    DC-1 §3.6 measures every cap as octets of a JCS serialization, never
+    WIST-1 §3.6 measures every cap as octets of a JCS serialization, never
     as characters and never as code points, because a Consumer uses them to
     bound a fetch. The combined bound is derived rather than independent:
     JCS(content) is `{"extract":<E>,"links":<L>,"summary":<S>}`, so its 32
     octets of structure sit on top of the three field caps. Deriving it here
     rather than hard-coding the total is what keeps the schema's number and
-    DC-1 §3.6's arithmetic from drifting apart again.
+    WIST-1 §3.6's arithmetic from drifting apart again.
     """
     payload, delta = _load_payload_and_delta()
     content = payload["content"]
@@ -920,18 +920,18 @@ def _payload_length():
     lk_cap = caps["links_cap_bytes"]
     s_cap = caps["summary_cap_bytes"]
     wrapper = _content_wrapper_octets()
-    assert wrapper == 32, f"JCS(content) structure is {wrapper} octets, not the 32 DC-1 §3.6 states"
+    assert wrapper == 32, f"JCS(content) structure is {wrapper} octets, not the 32 WIST-1 §3.6 states"
     combined = _combined_content_cap()
     assert combined == e_cap + lk_cap + s_cap + wrapper, \
-        "the combined cap helper no longer derives DC-1 §3.6's sum"
+        "the combined cap helper no longer derives WIST-1 §3.6's sum"
 
     e = len(rfc8785.dumps(content["extract"]))
     lk = len(rfc8785.dumps(content["links"]))
     s = len(rfc8785.dumps(content["summary"]))
-    assert e <= e_cap, f"JCS(extract) is {e} octets, over the {e_cap}-octet cap (DC-1 §3.6)"
-    assert lk <= lk_cap, f"JCS(links) is {lk} octets, over the {lk_cap}-octet cap (DC-1 §3.6)"
-    assert s <= s_cap, f"JCS(summary) is {s} octets, over the {s_cap}-octet cap (DC-1 §3.6)"
-    assert n <= combined, f"JCS(content) is {n} octets, over the {combined}-octet cap (DC-1 §3.6)"
+    assert e <= e_cap, f"JCS(extract) is {e} octets, over the {e_cap}-octet cap (WIST-1 §3.6)"
+    assert lk <= lk_cap, f"JCS(links) is {lk} octets, over the {lk_cap}-octet cap (WIST-1 §3.6)"
+    assert s <= s_cap, f"JCS(summary) is {s} octets, over the {s_cap}-octet cap (WIST-1 §3.6)"
+    assert n <= combined, f"JCS(content) is {n} octets, over the {combined}-octet cap (WIST-1 §3.6)"
     assert e + lk + s + wrapper == n, "the JCS lengths do not add up; the derivation is wrong"
 
     schema = json.loads((ROOT / "schemas" / "delta.schema.json").read_text())
@@ -939,15 +939,15 @@ def _payload_length():
         "properties"]["bytes"]["maximum"]
     assert declared == combined, (
         f"delta.schema.json bounds payload.bytes at {declared}, but "
-        f"{e_cap} + {lk_cap} + {s_cap} + {wrapper} = {combined} (DC-1 §3.6)")
-    spec = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
-    assert str(combined) in spec, f"DC-1 §3.6 does not state the {combined}-octet bound"
-    assert "34816" not in spec, "DC-1 still cites the old combined cap, which omitted the JCS wrapper"
-    assert "34839" not in spec, "DC-1 still cites the pre-links combined cap"
+        f"{e_cap} + {lk_cap} + {s_cap} + {wrapper} = {combined} (WIST-1 §3.6)")
+    spec = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
+    assert str(combined) in spec, f"WIST-1 §3.6 does not state the {combined}-octet bound"
+    assert "34816" not in spec, "WIST-1 still cites the old combined cap, which omitted the JCS wrapper"
+    assert "34839" not in spec, "WIST-1 still cites the pre-links combined cap"
 check("payload:length", _payload_length)
 
 def _payload_tamper():
-    """One mutated octet MUST break the commitment (DC-1 §3.6).
+    """One mutated octet MUST break the commitment (WIST-1 §3.6).
 
     Binding is the whole reason the extract can leave the signed object: a
     Publisher must not be able to serve one text and later claim it committed
@@ -985,11 +985,11 @@ def _payload_tamper():
             f"{label}: a mutated Payload still reproduces the commitment"
 check("negative:payload-tamper", _payload_tamper)
 
-# 3. DC-3 vectors: recompute merkle root and verify inclusion proof
-dc3 = ROOT / "vectors" / "dc3"
-if (dc3 / "block.json").exists():
+# 3. WIST-3 vectors: recompute merkle root and verify inclusion proof
+wist3 = ROOT / "vectors" / "wist3"
+if (wist3 / "block.json").exists():
     def _dc3():
-        block = json.loads((dc3 / "block.json").read_text())
+        block = json.loads((wist3 / "block.json").read_text())
         leaves = [leaf_hash(rfc8785.dumps(e)) for e in block["entries"]]
         level = leaves[:]
         while len(level) > 1:
@@ -1002,15 +1002,15 @@ if (dc3 / "block.json").exists():
             level = nxt
         root = "sha256:" + level[0].hex()
         assert root == block["header"]["merkle_root"], "merkle root mismatch"
-        proof = json.loads((dc3 / "inclusion-proof.json").read_text())
+        proof = json.loads((wist3 / "inclusion-proof.json").read_text())
         verify_inclusion(block, proof)
-    check("vectors:dc3", _dc3)
+    check("vectors:wist3", _dc3)
 
 def _block_checks():
     block = json.loads((ROOT / "examples" / "block.json").read_text())
     cp = json.loads((ROOT / "examples" / "checkpoint.json").read_text())
     assert block["header"]["entry_count"] == len(block["entries"]), "entry_count mismatch"
-    # Block Hash definition lives in DC-3 §3.1: header only.
+    # Block Hash definition lives in WIST-3 §3.1: header only.
     signed_bytes = rfc8785.dumps(block["header"])
     block_hash = "sha256:" + hashlib.sha256(signed_bytes).hexdigest()
     assert cp["checkpoint"]["block_hash"] == block_hash, "checkpoint does not bind block"
@@ -1022,12 +1022,12 @@ check("blockhash+binding+entrycount", _block_checks)
 RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at", "weight"]
 
 def _content_digest(records):
-    """DC-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
+    """WIST-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
     return "sha256:" + hashlib.sha256(
         b"".join(sorted(rfc8785.dumps(r) for r in records))).hexdigest()
 
 def _snapshot_content_digest():
-    """DC-3 §7's semantic-equivalence digest, recomputed from its own records.
+    """WIST-3 §7's semantic-equivalence digest, recomputed from its own records.
 
     The point of the digest is that two parties rebuilding the same Log prefix
     agree without producing byte-identical SQLite or Parquet, so the check has
@@ -1036,7 +1036,7 @@ def _snapshot_content_digest():
     no page content — otherwise a Payload withdrawn after publication would
     make the digest permanently unrecomputable, which is when it matters most.
     """
-    v = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    v = json.loads((ROOT / "vectors" / "wist3" / "snapshot-records.json").read_text())
     records = v["records"]
     assert v["record_fields"] == RECORD_FIELDS, \
         "the vector's record encoding is not §7's tuple"
@@ -1059,7 +1059,7 @@ def _snapshot_content_digest():
         "the example manifest does not declare the digest of the published records"
 
     # The index and the manifest are two independently signed statements about
-    # one Snapshot; DC-3 §8 has a Consumer check them against each other.
+    # one Snapshot; WIST-3 §8 has a Consumer check them against each other.
     assert len(index["snapshots"]) >= 1, "the example index lists no Snapshot"
     entry = index["snapshots"][0]
     for field in ("snapshot_date", "log_position", "content_digest"):
@@ -1093,7 +1093,7 @@ def _snapshot_content_digest():
             f"content reached the content_digest preimage: {text[:32]!r}"
 
     # Every field of the tuple must move the digest, or a rebuild could diverge
-    # on it undetected. `weight` is the DC-4 §7 level-2 mark and `observed_at`
+    # on it undetected. `weight` is the WIST-4 §7 level-2 mark and `observed_at`
     # is what an `attest` moves; both are exactly the cases a record-identity-
     # only digest would miss.
     import copy
@@ -1117,17 +1117,17 @@ def _snapshot_content_digest():
     assert {r["weight"] for r in records} == {"full", "reduced"}, \
         "the vector does not exercise both weight values"
 
-    spec = (ROOT / "specs" / "DC-3-commons-log-distribution.md").read_text()
-    assert "semantic equivalence" in spec, "DC-3 §7 no longer states the rebuild rule"
+    spec = (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text()
+    assert "semantic equivalence" in spec, "WIST-3 §7 no longer states the rebuild rule"
     for field in RECORD_FIELDS:
         assert f'"{field}": r.{field}' in spec, \
-            f"DC-3 §7's record tuple no longer names {field}"
+            f"WIST-3 §7's record tuple no longer names {field}"
     for stale in ("bit-identical", "byte-identical tiers"):
-        assert stale not in spec, f"DC-3 still claims byte-reproducible Snapshots: {stale!r}"
+        assert stale not in spec, f"WIST-3 still claims byte-reproducible Snapshots: {stale!r}"
 check("snapshot:content-digest", _snapshot_content_digest)
 
 def _assert_links_materialization(vec_links):
-    """DC-3 §7: `tier1/links.parquet` is `(source_url, target_url, position)`
+    """WIST-3 §7: `tier1/links.parquet` is `(source_url, target_url, position)`
     per declared link, derived from the live record's Payload alone.
 
     Factored so the twin below runs this exact assertion over a perturbed
@@ -1145,9 +1145,9 @@ def _assert_links_materialization(vec_links):
     assert vec_links == expected, "links materialization != derivation from Payload"
 
 def _snapshot_links_materialization():
-    """DC-3 §7: the links materialization is a pure function of live
+    """WIST-3 §7: the links materialization is a pure function of live
     records' Payloads — recompute it from examples/payload.json."""
-    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist3" / "snapshot-records.json").read_text())
     _assert_links_materialization(vec["links"])
     manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())
     paths = {f["path"]: f["tier"] for f in manifest["manifest"]["files"]}
@@ -1160,7 +1160,7 @@ check("spec:snapshot-links", _snapshot_links_materialization)
 def _snapshot_links_twin():
     """Mutation twin: a shifted `position` must be rejected by the same
     helper the positive check runs, with the same message."""
-    vec = json.loads((ROOT / "vectors" / "dc3" / "snapshot-records.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist3" / "snapshot-records.json").read_text())
     mutated = json.loads(json.dumps(vec["links"]))
     assert mutated, "vector carries no link tuples to mutate"
     mutated[0]["position"] += 1
@@ -1225,18 +1225,18 @@ def _merkle_exhaustive():
     assert exercised == sum(range(1, 65)), "did not exercise every (n, index) pair"
 check("merkle-exhaustive", _merkle_exhaustive)
 
-# 4. DC-4 §4: the ECVRF primitive itself, then the sampling vector built on it.
+# 4. WIST-4 §4: the ECVRF primitive itself, then the sampling vector built on it.
 # The RFC 9381 Appendix B.3 vectors are the acceptance criterion for ecvrf.py:
 # a VRF that is subtly wrong still *looks* verifiable, so the primitive is
 # re-proved against the RFC on every harness run, not just at authoring time.
 check("ecvrf:rfc9381-b3-vectors", ecvrf.self_test)
 
 def _dc4_sampling():
-    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
+    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
     pk = b64u_decode(v["auditor_public_key"])
     alpha, pi = bytes.fromhex(v["alpha_hex"]), bytes.fromhex(v["vrf_proof_hex"])
     # alpha is the 32 raw octets of the Block Hash: the hex digest decoded,
-    # with the "sha256:" prefix NOT part of alpha (DC-4 §4).
+    # with the "sha256:" prefix NOT part of alpha (WIST-4 §4).
     block = json.loads((ROOT / "examples" / "block.json").read_text())
     block_hash = "sha256:" + hashlib.sha256(rfc8785.dumps(block["header"])).hexdigest()
     assert v["block_hash"] == block_hash, "sampling vector is not bound to the example Block"
@@ -1279,20 +1279,20 @@ def _dc4_sampling():
     # A proof for a different Block MUST NOT verify against this alpha: this is
     # what stops an Auditor reusing one draw across Blocks.
     assert not ecvrf.verify(pk, bytes(32), pi), "proof verified against wrong alpha"
-check("vectors:dc4-sampling", _dc4_sampling)
+check("vectors:wist4-sampling", _dc4_sampling)
 
 def _dc4_audit_record_proof():
     """The published Record's vrf_proof must verify for the Block it audits."""
     rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
+    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
     alpha = bytes.fromhex(v["alpha_hex"])
     assert ecvrf.verify(load_test_pubkey(), alpha, bytes.fromhex(rec["vrf_proof"])), \
         "audit record vrf_proof does not verify"
     assert rec["vrf_proof"] == v["vrf_proof_hex"], "record proof differs from vector proof"
-check("vectors:dc4-audit-record-proof", _dc4_audit_record_proof)
+check("vectors:wist4-audit-record-proof", _dc4_audit_record_proof)
 
 def _dc4_audit_commitments():
-    """Every content-derived value in an Audit Record is salted (DC-4 §5).
+    """Every content-derived value in an Audit Record is salted (WIST-4 §5).
 
     Moving extracts out of the Log achieves nothing if the Log keeps bare
     digests of the same text: a party holding a copy could recompute one and
@@ -1303,7 +1303,7 @@ def _dc4_audit_commitments():
     """
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    v = json.loads((ROOT / "vectors" / "dc4" / "audit-commitments.json").read_text())
+    v = json.loads((ROOT / "vectors" / "wist4" / "audit-commitments.json").read_text())
     salt = b64u_decode(payload["salt"])
     assert v["audited_delta"] == rec["audited_delta"], \
         "the commitment vector does not describe the example Record"
@@ -1346,7 +1346,7 @@ def _dc4_audit_commitment_tamper():
     not to any salt the Auditor could retain past a withdrawal.
     """
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    v = json.loads((ROOT / "vectors" / "dc4" / "audit-commitments.json").read_text())
+    v = json.loads((ROOT / "vectors" / "wist4" / "audit-commitments.json").read_text())
     salt = b64u_decode(payload["salt"])
     other_salt = bytes(b ^ 0x01 for b in salt)
     assert other_salt != salt, "the alternative salt is not different"
@@ -1364,7 +1364,7 @@ def _dc4_audit_commitment_tamper():
             f"{field}: the commitment does not depend on the salt"
 check("negative:audit-commitment-tamper", _dc4_audit_commitment_tamper)
 
-# DC-3 §6.2: after a withdrawal the Log retains no unsalted digest of the
+# WIST-3 §6.2: after a withdrawal the Log retains no unsalted digest of the
 # withdrawn content. That sentence is a claim about every object format in the
 # suite, so the guard below enumerates every schema and every example rather
 # than any single object.
@@ -1384,7 +1384,7 @@ NON_CONTENT_DIGESTS = {
         "SHA-256 of a Block header",
     ("log-anchor.schema.json",
      "properties/anchor/properties/predecessor/properties/final_block_hash"):
-        "SHA-256 of a Block header (the predecessor Log's final Block, DC-3 §3.4)",
+        "SHA-256 of a Block header (the predecessor Log's final Block, WIST-3 §3.4)",
     ("block.schema.json", "properties/header/properties/merkle_root"):
         "root over Entries, which carry commitments and no content",
     ("checkpoint.schema.json", "properties/checkpoint/properties/block_hash"):
@@ -1392,16 +1392,16 @@ NON_CONTENT_DIGESTS = {
     ("audit-record.schema.json", "properties/record/properties/audited_delta"):
         "a Delta ID",
     ("audit-record.schema.json", "properties/record/properties/prev_record/oneOf[0]"):
-        "an Audit Record or coverage_attestation ID: SHA-256 over an object that carries only commitments (DC-4 §4's per-auditor chain)",
+        "an Audit Record or coverage_attestation ID: SHA-256 over an object that carries only commitments (WIST-4 §4's per-auditor chain)",
     ("registry-update.schema.json",
      "allOf[9]/then/properties/update/properties/details/properties/block"):
-        "SHA-256 of a Block header (the audited Block a pull_attestation names, DC-4 §4)",
+        "SHA-256 of a Block header (the audited Block a pull_attestation names, WIST-4 §4)",
     ("registry-update.schema.json",
      "allOf[9]/then/properties/update/properties/details/properties/found/items"):
-        "Audit Record and coverage_attestation IDs a pull returned (DC-4 §4) — objects that carry only commitments",
+        "Audit Record and coverage_attestation IDs a pull returned (WIST-4 §4) — objects that carry only commitments",
     ("registry-update.schema.json",
      "allOf[10]/then/properties/update/properties/details/properties/prev_record/oneOf[0]"):
-        "the same per-auditor chain ID an Audit Record's prev_record carries (DC-4 §4)",
+        "the same per-auditor chain ID an Audit Record's prev_record carries (WIST-4 §4)",
     ("registry-update.schema.json",
      "allOf[2]/then/properties/update/properties/evidence/items"):
         "Audit Record IDs: SHA-256 over Records that themselves carry only commitments",
@@ -1418,30 +1418,30 @@ NON_CONTENT_DIGESTS = {
         "a Delta ID",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/files/items/properties/sha256"):
-        "a whole tier file, not any one record (DC-3 §7); and a manifest is a static artifact, not a Log Entry",
+        "a whole tier file, not any one record (WIST-3 §7); and a manifest is a static artifact, not a Log Entry",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/anchor_block_hash"):
         "SHA-256 of a Block header",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/content_digest"):
-        "a digest over the record tuples of DC-3 §7 — url, publisher, delta_id, observed_at, weight — every one of which the Log already carries in the clear; no page content is in its preimage",
+        "a digest over the record tuples of WIST-3 §7 — url, publisher, delta_id, observed_at, weight — every one of which the Log already carries in the clear; no page content is in its preimage",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/state/properties/sha256"):
-        "the whole state file, a Log-derived artifact (DC-3 §7); transport integrity, same as any files[] sha256",
+        "the whole state file, a Log-derived artifact (WIST-3 §7); transport integrity, same as any files[] sha256",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/state/properties/state_digest"):
-        "the content_digest construction over state tuples, every field of which is Log-derived (DC-3 §7); no page content is in its preimage",
+        "the content_digest construction over state tuples, every field of which is Log-derived (WIST-3 §7); no page content is in its preimage",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/shards/properties/digests"):
-        "an array of per-shard record-tuple digests (DC-3 §7); the items entry below is the pattern-bearing one, this is the array shell",
+        "an array of per-shard record-tuple digests (WIST-3 §7); the items entry below is the pattern-bearing one, this is the array shell",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/shards/properties/digests/items"):
-        "the same DC-3 §7 record-tuple digest, computed per shard; no page content is in its preimage",
+        "the same WIST-3 §7 record-tuple digest, computed per shard; no page content is in its preimage",
     ("snapshot-index.schema.json",
      "properties/index/properties/snapshots/items/properties/content_digest"):
-        "the same DC-3 §7 record-tuple digest the manifest declares, restated by the index",
+        "the same WIST-3 §7 record-tuple digest the manifest declares, restated by the index",
     ("payload.schema.json", "properties/salt"):
-        "the salt itself: drawn from a CSPRNG, never derived from the content it keys (DC-1 §3.6)",
+        "the salt itself: drawn from a CSPRNG, never derived from the content it keys (WIST-1 §3.6)",
 }
 
 NON_CONTENT_VALUES = {
@@ -1462,38 +1462,38 @@ NON_CONTENT_VALUES = {
     ("examples/publisher.json", "value"): "an Ed25519 signature",
     ("examples/registry-update.json", "public_key"): "an Ed25519 public key",
     ("examples/registry-update.json", "value"): "an Ed25519 signature",
-    ("examples/snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (DC-3 §7)",
+    ("examples/snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (WIST-3 §7)",
     ("examples/snapshot-manifest.json", "anchor_block_hash"): "SHA-256 of a Block header",
     ("examples/snapshot-manifest.json", "content_digest"):
-        "DC-3 §7's record-tuple digest: url, publisher, delta_id, observed_at, weight — no content in the preimage",
+        "WIST-3 §7's record-tuple digest: url, publisher, delta_id, observed_at, weight — no content in the preimage",
     ("examples/snapshot-manifest.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-manifest.json", "state_digest"):
-        "DC-3 §7's digest construction over state tuples — every field Log-derived, no content in the preimage",
+        "WIST-3 §7's digest construction over state tuples — every field Log-derived, no content in the preimage",
     ("examples/snapshot-state.json", "entries"):
-        "state tuples (DC-3 §7): key IDs, Delta IDs, heights, an Ed25519 public key — Log-derived identifiers, no page content",
+        "state tuples (WIST-3 §7): key IDs, Delta IDs, heights, an Ed25519 public key — Log-derived identifiers, no page content",
     ("examples/snapshot-state.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-index.json", "content_digest"):
-        "the manifest's record-tuple digest, restated by the index (DC-3 §6, §7)",
+        "the manifest's record-tuple digest, restated by the index (WIST-3 §6, §7)",
     ("examples/snapshot-index.json", "value"): "an Ed25519 signature",
-    ("vectors/dc3/snapshot-records.json", "delta_id"): "a Delta ID",
-    ("vectors/dc3/snapshot-records.json", "content_digest"):
-        "DC-3 §7's record-tuple digest, recomputed by `snapshot:content-digest` from the records this file publishes",
+    ("vectors/wist3/snapshot-records.json", "delta_id"): "a Delta ID",
+    ("vectors/wist3/snapshot-records.json", "content_digest"):
+        "WIST-3 §7's record-tuple digest, recomputed by `snapshot:content-digest` from the records this file publishes",
     ("examples/status.json", "delta_id"): "a Delta ID",
-        ("vectors/dc1/envelope.json", "value"): "an Ed25519 signature",
-        ("vectors/dc1/id.txt", None): "the DC-1 vector's Delta ID",
-    ("vectors/dc1/keypair.json", "seed_hex"): "the test signing seed",
-    ("vectors/dc1/keypair.json", "public_key"): "an Ed25519 public key",
-        ("vectors/dc3/block.json", "merkle_root"): "root over Entries, which carry commitments only",
-    ("vectors/dc3/block.json", "prev"): "a Delta ID",
-    ("vectors/dc3/block.json", "value"): "an Ed25519 signature",
-    ("vectors/dc3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
-    ("vectors/dc4/sampling.json", "block_hash"): "SHA-256 of a Block header",
-    ("vectors/dc4/sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
-    ("vectors/dc4/sampling.json", "beta_hex"): "the VRF output",
-        ("vectors/dc4/sampling.json", "delta_id"): "a Delta ID",
-    ("vectors/dc4/sampling.json", "auditor_public_key"): "an Ed25519 public key",
-    ("vectors/dc4/audit-commitments.json", "audited_delta"): "a Delta ID",
-    ("vectors/dc4/audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
+        ("vectors/wist1/envelope.json", "value"): "an Ed25519 signature",
+        ("vectors/wist1/id.txt", None): "the WIST-1 vector's Delta ID",
+    ("vectors/wist1/keypair.json", "seed_hex"): "the test signing seed",
+    ("vectors/wist1/keypair.json", "public_key"): "an Ed25519 public key",
+        ("vectors/wist3/block.json", "merkle_root"): "root over Entries, which carry commitments only",
+    ("vectors/wist3/block.json", "prev"): "a Delta ID",
+    ("vectors/wist3/block.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
+    ("vectors/wist4/sampling.json", "block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist4/sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
+    ("vectors/wist4/sampling.json", "beta_hex"): "the VRF output",
+        ("vectors/wist4/sampling.json", "delta_id"): "a Delta ID",
+    ("vectors/wist4/sampling.json", "auditor_public_key"): "an Ed25519 public key",
+    ("vectors/wist4/audit-commitments.json", "audited_delta"): "a Delta ID",
+    ("vectors/wist4/audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
 }
 
 
@@ -1505,28 +1505,28 @@ def _spec_derived_constants():
     published figure and the sweep flags it.
     """
     out = set()
-    canonical = (ROOT / "vectors" / "dc1" / "delta.canonical").read_bytes()
-    out.add(canonical.hex())                      # DC-1 App A quotes leading chunks
-    out.add(hashlib.sha256(b"\x00").hexdigest())  # DC-3 §4's empty-tree constant
+    canonical = (ROOT / "vectors" / "wist1" / "delta.canonical").read_bytes()
+    out.add(canonical.hex())                      # WIST-1 App A quotes leading chunks
+    out.add(hashlib.sha256(b"\x00").hexdigest())  # WIST-3 §4's empty-tree constant
     out.add(hashlib.sha256(
-        (ROOT / "vectors" / "dc4" / "decay-table.json").read_bytes()).hexdigest())
+        (ROOT / "vectors" / "wist4" / "decay-table.json").read_bytes()).hexdigest())
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    out.add(b64u_decode(payload["salt"]).hex())   # DC-1 App A shows the salt in hex
+    out.add(b64u_decode(payload["salt"]).hex())   # WIST-1 App A shows the salt in hex
     # The 160-hex ECVRF proof: longer than any digest, so the value sweep's
-    # digest lengths never reach it, but DC-4 App A wraps it into 64-char cells
+    # digest lengths never reach it, but WIST-4 App A wraps it into 64-char cells
     # that are digest-shaped on their own.
     out.add(json.loads(
-        (ROOT / "vectors" / "dc4" / "sampling.json").read_text())["vrf_proof_hex"])
-    dc3 = json.loads((ROOT / "vectors" / "dc3" / "block.json").read_text())
-    leaves = [leaf_hash(rfc8785.dumps(e)) for e in dc3["entries"]]
-    out.update(h.hex() for h in leaves)           # DC-3 App A's leaf and node figures
+        (ROOT / "vectors" / "wist4" / "sampling.json").read_text())["vrf_proof_hex"])
+    wist3 = json.loads((ROOT / "vectors" / "wist3" / "block.json").read_text())
+    leaves = [leaf_hash(rfc8785.dumps(e)) for e in wist3["entries"]]
+    out.update(h.hex() for h in leaves)           # WIST-3 App A's leaf and node figures
     out.add(node_hash(leaves[0], leaves[1]).hex())
     out.add(node_hash(leaves[2], leaves[3]).hex())
     return out
 
 # In prose there are no keys, so base64url detection needs a shape rule that
 # does not fire on ordinary identifiers: a digest carries mixed case and digits,
-# `deltacommons-test-salt` and `similarity_variance_floor` do not.
+# `wist-test-salt` and `similarity_variance_floor` do not.
 def _prose_digest_shaped(token: str) -> bool:
     body = token.split(":")[-1]
     if re.fullmatch(r"[0-9a-fA-F]+", body) and len(body) in HEX_DIGEST_LENGTHS:
@@ -1542,7 +1542,7 @@ def _no_unsalted_content_digest():
 
     Moving extracts out of the Log achieves nothing if any object keeps an
     unsalted hash of the same text, so this holds the whole suite to the rule
-    DC-3 §6.2 states: a content-derived value is committed under the Payload
+    WIST-3 §6.2 states: a content-derived value is committed under the Payload
     salt or it is not carried at all. Three sweeps: every schema, every shipped
     example and vector, and every specification document. In each, a
     digest-shaped thing passes only by being *declared* — as a non-content
@@ -1589,7 +1589,7 @@ def _no_unsalted_content_digest():
 
     # Values, not just declarations: `registry-update`'s `details` is
     # `{"type": "object"}` for several actions, so a bare digest there would
-    # satisfy every schema in the suite (DC-4 §9.1). Vectors are swept too — a
+    # satisfy every schema in the suite (WIST-4 §9.1). Vectors are swept too — a
     # digest parked in vectors/ is as published as one in examples/.
     published, encountered = set(), set()
 
@@ -1609,7 +1609,7 @@ def _no_unsalted_content_digest():
                 published.add(node.split(":")[-1])
                 return hits
             hits.append(f"{where}: opaque value at {key!r} = {node[:24]}… — "
-                        "commit it under the Payload salt (DC-3 §6.2), or do "
+                        "commit it under the Payload salt (WIST-3 §6.2), or do "
                         "not carry it, or declare it")
         return hits
 
@@ -1674,10 +1674,10 @@ def _dc4_coverage_attestation():
                    "appeal_ruling", "parameter_change", "coverage_attestation"]
     assert actions[:len(established)] == established, \
         "the action enum was reordered rather than appended to"
-    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
+    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
     attestation = {
         "update": {
-            "dc_version": "1.0.0",
+            "wist_version": "1.0.0",
             "action": "coverage_attestation",
             "subject": "audit.example.net",
             "details": {"vrf_proof": v["vrf_proof_hex"], "prev_record": None},
@@ -1687,10 +1687,10 @@ def _dc4_coverage_attestation():
             (ROOT / "examples" / "registry-update.json").read_text())["sig"],
     }
     Draft202012Validator(schema).validate(attestation)
-check("schema:dc4-coverage-attestation", _dc4_coverage_attestation)
+check("schema:wist4-coverage-attestation", _dc4_coverage_attestation)
 
 def _parameter_registry_enum():
-    """DC-4 §9's table and the `parameter_change` enum must correspond exactly.
+    """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.
 
     The table is what a human reads and the enum is what a validator enforces.
     An identifier in one and not the other means either a parameter nobody can
@@ -1700,7 +1700,7 @@ def _parameter_registry_enum():
     deliberately not amendable must say so with an em dash rather than by
     omitting a cell.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
     ids, rows = set(), 0
     for line in section9.splitlines():
@@ -1775,7 +1775,7 @@ def _parameter_bounds():
     every other check in this file reads its thresholds from the document: a
     copy kept here would agree with itself while §9 drifted.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
     # §9's bounds table is the three-column one: | `parameter` | bound | why |.
     # The four-column Parameter Registry table is the defaults table and is
@@ -1815,7 +1815,7 @@ def _parameter_bounds():
     v = Draft202012Validator(schema)
     sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
     def change(parameter, value):
-        return {"update": {"dc_version": "1.0.0", "action": "parameter_change",
+        return {"update": {"wist_version": "1.0.0", "action": "parameter_change",
                            "subject": "log.example.org",
                            "details": {"parameter": parameter, "value": value},
                            "effective_at": "2026-08-12T16:00:00Z"},
@@ -1854,9 +1854,9 @@ def _parameter_bounds():
         assert not v.is_valid(change(name, 0)), f"{name} may still be set to zero"
 
     # `mirror_retention_days` is derived, not chosen: it is the longest span
-    # DC-4 §7's own due process can run, so raising any deadline without
+    # WIST-4 §7's own due process can run, so raising any deadline without
     # raising it would leave an appellant unable to fetch the Blocks holding
-    # the Audit Records its sanction rests on (DC-3 §6).
+    # the Audit Records its sanction rests on (WIST-3 §6).
     defaults = _registry_table_defaults()
     derived = (defaults["appeal_window_days"] + defaults["appeal_seal_days"]
                + defaults["ruling_deadline_days"])
@@ -1883,7 +1883,7 @@ def _parameter_bounds():
     empty_block["header"]["entry_count"] = 0
     assert enforced["block_decompressed_cap_bytes"][0] >= len(rfc8785.dumps(empty_block)), (
         "the Block decompressed cap floor is below the size of an empty Block, which "
-        "DC-3 §3.2 requires an Aggregator to be able to seal")
+        "WIST-3 §3.2 requires an Aggregator to be able to seal")
 
     # The catch-all must reach the parameters that exist, not only later ones:
     # a wording scoped to `confirm_auditors`, `penalty_weight` "and any later
@@ -1898,8 +1898,8 @@ check("spec:parameter-bounds", _parameter_bounds)
 def _parameter_change_integer():
     """`parameter_change.value` is the one field that rewrites a constant.
 
-    DC-4 §6 states that every input to reputation is an integer and §10 that
-    "there is no conforming path that uses `double`"; DC-4 §4 says the same of
+    WIST-4 §6 states that every input to reputation is an integer and §10 that
+    "there is no conforming path that uses `double`"; WIST-4 §4 says the same of
     the sampling test. Both claims are about the constants as much as the
     variables, and this field is the only way a constant is ever rewritten — so
     a `number` here is the one hole through which a rational reaches §6.2's
@@ -1939,7 +1939,7 @@ def _parameter_change_integer():
     v = Draft202012Validator(schema)
     sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
     def change(parameter, value):
-        return {"update": {"dc_version": "1.0.0", "action": "parameter_change",
+        return {"update": {"wist_version": "1.0.0", "action": "parameter_change",
                            "subject": "log.example.org",
                            "details": {"parameter": parameter, "value": value},
                            "effective_at": "2026-08-12T16:00:00Z"},
@@ -1959,19 +1959,19 @@ def _parameter_change_integer():
     assert v.is_valid(change("penalty_weight", 5.0)), \
         "5.0 and 5 are one JSON value, and the schema must not distinguish them"
 
-    # DC-4 §9 must say so, or an implementer reading prose alone sees a number.
-    section9 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text() \
+    # WIST-4 §9 must say so, or an implementer reading prose alone sees a number.
+    section9 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text() \
         .split("## 9. Parameter Registry")[1]
     assert "**Every value the registry carries is an integer**" in section9, \
-        "DC-4 §9 does not state that every registry value is an integer"
+        "WIST-4 §9 does not state that every registry value is an integer"
     assert "`value` (a number" not in section9, \
-        "DC-4 §9.1 still describes `value` as a number"
+        "WIST-4 §9.1 still describes `value` as a number"
 check("schema:parameter-change-integer", _parameter_change_integer)
 
 def _dc4_payload_withdrawal():
     """A withdrawal is only distinguishable from censorship if it is typed.
 
-    DC-3 §6.2 rests on the Log carrying, for every withdrawn Payload, an entry
+    WIST-3 §6.2 rests on the Log carrying, for every withdrawn Payload, an entry
     naming which Delta, on what legal basis, at whose demand. A withdrawal
     missing any of the three would let an operator record an unfalsifiable
     "we removed something", which is what a quiet drop looks like.
@@ -1979,10 +1979,10 @@ def _dc4_payload_withdrawal():
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     actions = schema["properties"]["update"]["properties"]["action"]["enum"]
     assert "payload_withdrawal" in actions, "action enum lacks payload_withdrawal"
-    delta_id = (ROOT / "vectors" / "dc1" / "id.txt").read_text().strip()
+    delta_id = (ROOT / "vectors" / "wist1" / "id.txt").read_text().strip()
     withdrawal = {
         "update": {
-            "dc_version": "1.0.0",
+            "wist_version": "1.0.0",
             "action": "payload_withdrawal",
             "subject": "example.com",
             "details": {"delta_id": delta_id,
@@ -2003,28 +2003,28 @@ def _dc4_payload_withdrawal():
     bad = copy.deepcopy(withdrawal)
     bad["update"]["details"]["delta_id"] = "not-a-delta-id"
     assert not v.is_valid(bad), "a withdrawal naming no well-formed Delta ID validates"
-check("schema:dc4-payload-withdrawal", _dc4_payload_withdrawal)
+check("schema:wist4-payload-withdrawal", _dc4_payload_withdrawal)
 
 def _dc4_appendix_figures():
-    """DC-4's worked example must quote the vector, not a remembered figure.
+    """WIST-4's worked example must quote the vector, not a remembered figure.
 
     Figures transcribed into prose drift silently from the vectors that
     produced them. This pins every published figure to
-    vectors/dc4/sampling.json.
+    vectors/wist4/sampling.json.
     """
-    v = json.loads((ROOT / "vectors" / "dc4" / "sampling.json").read_text())
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     flat = spec.replace("`<br>`", "")   # long hex is wrapped inside table cells
     for field in ("block_hash", "alpha_hex", "vrf_proof_hex", "beta_hex",
                   "delta_id", "draw_first8_hex", "auditor_public_key"):
-        assert v[field] in flat, f"DC-4 does not quote sampling.json {field}"
+        assert v[field] in flat, f"WIST-4 does not quote sampling.json {field}"
     for c in v["selection"]:
         for field in ("delta_id", "draw_first8_hex", "lhs_approx", "rhs_approx"):
             assert c[field] in flat, \
-                f"DC-4 does not quote {c['label']} {field} = {c[field]}"
+                f"WIST-4 does not quote {c['label']} {field} = {c[field]}"
         for n in (c["D"], c["p_1e7"], c["reputation_u"]):
             assert str(n) in flat or f"{n:,}".replace(",", " ") in flat, \
-                f"DC-4 does not quote {c['label']} value {n}"
+                f"WIST-4 does not quote {c['label']} value {n}"
         # The Selected? cell itself, pinned to its own row via the
         # (lhs_approx, rhs_approx) pair — unique per selection entry — so a
         # hand-edit flipping "yes" to "no" (or vice versa) on the wrong row
@@ -2032,20 +2032,20 @@ def _dc4_appendix_figures():
         word = "yes" if c["selected"] else "no"
         row = re.escape(f"{c['lhs_approx']} | {c['rhs_approx']} |")
         assert re.search(row + r"\s*\*{0,2}" + word + r"\*{0,2}\s*\|", flat), \
-            f"DC-4's Selected? column for {c['label']} does not say {word!r} on its own row"
+            f"WIST-4's Selected? column for {c['label']} does not say {word!r} on its own row"
     # No floating-point rendering of the sampling rate may survive in §4's
     # normative text: the integers are the definition, decimals only a reading.
     section4 = flat.split("## 4. Audit Sampling")[1].split("## 5.")[0]
     for stale in ("draw(d) <", "0.30 x (1 - reputation)", "clamp(0.02"):
         assert stale not in section4, f"§4 still specifies sampling in floats: {stale!r}"
-check("spec:dc4-appendix-figures", _dc4_appendix_figures)
+check("spec:wist4-appendix-figures", _dc4_appendix_figures)
 
-# 5. DC-4 §6: reputation, recomputed from the normative decay table using
+# 5. WIST-4 §6: reputation, recomputed from the normative decay table using
 # nothing but integers. A float anywhere in this check would defeat its point.
-DC4 = ROOT / "vectors" / "dc4"
+WIST4 = ROOT / "vectors" / "wist4"
 
 def _dc4_decay_table():
-    raw = (DC4 / "decay-table.json").read_bytes()
+    raw = (WIST4 / "decay-table.json").read_bytes()
     # Structural assertions run BEFORE the digest pin. The digest would catch
     # any mutation first and report only "digest mismatch", which tells an
     # implementer nothing about what is wrong with the table it is holding.
@@ -2062,14 +2062,14 @@ def _dc4_decay_table():
     assert v[-1] > 0, "the horizon value must be positive (expiry is the step to 0)"
     # Only now the byte-level pin, which is what implementations key on.
     digest = hashlib.sha256(raw).hexdigest()
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    assert digest in spec, f"DC-4 §6.1 does not pin the decay table digest {digest}"
-check("vectors:dc4-decay-table", _dc4_decay_table)
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    assert digest in spec, f"WIST-4 §6.1 does not pin the decay table digest {digest}"
+check("vectors:wist4-decay-table", _dc4_decay_table)
 
 def _dc4_reputation():
     """Recompute every published intermediate from §6, in integers only."""
-    r = json.loads((DC4 / "reputation.json").read_text())
-    table = json.loads((DC4 / "decay-table.json").read_text())
+    r = json.loads((WIST4 / "reputation.json").read_text())
+    table = json.loads((WIST4 / "decay-table.json").read_text())
     values, scale, max_days = table["values"], table["scale"], table["max_days"]
     k, micro = r["constants"], r["micro_scale"]
     assert r["decay_scale"] == scale, "vectors disagree about the decay scale"
@@ -2162,7 +2162,7 @@ def _dc4_reputation():
         "a brand-new domain no longer meets the cap exactly"
     assert new["Q"] == 1100, "the new-domain quota is not 1100"
     assert discriminating, "no published row discriminates the two readings of Q"
-check("vectors:dc4-reputation", _dc4_reputation)
+check("vectors:wist4-reputation", _dc4_reputation)
 
 def _dc4_evaluation_order():
     """§6's parenthesization is normative, so the spec must carry it verbatim.
@@ -2173,17 +2173,17 @@ def _dc4_evaluation_order():
     destroys the no-cliff property. This pins both the
     corrected forms and the two counterexample values the spec quotes.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     forms = ("(seconds(Y) − seconds(X)) / 86 400",
              "100 000 + ((900 000 × min(A, 730)) / 730)",
              "(base_u × (C + 1) × 1 000 000 000)",
              "100 + ((10 000 × reputation_u) / 1 000 000)")
     for form in forms:
-        assert form in spec, f"DC-4 §6 no longer writes {form!r} parenthesized"
+        assert form in spec, f"WIST-4 §6 no longer writes {form!r} parenthesized"
     # The stated count and the enumeration must agree, or a reader cannot
     # tell which divisions the parenthesization rule covers.
     assert "exactly **four**" in spec, \
-        f"DC-4 §6 no longer states the division count, which is {len(forms)}"
+        f"WIST-4 §6 no longer states the division count, which is {len(forms)}"
     table_rows = [ln for ln in spec.splitlines()
                   if ln.startswith("| ") and ") / " in ln and "§6" in ln]
     assert len(table_rows) == len(forms), \
@@ -2194,11 +2194,11 @@ def _dc4_evaluation_order():
     assert 100 + 10_000 * (359_236 // 1_000_000) == 100, "quoted mis-parse of Q is stale"
     assert 100_000 + ((900_000 * 0) // 730) == 100_000, "correct base_u parse drifted"
     for n in ("136", "3 692"):
-        assert n in spec, f"DC-4 no longer quotes the counterexample value {n}"
-check("spec:dc4-evaluation-order", _dc4_evaluation_order)
+        assert n in spec, f"WIST-4 no longer quotes the counterexample value {n}"
+check("spec:wist4-evaluation-order", _dc4_evaluation_order)
 
 def _dc4_sealed_at_precision():
-    """DC-4 §6.1's day counts are exact only because §6's inputs are exact.
+    """WIST-4 §6.1's day counts are exact only because §6's inputs are exact.
 
     A Block sealed at `...:00.500Z` or `...+00:00` would make the conversion
     to integer seconds a rounding decision, and one rounded half-second can
@@ -2228,11 +2228,11 @@ def _dc4_sealed_at_precision():
         assert not v.is_valid(candidate), f"schema accepts non-exact sealed_at {bad!r}"
         assert list(v.iter_errors(candidate)), \
             f"schema produced no error for non-exact sealed_at {bad!r}"
-    dc3 = (ROOT / "specs" / "DC-3-commons-log-distribution.md").read_text()
-    assert "whole-second precision" in dc3, "DC-3 §3.1 does not state the constraint"
-check("schema:dc4-sealed-at-precision", _dc4_sealed_at_precision)
+    wist3 = (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text()
+    assert "whole-second precision" in wist3, "WIST-3 §3.1 does not state the constraint"
+check("schema:wist4-sealed-at-precision", _dc4_sealed_at_precision)
 
-# DC-4 §3: every window and every admission test in the suite reads a Block
+# WIST-4 §3: every window and every admission test in the suite reads a Block
 # `sealed_at`, and every timestamp compared against one is written in that
 # field's own whole-second-plus-literal-Z form. That is a claim about every
 # `date-time` in every schema, so the guard below enumerates them all rather
@@ -2254,25 +2254,25 @@ TIMESTAMP_FIELDS = {
     ("registry-update.schema.json",
      "allOf[3]/then/properties/update/properties/details/properties/appeal_deadline"): ANCHORED,
     ("delta.schema.json", "properties/delta/properties/observed_at"):
-        "Publisher-supplied and never compared to a Block: DC-4 §6.1 excludes it from every "
+        "Publisher-supplied and never compared to a Block: WIST-4 §6.1 excludes it from every "
         "derived quantity, and its only comparisons are to the `observed_at` of the Delta named "
-        "by `prev` and to the validator's own clock under DC-1 §3.4's 10-minute skew allowance",
+        "by `prev` and to the validator's own clock under WIST-1 §3.4's 10-minute skew allowance",
     ("publisher.schema.json", "properties/publisher/properties/keys/items/properties/valid_from"):
-        "compared only to a Delta's own `observed_at` (DC-1 §5.1), never to a Block",
+        "compared only to a Delta's own `observed_at` (WIST-1 §5.1), never to a Block",
     ("publisher.schema.json",
      "properties/publisher/properties/recovery_keys/items/properties/valid_from"):
-        "compared only to a Delta's own `observed_at` (DC-1 §5.1), never to a Block",
+        "compared only to a Delta's own `observed_at` (WIST-1 §5.1), never to a Block",
     ("log-anchor.schema.json", "properties/anchor/properties/created_at"):
         "descriptive: the Anchor is authenticated by its own signature and its out-of-band "
-        "fingerprint (DC-3 §3.4), and nothing compares this value to anything",
+        "fingerprint (WIST-3 §3.4), and nothing compares this value to anything",
     ("snapshot-index.schema.json", "properties/index/properties/updated_at"):
-        "descriptive: when the Aggregator last rewrote a mutable index (DC-3 §6); a Snapshot is "
+        "descriptive: when the Aggregator last rewrote a mutable index (WIST-3 §6); a Snapshot is "
         "bound to the chain by `log_position` and `anchor_block_hash`, never by this",
     ("status.schema.json", "properties/last_pull_at"):
-        "the Publisher's debugging surface (DC-2 §7.1), not a signed Envelope and not an "
+        "the Publisher's debugging surface (WIST-2 §7.1), not a signed Envelope and not an "
         "artifact any party verifies",
     ("status.schema.json", "properties/rejections/items/properties/at"):
-        "the same unsigned debugging surface (DC-2 §7.1): when the Aggregator recorded a typed "
+        "the same unsigned debugging surface (WIST-2 §7.1): when the Aggregator recorded a typed "
         "rejection, reported to the Publisher and compared to nothing",
 }
 
@@ -2313,7 +2313,7 @@ def _walk_timestamps(node, schema_name, found, key=None, root=None,
 def _timestamp_anchoring():
     """No window in the suite runs off a timestamp its writer chooses freely.
 
-    DC-4 §3 states that every window and admission test reads a Block
+    WIST-4 §3 states that every window and admission test reads a Block
     `sealed_at`. A `date-time` field that takes part in such a comparison and
     is not constrained to that field's own form reopens, one field at a time,
     exactly what block.schema.json's pattern closed: an Aggregator writing
@@ -2356,7 +2356,7 @@ def _timestamp_anchoring():
         f"only {len(anchored)} anchored timestamps; the class is wider than that"
 
     # Mutation proof, on the two fields the appeal and grace-period windows read:
-    # the pattern must reject exactly the forms RFC 3339 permits and DC-3 §3.1
+    # the pattern must reject exactly the forms RFC 3339 permits and WIST-3 §3.1
     # does not, and must still accept what the suite ships.
     v = Draft202012Validator(
         json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text()))
@@ -2369,7 +2369,7 @@ def _timestamp_anchoring():
         candidate["update"]["effective_at"] = bad
         assert not v.is_valid(candidate), \
             f"registry-update.schema.json accepts non-exact effective_at {bad!r}"
-    notice = {"update": {"dc_version": "1.0.0", "action": "notice",
+    notice = {"update": {"wist_version": "1.0.0", "action": "notice",
                          "subject": "example.com",
                          "details": {"kind": "sanction", "reason": "see evidence",
                                      "appeal_deadline": "2026-08-16T12:00:00Z"},
@@ -2385,35 +2385,35 @@ def _timestamp_anchoring():
 
     # And the documents must say which value a window reads, or an implementer
     # reading prose alone still runs the appeal window off `effective_at`.
-    dc4 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    section7 = dc4.split("## 7. Sanctions")[1].split("## 8.")[0]
+    wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    section7 = wist4.split("## 7. Sanctions")[1].split("## 8.")[0]
     assert re.search(
         r"appeal window is `appeal_window_days` \(14\) from the `sealed_at` of\s*\n"
         r"\s*the Block sealing the `notice`, never from its `effective_at`", section7), \
-        "DC-4 §7 no longer runs the appeal window from the notice's Block `sealed_at`"
-    dc1 = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
-    assert "opens at the `sealed_at` of the Block" in dc1, \
-        "DC-1 §5.2 no longer anchors the recovery window to the Declaration's own Entry"
+        "WIST-4 §7 no longer runs the appeal window from the notice's Block `sealed_at`"
+    wist1 = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
+    assert "opens at the `sealed_at` of the Block" in wist1, \
+        "WIST-1 §5.2 no longer anchors the recovery window to the Declaration's own Entry"
 check("schema:timestamp-anchoring", _timestamp_anchoring)
 
 def _dc4_reputation_figures():
-    """DC-4 §6 and Appendix B must quote the vector, not remembered figures."""
-    r = json.loads((DC4 / "reputation.json").read_text())
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    table = json.loads((DC4 / "decay-table.json").read_text())
+    """WIST-4 §6 and Appendix B must quote the vector, not remembered figures."""
+    r = json.loads((WIST4 / "reputation.json").read_text())
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    table = json.loads((WIST4 / "decay-table.json").read_text())
     def quoted(n):
         # The spec groups long numbers with spaces; short ones it writes plain.
         return str(n) in spec or f"{n:,}".replace(",", " ") in spec
     for n in (table["values"][0], table["values"][-1]):
-        assert quoted(n), f"DC-4 does not quote decay value {n}"
+        assert quoted(n), f"WIST-4 does not quote decay value {n}"
     for case in [r["worked_example"]] + r["boundary"]:
         for field in ("base_u", "penalty_n", "reputation_u", "Q"):
             assert quoted(case[field]), \
-                f"DC-4 does not quote {case['label']}.{field} = {case[field]}"
-    assert quoted(r["worked_example"]["p_1e7"]), "DC-4 does not quote the worked p_1e7"
+                f"WIST-4 does not quote {case['label']}.{field} = {case[field]}"
+    assert quoted(r["worked_example"]["p_1e7"]), "WIST-4 does not quote the worked p_1e7"
     assert r["worked_example"]["p_readable"] in spec, \
-        "DC-4 does not show what the worked p_1e7 reads as"
-check("spec:dc4-reputation-figures", _dc4_reputation_figures)
+        "WIST-4 does not show what the worked p_1e7 reads as"
+check("spec:wist4-reputation-figures", _dc4_reputation_figures)
 
 def _dc4_similarity_thresholds(section5=None):
     """The three extract §5 verdict bands and the two nested link bands,
@@ -2425,16 +2425,16 @@ def _dc4_similarity_thresholds(section5=None):
 
     `section5` is the already-sliced §5 text to parse; the default (None)
     reads and slices it from the real spec file. A caller may instead pass
-    a perturbed copy — `negative:dc4-link-thresholds` below does, to prove
+    a perturbed copy — `negative:wist4-link-thresholds` below does, to prove
     the link-threshold regexes and the registry cross-check actually bind
     to the table's content rather than passing regardless of it.
     """
     if section5 is None:
-        spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+        spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
         section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
     rows = {
         # Unlike the other two extract rows, `consistent`'s condition cell
-        # carries a second, trailing clause (DC-4 §5: the link-dimension
+        # carries a second, trailing clause (WIST-4 §5: the link-dimension
         # qualifier), so this pattern reads the number off the front of the
         # cell rather than requiring the cell to end right after it.
         "consistent_at_or_above": r"\|\s*`consistent`\s*\|\s*effective similarity\s*≥\s*([\d ]+)",
@@ -2454,7 +2454,7 @@ def _dc4_similarity_thresholds(section5=None):
     out = {}
     for name, pattern in rows.items():
         m = re.search(pattern, section5)
-        assert m, f"DC-4 §5 does not state the {name} threshold in the expected form"
+        assert m, f"WIST-4 §5 does not state the {name} threshold in the expected form"
         out[name] = int(m.group(1).replace(" ", "").replace(" ", ""))
     assert out["consistent_at_or_above"] == out["variance_below"], \
         "§5's `consistent` floor and `dynamic_variance` ceiling are not the same number"
@@ -2490,7 +2490,7 @@ def _link_threshold_parser_twin():
     comparison, not the self-consistency assert a single-row edit would
     trip instead; the disk copy is untouched throughout.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
     variance_row = re.compile(r"(`link_variance`\s*\|.*?)300 000(\s*≤\s*`link_agreement`)")
     inconsistent_row = re.compile(r"(`link_inconsistent`\s*\|.*?`link_agreement`\s*<\s*)300 000")
@@ -2512,7 +2512,7 @@ def _link_threshold_parser_twin():
             "perturbing both link thresholds in a copied table still "
             "passed _dc4_similarity_thresholds")
 
-check("negative:dc4-link-thresholds", _link_threshold_parser_twin)
+check("negative:wist4-link-thresholds", _link_threshold_parser_twin)
 
 
 def _dc4_severity_rows():
@@ -2523,7 +2523,7 @@ def _dc4_severity_rows():
     publishes. A copy kept here would agree with itself while §5 and §7
     drifted apart, which is the failure the check exists to catch.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
     rows = []
     for m in re.finditer(
@@ -2532,18 +2532,18 @@ def _dc4_severity_rows():
                      int(m.group(2).replace(" ", "")), int(m.group(3))))
     for m in re.finditer(r"\|\s*`sim`\s*<\s*([\d ]+?)\s*\|\s*(\d)\s*\(", section7):
         rows.append((0, int(m.group(1).replace(" ", "")), int(m.group(2))))
-    assert len(rows) >= 3, f"DC-4 §7's severity table did not parse: {rows}"
+    assert len(rows) >= 3, f"WIST-4 §7's severity table did not parse: {rows}"
     # §7 must state its input as the *effective* similarity: reverting it to
     # the sealed `similarity` silently un-does the `delete` mirror and leaves
     # a false `delete` deriving severity from a value in the wrong direction.
     assert re.search(r"let `sim` be the highest\s+\*\*effective similarity\*\*\s*\(§5\)",
                      section7), \
-        "DC-4 §7 does not derive `sim` from the effective similarity (§5)"
+        "WIST-4 §7 does not derive `sim` from the effective similarity (§5)"
     return rows
 
 
 def _dc4_verdict_totality():
-    """Every permitted pair of texts maps to exactly one verdict (DC-4 §5),
+    """Every permitted pair of texts maps to exactly one verdict (WIST-4 §5),
     and every verdict that carries a penalty maps to exactly one severity.
 
     A verdict table with a gap leaves a conforming Auditor with nothing to
@@ -2562,7 +2562,7 @@ def _dc4_verdict_totality():
     mirrored value, and a mirror landing outside §7's domain would leave a
     false `delete` as a Confirmed Inconsistency with no severity input.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
     t = _dc4_similarity_thresholds()
     CONSISTENT, HIGH = t["consistent_at_or_above"], t["inconsistent_below"]
@@ -2597,7 +2597,7 @@ def _dc4_verdict_totality():
         "§5 does not state the `delete` mirror as 1 000 000 − similarity"
 
     def bands(eff, link_agreement=None):
-        """DC-4 §5's full seven-row model: the three extract bands, with a
+        """WIST-4 §5's full seven-row model: the three extract bands, with a
         second partition over `link_agreement` nested inside the extract-
         `consistent` band alone. `link_agreement=None` models the link
         dimension being neutral for this audit — a `delete`, a non-HTML
@@ -2652,7 +2652,7 @@ def _dc4_verdict_totality():
     assert bands(1_000_000 - 0)[0] == "consistent", \
         "a `delete` audit finding none of the committed content is not `consistent`"
 
-    # The link dimension's own partition (DC-4 §5), nested inside the
+    # The link dimension's own partition (WIST-4 §5), nested inside the
     # extract-`consistent` band alone: every `link_agreement` value is
     # checked at two representative extract-consistent readings — the
     # boundary itself and the top of the range — since which consistent-
@@ -2692,10 +2692,10 @@ def _dc4_verdict_totality():
                 f"eff={eff_probe} (outside the extract-consistent band) is "
                 f"moved by link_agreement={link_agreement}, but the link "
                 f"dimension must be vacuous there")
-check("spec:dc4-verdict-totality", _dc4_verdict_totality)
+check("spec:wist4-verdict-totality", _dc4_verdict_totality)
 
 def _dc4_severity_bands():
-    """DC-4 §7's severity table drives `penalty_n` directly (§6.1), so a
+    """WIST-4 §7's severity table drives `penalty_n` directly (§6.1), so a
     collapsed or unreachable band silently changes every domain's
     reputation rather than merely misdocumenting one. Confirms all three
     severities are reachable from `sim` alone (now an integer, §5), that
@@ -2704,15 +2704,15 @@ def _dc4_severity_bands():
     threshold rather than a value copied once and then hardcoded — a
     mutation of §5's threshold that collapses a band must fail here.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
     section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
     for row in ("| 150 000 ≤ `sim` < 300 000 | 1 (minor divergence) |",
                 "| 50 000 ≤ `sim` < 150 000 | 2 (misleading extract) |",
                 "| `sim` < 50 000 | 3 (fabricated content) |"):
-        assert row in section7, f"DC-4 §7 no longer carries the severity row {row!r}"
+        assert row in section7, f"WIST-4 §7 no longer carries the severity row {row!r}"
     assert "wholly absent" not in section7, \
-        "DC-4 §7's severity table still conditions a band on an undefined term"
+        "WIST-4 §7's severity table still conditions a band on an undefined term"
 
     # HIGH is read from §5's own `inconsistent` threshold, not copied and
     # frozen here: a future edit that narrows or widens it must change what
@@ -2764,74 +2764,74 @@ def _dc4_severity_bands():
         "the level 1 / level 2 boundary is not at sim = 150 000"
     assert severity(50_000) == 2 and severity(49_999) == 3, \
         "the level 2 / level 3 boundary is not at sim = 50 000"
-check("spec:dc4-severity-bands", _dc4_severity_bands)
+check("spec:wist4-severity-bands", _dc4_severity_bands)
 
 def _withdrawal_binds_every_serving_path():
     """A withdrawal reaches every path the Payload is served from, or none.
 
     The salt is published in exactly one kind of file, and three parties serve
     it: the Aggregator, every Mirror, and the Publisher's own well-known path
-    (DC-2 §3.1, DC-3 §6.1). "After withdrawal the Log itself stops helping"
-    (DC-3 §11) and "the salt is destroyed and that Record's commitments can no
-    longer be checked by anyone" (DC-4 §5) are false at one fetch if any one of
-    the three keeps serving — and DC-2 separately obliges a Publisher to keep
+    (WIST-2 §3.1, WIST-3 §6.1). "After withdrawal the Log itself stops helping"
+    (WIST-3 §11) and "the salt is destroyed and that Record's commitments can no
+    longer be checked by anyone" (WIST-4 §5) are false at one fetch if any one of
+    the three keeps serving — and WIST-2 separately obliges a Publisher to keep
     its anchor Payload retrievable, so leaving it unbound was not an omission
     but a conflict.
     """
-    dc2 = (ROOT / "specs" / "DC-2-site-publication.md").read_text()
-    dc3 = (ROOT / "specs" / "DC-3-commons-log-distribution.md").read_text()
-    dc4 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    withdrawal = dc3.split("### 6.2. Withdrawal")[1].split("## 7.")[0]
+    wist2 = (ROOT / "specs" / "WIST-2-site-publication.md").read_text()
+    wist3 = (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text()
+    wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    withdrawal = wist3.split("### 6.2. Withdrawal")[1].split("## 7.")[0]
     stop = re.search(r"^- the Aggregator[^\n]*(?:\n(?!- ).*)*", withdrawal, re.M)
-    assert stop, "DC-3 §6.2 no longer opens its obligations with the stop-serving rule"
+    assert stop, "WIST-3 §6.2 no longer opens its obligations with the stop-serving rule"
     # The *obligation* must name all three, not the paragraph explaining it: a
     # rule that binds two parties and then discusses the third at length reads
     # as covering it while binding nothing.
     clause = re.split(r"\.\s", stop.group(0))[0]
     assert "MUST stop" in clause, \
-        "DC-3 §6.2's first obligation is no longer the stop-serving rule"
+        "WIST-3 §6.2's first obligation is no longer the stop-serving rule"
     for party in ("Aggregator", "Mirror", "Publisher"):
         assert party in clause, \
-            f"DC-3 §6.2's stop-serving obligation does not bind the {party}"
+            f"WIST-3 §6.2's stop-serving obligation does not bind the {party}"
     assert "every party holding the Payload for protocol purposes MUST destroy it" in withdrawal, \
-        "DC-3 §6.2 no longer requires holders to destroy the Payload and its salt"
+        "WIST-3 §6.2 no longer requires holders to destroy the Payload and its salt"
 
     # The Snapshot artifacts are a fourth serving path, and the link graph is
     # one of their content tiers: a withdrawal that named `extracts.parquet`
     # alone would leave the withdrawn Payload's declared links in
-    # distribution (DC-3 §7), which is the same one-fetch hole the
+    # distribution (WIST-3 §7), which is the same one-fetch hole the
     # stop-serving rule above exists to close. The bullet parsed above is the
     # *first* of §6.2's obligations, so this clause is not reached by it.
     materialization = re.search(
         r"^- Consumers MUST exclude[^\n]*(?:\n(?!- ).*)*", withdrawal, re.M)
     assert materialization, \
-        "DC-3 §6.2 no longer binds Snapshot artifacts already published"
+        "WIST-3 §6.2 no longer binds Snapshot artifacts already published"
     assert "tier1/links.parquet" in materialization.group(0), \
-        "DC-3 §6.2's Snapshot-artifact rule does not name tier1/links.parquet"
+        "WIST-3 §6.2's Snapshot-artifact rule does not name tier1/links.parquet"
 
     # The conflicting duty must be reconciled where it is stated, not only
     # overridden from another document.
-    retention = dc2.split("**Payload retention.**")[1].split("### 3.2.")[0]
+    retention = wist2.split("**Payload retention.**")[1].split("### 3.2.")[0]
     assert "payload_withdrawal" in retention and "MUST stop serving" in retention, \
-        "DC-2 §3.1's retention duty does not say that a withdrawal ends it"
-    checklist = dc2.split("## 10. Conformance Checklist")[1].split("**Aggregator")[0]
+        "WIST-2 §3.1's retention duty does not say that a withdrawal ends it"
+    checklist = wist2.split("## 10. Conformance Checklist")[1].split("**Aggregator")[0]
     assert "payload_withdrawal" in checklist, \
-        "DC-2's Publisher checklist has no row for stopping service on a withdrawal"
+        "WIST-2's Publisher checklist has no row for stopping service on a withdrawal"
     assert "appeals/<notice-id>.json" in checklist, \
-        "DC-2's Publisher checklist has no row for publishing an appeal"
+        "WIST-2's Publisher checklist has no row for publishing an appeal"
 
     # And the claims that rest on it must still be the claims being made, or
     # this check is guarding a guarantee the suite no longer states.
-    assert "the Log itself\nstops helping" in dc3, \
-        "DC-3 §11 no longer claims the Log stops helping after a withdrawal"
-    assert "can no longer be checked by anyone" in dc4, \
-        "DC-4 §5 no longer claims a withdrawn Record's commitments are uncheckable"
+    assert "the Log itself\nstops helping" in wist3, \
+        "WIST-3 §11 no longer claims the Log stops helping after a withdrawal"
+    assert "can no longer be checked by anyone" in wist4, \
+        "WIST-4 §5 no longer claims a withdrawn Record's commitments are uncheckable"
 check("spec:withdrawal-serving-paths", _withdrawal_binds_every_serving_path)
 
 def _rule_ownership():
     """A rule restated in a second document must be the rule, not an older one.
 
-    DC-4 §5 owns the unauditable-URL rule: two `robots_excluded` Records from
+    WIST-4 §5 owns the unauditable-URL rule: two `robots_excluded` Records from
     mutually independent Auditors inside the horizon, cleared only by an
     Auditor independent of both, ageing out when they leave the window. The
     pre-Task shape — "no successful audit by an independent Auditor since,
@@ -2848,19 +2848,19 @@ def _rule_ownership():
     assert not hits, ("a document restates the unauditable rule in its "
                       "single-Auditor form:\n  " + "\n  ".join(hits))
     # Every site that states the rule states both load-bearing halves.
-    for name, marker in (("DC-2-site-publication.md", "two Auditors independent of one another"),
-                         ("DC-3-commons-log-distribution.md", "two independent Auditors"),
-                         ("DC-4-audit-reputation-governance.md", "signed by Auditors independent of one another")):
+    for name, marker in (("WIST-2-site-publication.md", "two Auditors independent of one another"),
+                         ("WIST-3-logbook-distribution.md", "two independent Auditors"),
+                         ("WIST-4-audit-reputation-governance.md", "signed by Auditors independent of one another")):
         assert marker in specs[name], \
             f"{name} no longer states that two independent Auditors are needed to exclude a URL"
         assert "independent of both" in specs[name], \
             f"{name} no longer states that the clearing audit must come from a third Auditor"
-    # DC-2 defers rather than legislating: it owns the robots.txt boundary, not
+    # WIST-2 defers rather than legislating: it owns the robots.txt boundary, not
     # the materialization consequence.
-    dc2_section5 = specs["DC-2-site-publication.md"].split("## 5. Aggregator Pull Behavior")[1] \
+    dc2_section5 = specs["WIST-2-site-publication.md"].split("## 5. Aggregator Pull Behavior")[1] \
         .split("## 6.")[0]
-    assert "DC-4 §5 owns that rule" in dc2_section5, \
-        "DC-2 §5 no longer defers to the document that owns the rule it summarizes"
+    assert "WIST-4 §5 owns that rule" in dc2_section5, \
+        "WIST-2 §5 no longer defers to the document that owns the rule it summarizes"
 check("spec:rule-ownership", _rule_ownership)
 
 def _derived_not_discretionary():
@@ -2873,19 +2873,19 @@ def _derived_not_discretionary():
     Aggregator's entry must now record the consequence rather than cause it,
     and the omission must itself have a derived effect.
     """
-    dc1 = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
-    dc4 = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
-    section4 = dc4.split("## 4. Audit Sampling")[1].split("## 5.")[0]
-    section7 = dc4.split("## 7. Sanctions")[1].split("## 8.")[0]
-    section10 = dc4.split("## 10. Security Considerations")[1].split("## 11.")[0]
+    wist1 = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
+    wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    section4 = wist4.split("## 4. Audit Sampling")[1].split("## 5.")[0]
+    section7 = wist4.split("## 7. Sanctions")[1].split("## 8.")[0]
+    section10 = wist4.split("## 10. Security Considerations")[1].split("## 11.")[0]
 
     # I1: the appeal has a path, a deadline, and a consequence for the omission.
-    assert "/.well-known/deltacommons/appeals/" in section7, \
-        "DC-4 §7 gives an appeal no in-band publication path"
+    assert "/.well-known/wist/appeals/" in section7, \
+        "WIST-4 §7 gives an appeal no in-band publication path"
     for fragment in ("`appeal_seal_days`",
                      "is void on recomputation from T",
                      '`"unappealed"`'):
-        assert fragment in section7, f"DC-4 §7 no longer states {fragment}"
+        assert fragment in section7, f"WIST-4 §7 no longer states {fragment}"
     assert "appeal_seal_days" in json.loads(
         (ROOT / "schemas" / "registry-update.schema.json").read_text())["allOf"][5][
             "then"]["properties"]["update"]["properties"]["details"][
@@ -2894,44 +2894,44 @@ def _derived_not_discretionary():
 
     # …and §10 no longer defends appeals with an argument that is false.
     assert "Omission is not equivocation" in section10, \
-        "DC-4 §10 no longer corrects the claim that suppression is equivocation"
+        "WIST-4 §10 no longer corrects the claim that suppression is equivocation"
     assert not re.search(r"suppress a\s*\n?\s*sanction or an appeal: withholding log entries",
                          section10), \
-        "DC-4 §10 still answers appeal suppression with the equivocation argument"
+        "WIST-4 §10 still answers appeal suppression with the equivocation argument"
 
     # I3: the recovery window opens on the Declaration's own Entry.
-    recovery = dc1.split("**Compromise recovery.**")[1].split("**Historical verification.**")[0]
+    recovery = wist1.split("**Compromise recovery.**")[1].split("**Historical verification.**")[0]
     assert "opens at the `sealed_at` of the Block" in recovery, \
-        "DC-1 §5.2's recovery window is not anchored to the recovery Declaration's Entry"
+        "WIST-1 §5.2's recovery window is not anchored to the recovery Declaration's Entry"
     assert "does not open it" in recovery, \
-        "DC-1 §5.2 does not say the `notice` describes the window rather than opening it"
+        "WIST-1 §5.2 does not say the `notice` describes the window rather than opening it"
     assert not re.search(r"MUST record a `notice`[^.]*opening a recovery window", recovery), \
-        "DC-1 §5.2 still has the `notice` open the recovery window"
+        "WIST-1 §5.2 still has the `notice` open the recovery window"
 
     # I4: coverage failure withdraws the Records itself.
     assert "in coverage failure" in section4, \
-        "DC-4 §4 does not define the derived coverage-failure state"
+        "WIST-4 §4 does not define the derived coverage-failure state"
     assert "records\nthe consequence and does not create it" in section4, \
-        "DC-4 §4 does not say `auditor_remove` records the consequence rather than creating it"
-    section3 = dc4.split("## 3. Auditors")[1].split("## 4.")[0]
+        "WIST-4 §4 does not say `auditor_remove` records the consequence rather than creating it"
+    section3 = wist4.split("## 3. Auditors")[1].split("## 4.")[0]
     assert "in coverage failure" in section3, \
-        "DC-4 §3's rejection list does not reach an Auditor in coverage failure"
+        "WIST-4 §3's rejection list does not reach an Auditor in coverage failure"
 
     # I5: the personal-data rule is general, not a list of three field names.
-    section91 = dc4.split("### 9.1. Registry Update")[1].split("## 10.")[0]
+    section91 = wist4.split("### 9.1. Registry Update")[1].split("## 10.")[0]
     assert "no `evidence` element, may\ncarry personal data" in section91, \
-        "DC-4 §9.1's personal-data rule is not written over the position"
+        "WIST-4 §9.1's personal-data rule is not written over the position"
     assert not re.search(r"The same applies to the free-text fields `legal_basis`, `reason` and",
                          section91), \
-        "DC-4 §9.1 still enumerates the fields the personal-data rule covers"
+        "WIST-4 §9.1 still enumerates the fields the personal-data rule covers"
     # The rule reaches the Publisher-written details, and the authorship it
     # states matches who seals what: `appeal` is the Publisher's, while
     # `sanction_lift` is an Aggregator-sealed Registry Update (§7) — text
     # bracketing the two as both-Publisher would contradict §7.
     assert "an `appeal`'s `details` are the\nPublisher's" in section91, \
-        "DC-4 §9.1 does not reach the Publisher-written details the rule was missing"
+        "WIST-4 §9.1 does not reach the Publisher-written details the rule was missing"
     assert "`sanction_lift`'s\n`details` are the Aggregator's" in section91, \
-        "DC-4 §9.1 misattributes a `sanction_lift`'s `details` (an Aggregator-sealed entry, §7)"
+        "WIST-4 §9.1 misattributes a `sanction_lift`'s `details` (an Aggregator-sealed entry, §7)"
 check("spec:derived-not-discretionary", _derived_not_discretionary)
 
 def _unappealed_ruling_timing():
@@ -2948,19 +2948,19 @@ def _unappealed_ruling_timing():
     parameter, so it is checked here as arithmetic and not only as prose — no
     schema can express it, the two Blocks being different Entries.
     """
-    spec = (ROOT / "specs" / "DC-4-audit-reputation-governance.md").read_text()
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
     assert '**An `"unappealed"` ruling cannot precede what it reports.**' in section7, \
-        "DC-4 §7 places no timing constraint on an `unappealed` ruling"
+        "WIST-4 §7 places no timing constraint on an `unappealed` ruling"
     assert re.search(
         r"discharges T only when the Block sealing it has a `sealed_at` at\s*\n"
         r"\s*or after the close of the appeal window", section7), \
-        "DC-4 §7 does not require an `unappealed` ruling to follow the window's close"
+        "WIST-4 §7 does not require an `unappealed` ruling to follow the window's close"
     assert re.search(r"party recomputing MUST treat it as absent", section7), \
-        "DC-4 §7 does not require a recomputing party to ignore an early `unappealed` ruling"
+        "WIST-4 §7 does not require a recomputing party to ignore an early `unappealed` ruling"
     checklist = spec.split("**Any party recomputing reputation:**")[1]
     assert '`appeal_ruling` of `"unappealed"` whose own Block' in checklist, \
-        "DC-4 §12's recompute checklist has no row for the `unappealed` timing rule"
+        "WIST-4 §12's recompute checklist has no row for the `unappealed` timing rule"
 
     # The rule as arithmetic, over the parameters §9 publishes rather than
     # numbers restated here: an edit to `appeal_window_days` moves what this
@@ -3002,10 +3002,10 @@ def _unappealed_ruling_timing():
 check("spec:unappealed-ruling-timing", _unappealed_ruling_timing)
 
 def _negative_index():
-    """A proof carrying a falsified index MUST NOT verify (DC-3 §4)."""
+    """A proof carrying a falsified index MUST NOT verify (WIST-3 §4)."""
     import copy
-    block = copy.deepcopy(json.loads((ROOT / "vectors" / "dc3" / "block.json").read_text()))
-    proof = copy.deepcopy(json.loads((ROOT / "vectors" / "dc3" / "inclusion-proof.json").read_text()))
+    block = copy.deepcopy(json.loads((ROOT / "vectors" / "wist3" / "block.json").read_text()))
+    proof = copy.deepcopy(json.loads((ROOT / "vectors" / "wist3" / "inclusion-proof.json").read_text()))
     # verify_inclusion(block, proof) fetches its leaf via block["entries"][proof["index"]],
     # so merely relabeling proof["index"] (leaving block untouched) makes it fetch a
     # genuinely different, distinct Entry — which fails on leaf-content grounds alone and
@@ -3050,20 +3050,20 @@ def _no_process_narration():
 check("repo:no-process-narration", _no_process_narration)
 
 def _single_discovery_channel():
-    """No non-HTTPS key-discovery mechanism may reappear (DC-1 §5.1, §8).
+    """No non-HTTPS key-discovery mechanism may reappear (WIST-1 §5.1, §8).
 
     The rule guards a *mechanism*, not a word. Banning the string "DNS"
-    outright would forbid DC-1 §8 from naming the fallback it removed, and a
+    outright would forbid WIST-1 §8 from naming the fallback it removed, and a
     door whose closing is undocumented is one a later editor reopens in good
     faith; it would also miss a reintroduction under any other name. So the
     guard is written over what an implementation would actually have to
     publish: the well-known record label, and a section heading offering the
     fallback as a defined alternative.
     """
-    label = re.compile(r"_deltacommons\.")
+    label = re.compile(r"_wist\.")
     heading = re.compile(r"^#{2,6}\s.*\b(DNS|TXT)\b.*\bfallback\b", re.I | re.M)
-    dc1 = (ROOT / "specs" / "DC-1-delta-format.md").read_text()
-    security = dc1.split("## 8. Security Considerations")[1].split("## 9.")[0]
+    wist1 = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
+    security = wist1.split("## 8. Security Considerations")[1].split("## 9.")[0]
     allowed = set(security.splitlines())     # the one place the label may appear
     hits = []
     for path in sorted((ROOT / "specs").glob("*.md")):
@@ -3071,52 +3071,52 @@ def _single_discovery_channel():
         for n, line in enumerate(text.splitlines(), 1):
             if label.search(line) and line not in allowed:
                 hits.append(f"{path.relative_to(ROOT)}:{n}: names the TXT record label "
-                            f"outside DC-1 §8, where only its removal is recorded")
+                            f"outside WIST-1 §8, where only its removal is recorded")
         for m in heading.finditer(text):
             hits.append(f"{path.relative_to(ROOT)}: defines a fallback section: {m.group(0).strip()!r}")
     assert not hits, "a non-HTTPS discovery channel has reappeared:\n  " + "\n  ".join(hits)
 
     # The removal must stay documented, or the guard above protects nothing a
-    # reader can see: DC-1 §8 names the mechanism and ADR-0002 records why.
-    assert "_deltacommons." in security, \
-        "DC-1 §8 no longer names the removed TXT-record mechanism, so the closed door is invisible"
-    assert re.search(r"there is no alternative channel", dc1), \
-        "DC-1 §5.1 no longer states that HTTPS is the only discovery channel"
+    # reader can see: WIST-1 §8 names the mechanism and ADR-0002 records why.
+    assert "_wist." in security, \
+        "WIST-1 §8 no longer names the removed TXT-record mechanism, so the closed door is invisible"
+    assert re.search(r"there is no alternative channel", wist1), \
+        "WIST-1 §5.1 no longer states that HTTPS is the only discovery channel"
     adr = (ROOT / "decisions" / "0002-ed25519-domain-anchored-identity.md").read_text()
     decision = adr.split("## Decision")[1].split("## Consequences")[0]
-    assert "fallback" in decision and "_deltacommons." in decision, \
+    assert "fallback" in decision and "_wist." in decision, \
         "ADR-0002's accepted decision no longer records the removed fallback"
     assert "(DNS TXT fallback)" not in adr, \
         "ADR-0002 still lists the fallback as part of the accepted decision"
 check("spec:single-discovery-channel", _single_discovery_channel)
 
 def _link_agreement_vector():
-    """DC-4 §5: recompute every published link_agreement case."""
+    """WIST-4 §5: recompute every published link_agreement case."""
     import link_extraction
-    vec = json.loads((ROOT / "vectors" / "dc4" / "link-agreement.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist4" / "link-agreement.json").read_text())
     for case in vec["cases"]:
         got = link_extraction.link_agreement(
             case["declared_urls"], case["declared_total"],
             case["observed_urls"], case["observed_total"])
         assert got == case["link_agreement"], f"{case['label']}: {got}"
 
-check("vectors:dc4-link-agreement", _link_agreement_vector)
+check("vectors:wist4-link-agreement", _link_agreement_vector)
 
 def _link_agreement_twin():
     import link_extraction
-    vec = json.loads((ROOT / "vectors" / "dc4" / "link-agreement.json").read_text())
+    vec = json.loads((ROOT / "vectors" / "wist4" / "link-agreement.json").read_text())
     case = next(c for c in vec["cases"] if c["observed_urls"])
     got = link_extraction.link_agreement(
         case["declared_urls"], case["declared_total"],
         case["observed_urls"][:-1], case["observed_total"] - 1)
     assert got != case["link_agreement"], "dropping an observed link moved nothing"
 
-check("negative:dc4-link-agreement", _link_agreement_twin)
+check("negative:wist4-link-agreement", _link_agreement_twin)
 
 def _verdict_pair_ok(record, effective_similarity=None):
-    """DC-4 §5: raise AssertionError when `record`'s (effective similarity,
+    """WIST-4 §5: raise AssertionError when `record`'s (effective similarity,
     link_agreement, verdict) triple does not satisfy §5's condition for
-    its own verdict — the real predicate behind DC-4 §3's malformed-
+    its own verdict — the real predicate behind WIST-4 §3's malformed-
     evidence rejection, not a copy of it, so both the positive check below
     and its twin exercise one function rather than one each agreeing with
     itself. Thresholds are read from the Parameter Registry's own
@@ -3138,7 +3138,7 @@ def _verdict_pair_ok(record, effective_similarity=None):
     Only the three verdicts whose condition involves the link dimension
     are covered — `dynamic_variance`, `inconsistent`, `unreachable` and
     `not_auditable` are outside this pair-condition's scope and are left
-    unchecked here (DC-4 §5's full verdict totality is `spec:dc4-verdict-
+    unchecked here (WIST-4 §5's full verdict totality is `spec:wist4-verdict-
     totality`'s job, not this one's).
     """
     if effective_similarity is None:
@@ -3166,9 +3166,9 @@ def _verdict_pair_ok(record, effective_similarity=None):
             "link_inconsistent verdict at or above the link variance floor"
 
 def _verdict_pair_condition():
-    """DC-4 §3/§5: the example Record's (similarity, link_agreement) pair
+    """WIST-4 §3/§5: the example Record's (similarity, link_agreement) pair
     satisfies §5's condition for its own verdict. The example Record's
-    audited Delta is change type `new` (`vectors/dc1/id.txt`'s Delta, DC-1
+    audited Delta is change type `new` (`vectors/wist1/id.txt`'s Delta, WIST-1
     §3.3), so `similarity` needs no §5 mirror and `_verdict_pair_ok` is
     called with none — a `delete` Record would have to pass one (below)."""
     rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
@@ -3179,7 +3179,7 @@ check("spec:audit-verdict-pair", _verdict_pair_condition)
 
 def _verdict_pair_twin():
     """A link_agreement below the floor must not still read as `consistent`
-    (DC-4 §5). The mutation runs through `_verdict_pair_ok` itself — the
+    (WIST-4 §5). The mutation runs through `_verdict_pair_ok` itself — the
     same function the positive check calls — rather than re-deriving the
     boolean inline, and the failure is message-matched to the specific
     link-band assertion, so a defect in the wrong branch of the checker
@@ -3199,7 +3199,7 @@ def _verdict_pair_twin():
 check("negative:audit-verdict-pair", _verdict_pair_twin)
 
 def _verdict_pair_delete_mirror():
-    """DC-4 §5: a `delete` audit's `similarity` is mirrored before any
+    """WIST-4 §5: a `delete` audit's `similarity` is mirrored before any
     verdict condition ever reads it (`1_000_000 − similarity`), so a
     conforming `delete` Record scoring `similarity` 0 — full agreement
     that the committed content is gone — is `consistent` at effective
