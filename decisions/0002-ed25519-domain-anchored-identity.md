@@ -10,10 +10,10 @@ verify, and aligned with where reputation naturally lives.
 ## Decision
 
 Publisher identity is an Ed25519 Key Set published at
-`/.well-known/deltacommons/publisher.json`, anchored to the domain over
+`/.well-known/wist/publisher.json`, anchored to the domain over
 HTTPS and nowhere else. No DIDs, no blockchain.
 
-The `_deltacommons.<domain>` DNS TXT fallback this decision originally
+The `_wist.<domain>` DNS TXT fallback this decision originally
 carried is not part of it. Plain DNS is unauthenticated and DNSSEC is
 neither universally deployed nor universally validated, so the fallback
 handed an attacker who could force the HTTPS endpoint to fail — a strictly
@@ -21,14 +21,14 @@ easier act than breaking HTTPS — a way to publish a signing key for a
 domain it does not control, defeating the anchor this decision exists to
 establish. Conditioning it on DNSSEC was rejected for the same reason: a
 fallback that is only sometimes authenticated is one whose security depends
-on a property no verifier can check at the moment it matters. DC-1 §8
+on a property no verifier can check at the moment it matters. WIST-1 §8
 records the closed door.
 
 ## Consequences
 
 - The domain is already the unit of web reputation and costs money to
   hold — Sybil resistance comes for free at the identity layer, and
-  disposable-domain attacks are handled economically by DC-4's Provisional
+  disposable-domain attacks are handled economically by WIST-4's Provisional
   cap and sanction ladder.
 - Verification requires nothing but HTTPS and an Ed25519 library.
 - Key rotation/revocation is self-service (new Key Set signed by the old

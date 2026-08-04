@@ -13,7 +13,7 @@ equivalence criterion can exist; and the only possible inexact one — a
 tolerance — is an attack budget, since any manipulation inside the
 tolerance is invisible by construction. A suite that declares an
 implementation non-conforming for computing reputation in floating
-point *even when the results agree* (DC-4 §6) cannot carry a
+point *even when the results agree* (WIST-4 §6) cannot carry a
 tolerance-verified artifact inside the same trust boundary without
 breaking its own category. The model choice was also ungoverned: one
 operator's model defined "similar" for every Tier-0 consumer, against
@@ -27,7 +27,7 @@ laptop-class consumer Tier 0 serves.
 ## Decision
 
 The protocol carries no embeddings. Any party — the Aggregator
-included — MAY publish a signed **companion pack** (DC-3 §7): vectors
+included — MAY publish a signed **companion pack** (WIST-3 §7): vectors
 computed over a named Snapshot, binding the Snapshot's `content_digest`
 and `log_position`, self-describing its model (name, version, weights
 hash, dim, quantization, metric, source field), and covering only
@@ -38,7 +38,7 @@ The signature binds **provenance**; the digest binds **scope**; vector
 honesty is neither — it is chosen trust in the pack publisher,
 deliberately outside the protocol's verification claims. The
 specification defines no equivalence criterion for vectors on purpose:
-the tolerance question does not leave DC-3, it leaves the protocol.
+the tolerance question does not leave WIST-3, it leaves the protocol.
 
 ## Consequences
 
@@ -56,5 +56,5 @@ the tolerance question does not leave DC-3, it leaves the protocol.
   are no worse than the Tier 1 extracts they derive from, but they sit
   inside the same withdrawal obligations: the Aggregator's own packs
   are bound like any Snapshot artifact, and a third-party pack holder
-  is in the position DC-1 §6 already names — a copy already served,
+  is in the position WIST-1 §6 already names — a copy already served,
   with a named holder, rather than a structural inevitability.

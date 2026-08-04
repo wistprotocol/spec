@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/publisher.schema.json",
-  "title": "DeltaCommons Publisher Declaration (DC-1)",
+  "$id": "https://wistprotocol.org/schemas/publisher.schema.json",
+  "title": "WIST Publisher Declaration (WIST-1)",
   "type": "object",
   "required": ["publisher", "sig"],
   "additionalProperties": false,
   "properties": {
     "publisher": {
       "type": "object",
-      "required": ["dc_version", "domain", "keys", "seq"],
+      "required": ["wist_version", "domain", "keys", "seq"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "domain": {"type": "string", "format": "hostname"},
         "seq": {"type": "integer", "minimum": 0},
         "prev_declaration": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},

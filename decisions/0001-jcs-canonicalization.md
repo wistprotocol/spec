@@ -18,12 +18,12 @@ bytes of the inner object.
 - Serialization ambiguity (whitespace, key order, number forms) is
   eliminated, and with it the classic canonicalization attacks.
 - Objects that cannot be canonically represented are rejected, never
-  repaired (DC1-E05).
+  repaired (WIST1-E05).
 - Everything stays human-readable JSON: `curl | jq` remains a first-class
   debugging tool, which matters for a protocol courting web-developer
   adoption.
 - Implementations need a JCS library (widely available) or a careful
-  hand-rolled serializer plus the test vectors in DC-1 Appendix A.
+  hand-rolled serializer plus the test vectors in WIST-1 Appendix A.
 
 ## Alternatives considered
 

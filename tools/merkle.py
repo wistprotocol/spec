@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Shared Merkle tree primitives for DeltaCommons DC-3 (RFC 6962 discipline).
+"""Shared Merkle tree primitives for WIST WIST-3 (RFC 6962 discipline).
 
-Hashing (DC-3 §4):
+Hashing (WIST-3 §4):
     leaf = SHA-256(0x00 || data)
     node = SHA-256(0x01 || left || right)
 
@@ -10,7 +10,7 @@ Hashing (DC-3 §4):
 via the recursive definition — the two are equivalent (the recursive split
 point k = largest power of two < n always lands on an even boundary of the
 iterative construction, by induction on n), and the iterative form is what
-DC-3 §4 documents.
+WIST-3 §4 documents.
 
 `audit_path` is RFC 6962 §2.1.1's PATH(m, D[n]) function, used to *generate*
 an Inclusion Proof's `path`. It is deliberately a different algorithm from
@@ -56,7 +56,7 @@ def audit_path(index: int, leaves: list) -> list:
             PATH(m, D[n]) = PATH(m - k, D[k:n]) : MTH(D[0:k])   if m >= k
 
     Returns sibling hashes leaf-level first, root-level last — the order
-    DC-3 §4's `path` lists them in.
+    WIST-3 §4's `path` lists them in.
     """
     if not (0 <= index < len(leaves)):
         raise ValueError("index out of range")

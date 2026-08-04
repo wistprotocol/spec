@@ -1,4 +1,4 @@
-# DeltaCommons Protocol Suite
+# WIST Protocol Suite
 
 An open, verifiable, push-based web index protocol for local AI agents.
 
@@ -25,10 +25,10 @@ Auditor ◄── samples deltas from sealed blocks ──┘             │
 
 | Doc | Title | Status |
 |-----|-------|--------|
-| [DC-1](specs/DC-1-delta-format.md) | Delta Format & Identity — the signed delta object, JCS canonicalization, domain-anchored Ed25519 keys | v1.0.0-draft |
-| [DC-2](specs/DC-2-site-publication.md) | Site Publication — `.well-known` layout, feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
-| [DC-3](specs/DC-3-commons-log-distribution.md) | Commons Log & Distribution — blocks, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
-| [DC-4](specs/DC-4-audit-reputation-governance.md) | Audit, Reputation & Governance — sampling, verdicts, the reputation function, sanctions, constitutional invariants | v1.0.0-draft |
+| [WIST-1](specs/WIST-1-delta-format.md) | Delta Format & Identity — the signed delta object, JCS canonicalization, domain-anchored Ed25519 keys | v1.0.0-draft |
+| [WIST-2](specs/WIST-2-site-publication.md) | Site Publication — `.well-known` layout, feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
+| [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — blocks, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
+| [WIST-4](specs/WIST-4-audit-reputation-governance.md) | Audit, Reputation & Governance — sampling, verdicts, the reputation function, sanctions, constitutional invariants | v1.0.0-draft |
 
 ## Repository layout
 
@@ -36,8 +36,8 @@ Auditor ◄── samples deltas from sealed blocks ──┘             │
 specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
-vectors/     deterministic test vectors (DC-1 signature, DC-2 link
-             extraction, DC-3 Merkle and snapshot records, DC-4 sampling,
+vectors/     deterministic test vectors (WIST-1 signature, WIST-2 link
+             extraction, WIST-3 Merkle and snapshot records, WIST-4 sampling,
              reputation, decay table, audit commitments, link agreement)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
@@ -53,9 +53,9 @@ tools/.venv/bin/python tools/gen_vectors.py         # regenerates (byte-identica
 ```
 
 The harness validates every example against its schema, recomputes the
-DC-1 delta ID and Ed25519 signature, recomputes the payload commitment
+WIST-1 delta ID and Ed25519 signature, recomputes the payload commitment
 that binds a delta to content the log does not carry, and recomputes the
-DC-3 Merkle root and inclusion proof. Vector generation is fully
+WIST-3 Merkle root and inclusion proof. Vector generation is fully
 deterministic: fixed test seed, fixed timestamps, no wall-clock.
 
 ## Design decisions

@@ -1,6 +1,6 @@
 {
   "publisher": {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "seq": 0,
     "domain": "example.com",
     "subdomain_scope": [
@@ -28,6 +28,6 @@
   "sig": {
     "key_id": "test-k1",
     "alg": "Ed25519",
-    "value": "lL4Qo7IwZ4ZO0RTPLzJT9OJS-M9S8kV7DKsUMKWlJgiThnVxL8lp-LU9-lL9HazQ8VyMu5D8i87bRAlluKyTBA"
+    "value": "E6ndkjbRH3DXRe6yuNKHht0OIbFiFI-_p-k1X7Rp6Tmi-VeUZ8ODxBunJUAZB3LatmIAo_ps50vK-yQyBVCECw"
   }
 }

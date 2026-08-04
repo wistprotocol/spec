@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/log-anchor.schema.json",
-  "title": "DeltaCommons Log Anchor (DC-3)",
+  "$id": "https://wistprotocol.org/schemas/log-anchor.schema.json",
+  "title": "WIST Logbook Anchor (WIST-3)",
   "type": "object",
   "required": ["anchor", "sig"],
   "additionalProperties": false,
   "properties": {
     "anchor": {
       "type": "object",
-      "required": ["dc_version", "log_id", "genesis_key", "created_at"],
+      "required": ["wist_version", "log_id", "genesis_key", "created_at"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "log_id": {"type": "string", "format": "hostname"},
         "genesis_key": {
           "type": "object",
@@ -28,7 +28,7 @@
           "type": "object",
           "required": ["log_id", "final_block_number", "final_block_hash"],
           "additionalProperties": false,
-          "description": "Present only on a successor Anchor (DC-3 §3.4): the Log this one continues, ended at exactly the named Block. Succession carries state — materialized records, reputation inputs, sanction states — forward from that Block; a successor that omits this field starts a Log, not a continuation, and launders no standing because it inherits none.",
+          "description": "Present only on a successor Anchor (WIST-3 §3.4): the Log this one continues, ended at exactly the named Block. Succession carries state — materialized records, reputation inputs, sanction states — forward from that Block; a successor that omits this field starts a Log, not a continuation, and launders no standing because it inherits none.",
           "properties": {
             "log_id": {"type": "string", "format": "hostname"},
             "final_block_number": {"type": "integer", "minimum": 0},
