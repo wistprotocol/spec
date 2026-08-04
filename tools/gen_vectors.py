@@ -461,11 +461,26 @@ write_json(WIST3 / "snapshot-records.json", {
 # two records (chain tips = their only Deltas), their two domains'
 # reputation inputs, and the genesis Aggregator key. No `parameter` tuples:
 # nothing is amended at height 0, and Registry defaults are not restated.
+def counted_url_digest(domain: str, url: str) -> str:
+    """WIST-3 §7: first 16 octets of SHA-256(JCS(domain) ‖ JCS(url)), hex.
+
+    Membership is all `C` needs, so the set carries digests rather than the
+    URLs themselves — the difference between a state artifact that stays
+    under 16 KiB per domain and one that outgrows the tier it ships beside.
+    """
+    return sha256_hex(rfc8785.dumps(domain) + rfc8785.dumps(url))[:32]
+
+
 state_entries = [
     ["aggregator_key", "test-agg-k1", b64u(pub_raw), 0, None],
     ["record", "example.com", DELTA_URL, delta_id],
     ["record", "reduced.example.org", REDUCED_URL, reduced_delta_id],
-    ["reputation_inputs", "example.com", "2026-08-02T13:00:00Z", None, 0, [], []],
+    # C = 1 for example.com: the audit-record example seals a `consistent`
+    # verdict for the vector Delta's URL, so the counted-URL digest set has
+    # exactly one member and exercises the encoding rather than asserting an
+    # empty list. reduced.example.org has no audit and stays at zero.
+    ["reputation_inputs", "example.com", "2026-08-02T13:00:00Z", None, 1,
+     [counted_url_digest("example.com", DELTA_URL)], []],
     ["reputation_inputs", "reduced.example.org", "2026-08-02T13:00:00Z", None, 0, [], []],
 ]
 

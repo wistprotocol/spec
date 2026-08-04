@@ -263,11 +263,27 @@ or colluding operator (WIST-4 §8, §10), and a remedy that reset every
 domain to Provisional and erased every sanction would punish every
 honest Publisher and amnesty every delisted one — a successor without
 `predecessor` does exactly that, lawfully, as a new Log that inherits
-nothing. Competing successors are resolved the way the Anchor itself
-is: by which one the ecosystem verifiably pins, a choice this
-specification makes falsifiable (each candidate names its final Block,
-and §5's evidence rules say whether that Block was honestly reached)
-but deliberately does not make. A major-version migration uses the same
+nothing. **The named final Block must be the last one.** A `predecessor` MUST
+name the highest Block of the ended Log for which any validly signed
+Checkpoint exists, and a Consumer MUST reject a successor Anchor whose
+`final_block_number` is lower than the highest Checkpoint it holds or
+can obtain for that `log_id` — reject the Anchor, not merely the
+carry. Without this rule succession is a laundering machine dressed as
+continuity: a delisted operator, or anyone else, publishes a successor
+naming a final Block from before its own sanction, and every Consumer
+that pins it carries state from a height at which the sanction had not
+happened. Truncation is exactly as attributable as equivocation and is
+caught by the same retained artifact — Mirrors keep every Checkpoint
+they ever served (§5), so a Checkpoint above the named final Block is
+a complete, signed refutation of the successor's central claim, and
+`mirror_retention_days` is what keeps one obtainable.
+
+Competing successors that survive that test are resolved the way the
+Anchor itself is: by which one the ecosystem verifiably pins, a choice
+this specification makes falsifiable — each candidate names its final
+Block, the rule above says whether that Block was the end, and §5's
+evidence rules say whether the chain reaching it was honest — but
+deliberately does not make. A major-version migration uses the same
 field: a v2 Log naming a v1 predecessor is a continuation, and WIST-1
 §1's "reject unknown major versions" governs objects, not history.
 
@@ -1010,7 +1026,7 @@ value fields are:
 | `recovery_window` | domain | recovery Declaration height, window end | WIST-1 §5.2 |
 | `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
 | `coverage_failure` | `auditor_id`, block number | — | WIST-4 §4 |
-| `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted URL set, penalties as (confirming `sealed_at`, severity) pairs | WIST-4 §6 |
+| `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted-URL digest set (below), penalties as (confirming `sealed_at`, severity) pairs | WIST-4 §6 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
 A `parameter` tuple exists only for a parameter amended since genesis:
@@ -1029,6 +1045,38 @@ testimony. Field-level encodings ride with the schema; the table is the
 normative inventory, and a state file omitting a kind with live
 instances at `log_position`, or carrying one this table does not name,
 does not verify.
+
+**The counted-URL digest set, and why the artifact stays small.** `C`
+counts distinct URLs (WIST-4 §6), so continuing the count requires
+membership, not just a total — and a naive artifact would carry up to
+`c_cap` Normalized URLs per domain, which at a million domains is tens
+of gigabytes: a mandatory artifact larger than the laptop-sized Tier 0
+this section exists to keep laptop-sized. A `reputation_inputs` tuple
+therefore carries, in place of the URLs, the ascending-octet-ordered
+list of their **counted-URL digests**: for each counted URL, the first
+16 octets of `SHA-256(JCS(publisher domain) ‖ JCS(Normalized URL))`,
+lowercase hex. Membership is all the count needs, the domain is inside
+the preimage so digests never collide usefully across domains, and the
+inputs are Log-derived like every other field, so the tuple stays
+recomputable and the digest stays withdrawal-proof. The bound is then
+`c_cap` × 32 hex octets per domain — under 16 KiB at the default 500,
+two orders below the URLs themselves — and a Consumer continuing the
+count digests each newly-audited URL the same way. Truncation to 16
+octets is deliberate and sufficient: the set is a private
+bookkeeping aid whose only adversarial use would be inflating one's own
+`C`, which requires forging a `consistent` Audit Record from an
+independent Auditor and not a digest collision.
+
+Sharding applies to this artifact as to the tiers: when the manifest
+declares `shards`, the state file MAY be split on the same
+Publisher-domain rule, one part per shard for the domain-keyed kinds
+(`declaration`, `sanction_state`, `recovery_window`, `exclusion`,
+`reputation_inputs`, `record`), with the Log-wide kinds
+(`aggregator_key`, `auditor`, `parameter`, `coverage_failure`) carried
+in every part, since no Consumer can validate an Entry without them.
+`state_digest` remains the digest over the whole tuple set: a partial
+Consumer verifies its parts against the per-shard digests and, as
+above, treats its coverage as partial.
 
 **Cold start:**
 
@@ -1291,35 +1339,35 @@ Generated by `tools/gen_vectors.py`; verified by
 Block 0 contains 4 `publisher_delta` Entries: the WIST-1 vector Delta and
 three `attest` Deltas for `post-2..4`. Their positions follow §3.3's
 canonical order — one type group, ascending leaf-hash order — which puts
-the WIST-1 vector Delta at entry 2 and the `attest` Deltas at entries 0, 1
+the WIST-1 vector Delta at entry 0 and the `attest` Deltas at entries 1, 2
 and 3; no Entry's position is chosen.
 
 **Leaf hashes (hex):**
 
 ```
-leaf0 = 0d37321ff7a70ea8eb2c8bca3e630b192d6dbf3c2e1abb0e47d6d625cd2ce559
-leaf1 = 30348d540c9c7a4f3ec402991e7aba646525e4679f7b45d67d3e09d152ce2afc
-leaf2 = 796aa675d11077c351723dacf7b5c6e1bd2b8f8d390af9431b87a981b78b809b
-leaf3 = 8e0263dd0752e1bf3799ef971b4b915fccaa5874b7305d9077a8581fb525e07b
+leaf0 = 003466c49d154d4a1a727db31832343d95a12895c745e42694f20219d91e8e3b
+leaf1 = 21a0706098e48aef88915327ccf69ef4b531494974cc426035ec14a39afdf6ca
+leaf2 = bd9f265d4ef744b3660f2ce2a7cdf4776f36489ca12a3dfc6d0aac1fd0c27191
+leaf3 = f3080af7283905717b0b7a0c01f2575f25e47dc5e59f60bb0e238ab1f5885fce
 ```
 
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = e9f48754d9db8a51aba980e600662df61b85f1a875c7c15d941c75343ede9e17
-n23 = node(leaf2, leaf3) = 17a657179cd77b7d2b07c6fc189cc19fa94be2cfb114eaca86d0c802d563e12a
+n01 = node(leaf0, leaf1) = a1c0239ab92c6b8b73004c3bc733eb0525010d98671df022cf9026ff62158986
+n23 = node(leaf2, leaf3) = c16e1115f918661cf1627f7792052f273c4b4b5e34c008082b6b20d5df81af53
 ```
 
 **Merkle root:**
 
 ```
-sha256:11f3ca096f59f1680f0cb11312e66abe2c87e150069606ec7a78074b3e03a82b
+sha256:263c5109e9a0684970ab4af502fadca90685e8b59f2f8aa1a21c22c5fe228876
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c
+sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
