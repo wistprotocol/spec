@@ -7,13 +7,13 @@
         "snapshot_date": "2026-08-02",
         "log_position": 0,
         "manifest_url": "/snapshots/2026-08-02/manifest.json",
-        "content_digest": "sha256:fab8db7b95661cc69afcea638397213824cb3983e1a3b72c4058dd217f105da6"
+        "content_digest": "sha256:2571c0b9cdcb6aa5bb4c94581fb186c55f07fdcc94c737017e162781052af488"
       }
     ]
   },
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "ss2M0W9EH_kypxc6XodJcDJREIL_nYBg3XwnKp1DiazwVBDx-7qBxxBGsq8fBDMgdAmACej71utgVcyEBPHZCg"
+    "value": "TCzNvZtQK2az6K_NKooo9SjOsWhlis26JUWhvqVUvs7N4jdAIb3ft6Z1ffUdcWNt3YvbREGGkJ6dGrF4W6c-CA"
   }
 }

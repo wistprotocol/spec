@@ -14,21 +14,23 @@
         "record",
         "example.com",
         "https://example.com/blog/post-1",
-        "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c"
+        "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4"
       ],
       [
         "record",
         "reduced.example.org",
         "https://reduced.example.org/notice",
-        "sha256:a73a3888387d3e457dc619a98f09a5bf0f49ff50f4b61ea67a076fe2b0fc3d7d"
+        "sha256:8c6bba6e9b10e50e49add730368bcdc5d455a2f7311f372cb01b53137567e346"
       ],
       [
         "reputation_inputs",
         "example.com",
         "2026-08-02T13:00:00Z",
         null,
-        0,
-        [],
+        1,
+        [
+          "03a65369b394311a4301c9ded8565a4e"
+        ],
         []
       ],
       [
@@ -45,6 +47,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "q2T3lW5ZE0S3Z9raorogxRNoGyo1Wl5GNoyjDwxS41hjVdXjpNGq4sa9h-PKHx3g_CwG9xgMi8M-UiwcgG5wAw"
+    "value": "Rr-vAjzHTvGD_An9BkSCbwiokAoNW8Lq3yl5dZvRVSXo2f36qi-C7huMGUpyua3wLdzg9BWUeVt1RchIInBxDg"
   }
 }

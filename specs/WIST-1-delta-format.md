@@ -753,7 +753,7 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 ```json
 {
   "wist_version": "1.0.0",
-  "salt": "0WkbJ9SZJXkdpm2fqA5YPQ",
+  "salt": "caQADX8cVHuEd7RZhUUZNA",
   "content": {
     "extract": "WIST is an open, verifiable, push-based web index protocol.",
     "links": {
@@ -767,7 +767,7 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 ```
 
 `JCS(content)` is 266 octets and the salt is the 16 octets
-`d1691b27d49925791da66d9fa80e583d`. A conforming Publisher draws that salt
+`71a4000d7f1c547b8477b45985451934`. A conforming Publisher draws that salt
 from a CSPRNG; this vector derives it — `SHA-256("wist-test-salt|"
 ‖ url)[0..16]` — because the generator has no random source and must stay
 byte-reproducible.
@@ -777,11 +777,11 @@ byte-reproducible.
 ```json
 {
   "wist_version": "1.0.0",
-  "url": "https://example.com/blog/post-1",
+  "url": "https://example.com/blog/post-3",
   "change_type": "new",
   "observed_at": "2026-08-02T12:00:00Z",
   "payload": {
-    "commitment": "hmac-sha256:2959e29279c1ca4811ed218fd3344dbad2d92978660dd677315479f31f7e4dae",
+    "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
     "alg": "HMAC-SHA256",
     "bytes": 266
   },
@@ -804,13 +804,13 @@ order.
 **Delta ID:**
 
 ```
-sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c
+sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4
 ```
 
 **Signature (base64url):**
 
 ```
-MBOftQNKoJxvGpElWENVHa71AZSIHCZBOPj8xiJxkOmP1PwiE1lb4vz_xBawV0ME58xze2ATbIxhWcj2M3X0Bg
+EshjAnghqOe3hJ5oq3_cVmc04RsR02-EifxmlpB9yIOOlQBjmYoF7ul5QXSEf1GmHdNfKSRW1DvkouwAWEsECA
 ```
 
 The complete envelope is

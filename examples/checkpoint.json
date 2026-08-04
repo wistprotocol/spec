@@ -2,12 +2,12 @@
   "checkpoint": {
     "wist_version": "1.0.0",
     "block_number": 0,
-    "block_hash": "sha256:4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c",
+    "block_hash": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
     "sealed_at": "2026-08-02T13:00:00Z"
   },
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "ym1Je0BVeCTmREP4mzEWgC0eyCmWmjtaXp5WG-XSXIh0wmOjJTrzarrqaKxTN8w9LHIqBZ4XxQPPXgQIN86-CQ"
+    "value": "cetB6fmyxdvmLxT4DcqrA_DCQkCljLZZlfIgdKz7mEzoaKSfLcCneeMtUTJv5hSfwqnwDiDy-V4Fy8dqT0HgCQ"
   }
 }

@@ -3,13 +3,13 @@
     "wist_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
-    "anchor_block_hash": "sha256:4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c",
-    "content_digest": "sha256:fab8db7b95661cc69afcea638397213824cb3983e1a3b72c4058dd217f105da6",
+    "anchor_block_hash": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+    "content_digest": "sha256:2571c0b9cdcb6aa5bb4c94581fb186c55f07fdcc94c737017e162781052af488",
     "state": {
       "path": "state.json",
-      "sha256": "6fc02be004aea6f661c51c4915dc86ff7efb87eb2dc9b4989ae3f78c4f163f15",
-      "bytes": 721,
-      "state_digest": "sha256:688766b96f7bd2ecd74926bf4de5b5b03764255c8b208420eb3c79ea6501354e"
+      "sha256": "60dceeec1f03e0b4733e597f2b66b50f4ac6a33226a9a6e59204a0cc9a0c8ed4",
+      "bytes": 756,
+      "state_digest": "sha256:135bf9b5bd7635a178ab3124ae44f48db28bd73b0457ea138fd7b0d04ec5e432"
     },
     "files": [
       {
@@ -35,6 +35,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "oONiv335mewoqTTvtB0sSnFBEL-KYKsfFTlCRTxvjJsine5GmuHVjYRLFLORtasAkFEraCnch_dqoARHdak9BA"
+    "value": "6SCJJ51qfeT4DVMiQ0gDS_3gTe2cKEhFfr34phG-udMdJCSXFuS8xinJAMY2Cy-BIKijkYUJP4znhywgzu_PCw"
   }
 }
