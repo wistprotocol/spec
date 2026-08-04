@@ -1,19 +1,19 @@
-# DC-4: Audit, Reputation & Governance
+# WIST-4: Audit, Reputation & Governance
 
 **Status:** v1.0.0-draft · **Date:** 2026-08-02 · **License:** CC-BY 4.0
 
 ## 1. Introduction
 
-Everything DC-4 defines is an input to, or a pure function of, the log.
+Everything WIST-4 defines is an input to, or a pure function of, the log.
 Nothing exists outside it.
 
-DC-1 through DC-3 make the system verifiable; DC-4 makes it defensible.
+WIST-1 through WIST-3 make the system verifiable; WIST-4 makes it defensible.
 It defines how sampled Deltas are checked against reality (audit), how a
 domain's track record becomes a number anyone can recompute (reputation),
 how misbehavior is punished with due process (sanctions), and which rules
 are beyond amendment by operation (constitutional invariants). Because
 every audit record, sanction, appeal, and parameter change is a log entry
-(DC-3 §3.3), the entire governance history of the system is public,
+(WIST-3 §3.3), the entire governance history of the system is public,
 ordered, and permanent — and any party can independently recompute every
 reputation score and verify every sanction's evidence.
 
@@ -45,7 +45,7 @@ shown here.
   confirming Record sealed within `confirm_window_hours` of the first,
   measured on Block `sealed_at` (§5, §7).
 - **Registry Update**: the signed governance object this document defines,
-  sealed as a `registry_update` Entry (DC-3 §3.3). Its `action` selects one
+  sealed as a `registry_update` Entry (WIST-3 §3.3). Its `action` selects one
   of the twelve governance acts of §3, §4, §7 and §9.1; `subject` names
   what the act is about; `details` and `evidence` are constrained per
   `action` by §9.1.
@@ -58,8 +58,8 @@ shown here.
 - **Sanctioned Quarantine**: sanction level 3 (§7), a punitive state that
   suspends ingestion.
 
-Every signed object in this document carries `dc_version` (DC-1 §3.1)
-and the DC-1 §4 signature block (`key_id`, `alg`, `value`).
+Every signed object in this document carries `wist_version` (WIST-1 §3.1)
+and the WIST-1 §4 signature block (`key_id`, `alg`, `value`).
 
 ## 3. Auditors
 
@@ -72,9 +72,9 @@ Aggregator and, like everything else, live in the log — the roster of who
 may audit, and since when, is public and permanent.
 
 **An Auditor is a domain, not a bare key.** `auditor_id` is a hostname of
-at least two labels, anchored the way a Publisher's identity is (DC-1
+at least two labels, anchored the way a Publisher's identity is (WIST-1
 §5.1): the Auditor MUST serve, at
-`https://<auditor_id>/.well-known/deltacommons/publisher.json`, a
+`https://<auditor_id>/.well-known/wist/publisher.json`, a
 Declaration whose `domain` is that hostname and whose Key Set carries the
 admitted `key_id` and `public_key`, and the Aggregator MUST verify that
 document before sealing the `auditor_admit`. A bare key says nothing about
@@ -124,7 +124,7 @@ An Auditor MUST NOT audit a Delta whose Publisher domain fails the
 independence test above against its own `auditor_id` — that is, whose
 Publisher domain shares a suffix of two or more labels with it — and an
 `auditor_admit` MUST NOT name an `auditor_id` that fails the same test
-against the Log Anchor's `log_id` (DC-3 §3.4). One test governs all three
+against the Log Anchor's `log_id` (WIST-3 §3.4). One test governs all three
 relations deliberately: a rule that put only a hostname's parents and
 subdomains beyond its audits would leave `audit.example.net` free to audit
 `blog.example.net`, which is the same operator by the very measure §5's
@@ -158,14 +158,14 @@ assignments under another.
 **Windows and admission run on `sealed_at`.** `fetched_at` is
 Auditor-supplied and unverifiable by anyone else, so nothing anchored to it
 is recomputable. Every admission test and every window in this document
-reads Block `sealed_at` values instead (DC-3 §3.1), which are ordered,
+reads Block `sealed_at` values instead (WIST-3 §3.1), which are ordered,
 strictly increasing, and identical for every replaying party — the appeal
-window of §7 and the recovery window of DC-1 §5.2 included, neither of
+window of §7 and the recovery window of WIST-1 §5.2 included, neither of
 which reads the `effective_at` of the Entry that records it. Every
 timestamp this suite compares against a Block `sealed_at` is written in the
 same whole-second, literal-`Z` form that field carries, so no comparison
 rests on a normalization step two implementations could perform
-differently: `fetched_at` below, a Feed's `generated_at` (DC-2 §3.2), a
+differently: `fetched_at` below, a Feed's `generated_at` (WIST-2 §3.2), a
 Registry Update's `effective_at`, and a `notice`'s `appeal_deadline` (§9.1)
 are all constrained to it by their schemas. Validators
 recomputing reputation MUST reject:
@@ -206,7 +206,7 @@ recomputing reputation MUST reject:
   rejecting: the verdict is in the Record, and a validator already
   resolves `audited_delta` to its change type to apply §5's `delete`
   mirror. The one neutral case this rejection does not reach is a
-  non-HTML representation (DC-2 §11), which no party can settle from the
+  non-HTML representation (WIST-2 §11), which no party can settle from the
   Log alone; there the reading is evidence like the rest of the Record's
   and is weighed with it.
 
@@ -220,7 +220,7 @@ by publishing. Such a Record proves the Auditor met its duty; it does not
 enter any domain's reputation.
 
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
-`aggregator_key_remove` actions defined in DC-3 §3.4; their `details`
+`aggregator_key_remove` actions defined in WIST-3 §3.4; their `details`
 sub-schema is specified in §9.1.
 
 ## 4. Audit Sampling
@@ -241,7 +241,7 @@ its 64-octet `beta_string`. `auditor_sk` is the Auditor's 32-octet
 [RFC 8032] Ed25519 secret key — the very key whose public half was admitted
 by `auditor_admit` (§3) and is in force at *B*'s `sealed_at`, and which
 signs the Auditor's Records. *B*'s Block Hash is
-`"sha256:" + hex(SHA-256(JCS(header)))` (DC-3 §3.1), so `alpha` is those 32
+`"sha256:" + hex(SHA-256(JCS(header)))` (WIST-3 §3.1), so `alpha` is those 32
 octets and nothing else: not the `sha256:`-prefixed string, not its ASCII
 hex, not the header bytes.
 
@@ -317,7 +317,7 @@ publish, by the same deadline, a `coverage_attestation` Registry Update
 carrying that Block's VRF proof and nothing else.
 
 **Withdrawn and unavailable Payloads discharge the duty.** A selected
-Delta whose Payload has been withdrawn (DC-3 §6.2), or which the Auditor
+Delta whose Payload has been withdrawn (WIST-3 §6.2), or which the Auditor
 cannot obtain from any source, is audited with a Record whose verdict is
 `not_auditable` (§5). That Record discharges the coverage duty for that
 Delta exactly as any other verdict does, so the Block does not count
@@ -326,8 +326,8 @@ coverage failures for a withdrawal it did not cause, could not foresee,
 and cannot remedy — and the cheapest way to remove an inconvenient Auditor
 would be to withdraw Payloads it was about to audit. Inside the
 availability window an Auditor SHOULD first try another Mirror and the
-Publisher, and the absence is a `DC3-E05` fault against the Mirror that
-lacked it (DC-3 §6.1); `not_auditable` records the Auditor's inability to
+Publisher, and the absence is a `WIST3-E05` fault against the Mirror that
+lacked it (WIST-3 §6.1); `not_auditable` records the Auditor's inability to
 judge, never the Publisher's fault, and never counts toward a sanction.
 
 The duty is anchored to the Block's `sealed_at`: it exists only if the
@@ -378,7 +378,7 @@ under the duty, never a way around removal.
 
 **What removal binds, and how an Auditor rotates.** An `auditor_remove`
 retires its `key_id` permanently, exactly as an `aggregator_key_remove`
-does (DC-3 §3.4): no later `auditor_admit` may name that `key_id`, and a
+does (WIST-3 §3.4): no later `auditor_admit` may name that `key_id`, and a
 replayer MUST reject one. Whether it also bars the *`auditor_id`* is
 decided by the removal's own `evidence`. A removal carrying evidence —
 failed Blocks, void Records, systematic divergence — is for cause, and an
@@ -438,7 +438,7 @@ transport that makes sealing depend on no party's goodwill. An Auditor
 MUST serve everything it publishes for an audited Block — its Audit
 Records and any `coverage_attestation` — as a single JSON array at
 
-    https://<auditor_id>/.well-known/deltacommons/records/<block-hash-hex>.json
+    https://<auditor_id>/.well-known/wist/records/<block-hash-hex>.json
 
 (the audited Block's Block Hash in hex, without its `sha256:` prefix),
 by its §4 deadline for that Block, and MUST keep serving it until every
@@ -461,7 +461,7 @@ fetch found nothing to seal. A coverage failure for an (Auditor, Block)
 pair enters the §4 failure count **only** when the Log carries the
 Aggregator's `pull_attestation` for that pair showing the duty unmet
 and no later-sealed item contradicts it by chain. The asymmetry is
-deliberate, and it is the appeal pattern (§7, DC-2 §3.3) applied to the
+deliberate, and it is the appeal pattern (§7, WIST-2 §3.3) applied to the
 one evidence class that lacked it: without the attestation requirement,
 an Aggregator could manufacture an honest Auditor's removal by silently
 declining to pull — a coverage failure needs no `auditor_remove`, so
@@ -472,12 +472,12 @@ attestation for a duty it owes is itself derivable by replay; and a
 false attestation is a permanent signed statement that any third party
 who fetched the Auditor's path during the window can contradict.
 
-Worked numbers for this section — real values from `vectors/dc4/sampling.json`
+Worked numbers for this section — real values from `vectors/wist4/sampling.json`
 — are in the Appendix.
 
 ## 5. Verdicts and Tolerance
 
-An Audit Record is an Envelope whose inner object is `record` (DC-1 §4),
+An Audit Record is an Envelope whose inner object is `record` (WIST-1 §4),
 and its fields are: `audited_delta` (the Delta ID under audit),
 `auditor_id` (the Auditor's hostname identity), `fetched_at` (when the
 Auditor fetched the URL), `response_commitment` (over the raw response
@@ -491,7 +491,7 @@ integer in micro-units, present only where that dimension applies),
 over the Block Hash of the Block carrying the audited Delta, 80 octets as
 160 lowercase hex characters). The Record names no Block: the audited
 Block is the one Block
-whose `publisher_delta` Entries carry `audited_delta`, which DC-3 §3.2
+whose `publisher_delta` Entries carry `audited_delta`, which WIST-3 §3.2
 makes unique and permanent. `vrf_proof` is REQUIRED in every Record,
 `unreachable` and `not_auditable` included, because it is what establishes
 the Auditor's right and duty to have audited at all.
@@ -502,8 +502,8 @@ Payload, and which one is fixed by the audited Delta alone:
 - for a `new` or `update` Delta, the audited Delta's own Payload;
 - for an `attest` or a `delete` Delta, the Payload of the **last
   content-bearing Delta at or before `audited_delta`** in that URL's
-  per-URL chain (DC-1 §3.5) — the URL's anchor Payload as of the audited
-  Delta (DC-3 §6.1).
+  per-URL chain (WIST-1 §3.5) — the URL's anchor Payload as of the audited
+  Delta (WIST-3 §6.1).
 
 The qualifier "at or before `audited_delta`" is normative and is what
 makes a Record verifiable at any later height. Resolving the reference to
@@ -515,20 +515,20 @@ Log, the resolution is deterministic from Log order alone.
 
 A `delete` audit has a Reference Payload for the same reason it has
 anything to check: the claim a `delete` makes is that the content its
-chain last committed to is no longer served (DC-1 §3.3), so that Payload
+chain last committed to is no longer served (WIST-1 §3.3), so that Payload
 is what the claim is judged against, and the capture the Auditor preserves
 may contain that very content where the claim is false.
 
 When an audit has nothing to measure against, the verdict is
 `not_auditable`. That covers four cases: the Reference Payload has been
-withdrawn (DC-3 §6.2); it cannot be fetched from any source; the URL's
+withdrawn (WIST-3 §6.2); it cannot be fetched from any source; the URL's
 chain has never carried a content-bearing Delta, so no anchor exists to
 resolve; and the Reference Payload is obtained and verifies but its
 `extract` is empty under the normalization below, so the Payload exists and
 there is still no text the audit could confirm or refute.
 
-DC-1 §3.3 requires `payload` on every `new` and `update`, so a Delta
-claiming content while committing to none is rejected (`DC1-E09`) and never
+WIST-1 §3.3 requires `payload` on every `new` and `update`, so a Delta
+claiming content while committing to none is rejected (`WIST1-E09`) and never
 sealed by a conforming Aggregator, and this list needs no case for it.
 Should one reach a Log regardless, it is `not_auditable` for the reason the
 requirement exists: a Delta asserting that content appeared or changed
@@ -545,7 +545,7 @@ construction the Delta uses, under the same key:
 
 where `<octets>` is the raw response body, the UTF-8 bytes of the
 Auditor's reference extraction, or the bytes of the WARC capture, and
-`salt` is **the salt of the audit's Reference Payload** (DC-1 §3.6). The
+`salt` is **the salt of the audit's Reference Payload** (WIST-1 §3.6). The
 Auditor holds that salt because it MUST verify that Payload before
 comparing anything, so no second salt, and no second lifecycle, is
 introduced.
@@ -575,7 +575,7 @@ type.
 A bare digest here would undo the rest of this design. Moving extracts out
 of the Log accomplishes nothing if the Log keeps unsalted hashes of the
 same text: a party holding a copy could recompute one and confirm the text
-was there, which is exactly the confirmability DC-1 §3.6's salt exists to
+was there, which is exactly the confirmability WIST-1 §3.6's salt exists to
 destroy. Binding one salt to all four commitments — the Publisher's and
 the Auditor's three — makes them expire together rather than leaving the
 weakest one governing.
@@ -588,7 +588,7 @@ capture behind an `inconsistent` or `link_inconsistent` Record for
 as a `notice` naming the Record in its `evidence` has an appeal window,
 sealing deadline or ruling deadline still open (§7). While such a notice
 is pending, the Auditor MUST serve the capture at
-`https://<auditor_id>/.well-known/deltacommons/evidence/<record-id-hex>.warc`
+`https://<auditor_id>/.well-known/wist/evidence/<record-id-hex>.warc`
 (the Record ID's hex, without its `sha256:` prefix), so an appellant can
 recompute `evidence_commitment` without the Auditor's cooperation being a
 favor. For every other verdict the capture MAY be discarded once the
@@ -606,7 +606,7 @@ held, checkable while the Auditor still holds it, and nothing further.
 **Verifying a commitment, and when it stops being possible.** A party
 checking an Audit Record obtains the salt the way the Auditor did: it
 fetches the audit's Reference Payload, verifies that Payload against its
-own Delta's commitment (DC-1 §3.6), and takes the salt from it. It then
+own Delta's commitment (WIST-1 §3.6), and takes the salt from it. It then
 recomputes the Record's commitments over the artifacts it holds — the
 Auditor's preserved WARC capture above all. While that Payload is served,
 every value in the Record is checkable by anyone.
@@ -633,7 +633,7 @@ is unbounded above, and one reachable case is enough to show the
 consequence: on level 4's 180-day branch the oldest confirming Record can
 already be 180 days old at the `notice`, and 180 + 14 + 7 + 30 — the appeal
 window, the sealing deadline and the ruling deadline of §7 — puts the
-ruling at day 231, past the 180-day availability window (DC-3 §6.1).
+ruling at day 231, past the 180-day availability window (WIST-3 §6.1).
 Nothing in the suite guarantees a Reference Payload is still served at that point. It
 is guaranteed for confirmation, which is fixed within 72 hours of the
 `sealed_at` of the Block sealing the first `inconsistent` Record, and for
@@ -656,9 +656,9 @@ appellant contesting an unverifiable Record is contesting whether the
 Auditor judged honestly, which is what `auditor_remove` and the §4 VRF
 evidence address, not whether the arithmetic was applied correctly.
 
-Once a Reference Payload is withdrawn (DC-3 §6.2), the salt is destroyed at
+Once a Reference Payload is withdrawn (WIST-3 §6.2), the salt is destroyed at
 every serving path that rule binds — the Aggregator's, every Mirror's, and
-the Publisher's own well-known copy (DC-2 §3.1) — and that Record's
+the Publisher's own well-known copy (WIST-2 §3.1) — and that Record's
 commitments can no longer be checked by anyone, the
 Auditor included. That is the intended outcome, not a defect: it is the
 same instant at which the Delta's own commitment stops being checkable. A
@@ -667,15 +667,15 @@ Record as invalid on that ground; it reads the Record's verdict as the Log
 records it.
 
 **What an audit fetches.** The Delta commits to content it does not carry
-(DC-1 §3.6), so an Auditor holding a Block fetches two further things: the
+(WIST-1 §3.6), so an Auditor holding a Block fetches two further things: the
 audit's **Reference Payload**, defined below, from
 `/payloads/<reference-delta-id-hex>.json` at the Aggregator, a Mirror, or
-the Publisher (DC-3 §6.1, DC-2 §3.1) — where `<reference-delta-id-hex>`
+the Publisher (WIST-3 §6.1, WIST-2 §3.1) — where `<reference-delta-id-hex>`
 names the Delta whose Payload that is, which for an `attest` or a `delete`
 is an earlier Delta in the chain and not `audited_delta` — and the URL
 itself. It MUST verify that Payload against **its own** Delta's
 `commitment` and `bytes` before comparing anything, and MUST reject a
-Payload that fails (`DC1-E10`) rather than audit against it. The
+Payload that fails (`WIST1-E10`) rather than audit against it. The
 commitment was fixed when the Publisher signed that Delta, so a Payload
 that verifies is what the Publisher declared no matter who served it —
 which is what lets the comparison below remain an audit of the Publisher
@@ -683,7 +683,7 @@ rather than of a Mirror.
 
 Every Audit Record has an **Audit Record ID**: `"sha256:" + hex(SHA-256(JCS(record)))`
 — the record's inner object canonicalized and hashed under the same
-content-addressing construction DC-1 §4 uses for a Delta ID. A `sanction`'s
+content-addressing construction WIST-1 §4 uses for a Delta ID. A `sanction`'s
 `evidence` (§7) is a list of Audit Record IDs, so anyone can fetch exactly
 the Records a sanction claims to rest on and recompute what they establish,
 rather than trust the claim.
@@ -693,7 +693,7 @@ The web is not deterministic; byte equality is never the criterion.
 `similarity` is an integer in **micro-units** (0 … 1 000 000, the same
 resolution as `reputation_u`, §6), never a floating-point ratio. It
 compares two texts: the `extract` of the audit's verified Reference Payload
-— the **reference text** — and the DC-2 §12 whole-document extraction of
+— the **reference text** — and the WIST-2 §12 whole-document extraction of
 the Auditor's own fetch, the **observed text**. Both sides are pinned:
 the reference by the Payload's commitment, the observed by §12's
 procedure over the raw response octets — no step between the fetched
@@ -739,7 +739,7 @@ floating-point ratio is ever computed or compared, and no two conforming
 Auditors can disagree about a boundary case from rounding alone.
 
 **The quotient is containment, not resemblance, and the denominator is
-the reference alone.** The observed text is the whole document (DC-2
+the reference alone.** The observed text is the whole document (WIST-2
 §12), so *B* carries every navigation link, footer and template string
 the page serves; a symmetric ratio over `|A ∪ B|` would dilute an honest
 Publisher's score with its own page furniture, and a heavy template
@@ -793,13 +793,13 @@ see. The `delete` mirror below is unaffected: a `404` or `410` to a
 `delete` audit is a ruled-on response, not a measured extraction.
 
 **The similarity dimension is defined over HTML.** The observed text is
-produced by DC-2 §12's extraction from a fetched HTML representation,
+produced by WIST-2 §12's extraction from a fetched HTML representation,
 and no such procedure is pinned for any other media type — a PDF, an
 image, or a media stream has no extraction two Auditors are bound to
 compute identically, and a metric that inherits a parser disagreement is
 not recomputable (the reason the link dimension already skips non-HTML,
-DC-2 §11). An audit whose fetched representation is not HTML in the
-sense of DC-2 §11 is `not_auditable` for the similarity dimension,
+WIST-2 §11). An audit whose fetched representation is not HTML in the
+sense of WIST-2 §11 is `not_auditable` for the similarity dimension,
 whatever its bytes: an honest Publisher of un-parseable-by-Auditor
 content MUST NOT be sanctionable for the tooling gap. The same horizon
 consequence governs. This is an auditability boundary, recorded as such:
@@ -825,8 +825,8 @@ applies the mirror; nothing else in the pipeline changes shape.
 | `consistent` | effective similarity ≥ 600 000 and, where the link dimension applies, `link_agreement` ≥ 600 000 |
 | `dynamic_variance` | 300 000 ≤ effective similarity < 600 000 |
 | `inconsistent` | effective similarity < 300 000 |
-| `unreachable` | no representation of the URL was obtained: transport or DNS failure, an error status other than the `404`/`410` a `delete` audit expects (below), or a `robots.txt` prohibition (DC-2 §5) |
-| `not_auditable` | there is no text to measure against: the Reference Payload is withdrawn (DC-3 §6.2), never existed, cannot be obtained from any source, or carries an empty `extract` |
+| `unreachable` | no representation of the URL was obtained: transport or DNS failure, an error status other than the `404`/`410` a `delete` audit expects (below), or a `robots.txt` prohibition (WIST-2 §5) |
+| `not_auditable` | there is no text to measure against: the Reference Payload is withdrawn (WIST-3 §6.2), never existed, cannot be obtained from any source, or carries an empty `extract` |
 | `link_variance` | effective similarity ≥ 600 000 and 300 000 ≤ `link_agreement` < 600 000 (neutral: it never contributes to sanctions) |
 | `link_inconsistent` | effective similarity ≥ 600 000 and `link_agreement` < 300 000 |
 
@@ -873,7 +873,7 @@ second over `link_agreement` where and only where the first admits it:
 exactly one verdict fits every audit, seven rows included.
 
 **The link dimension.** Where the audited change type is `new`, `update`
-or `attest` and the fetched representation is HTML in the sense DC-2 §11
+or `attest` and the fetched representation is HTML in the sense WIST-2 §11
 fixes — by the `Content-Type` media type alone, never by sniffing the
 body — the Auditor also applies that section's extraction procedure to
 its own fetched octets and compares the result against the Reference
@@ -894,7 +894,7 @@ states for `similarity`. The dimension is **neutral** — `link_agreement`
 is not computed and no link verdict can arise — for a `delete` audit
 (the expected `404`/`410` has no links to observe), for a non-HTML
 representation (whose conforming declaration is `{"total": 0, "urls":
-[]}` and whose extraction DC-2 does not define), and wherever the
+[]}` and whose extraction WIST-2 does not define), and wherever the
 verdict is `unreachable` or `not_auditable`.
 
 A Record that produced a measured verdict for a non-`delete` audit of an
@@ -930,17 +930,17 @@ on a Payload that may have been sealed long before
 the Block under audit — often long before the availability window that
 covers ordinary Payloads. Two independent parties are obliged to serve it:
 the Publisher, for as long as it attests to the URL, re-anchoring the
-chain with an `update` or a `delete` when it cannot (DC-2 §3.1); and the
+chain with an `update` or a `delete` when it cannot (WIST-2 §3.1); and the
 Aggregator, with no expiry until the first superseding content-bearing
 Delta or `delete` for that URL is sealed, and then for one further
-availability window (DC-3 §6.1). Either
+availability window (WIST-3 §6.1). Either
 copy satisfies the audit, because the commitment makes them
 interchangeable, so a Publisher cannot render its own freshness claims
 unauditable by withholding its copy. Where the Reference Payload is
 nonetheless unobtainable from every source, or has been withdrawn, the
 verdict is `not_auditable`.
 
-From the sealing height of a `payload_withdrawal` (DC-3 §6.2), an Auditor
+From the sealing height of a `payload_withdrawal` (WIST-3 §6.2), an Auditor
 MUST record `not_auditable` for the affected Delta even if it still holds
 or can still obtain a copy of the Payload. Auditing is the one process
 that would otherwise keep re-establishing, in a permanent public record,
@@ -952,7 +952,7 @@ neutral: they never contribute to sanctions. Like `dynamic_variance`, a
 `consistent` verdict does — so persistent link churn holds a URL outside
 the reputation numerator exactly as content churn does: neutrality means
 no sanction, not no consequence. Auditor re-fetches of content URLs
-respect `robots.txt` (DC-2 §5); a fetch forbidden by `robots.txt` is
+respect `robots.txt` (WIST-2 §5); a fetch forbidden by `robots.txt` is
 recorded `unreachable` with `robots_excluded` true. That flag is REQUIRED
 when `robots.txt` is the reason and MUST NOT appear on any other verdict,
 so the Log distinguishes a URL nobody is permitted to check from one that
@@ -966,7 +966,7 @@ Registry: `unauditable_horizon_days`) before Block N's `sealed_at`, and no
 Record for a Delta on that URL with verdict `consistent`, `inconsistent`,
 `dynamic_variance`, `link_variance` or `link_inconsistent`, signed by an
 Auditor independent of both, was sealed after the later of those two. An
-unauditable URL MUST be excluded from materialization (DC-3 §7) for as
+unauditable URL MUST be excluded from materialization (WIST-3 §7) for as
 long as that holds; it ceases to be unauditable when such a Record is
 sealed, or when the exclusions age out of the window with none replacing
 them.
@@ -980,7 +980,7 @@ away**. A rule that cleared on any success would be defeated by a
 clear every exclusion the others recorded, keeping the URL materialized
 forever while guaranteeing that no second independent Auditor can ever see
 the page — and a Confirmed Inconsistency, needing two, could then never
-form for it. DC-2 §5 closes that from the other side by making a
+form for it. WIST-2 §5 closes that from the other side by making a
 `robots.txt` that discriminates between admitted Auditors a prohibition
 for all of them; the independence requirement here is what holds if a
 Publisher discriminates by some means `robots.txt` does not express.
@@ -1067,13 +1067,13 @@ the table is read, not computed, and §4's test multiplies both sides out.
 Every day count is derived from Block `sealed_at` values, never from wall
 clock time and never from a Publisher-supplied timestamp. A Block's
 `sealed_at` carries whole-second precision and a literal trailing `Z`,
-enforced by both DC-3 §3.1 and `schemas/block.schema.json`, so
+enforced by both WIST-3 §3.1 and `schemas/block.schema.json`, so
 `seconds(sealed_at)` — the count of seconds since 1970-01-01T00:00:00Z
 with every day counted as exactly 86 400 seconds and no leap seconds — is
 an exact integer for every conforming Block, with no fractional part to
 round and no offset to reduce. "Whole days between X and Y" is then
 `(seconds(Y) − seconds(X)) / 86 400` under integer division. `sealed_at`
-is strictly increasing across Blocks (DC-3 §3.1), so every such difference
+is strictly increasing across Blocks (WIST-3 §3.1), so every such difference
 is non-negative and the rounding direction of a negative quotient never
 arises.
 
@@ -1091,7 +1091,7 @@ lower bound, and everything from height 0 counts.
 - **`base_u`** = `100 000 + ((900 000 × min(A, 730)) / 730)`, integer
   division, parenthesized as written. It rises linearly from 100 000
   (exactly the Provisional cap) at `A` = 0 to 1 000 000 at `A` ≥ 730.
-- **`C`** = the number of distinct Normalized URLs (DC-1 §3.2) of this
+- **`C`** = the number of distinct Normalized URLs (WIST-1 §3.2) of this
   domain that have at least one `consistent` Audit Record — sealed above
   the domain's most recent identity reset and at a height ≤ N — for a
   content-bearing Delta (`new` or `update`) on that URL, capped at
@@ -1122,7 +1122,7 @@ lower bound, and everything from height 0 counts.
   not move `sim` (§7), which a Confirmed Link Inconsistency's fixed
   severity has none of.
 - **`decay(t)`** is read from the normative decay table
-  ([`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json)): an
+  ([`vectors/wist4/decay-table.json`](../vectors/wist4/decay-table.json)): an
   array of 1826 integers, `decay(t) = floor(exp(−t / 180) × 1e9)` — the
   decay scale 1e9 being 1 000 000 000 — indexed by whole days 0 … 1825,
   with `decay(t) = 0` for `t` > 1825. The table,
@@ -1198,7 +1198,7 @@ step is upward.
 ### 6.3. Identity, reset, and Provisional
 
 `A`, `C`, and a domain's Confirmed Inconsistencies belong to a **key
-identity**, not to a name. A Declaration that DC-1 §5.2 classifies as a
+identity**, not to a name. A Declaration that WIST-1 §5.2 classifies as a
 **fresh identity** — signed by neither a key of the previous Key Set nor a
 key in the previous Declaration's `recovery_keys` — is an **identity
 reset** at the height its Declaration Entry is sealed. Call that height
@@ -1222,14 +1222,14 @@ reset** at the height its Declaration Entry is sealed. Call that height
 about the same party `A`, `C` and `penalty_n` are state about, and it
 follows them: every rung in force at or below `R` — intensified
 sampling, weight reduction, quarantine, delisting — lifts at `R`, and
-the fresh identity enters Provisional like any other, which under DC-2
+the fresh identity enters Provisional like any other, which under WIST-2
 §4 means no `403`: the two rules agree because a reset domain *is*
 Provisional. Both alternatives are worse, and both were live before
 this paragraph said otherwise. Were sanction state to survive a reset,
 an innocent buyer of a lapsed level-3 domain would inherit a quarantine
 it could never appeal — the appeal must verify against the notice-era
 Key Set, which is exactly what a fresh identity does not hold — and
-DC-2's "Provisional domains MUST NOT receive 403" would contradict
+WIST-2's "Provisional domains MUST NOT receive 403" would contradict
 level 3's required `403` for the same domain at the same instant. And
 the lift is not the escape §6.3 forbids: what a reset sanctioned party
 buys is Provisional's cap, the sampling ceiling §4 applies at that
@@ -1264,9 +1264,9 @@ domains cannot bootstrap and is non-conforming.
 
 Exactly three things:
 
-1. **Ping quota** (DC-2 §4): `Q = 100 + ((10 000 × reputation_u) /
+1. **Ping quota** (WIST-2 §4): `Q = 100 + ((10 000 × reputation_u) /
    1 000 000)` Pings per UTC day, integer division, parenthesized as
-   written. The new-domain quota DC-2 §5 refers to is this formula at
+   written. The new-domain quota WIST-2 §5 refers to is this formula at
    `reputation_u` = 100 000, i.e. **Q = 1100**.
 2. **Sampling rate** `p_1e7` (§4), which takes `reputation_u` directly at
    the height §4 fixes.
@@ -1283,7 +1283,7 @@ Exactly three things:
    for sale, one hop removed from the payment Invariant 2 forbids. The
    duty is not derivable from the Log alone — the Log cannot see an
    acceptance the Aggregator shelved — but it is observable by every
-   Publisher against its own status endpoint (DC-2 §7.1, which shows
+   Publisher against its own status endpoint (WIST-2 §7.1, which shows
    acceptance) and Feed, so a breach is a pattern any Publisher can
    document; and `block_cadence_seconds` carries a hard upper bound
    (§9) for the same reason, so the ceiling cannot be reconstituted by
@@ -1305,7 +1305,7 @@ Inconsistencies):
 2. **Weight reduction** — the domain's Deltas are marked reduced-weight
    in materialized snapshots.
 3. **Sanctioned Quarantine** — ingestion is suspended: the domain's Pings
-   and Feed pulls are rejected (`403`, DC-2 §4) until `sanction_lift` or
+   and Feed pulls are rejected (`403`, WIST-2 §4) until `sanction_lift` or
    a successful appeal.
 4. **Delisting** — the domain's Deltas are excluded from materialization
    (the log, as always, retains history).
@@ -1385,7 +1385,7 @@ Process requirements:
   verify for itself; this holds even for level 2's weight reduction, which
   affects standing without suspending ingestion. This applies to sanction
   notices (`details.kind` `"sanction"`); a `notice` with `details.kind`
-  `"recovery"` *records* the DC-1 §5.2 recovery window instead — that
+  `"recovery"` *records* the WIST-1 §5.2 recovery window instead — that
   window opens at the `sealed_at` of the Block sealing the recovery
   Declaration itself, so it opens whether or not the notice is ever sealed
   — and is not subject to the appeal process below.
@@ -1400,7 +1400,7 @@ Process requirements:
   Aggregator has sealed a `sanction` recording it. For levels 1 and 2 this
   is what "follow automatically" above already says, and it is not
   optional: §4's sampling rate reads a level-1 sanction as an input, and
-  §6.4 and DC-3 §7 read level 2 as one, so a rung that took effect only
+  §6.4 and WIST-3 §7 read level 2 as one, so a rung that took effect only
   when an Aggregator chose to file would make audit selection and
   materialization depend on an act outside the Log — which §1 forbids and
   §4's recomputability claim could not survive. Levels 3 and 4 are derived
@@ -1430,7 +1430,7 @@ Process requirements:
   appeal-sealing deadline that lapses with neither an `appeal` nor an
   `"unappealed"` ruling sealed against the notice are all facts of the Log,
   so every recomputing party lifts the state at the same
-  height without waiting on the Aggregator (DC-3 §7). This is also why the
+  height without waiting on the Aggregator (WIST-3 §7). This is also why the
   derivation is bounded to the sanction's *state* and never to `penalty_n`:
   §6.1 counts the penalty from the evidence regardless, and an appeal has
   never reached it.
@@ -1449,7 +1449,7 @@ Process requirements:
 - **Every Registry Update has a Registry Update ID**:
   `"sha256:" + hex(SHA-256(JCS(update)))` — the update's inner object
   canonicalized and hashed under the same content-addressing construction
-  DC-1 §4 uses for a Delta ID and §5 for an Audit Record ID. An `appeal`
+  WIST-1 §4 uses for a Delta ID and §5 for an Audit Record ID. An `appeal`
   and an `appeal_ruling` name by that ID the `notice` they belong to
   (§9.1), which is what attaches each to one process rather than to
   whatever processes a domain has open.
@@ -1464,19 +1464,19 @@ Process requirements:
   disagree, the Block governs.
 - **An appeal is published, then recorded.** A Publisher appeals by
   serving a signed `appeal` Registry Update at
-  `/.well-known/deltacommons/appeals/<notice-id-hex>.json` (DC-2 §3.3),
+  `/.well-known/wist/appeals/<notice-id-hex>.json` (WIST-2 §3.3),
   where `<notice-id-hex>` is the 64-character hex digest of the notice's
   Registry Update ID. That is the publish-then-pull path every other
   Publisher artifact takes, and it is the only one still open to a domain
   whose ingestion a level-3 sanction has suspended: the Publisher MAY ping
-  (DC-2 §4), but that domain's Pings are answered `403`, so DC-2 §3.3 puts
+  (WIST-2 §4), but that domain's Pings are answered `403`, so WIST-2 §3.3 puts
   the fetch on the Aggregator as a duty that no notification gates. The
   appeal exists from the moment it is served; the
   Aggregator's Entry records it rather than creating it, and any party can
   fetch the served copy and verify it for itself. An `appeal` is signed by
   the Publisher and MUST verify against the Key Set current at the
   `notice`'s Block — not the present one — so that a domain in key
-  compromise or identity reset (DC-1 §5.2) can still appeal.
+  compromise or identity reset (WIST-1 §5.2) can still appeal.
 - **Sealing an appeal is a duty with a derived deadline.** An `appeal`
   served inside the appeal window MUST be sealed within `appeal_seal_days`
   (Parameter Registry; default 7) of the Aggregator obtaining it, and in no
@@ -1550,7 +1550,7 @@ can amend them. Amending them requires a new major version of this suite
 — which is to say, a fork that must win adoption on its own merits.
 
 1. **No self-declared importance.** No object in this protocol carries a
-   field by which a publisher declares its own relevance (DC-1 §6). A
+   field by which a publisher declares its own relevance (WIST-1 §6). A
    push channel where submission could claim importance would inherit
    the entire adversarial history of SEO; importance is measured at
    consumption, outside the protocol.
@@ -1564,7 +1564,7 @@ can amend them. Amending them requires a new major version of this suite
    Log is corrected by appending, never by editing; every commitment,
    verdict and governance action ever sealed remains. Content Payloads are
    not part of that record: they may be withdrawn, and only withdrawn,
-   through a logged entry stating its legal basis (DC-3 §6.2). The
+   through a logged entry stating its legal basis (WIST-3 §6.2). The
    distinction is deliberate — an index must be able to comply with an
    erasure order without being able to rewrite its own history.
 4. **The data stays open.** Public tier data is licensed under ODbL 1.0,
@@ -1615,13 +1615,13 @@ existing rather than a recommended setting.
 | Parameter | Bound | What a value past it removes |
 |---|---|---|
 | `block_cadence_seconds` | ≥ 1 and ≤ 86 400 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` — every window in this document — has a clock; above a day, "eligible for the next Block" is lawful staleness measured in weeks, and the read-side position sale §6.4's inclusion ceiling forbids returns through the cadence |
-| `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (DC-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and DC-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
-| `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails DC-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
-| `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (DC-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
-| `link_url_cap_bytes` | ≥ 14 | below the 14 octets of `JCS("https://a.b/")` — the serialization of the shortest Normalized URL (DC-1 §2) — no link can ever be declared, which removes the link dimension while leaving its verdicts defined — §5's `link_inconsistent` would then rest on a set nobody can populate |
-| `summary_cap_bytes` | ≥ 12 | `JCS({"title":""})` is 12 octets and `title` is REQUIRED (DC-3 §6.1), so below that no conforming `summary` exists and no content-bearing Delta can ever be sealed |
-| `feed_window` | ≥ 1 | a Feed that can hold no Delta ID leaves nothing discoverable to pull (DC-2 §3.2) |
-| `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (DC-1 §5.2, §8) |
+| `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (WIST-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and WIST-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
+| `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails WIST-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
+| `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (WIST-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
+| `link_url_cap_bytes` | ≥ 14 | below the 14 octets of `JCS("https://a.b/")` — the serialization of the shortest Normalized URL (WIST-1 §2) — no link can ever be declared, which removes the link dimension while leaving its verdicts defined — §5's `link_inconsistent` would then rest on a set nobody can populate |
+| `summary_cap_bytes` | ≥ 12 | `JCS({"title":""})` is 12 octets and `title` is REQUIRED (WIST-3 §6.1), so below that no conforming `summary` exists and no content-bearing Delta can ever be sealed |
+| `feed_window` | ≥ 1 | a Feed that can hold no Delta ID leaves nothing discoverable to pull (WIST-2 §3.2) |
+| `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (WIST-1 §5.2, §8) |
 | `sampling_floor` | ≥ 1 | at zero the clamp's own lower bound is zero, so a maximum-reputation domain is never selected at all (§4) |
 | `sampling_ceiling` | ≥ 1 | at zero no Delta is ever selected by any Auditor, which voids every Audit Record before it is written and with it every confirmation, penalty and sanction — a more complete nullification than `confirm_auditors` = 1, which this section already forbids |
 | `similarity_consistent` | ≥ 150 002 and ≤ 1 000 000 | below `similarity_variance_floor`'s own floor the `dynamic_variance` band is empty; above the micro-unit range no audit can ever be `consistent`, so `C` never grows and every domain stays Provisional for ever (§5, §6) |
@@ -1631,7 +1631,7 @@ existing rather than a recommended setting.
 | `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
 | `min_observed_words` | ≥ 1 | at zero the mass guard admits the empty observed text, and §5's quotient is read against a page that said nothing (§5) |
 | `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
-| `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (DC-3 §3.1) |
+| `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (WIST-3 §3.1) |
 | `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
 | `age_norm_days` | ≥ 1 | zero is a division by zero in `base_u` (§6.1) |
 | `decay_constant_days` | ≥ 1 | zero is a division by zero in the decay table's own construction (§6.1) |
@@ -1642,15 +1642,15 @@ existing rather than a recommended setting.
 | `appeal_seal_days` | ≥ 1 | at zero the Aggregator must seal a received appeal in the Block that closes the window, so the state voids for reasons no Aggregator can avoid (§7) |
 | `ruling_deadline_days` | ≥ 1 | at zero every level-3 and level-4 state voids at T, whatever the evidence (§7) |
 | `param_grace_days` | ≥ 1 | at zero a parameter changes in the Block that announces it, and the notice period this very section rests on is gone |
-| `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (DC-3 §6.1) |
+| `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (WIST-3 §6.1) |
 | `unauditable_horizon_days` | ≥ 7 | below, whether a URL is excluded turns on publication scheduling rather than on its `robots.txt` (§5) |
-| `mirror_retention_days` | ≥ 51 | below, an appellant cannot fetch the Records its own sanction rests on (DC-3 §6) |
+| `mirror_retention_days` | ≥ 51 | below, an appellant cannot fetch the Records its own sanction rests on (WIST-3 §6) |
 | `warc_retention_days` | ≥ 51 | below, the capture behind a confirming Record can lawfully be gone before the appeal that contests it can conclude (§5, §7) |
 | `record_seal_blocks` | ≥ 1 | at zero the Aggregator must seal what it pulled in the Block of the pull itself, so every pull is a breach the instant it completes (§4) |
-| `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (DC-3 §3.2) |
+| `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (WIST-3 §3.2) |
 | `max_inclusion_blocks` | ≥ 1 | at zero an eligible Delta must seal in its eligibility Block itself, a deadline no Aggregator can meet for a Delta accepted mid-Block (§6.4) |
-| `ingest_budget_bytes_day` | ≥ 1 048 576 | below one MiB the §3.2 walk cannot fetch a single capped Payload with its Feed page, and every backfill starves (DC-2 §5) |
-| `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (DC-1 §2, §3.2) |
+| `ingest_budget_bytes_day` | ≥ 1 048 576 | below one MiB the §3.2 walk cannot fetch a single capped Payload with its Feed page, and every backfill starves (WIST-2 §5) |
+| `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (WIST-1 §2, §3.2) |
 
 Where the rule does not reduce to a fixed bound — a value that is
 individually in range but collapses a mechanism only in combination with
@@ -1691,13 +1691,13 @@ confirmation, penalties and the level-1 rate all still run.
 `provisional_age_days`, `provisional_audits` and `provisional_cap_u` loosen
 or tighten a gate on reputation rather than removing one — unlike `c_cap`,
 whose zero leaves that gate unsatisfiable for every domain for ever.
-`quota_base` and `quota_slope` at zero silence the Ping path, which DC-2
+`quota_base` and `quota_slope` at zero silence the Ping path, which WIST-2
 §5's baseline polling exists to survive. And `latency_threshold_u` at
 either extreme puts every domain on one side of a one-Block delay, which is
 a policy rather than the absence of one.
 
 `payload_window_days` carries a floor for the same reason. The window is
-what makes a missing Payload evidence (DC-3 §6.1): shortened toward zero
+what makes a missing Payload evidence (WIST-3 §6.1): shortened toward zero
 it would leave a Mirror free to drop whatever it disliked and call the
 absence ordinary expiry, retiring the distinction between erasure and
 censorship without amending anything. The floor is set well above the
@@ -1714,7 +1714,7 @@ rather than on what its `robots.txt` does — two exclusions and a clearing
 audit need room to land inside the same window.
 
 `mirror_retention_days` carries one because the retention it sets is what
-makes an evidence bundle assemblable after the fact (DC-3 §6), and the
+makes an evidence bundle assemblable after the fact (WIST-3 §6), and the
 proceedings that need one run on this suite's own clocks. An appeal opens
 within `appeal_window_days` of the `notice`'s Block, MUST be sealed within
 `appeal_seal_days` of that window closing, and MUST be ruled on within
@@ -1738,24 +1738,24 @@ combination cases above.
 
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
-| Block sealing cadence | `block_cadence_seconds` | 1 hour | DC-3 §3.2 |
-| Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | DC-3 §6 |
-| `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | DC-1 §3.6 |
-| `links` size cap | `links_cap_bytes` | 4096 octets of `JCS(links)` | DC-1 §3.6 |
-| Link `url` size cap | `link_url_cap_bytes` | 2048 octets of `JCS(url)` per link | DC-1 §3.6 |
-| `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | DC-1 §3.6 |
-| `url` size cap | `url_cap_bytes` | 2048 octets of `JCS(url)` | DC-1 §3.2 |
-| Payload availability window | `payload_window_days` | 180 days | DC-3 §6.1 |
-| Mirror Block retention floor | `mirror_retention_days` | 90 days | DC-3 §6 |
+| Block sealing cadence | `block_cadence_seconds` | 1 hour | WIST-3 §3.2 |
+| Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | WIST-3 §6 |
+| `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | WIST-1 §3.6 |
+| `links` size cap | `links_cap_bytes` | 4096 octets of `JCS(links)` | WIST-1 §3.6 |
+| Link `url` size cap | `link_url_cap_bytes` | 2048 octets of `JCS(url)` per link | WIST-1 §3.6 |
+| `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | WIST-1 §3.6 |
+| `url` size cap | `url_cap_bytes` | 2048 octets of `JCS(url)` | WIST-1 §3.2 |
+| Payload availability window | `payload_window_days` | 180 days | WIST-3 §6.1 |
+| Mirror Block retention floor | `mirror_retention_days` | 90 days | WIST-3 §6 |
 | WARC retention floor (`inconsistent` / `link_inconsistent` Records) | `warc_retention_days` | 90 days | §5 |
 | Pull sealing deadline | `record_seal_blocks` | 24 Blocks | §4 |
-| Per-domain Block capacity | `domain_block_entries_max` | 10 000 Entries | DC-3 §3.2 |
+| Per-domain Block capacity | `domain_block_entries_max` | 10 000 Entries | WIST-3 §3.2 |
 | Inclusion ceiling | `max_inclusion_blocks` | 4 Blocks | §6.4 |
-| Per-domain daily ingest budget | `ingest_budget_bytes_day` | 1 GiB | DC-2 §5 |
-| Feed window | `feed_window` | 1000 IDs | DC-2 §3.2 |
-| Clock skew allowance | `clock_skew_seconds` | 10 minutes | DC-1 §3.4 |
-| Key Set cache TTL | `keyset_cache_ttl_seconds` | 24 hours | DC-1 §5.1 |
-| Baseline feed poll interval | `baseline_poll_seconds` | 24 hours | DC-2 §5 |
+| Per-domain daily ingest budget | `ingest_budget_bytes_day` | 1 GiB | WIST-2 §5 |
+| Feed window | `feed_window` | 1000 IDs | WIST-2 §3.2 |
+| Clock skew allowance | `clock_skew_seconds` | 10 minutes | WIST-1 §3.4 |
+| Key Set cache TTL | `keyset_cache_ttl_seconds` | 24 hours | WIST-1 §5.1 |
+| Baseline feed poll interval | `baseline_poll_seconds` | 24 hours | WIST-2 §5 |
 | Sampling floor / ceiling (`p_1e7`) | `sampling_floor` / `sampling_ceiling` | 200 000 / 5 000 000 (reads as 0.02 / 0.50) | §4 |
 | Sampling reputation slope | `sampling_slope` | 3 per micro-unit of reputation (reads as 0.30) | §4 |
 | Coverage duty deadline | `coverage_deadline_hours` | 72 hours | §4 |
@@ -1782,7 +1782,7 @@ combination cases above.
 | Appeal window | `appeal_window_days` | 14 days | §7 |
 | Appeal sealing deadline | `appeal_seal_days` | 7 days | §7 |
 | Appeal ruling deadline | `ruling_deadline_days` | 30 days | §7 |
-| Recovery window | `recovery_window_days` | 7 days | DC-1 §5.2 |
+| Recovery window | `recovery_window_days` | 7 days | WIST-1 §5.2 |
 | Parameter change grace period | `param_grace_days` | 7 days | §9 |
 
 ### 9.1. Registry Update `details` Contract
@@ -1804,7 +1804,7 @@ mirroring §7 and §3:
 - `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
   additionally requires `reason`, `appeal_deadline`, and a top-level
   `evidence` naming what the notice is about; a `"recovery"` notice
-  requires nothing further (DC-1 §5.2). `appeal_deadline` restates the
+  requires nothing further (WIST-1 §5.2). `appeal_deadline` restates the
   instant §7 derives — the `sealed_at` of the Block sealing this notice
   plus `appeal_window_days` — and carries the whole-second-plus-`Z` form
   `sealed_at` carries, so the restatement and the value it is computed
@@ -1824,7 +1824,7 @@ mirroring §7 and §3:
   `effective_at` MUST be ≥ 7 days
   after the Block's `sealed_at`, as stated above.
 - `payload_withdrawal`: `delta_id` (the Delta whose Payload is being
-  withdrawn), `legal_basis`, and `jurisdiction` (DC-3 §6.2); `subject` is
+  withdrawn), `legal_basis`, and `jurisdiction` (WIST-3 §6.2); `subject` is
   the Publisher's domain. All three are REQUIRED, because a withdrawal
   that named no Delta, no basis, or no demanding jurisdiction would be an
   unfalsifiable claim to have removed something — which is precisely what
@@ -1846,8 +1846,8 @@ The same is true of any action a future major revision adds.
 
 No `details` object, constrained or not, may carry a bare digest of
 Payload content. A content-derived value anywhere in this suite is
-committed under the Payload salt (§5, DC-1 §3.6) or it is not carried at
-all (DC-3 §6.2). An unconstrained `details` is unconstrained in shape, not
+committed under the Payload salt (§5, WIST-1 §3.6) or it is not carried at
+all (WIST-3 §6.2). An unconstrained `details` is unconstrained in shape, not
 licensed to reintroduce the confirmability the salt exists to destroy, and
 a party replaying the Log MUST reject a Registry Update that carries one.
 
@@ -1855,7 +1855,7 @@ a party replaying the Log MUST reject a Registry Update that carries one.
 carry personal data.** The rule is written over the position rather than
 over a list of field names, because the position is what makes it
 necessary: everything a Registry Update carries is sealed, permanent, and
-outside the withdrawal mechanism entirely (DC-3 §6.2), so any of it recited
+outside the withdrawal mechanism entirely (WIST-3 §6.2), so any of it recited
 once is recited for ever. It binds whoever writes the value, not only the
 Aggregator — a `payload_withdrawal`'s `legal_basis`, a `notice`'s
 `reason`, an `appeal_ruling`'s `reasoning` and a `sanction_lift`'s
@@ -1875,7 +1875,7 @@ record why an action was taken or contested (§11).
   fixed by each Auditor's own VRF over the Block Hash (§4), so no party
   chooses it. Two of the three inputs the Aggregator once chose freely
   are now pinned — `sealed_at` to the cadence grid, Entry order to
-  canonical order (DC-3 §3.1, §3.3) — leaving Block membership as its one
+  canonical order (WIST-3 §3.1, §3.3) — leaving Block membership as its one
   grinding dimension, bounded by the cadence: one candidate hash per
   deferral, hours apart, in a Log where deferral itself is bounded by
   §6.4's inclusion ceiling. And the direction of any grind is blind: the
@@ -1922,12 +1922,12 @@ record why an action was taken or contested (§11).
 - **Domain resale.** Reputation attaches to key continuity, not the name.
   A Declaration signed by neither the previous Key Set nor the previous
   `recovery_keys` is a fresh identity: `A` and `C` reset and the domain
-  re-enters Provisional (§6.3, DC-1 §5.2). Buying an aged domain, or its
+  re-enters Provisional (§6.3, WIST-1 §5.2). Buying an aged domain, or its
   hosting, buys no standing. An ordinary rotation and a recovery rotation
   both preserve standing, because both prove possession of a key the prior
   identity chose in advance — recovery keys exist precisely so that losing
   a signing key does not force a Publisher to forfeit its history, and a
-  thief holding only a signing key cannot outrun them (DC-1 §5.2).
+  thief holding only a signing key cannot outrun them (WIST-1 §5.2).
 - **Floating-point divergence in reputation.** Reputation decides audit
   selection, quota, and inclusion latency through strict comparisons, so
   two implementations differing by one unit in the last place would
@@ -1938,7 +1938,7 @@ record why an action was taken or contested (§11).
 - **Sanction censorship, and why equivocation is not the answer to it.**
   Omission is not equivocation. An Aggregator that seals a Block without an
   entry it should have sealed produces one chain, consistent with itself,
-  which every observer sees identically — DC-3 §5's proof needs two
+  which every observer sees identically — WIST-3 §5's proof needs two
   Checkpoints with one `block_number` and two `block_hash`es, and uniform
   omission produces neither. Nothing about suppression is detectable that
   way, and this document does not rest on the claim that it is. What
@@ -2043,7 +2043,7 @@ record why an action was taken or contested (§11).
 ## 11. Privacy Considerations
 
 Audit Records expose fetch timing and, via `evidence_commitment`, WARC
-captures of public pages; the DC-1 §9 rule (nothing beyond what the page
+captures of public pages; the WIST-1 §9 rule (nothing beyond what the page
 itself publishes) applies to evidence exactly as to extracts. Appeals and
 rulings are public and permanent: the `notice` that opens a sanction
 window MUST state this, so a Publisher weighs publicity before appealing.
@@ -2067,7 +2067,7 @@ confirming: `similarity` scores an audit against a reference that party
 cannot reconstruct. Against a party that also holds the Auditor's
 reference extraction or its capture, `similarity` is recomputable and can
 be matched against the sealed integer exactly — what stands between that
-party and the content is the destroy obligation of DC-3 §6.2, a duty on a
+party and the content is the destroy obligation of WIST-3 §6.2, a duty on a
 named holder rather than a property of the format. Both values survive
 deliberately, because reputation is a pure function of Log history (§6)
 and must remain recomputable after a withdrawal that the audited domain
@@ -2075,7 +2075,7 @@ did not control.
 
 A third residue is everything a Registry Update carries. Its `details` and
 its `evidence` are sealed in the Log, permanent, and outside the withdrawal
-mechanism entirely — the same class as a Delta's `meta` (DC-1 §3.7) — and
+mechanism entirely — the same class as a Delta's `meta` (WIST-1 §3.7) — and
 §9.1 therefore forbids personal data in any of it, whether the schema
 constrains that field or leaves it open, and whoever writes it. The
 enumeration matters less than the position, but the positions are worth
@@ -2096,7 +2096,7 @@ The Auditor's WARC capture is a full copy of the fetched exchange — the
 request, the response headers, and the response body whose bytes
 `response_commitment` covers, never subresources the audit did not fetch —
 and it is held
-off-Log. DC-3 §6.2 requires the Auditor to destroy it, along with the
+off-Log. WIST-3 §6.2 requires the Auditor to destroy it, along with the
 Payload and its salt, when the Payload is withdrawn. That is an obligation
 on the Auditor, enforceable the way the Aggregator's and the Mirrors' are
 and no further: an Auditor that defies it retains both the capture and the
@@ -2120,24 +2120,24 @@ hands.
       key, writes that same hostname — the one its `auditor_admit` names —
       in every Record, and never audits a Delta from a Publisher domain
       sharing a two-label suffix with it (§3)
-- [ ] Computes similarity with the normative §5 metric — the DC-2 §12
+- [ ] Computes similarity with the normative §5 metric — the WIST-2 §12
       observed text, NFC, default full case-folding, untailored UAX #29
       segmentation, reference-containment quotient, mass guard — and
       reads the verdict from the effective similarity, mirrored for a
-      `delete` (§5, DC-2 §12)
-- [ ] Applies DC-2 §11's extraction procedure, unchanged, to its own
+      `delete` (§5, WIST-2 §12)
+- [ ] Applies WIST-2 §11's extraction procedure, unchanged, to its own
       fetch of the Reference Payload's page when checking the declared
-      `links` member (§5, DC-2 §11)
+      `links` member (§5, WIST-2 §11)
 - [ ] Computes `link_agreement` and seals the field on the Record
       whenever the link dimension applies — a `new`, `update` or `attest`
-      audit of an HTML representation (DC-2 §11) that produced a measured
+      audit of an HTML representation (WIST-2 §11) that produced a measured
       verdict, never on an `unreachable` or `not_auditable` Record — and
       reads `link_variance` or `link_inconsistent` from it once the
       extract reading is also `consistent` (§5)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
       — including where the file discriminates between admitted Auditors,
-      whatever access it grants this one (§5, DC-2 §5)
+      whatever access it grants this one (§5, WIST-2 §5)
 - [ ] Emits `not_auditable` (never `inconsistent` or `unreachable`) for a
       withdrawn, unobtainable or empty-extract Reference Payload, for an
       observed text below the mass guard (outside the `delete` mirror's
@@ -2161,7 +2161,7 @@ hands.
       `link_inconsistent` Record for `warc_retention_days`, extended and
       served at the §5 evidence path while a notice naming the Record is
       pending, and destroys any capture, the Reference Payload and the
-      salt on withdrawal (§5, DC-3 §6.2)
+      salt on withdrawal (§5, WIST-3 §6.2)
 
 **Aggregator (governance side):**
 
@@ -2172,13 +2172,13 @@ hands.
 - [ ] Excludes unauditable URLs from materialization for as long as §5's
       predicate holds — two independent `robots_excluded` Records inside
       the horizon, cleared only by a successful audit from an Auditor
-      independent of both, or by their ageing out (§5, DC-3 §7)
+      independent of both, or by their ageing out (§5, WIST-3 §7)
 - [ ] Removes an Auditor past `coverage_failures_max` by `auditor_remove`
       naming the failed Blocks — recording an exclusion that §4 already
       derives, never creating it (§3, §4)
 - [ ] Applies sanctions only per the §7 ladder — evidence for every
       sanction, notice and an appeal window for levels 3–4
-- [ ] Fetches every sanction notice's appeal path (DC-2 §3.3) and seals
+- [ ] Fetches every sanction notice's appeal path (WIST-2 §3.3) and seals
       the `appeal` it finds, or an `"unappealed"` `appeal_ruling`, by the
       §7 sealing deadline — and rules on a sealed appeal within the ruling
       deadline (§7)
@@ -2191,7 +2191,7 @@ hands.
 - [ ] Seals an accepted Delta within `max_inclusion_blocks` of its
       eligibility Block (§6.4)
 - [ ] Seals a served, valid recovery Declaration within
-      `record_seal_blocks` of discovering it (DC-1 §5.2)
+      `record_seal_blocks` of discovering it (WIST-1 §5.2)
 - [ ] Enforces the §8 invariants unconditionally
 - [ ] Changes parameters only via `parameter_change` with the grace
       period (§9)
@@ -2231,10 +2231,10 @@ hands.
       lifts each at the height a `sanction_lift`, an `"overturned"`
       `appeal_ruling`, a lapsed ruling deadline, a lapsed
       appeal-sealing deadline, or an identity reset (§6.3) takes
-      effect (§7, DC-3 §7)
+      effect (§7, WIST-3 §7)
 - [ ] Runs every window from the `sealed_at` of the Block sealing the
       Entry that opens it — the appeal window from the `notice`'s Block,
-      the recovery window from the recovery Declaration's own (DC-1 §5.2)
+      the recovery window from the recovery Declaration's own (WIST-1 §5.2)
       — and never from an `effective_at` (§3, §7)
 - [ ] Treats an `appeal_ruling` of `"unappealed"` whose own Block
       `sealed_at` precedes the close of that notice's appeal window as
@@ -2246,25 +2246,25 @@ hands.
 ## Appendix A. Worked Sampling Example
 
 Real values, computed by `tools/gen_vectors.py` and machine-checked by
-`tools/validate_examples.py` (`vectors:dc4-sampling`). The source of truth
-is [`vectors/dc4/sampling.json`](../vectors/dc4/sampling.json); the test
-key is the DC-1 vector keypair (`vectors/dc1/keypair.json`, seed
+`tools/validate_examples.py` (`vectors:wist4-sampling`). The source of truth
+is [`vectors/wist4/sampling.json`](../vectors/wist4/sampling.json); the test
+key is the WIST-1 vector keypair (`vectors/wist1/keypair.json`, seed
 `000102…1f` — **never use it in production**).
 
 | Field | Value |
 |---|---|
 | Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
 | Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| Block Hash of *B* | `sha256:8c3c0bbbdfc09d9abae80b261dcdc9b71f2e2bd6f124b5f2ce076a140f8750e5` |
-| `alpha` (32 octets, hex) | `8c3c0bbbdfc09d9abae80b261dcdc9b71f2e2bd6f124b5f2ce076a140f8750e5` |
-| `pi` = `vrf_proof` (80 octets) | `d65b9b43e383382b4ac77e73a5185eef6499033b2b7ee376bfe2669e73de66c5`<br>`e8a0cf9252b1c1a82afa850a1a8343dee524efd90e4e8e4ffc1a069bb2212000`<br>`09a9bad562335e963d014063f63ed10d` |
-| `beta` (64 octets) | `260b0e6d121a164cc1bd9b7950d2a03d4fc6d58c1dca23dff0f6cea234c64f84`<br>`1abb3be702dd61808e2c9daaa558e98ccc9b30e88e8985b290479871d620f5d8` |
-| Delta ID of Entry 2 | `sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120` |
-| `SHA-256(beta ‖ Entry 2)[0..8]` | `db50a84965ded13f` |
-| `D`(Entry 2) | `15803316125638250815` |
-| Delta ID of Entry 1 | `sha256:8d5ccbbb940151aef6a885b1d6a290265651b3029392b501d0892b566077be53` |
-| `SHA-256(beta ‖ Entry 1)[0..8]` | `19a90554dcb44f18` |
-| `D`(Entry 1) | `1849014984050495256` |
+| Block Hash of *B* | `sha256:4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c` |
+| `alpha` (32 octets, hex) | `4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c` |
+| `pi` = `vrf_proof` (80 octets) | `97c4a06029baa132fd4c73a7699abaf562c0ac49bb215d7a2d162fc8182335fd`<br>`e1cc3eea2f3d6cf1960bdabd42101f4a88da9c201bc01a5d88cd67bfae6f03d3`<br>`5193ca88189861a4b5f17c15e4828d08` |
+| `beta` (64 octets) | `ba8568c214c1d042d498170209f71565a45dfb24ce4a63b268ad8806856d3660`<br>`db713ee9e698dbde205190dd1c6c284b37f8a4294e2f4384fec23a0cdb833e1f` |
+| Delta ID of Entry 3 | `sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c` |
+| `SHA-256(beta ‖ Entry 3)[0..8]` | `60b01151946cc5c4` |
+| `D`(Entry 3) | `6967087665622336964` |
+| Delta ID of Entry 2 | `sha256:9a6bba629b8cce39ffb3f9d6755c7fdcd83153dc8db8e5f0c225f015d088a921` |
+| `SHA-256(beta ‖ Entry 2)[0..8]` | `4851ab80fde5a675` |
+| `D`(Entry 2) | `5211134814348224117` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
@@ -2277,10 +2277,10 @@ the two domains differ only in reputation:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 2 | 100 000 (Provisional) | 2 900 000 | 1.580e26 | 5.350e25 | no |
-| Entry 2 | 900 000 (established) | 500 000 | 1.580e26 | 9.223e24 | no |
-| Entry 1 | 100 000 (Provisional) | 2 900 000 | 1.849e25 | 5.350e25 | **yes** |
-| Entry 1 | 900 000 (established) | 500 000 | 1.849e25 | 9.223e24 | no |
+| Entry 3 | 100 000 (Provisional) | 2 900 000 | 6.967e25 | 5.350e25 | no |
+| Entry 3 | 900 000 (established) | 500 000 | 6.967e25 | 9.223e24 | no |
+| Entry 2 | 100 000 (Provisional) | 2 900 000 | 5.211e25 | 5.350e25 | **yes** |
+| Entry 2 | 900 000 (established) | 500 000 | 5.211e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
 are in the vector, and an implementation MUST compare the exact ones. Note
@@ -2292,10 +2292,10 @@ Block and therefore an independently drawn selection set.
 ## Appendix B. Worked Reputation Example
 
 Real values, computed by `tools/gen_vectors.py` and machine-checked by
-`tools/validate_examples.py` (`vectors:dc4-reputation`,
-`vectors:dc4-decay-table`). The source of truth is
-[`vectors/dc4/reputation.json`](../vectors/dc4/reputation.json) and
-[`vectors/dc4/decay-table.json`](../vectors/dc4/decay-table.json). Every
+`tools/validate_examples.py` (`vectors:wist4-reputation`,
+`vectors:wist4-decay-table`). The source of truth is
+[`vectors/wist4/reputation.json`](../vectors/wist4/reputation.json) and
+[`vectors/wist4/decay-table.json`](../vectors/wist4/decay-table.json). Every
 number below is an integer produced by the §6 operations in the order §6
 gives them.
 
@@ -2346,7 +2346,7 @@ so the Provisional cap is the value the formula already has rather than a
 number bolted on top of it.
 
 **Nothing here is rounded.** The `p_1e7` column of
-`vectors/dc4/reputation.json` is §4's sampling rate computed by §4's own
+`vectors/wist4/reputation.json` is §4's sampling rate computed by §4's own
 integer clamp on `reputation_u`; for the worked example it is 2 122 292,
 which *reads* as 0.2122292 but is never computed as a decimal. The decay
 table's endpoints, `decay(0)` = 1 000 000 000 and `decay(1825)` = 39 512,
@@ -2367,7 +2367,7 @@ from end to end.
   metric segments by, used without tailoring
 - [UAX #44] Unicode Standard Annex #44, Unicode Character Database — General
   Category values (L\*, N\*) and the default full case-folding §5 applies
-- DC-1: Delta Format & Identity — key rotation, scope rule, §6 absence
-- DC-2: Site Publication — quotas, hints, robots.txt boundary
-- DC-3: Commons Log & Distribution — entry envelope, checkpoints,
-  immutability, Block Hash (DC-3 §3.1)
+- WIST-1: Delta Format & Identity — key rotation, scope rule, §6 absence
+- WIST-2: Site Publication — quotas, hints, robots.txt boundary
+- WIST-3: Logbook & Distribution — entry envelope, checkpoints,
+  immutability, Block Hash (WIST-3 §3.1)

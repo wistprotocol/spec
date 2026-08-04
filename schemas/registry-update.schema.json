@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/registry-update.schema.json",
-  "title": "DeltaCommons Registry Update (DC-4)",
+  "$id": "https://wistprotocol.org/schemas/registry-update.schema.json",
+  "title": "WIST Registry Update (WIST-4)",
   "type": "object",
   "required": ["update", "sig"],
   "additionalProperties": false,
   "properties": {
     "update": {
       "type": "object",
-      "required": ["dc_version", "action", "subject", "effective_at"],
+      "required": ["wist_version", "action", "subject", "effective_at"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal", "pull_attestation"]},
         "subject": {"type": "string", "maxLength": 256},
         "details": {"type": "object"},
@@ -20,7 +20,7 @@
           "type": "string",
           "format": "date-time",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
-          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (DC-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the §9 grace period above all — so the two are written in one form and compare without normalization. It is descriptive of when the act takes effect and never the anchor of a window: DC-4 §7 runs the appeal window, and DC-1 §5.2 the recovery window, from the `sealed_at` of the Block sealing the Entry."
+          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (WIST-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the §9 grace period above all — so the two are written in one form and compare without normalization. It is descriptive of when the act takes effect and never the anchor of a window: WIST-4 §7 runs the appeal window, and WIST-1 §5.2 the recovery window, from the `sealed_at` of the Block sealing the Entry."
         }
       }
     },
@@ -118,7 +118,7 @@
                     "type": "string",
                     "format": "date-time",
                     "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
-                    "description": "The instant DC-4 §7's appeal window closes, restated for the Publisher's convenience: the `sealed_at` of the Block sealing this notice plus `appeal_window_days`. It is descriptive — every party derives the same deadline from the Block — and carries the whole-second-plus-Z form so that the restatement and the Block value it is computed from compare without normalization."
+                    "description": "The instant WIST-4 §7's appeal window closes, restated for the Publisher's convenience: the `sealed_at` of the Block sealing this notice plus `appeal_window_days`. It is descriptive — every party derives the same deadline from the Block — and carries the whole-second-plus-Z form so that the restatement and the Block value it is computed from compare without normalization."
                   }
                 },
                 "if": {"properties": {"kind": {"const": "sanction"}}},
@@ -142,7 +142,7 @@
                 "type": "object",
                 "required": ["notice", "outcome", "reasoning"],
                 "properties": {
-                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (DC-4 §7) of the `notice` whose process this ruling closes. Required because the ruling deadline and the void rule of §7 are evaluated per notice: a ruling that named none would close every open process of that domain at once, or none of them."},
+                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (WIST-4 §7) of the `notice` whose process this ruling closes. Required because the ruling deadline and the void rule of §7 are evaluated per notice: a ruling that named none would close every open process of that domain at once, or none of them."},
                   "outcome": {"enum": ["upheld", "overturned", "unappealed"]},
                   "reasoning": {"type": "string", "minLength": 1, "maxLength": 1024}
                 }
@@ -181,7 +181,7 @@
                     "domain_block_entries_max", "max_inclusion_blocks",
                     "ingest_budget_bytes_day", "min_observed_words"
                   ]},
-                  "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit DC-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying DC-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
+                  "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying WIST-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
                 },
                 "allOf": [
                   {
@@ -361,7 +361,7 @@
       }
     },
     {
-      "comment": "DC-4 §3: an Auditor is a domain, not a bare key. `subject` is the Auditor's `auditor_id`, and it is what §3's independence and self-audit tests compare, so it must be a hostname of at least two labels rather than a free-text label. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "comment": "WIST-4 §3: an Auditor is a domain, not a bare key. `subject` is the Auditor's `auditor_id`, and it is what §3's independence and self-audit tests compare, so it must be a hostname of at least two labels rather than a free-text label. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
       "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_admit"}}}}},
       "then": {
         "properties": {
@@ -374,7 +374,7 @@
       }
     },
     {
-      "comment": "DC-4 §7: an appeal is signed by the Publisher and answers exactly one `notice`. The sealing deadline and the void rule are evaluated per notice, so an appeal that named none would be unattachable to the process it belongs to. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "comment": "WIST-4 §7: an appeal is signed by the Publisher and answers exactly one `notice`. The sealing deadline and the void rule are evaluated per notice, so an appeal that named none would be unattachable to the process it belongs to. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
       "if": {"properties": {"update": {"properties": {"action": {"const": "appeal"}}}}},
       "then": {
         "properties": {
@@ -385,7 +385,7 @@
                 "type": "object",
                 "required": ["notice"],
                 "properties": {
-                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (DC-4 §7) of the `notice` being appealed."}
+                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (WIST-4 §7) of the `notice` being appealed."}
                 }
               }
             }
@@ -394,7 +394,7 @@
       }
     },
     {
-      "comment": "DC-4 §4: the pull attestation is the Aggregator's signed statement of what its pull of an Auditor's well-known path returned, and it is the precondition for any coverage failure to count against that Auditor. `subject` is the Auditor's `auditor_id`; `block` names the audited Block; `found` lists the IDs the fetch returned, empty where it returned nothing to seal. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "comment": "WIST-4 §4: the pull attestation is the Aggregator's signed statement of what its pull of an Auditor's well-known path returned, and it is the precondition for any coverage failure to count against that Auditor. `subject` is the Auditor's `auditor_id`; `block` names the audited Block; `found` lists the IDs the fetch returned, empty where it returned nothing to seal. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
       "if": {"properties": {"update": {"properties": {"action": {"const": "pull_attestation"}}}}},
       "then": {
         "properties": {
@@ -406,7 +406,7 @@
                 "type": "object",
                 "required": ["block", "found"],
                 "properties": {
-                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The audited Block's Block Hash — the same value that names the Auditor's well-known records file (DC-4 §4)."},
+                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The audited Block's Block Hash — the same value that names the Auditor's well-known records file (WIST-4 §4)."},
                   "found": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "description": "The Record and coverage_attestation IDs the pull returned. Empty is a claim like any other: it is what a third party who fetched the same path during the window can contradict."}
                 }
               }
@@ -416,7 +416,7 @@
       }
     },
     {
-      "comment": "DC-4 §4: a coverage_attestation carries the same per-auditor chain link an Audit Record carries, so a suppressed attestation is provable from its sealed successor exactly as a suppressed Record is. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "comment": "WIST-4 §4: a coverage_attestation carries the same per-auditor chain link an Audit Record carries, so a suppressed attestation is provable from its sealed successor exactly as a suppressed Record is. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
       "if": {"properties": {"update": {"properties": {"action": {"const": "coverage_attestation"}}}}},
       "then": {
         "properties": {

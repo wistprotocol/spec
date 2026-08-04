@@ -4,7 +4,7 @@
 
 ## Context
 
-The Commons Log is append-only, hash-chained and replicated across mirrors
+The Logbook is append-only, hash-chained and replicated across mirrors
 that the project does not control. Extracts and summaries are drawn from
 public web pages, and public web pages routinely contain personal data — a
 name in an article, an author byline, a court record. Data protection law

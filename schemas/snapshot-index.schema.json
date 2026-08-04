@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/snapshot-index.schema.json",
-  "title": "DeltaCommons Snapshot Index (DC-3)",
+  "$id": "https://wistprotocol.org/schemas/snapshot-index.schema.json",
+  "title": "WIST Snapshot Index (WIST-3)",
   "type": "object",
   "required": ["index", "sig"],
   "additionalProperties": false,
   "properties": {
     "index": {
       "type": "object",
-      "required": ["dc_version", "updated_at", "snapshots"],
+      "required": ["wist_version", "updated_at", "snapshots"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "updated_at": {"type": "string", "format": "date-time"},
         "snapshots": {
           "type": "array",

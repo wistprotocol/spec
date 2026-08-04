@@ -1,5 +1,5 @@
 {
-  "note": "DC-2 \u00a712's whole-document text extraction over raw HTML octets, and DC-4 \u00a75's reference-containment similarity over its output. html_hex decodes to the exact input; expected is the observed text a conforming Auditor produces. similarity cases carry min_observed_words = 40 (the Registry default); a null similarity is the mass guard ruling not_auditable.",
+  "note": "WIST-2 \u00a712's whole-document text extraction over raw HTML octets, and WIST-4 \u00a75's reference-containment similarity over its output. html_hex decodes to the exact input; expected is the observed text a conforming Auditor produces. similarity cases carry min_observed_words = 40 (the Registry default); a null similarity is the mass guard ruling not_auditable.",
   "min_observed_words": 40,
   "extraction": [
     {

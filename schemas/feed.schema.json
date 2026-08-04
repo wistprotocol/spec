@@ -1,19 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/feed.schema.json",
-  "title": "DeltaCommons Publisher Feed (DC-2)",
+  "$id": "https://wistprotocol.org/schemas/feed.schema.json",
+  "title": "WIST Publisher Feed (WIST-2)",
   "type": "object",
   "required": ["feed", "sig"],
   "additionalProperties": false,
   "properties": {
     "feed": {
       "type": "object",
-      "required": ["dc_version", "domain", "generated_at", "deltas", "next"],
+      "required": ["wist_version", "domain", "generated_at", "deltas", "next"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "domain": {"type": "string", "format": "hostname"},
-        "generated_at": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at`. DC-2 §3.2 resolves a sealed Page's Key Set by comparing this value against `publisher_declaration` Entries' Block `sealed_at`, so it is compared against Block timestamps by every validator and is written in the one form they carry."},
+        "generated_at": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at`. WIST-2 §3.2 resolves a sealed Page's Key Set by comparing this value against `publisher_declaration` Entries' Block `sealed_at`, so it is compared against Block timestamps by every validator and is written in the one form they carry."},
         "deltas": {
           "type": "array",
           "maxItems": 1000,

@@ -1,18 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/snapshot-manifest.schema.json",
-  "title": "DeltaCommons Snapshot Manifest (DC-3)",
+  "$id": "https://wistprotocol.org/schemas/snapshot-manifest.schema.json",
+  "title": "WIST Snapshot Manifest (WIST-3)",
   "type": "object",
   "required": ["manifest", "sig"],
   "additionalProperties": false,
   "properties": {
     "manifest": {
       "type": "object",
-      "required": ["dc_version", "snapshot_date", "log_position", "anchor_block_hash",
+      "required": ["wist_version", "snapshot_date", "log_position", "anchor_block_hash",
                    "content_digest", "state", "files"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "snapshot_date": {"type": "string", "format": "date"},
         "log_position": {"type": "integer", "minimum": 0},
         "anchor_block_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},

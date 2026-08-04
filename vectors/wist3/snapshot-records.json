@@ -1,0 +1,46 @@
+{
+  "note": "The live record set WIST-3 \u00a77's content_digest is computed over. Each record carries Log-derived identifiers only: no page content reaches the digest, so it remains computable after a Payload is withdrawn (WIST-3 \u00a76.2), while delta_id still names the Delta whose salted commitment binds the content. The reduced.example.org Delta is not an Entry of the example Block; this vector publishes the record encoding, not a materialization of Block 0. `links` is the tier1/links.parquet materialization: one (source_url, target_url, position) row per declared link of every live record, source_url the record's Normalized URL and target_url/position drawn in order from that record's Payload content.links.urls. Unlike the record tuple above, a link row derives from Payload content, not from the Log, and therefore leaves distribution with the Payload on a withdrawal (WIST-3 \u00a76.2) rather than surviving in content_digest; the reduced.example.org record contributes no rows because its Payload declares no links.",
+  "snapshot_date": "2026-08-02",
+  "log_position": 0,
+  "record_fields": [
+    "url",
+    "publisher",
+    "delta_id",
+    "observed_at",
+    "weight"
+  ],
+  "records": [
+    {
+      "url": "https://example.com/blog/post-1",
+      "publisher": "example.com",
+      "delta_id": "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c",
+      "observed_at": "2026-08-02T12:00:00Z",
+      "weight": "full"
+    },
+    {
+      "url": "https://reduced.example.org/notice",
+      "publisher": "reduced.example.org",
+      "delta_id": "sha256:a73a3888387d3e457dc619a98f09a5bf0f49ff50f4b61ea67a076fe2b0fc3d7d",
+      "observed_at": "2026-08-02T11:30:00Z",
+      "weight": "reduced"
+    }
+  ],
+  "content_digest": "sha256:fab8db7b95661cc69afcea638397213824cb3983e1a3b72c4058dd217f105da6",
+  "links": [
+    {
+      "source_url": "https://example.com/blog/post-1",
+      "target_url": "https://example.org/reference",
+      "position": 0
+    },
+    {
+      "source_url": "https://example.com/blog/post-1",
+      "target_url": "https://spec.example.net/wist-1",
+      "position": 1
+    },
+    {
+      "source_url": "https://example.com/blog/post-1",
+      "target_url": "https://example.org/~user",
+      "position": 2
+    }
+  ]
+}

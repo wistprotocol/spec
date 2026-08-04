@@ -1,6 +1,6 @@
 {
   "anchor": {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "log_id": "log.example.org",
     "genesis_key": {
       "key_id": "test-agg-k1",
@@ -12,6 +12,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "QIiV-DX7ljnY6P5Pk5C998zn4fUuLjdCZWpDxMy5dd4r4fBwiaSnB3XbPlrn2vg7jlN4UQ-_-B2B1MTfbartCw"
+    "value": "eW09RJcPnZGysXkjYRoa7dMQ2Nu0-c-Zr9NYpKznRkt7U_1IRdD2WkHjegnzz-zRt_uwOAtCXMAxaM33rGrJDg"
   }
 }

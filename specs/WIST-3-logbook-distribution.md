@@ -1,13 +1,13 @@
-# DC-3: Commons Log & Distribution
+# WIST-3: Logbook & Distribution
 
 **Status:** v1.0.0-draft · **Date:** 2026-08-02 · **License:** CC-BY 4.0
 
 ## 1. Introduction
 
-The Commons Log is the single source of everything in DeltaCommons: an
+The Logbook is the single source of everything in WIST: an
 append-only sequence of signed, hash-chained Blocks containing every
-accepted Delta (DC-1), every audit record, and every governance action
-(DC-4). Its design descends from Certificate Transparency [RFC 6962]: the
+accepted Delta (WIST-1), every audit record, and every governance action
+(WIST-4). Its design descends from Certificate Transparency [RFC 6962]: the
 Aggregator that operates the log gains no authority from doing so, because
 anyone can verify the chain, recompute every derived artifact, and detect
 any attempt to rewrite or fork history. Consumers never trust the
@@ -25,7 +25,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 [RFC 2119] [RFC 8174] when, and only when, they appear in all capitals, as
 shown here.
 
-- **Log** (the **Commons Log**): the append-only sequence of Blocks this
+- **Log** (the **Logbook**): the append-only sequence of Blocks this
   document defines, from the genesis Block onward. "The Log" always means
   the whole chain, never one Aggregator's current view of it.
 - **Block**: one sealed batch of log Entries with a signed header.
@@ -48,16 +48,16 @@ shown here.
 - **Tier**: a size/completeness layer of a Snapshot (Tier 0 compact,
   Tier 1 full extracts and the link graph).
 - **Inclusion Proof**: a Merkle path proving an Entry is in a Block.
-- **Payload**: the content a Delta commits to (DC-1 §3.6), distributed
+- **Payload**: the content a Delta commits to (WIST-1 §3.6), distributed
   alongside the Block that seals that Delta and not inside it (§6.1).
 - **Withdrawal**: the logged removal of a Payload from distribution,
   under §6.2.
 
-Terms from DC-1 (Envelope, Delta, Delta ID, Canonical Bytes, Payload,
-Publisher, Aggregator) and DC-2 (Feed) keep their defined meanings. Every
-signed object in this document is constructed exactly as DC-1 §4 requires —
+Terms from WIST-1 (Envelope, Delta, Delta ID, Canonical Bytes, Payload,
+Publisher, Aggregator) and WIST-2 (Feed) keep their defined meanings. Every
+signed object in this document is constructed exactly as WIST-1 §4 requires —
 inner object canonicalized with JCS, signed with Ed25519, signature
-detached — and carries `dc_version` (DC-1 §3.1) and the DC-1 §4 signature
+detached — and carries `wist_version` (WIST-1 §3.1) and the WIST-1 §4 signature
 block (`key_id`, `alg`, `value`).
 
 ## 3. Block Format
@@ -80,7 +80,7 @@ A Block is an Envelope-like object with `header`, `entries`, and `sig`
 `sealed_at` MUST match `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
 (`schemas/block.schema.json`): no fractional seconds, and no numeric offset
 even one equal to zero. A Block whose `sealed_at` carries either MUST be
-rejected. RFC 3339 permits both, but DC-4 §6.1 derives every reputation day
+rejected. RFC 3339 permits both, but WIST-4 §6.1 derives every reputation day
 count from these values by converting them to integer seconds, and a
 fractional or offset form would make that conversion a rounding decision
 that two implementations could take differently — one rounded half-second
@@ -93,7 +93,7 @@ converted to integer seconds since the epoch, MUST be an integer multiple
 of `block_cadence_seconds` as in force at the previous Block's
 `sealed_at`, and a Consumer replaying the Log MUST reject a Block off the
 grid. The Block Hash is an input to every Auditor's selection draw
-(DC-4 §4), and a freely chosen `sealed_at` was a free grinding dimension
+(WIST-4 §4), and a freely chosen `sealed_at` was a free grinding dimension
 over it — the grid leaves the Aggregator its sealing cadence and removes
 its choice of digits. The first Block after a `parameter_change` to
 `block_cadence_seconds` takes effect lands on the new grid; the Anchor's
@@ -112,7 +112,7 @@ recompute `merkle_root` and check `entry_count` before use.
 
 ### 3.2. Sealing
 
-Blocks are sealed at a fixed cadence (Parameter Registry, DC-4 §9;
+Blocks are sealed at a fixed cadence (Parameter Registry, WIST-4 §9;
 default: hourly). A Block MAY be empty (`entry_count: 0`); empty blocks
 keep the chain's heartbeat observable. Once sealed, a Block is immutable
 forever.
@@ -123,7 +123,7 @@ forever.
 replaying the Log MUST reject a Block that does. This is the one bound in
 the suite on how much a domain may publish, and it is deliberately a
 bound on *rate*, not on worth or on standing: reputation caps quota,
-sampling and latency and nothing else (DC-4 §6.4), judging content's
+sampling and latency and nothing else (WIST-4 §6.4), judging content's
 worth is outside the protocol (ADR-0006), and a ceiling that grew with
 reputation would re-create the pay-for-position pressure Invariant 2
 exists to forbid — so the cap is flat, high enough that a large site's
@@ -137,11 +137,11 @@ deserve a consumer's attention is ranking, decided at consumption
 **A sealed Delta is sealed once.** A Delta ID MUST appear in at most one
 `publisher_delta` Entry in the whole Log. An Aggregator that receives a
 Delta it has already sealed treats the submission as the idempotent
-acceptance DC-1 §4 requires and MUST NOT seal it a second time; a Consumer
+acceptance WIST-1 §4 requires and MUST NOT seal it a second time; a Consumer
 replaying the Log MUST reject a Block containing a `publisher_delta` Entry
 whose Delta ID a lower Entry — in the same Block or an earlier one —
 already carries. Together with immutability above, this is what makes "the
-Block that sealed this Delta" a well-defined phrase: DC-4 §5's Audit
+Block that sealed this Delta" a well-defined phrase: WIST-4 §5's Audit
 Records name no Block and instead resolve their audited Block by finding
 the one whose `publisher_delta` Entries carry `audited_delta`, which is a
 function only because the answer is unique and permanent.
@@ -151,16 +151,16 @@ function only because the answer is unique and permanent.
 Each Entry is `{"type": <t>, "body": <envelope>}`, where `type` is one of
 exactly four values and `body` is the Envelope that value names:
 
-- `publisher_delta` — body is a Delta Envelope (DC-1).
+- `publisher_delta` — body is a Delta Envelope (WIST-1).
 - `publisher_declaration` — body is a Publisher Declaration Envelope
-  (DC-1 §5.1); the Aggregator MUST seal a Declaration Entry before, or in
+  (WIST-1 §5.1); the Aggregator MUST seal a Declaration Entry before, or in
   the same Block as, the first Delta it authorizes.
-- `audit_record` — body is an Audit Record Envelope (DC-4 §5).
-- `registry_update` — body is a Registry Update Envelope (DC-4 §3, §7, §9).
+- `audit_record` — body is an Audit Record Envelope (WIST-4 §5).
+- `registry_update` — body is a Registry Update Envelope (WIST-4 §3, §7, §9).
 
-DC-3 defines only this envelope; the `body` formats of `audit_record` and
-`registry_update` are normative in DC-4, and of `publisher_delta` and
-`publisher_declaration` in DC-1. Validators MUST reject Blocks containing
+WIST-3 defines only this envelope; the `body` formats of `audit_record` and
+`registry_update` are normative in WIST-4, and of `publisher_delta` and
+`publisher_declaration` in WIST-1. Validators MUST reject Blocks containing
 unknown Entry types under the current major version.
 
 **Entry order is canonical.** Within a Block, Entries MUST appear grouped
@@ -170,7 +170,7 @@ octet order of each Entry's Merkle leaf hash (§4). A Consumer replaying
 the Log MUST reject a Block ordered otherwise. The rule exists for the
 same reason as the `sealed_at` grid (§3.1): Entry order feeds
 `merkle_root`, `merkle_root` feeds the Block Hash, and the Block Hash
-feeds every Auditor's selection draw (DC-4 §4) — a free permutation of
+feeds every Auditor's selection draw (WIST-4 §4) — a free permutation of
 Entries was a free grinding dimension of factorial size. Canonical order
 leaves the Aggregator its one real choice, Block membership, and §3.2's
 cadence already bounds how often that choice recurs.
@@ -178,7 +178,7 @@ cadence already bounds how often that choice recurs.
 Storage order and application order are therefore decoupled, and
 **application order** is defined, not inherited: within a Block, apply
 `publisher_declaration` Entries first (their own precedence is `seq`, and
-DC-1 §5.2's resolution rule is height-based, so intra-Block position
+WIST-1 §5.2's resolution rule is height-based, so intra-Block position
 never decides between them), then `registry_update` Entries (admission
 and removal read at Block granularity — "admitted at this Block's
 `sealed_at`" — so position within the Block carries no meaning), then
@@ -196,7 +196,7 @@ paragraph does not name.
 A Log is identified by its **Log Anchor**, a self-signed document whose
 inner object is `anchor` (schema:
 [`schemas/log-anchor.schema.json`](../schemas/log-anchor.schema.json)),
-served at `/log/anchor.json`. It declares `dc_version`, the `log_id` (the
+served at `/log/anchor.json`. It declares `wist_version`, the `log_id` (the
 Log's hostname identity), the `genesis_key` — an object carrying that key's
 `key_id`, `alg` and raw base64url `public_key` — and `created_at`, the
 instant the Log was established. The Anchor is self-signed: its `sig.key_id`
@@ -259,7 +259,7 @@ successor's genesis, exactly as if the successor's Block 0 were Block
 `final_block_number + 1`. Windows anchored to a `sealed_at` of the dead
 chain keep their instants; Blocks of the successor discharge them. The
 carry is the point: a fork is this suite's stated remedy for a captured
-or colluding operator (DC-4 §8, §10), and a remedy that reset every
+or colluding operator (WIST-4 §8, §10), and a remedy that reset every
 domain to Provisional and erased every sanction would punish every
 honest Publisher and amnesty every delisted one — a successor without
 `predecessor` does exactly that, lawfully, as a new Log that inherits
@@ -268,7 +268,7 @@ is: by which one the ecosystem verifiably pins, a choice this
 specification makes falsifiable (each candidate names its final Block,
 and §5's evidence rules say whether that Block was honestly reached)
 but deliberately does not make. A major-version migration uses the same
-field: a v2 Log naming a v1 predecessor is a continuation, and DC-1
+field: a v2 Log naming a v1 predecessor is a continuation, and WIST-1
 §1's "reject unknown major versions" governs objects, not history.
 
 ## 4. Merkle Tree and Inclusion Proofs
@@ -374,7 +374,7 @@ Aggregator, with the same `block_number` and different `block_hash`. The
 evidence bundle is exactly those two Checkpoint files — self-contained,
 portable, verifiable by anyone with the Aggregator's public key. A party
 holding such a bundle SHOULD publish it widely; consumers verifying it
-MUST stop applying new data from that Aggregator (§9, `DC3-E02`). Checkpoints
+MUST stop applying new data from that Aggregator (§9, `WIST3-E02`). Checkpoints
 signed by *any* key valid at their `block_number` count; an Aggregator
 cannot escape an equivocation proof by removing the signing key afterward
 (§3.4).
@@ -448,7 +448,7 @@ because nothing else authenticates them.
 **Discovery.** `/snapshots/index.json` (schema:
 [`schemas/snapshot-index.schema.json`](../schemas/snapshot-index.schema.json))
 is the discovery entry point: a signed, mutable index whose inner object is
-`index`, carrying `dc_version`, `updated_at` (when the Aggregator last
+`index`, carrying `wist_version`, `updated_at` (when the Aggregator last
 rewrote it), and `snapshots` — the Snapshots the Aggregator currently
 serves, newest `snapshot_date` first, each with its `log_position`, its
 `manifest_url`, and the `content_digest` (§7) that Snapshot's manifest
@@ -460,7 +460,7 @@ serving that Snapshot; a withdrawal (§6.2) is the case that forces it.
 
 **Retention.** The Aggregator MUST keep every Block from genesis
 retrievable at its `/log/blocks/` path. Replay from the Log Anchor is what
-makes key validity (§3.4), reputation (DC-4 §6) and historical signature
+makes key validity (§3.4), reputation (WIST-4 §6) and historical signature
 verification recomputable, so a Log missing a Block in the middle is a Log
 no party can verify from the Anchor at all. The Aggregator MUST likewise
 retain every Checkpoint it has published, at
@@ -480,7 +480,7 @@ argument applies to them.
 
 **Sizing.** The Log has a permanent volume floor that does not depend on
 how much anyone publishes. An admitted Auditor whose VRF selects nothing in
-a Block MUST still publish a `coverage_attestation` for that Block (DC-4
+a Block MUST still publish a `coverage_attestation` for that Block (WIST-4
 §4), so an entirely idle Log still accrues roughly one Entry per admitted
 Auditor per Block — at the default hourly cadence (§3.2), about 8 760
 Entries per Auditor per year. Permanent volume therefore scales with roster
@@ -491,7 +491,7 @@ one decision rather than two.
 
 ### 6.1. Payloads
 
-A Delta commits to its content and does not carry it (DC-1 §3.6). The
+A Delta commits to its content and does not carry it (WIST-1 §3.6). The
 content travels as a **Payload** (schema:
 [`schemas/payload.schema.json`](../schemas/payload.schema.json)) served at
 
@@ -500,22 +500,22 @@ content travels as a **Payload** (schema:
 ```
 
 where `<delta-id-hex>` is the Delta ID's 64-character hex digest without
-the `sha256:` prefix — the same naming a Publisher uses (DC-2 §3.1). A
+the `sha256:` prefix — the same naming a Publisher uses (WIST-2 §3.1). A
 Payload file is immutable while it is served: an Aggregator MUST serve at
-that path either the exact bytes it verified at ingest (DC-2 §5) or
+that path either the exact bytes it verified at ingest (WIST-2 §5) or
 nothing at all.
 
-A Payload carries exactly three members. `dc_version` is the version of
-this suite it conforms to (DC-1 §3.1). `salt` is the base64url encoding,
-unpadded, of the ≥ 16 octets that key the Delta's commitment (DC-1 §3.6);
+A Payload carries exactly three members. `wist_version` is the version of
+this suite it conforms to (WIST-1 §3.1). `salt` is the base64url encoding,
+unpadded, of the ≥ 16 octets that key the Delta's commitment (WIST-1 §3.6);
 it is the one place the salt is published, and destroying it is what makes
 a withdrawal effective (§6.2). `content` is the object the commitment is
 computed over: a REQUIRED `extract`, the page's main text; a REQUIRED
-`links` object carrying a REQUIRED `total` and REQUIRED `urls` (DC-1 §3.6);
+`links` object carrying a REQUIRED `total` and REQUIRED `urls` (WIST-1 §3.6);
 and a REQUIRED `summary` object carrying a REQUIRED `title` and an OPTIONAL
 `abstract`. Those eight names and no others: `content` is the exact
 preimage of `JCS(content)`, so a Payload carrying any further field
-commits to different bytes and fails verification. DC-1 §3.6 governs the
+commits to different bytes and fails verification. WIST-1 §3.6 governs the
 octet caps on `extract`, `links` and `summary` and the relationship
 between them and `bytes`; a Payload is unsigned, so nothing here is
 authenticated except by recomputing that commitment.
@@ -528,9 +528,9 @@ them, which is exactly why a Block stays byte-immutable when a Payload is
 withdrawn.
 
 A Consumer MUST verify each Payload against its Delta's `commitment` and
-`bytes` (DC-1 §3.6) before applying its content, and MUST NOT apply
-content that fails (`DC1-E10`; the serving party is at fault under
-`DC3-E03`). Verification does not depend on where the file came from, so a
+`bytes` (WIST-1 §3.6) before applying its content, and MUST NOT apply
+content that fails (`WIST1-E10`; the serving party is at fault under
+`WIST3-E03`). Verification does not depend on where the file came from, so a
 Payload MAY be fetched from any Mirror, from another Consumer, or from the
 Publisher's own `.well-known` path: the commitment decides, never the
 source. That is also why §6.2 binds all three: a withdrawal reaches every
@@ -546,7 +546,7 @@ no content for it.
 serve that Block's Payloads for at least the payload availability window
 (Parameter Registry; default 180 days), except for Payloads withdrawn
 under §6.2. A Payload that is absent without a withdrawal entry is a
-`DC3-E05` fault against that Mirror; this is what distinguishes a lawful
+`WIST3-E05` fault against that Mirror; this is what distinguishes a lawful
 withdrawal from a Mirror quietly dropping content it dislikes.
 
 After the window elapses, retention is at each Mirror's discretion, and a
@@ -554,7 +554,7 @@ Consumer MUST NOT read absence as misbehavior. The window is therefore a
 detection window rather than an archival promise: it is set long enough
 that a Payload's absence inside it is evidence, and every duty that
 depends on content — an Auditor's coverage duty above all, which expires
-72 hours after a Block is sealed (DC-4 §4) — falls well within it.
+72 hours after a Block is sealed (WIST-4 §4) — falls well within it.
 
 **Anchor Payloads.** One class of Payload outlives the window at the
 Aggregator. Two separate rules govern it — which Payload an audit names,
@@ -563,8 +563,8 @@ because they end at different times and for different reasons.
 
 *Resolution.* A URL's **anchor Payload as of a Delta *d*** is the Payload
 of the last content-bearing Delta at or before *d* in that URL's per-URL
-chain (DC-1 §3.5). It is what an `attest` or `delete` Delta is audited
-against (DC-4 §5) and the key under which that audit's own commitments are
+chain (WIST-1 §3.5). It is what an `attest` or `delete` Delta is audited
+against (WIST-4 §5) and the key under which that audit's own commitments are
 computed. The rule is relative to *d* rather than to the present, and
 carries no liveness qualifier: an anchor that moved whenever a later
 `update` was sealed would retroactively invalidate Records that were
@@ -590,7 +590,7 @@ obligation immediately, at any point in its life.
 
 Resolution outliving serving is not a contradiction but the ordinary case:
 an audit whose Reference Payload it can name but cannot fetch is
-`not_auditable` (DC-4 §5), which is exactly how the suite records "there
+`not_auditable` (WIST-4 §5), which is exactly how the suite records "there
 was a thing to check and it is no longer available".
 
 Holding current anchors costs the Aggregator nothing it was not already
@@ -602,7 +602,7 @@ commitment makes the two interchangeable.
 ### 6.2. Withdrawal
 
 A Payload is removed from distribution by a `payload_withdrawal` Registry
-Update (DC-4 §9.1), signed by the Aggregator, whose `subject` is the
+Update (WIST-4 §9.1), signed by the Aggregator, whose `subject` is the
 Publisher's domain and whose `details` name the `delta_id`, the
 `legal_basis` under which the content is being erased, and the
 `jurisdiction` of the party demanding it. A request covering several
@@ -615,12 +615,12 @@ that height:
 - the Aggregator, every Mirror **and the Publisher itself** MUST stop
   serving that Payload, and a Consumer MUST NOT treat its absence as a
   fault. The Publisher is bound because its `.well-known` copy is a third
-  serving path (DC-2 §3.1), the original one, and the only one this
+  serving path (WIST-2 §3.1), the original one, and the only one this
   document does not otherwise reach: a withdrawal that bound the two
   downstream copies and left the source published would relocate the salt
   rather than destroy it, and every claim below about what stops being
   checkable would be false at one fetch. The Publisher's own retention
-  duty for an anchor Payload (DC-2 §3.1) ends at that height rather than
+  duty for an anchor Payload (WIST-2 §3.1) ends at that height rather than
   competing with this one; a Publisher that still attests to the URL
   re-anchors the chain instead, exactly as it would if it had to stop
   serving the Payload for any other reason;
@@ -631,27 +631,27 @@ that height:
   `tier1/links.parquet` no less than `tier1/extracts.parquet`, since a
   withdrawn Payload's declared links are content and leave distribution
   with it (§7);
-- Auditors record `not_auditable` for that Delta (DC-4 §5) rather than a
+- Auditors record `not_auditable` for that Delta (WIST-4 §5) rather than a
   verdict derived from content;
 - every party holding the Payload for protocol purposes MUST destroy it,
   its salt, and anything it retained of the content it carried. For an
   Auditor that means the WARC capture it preserved for its Audit Records
-  on that Delta (DC-4 §5) and any copy of the Payload it fetched to
+  on that Delta (WIST-4 §5) and any copy of the Payload it fetched to
   compute them. The obligation reaches the Auditor because the Auditor is
   the one party the protocol requires to keep a copy of the page; leaving
   it out would relocate the retained content rather than erase it.
 
 Destroying the captures costs no accountability. A Confirmed
 Inconsistency's weight comes from the `verdict` and `similarity` values
-already sealed (DC-4 §6.1), which are data in the Log and are unaffected;
+already sealed (WIST-4 §6.1), which are data in the Log and are unaffected;
 the captures exist so that those verdicts can be checked while the content
 is served. That covers confirmation always: a Confirmed Inconsistency is
-fixed within 72 hours (DC-4 §5). It does not reliably cover the sanction
+fixed within 72 hours (WIST-4 §5). It does not reliably cover the sanction
 ladder built on top of it, whose spans bound how far apart Confirmed
 Inconsistencies may lie rather than how old any of them is when a sanction
 is filed — and §7 sets no deadline for filing one. A level-4 appeal can
 therefore be heard on a Record whose Reference Payload lapsed months
-earlier; DC-4 §5 works the case through and states what an appellant can
+earlier; WIST-4 §5 works the case through and states what an appellant can
 and cannot re-verify once that has happened.
 
 What withdrawal does not touch is the record. The Delta stays sealed, its
@@ -663,10 +663,10 @@ and it cannot recall copies already served.
 
 **After a withdrawal the Log retains no unsalted digest of the withdrawn
 content.** That is a property of the object formats, not an aspiration:
-the Delta commits to its content under the Payload salt (DC-1 §3.6), and
+the Delta commits to its content under the Payload salt (WIST-1 §3.6), and
 every content-derived value in an Audit Record — the response, the
 Auditor's reference extraction, the WARC capture — is committed under that
-same salt (DC-4 §5). One salt keys all four, so destroying it makes all
+same salt (WIST-4 §5). One salt keys all four, so destroying it makes all
 four unlinkable at the same instant. The rule is general and binds any
 object a later revision adds: **a content-derived value in this suite is
 committed under the Payload salt or it is not carried at all.** No object,
@@ -683,9 +683,9 @@ reference extraction or its capture, `similarity` is recomputable and can
 be matched against the sealed integer exactly. What stands between that
 party and the content is the destroy obligation above — a duty on a named
 holder, not a property of the format, and this specification does not
-present it as one (DC-1 §9, DC-4 §11).
+present it as one (WIST-1 §9, WIST-4 §11).
 
-The due process is the same the suite uses for sanctions (DC-4 §7):
+The due process is the same the suite uses for sanctions (WIST-4 §7):
 notice in the Log, a named basis, a public and permanent record. An
 operator that removes a Payload without sealing this entry has not
 withdrawn it lawfully — it has dropped it, and §6.1's window makes that
@@ -704,7 +704,7 @@ other exercise of operator power.
 Entries of the Log the withdrawal was sealed in: an Aggregator, its
 Mirrors, and the Auditors admitted to *that* Log. A second, independent
 Log that sealed the same Publisher's Deltas — nothing forbids one, and
-DC-2's publication surface is one site serving whomever pulls — is
+WIST-2's publication surface is one site serving whomever pulls — is
 unreached by it, and a Publisher who needs content erased from two Logs
 files two withdrawals. Stated once, plainly, because the alternative is
 a Publisher discovering it at the worst moment: this suite's erasure
@@ -756,7 +756,7 @@ is trust in its publisher, chosen the way a client is chosen, never a
 property the protocol asserts. Packs published by the Aggregator are
 Snapshot artifacts for the purposes of §6.2's withdrawal obligations; a
 third-party pack containing a since-withdrawn record is a copy already
-served, in the position DC-1 §6 names, with a named holder. Discovery of
+served, in the position WIST-1 §6 names, with a named holder. Discovery of
 packs is out of scope: a Consumer verifies a pack against the digest of
 a Snapshot it already holds, wherever the pack came from.
 
@@ -771,7 +771,7 @@ Log-derived tuples only, so that it remains computable after a
 withdrawal, and the artifact's transport integrity is already pinned by
 its `files` entry. It transports declarations, never a judgement: which
 links are trustworthy, and what importance follows from being linked,
-is ranking, and ranking is outside this protocol (DC-4 §8, ADR-0006,
+is ranking, and ranking is outside this protocol (WIST-4 §8, ADR-0006,
 ADR-0008). That boundary is what makes carrying the graph admissible at
 all: ADR-0006 keeps importance out of the protocol, and ADR-0008 records
 that a page's own outbound links are a verifiable statement about the
@@ -784,14 +784,14 @@ keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
 a `new` or `update` Delta replaces the record's content and becomes the
 record's **anchor Delta** (§6.1); an `attest` Delta updates the record's
 freshness only and leaves the anchor where it was; a `delete` removes the
-record. A Delta that forks an already-materialized chain (DC-1 §3.5) is
-ignored. Sanction levels apply as DC-4 §7 derives them — from the evidence,
+record. A Delta that forks an already-materialized chain (WIST-1 §3.5) is
+ignored. Sanction levels apply as WIST-4 §7 derives them — from the evidence,
 not from whether an Aggregator sealed a `sanction`: level 2 marks every
 record of that domain reduced-weight; level 3 stops that domain's later
 Deltas from being materialized at all, from the height it takes effect;
 level 4 removes the domain's records entirely; and a `sanction_lift`, a
 successful appeal, a lapsed ruling deadline, a lapsed appeal-sealing
-deadline, or an identity reset (DC-4 §7, §6.3) reverses the state from
+deadline, or an identity reset (WIST-4 §7, §6.3) reverses the state from
 the height that takes effect.
 Deletion, withdrawal and unauditability
 are covered by the rule below. The Log retains every Entry in every case;
@@ -799,7 +799,7 @@ materialization shapes only the present state.
 
 **One URL, one Publisher.** A URL's host can lawfully sit inside two
 authorities at once: its own domain's, and a parent domain whose
-`subdomain_scope` names it (DC-1 §3.2). The record key is (Publisher
+`subdomain_scope` names it (WIST-1 §3.2). The record key is (Publisher
 domain, Normalized URL), so without a tiebreak the same URL could carry
 two live records, one under each Publisher, and nothing below would say
 which one a query should believe. The tiebreak is self-governance: from
@@ -814,12 +814,12 @@ height, the scope — is in the Log, so any two replayers agree; the
 parent's excluded Entries remain in the Log like every other superseded
 state.
 
-**Materialization rule.** A `delete` Delta (DC-1 §3.3) excludes that
+**Materialization rule.** A `delete` Delta (WIST-1 §3.3) excludes that
 URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
 likewise excludes that Delta's content from every Snapshot produced at or
 above its sealing height, in both tiers, including any declared link
 derived from it. A URL that is **unauditable** at the
-Snapshot's `log_position` (DC-4 §5) — one that two independent Auditors
+Snapshot's `log_position` (WIST-4 §5) — one that two independent Auditors
 have been forbidden to fetch by `robots.txt` inside the unauditable
 horizon, with no successful audit by an Auditor independent of both
 since — is excluded for as long as that holds, and returns to
@@ -885,7 +885,7 @@ Delta in its per-URL chain at that height, and therefore the Delta whose
 Payload supplied the content the tiers carry; `r.observed_at` is the
 `observed_at` of the newest Delta in that chain, which is the freshness the
 tiers carry and is what makes an `attest` visible in the digest;
-`r.weight` is `"full"` or `"reduced"` (DC-4 §7 level 2); and `sorted` is
+`r.weight` is `"full"` or `"reduced"` (WIST-4 §7 level 2); and `sorted` is
 ascending octet order. Records are keyed by (Publisher domain, Normalized
 URL) and the tuple carries both, so the ordering is total and no two
 records can produce equal bytes. JCS objects are self-delimiting, so the
@@ -902,7 +902,7 @@ artifacts the Aggregator published (§6).
 function of the Log prefix from genesis through `log_position` and of
 nothing else. Deletion, withdrawal, unauditability and every rung of the
 sanction ladder are decided by sealed Entries and by the deadlines those
-Entries start — DC-4 §7 derives each ladder
+Entries start — WIST-4 §7 derives each ladder
 level from the evidence rather than from an Aggregator's `sanction`, and
 lifts it on a deadline the Aggregator lets lapse rather than on a
 `sanction_lift` it chooses to file — and
@@ -920,7 +920,7 @@ the Parameter Registry values that decide them are read as of
   needed to say which ones those are.
 - **Agreement still pins the content.** `delta_id` is the SHA-256 of a
   Delta's Canonical Bytes, and those carry the salted commitment to the
-  Payload (DC-1 §3.6). Two parties whose digests agree therefore hold the
+  Payload (WIST-1 §3.6). Two parties whose digests agree therefore hold the
   same commitment for every record, and §6.1 forbids materializing content
   that does not reproduce its commitment. The digest itself carries no
   content and confirms nothing a holder of a candidate text could not
@@ -934,11 +934,11 @@ is correct — they are the same state. The height is carried by
 `log_position` and bound to a single chain by `anchor_block_hash`, the
 Block Hash of Block `log_position`, which §8 checks against the chain the
 Consumer verified. A Consumer that rebuilds to a height whose live set
-differs therefore sees a `content_digest` mismatch (`DC3-E04`) rather than
+differs therefore sees a `content_digest` mismatch (`WIST3-E04`) rather than
 silent agreement; one that rebuilds to a different height whose live set is
 the same agrees, and is right to, since the manifest's `log_position`
 already says which height was meant. A manifest from a forked chain shows
-an `anchor_block_hash` the Consumer's chain does not produce (`DC3-E02`),
+an `anchor_block_hash` the Consumer's chain does not produce (`WIST3-E02`),
 whatever its digest says. Nor does the digest speak for a
 non-conforming builder: it proves two parties materialized the same
 records, not that either verified the Payloads it indexed, which §6.1
@@ -995,7 +995,7 @@ or compute a reputation. The manifest therefore declares `state`: the
 The state file is a signed Envelope whose inner object is `state`
 (schema:
 [`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json)),
-carrying `dc_version`, the `log_position` (= the manifest's), and
+carrying `wist_version`, the `log_position` (= the manifest's), and
 `entries`: one tuple per item of live protocol state, each a JSON array
 whose first member is its kind. The kinds, their key fields and their
 value fields are:
@@ -1003,14 +1003,14 @@ value fields are:
 | Kind | Key fields | Value fields | Defined by |
 |---|---|---|---|
 | `aggregator_key` | `key_id` | `public_key`, added height, removed height or `null` | §3.4 |
-| `auditor` | `auditor_id`, `key_id` | `public_key`, admitted height, removed height or `null` | DC-4 §3 |
-| `declaration` | domain | the current Declaration Envelope, its sealing height | DC-1 §5 |
-| `parameter` | identifier | value, `effective_at` | DC-4 §9 |
-| `sanction_state` | domain | level, establishing Registry Update IDs, each open deadline instant | DC-4 §7 |
-| `recovery_window` | domain | recovery Declaration height, window end | DC-1 §5.2 |
-| `exclusion` | publisher, URL | excluded-since height | DC-4 §5 |
-| `coverage_failure` | `auditor_id`, block number | — | DC-4 §4 |
-| `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted URL set, penalties as (confirming `sealed_at`, severity) pairs | DC-4 §6 |
+| `auditor` | `auditor_id`, `key_id` | `public_key`, admitted height, removed height or `null` | WIST-4 §3 |
+| `declaration` | domain | the current Declaration Envelope, its sealing height | WIST-1 §5 |
+| `parameter` | identifier | value, `effective_at` | WIST-4 §9 |
+| `sanction_state` | domain | level, establishing Registry Update IDs, each open deadline instant | WIST-4 §7 |
+| `recovery_window` | domain | recovery Declaration height, window end | WIST-1 §5.2 |
+| `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
+| `coverage_failure` | `auditor_id`, block number | — | WIST-4 §4 |
+| `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted URL set, penalties as (confirming `sealed_at`, severity) pairs | WIST-4 §6 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
 A `parameter` tuple exists only for a parameter amended since genesis:
@@ -1018,7 +1018,7 @@ Registry defaults are constants of this suite and are not restated. A
 `record` tuple carries the chain tip — the newest Delta of the chain,
 which the content tuple does not name (its `delta_id` is the anchor) —
 because a resuming Consumer must reject a fork of the live chain
-exactly as a replaying one would (DC-1 §3.5). `state_digest` is the §7
+exactly as a replaying one would (WIST-1 §3.5). `state_digest` is the §7
 construction verbatim — `sha256:` over the concatenation of the sorted
 JCS bytes of every tuple — and every field above is Log-derived, so the
 digest is computable after any withdrawal, for the §7 reasons. A
@@ -1036,14 +1036,14 @@ does not verify.
    (normally the newest).
 2. Fetch that entry's `manifest_url`; verify its signature; verify that its
    `snapshot_date`, `log_position` and `content_digest` are the ones the
-   index entry named (`DC3-E04` on disagreement — the two are independently
+   index entry named (`WIST3-E04` on disagreement — the two are independently
    signed statements about the same Snapshot).
 3. Download the listed files — all of them, or, under a manifest that
    declares `shards` (§7), the state file and any subset of shards —
    and verify each SHA-256 and byte size.
 4. Fetch `/log/checkpoint.json`; verify signature.
 5. Download Blocks `log_position + 1 .. checkpoint.block_number`. A Block
-   a Mirror does not hold is `DC3-E01`: fetch it from another Mirror,
+   a Mirror does not hold is `WIST3-E01`: fetch it from another Mirror,
    since integrity never depends on the source.
 6. Verify each Block: chain (`prev_block_hash`), signature, `merkle_root`
    recomputation, `entry_count`.
@@ -1054,7 +1054,7 @@ does not verify.
    Block `log_position` on that same chain: against the `prev_block_hash`
    of Block `log_position + 1` when one was downloaded, or against the
    Checkpoint's `block_hash` when the Snapshot is already at the head. A
-   mismatch is chain divergence (`DC3-E02`), not a corrupt file: it means
+   mismatch is chain divergence (`WIST3-E02`), not a corrupt file: it means
    the Snapshot describes a different chain from the one just verified.
 9. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
    in those Blocks whose Payload has not been withdrawn (§6.2); verify
@@ -1116,11 +1116,11 @@ on law.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| DC3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
-| DC3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
-| DC3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — DC-1 §3.6, `DC1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
-| DC3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
-| DC3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (DC-2 §3.1), and keep applying the Log. A Consumer that sees `DC3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
+| WIST3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
+| WIST3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
+| WIST3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — WIST-1 §3.6, `WIST1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
+| WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
+| WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
 ## 10. Security Considerations
 
@@ -1130,14 +1130,14 @@ on law.
   block numbers are monotonic and Consumers never accept a Checkpoint
   older than one they hold.
 - **Mirror tampering.** Mirrors are trustless byte servers; any
-  modification fails hash or signature verification (`DC3-E03`). This
+  modification fails hash or signature verification (`WIST3-E03`). This
   covers Payloads too: a Mirror that alters one fails the Delta's
   commitment, which every fetcher recomputes and which was fixed by the
   Publisher's signature before any Mirror saw it.
 - **Selective payload suppression.** Tampering being useless, a hostile
   Mirror's remaining move is to serve some Payloads and not others. §6.1
   makes that a typed, attributable fault: inside the availability window,
-  absence with no `payload_withdrawal` in the Log is `DC3-E05` against
+  absence with no `payload_withdrawal` in the Log is `WIST3-E05` against
   that Mirror, and the Payload is still obtainable from the Aggregator,
   another Mirror, or the Publisher, so suppression by one party achieves
   nothing but its own detection. Lawful withdrawal looks different in
@@ -1150,7 +1150,7 @@ on law.
   duty in the suite falls inside the window. And an Aggregator that
   withholds a Payload from ingest onward, never publishing it at all,
   is visible as a Delta that no party can audit rather than as a Mirror
-  fault; DC-2 §5 closes the honest path by requiring the Aggregator to
+  fault; WIST-2 §5 closes the honest path by requiring the Aggregator to
   reject such a Delta instead of sealing it.
 - **Compression bombs.** The 256 MiB decompressed cap MUST be enforced
   streaming-side, aborting decompression at the limit rather than after.
@@ -1164,7 +1164,7 @@ on law.
 
 ## 11. Privacy Considerations
 
-The log is public and permanent; DC-1 §9's constraints on personal data
+The log is public and permanent; WIST-1 §9's constraints on personal data
 apply to everything in it. Content is deliberately not in it: Payloads are
 distributed alongside the Log and are erasable under §6.2, so an erasure
 order costs a file deletion plus a Log entry rather than a rewrite of
@@ -1178,7 +1178,7 @@ already downloaded, and nothing in this specification pretends otherwise.
 What the design does guarantee is that after withdrawal the Log itself
 stops helping: with the salt destroyed, the surviving commitment does not
 let a holder of a copy establish that the copy is what was committed to
-(DC-1 §3.6, §9).
+(WIST-1 §3.6, §9).
 
 On the read side, a Consumer's sync pattern
 (timing, IP) is visible to the Mirrors it uses. Mitigations: Mirrors are
@@ -1285,41 +1285,41 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 Generated by `tools/gen_vectors.py`; verified by
 `tools/validate_examples.py`. Full files:
-[`vectors/dc3/block.json`](../vectors/dc3/block.json),
-[`vectors/dc3/inclusion-proof.json`](../vectors/dc3/inclusion-proof.json).
+[`vectors/wist3/block.json`](../vectors/wist3/block.json),
+[`vectors/wist3/inclusion-proof.json`](../vectors/wist3/inclusion-proof.json).
 
-Block 0 contains 4 `publisher_delta` Entries: the DC-1 vector Delta and
+Block 0 contains 4 `publisher_delta` Entries: the WIST-1 vector Delta and
 three `attest` Deltas for `post-2..4`. Their positions follow §3.3's
 canonical order — one type group, ascending leaf-hash order — which puts
-the DC-1 vector Delta at entry 2 and the `attest` Deltas at entries 0, 1
+the WIST-1 vector Delta at entry 2 and the `attest` Deltas at entries 0, 1
 and 3; no Entry's position is chosen.
 
 **Leaf hashes (hex):**
 
 ```
-leaf0 = 0c74934dd9c665a7f78c6d3b8f692c72e04e7740c5b675f9c488bcde41445260
-leaf1 = 220054dcb66d9ba11a870cc8df9de8b45f81d9906d898779dfbc98a5458e6958
-leaf2 = 692b6c22035d2d93674487f07223f7ba1897737af6772d34ae9034e67d000b7f
-leaf3 = a09515d719b184df17752e6adf84f32a99add1f11bf6348d12278c0e9cf03376
+leaf0 = 0d37321ff7a70ea8eb2c8bca3e630b192d6dbf3c2e1abb0e47d6d625cd2ce559
+leaf1 = 30348d540c9c7a4f3ec402991e7aba646525e4679f7b45d67d3e09d152ce2afc
+leaf2 = 796aa675d11077c351723dacf7b5c6e1bd2b8f8d390af9431b87a981b78b809b
+leaf3 = 8e0263dd0752e1bf3799ef971b4b915fccaa5874b7305d9077a8581fb525e07b
 ```
 
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = 8f76270cd95f93f2a2a91f19deb5d1dc2cef31aeacdbfe42e8ff22a1544430bc
-n23 = node(leaf2, leaf3) = 046d8f0d84ff9c080f5e33d31c191f0841b281a442f4abb874ddad7e190ad763
+n01 = node(leaf0, leaf1) = e9f48754d9db8a51aba980e600662df61b85f1a875c7c15d941c75343ede9e17
+n23 = node(leaf2, leaf3) = 17a657179cd77b7d2b07c6fc189cc19fa94be2cfb114eaca86d0c802d563e12a
 ```
 
 **Merkle root:**
 
 ```
-sha256:2665ae59c2decdc0559d7ab10563e73563966d3db25eaa0fda567ed50f29995e
+sha256:11f3ca096f59f1680f0cb11312e66abe2c87e150069606ec7a78074b3e03a82b
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:8c3c0bbbdfc09d9abae80b261dcdc9b71f2e2bd6f124b5f2ce076a140f8750e5
+sha256:4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
@@ -1353,10 +1353,10 @@ without shipping binary artifacts. Its `anchor_block_hash` is the Block
 Hash above, Block 0 being its `log_position`.
 
 Its `content_digest` is computed over the two records in
-[`vectors/dc3/snapshot-records.json`](../vectors/dc3/snapshot-records.json),
+[`vectors/wist3/snapshot-records.json`](../vectors/wist3/snapshot-records.json),
 which publishes the record tuples themselves so that §7's formula is
 reproducible from the file: one full-weight record for the Delta above, and
-one reduced-weight record for a domain under a DC-4 §7 level-2 mark, so
+one reduced-weight record for a domain under a WIST-4 §7 level-2 mark, so
 that both `weight` values and the ordering rule are exercised. That second
 domain's Delta is not an Entry of the example Block; the vector demonstrates
 the record encoding, not a materialization of Block 0.
@@ -1370,5 +1370,5 @@ corresponding discovery index, carrying the same `snapshot_date`,
 - [RFC 6962] Certificate Transparency — Merkle hashing discipline,
   checkpoint/equivocation model
 - [RFC 8785] JSON Canonicalization Scheme (JCS)
-- DC-1: Delta Format & Identity · DC-2: Site Publication ·
-  DC-4: Audit, Reputation & Governance
+- WIST-1: Delta Format & Identity · WIST-2: Site Publication ·
+  WIST-4: Audit, Reputation & Governance

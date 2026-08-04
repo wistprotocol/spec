@@ -1,24 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/block.schema.json",
-  "title": "DeltaCommons Log Block (DC-3)",
+  "$id": "https://wistprotocol.org/schemas/block.schema.json",
+  "title": "WIST Logbook Block (WIST-3)",
   "type": "object",
   "required": ["header", "entries", "sig"],
   "additionalProperties": false,
   "properties": {
     "header": {
       "type": "object",
-      "required": ["dc_version", "block_number", "prev_block_hash", "sealed_at", "merkle_root", "entry_count"],
+      "required": ["wist_version", "block_number", "prev_block_hash", "sealed_at", "merkle_root", "entry_count"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "block_number": {"type": "integer", "minimum": 0},
         "prev_block_hash": {"type": "string", "pattern": "^sha256:([0-9a-f]{64}|genesis)$"},
         "sealed_at": {
           "type": "string",
           "format": "date-time",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
-          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z: no fractional seconds and no numeric offset, so DC-4 §6.1's conversion to integer seconds is exact (DC-3 §3.1)."
+          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z: no fractional seconds and no numeric offset, so WIST-4 §6.1's conversion to integer seconds is exact (WIST-3 §3.1)."
         },
         "merkle_root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "entry_count": {"type": "integer", "minimum": 0}
@@ -26,7 +26,7 @@
     },
     "entries": {
       "type": "array",
-      "description": "Sealed Entries. Entries carry commitments, never content: a Delta's extract, links and summary travel as a Payload alongside the Block (DC-3 §6.1) and are neither covered by the Block signature nor by the Merkle root.",
+      "description": "Sealed Entries. Entries carry commitments, never content: a Delta's extract, links and summary travel as a Payload alongside the Block (WIST-3 §6.1) and are neither covered by the Block signature nor by the Merkle root.",
       "items": {
         "type": "object",
         "required": ["type", "body"],

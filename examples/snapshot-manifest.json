@@ -1,15 +1,15 @@
 {
   "manifest": {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
-    "anchor_block_hash": "sha256:8c3c0bbbdfc09d9abae80b261dcdc9b71f2e2bd6f124b5f2ce076a140f8750e5",
-    "content_digest": "sha256:cc3e6076ef2c5e0e53955a422b2fe314d72814dea82bdb1aeec8cd675961e55c",
+    "anchor_block_hash": "sha256:4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c",
+    "content_digest": "sha256:fab8db7b95661cc69afcea638397213824cb3983e1a3b72c4058dd217f105da6",
     "state": {
       "path": "state.json",
-      "sha256": "5cfdd56052b79d6363f53a4d9a14d468d073f493963b4215ce847dd17daeb60c",
-      "bytes": 720,
-      "state_digest": "sha256:a145bb15d41bd9d843b08238a196e89aff82afc656d49dfc6fd4249825a330ea"
+      "sha256": "6fc02be004aea6f661c51c4915dc86ff7efb87eb2dc9b4989ae3f78c4f163f15",
+      "bytes": 721,
+      "state_digest": "sha256:688766b96f7bd2ecd74926bf4de5b5b03764255c8b208420eb3c79ea6501354e"
     },
     "files": [
       {
@@ -35,6 +35,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "VYckuOkerpyAVyaqkp5d6Gp4qy9yaxpN_Gmfhn5Wx4LcDhI1EqWnV6koA460ocWLWPNi66qb4L4kdfDsSeYGBg"
+    "value": "oONiv335mewoqTTvtB0sSnFBEL-KYKsfFTlCRTxvjJsine5GmuHVjYRLFLORtasAkFEraCnch_dqoARHdak9BA"
   }
 }

@@ -1,0 +1,76 @@
+{
+  "auditor_public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "ciphersuite": "ECVRF-EDWARDS25519-SHA512-TAI",
+  "block_hash": "sha256:4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c",
+  "alpha_hex": "4fe8dbf34e606617414986e95bbd406b9a3a9b5e6373a87c5ad880c15585382c",
+  "vrf_proof_hex": "97c4a06029baa132fd4c73a7699abaf562c0ac49bb215d7a2d162fc8182335fde1cc3eea2f3d6cf1960bdabd42101f4a88da9c201bc01a5d88cd67bfae6f03d35193ca88189861a4b5f17c15e4828d08",
+  "beta_hex": "ba8568c214c1d042d498170209f71565a45dfb24ce4a63b268ad8806856d3660db713ee9e698dbde205190dd1c6c284b37f8a4294e2f4384fec23a0cdb833e1f",
+  "delta_id": "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c",
+  "draw_first8_hex": "60b01151946cc5c4",
+  "D": 6967087665622336964,
+  "test": "select <=> D x 10^7 < p_1e7 x 2^64  (integers only, WIST-4 \u00a74)",
+  "note": "D, lhs and rhs exceed 2^53; a consumer whose JSON parser uses IEEE-754 doubles MUST read D from draw_first8_hex and recompute lhs/rhs as big integers.",
+  "parameters": {
+    "floor_1e7": 200000,
+    "ceiling_1e7": 5000000,
+    "slope_per_micro": 3
+  },
+  "selection": [
+    {
+      "label": "entry-3-provisional",
+      "delta_id": "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c",
+      "entry_index": 3,
+      "draw_first8_hex": "60b01151946cc5c4",
+      "D": 6967087665622336964,
+      "reputation_u": 100000,
+      "p_1e7": 2900000,
+      "lhs": 69670876656223369640000000,
+      "rhs": 53495557813757699686400000,
+      "lhs_approx": "6.967e25",
+      "rhs_approx": "5.350e25",
+      "selected": false
+    },
+    {
+      "label": "entry-3-established",
+      "delta_id": "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c",
+      "entry_index": 3,
+      "draw_first8_hex": "60b01151946cc5c4",
+      "D": 6967087665622336964,
+      "reputation_u": 900000,
+      "p_1e7": 500000,
+      "lhs": 69670876656223369640000000,
+      "rhs": 9223372036854775808000000,
+      "lhs_approx": "6.967e25",
+      "rhs_approx": "9.223e24",
+      "selected": false
+    },
+    {
+      "label": "entry-2-provisional",
+      "delta_id": "sha256:9a6bba629b8cce39ffb3f9d6755c7fdcd83153dc8db8e5f0c225f015d088a921",
+      "entry_index": 2,
+      "draw_first8_hex": "4851ab80fde5a675",
+      "D": 5211134814348224117,
+      "reputation_u": 100000,
+      "p_1e7": 2900000,
+      "lhs": 52111348143482241170000000,
+      "rhs": 53495557813757699686400000,
+      "lhs_approx": "5.211e25",
+      "rhs_approx": "5.350e25",
+      "selected": true
+    },
+    {
+      "label": "entry-2-established",
+      "delta_id": "sha256:9a6bba629b8cce39ffb3f9d6755c7fdcd83153dc8db8e5f0c225f015d088a921",
+      "entry_index": 2,
+      "draw_first8_hex": "4851ab80fde5a675",
+      "D": 5211134814348224117,
+      "reputation_u": 900000,
+      "p_1e7": 500000,
+      "lhs": 52111348143482241170000000,
+      "rhs": 9223372036854775808000000,
+      "lhs_approx": "5.211e25",
+      "rhs_approx": "9.223e24",
+      "selected": false
+    }
+  ]
+}

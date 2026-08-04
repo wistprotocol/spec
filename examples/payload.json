@@ -1,19 +1,19 @@
 {
-  "dc_version": "1.0.0",
-  "salt": "GTCxEvdFpRzrjA6G5StpLQ",
+  "wist_version": "1.0.0",
+  "salt": "0WkbJ9SZJXkdpm2fqA5YPQ",
   "content": {
-    "extract": "DeltaCommons is an open, verifiable, push-based web index protocol.",
+    "extract": "WIST is an open, verifiable, push-based web index protocol.",
     "links": {
       "total": 3,
       "urls": [
         "https://example.org/reference",
-        "https://spec.example.net/dc-1",
+        "https://spec.example.net/wist-1",
         "https://example.org/~user"
       ]
     },
     "summary": {
       "title": "Post 1",
-      "abstract": "An introduction to DeltaCommons."
+      "abstract": "An introduction to WIST."
     }
   }
 }

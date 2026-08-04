@@ -1,21 +1,21 @@
 {
   "record": {
-    "dc_version": "1.0.0",
-    "audited_delta": "sha256:6cac5bdd5e1c39278b73552eb0ef84ce3460c1778061443c2a9238a659a85120",
+    "wist_version": "1.0.0",
+    "audited_delta": "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c",
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
-    "response_commitment": "hmac-sha256:8652be7fd06816b6998fb3c7325a35ada44d8b350ac88b4c8005530472bfb928",
-    "ref_extract_commitment": "hmac-sha256:6379342666cfdee8f80015a9e3d7f46085bf8a7d93f1e7de4b6aef2608f332da",
+    "response_commitment": "hmac-sha256:605c002caadb78facecacea25b69fe96a83c357b3f2a90ae660538f6917f8110",
+    "ref_extract_commitment": "hmac-sha256:37f0a8c1676bcfb4bfbd4f002cc48166b45ca3e92288ed719fdb6e34cfc10685",
     "similarity": 940000,
     "link_agreement": 1000000,
     "verdict": "consistent",
-    "evidence_commitment": "hmac-sha256:e787d4cf09890f43da957730a1452cb58bc7860bb8f81fdf7898d61023b198d3",
-    "vrf_proof": "d65b9b43e383382b4ac77e73a5185eef6499033b2b7ee376bfe2669e73de66c5e8a0cf9252b1c1a82afa850a1a8343dee524efd90e4e8e4ffc1a069bb221200009a9bad562335e963d014063f63ed10d",
+    "evidence_commitment": "hmac-sha256:ea7e4d231859b314951c80ce6d56ba6bfb56b1d1d38e3a625d3651e870bd40d2",
+    "vrf_proof": "97c4a06029baa132fd4c73a7699abaf562c0ac49bb215d7a2d162fc8182335fde1cc3eea2f3d6cf1960bdabd42101f4a88da9c201bc01a5d88cd67bfae6f03d35193ca88189861a4b5f17c15e4828d08",
     "prev_record": null
   },
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "xwp1EnZVbG61eWZiMl143exTmBdUFV1LeJUvvdVqxdXqABYjEmrx7OhQ_e1THo4TmghECfqFeASF1OpdUWJFBA"
+    "value": "uNzqzsuRmY4PeWxyPokAVyay_BQbnyLviTO9Pb90Lj5i2CTnVBoNn1nRyP2bM2Nl2KcIgASyW01aVm9ySWdbAA"
   }
 }

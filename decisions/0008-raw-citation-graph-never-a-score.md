@@ -18,11 +18,11 @@ links, which no publisher controls.
 ## Decision
 
 The Payload carries the page's external links and their true count
-(DC-1 §3.6), extracted by one deterministic procedure (DC-2 §11) that binds
+(WIST-1 §3.6), extracted by one deterministic procedure (WIST-2 §11) that binds
 Publisher and Auditor alike; Snapshots materialize the graph
-(`tier1/links.parquet`, DC-3 §7); audits read a `link_agreement` and
+(`tier1/links.parquet`, WIST-3 §7); audits read a `link_agreement` and
 link fraud carries its own verdicts and a severity of its own, below
-content fabrication (DC-4 §5, §7). The protocol transports these
+content fabrication (WIST-4 §5, §7). The protocol transports these
 declarations raw. It never carries a rank, a weight, a score, or any
 aggregate of the graph: ranking — PageRank, HITS, anything — happens at
 consumption, where competing systems compute over the same commons and
@@ -46,7 +46,7 @@ what the rule removes is the gap between the page and its declaration.
   and what weight a ring of cheap domains deserves is exactly the
   judgement ADR-0006 reserves to consumers.
 - The graph is erasable with the content it came from: links live in
-  the Payload under its salt and leave distribution with it (DC-3
+  the Payload under its salt and leave distribution with it (WIST-3
   §6.2), so carrying the graph adds no permanent commitment to page
   content.
 - A consumer's ranking is reproducible by any other consumer from the

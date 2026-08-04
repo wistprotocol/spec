@@ -1,19 +1,19 @@
 {
   "index": {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "updated_at": "2026-08-02T13:05:00Z",
     "snapshots": [
       {
         "snapshot_date": "2026-08-02",
         "log_position": 0,
         "manifest_url": "/snapshots/2026-08-02/manifest.json",
-        "content_digest": "sha256:cc3e6076ef2c5e0e53955a422b2fe314d72814dea82bdb1aeec8cd675961e55c"
+        "content_digest": "sha256:fab8db7b95661cc69afcea638397213824cb3983e1a3b72c4058dd217f105da6"
       }
     ]
   },
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "GLz8jVdtl5yssfm85islkj4ZlMGOHtechNPkBPOjX9fDXuPUMf-vKfp9wFYE8WtXStC-0BADhhzyht2L2DE3Dg"
+    "value": "ss2M0W9EH_kypxc6XodJcDJREIL_nYBg3XwnKp1DiazwVBDx-7qBxxBGsq8fBDMgdAmACej71utgVcyEBPHZCg"
   }
 }

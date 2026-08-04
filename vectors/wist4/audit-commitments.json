@@ -1,0 +1,19 @@
+{
+  "note": "Preimages of the example Audit Record's commitments. Each is HMAC-SHA256 keyed by the salt of the Payload the audit measured against \u2014 here examples/payload.json, the audited Delta's own Payload (WIST-4 \u00a75). Once that Payload is withdrawn the salt is gone and none of these commitments can be checked again.",
+  "audited_delta": "sha256:7f71b865e8152140c4454c8dd6af8c2999d4629e97a077706676d8cf1da94a1c",
+  "salt_source": "examples/payload.json",
+  "commitments": {
+    "response_commitment": {
+      "message_hex": "726573706f6e73652d706c616365686f6c646572",
+      "value": "hmac-sha256:605c002caadb78facecacea25b69fe96a83c357b3f2a90ae660538f6917f8110"
+    },
+    "ref_extract_commitment": {
+      "message_hex": "4f66666e657420697320616e206f70656e2c2076657269666961626c652c20707573682d62617365642077656220696e6465782070726f746f636f6c2e",
+      "value": "hmac-sha256:37f0a8c1676bcfb4bfbd4f002cc48166b45ca3e92288ed719fdb6e34cfc10685"
+    },
+    "evidence_commitment": {
+      "message_hex": "776172632d706c616365686f6c646572",
+      "value": "hmac-sha256:ea7e4d231859b314951c80ce6d56ba6bfb56b1d1d38e3a625d3651e870bd40d2"
+    }
+  }
+}

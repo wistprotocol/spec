@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/delta.schema.json",
-  "title": "DeltaCommons Delta Envelope (DC-1)",
+  "$id": "https://wistprotocol.org/schemas/delta.schema.json",
+  "title": "WIST Delta Envelope (WIST-1)",
   "type": "object",
   "required": ["delta", "sig"],
   "additionalProperties": false,
   "properties": {
     "delta": {
       "type": "object",
-      "required": ["dc_version", "url", "change_type", "observed_at", "meta"],
+      "required": ["wist_version", "url", "change_type", "observed_at", "meta"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "url": {"type": "string", "format": "uri", "pattern": "^https://[^#]*$", "maxLength": 2048},
         "change_type": {"enum": ["new", "update", "delete", "attest"]},
         "observed_at": {"type": "string", "format": "date-time"},
@@ -20,11 +20,11 @@
           "type": "object",
           "required": ["commitment", "alg", "bytes"],
           "additionalProperties": false,
-          "description": "Salted commitment to the Delta's content (DC-1 §3.6). The content itself travels as a Payload alongside the Block (DC-3 §6.1) and never enters the Log.",
+          "description": "Salted commitment to the Delta's content (WIST-1 §3.6). The content itself travels as a Payload alongside the Block (WIST-3 §6.1) and never enters the Log.",
           "properties": {
             "commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
             "alg": {"const": "HMAC-SHA256"},
-            "bytes": {"type": "integer", "minimum": 0, "maximum": 38944, "description": "Octets of JCS(content) = extract_cap_bytes + summary_cap_bytes + links_cap_bytes + the 32 octets of {\"extract\":,\"links\":,\"summary\":} structure that surround them (DC-1 §3.6). It is a derived bound, not an independent constant."}
+            "bytes": {"type": "integer", "minimum": 0, "maximum": 38944, "description": "Octets of JCS(content) = extract_cap_bytes + summary_cap_bytes + links_cap_bytes + the 32 octets of {\"extract\":,\"links\":,\"summary\":} structure that surround them (WIST-1 §3.6). It is a derived bound, not an independent constant."}
           }
         },
         "meta": {
@@ -52,7 +52,7 @@
   },
   "allOf": [
     {
-      "comment": "DC-1 §3.3: `new` and `update` are the content-bearing change types. One that commits to nothing claims content without saying what it is, and no audit could ever check it (DC-4 §5) — DC1-E09.",
+      "comment": "WIST-1 §3.3: `new` and `update` are the content-bearing change types. One that commits to nothing claims content without saying what it is, and no audit could ever check it (WIST-4 §5) — WIST1-E09.",
       "if": {
         "required": ["delta"],
         "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["new", "update"]}}}}
@@ -60,7 +60,7 @@
       "then": {"properties": {"delta": {"required": ["payload"]}}}
     },
     {
-      "comment": "DC-1 §3.3: `attest` and `delete` carry no content of their own; what they are measured against is the Reference Payload (DC-4 §5).",
+      "comment": "WIST-1 §3.3: `attest` and `delete` carry no content of their own; what they are measured against is the Reference Payload (WIST-4 §5).",
       "if": {
         "required": ["delta"],
         "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["attest", "delete"]}}}}
@@ -68,7 +68,7 @@
       "then": {"properties": {"delta": {"not": {"required": ["payload"]}}}}
     },
     {
-      "comment": "DC-1 §3.3: `update`, `delete` and `attest` each say something about a URL's earlier state, so each MUST name the Delta it follows. Only `new` may omit `prev`, and only when it is the very first Delta for that URL — a condition no schema can see, which is why `new` is absent from this branch and DC1-E07 is where it is enforced.",
+      "comment": "WIST-1 §3.3: `update`, `delete` and `attest` each say something about a URL's earlier state, so each MUST name the Delta it follows. Only `new` may omit `prev`, and only when it is the very first Delta for that URL — a condition no schema can see, which is why `new` is absent from this branch and WIST1-E07 is where it is enforced.",
       "if": {
         "required": ["delta"],
         "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["update", "delete", "attest"]}}}}

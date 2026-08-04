@@ -1,24 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/checkpoint.schema.json",
-  "title": "DeltaCommons Signed Checkpoint (DC-3)",
+  "$id": "https://wistprotocol.org/schemas/checkpoint.schema.json",
+  "title": "WIST Signed Checkpoint (WIST-3)",
   "type": "object",
   "required": ["checkpoint", "sig"],
   "additionalProperties": false,
   "properties": {
     "checkpoint": {
       "type": "object",
-      "required": ["dc_version", "block_number", "block_hash", "sealed_at"],
+      "required": ["wist_version", "block_number", "block_hash", "sealed_at"],
       "additionalProperties": false,
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "block_number": {"type": "integer", "minimum": 0},
         "block_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "sealed_at": {
           "type": "string",
           "format": "date-time",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
-          "description": "The `sealed_at` of the Block this Checkpoint names, restated. It carries the same whole-second-plus-literal-Z form the Block header does (DC-3 §3.1, block.schema.json): a Checkpoint whose copy of the value were free to be written `...:00.000Z` or `...+00:00` would not compare byte-equal to the header it is a statement about, and a Consumer binding the two would have to normalize timestamps to do it."
+          "description": "The `sealed_at` of the Block this Checkpoint names, restated. It carries the same whole-second-plus-literal-Z form the Block header does (WIST-3 §3.1, block.schema.json): a Checkpoint whose copy of the value were free to be written `...:00.000Z` or `...+00:00` would not compare byte-equal to the header it is a statement about, and a Consumer binding the two would have to normalize timestamps to do it."
         }
       }
     },

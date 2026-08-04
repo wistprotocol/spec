@@ -1,12 +1,12 @@
-"""Reference link extraction (DC-2 §11) and link agreement (DC-4 §5).
+"""Reference link extraction (WIST-2 §11) and link agreement (WIST-4 §5).
 
 Test-suite implementation: operates on raw HTML octets, never a DOM, so
 JavaScript-inserted links do not exist for it. Deterministic by
 construction. Fixture hosts are ASCII and already canonical; the UTS #46
-Canonical Host step of DC-1 §2 is therefore a lowercasing here, and a
+Canonical Host step of WIST-1 §2 is therefore a lowercasing here, and a
 fixture MUST NOT carry a host that UTS #46 and lowercasing disagree on.
 
-`normalize_url` is reject-not-repair (DC-1 §2): a malformed escape, a
+`normalize_url` is reject-not-repair (WIST-1 §2): a malformed escape, a
 control octet, userinfo in the authority, or a host outside the lowercase
 LDH grammar all discard the candidate rather than attempt to salvage it,
 and any exception raised while parsing does the same — a hostile or
@@ -31,7 +31,7 @@ _RAWTEXT_TAGS = (b"script", b"style", b"textarea")
 
 
 def _decode_entities(s: str):
-    """DC-2 §11 step 4: decode the five named references and numeric
+    """WIST-2 §11 step 4: decode the five named references and numeric
     character references (decimal and hex). An `&` that forms none of
     these is left exactly as written.
 
@@ -39,13 +39,13 @@ def _decode_entities(s: str):
     decimal run: `\\d` on a `str` pattern otherwise matches every Unicode
     decimal digit, and Python's `int()` normalizes those before
     conversion, so `&#٦٥;` would silently decode to `A` against the
-    ASCII-digit repertoire DC-2 §11 step 4 pins. The hex run needs no
+    ASCII-digit repertoire WIST-2 §11 step 4 pins. The hex run needs no
     such scoping and never did — it is written as the explicit ASCII
     class `[0-9A-Fa-f]`.
 
     A numeric reference whose code point is not a Unicode scalar value —
     above 0x10FFFF, or a surrogate 0xD800-0xDFFF — makes the whole
-    candidate not a link: returns None, the same fail-closed posture DC-1
+    candidate not a link: returns None, the same fail-closed posture WIST-1
     §2 takes toward an unresolvable escape. Discarding here, at the
     candidate, is what keeps a poison reference from surfacing later as
     an uncaught `ValueError` (`chr()` rejects > 0x10FFFF) or a `str` that
@@ -88,7 +88,7 @@ def _decode_entities(s: str):
 
 def _at_tag_boundary(low: bytes, pos: int) -> bool:
     """True if `pos` is at whitespace, `/`, `>`, or past the end — the set
-    of octets DC-2 §11 step 3 allows right after a tag name."""
+    of octets WIST-2 §11 step 3 allows right after a tag name."""
     return pos >= len(low) or low[pos:pos + 1] in (b" ", b"\t", b"\n", b"\f", b"\r", b"/", b">")
 
 
@@ -111,7 +111,7 @@ def _tag_end(html: bytes, pos: int) -> int:
 
 
 def _iter_hrefs(html: bytes):
-    """DC-2 §11 steps 1-4: yield each `<a>` element's `href` value, in
+    """WIST-2 §11 steps 1-4: yield each `<a>` element's `href` value, in
     document order, with character references already decoded.
 
     Comments and raw-text element content (script/style/textarea) are
@@ -186,7 +186,7 @@ def _iter_hrefs(html: bytes):
                 if decoded is not None:
                     yield decoded
                 # else: a non-scalar-value numeric reference — this <a>
-                # element's href is discarded (per-candidate, DC-2 §11
+                # element's href is discarded (per-candidate, WIST-2 §11
                 # step 4), never a reason to abort the rest of the scan.
             i = j
             continue
@@ -216,7 +216,7 @@ def _renormalize_escapes(s: str):
 
 
 def normalize_url(candidate: str, base_url: str):
-    """DC-1 §2 Normalized URL, or None. Query escapes are renormalized but
+    """WIST-1 §2 Normalized URL, or None. Query escapes are renormalized but
     the query is never parsed or reordered.
 
     Reject-not-repair: a raw control octet in the candidate, a userinfo
@@ -300,7 +300,7 @@ def _external(url: str, publisher_domain: str) -> bool:
 
 
 def extract_links(html: bytes, base_url: str, publisher_domain: str):
-    """DC-2 §11's procedure: hrefs of <a> in octet order -> resolve ->
+    """WIST-2 §11's procedure: hrefs of <a> in octet order -> resolve ->
     normalize (drop failures) -> external only -> dedup first-wins.
     Returns (urls, total)."""
     seen, urls = set(), []
@@ -316,8 +316,8 @@ def extract_links(html: bytes, base_url: str, publisher_domain: str):
 def links_member(urls, total, cap_bytes: int) -> dict:
     """The longest prefix whose serialized links object fits cap_bytes.
 
-    `links` is REQUIRED (DC-3 §6.1) and `links_cap_bytes` MUST be at
-    least the 21 octets of `{"total":0,"urls":[]}` (DC-4 §9), so a
+    `links` is REQUIRED (WIST-3 §6.1) and `links_cap_bytes` MUST be at
+    least the 21 octets of `{"total":0,"urls":[]}` (WIST-4 §9), so a
     cap_bytes below that admits no conforming member at all — a bug in
     the caller, not a case to paper over by returning something over cap.
     """
@@ -331,7 +331,7 @@ def links_member(urls, total, cap_bytes: int) -> dict:
 
 
 def link_agreement(declared_urls, declared_total, observed_urls, observed_total):
-    """DC-4 §5: min(subset Jaccard, count agreement), integer micro-units."""
+    """WIST-4 §5: min(subset Jaccard, count agreement), integer micro-units."""
     d, o = set(declared_urls), set(observed_urls)
     union = d | o
     subset = 1_000_000 if not union else (len(d & o) * 1_000_000) // len(union)
@@ -340,10 +340,10 @@ def link_agreement(declared_urls, declared_total, observed_urls, observed_total)
     return min(subset, count)
 
 
-# --------------------------------------------- DC-2 §12: text extraction
+# --------------------------------------------- WIST-2 §12: text extraction
 
 def _decode_text_entities(s: str) -> str:
-    """DC-2 §12 step 3: the §11 step-4 repertoire, salvage-free.
+    """WIST-2 §12 step 3: the §11 step-4 repertoire, salvage-free.
 
     Text is not a link candidate: there is nothing to discard fail-closed.
     A reference that is malformed, over-long, or names a non-scalar code
@@ -365,7 +365,7 @@ def _decode_text_entities(s: str) -> str:
 
 
 def extract_text(html: bytes) -> str:
-    """DC-2 §12: whole-document text extraction over raw HTML octets.
+    """WIST-2 §12: whole-document text extraction over raw HTML octets.
 
     Comments, raw-text element content (script/style/textarea) and tags
     each contribute a single space; a `<` that opens none of these is
@@ -410,14 +410,14 @@ def extract_text(html: bytes) -> str:
     return " ".join(text.split())
 
 
-# ----------------------- DC-4 §5: similarity (reference containment)
+# ----------------------- WIST-4 §5: similarity (reference containment)
 
 def _shingles(units, n):
     return {tuple(units[k:k + n]) for k in range(len(units) - n + 1)}
 
 
 def similarity(reference: str, observed: str, min_observed_words: int = 40):
-    """DC-4 §5: reference-containment similarity, integer micro-units.
+    """WIST-4 §5: reference-containment similarity, integer micro-units.
 
     Returns None where the mass guard rules the audit `not_auditable`:
     an observed text below `min_observed_words` is a page that says
@@ -429,7 +429,7 @@ def similarity(reference: str, observed: str, min_observed_words: int = 40):
     Test-suite scope: normalization here is NFC + str.casefold(), and
     word segmentation is whitespace splitting; fixtures are restricted
     to the ASCII letters-and-spaces domain, on which these coincide
-    exactly with DC-4 §5's default full case folding and untailored
+    exactly with WIST-4 §5's default full case folding and untailored
     UAX #29 rules. A fixture outside that domain is a fixture bug.
     """
     import unicodedata
@@ -445,5 +445,5 @@ def similarity(reference: str, observed: str, min_observed_words: int = 40):
         n = min(8, len(ref), len(obs))
         a = _shingles(list(ref), n)
         b = _shingles(list(obs), n)
-    assert a, "empty reference reaches similarity(); DC-4 §5 rules it not_auditable earlier"
+    assert a, "empty reference reaches similarity(); WIST-4 §5 rules it not_auditable earlier"
     return (len(a & b) * 1_000_000) // len(a)

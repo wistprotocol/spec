@@ -1,13 +1,13 @@
 {
   "delta": {
-    "dc_version": "1.0.0",
+    "wist_version": "1.0.0",
     "url": "https://example.com/blog/post-1",
     "change_type": "new",
     "observed_at": "2026-08-02T12:00:00Z",
     "payload": {
-      "commitment": "hmac-sha256:c8f33cb222aab03b8d3de0577c5bf98da4c3cf74b5db08d1959ba796c8760a79",
+      "commitment": "hmac-sha256:2959e29279c1ca4811ed218fd3344dbad2d92978660dd677315479f31f7e4dae",
       "alg": "HMAC-SHA256",
-      "bytes": 277
+      "bytes": 266
     },
     "meta": {
       "lang": "en",
@@ -20,6 +20,6 @@
   "sig": {
     "key_id": "test-k1",
     "alg": "Ed25519",
-    "value": "wq0yzY9UZaNYaoA1_xRLb3gGUBLqE8fmyYvOanSjfLAl9V0a8oUc-WmWZ_2BTilOCjugNZKjf9BHzvtmqUZOCg"
+    "value": "MBOftQNKoJxvGpElWENVHa71AZSIHCZBOPj8xiJxkOmP1PwiE1lb4vz_xBawV0ME58xze2ATbIxhWcj2M3X0Bg"
   }
 }

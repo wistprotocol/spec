@@ -1,30 +1,30 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/audit-record.schema.json",
-  "title": "DeltaCommons Audit Record (DC-4)",
+  "$id": "https://wistprotocol.org/schemas/audit-record.schema.json",
+  "title": "WIST Audit Record (WIST-4)",
   "type": "object",
   "required": ["record", "sig"],
   "additionalProperties": false,
   "properties": {
     "record": {
       "type": "object",
-      "required": ["dc_version", "audited_delta", "auditor_id", "fetched_at", "verdict", "vrf_proof", "prev_record"],
+      "required": ["wist_version", "audited_delta", "auditor_id", "fetched_at", "verdict", "vrf_proof", "prev_record"],
       "additionalProperties": false,
-      "description": "Every content-derived value an Audit Record seals is a commitment keyed by the salt of the audit's Reference Payload (DC-4 §5), never a bare digest: withdrawing that Payload destroys the salt and renders these commitments uncheckable at the same instant as the Delta's own.",
+      "description": "Every content-derived value an Audit Record seals is a commitment keyed by the salt of the audit's Reference Payload (WIST-4 §5), never a bare digest: withdrawing that Payload destroys the salt and renders these commitments uncheckable at the same instant as the Delta's own.",
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "audited_delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        "auditor_id": {"type": "string", "format": "hostname", "maxLength": 253, "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The hostname the Auditor was admitted under: DC-4 §3 requires it to be byte-identical to the `subject` of the `auditor_admit` covering `sig.key_id`, and the pattern is the one that `subject` carries, so a Record cannot claim a shape no admission could have."},
-        "fetched_at": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at`. DC-4 §3 has every validator recomputing reputation reject a Record whose `fetched_at` falls outside the closed interval between two Block `sealed_at` values, so the field is compared against Block timestamps by every replaying party and is written in the one form they carry."},
+        "auditor_id": {"type": "string", "format": "hostname", "maxLength": 253, "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The hostname the Auditor was admitted under: WIST-4 §3 requires it to be byte-identical to the `subject` of the `auditor_admit` covering `sig.key_id`, and the pattern is the one that `subject` carries, so a Record cannot claim a shape no admission could have."},
+        "fetched_at": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at`. WIST-4 §3 has every validator recomputing reputation reject a Record whose `fetched_at` falls outside the closed interval between two Block `sealed_at` values, so the field is compared against Block timestamps by every replaying party and is written in the one form they carry."},
         "response_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "ref_extract_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "similarity": {"type": "integer", "minimum": 0, "maximum": 1000000},
         "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance", "not_auditable", "link_variance", "link_inconsistent"]},
         "evidence_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "link_agreement": {"type": "integer", "minimum": 0, "maximum": 1000000},
-        "robots_excluded": {"const": true, "description": "Present only on an `unreachable` Record whose fetch was forbidden by robots.txt (DC-4 §5); it is what the unauditable horizon counts, so it distinguishes a URL nobody may check from one that was merely down."},
+        "robots_excluded": {"const": true, "description": "Present only on an `unreachable` Record whose fetch was forbidden by robots.txt (WIST-4 §5); it is what the unauditable horizon counts, so it distinguishes a URL nobody may check from one that was merely down."},
         "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$"},
-        "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}], "description": "The ID of this Auditor's immediately preceding Audit Record or coverage_attestation in its own publication order, or null for its first ever (DC-4 §4). The per-auditor chain is what turns a selectively suppressed submission into proof of its own existence: a sealed successor naming an unsealed predecessor demonstrates the predecessor was published."}
+        "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}], "description": "The ID of this Auditor's immediately preceding Audit Record or coverage_attestation in its own publication order, or null for its first ever (WIST-4 §4). The per-auditor chain is what turns a selectively suppressed submission into proof of its own existence: a sealed successor naming an unsealed predecessor demonstrates the predecessor was published."}
       }
     },
     "sig": {
@@ -45,7 +45,7 @@
         "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance", "link_variance", "link_inconsistent"]}}}}
       },
       "then": {
-        "comment": "similarity is required for every change type alike, `delete` included: what the change type adjusts is the reading (DC-4 §5's effective similarity), never the presence of the field, which is what keeps §7's severity derivable for every Confirmed Inconsistency. link_variance and link_inconsistent both obtained a representation and a measured extract similarity (DC-4 §5: only a consistent-band extract can yield a link verdict), so they carry the same commitments.",
+        "comment": "similarity is required for every change type alike, `delete` included: what the change type adjusts is the reading (WIST-4 §5's effective similarity), never the presence of the field, which is what keeps §7's severity derivable for every Confirmed Inconsistency. link_variance and link_inconsistent both obtained a representation and a measured extract similarity (WIST-4 §5: only a consistent-band extract can yield a link verdict), so they carry the same commitments.",
         "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "similarity", "evidence_commitment"]}}
       }
     },
@@ -69,7 +69,7 @@
       }
     },
     {
-      "comment": "robots_excluded says why a fetch produced no representation, so it belongs to `unreachable` and to nothing else: on any other verdict a representation was obtained (DC-4 §5), and on `not_auditable` the obstacle was the Reference Payload rather than the URL.",
+      "comment": "robots_excluded says why a fetch produced no representation, so it belongs to `unreachable` and to nothing else: on any other verdict a representation was obtained (WIST-4 §5), and on `not_auditable` the obstacle was the Reference Payload rather than the URL.",
       "if": {
         "required": ["record"],
         "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["consistent", "inconsistent", "dynamic_variance", "not_auditable", "link_variance", "link_inconsistent"]}}}}
@@ -77,7 +77,7 @@
       "then": {"properties": {"record": {"not": {"required": ["robots_excluded"]}}}}
     },
     {
-      "comment": "A link verdict asserts a link_agreement reading, so the Record must seal it; on the other measured verdicts the field is present when the link dimension applied and absent when it was neutral (a non-HTML representation, or a delete audit — DC-4 §5).",
+      "comment": "A link verdict asserts a link_agreement reading, so the Record must seal it; on the other measured verdicts the field is present when the link dimension applied and absent when it was neutral (a non-HTML representation, or a delete audit — WIST-4 §5).",
       "if": {
         "required": ["record"],
         "properties": {"record": {"required": ["verdict"], "properties": {"verdict": {"enum": ["link_variance", "link_inconsistent"]}}}}

@@ -1,18 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://deltacommons.org/schemas/snapshot-state.schema.json",
-  "title": "DeltaCommons Snapshot State Artifact (DC-3 §7)",
+  "$id": "https://wistprotocol.org/schemas/snapshot-state.schema.json",
+  "title": "WIST Snapshot State Artifact (WIST-3 §7)",
   "type": "object",
   "required": ["state", "sig"],
   "additionalProperties": false,
   "properties": {
     "state": {
       "type": "object",
-      "required": ["dc_version", "log_position", "entries"],
+      "required": ["wist_version", "log_position", "entries"],
       "additionalProperties": false,
-      "description": "The protocol state at log_position, as one tuple per live item. Each tuple is a JSON array whose first member names its kind; DC-3 §7's table is the normative inventory of kinds and their fields, in prose, on the pattern DC-4 §9.1 sets for Registry Update details. Every field is Log-derived — no page content — so the state_digest over these tuples survives any withdrawal.",
+      "description": "The protocol state at log_position, as one tuple per live item. Each tuple is a JSON array whose first member names its kind; WIST-3 §7's table is the normative inventory of kinds and their fields, in prose, on the pattern WIST-4 §9.1 sets for Registry Update details. Every field is Log-derived — no page content — so the state_digest over these tuples survives any withdrawal.",
       "properties": {
-        "dc_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "log_position": {"type": "integer", "minimum": 0},
         "entries": {
           "type": "array",

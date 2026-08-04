@@ -15,7 +15,7 @@ ignoring the field, leaving it as pure spam surface.
 No object in the protocol carries any field by which a publisher declares
 the importance, relevance, or ranking of its own content. A publisher can
 say "I changed" and "my content is this" — never "I matter". This is a
-constitutional invariant (DC-4 §8); importance is measured at
+constitutional invariant (WIST-4 §8); importance is measured at
 consumption, entirely outside the protocol.
 
 ## Consequences
@@ -27,7 +27,7 @@ consumption, entirely outside the protocol.
   and downstream systems derive importance from usage, corroboration,
   and citation — signals publishers cannot cheaply fabricate.
 - The aggregator has nothing to sell: combined with "position is not
-  for sale" (DC-4 §8), there is no field whose value money could buy.
+  for sale" (WIST-4 §8), there is no field whose value money could buy.
 
 ## Alternatives considered
 

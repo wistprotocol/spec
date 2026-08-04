@@ -1,0 +1,1 @@
+{"change_type":"new","meta":{"lang":"en","license":"CC-BY-4.0","topics":["software"]},"observed_at":"2026-08-02T12:00:00Z","wist_version":"1.0.0","payload":{"alg":"HMAC-SHA256","bytes":266,"commitment":"hmac-sha256:2959e29279c1ca4811ed218fd3344dbad2d92978660dd677315479f31f7e4dae"},"url":"https://example.com/blog/post-1"}
