@@ -27,8 +27,10 @@
         "example.com",
         "2026-08-02T13:00:00Z",
         null,
-        0,
-        [],
+        1,
+        [
+          "03a65369b394311a4301c9ded8565a4e"
+        ],
         []
       ],
       [
@@ -45,6 +47,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "q2T3lW5ZE0S3Z9raorogxRNoGyo1Wl5GNoyjDwxS41hjVdXjpNGq4sa9h-PKHx3g_CwG9xgMi8M-UiwcgG5wAw"
+    "value": "5Cr_uZkgU_39rQmnqGwRpMvcWLQlxirpR2ViLB0QRo47PtTFqMUUbZLmW4DdTI7We_uw55LQag6tb60iv0yNDQ"
   }
 }

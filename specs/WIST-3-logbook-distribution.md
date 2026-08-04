@@ -263,11 +263,27 @@ or colluding operator (WIST-4 §8, §10), and a remedy that reset every
 domain to Provisional and erased every sanction would punish every
 honest Publisher and amnesty every delisted one — a successor without
 `predecessor` does exactly that, lawfully, as a new Log that inherits
-nothing. Competing successors are resolved the way the Anchor itself
-is: by which one the ecosystem verifiably pins, a choice this
-specification makes falsifiable (each candidate names its final Block,
-and §5's evidence rules say whether that Block was honestly reached)
-but deliberately does not make. A major-version migration uses the same
+nothing. **The named final Block must be the last one.** A `predecessor` MUST
+name the highest Block of the ended Log for which any validly signed
+Checkpoint exists, and a Consumer MUST reject a successor Anchor whose
+`final_block_number` is lower than the highest Checkpoint it holds or
+can obtain for that `log_id` — reject the Anchor, not merely the
+carry. Without this rule succession is a laundering machine dressed as
+continuity: a delisted operator, or anyone else, publishes a successor
+naming a final Block from before its own sanction, and every Consumer
+that pins it carries state from a height at which the sanction had not
+happened. Truncation is exactly as attributable as equivocation and is
+caught by the same retained artifact — Mirrors keep every Checkpoint
+they ever served (§5), so a Checkpoint above the named final Block is
+a complete, signed refutation of the successor's central claim, and
+`mirror_retention_days` is what keeps one obtainable.
+
+Competing successors that survive that test are resolved the way the
+Anchor itself is: by which one the ecosystem verifiably pins, a choice
+this specification makes falsifiable — each candidate names its final
+Block, the rule above says whether that Block was the end, and §5's
+evidence rules say whether the chain reaching it was honest — but
+deliberately does not make. A major-version migration uses the same
 field: a v2 Log naming a v1 predecessor is a continuation, and WIST-1
 §1's "reject unknown major versions" governs objects, not history.
 
@@ -1010,7 +1026,7 @@ value fields are:
 | `recovery_window` | domain | recovery Declaration height, window end | WIST-1 §5.2 |
 | `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
 | `coverage_failure` | `auditor_id`, block number | — | WIST-4 §4 |
-| `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted URL set, penalties as (confirming `sealed_at`, severity) pairs | WIST-4 §6 |
+| `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted-URL digest set (below), penalties as (confirming `sealed_at`, severity) pairs | WIST-4 §6 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
 A `parameter` tuple exists only for a parameter amended since genesis:
@@ -1029,6 +1045,38 @@ testimony. Field-level encodings ride with the schema; the table is the
 normative inventory, and a state file omitting a kind with live
 instances at `log_position`, or carrying one this table does not name,
 does not verify.
+
+**The counted-URL digest set, and why the artifact stays small.** `C`
+counts distinct URLs (WIST-4 §6), so continuing the count requires
+membership, not just a total — and a naive artifact would carry up to
+`c_cap` Normalized URLs per domain, which at a million domains is tens
+of gigabytes: a mandatory artifact larger than the laptop-sized Tier 0
+this section exists to keep laptop-sized. A `reputation_inputs` tuple
+therefore carries, in place of the URLs, the ascending-octet-ordered
+list of their **counted-URL digests**: for each counted URL, the first
+16 octets of `SHA-256(JCS(publisher domain) ‖ JCS(Normalized URL))`,
+lowercase hex. Membership is all the count needs, the domain is inside
+the preimage so digests never collide usefully across domains, and the
+inputs are Log-derived like every other field, so the tuple stays
+recomputable and the digest stays withdrawal-proof. The bound is then
+`c_cap` × 32 hex octets per domain — under 16 KiB at the default 500,
+two orders below the URLs themselves — and a Consumer continuing the
+count digests each newly-audited URL the same way. Truncation to 16
+octets is deliberate and sufficient: the set is a private
+bookkeeping aid whose only adversarial use would be inflating one's own
+`C`, which requires forging a `consistent` Audit Record from an
+independent Auditor and not a digest collision.
+
+Sharding applies to this artifact as to the tiers: when the manifest
+declares `shards`, the state file MAY be split on the same
+Publisher-domain rule, one part per shard for the domain-keyed kinds
+(`declaration`, `sanction_state`, `recovery_window`, `exclusion`,
+`reputation_inputs`, `record`), with the Log-wide kinds
+(`aggregator_key`, `auditor`, `parameter`, `coverage_failure`) carried
+in every part, since no Consumer can validate an Entry without them.
+`state_digest` remains the digest over the whole tuple set: a partial
+Consumer verifies its parts against the per-shard digests and, as
+above, treats its coverage as partial.
 
 **Cold start:**
 

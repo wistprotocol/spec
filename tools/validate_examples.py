@@ -434,6 +434,37 @@ def _text_extraction_twin():
 
 check("negative:wist2-text-extraction", _text_extraction_twin)
 
+def _snapshot_state_counted_urls():
+    """WIST-3 §7: reputation_inputs carries counted-URL *digests*, never URLs.
+
+    The state artifact is mandatory and unshardable-by-default, so carrying
+    up to c_cap Normalized URLs per domain would make it outgrow the
+    laptop-sized tier it ships beside. The encoding is what bounds it, so
+    the encoding is pinned here rather than left to prose.
+    """
+    state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
+    rows = [e for e in state["entries"] if e[0] == "reputation_inputs"]
+    assert rows, "no reputation_inputs tuple in the state artifact"
+    nonempty = 0
+    for row in rows:
+        counted = row[5]
+        assert isinstance(counted, list), "the counted-URL set is not a list"
+        for d in counted:
+            nonempty += 1
+            assert re.fullmatch(r"[0-9a-f]{32}", d), \
+                f"counted-URL member {d!r} is not a 16-octet digest — a URL here is the size bug"
+        # 16 KiB is the §7 bound at the default c_cap; a tuple already over
+        # it in a two-record vector would mean the encoding drifted.
+        assert len(rfc8785.dumps(counted)) <= 16384, "counted-URL set exceeds the §7 bound"
+    assert nonempty, "no counted URL in any tuple — the digest encoding is untested"
+    # The digest is domain-bound: the same URL under another domain differs.
+    url = "https://example.com/blog/post-1"
+    a = hashlib.sha256(rfc8785.dumps("example.com") + rfc8785.dumps(url)).hexdigest()[:32]
+    b = hashlib.sha256(rfc8785.dumps("other.example") + rfc8785.dumps(url)).hexdigest()[:32]
+    assert a != b, "the counted-URL digest does not bind the Publisher domain"
+
+check("spec:wist3-counted-url-digests", _snapshot_state_counted_urls)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
