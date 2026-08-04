@@ -996,6 +996,15 @@ def _payload_tamper():
         last = s[-1]
         return s[:-1] + ("A" if last != "A" else "B")
 
+    def flip_last_octet(b64u: str) -> str:
+        # The salt is base64url, where 22 characters carry 132 bit-slots for the
+        # salt's 128 bits: the final character's low 4 bits are padding that
+        # decoding discards, so distinct characters there can decode to identical
+        # octets. Mutating the octets is what this check claims to do.
+        raw = bytearray(b64u_decode(b64u))
+        raw[-1] ^= 0x01
+        return base64.urlsafe_b64encode(bytes(raw)).decode().rstrip("=")
+
     mutations = {}
     m = copy.deepcopy(payload)
     m["content"]["extract"] = flip_last(m["content"]["extract"])
@@ -1007,7 +1016,7 @@ def _payload_tamper():
     m["content"]["summary"]["abstract"] = flip_last(m["content"]["summary"]["abstract"])
     mutations["summary.abstract"] = m
     m = copy.deepcopy(payload)
-    m["salt"] = flip_last(m["salt"])
+    m["salt"] = flip_last_octet(m["salt"])
     mutations["salt"] = m
 
     for label, mutated in mutations.items():
