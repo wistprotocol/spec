@@ -465,6 +465,130 @@ def _snapshot_state_counted_urls():
 
 check("spec:wist3-counted-url-digests", _snapshot_state_counted_urls)
 
+
+def _state_tuple_encoding():
+    """WIST-3 §7: the tuple encoding is normative — arity and member types
+    pinned per kind in the schema, the digest recomputable from the example,
+    and the prose owning the encoding rather than delegating it."""
+    schema = json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text())
+    entries_schema = schema["properties"]["state"]["properties"]["entries"]["items"]
+    variants = entries_schema.get("oneOf")
+    assert variants, "entries items must be a oneOf of per-kind tuple shapes"
+    kinds = set()
+    for v in variants:
+        assert v.get("items") is False, f"tuple arity unpinned: {v['prefixItems'][0]}"
+        kinds.add(v["prefixItems"][0]["const"])
+        assert all("type" in m or "const" in m or "oneOf" in m or "enum" in m
+                   for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
+    expected = {"aggregator_key", "auditor", "declaration", "parameter",
+                "sanction_state", "recovery_window", "exclusion",
+                "coverage_failure", "reputation_inputs", "record"}
+    assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
+    state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
+    digest = "sha256:" + hashlib.sha256(
+        b"".join(sorted(rfc8785.dumps(e) for e in state["entries"]))).hexdigest()
+    manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())
+    assert digest == manifest["manifest"]["state"]["state_digest"], \
+        "example state entries do not reproduce the manifest state_digest"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "Field-level encodings ride with the schema" not in prose, \
+        "the encoding must be normative, not delegated to the schema"
+    for marker in ("in exactly the order the table gives",
+                   "appears exactly once in the digest preimage"):
+        assert marker in prose, f"missing normative encoding sentence: {marker!r}"
+
+check("spec:wist3-state-encoding", _state_tuple_encoding)
+
+
+def _state_tuple_encoding_twin():
+    schema = json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    good = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    bad = copy.deepcopy(good)
+    bad["state"]["entries"][1].append("extra-member")
+    try:
+        validator.validate(bad)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("over-arity record tuple validated")
+    bad2 = copy.deepcopy(good)
+    bad2["state"]["entries"][0][3] = "0"
+    try:
+        validator.validate(bad2)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("string height validated where integer is pinned")
+
+check("negative:wist3-state-encoding", _state_tuple_encoding_twin)
+
+
+def _recovery_queue_disposition():
+    """WIST-1 §5.2 / WIST-4 §6.4: the recovery window and the inclusion
+    ceiling were two MUSTs one Aggregator could not both keep, and the
+    queue's disposition at window end was unstated."""
+    w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    w4 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "revalidated against the Key Set in effect at the window's end" in w1
+    assert w1.count("WIST1-E13") >= 2, "E13 must appear in §5.2 and the §7 registry"
+    assert "queued under WIST-1 §5.2" in w4, "§6.4 ceiling needs the recovery carve-out"
+
+check("spec:recovery-queue-disposition", _recovery_queue_disposition)
+
+
+def _service_origin():
+    """WIST-2/WIST-3: the Ingest and status endpoints must resolve from the
+    Log Anchor's log_id, not from an undefined <aggregator> placeholder —
+    otherwise the publisher-to-aggregator bootstrap is unspecified."""
+    w2 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    w3 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "https://<log_id>/ingest" in w2
+    assert "https://<log_id>/status/<domain>" in w2
+    assert "<aggregator>/status" not in w2, "undefined <aggregator> placeholder survives"
+    assert "POST <ingest endpoint>" not in w2
+    assert "Service Origin" in w3 and "https://<log_id>/" in w3
+
+check("spec:service-origin", _service_origin)
+
+
+def _wist4_error_registry():
+    """WIST-4 was the one document without an Error Registry, leaving ~15
+    normative rejection conditions with no codes and the replay effect of a
+    rejected Registry Update unstated."""
+    w4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    assert "## 10. Error Registry" in w4
+    assert "## 11. Security Considerations" in w4
+    assert "## 12. Privacy Considerations" in w4
+    assert "## 13. Conformance Checklist" in w4
+    assert "## 10. Security Considerations" not in w4
+    codes = re.findall(r"WIST4-E(\d{2})", w4)
+    assert sorted(set(codes)) == ["01", "02", "03", "04", "05", "06"], sorted(set(codes))
+    assert "never invalidates the containing Block" in re.sub(r"\s+", " ", w4)
+
+check("spec:wist4-error-registry", _wist4_error_registry)
+
+
+def _governance_acts_count():
+    """WIST-4 §2's prose count of governance acts must equal the schema's
+    action enum, and §5's field enumeration must carry prev_record — the
+    schema requires it, so a §5 reader producing Records without it ships
+    objects that never validate."""
+    w4 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    action_enum = schema["properties"]["update"]["properties"]["action"]["enum"]
+    words = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen"}
+    assert f"the {words[len(action_enum)]} governance acts" in w4, \
+        f"prose count does not match the {len(action_enum)}-action enum"
+    fields = w4.split("## 5. Verdicts")[1][:2400]
+    assert "prev_record" in fields, "§5's field enumeration omits prev_record"
+
+check("spec:governance-acts-count", _governance_acts_count)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
@@ -1456,6 +1580,15 @@ NON_CONTENT_DIGESTS = {
         "the same Registry Update ID, named by the `appeal` that answers that notice",
     ("status.schema.json", "properties/rejections/items/properties/delta_id"):
         "a Delta ID",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[4]/prefixItems[3]/items"):
+        "Registry Update IDs establishing a sanction_state tuple (WIST-3 §7) — objects that carry only commitments",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[8]/prefixItems[5]/items"):
+        "counted-URL digests (WIST-3 §7): domain and Normalized URL, both of which the Log carries in the clear; no page content",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[9]/prefixItems[3]"):
+        "a Delta ID (a record tuple's chain tip, WIST-3 §7)",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/files/items/properties/sha256"):
         "a whole tier file, not any one record (WIST-3 §7); and a manifest is a static artifact, not a Log Entry",
@@ -1938,7 +2071,7 @@ check("spec:parameter-bounds", _parameter_bounds)
 def _parameter_change_integer():
     """`parameter_change.value` is the one field that rewrites a constant.
 
-    WIST-4 §6 states that every input to reputation is an integer and §10 that
+    WIST-4 §6 states that every input to reputation is an integer and §11 that
     "there is no conforming path that uses `double`"; WIST-4 §4 says the same of
     the sampling test. Both claims are about the constants as much as the
     variables, and this field is the only way a constant is ever rewritten — so
@@ -2917,7 +3050,7 @@ def _derived_not_discretionary():
     wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section4 = wist4.split("## 4. Audit Sampling")[1].split("## 5.")[0]
     section7 = wist4.split("## 7. Sanctions")[1].split("## 8.")[0]
-    section10 = wist4.split("## 10. Security Considerations")[1].split("## 11.")[0]
+    section10 = wist4.split("## 11. Security Considerations")[1].split("## 12.")[0]
 
     # I1: the appeal has a path, a deadline, and a consequence for the omission.
     assert "/.well-known/wist/appeals/" in section7, \
@@ -2934,10 +3067,10 @@ def _derived_not_discretionary():
 
     # …and §10 no longer defends appeals with an argument that is false.
     assert "Omission is not equivocation" in section10, \
-        "WIST-4 §10 no longer corrects the claim that suppression is equivocation"
+        "WIST-4 §11 no longer corrects the claim that suppression is equivocation"
     assert not re.search(r"suppress a\s*\n?\s*sanction or an appeal: withholding log entries",
                          section10), \
-        "WIST-4 §10 still answers appeal suppression with the equivocation argument"
+        "WIST-4 §11 still answers appeal suppression with the equivocation argument"
 
     # I3: the recovery window opens on the Declaration's own Entry.
     recovery = wist1.split("**Compromise recovery.**")[1].split("**Historical verification.**")[0]
@@ -3000,7 +3133,7 @@ def _unappealed_ruling_timing():
         "WIST-4 §7 does not require a recomputing party to ignore an early `unappealed` ruling"
     checklist = spec.split("**Any party recomputing reputation:**")[1]
     assert '`appeal_ruling` of `"unappealed"` whose own Block' in checklist, \
-        "WIST-4 §12's recompute checklist has no row for the `unappealed` timing rule"
+        "WIST-4 §13's recompute checklist has no row for the `unappealed` timing rule"
 
     # The rule as arithmetic, over the parameters §9 publishes rather than
     # numbers restated here: an edit to `appeal_window_days` moves what this
