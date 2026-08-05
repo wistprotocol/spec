@@ -46,7 +46,7 @@ shown here.
   measured on Block `sealed_at` (§5, §7).
 - **Registry Update**: the signed governance object this document defines,
   sealed as a `registry_update` Entry (WIST-3 §3.3). Its `action` selects one
-  of the twelve governance acts of §3, §4, §7 and §9.1; `subject` names
+  of the thirteen governance acts of §3, §4, §7 and §9.1; `subject` names
   what the act is about; `details` and `evidence` are constrained per
   `action` by §9.1.
 - **Sanction**: a graduated, logged penalty against a domain (§7).
@@ -546,7 +546,9 @@ integer in micro-units, present only where that dimension applies),
 `robots_excluded` (present only on an `unreachable` Record the
 `robots.txt` rule below produced), and `vrf_proof` (the §4 VRF Proof
 over the Block Hash of the Block carrying the audited Delta, 80 octets as
-160 lowercase hex characters). The Record names no Block: the audited
+160 lowercase hex characters). Every Record also carries `prev_record`
+(§4): the ID of the same Auditor's preceding publication, or `null` for
+its first. The Record names no Block: the audited
 Block is the one Block
 whose `publisher_delta` Entries carry `audited_delta`, which WIST-3 §3.2
 makes unique and permanent. `vrf_proof` is REQUIRED in every Record,
