@@ -259,7 +259,7 @@ successor's genesis, exactly as if the successor's Block 0 were Block
 `final_block_number + 1`. Windows anchored to a `sealed_at` of the dead
 chain keep their instants; Blocks of the successor discharge them. The
 carry is the point: a fork is this suite's stated remedy for a captured
-or colluding operator (WIST-4 §8, §10), and a remedy that reset every
+or colluding operator (WIST-4 §8, §11), and a remedy that reset every
 domain to Provisional and erased every sanction would punish every
 honest Publisher and amnesty every delisted one — a successor without
 `predecessor` does exactly that, lawfully, as a new Log that inherits
@@ -708,7 +708,7 @@ reference extraction or its capture, `similarity` is recomputable and can
 be matched against the sealed integer exactly. What stands between that
 party and the content is the destroy obligation above — a duty on a named
 holder, not a property of the format, and this specification does not
-present it as one (WIST-1 §9, WIST-4 §11).
+present it as one (WIST-1 §9, WIST-4 §12).
 
 The due process is the same the suite uses for sanctions (WIST-4 §7):
 notice in the Log, a named basis, a public and permanent record. An
