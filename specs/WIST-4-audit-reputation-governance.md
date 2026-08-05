@@ -1367,6 +1367,10 @@ Exactly three things:
    of delay). Eligibility is a floor, and it has a ceiling: an accepted
    Delta MUST be sealed no later than `max_inclusion_blocks` (Parameter
    Registry; default 4) Blocks after the Block it became eligible for.
+   A Delta queued under WIST-1 §5.2's recovery window is not yet
+   eligible: its eligibility, and with it this ceiling's clock, starts
+   at the first Block at or after the window's end, after WIST-1 §5.2's
+   revalidation.
    The ceiling exists because both ends of the eligible-to-sealed gap
    are otherwise the Aggregator's, and operator revenue —
    subscriptions to the fresh stream — is proportional to the free
