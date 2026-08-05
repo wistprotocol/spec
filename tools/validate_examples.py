@@ -571,6 +571,24 @@ def _wist4_error_registry():
 
 check("spec:wist4-error-registry", _wist4_error_registry)
 
+
+def _governance_acts_count():
+    """WIST-4 §2's prose count of governance acts must equal the schema's
+    action enum, and §5's field enumeration must carry prev_record — the
+    schema requires it, so a §5 reader producing Records without it ships
+    objects that never validate."""
+    w4 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    action_enum = schema["properties"]["update"]["properties"]["action"]["enum"]
+    words = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen"}
+    assert f"the {words[len(action_enum)]} governance acts" in w4, \
+        f"prose count does not match the {len(action_enum)}-action enum"
+    fields = w4.split("## 5. Verdicts")[1][:2400]
+    assert "prev_record" in fields, "§5's field enumeration omits prev_record"
+
+check("spec:governance-acts-count", _governance_acts_count)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
