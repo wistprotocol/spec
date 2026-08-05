@@ -476,7 +476,20 @@ by what signs it:
   window the recovery Declaration takes effect with `A` and `C`
   preserved, and it supersedes any ordinary rotation sealed during that
   window — so a thief holding only a signing key cannot outrun the
-  holder of the recovery key. The Aggregator MUST also record a `notice`
+  holder of the recovery key. At the window's end the queue is settled
+  deterministically: each queued Delta is revalidated against the Key
+  Set in effect at the window's end — the recovery Declaration's — and
+  one that no longer verifies is rejected with `WIST1-E13` and surfaced
+  on the status endpoint (WIST-2 §7.1) like any other typed rejection.
+  A Delta signed by the superseded signing key is exactly the case this
+  settles: if the recovery rotated that key out, the Delta dies with it,
+  which is the point of the rotation. The survivors become eligible
+  (WIST-4 §6.4) for the first Block whose `sealed_at` is at or after the
+  window's end, in their original acceptance order, and the §6.4
+  inclusion ceiling counts from that Block — a queued Delta is out of
+  the ceiling's reach while the window holds it, or the window and the
+  ceiling would be two MUSTs one Aggregator cannot both keep.
+  The Aggregator MUST also record a `notice`
   (WIST-4 §7) carrying `details.kind` `"recovery"`, but that entry
   **describes** the window and does not open it: the window is derived
   from the Declaration's own sealing height, so a Consumer replaying the
@@ -562,6 +575,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
+| WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. Dropped, never sealed; visible to the Publisher via the status endpoint (WIST-2 §7.1) |
 
 Duplicate submission of an identical Delta is an idempotent acceptance,
 not an error.

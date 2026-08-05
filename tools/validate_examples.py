@@ -524,6 +524,20 @@ def _state_tuple_encoding_twin():
 
 check("negative:wist3-state-encoding", _state_tuple_encoding_twin)
 
+
+def _recovery_queue_disposition():
+    """WIST-1 §5.2 / WIST-4 §6.4: the recovery window and the inclusion
+    ceiling were two MUSTs one Aggregator could not both keep, and the
+    queue's disposition at window end was unstated."""
+    w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    w4 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "revalidated against the Key Set in effect at the window's end" in w1
+    assert w1.count("WIST1-E13") >= 2, "E13 must appear in §5.2 and the §7 registry"
+    assert "queued under WIST-1 §5.2" in w4, "§6.4 ceiling needs the recovery carve-out"
+
+check("spec:recovery-queue-disposition", _recovery_queue_disposition)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
