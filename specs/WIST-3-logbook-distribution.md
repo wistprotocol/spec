@@ -417,6 +417,15 @@ The log is distributed as static files. Transport is out of scope: any
 HTTP server, CDN, torrent, or IPFS gateway works, because every file
 except `/log/checkpoint.json` and `/snapshots/index.json` is immutable and
 integrity is verified by hash, signature, or commitment, never by source.
+
+The paths below are rooted at the Log's **Service Origin**,
+`https://<log_id>/` (§3.4) — which is how a party holding a Log Anchor
+needs no second discovery channel: the Anchor's `log_id` names the host,
+and everything else is a path. Mirrors re-serve the same paths at their
+own origins. Two endpoints are dynamic and exist only at the Service
+Origin, never on a Mirror: the Ingest Endpoint `POST
+https://<log_id>/ingest` (WIST-2 §4) and the status endpoint `GET
+https://<log_id>/status/<domain>` (WIST-2 §7.1).
 Payload files are immutable in the same sense — their bytes never change —
 but they are the one class of file that may cease to be served, under §6.2.
 

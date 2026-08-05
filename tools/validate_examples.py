@@ -538,6 +538,22 @@ def _recovery_queue_disposition():
 
 check("spec:recovery-queue-disposition", _recovery_queue_disposition)
 
+
+def _service_origin():
+    """WIST-2/WIST-3: the Ingest and status endpoints must resolve from the
+    Log Anchor's log_id, not from an undefined <aggregator> placeholder —
+    otherwise the publisher-to-aggregator bootstrap is unspecified."""
+    w2 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    w3 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "https://<log_id>/ingest" in w2
+    assert "https://<log_id>/status/<domain>" in w2
+    assert "<aggregator>/status" not in w2, "undefined <aggregator> placeholder survives"
+    assert "POST <ingest endpoint>" not in w2
+    assert "Service Origin" in w3 and "https://<log_id>/" in w3
+
+check("spec:service-origin", _service_origin)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through

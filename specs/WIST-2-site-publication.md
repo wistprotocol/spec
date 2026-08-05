@@ -28,7 +28,9 @@ shown here.
   Aggregator's Ingest Endpoint to trigger a pull.
 - **Change Hint**: an unsigned, out-of-protocol signal (IndexNow ping,
   sitemap, llms.txt) that a page may have changed.
-- **Ingest Endpoint**: the Aggregator URL that receives Pings.
+- **Ingest Endpoint**: `POST https://<log_id>/ingest` at the
+  Aggregator's Service Origin (WIST-3 §6); a Publisher learns a Log's
+  `log_id` from its Log Anchor, obtained out of band (WIST-3 §3.4).
 
 Terms defined in WIST-1 (Publisher, Aggregator, Delta, Delta ID, Envelope,
 Key Set, Canonical Host, Normalized URL, Payload, Publisher Declaration)
@@ -211,7 +213,7 @@ MUST NOT change, and a Publisher that wants to say more files nothing here
 To notify an Aggregator, a Publisher sends:
 
 ```
-POST <ingest endpoint>
+POST https://<log_id>/ingest
 Content-Type: application/json
 
 {"host": "example.com"}
@@ -352,7 +354,8 @@ convenience. This asymmetry is the adoption incentive for WIST-1/WIST-2.
 
 ### 7.1. Publisher Status Endpoint
 
-Aggregators MUST expose `GET <aggregator>/status/<domain>` returning the
+Aggregators MUST expose `GET https://<log_id>/status/<domain>` at the
+Service Origin (WIST-3 §6), returning the
 `status` object (schema:
 [`schemas/status.schema.json`](../schemas/status.schema.json)) as JSON. It
 carries `wist_version`, the `domain` it describes, and:
