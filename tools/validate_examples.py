@@ -554,6 +554,23 @@ def _service_origin():
 
 check("spec:service-origin", _service_origin)
 
+
+def _wist4_error_registry():
+    """WIST-4 was the one document without an Error Registry, leaving ~15
+    normative rejection conditions with no codes and the replay effect of a
+    rejected Registry Update unstated."""
+    w4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    assert "## 10. Error Registry" in w4
+    assert "## 11. Security Considerations" in w4
+    assert "## 12. Privacy Considerations" in w4
+    assert "## 13. Conformance Checklist" in w4
+    assert "## 10. Security Considerations" not in w4
+    codes = re.findall(r"WIST4-E(\d{2})", w4)
+    assert sorted(set(codes)) == ["01", "02", "03", "04", "05", "06"], sorted(set(codes))
+    assert "never invalidates the containing Block" in re.sub(r"\s+", " ", w4)
+
+check("spec:wist4-error-registry", _wist4_error_registry)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
@@ -2036,7 +2053,7 @@ check("spec:parameter-bounds", _parameter_bounds)
 def _parameter_change_integer():
     """`parameter_change.value` is the one field that rewrites a constant.
 
-    WIST-4 §6 states that every input to reputation is an integer and §10 that
+    WIST-4 §6 states that every input to reputation is an integer and §11 that
     "there is no conforming path that uses `double`"; WIST-4 §4 says the same of
     the sampling test. Both claims are about the constants as much as the
     variables, and this field is the only way a constant is ever rewritten — so
@@ -3015,7 +3032,7 @@ def _derived_not_discretionary():
     wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section4 = wist4.split("## 4. Audit Sampling")[1].split("## 5.")[0]
     section7 = wist4.split("## 7. Sanctions")[1].split("## 8.")[0]
-    section10 = wist4.split("## 10. Security Considerations")[1].split("## 11.")[0]
+    section10 = wist4.split("## 11. Security Considerations")[1].split("## 12.")[0]
 
     # I1: the appeal has a path, a deadline, and a consequence for the omission.
     assert "/.well-known/wist/appeals/" in section7, \
@@ -3032,10 +3049,10 @@ def _derived_not_discretionary():
 
     # …and §10 no longer defends appeals with an argument that is false.
     assert "Omission is not equivocation" in section10, \
-        "WIST-4 §10 no longer corrects the claim that suppression is equivocation"
+        "WIST-4 §11 no longer corrects the claim that suppression is equivocation"
     assert not re.search(r"suppress a\s*\n?\s*sanction or an appeal: withholding log entries",
                          section10), \
-        "WIST-4 §10 still answers appeal suppression with the equivocation argument"
+        "WIST-4 §11 still answers appeal suppression with the equivocation argument"
 
     # I3: the recovery window opens on the Declaration's own Entry.
     recovery = wist1.split("**Compromise recovery.**")[1].split("**Historical verification.**")[0]
@@ -3098,7 +3115,7 @@ def _unappealed_ruling_timing():
         "WIST-4 §7 does not require a recomputing party to ignore an early `unappealed` ruling"
     checklist = spec.split("**Any party recomputing reputation:**")[1]
     assert '`appeal_ruling` of `"unappealed"` whose own Block' in checklist, \
-        "WIST-4 §12's recompute checklist has no row for the `unappealed` timing rule"
+        "WIST-4 §13's recompute checklist has no row for the `unappealed` timing rule"
 
     # The rule as arithmetic, over the parameters §9 publishes rather than
     # numbers restated here: an edit to `appeal_window_days` moves what this

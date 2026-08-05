@@ -689,12 +689,12 @@ What remains in the Log permanently, and cannot be withdrawn, is:
 - the verdicts and `similarity` values of any Audit Records about the URL.
   Those Records observe the page directly, so every content-derived value
   in them is committed under the same Payload salt rather than digested
-  bare, and expires with it (WIST-4 §5, WIST-4 §11);
+  bare, and expires with it (WIST-4 §5, WIST-4 §12);
 - everything any Registry Update about the URL or its Publisher carries in
   its `details` and `evidence` — the Aggregator's `legal_basis`, `reason`,
   `reasoning` and `sanction_lift` text, and the Publisher's own text on an
   `appeal` alike. These are sealed and unwithdrawable like `meta`,
-  which is why WIST-4 §9.1 and §11 forbid personal data in any of them
+  which is why WIST-4 §9.1 and §12 forbid personal data in any of them
   outright rather than in a list of named fields.
 
 Publishers should understand that this residue is permanent, and that
