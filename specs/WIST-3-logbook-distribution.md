@@ -1041,10 +1041,33 @@ digest is computable after any withdrawal, for the §7 reasons. A
 Consumer that replays from genesis MAY recompute it and MUST obtain the
 manifest's value; recomputability from public inputs, not the
 Aggregator's signature, is what makes the artifact state rather than
-testimony. Field-level encodings ride with the schema; the table is the
-normative inventory, and a state file omitting a kind with live
-instances at `log_position`, or carrying one this table does not name,
-does not verify.
+testimony.
+
+A tuple's encoding is normative: it is the JSON array `[kind, key
+fields…, value fields…]` with the members in exactly the order the table
+gives, none omitted and none added. Heights and block numbers are JSON
+integers; a "removed height or `null`" member is an integer or JSON
+`null`; instants (a window end, a deadline, a first-accepted
+`sealed_at`, a penalty's confirming `sealed_at`) are the whole-second
+literal-`Z` RFC 3339 strings the sealing Blocks carry (WIST-4 §2);
+domains, URLs, `key_id`s, `auditor_id`s and parameter identifiers are
+the strings the sealed Entries carry; keys are raw base64url public
+keys; IDs are `sha256:`-prefixed. Three kinds need more than that:
+`declaration`'s value members are the current Declaration Envelope as
+sealed, verbatim as one JSON object member, then its sealing height;
+`sanction_state`'s establishing Registry Update IDs are an
+ascending-octet-ordered array, and its open deadlines an array of
+two-member `[label, instant]` arrays with `label` one of `"appeal"`,
+`"appeal_sealing"`, `"ruling"` (WIST-4 §7's three open-deadline kinds),
+in ascending octet order of their JCS bytes; `reputation_inputs`'
+penalties are an array of two-member `[confirming sealed_at, severity]`
+arrays in Log order of the confirming Records, and its counted-URL
+digest set is the ascending-octet-ordered array fixed below. The
+schema pins each kind's arity and member types
+([`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json));
+the table remains the normative inventory, and a state file omitting a
+kind with live instances at `log_position`, or carrying one this table
+does not name, does not verify.
 
 **The counted-URL digest set, and why the artifact stays small.** `C`
 counts distinct URLs (WIST-4 §6), so continuing the count requires
@@ -1074,6 +1097,8 @@ Publisher-domain rule, one part per shard for the domain-keyed kinds
 `reputation_inputs`, `record`), with the Log-wide kinds
 (`aggregator_key`, `auditor`, `parameter`, `coverage_failure`) carried
 in every part, since no Consumer can validate an Entry without them.
+The tuple set is a set: a Log-wide tuple appears exactly once in the
+digest preimage, however many parts carry a copy.
 `state_digest` remains the digest over the whole tuple set: a partial
 Consumer verifies its parts against the per-shard digests and, as
 above, treats its coverage as partial.

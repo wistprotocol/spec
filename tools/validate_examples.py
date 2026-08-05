@@ -465,6 +465,65 @@ def _snapshot_state_counted_urls():
 
 check("spec:wist3-counted-url-digests", _snapshot_state_counted_urls)
 
+
+def _state_tuple_encoding():
+    """WIST-3 §7: the tuple encoding is normative — arity and member types
+    pinned per kind in the schema, the digest recomputable from the example,
+    and the prose owning the encoding rather than delegating it."""
+    schema = json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text())
+    entries_schema = schema["properties"]["state"]["properties"]["entries"]["items"]
+    variants = entries_schema.get("oneOf")
+    assert variants, "entries items must be a oneOf of per-kind tuple shapes"
+    kinds = set()
+    for v in variants:
+        assert v.get("items") is False, f"tuple arity unpinned: {v['prefixItems'][0]}"
+        kinds.add(v["prefixItems"][0]["const"])
+        assert all("type" in m or "const" in m or "oneOf" in m or "enum" in m
+                   for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
+    expected = {"aggregator_key", "auditor", "declaration", "parameter",
+                "sanction_state", "recovery_window", "exclusion",
+                "coverage_failure", "reputation_inputs", "record"}
+    assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
+    state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
+    digest = "sha256:" + hashlib.sha256(
+        b"".join(sorted(rfc8785.dumps(e) for e in state["entries"]))).hexdigest()
+    manifest = json.loads((ROOT / "examples" / "snapshot-manifest.json").read_text())
+    assert digest == manifest["manifest"]["state"]["state_digest"], \
+        "example state entries do not reproduce the manifest state_digest"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "Field-level encodings ride with the schema" not in prose, \
+        "the encoding must be normative, not delegated to the schema"
+    for marker in ("in exactly the order the table gives",
+                   "appears exactly once in the digest preimage"):
+        assert marker in prose, f"missing normative encoding sentence: {marker!r}"
+
+check("spec:wist3-state-encoding", _state_tuple_encoding)
+
+
+def _state_tuple_encoding_twin():
+    schema = json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    good = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    bad = copy.deepcopy(good)
+    bad["state"]["entries"][1].append("extra-member")
+    try:
+        validator.validate(bad)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("over-arity record tuple validated")
+    bad2 = copy.deepcopy(good)
+    bad2["state"]["entries"][0][3] = "0"
+    try:
+        validator.validate(bad2)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("string height validated where integer is pinned")
+
+check("negative:wist3-state-encoding", _state_tuple_encoding_twin)
+
 _BASE = "https://example.com/blog/post-1"
 
 # Independent of the generator: a hand-written table run through
@@ -1456,6 +1515,15 @@ NON_CONTENT_DIGESTS = {
         "the same Registry Update ID, named by the `appeal` that answers that notice",
     ("status.schema.json", "properties/rejections/items/properties/delta_id"):
         "a Delta ID",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[4]/prefixItems[3]/items"):
+        "Registry Update IDs establishing a sanction_state tuple (WIST-3 §7) — objects that carry only commitments",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[8]/prefixItems[5]/items"):
+        "counted-URL digests (WIST-3 §7): domain and Normalized URL, both of which the Log carries in the clear; no page content",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[9]/prefixItems[3]"):
+        "a Delta ID (a record tuple's chain tip, WIST-3 §7)",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/files/items/properties/sha256"):
         "a whole tier file, not any one record (WIST-3 §7); and a manifest is a static artifact, not a Log Entry",
