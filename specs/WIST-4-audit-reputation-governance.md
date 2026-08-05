@@ -46,7 +46,7 @@ shown here.
   measured on Block `sealed_at` (§5, §7).
 - **Registry Update**: the signed governance object this document defines,
   sealed as a `registry_update` Entry (WIST-3 §3.3). Its `action` selects one
-  of the twelve governance acts of §3, §4, §7 and §9.1; `subject` names
+  of the thirteen governance acts of §3, §4, §7 and §9.1; `subject` names
   what the act is about; `details` and `evidence` are constrained per
   `action` by §9.1.
 - **Sanction**: a graduated, logged penalty against a domain (§7).
@@ -89,7 +89,7 @@ on what some host serves at the moment a party replays the Log: the
 `auditor_admit` Entry is the Log-native fact, and the Declaration is what
 makes it falsifiable. A host that does not publish the admitted key
 contradicts the admission publicly, which is evidence for `auditor_remove`
-and an instance of the exposure §10 states — never a retroactive rewriting
+and an instance of the exposure §11 states — never a retroactive rewriting
 of Records already sealed.
 
 **Independence, and what it is worth.** Two Auditors are **independent**
@@ -132,7 +132,7 @@ confirmation rule uses. Both are comparisons over values the Log carries:
 a Record breaching the first MUST be rejected by validators recomputing
 reputation, and an `auditor_admit` breaching the second MUST be rejected
 outright, so no key it names is ever an admitted key and no Record signed
-by that key counts. Neither rule makes independence true — §10 states
+by that key counts. Neither rule makes independence true — §11 states
 exactly how far it reaches — but both remove the cases the Log itself
 already shows to be false.
 
@@ -459,7 +459,7 @@ every Record it signs, exactly as for coverage failure (§4), and the
 Aggregator MUST remove it by `auditor_remove` naming the contradicted
 Records — recording the consequence, never creating it. The state
 tracks the predicate rather than outliving it, and the derivation is
-what matters: §10 claimed systematic divergence was "grounds for
+what matters: §11 claimed systematic divergence was "grounds for
 `auditor_remove`", which left the suite's answer to a lying Auditor
 resting on the one party the design refuses to trust to file. The cost
 of the extension rule is therefore one fetch per admitted Auditor per
@@ -501,7 +501,7 @@ one evidence class that lacked it: without the attestation requirement,
 an Aggregator could manufacture an honest Auditor's removal by silently
 declining to pull — a coverage failure needs no `auditor_remove`, so
 suppression and shirking would be indistinguishable on replay, the
-opposite of what §10 claims. With it, silence stops counting against
+opposite of what §11 claims. With it, silence stops counting against
 the Auditor and starts counting against the Aggregator, whose missing
 attestation for a duty it owes is itself derivable by replay; and a
 false attestation is a permanent signed statement that any third party
@@ -511,7 +511,7 @@ who fetched the Auditor's path during the window can contradict.
 attestation protects an honest Auditor from a silent Aggregator, but
 read alone it would hand every shirking Auditor the same protection:
 an Aggregator that simply never attests would make coverage failure
-uncountable for the whole roster, and §10's "shirking is detectable
+uncountable for the whole roster, and §11's "shirking is detectable
 from the Log alone" would be true of the detection and false of the
 consequence. So the omission resolves rather than suspends. When the
 Log carries no `pull_attestation` for an (Auditor, Block) pair by
@@ -546,7 +546,9 @@ integer in micro-units, present only where that dimension applies),
 `robots_excluded` (present only on an `unreachable` Record the
 `robots.txt` rule below produced), and `vrf_proof` (the §4 VRF Proof
 over the Block Hash of the Block carrying the audited Delta, 80 octets as
-160 lowercase hex characters). The Record names no Block: the audited
+160 lowercase hex characters). Every Record also carries `prev_record`
+(§4): the ID of the same Auditor's preceding publication, or `null` for
+its first. The Record names no Block: the audited
 Block is the one Block
 whose `publisher_delta` Entries carry `audited_delta`, which WIST-3 §3.2
 makes unique and permanent. `vrf_proof` is REQUIRED in every Record,
@@ -655,7 +657,7 @@ they can ever be the evidence a sanction or an appeal turns on, and a
 duty to hold every capture for every audit would grow with system
 throughput while securing nothing — its cost would fall precisely on the
 role this suite gives no revenue, and pricing Auditors out is itself a
-security failure (§10). `evidence_commitment` is still sealed on every
+security failure (§11). `evidence_commitment` is still sealed on every
 Record that carries one; for a discarded capture it remains what any
 commitment is after its artifact lapses — binding on what the Auditor
 held, checkable while the Auditor still holds it, and nothing further.
@@ -752,7 +754,7 @@ resolution as `reputation_u`, §6), never a floating-point ratio. It
 compares two texts: the `extract` of the audit's verified Reference Payload
 — the **reference text** — and the WIST-2 §12 whole-document extraction of
 the Auditor's own fetch, the **observed text**. Both sides are pinned:
-the reference by the Payload's commitment, the observed by §12's
+the reference by the Payload's commitment, the observed by WIST-2 §12's
 procedure over the raw response octets — no step between the fetched
 bytes and the sealed integer is an implementation's choice.
 
@@ -807,11 +809,11 @@ committed text does the page carry?* — and boilerplate lands only in
 page can carry the committed text and other content besides, up to and
 including a page whose visible emphasis is elsewhere, and score full
 marks — including where the committed text is present in the response
-octets but hidden from a reader by CSS or layout, since §12 extracts
+octets but hidden from a reader by CSS or layout, since WIST-2 §12 extracts
 from the octets and never from a rendered page. Naming that plainly
 matters more than narrowing it: detecting hidden text means resolving
 styles, which means a rendering engine, which is precisely the
-implementation-divergent step §12 exists to remove — a metric that
+implementation-divergent step WIST-2 §12 exists to remove — a metric that
 disagreed between Auditors would be worse than one with a stated
 blind spot. What the metric therefore certifies is exact: **the
 response carries the committed text**, not that a reader sees it
@@ -1081,7 +1083,7 @@ It takes two Auditors to arm the horizon for the same reason it takes two
 to confirm an inconsistency. `robots_excluded` is a single Auditor's
 unverifiable claim about a file that party alone fetched, and exclusion
 from materialization is a real consequence carrying no notice and no
-appeal; one Auditor MUST NOT be able to impose it alone (§10).
+appeal; one Auditor MUST NOT be able to impose it alone (§11).
 
 Nothing here is punitive and nothing here is a sanction: no reputation
 consequence attaches, no `notice` is filed, no appeal window opens, and no
@@ -1367,6 +1369,10 @@ Exactly three things:
    of delay). Eligibility is a floor, and it has a ceiling: an accepted
    Delta MUST be sealed no later than `max_inclusion_blocks` (Parameter
    Registry; default 4) Blocks after the Block it became eligible for.
+   A Delta queued under WIST-1 §5.2's recovery window is not yet
+   eligible: its eligibility, and with it this ceiling's clock, starts
+   at the first Block at or after the window's end, after WIST-1 §5.2's
+   revalidation.
    The ceiling exists because both ends of the eligible-to-sealed gap
    are otherwise the Aggregator's, and operator revenue —
    subscriptions to the fresh stream — is proportional to the free
@@ -1963,9 +1969,31 @@ paragraph. A
 a `reasoning` and an appeal's grounds name their evidence by Audit Record
 ID (§5) or Registry Update ID (§7) rather than reciting what was found.
 Nothing in this suite requires identifying a data subject in order to
-record why an action was taken or contested (§11).
+record why an action was taken or contested (§12).
 
-## 10. Security Considerations
+## 10. Error Registry
+
+WIST-1, WIST-2 and WIST-3 register the codes their surfaces reject
+with; this section registers WIST-4's. These are replay-side codes: the
+conditions are evaluated by any party replaying the Log (§3, §5, §7,
+§9), not by a Publisher-facing surface, so unlike WIST-1/WIST-2 codes
+they carry no status-endpoint duty. One rule spans the table: rejection
+under this registry rejects the *item* — the Record or Registry Update
+is ignored during replay, contributing to nothing — and never
+invalidates the containing Block. Block validity is exclusively
+WIST-3 §3's; a registry that let one bad Entry void a sealed Block
+would hand any Auditor a veto over every other Entry sealed beside it.
+
+| Code | Meaning and required behavior |
+|---------|--------------------------------------------------------------|
+| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that does not verify or whose `audited_delta` is outside the selection and §4's extension rule; a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency, no coverage discharge. |
+| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored as WIST4-E01. |
+| WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
+| WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
+| WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
+| WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
+
+## 11. Security Considerations
 
 - **Audit selection is unforgeable and unsteerable.** Who audits what is
   fixed by each Auditor's own VRF over the Block Hash (§4), so no party
@@ -2136,7 +2164,7 @@ record why an action was taken or contested (§11).
   possible — a roster of one suffix is a Log-visible fact, and one that any
   Consumer choosing which Log to follow can weigh.
 
-## 11. Privacy Considerations
+## 12. Privacy Considerations
 
 Audit Records expose fetch timing and, via `evidence_commitment`, WARC
 captures of public pages; the WIST-1 §9 rule (nothing beyond what the page
@@ -2201,7 +2229,7 @@ violation with a named holder rather than a structural inevitability,
 which is the most a specification can do about a copy in someone else's
 hands.
 
-## 12. Conformance Checklist
+## 13. Conformance Checklist
 
 **Auditor:**
 
