@@ -1194,6 +1194,30 @@ tuples alone carry no key registry, no governance state and no chain
 tips, and the two paths would converge only on content while disagreeing
 on law.
 
+**Following more than one Log.** Nothing in this suite binds a Publisher
+to one Log: WIST-2's publication surface is one site serving whomever
+pulls, so any number of Aggregators MAY ingest the same Feed and a
+Consumer MAY follow any number of Logs. Merging them needs no protocol.
+A Delta ID is the SHA-256 of the Delta's Canonical Bytes (WIST-1 §4),
+which carry nothing about the Log that sealed them, and `prev` chains a
+URL's Deltas on the Publisher's side rather than the Aggregator's — so
+one Delta has one identity and one predecessor in every Log that sealed
+it, and a Consumer holding two Logs deduplicates by Delta ID exactly.
+What does not merge is everything a Log derives rather than transports.
+Which Deltas an Aggregator ingested, its Auditor roster (WIST-4 §3),
+every reputation, sanction, exclusion and quota computed from that
+roster's Records (WIST-4 §6), and the reach of a withdrawal (§6.2) are
+state of one Log, defined by replay of that Log's history. A Consumer
+MUST NOT carry any of them into another Log: each is a function of a
+single chain, and a value mixed across chains is recomputable by nobody.
+Coverage across Logs is partial in exactly the sense §7 gives a sharded
+Snapshot — absence of a record from a Log a Consumer does not follow is
+not evidence of anything, and neither is absence from a Log that never
+ingested that Publisher. The one place state does cross chains is
+succession (§3.4), where a successor Anchor names its predecessor and
+the Block it ended at; that is one Log continued under new keys, not two
+Logs reconciled, and nothing here extends it to concurrent Logs.
+
 ## 9. Error Registry
 
 | Code | Meaning and required behavior |
@@ -1362,6 +1386,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       (§7, §8)
 - [ ] On accepting a successor Anchor, verifies the predecessor chain to
       its declared final Block and carries state forward (§3.4)
+- [ ] When following more than one Log, deduplicates by Delta ID, keeps
+      each Log's derived state to that Log, and treats coverage as partial
+      (§8)
 
 ## Appendix A. Test Vectors
 
