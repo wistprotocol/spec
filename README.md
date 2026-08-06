@@ -30,6 +30,10 @@ Auditor ◄── samples deltas from sealed blocks ──┘             │
 | [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — blocks, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
 | [WIST-4](specs/WIST-4-audit-reputation-governance.md) | Audit, Reputation & Governance — sampling, verdicts, the reputation function, sanctions, constitutional invariants | v1.0.0-draft |
 
+The suite was frozen on 2026-08-05. Changes made to a document since then are
+recorded in [ERRATA.md](ERRATA.md), which also states the bar a change must
+clear to qualify as errata rather than as a revision.
+
 ## Repository layout
 
 ```
