@@ -78,3 +78,6 @@ deterministic: fixed test seed, fixed timestamps, no wall-clock.
 
 - Specification text: [CC-BY 4.0](LICENSE)
 - Public tier data (snapshots produced by conforming aggregators): ODbL 1.0
+
+Known reference divergences and outstanding validation are listed in
+[CONFORMANCE.md](CONFORMANCE.md).
