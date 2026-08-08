@@ -71,3 +71,58 @@ concurrent Logs exist was §6.2's note that a withdrawal binds one Log.
 **Status.** Unexercised. No vector seals the same Delta into two Logs, so the
 identity-stability claim is verified by reading WIST-1 §4 rather than by
 execution. A vector that does so belongs with the first multi-Log consumer.
+
+## 2026-08-08 — WIST-2 §11 step 5: `link_extraction.py` and empty authority
+
+No document text changes. This entry records a divergence in the pure-Python
+reference tool's `normalize_url`, found by checking the tool against an
+independent implementation of the same procedure, from what WIST-2 §11
+step 5 already pins.
+
+**What it states.** `urllib.parse.urljoin` treats a candidate such as
+`https:///x` — a scheme, a `//` authority marker, and no host — as carrying
+no authority at all, and falls back to the base's host: resolved against
+`https://example.com/blog/post-1`, it yields `https://example.com/x`. RFC
+3986 §5.3 Component Recomposition takes the opposite reading: once a
+transformed reference carries a `//` marker, its authority (here, the empty
+string) is what gets recomposed, not the base's. An implementation
+following §5.3 literally extracts that empty authority, and the empty
+host it produces then fails the Normalized URL's
+LDH-host check (WIST-1 §2), so `normalize_url("https:///x", base)` returns
+`None` rather than falling back to any host.
+
+**Why it qualifies.** WIST-2 §11 step 5 already named RFC 3986 §5 as the
+resolution algorithm; this states what that pin already implied about
+empty-authority candidates rather than adding a rule. `tools/link_extraction.py`'s
+own fixtures never construct a `scheme:///path` candidate, so no vector
+result changes.
+
+**Status.** Unexercised. Neither `vectors/wist2/link-extraction.json` nor
+`tools/link_extraction.py`'s fixtures carry an empty-authority candidate.
+The tool's own fix is left to a later change to the tool.
+
+## 2026-08-08 — WIST-2 §11 step 5: `link_extraction.py` and empty path segments
+
+No document text changes. Same pin as the entry above, a second divergence
+in the same function.
+
+**What it states.** `urllib.parse.urljoin` merging `a//b` against
+`https://example.com/blog/post-1` collapses the doubled `/` and yields
+`https://example.com/blog/a/b`. RFC 3986 §5.2.3 Merge Paths and §5.2.4
+Remove Dot Segments — the algorithm WIST-2 §11 step 5 pins — merge the
+base's directory prefix with the reference's path unchanged and remove only
+`.` and `..` segments; an empty segment between two `/` characters is
+neither, so the RFC-correct result is `https://example.com/blog/a//b`.
+An implementation following §5.2.3/§5.2.4 literally produces exactly
+this: `a//b` against this base normalizes to
+`https://example.com/blog/a//b`, and `x//` to `https://example.com/blog/x//`.
+
+**Why it qualifies.** Same pin as the entry above: WIST-2 §11 step 5 already
+named RFC 3986 §5, so this states what the existing text implied rather than
+adding a rule. `tools/link_extraction.py`'s own fixtures never carry an
+empty interior path segment in a relative reference, so no vector result
+changes.
+
+**Status.** Unexercised: `vectors/wist2/link-extraction.json` carries no
+candidate with an empty interior path segment. The tool's own fix is left to a later
+change to the tool.
