@@ -126,3 +126,32 @@ changes.
 **Status.** Unexercised: `vectors/wist2/link-extraction.json` carries no
 candidate with an empty interior path segment. The tool's own fix is left to a later
 change to the tool.
+
+## 2026-08-11 — WIST-4 §5, §9, registry-update schema: bounded Auditor fetches (revision, not errata)
+
+Adds the fetch-bounds passage to §5 (four parameters:
+`audit_fetch_cap_bytes`, `audit_domain_budget_bytes_day`,
+`audit_redirect_max`, `audit_fetch_timeout_seconds`), extends the
+`unreachable` and `not_auditable` rows of the §5 verdict table and the
+blocking-Record definition to name them, adds their §9 registry rows,
+bounds and combination rule, adds two Auditor conformance-checklist items,
+and registers the four identifiers (with floors for three) in
+`schemas/registry-update.schema.json`. Decision record: ADR-0010.
+
+**Why it is a revision.** It fails the first errata condition: an Auditor
+that conformed to the prior text by reading arbitrarily large responses, or
+following unbounded redirects, now has behavior the text bounds, and a
+`parameter_change` naming one of the four identifiers was schema-invalid
+before this change and is valid after it. The defect that provoked it is
+scoped and stated in ADR-0010: every other fetch magnitude in the suite was
+bounded, and two honest Auditors with different implicit limits could reach
+different verdicts on the same URL — the disagreement §4's integer
+arithmetic exists to eliminate, reproduced one layer down.
+
+**What it does not change.** No verdict is added, no Record field changes,
+no error code is added; `unreachable` and `not_auditable` already omit the
+commitment fields for exactly the cases the bounds produce.
+
+**Status.** Unexercised. No vector reaches the fetch layer; the bounds
+enter the vector suite only when audit-behavior vectors exist at all
+(none exist — the suite carries no §4/§5 audit-behavior vectors).
