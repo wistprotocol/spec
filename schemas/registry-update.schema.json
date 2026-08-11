@@ -180,7 +180,9 @@
                     "link_variance_floor", "warc_retention_days", "record_seal_blocks",
                     "domain_block_entries_max", "max_inclusion_blocks",
                     "ingest_budget_bytes_day", "min_observed_words",
-                    "extension_triggers_max", "contradictions_max"
+                    "extension_triggers_max", "contradictions_max",
+                    "audit_fetch_cap_bytes", "audit_domain_budget_bytes_day",
+                    "audit_redirect_max", "audit_fetch_timeout_seconds"
                   ]},
                   "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying WIST-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
                 },
@@ -200,6 +202,18 @@
                   {
                     "if": {"properties": {"parameter": {"const": "ingest_budget_bytes_day"}}},
                     "then": {"properties": {"value": {"minimum": 1048576}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "audit_fetch_cap_bytes"}}},
+                    "then": {"properties": {"value": {"minimum": 65536}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "audit_redirect_max"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "audit_fetch_timeout_seconds"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
                   },
                   {
                     "if": {"properties": {"parameter": {"const": "min_observed_words"}}},

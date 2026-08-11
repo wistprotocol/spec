@@ -740,6 +740,34 @@ that verifies is what the Publisher declared no matter who served it —
 which is what lets the comparison below remain an audit of the Publisher
 rather than of a Mirror.
 
+**Both fetches are bounded, and the bounds are parameters.** An Auditor
+MUST NOT be obliged to read more than `audit_fetch_cap_bytes` (Parameter
+Registry; default 8 MiB) of response body for one audited URL, nor more
+than `audit_domain_budget_bytes_day` (default 1 GiB) of Payloads and
+audited URLs for one domain in one UTC day; it MUST NOT follow more than
+`audit_redirect_max` (default 5) redirects for one fetch, and MUST NOT
+wait longer than `audit_fetch_timeout_seconds` (default 30) for one. A
+fetch stopped by the byte cap or the daily budget yields `not_auditable`,
+and that Record is a **blocking Record** below. One stopped by the
+redirect ceiling or the timeout yields `unreachable`, which is where
+transport failure already lands.
+
+The bounds exist for the reason §4's integers exist. Two honest Auditors
+whose clients differ in what they will read reach different verdicts on the
+same URL — one a measurement, the other nothing — and §5's confirmation
+machinery cannot tell that disagreement from evidence. A similarity
+computed in pinned integers over a representation obtained under unpinned
+limits is not recomputable, whatever the arithmetic does. The bounds also
+close an amplification the Aggregator was already protected from
+(WIST-2 §5): the coverage duty means an Auditor owes a Record for every
+selected Delta and so cannot decline a hostile response, which without a
+ceiling lets a Publisher spend an Auditor's bandwidth at a rate the
+Publisher chooses. Both limits are per-domain or per-URL, so a Publisher
+serving oversized responses spends its own egress to exclude its own URLs
+from materialization and reaches no other Publisher's; and because
+`not_auditable` discharges the coverage duty like any other verdict (§4),
+it cannot drive the Auditors it targets into coverage failure either.
+
 Every Audit Record has an **Audit Record ID**: `"sha256:" + hex(SHA-256(JCS(record)))`
 — the record's inner object canonicalized and hashed under the same
 content-addressing construction WIST-1 §4 uses for a Delta ID. A `sanction`'s
@@ -902,8 +930,8 @@ applies the mirror; nothing else in the pipeline changes shape.
 | `consistent` | effective similarity ≥ 600 000 and, where the link dimension applies, `link_agreement` ≥ 600 000 |
 | `dynamic_variance` | 300 000 ≤ effective similarity < 600 000 |
 | `inconsistent` | effective similarity < 300 000 |
-| `unreachable` | no representation of the URL was obtained: transport or DNS failure, an error status other than the `404`/`410` a `delete` audit expects (below), or a `robots.txt` prohibition (WIST-2 §5) |
-| `not_auditable` | there is no text to measure against: the Reference Payload is withdrawn (WIST-3 §6.2), never existed, cannot be obtained from any source, or carries an empty `extract` |
+| `unreachable` | no representation of the URL was obtained: transport or DNS failure, `audit_redirect_max` or `audit_fetch_timeout_seconds` exceeded (above), an error status other than the `404`/`410` a `delete` audit expects (below), or a `robots.txt` prohibition (WIST-2 §5) |
+| `not_auditable` | there is no text to measure against: the Reference Payload is withdrawn (WIST-3 §6.2), never existed, cannot be obtained from any source, or carries an empty `extract`; or the page cannot be read within `audit_fetch_cap_bytes` or `audit_domain_budget_bytes_day` (above) |
 | `link_variance` | effective similarity ≥ 600 000 and 300 000 ≤ `link_agreement` < 600 000 (neutral: it never contributes to sanctions) |
 | `link_inconsistent` | effective similarity ≥ 600 000 and `link_agreement` < 300 000 |
 
@@ -914,8 +942,9 @@ reference text records `not_auditable` whether or not the fetch also
 failed — from a withdrawal's sealing height it MUST, even holding a copy —
 and an Auditor that obtained no representation records `unreachable`
 without computing a similarity it has no observed text for; one whose
-representation is non-HTML, or whose observed text falls below the mass
-guard, records `not_auditable` under the two rules above — except on
+representation is non-HTML, whose observed text falls below the mass
+guard, or which the fetch bounds above stopped before a representation
+was read, records `not_auditable` under the three rules above — except on
 the `delete` mirror's ruled-on `404`/`410`. A band is read only when
 there is a reference to measure against, an HTML representation to
 measure, and an observed text past the guard to measure it by. Since the three extract bands partition 0 … 1 000 000 with no gap
@@ -1050,7 +1079,8 @@ replacing them.
 
 A **blocking Record** is a `robots_excluded` Record — the URL nobody is
 permitted to check — or a `not_auditable` Record produced by the observed
-side: the mass guard or the non-HTML rule below. It is not a
+side: the mass guard, the non-HTML rule below, or the fetch bounds above.
+It is not a
 `not_auditable` Record produced by a missing or empty **reference**,
 which says the Publisher committed to nothing an audit could measure and
 is the Publisher's own claim to have made no claim. The distinction is
@@ -1061,9 +1091,10 @@ unverified index this suite exists to replace. Exclusion, not sanction,
 remains the answer — the Publisher is not accused of anything, and
 serving one measurable page restores the URL — but the answer has to
 exist: without this clause a Publisher committing to a rich `extract`
-while serving a twenty-word shell, or a PDF, would be permanently
-unauditable, permanently unsanctionable, and permanently materialized,
-which is the one combination no rule here may produce.
+while serving a twenty-word shell, a PDF, or a response no Auditor is
+obliged to finish reading would be permanently unauditable, permanently
+unsanctionable, and permanently materialized, which is the one
+combination no rule here may produce.
 
 Two properties of that definition are load-bearing, and both are
 departures from the obvious shape. It arms on the **presence** of
@@ -1750,6 +1781,9 @@ existing rather than a recommended setting.
 | `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (WIST-3 §3.2) |
 | `max_inclusion_blocks` | ≥ 1 | at zero an eligible Delta must seal in its eligibility Block itself, a deadline no Aggregator can meet for a Delta accepted mid-Block (§6.4) |
 | `ingest_budget_bytes_day` | ≥ 1 048 576 | below one MiB the §3.2 walk cannot fetch a single capped Payload with its Feed page, and every backfill starves (WIST-2 §5) |
+| `audit_fetch_cap_bytes` | ≥ 65 536 | twice the largest `extract` a Publisher may commit to (WIST-1 §3.6); below it an honest page carrying a full-cap extract in marked-up HTML cannot be read, and the blocking-Record path (§5) turns that into exclusion from materialization — a `parameter_change` route to emptying the tiers without sanctioning anyone |
+| `audit_redirect_max` | ≥ 1 | at zero no redirect is followed at all, so every URL served from a redirecting host is `unreachable` whatever it serves (§5) |
+| `audit_fetch_timeout_seconds` | ≥ 1 | at zero every fetch expires before it can complete and every audit is `unreachable` (§5) |
 | `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (WIST-1 §2, §3.2) |
 
 Where the rule does not reduce to a fixed bound — a value that is
@@ -1776,7 +1810,14 @@ MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 below it a page whose first link is long declares an empty prefix the
 budget rule then makes mandatory. `link_variance_floor` MUST be below
 `link_agreement_consistent`, or the two link bands overlap and one audit
-fits two verdicts.
+fits two verdicts. `audit_domain_budget_bytes_day` MUST NOT be below
+`audit_fetch_cap_bytes` + `extract_cap_bytes` + `links_cap_bytes` +
+`summary_cap_bytes` + 32 — the audited URL under its own cap plus the
+largest Payload WIST-1 §3.6 permits, which are the two fetches one audit
+makes (§5) — or the day's budget cannot cover a single audit of the domain
+and every Delta it publishes is `not_auditable` on arrival — which the
+blocking-Record rule then reads as a page nobody can measure rather than
+as a budget nobody could meet.
 
 Every remaining identifier carries no bound because none reduces to one,
 and each is named here so that "exactly those bounds" above is a claim a
@@ -1859,6 +1900,10 @@ combination cases above.
 | Sampling floor / ceiling (`p_1e7`) | `sampling_floor` / `sampling_ceiling` | 200 000 / 5 000 000 (reads as 0.02 / 0.50) | §4 |
 | Sampling reputation slope | `sampling_slope` | 3 per micro-unit of reputation (reads as 0.30) | §4 |
 | Coverage duty deadline | `coverage_deadline_hours` | 72 hours | §4 |
+| Audit fetch body cap (per audited URL) | `audit_fetch_cap_bytes` | 8 MiB | §5 |
+| Audit fetch budget (per Auditor per domain per UTC day) | `audit_domain_budget_bytes_day` | 1 GiB | §5 |
+| Audit fetch redirect ceiling | `audit_redirect_max` | 5 | §5 |
+| Audit fetch timeout | `audit_fetch_timeout_seconds` | 30 seconds | §5 |
 | `coverage_failures_max` | — | 24 Blocks per 30 days | §4 |
 | Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
 | Link agreement thresholds (consistent / variance floor) | `link_agreement_consistent` / `link_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
@@ -2163,6 +2208,34 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   that count, and not the key count, the measure of whether confirmation is
   possible — a roster of one suffix is a Log-visible fact, and one that any
   Consumer choosing which Log to follow can weigh.
+- **Roster size is a security parameter, and audit effort does not shard.**
+  Selection is per-Auditor over every Delta (§4), so each admitted Auditor
+  draws its own share of the whole Log and no Auditor's work is any other's
+  relief: a roster of N costs N times one Auditor's fetch volume and buys
+  coverage rather than division of labour. That is deliberate — a scheme
+  that partitioned Deltas between Auditors would have to make the partition
+  derivable, and a derivable partition tells a Publisher which Auditors can
+  ever see it, which is the collusion surface §4's unpredictability exists
+  to remove — but it fixes what N buys, and the figures are worth stating
+  because the roster is the one variable an Aggregator controls and a
+  Consumer can inspect. At the `sampling_floor` rate a mature domain
+  enjoys, one altered URL is selected by at least one Auditor with
+  probability 1 − (1 − 0.02)^N: about 10 % at N = 5, 33 % at N = 20, 64 %
+  at N = 50. Confirmation does not then need a second coincidence, because
+  the extension rule summons every independent Auditor to the first
+  `inconsistent` Record — so for a campaign small enough to stay inside
+  `extension_triggers_max`, detection of the campaign is detection of any
+  one of its URLs: five altered URLs are caught 40 % of the time by a
+  five-Auditor roster, twenty-five of them 92 % of the time. A campaign
+  large enough to ration the extension rule out falls back to needing two
+  independent draws on the same Delta — 0.38 % per URL at N = 5 — but it
+  arrives there having already been confirmed `extension_triggers_max`
+  times per triggering Auditor, and the ladder it walked into raises its
+  sampling rate to `sampling_ceiling`, twenty-five times the floor, for
+  everything it publishes next. The property the suite offers is therefore
+  bounded undetected fraud rather than none: small-scale alteration by a
+  high-reputation domain can go unaudited, sustained alteration cannot, and
+  N is what sets where the boundary falls.
 
 ## 12. Privacy Considerations
 
@@ -2265,8 +2338,15 @@ hands.
 - [ ] Emits `not_auditable` (never `inconsistent` or `unreachable`) for a
       withdrawn, unobtainable or empty-extract Reference Payload, for an
       observed text below the mass guard (outside the `delete` mirror's
-      ruled-on `404`/`410`), and for a non-HTML representation — each
+      ruled-on `404`/`410`), for a non-HTML representation, and for a page
+      the fetch bounds stopped before a representation was read — each
       discharging the coverage duty (§4, §5)
+- [ ] Bounds its own fetches: reads no more than `audit_fetch_cap_bytes`
+      of response body per audited URL, fetches no more than
+      `audit_domain_budget_bytes_day` for one domain per UTC day, follows
+      no more than `audit_redirect_max` redirects and waits no longer than
+      `audit_fetch_timeout_seconds` — recording `not_auditable` for the
+      first two and `unreachable` for the last two (§5, §9)
 - [ ] Audits every Delta §4's extension rule names for it, within the
       extension deadline, exactly as a VRF selection (§4)
 - [ ] Serves its Records and attestations per audited Block at its
