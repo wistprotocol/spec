@@ -155,3 +155,89 @@ commitment fields for exactly the cases the bounds produce.
 **Status.** Unexercised. No vector reaches the fetch layer; the bounds
 enter the vector suite only when audit-behavior vectors exist at all
 (none exist — the suite carries no §4/§5 audit-behavior vectors).
+
+## 2026-08-13 — WIST-4 §4, §9: `contradictions_max` vs the extension ration (revision, not errata)
+
+Changes the `contradictions_max` default from 5 to 2 (§4 and the §9
+defaults table), states in §4 that the extension ration is also the
+ceiling on contradictions per 30-day window, and adds the coupling to
+§9's combination rules: `contradictions_max` MUST be below
+`extension_triggers_max`. No schema change: the coupling is between two
+amendable parameters, which §9's combination paragraph already declares
+inexpressible as a fixed bound. Found while ADR-0012's minority-cap
+argument was being verified against §4's mechanics.
+
+**The defect.** Only a Record that triggered an extension can be
+contradicted (§4's definition reads "the extension it triggered"), and
+a Record extends nothing once its filer has `extension_triggers_max`
+(3) triggers in the trailing 30 days — so a fourth trigger inside 30
+days of the first finds three in its window and summons nobody. At most
+3 of one Auditor's Records can therefore be contradicted in any 30-day
+window, while divergence required more than 5. The predicate was
+unreachable for any history whatsoever: no lying Auditor could ever be
+removed by it, and §4's own sentence — "a lying Auditor pays it three
+times before its own removal is derivable from the Log by anyone" —
+was false as parameterized. The derivation §4 introduced precisely so
+that the answer to a lying Auditor would not rest on Aggregator
+discretion did not exist.
+
+**Why it is a revision.** It fails the first errata condition: a
+validator conforming to the prior default never derives divergence, so
+under the new default the same Log can put an Auditor in divergence and
+void Records the prior text counted. The scope is the dead predicate
+and nothing further: 2 is the largest value below the ration, it arms
+the threshold at exactly the ration ceiling — every rationed trigger
+in a window contradicted — and it is the value at which §4's "three
+times" sentence becomes true as written.
+
+**Alternative rejected.** Redefining contradiction to reach
+non-extension Records (two independent `consistent` filings where peers
+happened to audit the Delta anyway) would also make the predicate
+reachable, but it widens the surface honest filers face — a
+coincidence-based eviction with no summons — and reopens the suite
+past the defect. ADR-0012's proposed rework of contradiction's
+*consequence* (no-fault escalated sampling) is a separate proposal, gated
+on the freeze exit, and neither depends on nor supersedes this fix; the frozen suite
+has to be coherent on its own.
+
+**What it does not change.** The definition of contradiction, the
+extension ration, the rejection semantics of divergence, and the
+schema's `contradictions_max` floor (≥ 1) are all untouched.
+
+**Status.** Unexercised. No vector constructs an extension, a
+contradiction, or a divergence state — the suite still carries no §4
+audit-behavior vectors, as the 2026-08-11 entry notes.
+
+## 2026-08-13 — WIST-4 §9: the `contradictions_max` bounds-row rationale
+
+No behavior changes; one bounds-table cell's justification is
+corrected. The row for `contradictions_max` justified its ≥ 1 floor
+with "at zero an Auditor is in divergence before it has filed
+anything, so no Auditor's Records ever count." That misreads the
+predicate it cites: divergence requires contradictions *more than*
+`contradictions_max`, so at zero it arms at the first contradiction —
+an event that requires filing an extension-triggering Record and
+having its window close contradicted — and an Auditor that has filed
+nothing has zero contradictions and is not in divergence.
+
+**What it states.** The floor is justified, for the reason the cell
+now gives: a transiently wrong page — a defacement reverted before the
+summoned peers fetch, an edge cache out of sync — can contradict an
+honest filer, which is why the predicate carries a threshold at all.
+At zero that single contradiction carries the whole divergence
+consequence, removal and 30 days of voided Records, so the predicate
+measures an event rather than the systematic divergence §4 derives,
+and filing `inconsistent` becomes the risk the extension rule exists
+to remove.
+
+**Why it qualifies.** Both conditions hold. The floor, the schema's
+minimum of 1, and everything any party computes are unchanged, so no
+conforming implementation can break; and the correction supplies the
+justification the bound already needed rather than a new rule. In a
+table whose stated standard is that each bound marks the point at
+which the mechanism beside it stops existing, a false justification is
+what invites a future argument that the bound is arbitrary.
+
+**Status.** Unexercised. The cell is prose about a bound; the schema's
+floor is unchanged, and no vector or example carries a
+`parameter_change` at this boundary.
