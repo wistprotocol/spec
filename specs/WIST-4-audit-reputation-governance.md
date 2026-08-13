@@ -451,10 +451,15 @@ than one Auditor's filings.
 or `link_inconsistent` Record is **contradicted** when the extension it
 triggered closes with no Confirmed Inconsistency and at least two
 independent Auditors sealed `consistent` for the same Delta inside the
-window. An Auditor whose Records were contradicted more than
-`contradictions_max` times (Parameter Registry; default 5) in the 30
-whole days ending at height N is in **divergence** from that height, and
-for as long as it holds: a validator recomputing reputation rejects
+window. Only a Record that triggered an extension can be contradicted,
+and the ration above admits at most `extension_triggers_max` triggers
+into any 30-day window, so the ration is also the ceiling on
+contradictions in that window — which is why `contradictions_max` MUST
+be below `extension_triggers_max` (§9). An Auditor whose Records were
+contradicted more than `contradictions_max` times (Parameter Registry;
+default 2) in the 30 whole days ending at height N is in **divergence**
+from that height, and for as long as it holds: a validator recomputing
+reputation rejects
 every Record it signs, exactly as for coverage failure (§4), and the
 Aggregator MUST remove it by `auditor_remove` naming the contradicted
 Records — recording the consequence, never creating it. The state
@@ -1760,7 +1765,7 @@ existing rather than a recommended setting.
 | `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
 | `min_observed_words` | ≥ 1 | at zero the mass guard admits the empty observed text, and §5's quotient is read against a page that said nothing (§5) |
 | `extension_triggers_max` | ≥ 1 | at zero no `inconsistent` Record ever extends a selection set, and §4's extension rule — the only path to confirmation that does not wait on coincidence — is disabled entirely (§4, §5) |
-| `contradictions_max` | ≥ 1 | at zero an Auditor is in divergence before it has filed anything, so no Auditor's Records ever count (§4) |
+| `contradictions_max` | ≥ 1 | at zero a single contradicted Record carries the whole divergence consequence — removal and 30 days of voided Records — though a transiently wrong page (a defacement reverted, an edge cache out of sync) can contradict an honest filer, which is why a threshold exists at all; a predicate firing on the first contradiction measures an event rather than the systematic divergence §4 derives, and makes filing `inconsistent` the risk the extension rule exists to remove (§4, §5) |
 | `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
 | `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (WIST-3 §3.1) |
 | `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
@@ -1810,7 +1815,12 @@ MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 below it a page whose first link is long declares an empty prefix the
 budget rule then makes mandatory. `link_variance_floor` MUST be below
 `link_agreement_consistent`, or the two link bands overlap and one audit
-fits two verdicts. `audit_domain_budget_bytes_day` MUST NOT be below
+fits two verdicts. `contradictions_max` MUST be below
+`extension_triggers_max`: only an extension-triggering Record can be
+contradicted and the ration admits at most `extension_triggers_max` of
+them into any 30-day window (§4), so at or above it the divergence
+predicate is one no history can satisfy and §4's answer to a lying
+Auditor stops existing. `audit_domain_budget_bytes_day` MUST NOT be below
 `audit_fetch_cap_bytes` + `extract_cap_bytes` + `links_cap_bytes` +
 `summary_cap_bytes` + 32 — the audited URL under its own cap plus the
 largest Payload WIST-1 §3.6 permits, which are the two fetches one audit
@@ -1910,7 +1920,7 @@ combination cases above.
 | Shingle size | `shingle_size` | 8 (words, or grapheme clusters on §5's short-text branch) | §5 |
 | Observed-text mass guard | `min_observed_words` | 40 words | §5 |
 | Extension ration (per Auditor per 30 days) | `extension_triggers_max` | 3 | §4 |
-| Divergence threshold (per Auditor per 30 days) | `contradictions_max` | 5 | §4 |
+| Divergence threshold (per Auditor per 30 days) | `contradictions_max` | 2 | §4 |
 | Unauditable horizon | `unauditable_horizon_days` | 30 days | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
