@@ -75,6 +75,7 @@ deterministic: fixed test seed, fixed timestamps, no wall-clock.
 - [ADR-0009](decisions/0009-embeddings-outside-the-trust-boundary.md) — Embeddings live outside the trust boundary, as companion packs
 - [ADR-0010](decisions/0010-auditor-fetch-limits.md) — Bounded Auditor fetches
 - [ADR-0011](decisions/0011-audit-effort-scales-with-the-roster.md) — Audit effort scales with the roster, by design
+- [ADR-0012](decisions/0012-auditor-track-record-becomes-derivable.md) — Auditor track record becomes derivable
 
 ## Licenses
 
