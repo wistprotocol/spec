@@ -1,0 +1,325 @@
+{
+  "description": "One Delta sealed independently by two Logs (WIST-3 \u00a78, \"Following more than one Log\"): identity is stable, a Consumer holding both deduplicates by Delta ID, and derived state stays per Log. log-a seals the Publisher's Declaration in Block 0 and the Delta in Block 1; log-b seals the same Declaration in Block 0, an empty heartbeat Block 1, and the same Delta in Block 2 \u2014 different heights, same Delta ID.",
+  "note": "Each Log entry's genesis_seed_hex is test-harness material, not protocol content: the Ed25519 seed behind that Log's genesis_key, included so a conformance harness can build that Log's own Snapshot artifacts (state/manifest/index) signed under the same key its Blocks are sealed with \u2014 the same role vectors/wist1/keypair.json's seed_hex plays for the Publisher's key. TEST ONLY \u2014 never use in production.",
+  "publisher_declaration": {
+    "publisher": {
+      "wist_version": "1.0.0",
+      "domain": "example.com",
+      "keys": [
+        {
+          "key_id": "pub-k1",
+          "alg": "Ed25519",
+          "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+          "valid_from": "2026-08-02T00:00:00Z"
+        }
+      ],
+      "seq": 0
+    },
+    "sig": {
+      "key_id": "pub-k1",
+      "alg": "Ed25519",
+      "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+    }
+  },
+  "delta": {
+    "delta": {
+      "wist_version": "1.0.0",
+      "url": "https://example.com/shared-post",
+      "change_type": "new",
+      "observed_at": "2026-08-02T12:00:00Z",
+      "payload": {
+        "commitment": "hmac-sha256:e4694f9a85cdd263bb293b49583bdb7aa964151752beab2afb78764a828121fc",
+        "alg": "HMAC-SHA256",
+        "bytes": 110
+      },
+      "meta": {
+        "lang": "en"
+      }
+    },
+    "sig": {
+      "key_id": "pub-k1",
+      "alg": "Ed25519",
+      "value": "E-fpnXHdNUNp9WywOUJt_iC-HJ2B5ALlkPXEOdt7vLeHfVPVOGROv-h9Li61SH9lBSoNGq_g4ZEKhTc-9104AQ"
+    }
+  },
+  "payload": {
+    "wist_version": "1.0.0",
+    "salt": "k2psoYun6DuLGPo6AqB9nw",
+    "content": {
+      "extract": "Sealed once, read from two Logs.",
+      "links": {
+        "total": 0,
+        "urls": []
+      },
+      "summary": {
+        "title": "Shared Post"
+      }
+    }
+  },
+  "delta_id": "sha256:eaa52f6badff5a8e641f4a0aee8f63c46d4f8534b0dc370cf9ac081df8c7c1fc",
+  "logs": [
+    {
+      "log_id": "log-a",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "log-a",
+          "genesis_key": {
+            "key_id": "log-a-genesis",
+            "alg": "Ed25519",
+            "public_key": "5zTqbCtiV95yNV5HKqBaTEh-a0Y8Ap7TBt8vAbVja1g"
+          },
+          "created_at": "2026-08-02T00:00:00Z"
+        },
+        "sig": {
+          "key_id": "log-a-genesis",
+          "alg": "Ed25519",
+          "value": "32tB1Kck-tik_9vfU6SKEvGwFVQ3dCDWd4-uw4snQOR4LJiSoHOcWPXun4jdYqM_T6objLl8iuapD3_o0R9nBg"
+        }
+      },
+      "genesis_seed_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "blocks": [
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 0,
+            "prev_block_hash": "sha256:genesis",
+            "sealed_at": "2026-08-02T13:00:00Z",
+            "merkle_root": "sha256:5dc6c41a5b4e6610e9d9015785bbf60d8e7f4f510f0b5fd4ed8219a1daba76d6",
+            "entry_count": 1
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "domain": "example.com",
+                  "keys": [
+                    {
+                      "key_id": "pub-k1",
+                      "alg": "Ed25519",
+                      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+                      "valid_from": "2026-08-02T00:00:00Z"
+                    }
+                  ],
+                  "seq": 0
+                },
+                "sig": {
+                  "key_id": "pub-k1",
+                  "alg": "Ed25519",
+                  "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+                }
+              }
+            }
+          ],
+          "sig": {
+            "key_id": "log-a-genesis",
+            "alg": "Ed25519",
+            "value": "nnoHTiwwhqDcQa9PfM3m2i-bbxTsYLxwp3Xm6kIkytgTkdnsb77x4Gn7-0zNeG9axw6qAH-Eb6W5LfLpyE_2Cg"
+          }
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 1,
+            "prev_block_hash": "sha256:084e23b18c98b93056d9b5cc1cda8704cec7838205daa06bee5d1aa2112c98ea",
+            "sealed_at": "2026-08-02T14:00:00Z",
+            "merkle_root": "sha256:7781c34821f6400f1684cd9defebf2e61f9763f145557c5c9fcdb05717b5ab28",
+            "entry_count": 1
+          },
+          "entries": [
+            {
+              "type": "publisher_delta",
+              "body": {
+                "delta": {
+                  "wist_version": "1.0.0",
+                  "url": "https://example.com/shared-post",
+                  "change_type": "new",
+                  "observed_at": "2026-08-02T12:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:e4694f9a85cdd263bb293b49583bdb7aa964151752beab2afb78764a828121fc",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 110
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "sig": {
+                  "key_id": "pub-k1",
+                  "alg": "Ed25519",
+                  "value": "E-fpnXHdNUNp9WywOUJt_iC-HJ2B5ALlkPXEOdt7vLeHfVPVOGROv-h9Li61SH9lBSoNGq_g4ZEKhTc-9104AQ"
+                }
+              }
+            }
+          ],
+          "sig": {
+            "key_id": "log-a-genesis",
+            "alg": "Ed25519",
+            "value": "wpvby4V4af8H-XJehWAxKvtxft20M_Swfg3zhVJolZKokXditQHDNayzI24cmqFekYooKoSJSLnOJmuNYPkCAg"
+          }
+        }
+      ],
+      "checkpoint": {
+        "checkpoint": {
+          "wist_version": "1.0.0",
+          "block_number": 1,
+          "block_hash": "sha256:1515b5b46ce2b24b815c6b405a12aa4adb1a378121fb5fe69c4357912c622145",
+          "sealed_at": "2026-08-02T14:00:00Z"
+        },
+        "sig": {
+          "key_id": "log-a-genesis",
+          "alg": "Ed25519",
+          "value": "0tLANCKVSZhymp20QceYp913lusTIGZTZQ4vUTOYdau-kr1HYiXfutzuRe5e1rhLbZPPOju8rPzjD7xJWth2Bg"
+        }
+      }
+    },
+    {
+      "log_id": "log-b",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "log-b",
+          "genesis_key": {
+            "key_id": "log-b-genesis",
+            "alg": "Ed25519",
+            "public_key": "fVnFYj3UCnSqTVoyrGRdOz-V2urkwiviVHbdakhvc4I"
+          },
+          "created_at": "2026-08-02T00:00:00Z"
+        },
+        "sig": {
+          "key_id": "log-b-genesis",
+          "alg": "Ed25519",
+          "value": "5CAQhdkUbVFofWptEc0c2gSqWJdrrVQiiJfMZxG9UE_JIvzp8-NqHLJdLEuGm4x3P8o51yOTkbxdobd02adRBA"
+        }
+      },
+      "genesis_seed_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "blocks": [
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 0,
+            "prev_block_hash": "sha256:genesis",
+            "sealed_at": "2026-08-02T13:00:00Z",
+            "merkle_root": "sha256:5dc6c41a5b4e6610e9d9015785bbf60d8e7f4f510f0b5fd4ed8219a1daba76d6",
+            "entry_count": 1
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "domain": "example.com",
+                  "keys": [
+                    {
+                      "key_id": "pub-k1",
+                      "alg": "Ed25519",
+                      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+                      "valid_from": "2026-08-02T00:00:00Z"
+                    }
+                  ],
+                  "seq": 0
+                },
+                "sig": {
+                  "key_id": "pub-k1",
+                  "alg": "Ed25519",
+                  "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+                }
+              }
+            }
+          ],
+          "sig": {
+            "key_id": "log-b-genesis",
+            "alg": "Ed25519",
+            "value": "ltVEvmv7QQq7wUz5eAJPbXavV_I8Fw_LGB992l_QHMPcux9gLoWswO3L5Pp0FzdQFjoZ3_ZASS9KJ3dCmyWmDg"
+          }
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 1,
+            "prev_block_hash": "sha256:084e23b18c98b93056d9b5cc1cda8704cec7838205daa06bee5d1aa2112c98ea",
+            "sealed_at": "2026-08-02T14:00:00Z",
+            "merkle_root": "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+            "entry_count": 0
+          },
+          "entries": [],
+          "sig": {
+            "key_id": "log-b-genesis",
+            "alg": "Ed25519",
+            "value": "gzodtwTw7yfjj1ts9tOdjprccSm6AOi1ibkErtgnPZhqO09Ml9pkxcHBWiZ31EUQWCVwX_38oljeyK_wtD7yCQ"
+          }
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 2,
+            "prev_block_hash": "sha256:373c69f27998e15b00b03de0aaf39d9d8013a19d84d1d2af8d552611e707f8c7",
+            "sealed_at": "2026-08-02T15:00:00Z",
+            "merkle_root": "sha256:7781c34821f6400f1684cd9defebf2e61f9763f145557c5c9fcdb05717b5ab28",
+            "entry_count": 1
+          },
+          "entries": [
+            {
+              "type": "publisher_delta",
+              "body": {
+                "delta": {
+                  "wist_version": "1.0.0",
+                  "url": "https://example.com/shared-post",
+                  "change_type": "new",
+                  "observed_at": "2026-08-02T12:00:00Z",
+                  "payload": {
+                    "commitment": "hmac-sha256:e4694f9a85cdd263bb293b49583bdb7aa964151752beab2afb78764a828121fc",
+                    "alg": "HMAC-SHA256",
+                    "bytes": 110
+                  },
+                  "meta": {
+                    "lang": "en"
+                  }
+                },
+                "sig": {
+                  "key_id": "pub-k1",
+                  "alg": "Ed25519",
+                  "value": "E-fpnXHdNUNp9WywOUJt_iC-HJ2B5ALlkPXEOdt7vLeHfVPVOGROv-h9Li61SH9lBSoNGq_g4ZEKhTc-9104AQ"
+                }
+              }
+            }
+          ],
+          "sig": {
+            "key_id": "log-b-genesis",
+            "alg": "Ed25519",
+            "value": "FyNlG8xJwDkD5ox3pvJMFd4GV-uFSPnYR6qTMcZPKCETfIjitKurWzqBSqUVjeblItbYnf31pIVm-gZlNx1zCA"
+          }
+        }
+      ],
+      "checkpoint": {
+        "checkpoint": {
+          "wist_version": "1.0.0",
+          "block_number": 2,
+          "block_hash": "sha256:c1f6c06e0b7ac35756166e0e7afc72724c0a45f5ca0e3fd1450ea3f01ec37c36",
+          "sealed_at": "2026-08-02T15:00:00Z"
+        },
+        "sig": {
+          "key_id": "log-b-genesis",
+          "alg": "Ed25519",
+          "value": "3LyzqcEtCy1IAhV12O9zZY50ubhI0sq6f9ID_WWWcRzDNDNbwGjncFuWrfISKie3eGsfgWK_UlkIgMV886mDAA"
+        }
+      }
+    }
+  ],
+  "expected": {
+    "merged_records": [
+      {
+        "url": "https://example.com/shared-post",
+        "publisher": "example.com",
+        "delta_id": "sha256:eaa52f6badff5a8e641f4a0aee8f63c46d4f8534b0dc370cf9ac081df8c7c1fc",
+        "sources": [
+          "log-a",
+          "log-b"
+        ]
+      }
+    ]
+  }
+}
