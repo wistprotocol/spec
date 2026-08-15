@@ -350,7 +350,7 @@ convenience. This asymmetry is the adoption incentive for WIST-1/WIST-2.
 | WIST2-E02 | Ping produced no new feed content. Counts as noise against the domain's Ping quota. |
 | WIST2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (WIST-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
 | WIST2-E04 | First contact or Feed authentication failure. Two cases, one code: a Feed whose signature does not verify against the domain's Key Set, and a first-contact pull (§5 step 0) whose `publisher.json` is missing, unreachable, malformed, or fails WIST-1 §5.1 verification — the second being the case where no Key Set exists to check the first against. The pull is discarded; counts as noise against the quota. The status endpoint (§7.1) MUST distinguish the two in its `detail` field, since a Publisher whose Declaration never loaded and one whose Feed signature is wrong take entirely different remedies. |
-| WIST2-E05 | Feed `generated_at` regression. The pull is discarded and counts against the quota as noise. |
+| WIST2-E05 | Feed `generated_at` regression. The pull is discarded; it does not count against the quota — §4's noise set is closed at `WIST2-E02`/`WIST2-E04`. |
 
 ### 7.1. Publisher Status Endpoint
 

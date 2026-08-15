@@ -291,3 +291,27 @@ stale-first case ("stale first later pair") that separates the two window
 readings, the closed-set severity extremum, and the independence table;
 the other four files exercise the derivations above, boundary rows
 included.
+
+## 2026-08-15 — WIST-2 §7: `WIST2-E05` and the noise set
+
+Rewords the `WIST2-E05` registry row: the discarded pull does not count
+against the Ping quota.
+
+**What it states.** §4 defines the quota's noise accounting as a closed
+set — "Only pings resolving to `WIST2-E02` or `WIST2-E04` count against
+the domain's daily quota Q" — and the §10 conformance checklist restates
+exactly that set, citing §4. The §7 registry row for `WIST2-E05` said the
+opposite ("counts against the quota as noise"), a contradiction no
+implementation could conform to both ways. The row now follows §4.
+
+**Why it qualifies.** Both conditions hold. §4 states the rule twice —
+once normatively, once as the conformance checklist item — while the §7
+row said it once in a table whose column describes per-code handling, not
+the quota's definition; an implementation that conformed to §4's closed
+set conformed to the suite's own accounting rule and is not broken by the
+row now agreeing with it. An implementation following the old row
+literally over-counts a regressing Feed against Q, which §4 already
+forbade.
+
+**Status.** Unexercised. No vector reaches Ping-quota accounting; the
+rule rests on the §4 text and the §10 checklist.
