@@ -1,0 +1,355 @@
+{
+  "note": "WIST-4 \u00a77 ladder state derivation. Escalation criteria produce met-times from Confirmed Inconsistencies (identity-scoped per \u00a76.3 before they arrive here); notices, appeals and rulings produce void instants; a rung is in force at N when its latest met time at or before N is later than its latest clear time. Level 4's accrual branch counts findings sealed while level 3 was in force strictly before them.",
+  "escalation": {
+    "l2": {
+      "count": 3,
+      "days": 90
+    },
+    "l3_count": {
+      "count": 10,
+      "days": 90
+    },
+    "l3_severity": 3,
+    "l4_sev3": {
+      "count": 3,
+      "days": 180
+    }
+  },
+  "appeal_window_days": 14,
+  "appeal_seal_days": 7,
+  "ruling_deadline_days": 30,
+  "criterion_cases": [
+    {
+      "label": "every finding meets l1",
+      "findings": [
+        {
+          "sealed_at_s": 864000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 1728000,
+          "severity": 2
+        }
+      ],
+      "count": 1,
+      "span_days": null,
+      "min_severity": 0,
+      "met_times_s": [
+        864000,
+        1728000
+      ]
+    },
+    {
+      "label": "three in ninety meet l2",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 2592000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 7689600,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 17280000,
+          "severity": 1
+        }
+      ],
+      "count": 3,
+      "span_days": 90,
+      "min_severity": 0,
+      "met_times_s": [
+        7689600
+      ]
+    },
+    {
+      "label": "spread past span never meets",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 7862400,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 15724800,
+          "severity": 1
+        }
+      ],
+      "count": 3,
+      "span_days": 90,
+      "min_severity": 0,
+      "met_times_s": []
+    },
+    {
+      "label": "three severity 3 in 180 meet l4",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 864000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 1728000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 2592000,
+          "severity": 3
+        }
+      ],
+      "count": 3,
+      "span_days": 180,
+      "min_severity": 3,
+      "met_times_s": [
+        2592000
+      ]
+    },
+    {
+      "label": "any severity 3 meets l3",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 864000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 1728000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 2592000,
+          "severity": 3
+        }
+      ],
+      "count": 1,
+      "span_days": null,
+      "min_severity": 3,
+      "met_times_s": [
+        0,
+        1728000,
+        2592000
+      ]
+    }
+  ],
+  "accrual_cases": [
+    {
+      "label": "accrual while l3 in force",
+      "findings": [
+        {
+          "sealed_at_s": 864000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 1728000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 2592000,
+          "severity": 1
+        }
+      ],
+      "l3_met_times_s": [
+        864000
+      ],
+      "l3_clear_times_s": [],
+      "accrual_times_s": [
+        1728000,
+        2592000
+      ]
+    },
+    {
+      "label": "the creating finding is not accrual",
+      "findings": [
+        {
+          "sealed_at_s": 864000,
+          "severity": 3
+        }
+      ],
+      "l3_met_times_s": [
+        864000
+      ],
+      "l3_clear_times_s": [],
+      "accrual_times_s": []
+    },
+    {
+      "label": "accrual stops at clear",
+      "findings": [
+        {
+          "sealed_at_s": 864000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 1728000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 3456000,
+          "severity": 1
+        }
+      ],
+      "l3_met_times_s": [
+        864000
+      ],
+      "l3_clear_times_s": [
+        2592000
+      ],
+      "accrual_times_s": [
+        1728000
+      ]
+    }
+  ],
+  "void_cases": [
+    {
+      "label": "no notice never voids",
+      "notice_sealed_at_s": null,
+      "appeal_sealed_at_s": null,
+      "ruling": null,
+      "void_at_s": null
+    },
+    {
+      "label": "nothing by t voids at t",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": null,
+      "ruling": null,
+      "void_at_s": 1814400
+    },
+    {
+      "label": "valid unappealed discharges",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": null,
+      "ruling": [
+        "unappealed",
+        1296000
+      ],
+      "void_at_s": null
+    },
+    {
+      "label": "early unappealed is absent",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": null,
+      "ruling": [
+        "unappealed",
+        1123200
+      ],
+      "void_at_s": 1814400
+    },
+    {
+      "label": "appeal without ruling voids at deadline",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": 864000,
+      "ruling": null,
+      "void_at_s": 3456000
+    },
+    {
+      "label": "upheld in time keeps state",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": 864000,
+      "ruling": [
+        "upheld",
+        1728000
+      ],
+      "void_at_s": null
+    },
+    {
+      "label": "late ruling does not cure",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": 864000,
+      "ruling": [
+        "upheld",
+        3888000
+      ],
+      "void_at_s": 3456000
+    },
+    {
+      "label": "overturned voids when sealed",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": 864000,
+      "ruling": [
+        "overturned",
+        1728000
+      ],
+      "void_at_s": 1728000
+    },
+    {
+      "label": "appeal after t does not discharge",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": 1900800,
+      "ruling": null,
+      "void_at_s": 1814400
+    }
+  ],
+  "in_force_cases": [
+    {
+      "label": "never met",
+      "met_times_s": [],
+      "clear_times_s": [],
+      "n_s": 100,
+      "in_force": false
+    },
+    {
+      "label": "met uncleared",
+      "met_times_s": [
+        50
+      ],
+      "clear_times_s": [],
+      "n_s": 100,
+      "in_force": true
+    },
+    {
+      "label": "cleared",
+      "met_times_s": [
+        50
+      ],
+      "clear_times_s": [
+        60
+      ],
+      "n_s": 100,
+      "in_force": false
+    },
+    {
+      "label": "re met after clear",
+      "met_times_s": [
+        50,
+        70
+      ],
+      "clear_times_s": [
+        60
+      ],
+      "n_s": 100,
+      "in_force": true
+    },
+    {
+      "label": "met in the future",
+      "met_times_s": [
+        150
+      ],
+      "clear_times_s": [],
+      "n_s": 100,
+      "in_force": false
+    },
+    {
+      "label": "clear at the met instant",
+      "met_times_s": [
+        50
+      ],
+      "clear_times_s": [
+        50
+      ],
+      "n_s": 100,
+      "in_force": false
+    }
+  ]
+}

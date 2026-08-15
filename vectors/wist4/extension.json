@@ -1,0 +1,287 @@
+{
+  "note": "WIST-4 \u00a74 extension rule. A Record triggers when no earlier inconsistent/link_inconsistent Record for the Delta sits inside the confirmation window ending at its Block; a trigger summons only while its Auditor has fewer than extension_triggers_max summoning triggers in the trailing 30 days (a rationed-out trigger consumes no ration); the summoned set is every admitted Auditor independent of every filer and of the Publisher; divergence holds while strictly more than contradictions_max contradictions sit inside the trailing 30 days.",
+  "confirm_window_hours": 72,
+  "extension_triggers_max": 3,
+  "contradictions_max": 2,
+  "ration_window_days": 30,
+  "deadline_cases": [
+    {
+      "b1_sealed_at_s": 1000,
+      "confirm_window_hours": 72,
+      "deadline_s": 130600
+    },
+    {
+      "b1_sealed_at_s": 0,
+      "confirm_window_hours": 73,
+      "deadline_s": 129600
+    }
+  ],
+  "trigger_cases": [
+    {
+      "label": "lone first triggers",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        }
+      ],
+      "trigger_indices": [
+        0
+      ]
+    },
+    {
+      "label": "inside window no trigger",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 259200,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        }
+      ],
+      "trigger_indices": [
+        0
+      ]
+    },
+    {
+      "label": "past window triggers again",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 259201,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        }
+      ],
+      "trigger_indices": [
+        0,
+        1
+      ]
+    },
+    {
+      "label": "any earlier record suppresses",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 180000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 0,
+          "sealed_at_s": 360000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "trigger_indices": [
+        0
+      ]
+    }
+  ],
+  "ration_cases": [
+    {
+      "label": "fourth in window rationed",
+      "triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          86400
+        ],
+        [
+          "audit.example.net",
+          172800
+        ],
+        [
+          "audit.example.net",
+          259200
+        ]
+      ],
+      "summons": [
+        true,
+        true,
+        true,
+        false
+      ]
+    },
+    {
+      "label": "ration resets as summons age out",
+      "triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          86400
+        ],
+        [
+          "audit.example.net",
+          172800
+        ],
+        [
+          "audit.example.net",
+          2764800
+        ]
+      ],
+      "summons": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "label": "rationed out trigger consumes nothing",
+      "triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          3600
+        ],
+        [
+          "audit.example.net",
+          7200
+        ],
+        [
+          "audit.example.net",
+          10800
+        ],
+        [
+          "audit.example.net",
+          2595600
+        ]
+      ],
+      "summons": [
+        true,
+        true,
+        true,
+        false,
+        true
+      ]
+    },
+    {
+      "label": "ration is per auditor",
+      "triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          3600
+        ],
+        [
+          "audit.example.net",
+          7200
+        ],
+        [
+          "checker.example.org",
+          10800
+        ]
+      ],
+      "summons": [
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  ],
+  "summons_cases": [
+    {
+      "label": "dependents of filers and publisher excluded",
+      "roster": [
+        "audit.example.net",
+        "peer.example.net",
+        "checker.example.org",
+        "watch.publisher.example"
+      ],
+      "already_sealed": [
+        "audit.example.net"
+      ],
+      "publisher_domain": "www.publisher.example",
+      "summoned_indices": [
+        2
+      ]
+    },
+    {
+      "label": "independence from every filer",
+      "roster": [
+        "watch.sample.net",
+        "peer.example.net"
+      ],
+      "already_sealed": [
+        "audit.example.net",
+        "eye.sample.net"
+      ],
+      "publisher_domain": "www.publisher.example",
+      "summoned_indices": []
+    }
+  ],
+  "divergence_cases": [
+    {
+      "label": "at the maximum",
+      "contradiction_times_s": [
+        8553600,
+        8467200
+      ],
+      "n_sealed_at_s": 8640000,
+      "in_divergence": false
+    },
+    {
+      "label": "past the maximum",
+      "contradiction_times_s": [
+        8553600,
+        8467200,
+        8380800
+      ],
+      "n_sealed_at_s": 8640000,
+      "in_divergence": true
+    },
+    {
+      "label": "aged out",
+      "contradiction_times_s": [
+        5184000,
+        8467200,
+        8380800
+      ],
+      "n_sealed_at_s": 8640000,
+      "in_divergence": false
+    }
+  ]
+}
