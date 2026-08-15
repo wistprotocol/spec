@@ -958,3 +958,553 @@ for case in [primary] + boundary:
 assert all(
     boundary[i]["reputation_u"] <= boundary[i + 1]["reputation_u"]
     for i in (0, 1, 3, 5)), "reputation fell when a gate lifted"
+
+# --------------------------------------- WIST-4: replay-derivation vectors
+# §3 independence, §5/§7 confirming-block selection and severity, §6.1/§6.3
+# A/C/penalty inputs, §4 coverage counting and extension rationing, §7 ladder
+# state. Pure integer functions over abstract Log positions: `sealed_at`
+# appears as integer POSIX seconds (`*_s`), heights and Entry indexes as
+# integers, Auditors and Publishers as hostnames. Every expected value below
+# is computed by the reference functions here, never written by hand.
+
+HOUR_S = 3600
+DAY_S = 86400
+CONFIRM_WINDOW_HOURS = 72
+INCONSISTENT_EFFECTIVE_BELOW = 300_000
+SEVERITY_MINOR_FLOOR = 150_000
+SEVERITY_MISLEADING_FLOOR = 50_000
+EXTENSION_TRIGGERS_MAX = 3
+CONTRADICTIONS_MAX = 2
+RATION_WINDOW_DAYS = 30
+COVERAGE_FAILURES_MAX = 24
+ESCALATIONS = {"l2": (3, 90, 0), "l3_count": (10, 90, 0), "l4_sev3": (3, 180, 3)}
+APPEAL_WINDOW_DAYS = 14
+APPEAL_SEAL_DAYS = 7
+RULING_DEADLINE_DAYS = 30
+
+
+def spaced_labels(node):
+    """Labels are prose, not identifiers: spaces keep them outside the token
+    shapes the repo-wide digest sweep in validate_examples.py flags."""
+    if isinstance(node, dict):
+        return {k: (v.replace("-", " ") if k == "label" and isinstance(v, str)
+                    else spaced_labels(v)) for k, v in node.items()}
+    if isinstance(node, list):
+        return [spaced_labels(v) for v in node]
+    return node
+
+
+def independent(a: str, b: str) -> bool:
+    """WIST-4 §3: no shared suffix of two or more labels."""
+    sa, sb = a.split(".")[-2:], b.split(".")[-2:]
+    if len(sa) < 2 or len(sb) < 2:
+        return True
+    return sa != sb
+
+
+def confirming_index(records, window_hours):
+    """WIST-4 §5/§7: earliest Record, in Log order, sealed within the pairwise
+    window of an earlier Record from an independent Auditor."""
+    for prev, nxt in zip(records, records[1:]):
+        assert (nxt["block_height"], nxt["entry_index"]) > \
+               (prev["block_height"], prev["entry_index"]), "not in Log order"
+        assert nxt["sealed_at_s"] >= prev["sealed_at_s"], "sealed_at decreased"
+    window_s = window_hours * HOUR_S
+    for i, record in enumerate(records):
+        for earlier in records[:i]:
+            if independent(earlier["auditor"], record["auditor"]) and \
+               record["sealed_at_s"] - earlier["sealed_at_s"] <= window_s:
+                return i
+    return None
+
+
+def ci_severity(records, confirming):
+    """WIST-4 §7: highest effective similarity over the closed confirming set."""
+    sim = max(r["effective_similarity"] for r in records[:confirming + 1])
+    assert sim < INCONSISTENT_EFFECTIVE_BELOW, "not an inconsistent-band similarity"
+    if sim >= SEVERITY_MINOR_FLOOR:
+        return 1
+    if sim >= SEVERITY_MISLEADING_FLOOR:
+        return 2
+    return 3
+
+
+def rec(height, entry, sealed_at_s, auditor, effective_similarity=0):
+    return {"block_height": height, "entry_index": entry, "sealed_at_s": sealed_at_s,
+            "auditor": auditor, "effective_similarity": effective_similarity}
+
+
+AUD_A, AUD_B, AUD_C = "audit.example.net", "checker.example.org", "watch.sample.net"
+AUD_A2 = "peer.example.net"
+
+independence_cases = [
+    {"a": a, "b": b, "independent": independent(a, b)}
+    for a, b in [
+        (AUD_A, AUD_B),
+        ("a.example.org", "b.example.org"),
+        ("a.com.br", "b.com.br"),
+        ("audit.example.org", "audit.example.org"),
+        ("a.example.org", "b.sample.org"),
+        ("example.org", "a.example.org"),
+    ]
+]
+
+confirmation_scenarios = [
+    ("pair-inside-window", [rec(1, 0, 0, AUD_A, 40_000), rec(2, 0, 10 * HOUR_S, AUD_B, 10_000)]),
+    ("same-auditor-never", [rec(1, 0, 0, AUD_A), rec(2, 0, 10 * HOUR_S, AUD_A)]),
+    ("dependent-never", [rec(1, 0, 0, AUD_A), rec(2, 0, 10 * HOUR_S, AUD_A2)]),
+    ("boundary-inclusive", [rec(1, 0, 0, AUD_A, 200_000), rec(2, 0, 72 * HOUR_S, AUD_B, 100_000)]),
+    ("boundary-exceeded", [rec(1, 0, 0, AUD_A), rec(2, 0, 72 * HOUR_S + 1, AUD_B)]),
+    ("stale-first-later-pair", [rec(1, 0, 0, AUD_A, 10_000),
+                                rec(2, 0, 100 * HOUR_S, AUD_B, 160_000),
+                                rec(3, 0, 110 * HOUR_S, AUD_C, 20_000)]),
+    ("pair-skips-dependent", [rec(1, 0, 0, AUD_A, 40_000),
+                              rec(2, 0, 10 * HOUR_S, AUD_A2, 60_000),
+                              rec(3, 0, 20 * HOUR_S, AUD_B, 10_000)]),
+    ("earliest-wins", [rec(1, 0, 0, AUD_A, 40_000),
+                       rec(2, 0, 10 * HOUR_S, AUD_B, 10_000),
+                       rec(3, 0, 20 * HOUR_S, AUD_C, 10_000)]),
+    ("late-record-outside-closed-set", [rec(1, 0, 0, AUD_A, 40_000),
+                                        rec(2, 0, 10 * HOUR_S, AUD_B, 10_000),
+                                        rec(3, 0, 20 * HOUR_S, AUD_C, 250_000)]),
+    ("shared-block-zero-gap", [rec(5, 0, 100, AUD_A, 100_000), rec(5, 1, 100, AUD_B, 60_000)]),
+]
+
+confirmation_cases = []
+for label, records in confirmation_scenarios:
+    idx = confirming_index(records, CONFIRM_WINDOW_HOURS)
+    confirmation_cases.append({
+        "label": label,
+        "records": records,
+        "confirming_index": idx,
+        "severity": None if idx is None else ci_severity(records, idx),
+    })
+
+write_json(WIST4 / "confirmation.json", spaced_labels({
+    "note": ("WIST-4 §5/§7 confirming-block selection over one Delta's "
+             "inconsistent Records in Log order. The window is pairwise and "
+             "ends at the confirming Record's Block; severity reads the "
+             "highest effective similarity over the closed confirming set "
+             "(records past confirming_index never move it). For "
+             "link_inconsistent Records the selection is identical and "
+             "severity is fixed at 1 (§7)."),
+    "confirm_window_hours": CONFIRM_WINDOW_HOURS,
+    "severity_bands": {"minor_floor": SEVERITY_MINOR_FLOOR,
+                       "misleading_floor": SEVERITY_MISLEADING_FLOOR,
+                       "inconsistent_below": INCONSISTENT_EFFECTIVE_BELOW},
+    "independence": independence_cases,
+    "cases": confirmation_cases,
+}))
+
+
+def most_recent_reset(resets, n):
+    below = [r for r in resets if r <= n]
+    return max(below) if below else None
+
+
+def in_scope(height, reset, n):
+    return height <= n and (reset is None or height > reset)
+
+
+def derive_inputs(case):
+    reset = most_recent_reset(case["resets"], case["n"]["height"])
+    n_h, n_s = case["n"]["height"], case["n"]["sealed_at_s"]
+    accepted = [d for d in case["accepted"] if in_scope(d["height"], reset, n_h)]
+    a_days = 0
+    if accepted:
+        first = min(accepted, key=lambda d: d["height"])
+        a_days = (n_s - first["sealed_at_s"]) // DAY_S
+    urls = {a["url"] for a in case["consistent_audits"]
+            if in_scope(a["height"], reset, n_h) and a["change"] in ("new", "update")}
+    c = min(len(urls), C_CAP)
+    entries = []
+    for finding in case["confirmed"]:
+        if not in_scope(finding["height"], reset, n_h):
+            continue
+        t = (n_s - finding["sealed_at_s"]) // DAY_S
+        entries.append((t, finding["delta_id"], finding["severity"]))
+    entries.sort(key=lambda e: (e[0], e[1].encode()))
+    return {"reset": reset, "a_days": a_days, "c": c,
+            "penalty_inputs": [[s, t] for t, _, s in entries]}
+
+
+derivation_scenarios = [
+    {"label": "no-reset-full-history",
+     "resets": [], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
+     "accepted": [{"height": 10, "sealed_at_s": 100 * DAY_S},
+                  {"height": 20, "sealed_at_s": 110 * DAY_S}],
+     "consistent_audits": [
+         {"height": 30, "url": "https://site.example/a", "change": "new"},
+         {"height": 40, "url": "https://site.example/a", "change": "update"},
+         {"height": 50, "url": "https://site.example/b", "change": "update"},
+         {"height": 60, "url": "https://site.example/c", "change": "attest"},
+         {"height": 70, "url": "https://site.example/d", "change": "delete"}],
+     "confirmed": [
+         {"height": 80, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:bb", "severity": 2},
+         {"height": 81, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
+         {"height": 90, "sealed_at_s": 120 * DAY_S, "delta_id": "sha256:cc", "severity": 1}]},
+    {"label": "reset-rescopes-everything",
+     "resets": [55], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
+     "accepted": [{"height": 10, "sealed_at_s": 100 * DAY_S},
+                  {"height": 60, "sealed_at_s": 120 * DAY_S}],
+     "consistent_audits": [
+         {"height": 50, "url": "https://site.example/a", "change": "new"},
+         {"height": 70, "url": "https://site.example/b", "change": "new"}],
+     "confirmed": [
+         {"height": 55, "sealed_at_s": 110 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
+         {"height": 90, "sealed_at_s": 125 * DAY_S, "delta_id": "sha256:bb", "severity": 1}]},
+    {"label": "reset-with-nothing-after",
+     "resets": [90], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
+     "accepted": [{"height": 10, "sealed_at_s": 100 * DAY_S}],
+     "consistent_audits": [
+         {"height": 30, "url": "https://site.example/a", "change": "new"}],
+     "confirmed": [
+         {"height": 80, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:aa", "severity": 3}]},
+]
+for case in derivation_scenarios:
+    case["expected"] = derive_inputs(case)
+
+write_json(WIST4 / "derivation.json", spaced_labels({
+    "note": ("WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. "
+             "Identity scope: heights strictly above the most recent reset at "
+             "or below N, and at most N. penalty_inputs rows are "
+             "[severity, t_days], ascending t then ascending Delta ID bytes, "
+             "ready for §6.1's penalty_n."),
+    "c_cap": C_CAP,
+    "cases": derivation_scenarios,
+}))
+
+
+def within_days_ending_at(t_s, end_s, days):
+    return t_s <= end_s and end_s - t_s < days * DAY_S
+
+
+def pair_status(selected, recorded, attested):
+    if not selected:
+        return "discharged" if attested else "failed"
+    return "discharged" if all(d in recorded for d in selected) else "failed"
+
+
+def pair_counts(attestation, chain_proof_in_window):
+    if attestation == "unmet":
+        return True
+    if attestation == "unmet-chain-contradicted":
+        return False
+    assert attestation == "missing"
+    return not chain_proof_in_window
+
+
+def in_coverage_failure(times_s, n_s, failures_max):
+    return sum(1 for t in times_s
+               if within_days_ending_at(t, n_s, RATION_WINDOW_DAYS)) > failures_max
+
+
+DID1, DID2 = "sha256:d1", "sha256:d2"
+coverage_pair_cases = [
+    {"label": label, "selected": sel, "recorded": recd, "attested": att,
+     "status": pair_status(sel, recd, att)}
+    for label, sel, recd, att in [
+        ("full-coverage", [DID1, DID2], [DID2, DID1], False),
+        ("partial-is-failure", [DID1, DID2], [DID1], False),
+        ("empty-selection-unattested", [], [], False),
+        ("empty-selection-attested", [], [], True),
+        ("extra-records-harmless", [DID1], [DID1, DID2], False),
+    ]
+]
+coverage_counting_cases = [
+    {"label": label, "attestation": att, "chain_proof_in_window": chain,
+     "counts": pair_counts(att, chain)}
+    for label, att, chain in [
+        ("attested-unmet-counts", "unmet", False),
+        ("chain-contradiction-stops-count", "unmet-chain-contradicted", False),
+        ("unattested-counts", "missing", False),
+        ("chain-proof-excludes-unattested", "missing", True),
+        ("chain-proof-does-not-shield-attested", "unmet", True),
+    ]
+]
+coverage_state_scenarios = [
+    ("at-the-maximum", [90 * DAY_S + i for i in range(COVERAGE_FAILURES_MAX)], 100 * DAY_S),
+    ("past-the-maximum", [90 * DAY_S + i for i in range(COVERAGE_FAILURES_MAX + 1)], 100 * DAY_S),
+    ("aged-out", [10 * DAY_S + i for i in range(30)], 100 * DAY_S),
+]
+coverage_state_cases = [
+    {"label": label, "counting_failure_times_s": times, "n_sealed_at_s": n_s,
+     "in_coverage_failure": in_coverage_failure(times, n_s, COVERAGE_FAILURES_MAX)}
+    for label, times, n_s in coverage_state_scenarios
+]
+
+write_json(WIST4 / "coverage.json", spaced_labels({
+    "note": ("WIST-4 §4 coverage-failure counting. A failed (Auditor, Block) "
+             "pair counts when a pull_attestation shows the duty unmet and no "
+             "prev_record chain contradicts it, or when the pair is unattested "
+             "— unless the Auditor holds chain proof of an unsealed published "
+             "item in the same 30-day window. The state holds while strictly "
+             "more than coverage_failures_max counting failures sit inside "
+             "the 30 whole days ending at Block N (window end-inclusive, "
+             "start-exclusive)."),
+    "coverage_deadline_hours": 72,
+    "coverage_failures_max": COVERAGE_FAILURES_MAX,
+    "record_seal_blocks": 24,
+    "window_days": RATION_WINDOW_DAYS,
+    "pair_cases": coverage_pair_cases,
+    "counting_cases": coverage_counting_cases,
+    "state_cases": coverage_state_cases,
+}))
+
+
+def trigger_indices(records, window_hours):
+    window_s = window_hours * HOUR_S
+    return [i for i, record in enumerate(records)
+            if not any(record["sealed_at_s"] - earlier["sealed_at_s"] <= window_s
+                       for earlier in records[:i])]
+
+
+def extension_deadline_s(b1_s, window_hours):
+    return b1_s + (window_hours // 2) * HOUR_S
+
+
+def rationed_summons(triggers, window_days, triggers_max):
+    summons = []
+    for i, (auditor, at_s) in enumerate(triggers):
+        prior = sum(1 for (ea, es), s in zip(triggers[:i], summons)
+                    if s and ea == auditor and within_days_ending_at(es, at_s, window_days))
+        summons.append(prior < triggers_max)
+    return summons
+
+
+def summoned(roster, already_sealed, publisher_domain):
+    return [i for i, candidate in enumerate(roster)
+            if independent(candidate, publisher_domain)
+            and all(independent(candidate, filer) for filer in already_sealed)]
+
+
+def in_divergence(times_s, n_s, contradictions_max):
+    return sum(1 for t in times_s
+               if within_days_ending_at(t, n_s, RATION_WINDOW_DAYS)) > contradictions_max
+
+
+extension_trigger_scenarios = [
+    ("lone-first-triggers", [rec(1, 0, 0, AUD_A)]),
+    ("inside-window-no-trigger", [rec(1, 0, 0, AUD_A), rec(2, 0, 72 * HOUR_S, AUD_B)]),
+    ("past-window-triggers-again", [rec(1, 0, 0, AUD_A), rec(2, 0, 72 * HOUR_S + 1, AUD_B)]),
+    ("any-earlier-record-suppresses", [rec(1, 0, 0, AUD_A),
+                                       rec(2, 0, 50 * HOUR_S, AUD_B),
+                                       rec(3, 0, 100 * HOUR_S, AUD_C)]),
+]
+extension_trigger_cases = [
+    {"label": label, "records": records,
+     "trigger_indices": trigger_indices(records, CONFIRM_WINDOW_HOURS)}
+    for label, records in extension_trigger_scenarios
+]
+extension_ration_scenarios = [
+    ("fourth-in-window-rationed",
+     [[AUD_A, 0], [AUD_A, DAY_S], [AUD_A, 2 * DAY_S], [AUD_A, 3 * DAY_S]]),
+    ("ration-resets-as-summons-age-out",
+     [[AUD_A, 0], [AUD_A, DAY_S], [AUD_A, 2 * DAY_S], [AUD_A, 32 * DAY_S]]),
+    ("rationed-out-trigger-consumes-nothing",
+     [[AUD_A, 0], [AUD_A, HOUR_S], [AUD_A, 2 * HOUR_S], [AUD_A, 3 * HOUR_S],
+      [AUD_A, 30 * DAY_S + HOUR_S]]),
+    ("ration-is-per-auditor",
+     [[AUD_A, 0], [AUD_A, HOUR_S], [AUD_A, 2 * HOUR_S], [AUD_B, 3 * HOUR_S]]),
+]
+extension_ration_cases = [
+    {"label": label, "triggers": triggers,
+     "summons": rationed_summons([tuple(t) for t in triggers],
+                                 RATION_WINDOW_DAYS, EXTENSION_TRIGGERS_MAX)}
+    for label, triggers in extension_ration_scenarios
+]
+extension_summons_cases = [
+    {"label": "dependents-of-filers-and-publisher-excluded",
+     "roster": [AUD_A, AUD_A2, AUD_B, "watch.publisher.example"],
+     "already_sealed": [AUD_A], "publisher_domain": "www.publisher.example",
+     "summoned_indices": summoned([AUD_A, AUD_A2, AUD_B, "watch.publisher.example"],
+                                  [AUD_A], "www.publisher.example")},
+    {"label": "independence-from-every-filer",
+     "roster": [AUD_C, AUD_A2],
+     "already_sealed": [AUD_A, "eye.sample.net"],
+     "publisher_domain": "www.publisher.example",
+     "summoned_indices": summoned([AUD_C, AUD_A2],
+                                  [AUD_A, "eye.sample.net"], "www.publisher.example")},
+]
+divergence_scenarios = [
+    ("at-the-maximum", [99 * DAY_S, 98 * DAY_S], 100 * DAY_S),
+    ("past-the-maximum", [99 * DAY_S, 98 * DAY_S, 97 * DAY_S], 100 * DAY_S),
+    ("aged-out", [60 * DAY_S, 98 * DAY_S, 97 * DAY_S], 100 * DAY_S),
+]
+divergence_cases = [
+    {"label": label, "contradiction_times_s": times, "n_sealed_at_s": n_s,
+     "in_divergence": in_divergence(times, n_s, CONTRADICTIONS_MAX)}
+    for label, times, n_s in divergence_scenarios
+]
+
+write_json(WIST4 / "extension.json", spaced_labels({
+    "note": ("WIST-4 §4 extension rule. A Record triggers when no earlier "
+             "inconsistent/link_inconsistent Record for the Delta sits inside "
+             "the confirmation window ending at its Block; a trigger summons "
+             "only while its Auditor has fewer than extension_triggers_max "
+             "summoning triggers in the trailing 30 days (a rationed-out "
+             "trigger consumes no ration); the summoned set is every admitted "
+             "Auditor independent of every filer and of the Publisher; "
+             "divergence holds while strictly more than contradictions_max "
+             "contradictions sit inside the trailing 30 days."),
+    "confirm_window_hours": CONFIRM_WINDOW_HOURS,
+    "extension_triggers_max": EXTENSION_TRIGGERS_MAX,
+    "contradictions_max": CONTRADICTIONS_MAX,
+    "ration_window_days": RATION_WINDOW_DAYS,
+    "deadline_cases": [
+        {"b1_sealed_at_s": 1000, "confirm_window_hours": 72,
+         "deadline_s": extension_deadline_s(1000, 72)},
+        {"b1_sealed_at_s": 0, "confirm_window_hours": 73,
+         "deadline_s": extension_deadline_s(0, 73)},
+    ],
+    "trigger_cases": extension_trigger_cases,
+    "ration_cases": extension_ration_cases,
+    "summons_cases": extension_summons_cases,
+    "divergence_cases": divergence_cases,
+}))
+
+
+def criterion_times(findings, count, span_days, min_severity):
+    qualifying = [f["sealed_at_s"] for f in findings if f["severity"] >= min_severity]
+    met = []
+    for k, at in enumerate(qualifying):
+        in_span = sum(1 for earlier in qualifying[:k + 1]
+                      if span_days is None
+                      or within_days_ending_at(earlier, at, span_days))
+        if in_span >= count:
+            met.append(at)
+    return met
+
+
+def in_force_strictly_before(met, clear, t_s):
+    last_met = max((m for m in met if m < t_s), default=None)
+    last_clear = max((c for c in clear if c < t_s), default=None)
+    return last_met is not None and (last_clear is None or last_clear < last_met)
+
+
+def l4_accrual_times(findings, l3_met, l3_clear):
+    return [f["sealed_at_s"] for f in findings
+            if in_force_strictly_before(l3_met, l3_clear, f["sealed_at_s"])]
+
+
+def state_void_at(notice_s, appeal_s, ruling):
+    if notice_s is None:
+        return None
+    window_close = notice_s + APPEAL_WINDOW_DAYS * DAY_S
+    t = window_close + APPEAL_SEAL_DAYS * DAY_S
+    appeal_by_t = appeal_s if appeal_s is not None and appeal_s <= t else None
+    valid_unappealed = (ruling is not None and ruling[0] == "unappealed"
+                        and window_close <= ruling[1] <= t)
+    if appeal_by_t is None and not valid_unappealed:
+        return t
+    if appeal_by_t is None:
+        return None
+    due = appeal_by_t + RULING_DEADLINE_DAYS * DAY_S
+    if ruling is not None and ruling[1] <= due:
+        if ruling[0] == "overturned":
+            return ruling[1]
+        if ruling[0] == "upheld":
+            return None
+    return due
+
+
+def in_force(met, clear, n_s):
+    last_met = max((m for m in met if m <= n_s), default=None)
+    last_clear = max((c for c in clear if c <= n_s), default=None)
+    return last_met is not None and (last_clear is None or last_clear < last_met)
+
+
+def finding(day, severity):
+    return {"sealed_at_s": day * DAY_S, "severity": severity}
+
+
+sanction_criterion_scenarios = [
+    ("every-finding-meets-l1", [finding(10, 1), finding(20, 2)], 1, None, 0),
+    ("three-in-ninety-meet-l2",
+     [finding(0, 1), finding(30, 1), finding(89, 1), finding(200, 1)],
+     ESCALATIONS["l2"][0], ESCALATIONS["l2"][1], ESCALATIONS["l2"][2]),
+    ("spread-past-span-never-meets",
+     [finding(0, 1), finding(91, 1), finding(182, 1)],
+     ESCALATIONS["l2"][0], ESCALATIONS["l2"][1], ESCALATIONS["l2"][2]),
+    ("three-severity-3-in-180-meet-l4",
+     [finding(0, 3), finding(10, 1), finding(20, 3), finding(30, 3)],
+     ESCALATIONS["l4_sev3"][0], ESCALATIONS["l4_sev3"][1], ESCALATIONS["l4_sev3"][2]),
+    ("any-severity-3-meets-l3",
+     [finding(0, 3), finding(10, 1), finding(20, 3), finding(30, 3)], 1, None, 3),
+]
+sanction_criterion_cases = [
+    {"label": label, "findings": findings, "count": count, "span_days": span,
+     "min_severity": sev, "met_times_s": criterion_times(findings, count, span, sev)}
+    for label, findings, count, span, sev in sanction_criterion_scenarios
+]
+sanction_accrual_scenarios = [
+    ("accrual-while-l3-in-force", [finding(10, 3), finding(20, 1), finding(30, 1)],
+     [10 * DAY_S], []),
+    ("the-creating-finding-is-not-accrual", [finding(10, 3)], [10 * DAY_S], []),
+    ("accrual-stops-at-clear", [finding(10, 3), finding(20, 1), finding(40, 1)],
+     [10 * DAY_S], [30 * DAY_S]),
+]
+sanction_accrual_cases = [
+    {"label": label, "findings": findings, "l3_met_times_s": met, "l3_clear_times_s": clear,
+     "accrual_times_s": l4_accrual_times(findings, met, clear)}
+    for label, findings, met, clear in sanction_accrual_scenarios
+]
+sanction_void_scenarios = [
+    ("no-notice-never-voids", None, None, None),
+    ("nothing-by-t-voids-at-t", 0, None, None),
+    ("valid-unappealed-discharges", 0, None, ["unappealed", 15 * DAY_S]),
+    ("early-unappealed-is-absent", 0, None, ["unappealed", 13 * DAY_S]),
+    ("appeal-without-ruling-voids-at-deadline", 0, 10 * DAY_S, None),
+    ("upheld-in-time-keeps-state", 0, 10 * DAY_S, ["upheld", 20 * DAY_S]),
+    ("late-ruling-does-not-cure", 0, 10 * DAY_S, ["upheld", 45 * DAY_S]),
+    ("overturned-voids-when-sealed", 0, 10 * DAY_S, ["overturned", 20 * DAY_S]),
+    ("appeal-after-t-does-not-discharge", 0, (14 + 7 + 1) * DAY_S, None),
+]
+sanction_void_cases = [
+    {"label": label, "notice_sealed_at_s": notice, "appeal_sealed_at_s": appeal,
+     "ruling": ruling,
+     "void_at_s": state_void_at(notice, appeal,
+                                None if ruling is None else (ruling[0], ruling[1]))}
+    for label, notice, appeal, ruling in sanction_void_scenarios
+]
+sanction_in_force_scenarios = [
+    ("never-met", [], [], 100),
+    ("met-uncleared", [50], [], 100),
+    ("cleared", [50], [60], 100),
+    ("re-met-after-clear", [50, 70], [60], 100),
+    ("met-in-the-future", [150], [], 100),
+    ("clear-at-the-met-instant", [50], [50], 100),
+]
+sanction_in_force_cases = [
+    {"label": label, "met_times_s": met, "clear_times_s": clear, "n_s": n,
+     "in_force": in_force(met, clear, n)}
+    for label, met, clear, n in sanction_in_force_scenarios
+]
+
+write_json(WIST4 / "sanctions.json", spaced_labels({
+    "note": ("WIST-4 §7 ladder state derivation. Escalation criteria produce "
+             "met-times from Confirmed Inconsistencies (identity-scoped per "
+             "§6.3 before they arrive here); notices, appeals and rulings "
+             "produce void instants; a rung is in force at N when its latest "
+             "met time at or before N is later than its latest clear time. "
+             "Level 4's accrual branch counts findings sealed while level 3 "
+             "was in force strictly before them."),
+    "escalation": {"l2": {"count": 3, "days": 90},
+                   "l3_count": {"count": 10, "days": 90},
+                   "l3_severity": 3,
+                   "l4_sev3": {"count": 3, "days": 180}},
+    "appeal_window_days": APPEAL_WINDOW_DAYS,
+    "appeal_seal_days": APPEAL_SEAL_DAYS,
+    "ruling_deadline_days": RULING_DEADLINE_DAYS,
+    "criterion_cases": sanction_criterion_cases,
+    "accrual_cases": sanction_accrual_cases,
+    "void_cases": sanction_void_cases,
+    "in_force_cases": sanction_in_force_cases,
+}))
+print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%d+%d+%d extension=%d+%d+%d+%d sanctions=%d+%d+%d+%d cases" % (
+    len(confirmation_cases), len(derivation_scenarios),
+    len(coverage_pair_cases), len(coverage_counting_cases), len(coverage_state_cases),
+    len(extension_trigger_cases), len(extension_ration_cases),
+    len(extension_summons_cases), len(divergence_cases),
+    len(sanction_criterion_cases), len(sanction_accrual_cases),
+    len(sanction_void_cases), len(sanction_in_force_cases)))

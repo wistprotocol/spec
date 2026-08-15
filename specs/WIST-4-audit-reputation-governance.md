@@ -42,8 +42,8 @@ shown here.
   measured on Block `sealed_at` (§5).
 - **Confirmed Link Inconsistency**: ≥ 2 Auditors, independent in the sense
   §3 defines, returning `link_inconsistent` for the same Delta, the
-  confirming Record sealed within `confirm_window_hours` of the first,
-  measured on Block `sealed_at` (§5, §7).
+  confirming Record sealed within `confirm_window_hours` of an earlier
+  such Record, measured on Block `sealed_at` (§5, §7).
 - **Registry Update**: the signed governance object this document defines,
   sealed as a `registry_update` Entry (WIST-3 §3.3). Its `action` selects one
   of the thirteen governance acts of §3, §4, §7 and §9.1; `subject` names
@@ -1138,7 +1138,13 @@ a duty, not an invitation. A **Confirmed Inconsistency** exists only when ≥ 2
 Auditors, independent of one another in the sense §3 defines, return
 `inconsistent` for the same Delta, with the `sealed_at` of the Block
 sealing the confirming Record no more than 72 hours after the `sealed_at`
-of the Block sealing the first such Record. The window is measured on
+of the Block sealing an earlier such Record from an Auditor independent
+of the confirmer. The window is pairwise and ends at the confirming
+Record's Block — the same window §4's extension rule reads as "ending at
+*B₁*" — so a lone early Record that goes stale unconfirmed does not bar a
+later independent pair from confirming, and the extension a later lone
+Record triggers can still seal a confirmation inside the window it
+serves. The window is measured on
 Blocks and not on `fetched_at` for the reason §3 gives: `fetched_at` is
 Auditor-supplied, and a confirmation nobody can recompute is not evidence.
 Only Confirmed Inconsistencies and Confirmed Link Inconsistencies enter
@@ -1470,8 +1476,9 @@ exactly one row, whatever its audited Delta's change type.
 | `sim` < 50 000 | 3 (fabricated content) |
 
 **Confirmed Link Inconsistency.** Two `link_inconsistent` Records for
-the same Delta from Auditors independent under §3, the second sealed
-within `confirm_window_hours` of the first, are a Confirmed Link
+the same Delta from Auditors independent under §3, the confirming Record
+sealed within `confirm_window_hours` of the earlier — the same pairwise
+window §5 defines — are a Confirmed Link
 Inconsistency. For §6.1's `penalty_n` and every escalation count this
 section defines, a Confirmed Link Inconsistency **counts as a Confirmed
 Inconsistency with severity 1 fixed** — never derived from

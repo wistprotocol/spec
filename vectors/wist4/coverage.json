@@ -1,0 +1,194 @@
+{
+  "note": "WIST-4 \u00a74 coverage-failure counting. A failed (Auditor, Block) pair counts when a pull_attestation shows the duty unmet and no prev_record chain contradicts it, or when the pair is unattested \u2014 unless the Auditor holds chain proof of an unsealed published item in the same 30-day window. The state holds while strictly more than coverage_failures_max counting failures sit inside the 30 whole days ending at Block N (window end-inclusive, start-exclusive).",
+  "coverage_deadline_hours": 72,
+  "coverage_failures_max": 24,
+  "record_seal_blocks": 24,
+  "window_days": 30,
+  "pair_cases": [
+    {
+      "label": "full coverage",
+      "selected": [
+        "sha256:d1",
+        "sha256:d2"
+      ],
+      "recorded": [
+        "sha256:d2",
+        "sha256:d1"
+      ],
+      "attested": false,
+      "status": "discharged"
+    },
+    {
+      "label": "partial is failure",
+      "selected": [
+        "sha256:d1",
+        "sha256:d2"
+      ],
+      "recorded": [
+        "sha256:d1"
+      ],
+      "attested": false,
+      "status": "failed"
+    },
+    {
+      "label": "empty selection unattested",
+      "selected": [],
+      "recorded": [],
+      "attested": false,
+      "status": "failed"
+    },
+    {
+      "label": "empty selection attested",
+      "selected": [],
+      "recorded": [],
+      "attested": true,
+      "status": "discharged"
+    },
+    {
+      "label": "extra records harmless",
+      "selected": [
+        "sha256:d1"
+      ],
+      "recorded": [
+        "sha256:d1",
+        "sha256:d2"
+      ],
+      "attested": false,
+      "status": "discharged"
+    }
+  ],
+  "counting_cases": [
+    {
+      "label": "attested unmet counts",
+      "attestation": "unmet",
+      "chain_proof_in_window": false,
+      "counts": true
+    },
+    {
+      "label": "chain contradiction stops count",
+      "attestation": "unmet-chain-contradicted",
+      "chain_proof_in_window": false,
+      "counts": false
+    },
+    {
+      "label": "unattested counts",
+      "attestation": "missing",
+      "chain_proof_in_window": false,
+      "counts": true
+    },
+    {
+      "label": "chain proof excludes unattested",
+      "attestation": "missing",
+      "chain_proof_in_window": true,
+      "counts": false
+    },
+    {
+      "label": "chain proof does not shield attested",
+      "attestation": "unmet",
+      "chain_proof_in_window": true,
+      "counts": true
+    }
+  ],
+  "state_cases": [
+    {
+      "label": "at the maximum",
+      "counting_failure_times_s": [
+        7776000,
+        7776001,
+        7776002,
+        7776003,
+        7776004,
+        7776005,
+        7776006,
+        7776007,
+        7776008,
+        7776009,
+        7776010,
+        7776011,
+        7776012,
+        7776013,
+        7776014,
+        7776015,
+        7776016,
+        7776017,
+        7776018,
+        7776019,
+        7776020,
+        7776021,
+        7776022,
+        7776023
+      ],
+      "n_sealed_at_s": 8640000,
+      "in_coverage_failure": false
+    },
+    {
+      "label": "past the maximum",
+      "counting_failure_times_s": [
+        7776000,
+        7776001,
+        7776002,
+        7776003,
+        7776004,
+        7776005,
+        7776006,
+        7776007,
+        7776008,
+        7776009,
+        7776010,
+        7776011,
+        7776012,
+        7776013,
+        7776014,
+        7776015,
+        7776016,
+        7776017,
+        7776018,
+        7776019,
+        7776020,
+        7776021,
+        7776022,
+        7776023,
+        7776024
+      ],
+      "n_sealed_at_s": 8640000,
+      "in_coverage_failure": true
+    },
+    {
+      "label": "aged out",
+      "counting_failure_times_s": [
+        864000,
+        864001,
+        864002,
+        864003,
+        864004,
+        864005,
+        864006,
+        864007,
+        864008,
+        864009,
+        864010,
+        864011,
+        864012,
+        864013,
+        864014,
+        864015,
+        864016,
+        864017,
+        864018,
+        864019,
+        864020,
+        864021,
+        864022,
+        864023,
+        864024,
+        864025,
+        864026,
+        864027,
+        864028,
+        864029
+      ],
+      "n_sealed_at_s": 8640000,
+      "in_coverage_failure": false
+    }
+  ]
+}
