@@ -1,0 +1,281 @@
+{
+  "note": "WIST-4 \u00a75/\u00a77 confirming-block selection over one Delta's inconsistent Records in Log order. The window is pairwise and ends at the confirming Record's Block; severity reads the highest effective similarity over the closed confirming set (records past confirming_index never move it). For link_inconsistent Records the selection is identical and severity is fixed at 1 (\u00a77).",
+  "confirm_window_hours": 72,
+  "severity_bands": {
+    "minor_floor": 150000,
+    "misleading_floor": 50000,
+    "inconsistent_below": 300000
+  },
+  "independence": [
+    {
+      "a": "audit.example.net",
+      "b": "checker.example.org",
+      "independent": true
+    },
+    {
+      "a": "a.example.org",
+      "b": "b.example.org",
+      "independent": false
+    },
+    {
+      "a": "a.com.br",
+      "b": "b.com.br",
+      "independent": false
+    },
+    {
+      "a": "audit.example.org",
+      "b": "audit.example.org",
+      "independent": false
+    },
+    {
+      "a": "a.example.org",
+      "b": "b.sample.org",
+      "independent": true
+    },
+    {
+      "a": "example.org",
+      "b": "a.example.org",
+      "independent": false
+    }
+  ],
+  "cases": [
+    {
+      "label": "pair inside window",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 40000
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 10000
+        }
+      ],
+      "confirming_index": 1,
+      "severity": 3
+    },
+    {
+      "label": "same auditor never",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "dependent never",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "auditor": "peer.example.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "boundary inclusive",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 200000
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 259200,
+          "auditor": "checker.example.org",
+          "effective_similarity": 100000
+        }
+      ],
+      "confirming_index": 1,
+      "severity": 1
+    },
+    {
+      "label": "boundary exceeded",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 259201,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "stale first later pair",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 10000
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 360000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 160000
+        },
+        {
+          "block_height": 3,
+          "entry_index": 0,
+          "sealed_at_s": 396000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 20000
+        }
+      ],
+      "confirming_index": 2,
+      "severity": 1
+    },
+    {
+      "label": "pair skips dependent",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 40000
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "auditor": "peer.example.net",
+          "effective_similarity": 60000
+        },
+        {
+          "block_height": 3,
+          "entry_index": 0,
+          "sealed_at_s": 72000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 10000
+        }
+      ],
+      "confirming_index": 2,
+      "severity": 2
+    },
+    {
+      "label": "earliest wins",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 40000
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 10000
+        },
+        {
+          "block_height": 3,
+          "entry_index": 0,
+          "sealed_at_s": 72000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 10000
+        }
+      ],
+      "confirming_index": 1,
+      "severity": 3
+    },
+    {
+      "label": "late record outside closed set",
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 40000
+        },
+        {
+          "block_height": 2,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 10000
+        },
+        {
+          "block_height": 3,
+          "entry_index": 0,
+          "sealed_at_s": 72000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 250000
+        }
+      ],
+      "confirming_index": 1,
+      "severity": 3
+    },
+    {
+      "label": "shared block zero gap",
+      "records": [
+        {
+          "block_height": 5,
+          "entry_index": 0,
+          "sealed_at_s": 100,
+          "auditor": "audit.example.net",
+          "effective_similarity": 100000
+        },
+        {
+          "block_height": 5,
+          "entry_index": 1,
+          "sealed_at_s": 100,
+          "auditor": "checker.example.org",
+          "effective_similarity": 60000
+        }
+      ],
+      "confirming_index": 1,
+      "severity": 2
+    }
+  ]
+}
