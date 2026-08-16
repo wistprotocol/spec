@@ -439,17 +439,19 @@
       }
     },
     {
-      "comment": "WIST-4 §4: a coverage_attestation carries the same per-auditor chain link an Audit Record carries, so a suppressed attestation is provable from its sealed successor exactly as a suppressed Record is. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "comment": "WIST-4 §4: a coverage_attestation puts the VRF proof of an empty selection in the Log — the fact the coverage duty is derived from — and carries the same per-auditor chain link an Audit Record carries, so a suppressed attestation is provable from its sealed successor exactly as a suppressed Record is. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
       "if": {"properties": {"update": {"properties": {"action": {"const": "coverage_attestation"}}}}},
       "then": {
         "properties": {
           "update": {
             "required": ["details"],
             "properties": {
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
               "details": {
                 "type": "object",
-                "required": ["prev_record"],
+                "required": ["vrf_proof", "prev_record"],
                 "properties": {
+                  "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$", "description": "The §4 VRF Proof for the Block whose selection was empty, 80 octets as 160 lowercase hex characters — the same form audit-record.schema.json fixes. An attestation without it claims an empty draw and proves nothing."},
                   "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}]}
                 }
               }

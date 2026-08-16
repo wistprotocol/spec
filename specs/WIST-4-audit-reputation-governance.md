@@ -314,7 +314,9 @@ Auditor MUST publish an Audit Record — or, when it cannot fetch at all, a
 Record with verdict `unreachable` — within 72 hours of that Block's
 `sealed_at`. When its VRF selects no Delta in a Block, it MUST instead
 publish, by the same deadline, a `coverage_attestation` Registry Update
-carrying that Block's VRF proof and nothing else.
+carrying that Block's VRF proof and the `prev_record` chain link every
+Record carries (§9.1), and nothing further: it reports no verdict,
+because there was nothing selected to audit.
 
 **Withdrawn and unavailable Payloads discharge the duty.** A selected
 Delta whose Payload has been withdrawn (WIST-3 §6.2), or which the Auditor
@@ -613,6 +615,15 @@ Auditor's reference extraction, or the bytes of the WARC capture, and
 Auditor holds that salt because it MUST verify that Payload before
 comparing anything, so no second salt, and no second lifecycle, is
 introduced.
+
+**The capture format.** The WARC capture is a WARC file ([ISO 28500])
+recording the fetched exchange §12 describes. No version of the format is
+pinned, because every duty this suite places on the capture is over its
+octets: `evidence_commitment` commits to them, and a party checking a
+Record recomputes over the same octets, so the version changes no value
+any party computes. An Auditor SHOULD nonetheless write WARC 1.1, so that
+an appellant fetching the capture under §7 can read the evidence with
+ordinary WARC tooling rather than with the Auditor's.
 
 `response_commitment`, `ref_extract_commitment`, `evidence_commitment` and
 `similarity` are REQUIRED when the verdict is `consistent`, `inconsistent`,
@@ -2001,10 +2012,18 @@ mirroring §7 and §3:
   no Block or no result set would attest to nothing a replayer could
   hold the Aggregator to.
 
-`sanction_lift` and `coverage_attestation` carry an unconstrained `details`
-object, and an `appeal`'s is unconstrained beyond the `notice` it MUST
-name; a `coverage_attestation` and every Audit Record additionally carry
-`prev_record` (§4), the same Auditor's preceding publication or `null`.
+- `coverage_attestation`: `vrf_proof` (the §4 VRF Proof for the Block
+  whose selection was empty, 80 octets as 160 lowercase hex characters)
+  and `prev_record` (§4), the same Auditor's preceding publication or
+  `null`; `subject` is the Auditor's `auditor_id`. Both are REQUIRED,
+  because the attestation exists to put the proof of an empty selection
+  in the Log where the coverage duty is derived from it (§4), and one
+  carrying no proof would attest to nothing a replayer could check.
+
+`sanction_lift` carries an unconstrained `details` object, and an
+`appeal`'s is unconstrained beyond the `notice` it MUST name; every Audit
+Record carries `prev_record` (§4), the same Auditor's preceding
+publication or `null`.
 §4 and §7 govern the rest of their content in prose, not the schema.
 The same is true of any action a future major revision adds.
 
@@ -2588,6 +2607,8 @@ from end to end.
   metric segments by, used without tailoring
 - [UAX #44] Unicode Standard Annex #44, Unicode Character Database — General
   Category values (L\*, N\*) and the default full case-folding §5 applies
+- [ISO 28500] ISO 28500, WARC file format — the format of the capture §5's
+  `evidence_commitment` covers and §7's appellant fetches
 - WIST-1: Delta Format & Identity — key rotation, scope rule, §6 absence
 - WIST-2: Site Publication — quotas, hints, robots.txt boundary
 - WIST-3: Logbook & Distribution — entry envelope, checkpoints,

@@ -1688,6 +1688,10 @@ NON_CONTENT_VALUES = {
     ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
+    ("vectors/wist1/declaration-sequence.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/declaration-sequence.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/declaration-sequence.json", "prev_declaration"):
+        "SHA-256 over a Declaration's publisher object (WIST-1 §5.2) — keys, domain and scope, no page content",
     ("vectors/wist4/audit-commitments.json", "audited_delta"): "a Delta ID",
     ("vectors/wist4/audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
 }
@@ -1883,7 +1887,95 @@ def _dc4_coverage_attestation():
             (ROOT / "examples" / "registry-update.json").read_text())["sig"],
     }
     Draft202012Validator(schema).validate(attestation)
+    # §4 requires the proof, and the whole coverage duty is derived from it:
+    # an attestation without one claims an empty draw and proves nothing.
+    for missing in ("vrf_proof", "prev_record"):
+        bad = copy.deepcopy(attestation)
+        del bad["update"]["details"][missing]
+        try:
+            Draft202012Validator(schema).validate(bad)
+        except ValidationError:
+            continue
+        raise AssertionError(f"coverage_attestation without {missing} validated")
 check("schema:wist4-coverage-attestation", _dc4_coverage_attestation)
+
+def _dc3_parameter_tuple_effective_at():
+    """WIST-3 §7: a `parameter` tuple's `effective_at` is the instant the
+    Registry Update carries, not a height.
+
+    Every window `effective_at` takes part in is compared against a Block
+    `sealed_at` (WIST-4 §9.1), so a state artifact restating it as an integer
+    would make a resuming Consumer compare a height against an instant — and
+    the §9 grace period is exactly such a comparison.
+    """
+    schema = json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    good = copy.deepcopy(envelope)
+    good["state"]["entries"].append(
+        ["parameter", "block_cadence_seconds", 7200, "2026-08-09T13:00:00Z"])
+    validator.validate(good)
+    for bad_value in (0, 12, "2026-08-09T13:00:00+00:00", "2026-08-09"):
+        bad = copy.deepcopy(envelope)
+        bad["state"]["entries"].append(
+            ["parameter", "block_cadence_seconds", 7200, bad_value])
+        try:
+            validator.validate(bad)
+        except ValidationError:
+            continue
+        raise AssertionError(f"parameter tuple with effective_at {bad_value!r} validated")
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "a parameter's `effective_at`) are the whole-second" in prose, \
+        "§7's instant list does not name the parameter tuple's effective_at"
+check("schema:wist3-parameter-effective-at", _dc3_parameter_tuple_effective_at)
+
+
+def _dc1_declaration_sequence_vector():
+    """WIST-1 §5.2: the sequencing vector's cases are well-formed Declarations,
+    and the signature each case turns on is the one it names.
+
+    The outcomes are what an implementation is measured against; what this
+    harness proves is that every case's inputs are real — schema-valid
+    Declarations whose envelopes verify under the key `sig.key_id` names, so a
+    case expecting `WIST1-E08` fails for its sequencing reason and never for an
+    accidentally broken signature.
+    """
+    v = json.loads((ROOT / "vectors" / "wist1" / "declaration-sequence.json").read_text())
+    schema = json.loads((ROOT / "schemas" / "publisher.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    outcomes = {"idempotent", "ordinary_rotation", "recovery_rotation",
+                "fresh_identity", "WIST1-E08"}
+    seen = set()
+    assert v["cases"], "no cases in the declaration-sequence vector"
+    # A rotation is signed by the *previous* Key Set (§5.2), so a signing key
+    # need not appear in the Declaration it signs: the pool is every key the
+    # vector declares anywhere.
+    pool = {}
+    for case in v["cases"]:
+        for role in ("stored", "fetched"):
+            p = case[role]["publisher"]
+            for k in p["keys"] + p.get("recovery_keys", []):
+                pool[k["key_id"]] = k["public_key"]
+    for case in v["cases"]:
+        assert case["expected"] in outcomes, f"unknown outcome {case['expected']}"
+        seen.add(case["expected"])
+        for role in ("stored", "fetched"):
+            env = case[role]
+            validator.validate(env)
+            key_id = env["sig"]["key_id"]
+            assert key_id in pool, f"{case['name']}: {role} names undeclared key {key_id}"
+            Ed25519PublicKey.from_public_bytes(
+                b64u_decode(pool[key_id])).verify(
+                    b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["publisher"]))
+    assert seen == outcomes, f"outcomes never exercised: {sorted(outcomes - seen)}"
+    idempotent = [c for c in v["cases"] if c["expected"] == "idempotent"]
+    assert idempotent, "no idempotent re-serve case"
+    for case in idempotent:
+        assert rfc8785.dumps(case["stored"]["publisher"]) == \
+            rfc8785.dumps(case["fetched"]["publisher"]), \
+            "the idempotent case's publisher objects are not byte-identical"
+check("vectors:wist1-declaration-sequence", _dc1_declaration_sequence_vector)
 
 def _parameter_registry_enum():
     """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.
