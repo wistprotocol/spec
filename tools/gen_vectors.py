@@ -136,6 +136,122 @@ publisher = {
 write_json(EXAMPLES / "publisher.json", sign_envelope("publisher", publisher, "test-k1"))
 print("wist1 publisher example written")
 
+# ------------------------------------------- WIST-1 §5.2: Declaration sequencing
+# One stored Declaration, a fetched one per case, and the outcome §5.2 fixes.
+# The vector exists because the sequencing rules are the point at which an
+# implementation decides whether a Publisher whose keys never change can be
+# re-polled at all: §5.1 caps a cached Key Set at 24 hours, so the re-serve of
+# an unchanged Declaration is the most common event in the whole mechanism.
+#
+# A second test keypair is needed for the rotation targets and for the fresh
+# identity — a Declaration signed by neither the stored signing keys nor the
+# stored recovery keys. Test-only, like the first.
+SEED2 = bytes(range(32, 64))  # TEST ONLY — never use in production
+priv2 = Ed25519PrivateKey.from_private_bytes(SEED2)
+pub2_raw = priv2.public_key().public_bytes(
+    serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+
+def sign_envelope_with(key, inner_name: str, inner: dict, key_id: str) -> dict:
+    return {inner_name: inner,
+            "sig": {"key_id": key_id, "alg": "Ed25519",
+                    "value": b64u(key.sign(rfc8785.dumps(inner)))}}
+
+def decl_hash(inner: dict) -> str:
+    """WIST-1 §5.2: prev_declaration = sha256 over JCS of the inner object."""
+    return "sha256:" + sha256_hex(rfc8785.dumps(inner))
+
+K2 = {"key_id": "test-k2", "alg": "Ed25519", "public_key": b64u(pub2_raw),
+      "valid_from": "2026-08-03T12:00:00Z"}
+R2 = {"key_id": "test-r2", "alg": "Ed25519", "public_key": b64u(pub2_raw),
+      "valid_from": "2026-08-03T12:00:00Z"}
+
+stored_decl = publisher
+stored_hash = decl_hash(stored_decl)
+
+def variant(**over):
+    out = json.loads(json.dumps(stored_decl))
+    out.update(over)
+    return out
+
+mutated_same_seq = variant(contact="mailto:security@example.com")
+rotated = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
+recovery_rotated = variant(seq=1, prev_declaration=stored_hash, keys=[K2],
+                           recovery_keys=[R2])
+recovery_dropped_by_signing_key = variant(seq=1, prev_declaration=stored_hash,
+                                          recovery_keys=[R2])
+missing_prev = variant(seq=1, keys=[K2])
+wrong_prev = variant(seq=1, prev_declaration=decl_hash(mutated_same_seq), keys=[K2])
+fresh_identity = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
+
+declaration_cases = [
+    {"name": "identical re-serve",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", stored_decl, "test-k1"),
+     "expected": "idempotent",
+     "why": "§5.2: the fetched publisher object is byte-identical to the "
+            "accepted one, so the re-poll §5.1's 24-hour cache TTL obliges is "
+            "an idempotent acceptance, not WIST1-E08."},
+    {"name": "same seq, different bytes",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", mutated_same_seq, "test-k1"),
+     "expected": "WIST1-E08",
+     "why": "§5.2: seq is not greater than the highest accepted and the object "
+            "differs — the superseded-replay case the rule catches."},
+    {"name": "stale lower seq",
+     "stored": sign_envelope("publisher", rotated, "test-k1"),
+     "fetched": sign_envelope("publisher", stored_decl, "test-k1"),
+     "expected": "WIST1-E08",
+     "why": "§5.2: seq 0 below the accepted seq 1."},
+    {"name": "missing prev_declaration",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", missing_prev, "test-k1"),
+     "expected": "WIST1-E08",
+     "why": "§5.2: seq > 0 with prev_declaration absent."},
+    {"name": "mismatched prev_declaration",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", wrong_prev, "test-k1"),
+     "expected": "WIST1-E08",
+     "why": "§5.2: prev_declaration does not equal the hash of the previously "
+            "accepted Declaration's publisher object."},
+    {"name": "ordinary rotation",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", rotated, "test-k1"),
+     "expected": "ordinary_rotation",
+     "why": "§5.2: higher seq, correct prev_declaration, signed by a key of "
+            "the previous Key Set; recovery_keys carried byte-identical."},
+    {"name": "recovery rotation",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", recovery_rotated, "test-r1"),
+     "expected": "recovery_rotation",
+     "why": "§5.2: signed by a key in the previous Declaration's "
+            "recovery_keys, which is what lets it replace them."},
+    {"name": "recovery keys altered by a signing key",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", recovery_dropped_by_signing_key, "test-k1"),
+     "expected": "WIST1-E08",
+     "why": "§5.2: recovery keys protect themselves — a Declaration altering "
+            "them MUST be signed by one of the recovery keys it replaces."},
+    {"name": "fresh identity",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope_with(priv2, "publisher", fresh_identity, "test-k2"),
+     "expected": "fresh_identity",
+     "why": "§5.2: signed by neither the previous signing keys nor the "
+            "previous recovery_keys, which it carries byte-identical — "
+            "accepted, with A and C reset to zero (WIST-4 §6)."},
+]
+
+write_json(WIST1 / "declaration-sequence.json", {
+    "note": ("WIST-1 §5.2 Declaration sequencing and classification. Each case "
+             "evaluates `fetched` against the already-accepted `stored` for the "
+             "same domain, with no recovery window open. `expected` is one of "
+             "`idempotent` (accepted, replaces nothing), `ordinary_rotation`, "
+             "`recovery_rotation`, `fresh_identity` (accepted, A and C reset), "
+             "or the error code the evaluation rejects with."),
+    "recovery_window_open": False,
+    "cases": declaration_cases,
+})
+print("wist1 declaration-sequence vector written")
+
 # ----------------------------------------------------------------- WIST-2: feed
 feed = {
     "wist_version": "1.0.0",

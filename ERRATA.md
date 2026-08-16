@@ -343,3 +343,135 @@ the paragraph already required.
 
 **Status.** Exercised. `vectors/multilog/dedup.json` seals one Delta into
 two Logs at unequal heights and asserts the merged record's `sources`.
+
+## 2026-08-16 — WIST-4 §4, §9.1, registry-update schema: what a `coverage_attestation` carries
+
+Rewords §4's coverage-duty sentence, gives `coverage_attestation` its own
+§9.1 entry, and adds `vrf_proof` to the schema's required `details` for
+that action.
+
+**What it states.** §4 required the attestation to carry "that Block's VRF
+proof and nothing else", while the same document's §9.1 required it to
+carry `prev_record` as well and the schema required `prev_record` alone —
+so the one field §4 makes the mechanism out of was the one field nothing
+enforced, and a schema-valid attestation could carry no proof at all. §4
+now names both members, §9.1 states them as the two REQUIRED ones with
+`subject` the `auditor_id`, and the schema requires them. Nothing else
+changes: the attestation still reports no verdict, which is what "nothing
+else" was there to say.
+
+**Why it qualifies.** Both conditions hold. §4's "MUST … carrying that
+Block's VRF proof" is the older and normative statement, and the whole
+coverage derivation reads it: "the duty is verifiable in-band, because the
+VRF proof reaches the Log for every Block whether or not anything was
+selected". An implementation that conformed to it already emits the proof
+and is untouched; one that emitted an attestation without it never
+conformed to §4, whatever the schema admitted. The direction of the fix is
+the one WIST2-E05's entry above takes: the outlier is corrected to the
+rule the document states twice.
+
+**Status.** Exercised. `tools/validate_examples.py`'s
+`schema:wist4-coverage-attestation` builds an attestation carrying
+`vectors/wist4/sampling.json`'s proof and asserts that one omitting
+`vrf_proof`, or `prev_record`, fails schema validation.
+
+**What it leaves open.** How a *sealed* attestation binds to its audited
+Block: served, it sits at a Block-Hash-named path (§4), but the Registry
+Update carries no `block` member, so on replay the pair is recovered from
+the `pull_attestation` that names it. That is a question about §4's
+transport, not about this entry's fields, and it is recorded rather than
+answered here.
+
+## 2026-08-16 — WIST-4 §5, References: the WARC capture's format
+
+Adds a *capture format* paragraph to §5 and an [ISO 28500] reference.
+
+**What it states.** The suite named "the WARC capture" throughout and
+never cited the format. It now does, and states the consequence the text
+already carried: no version is pinned, because every duty over the capture
+is over its octets — `evidence_commitment` commits to them (§5), and a
+party checking a Record recomputes over the same octets — so the version
+changes no value any party computes. An Auditor SHOULD nonetheless write
+WARC 1.1, so that the appellant §5 sends to
+`/.well-known/wist/evidence/<record-id-hex>.warc` can read the evidence
+with ordinary tooling.
+
+**Why it qualifies.** Both conditions hold. The commitment construction,
+the retention duty, the serving path and the recomputation procedure are
+unchanged, and the SHOULD constrains no implementation's conformance — an
+Auditor writing another WARC version still conforms. What the paragraph
+adds is the citation the term always implied and the statement of why the
+version is not load-bearing, which is what stops a future reader from
+inferring a pin that was never there.
+
+**Status.** Unexercised. No vector reaches the capture; §5's fetch and
+evidence layer has no vectors at all, as the 2026-08-11 entry notes.
+
+## 2026-08-16 — WIST-3 §7, snapshot-state schema: the `parameter` tuple's `effective_at`
+
+Names `effective_at` in §7's list of tuple members that are instants, and
+retypes the `parameter` tuple's fourth member in
+`schemas/snapshot-state.schema.json` from an integer to the RFC 3339
+string every other instant member of that schema already uses.
+
+**What it states.** `effective_at` is a Registry Update field, and
+`schemas/registry-update.schema.json` types it as a whole-second
+literal-`Z` RFC 3339 instant, "the form `block.schema.json` fixes for
+`sealed_at`", because every window it takes part in is compared against a
+Block `sealed_at`. The state artifact restates that same value for an
+amended parameter, so it is that same instant. §7's type prose listed the
+instants and omitted this one, and the schema typed the member as a
+non-negative integer — a height. A Consumer resuming from a Snapshot would
+then compare a height against the `sealed_at` instants §9's grace period
+is measured in.
+
+**Why it qualifies.** Both conditions hold. The registry-update schema,
+§9.1's `parameter_change` entry and WIST-4 §9's grace period all read
+`effective_at` as an instant, and §7's own encoding rule says instants are
+written as the RFC 3339 strings the sealed Entries carry; the corrected
+member is the only place in the suite that said otherwise. An
+implementation that wrote the instant conformed to the suite's definition
+of the field and is not broken by the schema now agreeing with it.
+
+**Status.** Exercised. `tools/validate_examples.py`'s
+`schema:wist3-parameter-effective-at` validates a `parameter` tuple
+carrying an instant and rejects one carrying a height, an offset form, or
+a date.
+
+## 2026-08-16 — WIST-1 §5.2, §7: re-serving the current Declaration is idempotent
+
+Adds a paragraph to §5.2, extends §7's `WIST1-E08` row and §7's
+idempotence sentence, and adds
+`vectors/wist1/declaration-sequence.json` (generated by
+`tools/gen_vectors.py`).
+
+**What it states.** §5.2 required rejection under `WIST1-E08` when "`seq`
+is not greater than the highest it has already accepted for that domain",
+which reads on the re-fetch of an unchanged Declaration — and §5.1
+requires that re-fetch, capping a cached Key Set at 24 hours. Under the
+literal reading a Publisher whose keys never change fails validation on
+every re-poll, and fails closed under §5.1's discovery rule, so no stable
+Publisher could be validated at all. A Declaration whose inner `publisher`
+object is byte-identical under JCS to the accepted one — equivalently, one
+with the same `prev_declaration` hash — is therefore an idempotent
+acceptance, exactly as a duplicate Delta is under §7. One carrying an
+already-accepted `seq` with any other bytes stays `WIST1-E08`: that is the
+superseded-replay case the rule exists to catch.
+
+**Why it qualifies.** Both conditions hold. The rejection surface is
+unchanged for every Declaration that differs in any byte, so nothing an
+implementation previously rejected is now accepted except the case where
+its input equals its own stored state; and the reading being corrected is
+one no implementation could operate under, the standard §9 of WIST-4
+applies to parameter values and the 2026-08-15 confirmation-window entry
+applies to §5 — a reading that removes a mechanism is not a reading of the
+suite.
+
+**Status.** Exercised. `vectors/wist1/declaration-sequence.json` carries
+nine cases over one stored Declaration: the identical re-serve, a same-`seq`
+mutation, a stale lower `seq`, a missing and a mismatched
+`prev_declaration`, an ordinary rotation, a recovery rotation, a
+recovery-key alteration signed by a signing key, and a fresh identity.
+`vectors:wist1-declaration-sequence` proves every case's envelopes are
+schema-valid and verify under the key they name, so an expected
+`WIST1-E08` is earned by sequencing and never by a broken signature.

@@ -439,6 +439,18 @@ Declaration (for example from a stale cache) detectable rather than
 silent, the same way `WIST1-E07` treats a missing or mismatched `prev` on
 a Delta.
 
+Re-serving the current Declaration is not that replay: a Declaration
+whose inner `publisher` object is byte-identical under JCS to the one
+already accepted for the domain — equivalently, one with the same
+`prev_declaration` hash — is an idempotent acceptance, not `WIST1-E08`,
+exactly as a duplicate Delta is (§7). §5.1 caps a cached Key Set at 24 hours, so a validator MUST
+re-fetch the Declaration of a Publisher whose keys never change, and a
+rule rejecting what that fetch returns would reject every stable
+Publisher in the system. A Declaration carrying an already-accepted
+`seq` with any other bytes is `WIST1-E08` as above — that is precisely
+the superseded-replay and same-`seq`-mutation case the rule exists to
+catch.
+
 Key rotation is performed by publishing a Declaration whose envelope is
 signed by a key from the **previous** Key Set (`sig.key_id` names the old
 key). The first Declaration a domain publishes (`seq` 0) is self-signed. A
@@ -570,15 +582,16 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | WIST1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted; `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. Dropped, never sealed; visible to the Publisher via the status endpoint (WIST-2 §7.1) |
 
-Duplicate submission of an identical Delta is an idempotent acceptance,
-not an error.
+Duplicate submission of an identical Delta, and re-fetching a Declaration
+whose `publisher` object is byte-identical to the domain's accepted one
+(§5.2), are idempotent acceptances, not errors.
 
 `WIST1-E10` rejects the Payload, never the Delta. A sealed Delta stays
 sealed and stays valid, because nothing in its identity or signature
