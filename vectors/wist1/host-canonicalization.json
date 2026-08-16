@@ -1,0 +1,91 @@
+{
+  "note": "WIST-1 \u00a72 Canonical Host. `expected` is the Canonical Host, or null where the input has no canonicalization and a validator MUST reject the `url` carrying it with WIST1-E03.",
+  "flags": {
+    "UseSTD3ASCIIRules": true,
+    "CheckHyphens": false,
+    "CheckBidi": true,
+    "CheckJoiners": true,
+    "Transitional_Processing": false,
+    "VerifyDnsLength": true
+  },
+  "cases": [
+    {
+      "name": "ASCII case and trailing dot",
+      "input": "EXAMPLE.org.",
+      "expected": "example.org",
+      "why": "\u00a72: UTS #46 mapping folds case; the trailing dot is removed."
+    },
+    {
+      "name": "hyphens in the third and fourth position",
+      "input": "r2---sn-x.example",
+      "expected": "r2---sn-x.example",
+      "why": "\u00a72: CheckHyphens=false. Under CheckHyphens=true this host \u2014 the shape CDN nodes actually use \u2014 has no canonicalization at all."
+    },
+    {
+      "name": "leading hyphen",
+      "input": "-foo.example",
+      "expected": "-foo.example",
+      "why": "\u00a72: CheckHyphens=false places no positional restriction."
+    },
+    {
+      "name": "IDN label",
+      "input": "b\u00fccher.example",
+      "expected": "xn--bcher-kva.example",
+      "why": "\u00a72: mapping leaves \u00fc, Punycode encodes it."
+    },
+    {
+      "name": "nontransitional sharp s",
+      "input": "fa\u00df.de",
+      "expected": "xn--fa-hia.de",
+      "why": "\u00a72: Transitional_Processing=false keeps \u00df rather than mapping it to ss."
+    },
+    {
+      "name": "uppercase sigma",
+      "input": "example.\u0391\u03a3",
+      "expected": "example.xn--mxa0b",
+      "why": "\u00a72: UTS #46 maps \u03a3 to \u03c3 context-free. An implementation that lowercases first with a context-sensitive full lowercase gets \u03c2 and therefore xn--mxa8a \u2014 a different Canonical Host for the same input, which is why \u00a72 forbids the extra step."
+    },
+    {
+      "name": "A-label passthrough",
+      "input": "xn--bcher-kva.example",
+      "expected": "xn--bcher-kva.example",
+      "why": "\u00a72: an already-encoded A-label canonicalizes to itself."
+    },
+    {
+      "name": "IPv4 literal",
+      "input": "127.0.0.1",
+      "expected": "127.0.0.1",
+      "why": "\u00a72: digits and dots pass UseSTD3ASCIIRules."
+    },
+    {
+      "name": "STD3 violation",
+      "input": "under_score.example",
+      "expected": null,
+      "why": "\u00a72: UseSTD3ASCIIRules=true rejects ASCII outside letters, digits and hyphen."
+    },
+    {
+      "name": "label too long",
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example",
+      "expected": null,
+      "why": "\u00a72: VerifyDnsLength=true bounds a label at 63 octets."
+    },
+    {
+      "name": "empty host",
+      "input": "",
+      "expected": null,
+      "why": "\u00a72: VerifyDnsLength=true rejects an empty domain."
+    },
+    {
+      "name": "zero-width non-joiner out of context",
+      "input": "a\u200cb.example",
+      "expected": null,
+      "why": "\u00a72: CheckJoiners=true \u2014 U+200C is admissible only after a virama or in a joining context, and 'a' is neither."
+    },
+    {
+      "name": "bidi violation",
+      "input": "\u05d0a.example",
+      "expected": null,
+      "why": "\u00a72: CheckBidi=true \u2014 an RTL label may not carry a strong LTR character."
+    }
+  ]
+}
