@@ -57,17 +57,34 @@ shown here.
   Delta's Canonical Bytes.
 - **Key Set**: the list of active Ed25519 public keys in a Publisher
   Declaration.
-- **Canonical Host**: a hostname lowercased, then IDN-encoded to its
-  A-label form by **UTS #46 processing** with `UseSTD3ASCIIRules=true`,
+- **Canonical Host**: a hostname IDN-encoded to its A-label form by
+  **UTS #46 processing** with `UseSTD3ASCIIRules=true`,
+  `CheckHyphens=false`, `CheckBidi=true`, `CheckJoiners=true`,
   `Transitional_Processing=false` and `VerifyDnsLength=true`, whose output
   labels are the IDNA2008 A-labels of RFC 5891 encoded with Punycode
-  [RFC 3492]; with any trailing dot removed and no port. The algorithm is
+  [RFC 3492]; with any trailing dot removed and no port. Case is folded by
+  UTS #46's own mapping step and by nothing before it: an implementation
+  MUST NOT lowercase the input first. The algorithm is
   pinned rather than named because IDNA2003 and IDNA2008 disagree on
   characters such as `ß` (U+00DF) and final sigma (U+03C2) — IDNA2003 maps
   them away, IDNA2008 keeps them — so two implementers following "IDN
   encoding" loosely produce different bytes for the same input, which is
   precisely the failure this definition exists to prevent. RFC 5890 defines
-  the terminology these terms come from; it defines no algorithm.
+  the terminology these terms come from; it defines no algorithm. Every
+  flag is pinned for the same reason, and the two values that are not the
+  strictest available are chosen deliberately. `CheckHyphens=false` matches
+  the profile every browser applies: hyphen position inside a label is
+  registry policy, not identity, and the strict value rejects hosts that
+  resolve and serve today — which would bar them as Publishers *and* drop
+  them from the citation graph of every Consumer, since WIST-2 §11
+  normalizes link targets through this same definition. `CheckBidi` and
+  `CheckJoiners` stay on, because those rules govern visual confusability,
+  and a domain-anchored identity is exactly what confusable labels attack.
+  A separate lowercasing step is excluded for the reason the paragraph
+  above gives: a context-sensitive full lowercase maps a word-final Σ to ς
+  and a UTS #46 mapping maps it to σ, so the extra step changes the input
+  of the algorithm at the very character this definition cites, and it can
+  only ever disagree with the mapping it precedes.
 - **Normalized URL**: an `https` URL after RFC 3986 §6.2.2 syntax-based
   normalization — percent-encoding hex digits uppercased and
   percent-encoded octets that correspond to unreserved characters decoded,
@@ -344,6 +361,38 @@ JSON Canonicalization Scheme (JCS) [RFC 8785]:
 3. **Signature** = `Ed25519-sign(private_key, Canonical Bytes)`,
    base64url without padding. A signature that does not verify against
    Canonical Bytes under the key `sig.key_id` names is `WIST1-E01`.
+
+**What verification means, exactly.** RFC 8032 §5.1.7 leaves choices open
+that a Log cannot leave open: two verifiers resolving them differently
+disagree about whether a sealed Entry is valid, and that disagreement is a
+fork. This suite pins them, for every signature it defines:
+
+- The verification equation is the **cofactorless** one, `[s]B = R + [k]A`,
+  checked without multiplying either side by the cofactor. Recomputing `R`
+  and comparing its encoding to the signature's is the same check and is
+  permitted.
+- `s` MUST be canonically reduced, `0 ≤ s < L`. Adding `L` to `s` leaves
+  `[s]B` unchanged, so a verifier that omits this check accepts a second
+  signature for the same message under the same key.
+- `A` and `R` MUST each be canonically encoded — the encoded `y` less than
+  `p = 2^255 − 19` — and MUST NOT be a point of small order.
+
+A signature failing any of these is `WIST1-E01`. A `keys` or
+`recovery_keys` entry (§5.1) whose `public_key` is non-canonically encoded
+or of small order is not admitted to the Key Set at all, and a Delta naming
+it is `WIST1-E02`: the check belongs where the key enters, so that a
+Publisher cannot publish a key every verifier would otherwise reject one
+Delta at a time, and so that the Key Set a Consumer replays is the same set
+the Aggregator ingested against.
+
+The profile chosen is the one libsodium applies by default and the one
+`ed25519-dalek`'s strict verification implements, so an implementation
+inherits it from its library rather than hand-rolling a WIST-specific mode
+— which is the practical difference between a pinned rule and a followed
+one. The alternative profile (cofactored verification, non-canonical
+encodings accepted) also yields agreement among verifiers that adopt it,
+but it admits a small-order `A` under which one signature verifies for many
+keys, and this suite anchors identity to keys.
 
 The Envelope carries the result:
 
@@ -634,7 +683,12 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
   withhold a Payload, which is an availability failure, handled by WIST-3
   §6.1 and distinguishable from a lawful withdrawal.
 - **Signature malleability.** Ed25519 signatures as specified in RFC 8032
-  are deterministic; validators MUST verify against Canonical Bytes only.
+  are deterministic; validators MUST verify against Canonical Bytes only,
+  under the verification profile §4 pins. That profile is what closes the
+  malleability RFC 8032 leaves to the verifier: an unreduced `s` is a second
+  valid signature for a message already signed, and a small-order `A` is a
+  key under which one signature verifies for many keys — either would let
+  two honest verifiers disagree about a sealed Entry.
 - **Canonicalization attacks.** JCS removes serialization ambiguity
   (whitespace, key order, number forms). Objects that cannot be canonically
   represented MUST be rejected (`WIST1-E05`), never repaired.
