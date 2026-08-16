@@ -367,8 +367,14 @@ the fixed URL `/log/checkpoint.json` after sealing each Block: the
 - Consumers SHOULD fetch Checkpoints from more than one Mirror and
   SHOULD retain the Checkpoints they act on. The instruction is
   performable because Mirrors are discoverable in-band: the Aggregator
-  SHOULD publish `/log/mirrors.json` — signed, listing the base URLs of
-  Mirrors it knows to re-serve the Log — and a Consumer SHOULD also
+  SHOULD publish `/log/mirrors.json` — an Envelope whose inner object is
+  `mirrors` (schema:
+  [`schemas/mirrors.schema.json`](../schemas/mirrors.schema.json)),
+  carrying `wist_version`, `updated_at` (descriptive: when the Aggregator
+  last rewrote the list, compared to nothing) and `mirror_urls`, the
+  `https` base URLs of Mirrors it knows to re-serve the Log, each ending
+  in `/` —
+  and a Consumer SHOULD also
   retain Mirror URLs from any other source it trusts, because a list the
   Aggregator curates is exactly the wrong sole source for the parties
   meant to catch the Aggregator equivocating: its value is bootstrap
@@ -1030,7 +1036,7 @@ value fields are:
 | `aggregator_key` | `key_id` | `public_key`, added height, removed height or `null` | §3.4 |
 | `auditor` | `auditor_id`, `key_id` | `public_key`, admitted height, removed height or `null` | WIST-4 §3 |
 | `declaration` | domain | the current Declaration Envelope, its sealing height | WIST-1 §5 |
-| `parameter` | identifier | value, `effective_at` | WIST-4 §9 |
+| `parameter` | identifier, `effective_at` | value | WIST-4 §9 |
 | `sanction_state` | domain | level, establishing Registry Update IDs, each open deadline instant | WIST-4 §7 |
 | `recovery_window` | domain | recovery Declaration height, window end | WIST-1 §5.2 |
 | `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
@@ -1039,7 +1045,14 @@ value fields are:
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
 A `parameter` tuple exists only for a parameter amended since genesis:
-Registry defaults are constants of this suite and are not restated. A
+Registry defaults are constants of this suite and are not restated. One
+tuple exists per amendment rather than per identifier, which is why
+`effective_at` is a key field: a `parameter_change` sealed before
+`log_position` but effective after it is live state a resuming Consumer
+cannot re-derive — it will never see that Entry again — and a single tuple
+per identifier would force the artifact to choose between the value in
+force and the one about to be. Both appear, and a Consumer applies each at
+its own instant. A
 `record` tuple carries the chain tip — the newest Delta of the chain,
 which the content tuple does not name (its `delta_id` is the anchor) —
 because a resuming Consumer must reject a fork of the live chain

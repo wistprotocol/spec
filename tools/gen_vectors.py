@@ -794,6 +794,37 @@ write_json(WIST3 / "block.json", block)
 write_json(WIST3 / "inclusion-proof.json", inclusion_proof)
 write_json(EXAMPLES / "block.json", block)
 
+# ------------------------------------------- WIST-3 §4: the empty Block
+# A heartbeat Block carries no Entries, and §3.2 requires the Log to keep
+# sealing on cadence when nothing arrives. The empty tree is this suite's
+# one deviation from RFC 6962 — SHA-256(0x00) rather than SHA-256 of the
+# empty string — and an implementation wiring in a CT library inherits the
+# other constant silently, so the vector exists to catch exactly that.
+empty_header = {
+    "wist_version": "1.0.0",
+    "block_number": 1,
+    "prev_block_hash": block_hash,
+    "sealed_at": "2026-08-02T14:00:00Z",
+    "merkle_root": "sha256:" + hashlib.sha256(b"\x00").hexdigest(),
+    "entry_count": 0,
+}
+empty_canonical = rfc8785.dumps(empty_header)
+empty_block = {"header": empty_header, "entries": [],
+               "sig": {"key_id": "test-agg-k1", "alg": "Ed25519",
+                       "value": b64u(priv.sign(empty_canonical))}}
+write_json(WIST3 / "empty-block.json", {
+    "note": ("WIST-3 §4: a Block with no Entries. `merkle_root` is "
+             "SHA-256(0x00) — the empty-tree deviation from RFC 6962, whose "
+             "own constant is SHA-256 of the empty string — and `block_hash` "
+             "is SHA-256 over the JCS bytes of the header alone (§3.1). A "
+             "verifier that rejects this Block rejects every heartbeat the "
+             "cadence requires."),
+    "block": empty_block,
+    "block_hash": "sha256:" + sha256_hex(empty_canonical),
+    "rfc6962_empty_root": "sha256:" + hashlib.sha256(b"").hexdigest(),
+})
+print("wist3 empty block hash:", "sha256:" + sha256_hex(empty_canonical))
+
 checkpoint = {
     "wist_version": "1.0.0",
     "block_number": 0,
@@ -956,6 +987,15 @@ manifest = {
 }
 write_json(EXAMPLES / "snapshot-manifest.json",
            sign_envelope("manifest", manifest, "test-agg-k1"))
+
+# ------------------------------------------------------- WIST-3 §5: mirrors
+mirrors = {
+    "wist_version": "1.0.0",
+    "updated_at": "2026-08-02T13:05:00Z",
+    "mirror_urls": ["https://mirror-1.example/", "https://mirror-2.example/"],
+}
+write_json(EXAMPLES / "mirrors.json", sign_envelope("mirrors", mirrors, "test-agg-k1"))
+print("wist3 mirrors example written")
 
 # ------------------------------------------------------ WIST-3 §6: discovery
 snapshot_index = {
@@ -1864,6 +1904,21 @@ sanction_criterion_scenarios = [
     ("spread-past-span-never-meets",
      [finding(0, 1), finding(91, 1), finding(182, 1)],
      ESCALATIONS["l2"][0], ESCALATIONS["l2"][1], ESCALATIONS["l2"][2]),
+    # The boundary itself: the window is end-inclusive and start-exclusive
+    # (§7, §6.1), so a finding exactly `span` whole days before the one that
+    # would complete the count sits outside it.
+    ("exactly-ninety-days-apart-is-outside",
+     [finding(0, 1), finding(45, 1), finding(90, 1)],
+     ESCALATIONS["l2"][0], ESCALATIONS["l2"][1], ESCALATIONS["l2"][2]),
+    ("one-day-inside-ninety-meets",
+     [finding(0, 1), finding(45, 1), finding(89, 1)],
+     ESCALATIONS["l2"][0], ESCALATIONS["l2"][1], ESCALATIONS["l2"][2]),
+    ("exactly-one-eighty-days-apart-is-outside",
+     [finding(0, 3), finding(90, 3), finding(180, 3)],
+     ESCALATIONS["l4_sev3"][0], ESCALATIONS["l4_sev3"][1], ESCALATIONS["l4_sev3"][2]),
+    ("one-day-inside-one-eighty-meets",
+     [finding(0, 3), finding(90, 3), finding(179, 3)],
+     ESCALATIONS["l4_sev3"][0], ESCALATIONS["l4_sev3"][1], ESCALATIONS["l4_sev3"][2]),
     ("three-severity-3-in-180-meet-l4",
      [finding(0, 3), finding(10, 1), finding(20, 3), finding(30, 3)],
      ESCALATIONS["l4_sev3"][0], ESCALATIONS["l4_sev3"][1], ESCALATIONS["l4_sev3"][2]),

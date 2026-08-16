@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wistprotocol.org/schemas/mirrors.schema.json",
+  "title": "WIST Mirror List (WIST-3 §5)",
+  "type": "object",
+  "required": ["mirrors", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "mirrors": {
+      "type": "object",
+      "required": ["wist_version", "updated_at", "mirror_urls"],
+      "additionalProperties": false,
+      "description": "The Aggregator's list of Mirrors it knows to re-serve the Log. Bootstrap convenience, never a trust root: WIST-3 §5 has the Consumer retain Mirror URLs from other sources too, because a list the Aggregator curates is the wrong sole source for the parties meant to catch it equivocating.",
+      "properties": {
+        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "mirror_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://[^/]+/$",
+            "maxLength": 2048,
+            "description": "A Mirror's base URL: https, and ending in `/` so that a Consumer resolves Log paths against it by concatenation rather than by a join rule two implementations could differ on."
+          }
+        }
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}

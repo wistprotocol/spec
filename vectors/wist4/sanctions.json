@@ -88,6 +88,94 @@
       "met_times_s": []
     },
     {
+      "label": "exactly ninety days apart is outside",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 3888000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 7776000,
+          "severity": 1
+        }
+      ],
+      "count": 3,
+      "span_days": 90,
+      "min_severity": 0,
+      "met_times_s": []
+    },
+    {
+      "label": "one day inside ninety meets",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 3888000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 7689600,
+          "severity": 1
+        }
+      ],
+      "count": 3,
+      "span_days": 90,
+      "min_severity": 0,
+      "met_times_s": [
+        7689600
+      ]
+    },
+    {
+      "label": "exactly one eighty days apart is outside",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 7776000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 15552000,
+          "severity": 3
+        }
+      ],
+      "count": 3,
+      "span_days": 180,
+      "min_severity": 3,
+      "met_times_s": []
+    },
+    {
+      "label": "one day inside one eighty meets",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 7776000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 15465600,
+          "severity": 3
+        }
+      ],
+      "count": 3,
+      "span_days": 180,
+      "min_severity": 3,
+      "met_times_s": [
+        15465600
+      ]
+    },
+    {
       "label": "three severity 3 in 180 meet l4",
       "findings": [
         {

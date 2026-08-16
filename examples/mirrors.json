@@ -1,0 +1,15 @@
+{
+  "mirrors": {
+    "wist_version": "1.0.0",
+    "updated_at": "2026-08-02T13:05:00Z",
+    "mirror_urls": [
+      "https://mirror-1.example/",
+      "https://mirror-2.example/"
+    ]
+  },
+  "sig": {
+    "key_id": "test-agg-k1",
+    "alg": "Ed25519",
+    "value": "YODlu_pBRUWIJBRqPWm-s9bugB4BYaZaJzWDFAbrA6teTmGuh7K3huaMvXs0EVgjnx8rn7ms-F4Qv15N2aJKBw"
+  }
+}
