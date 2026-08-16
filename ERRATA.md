@@ -580,3 +580,42 @@ nontransitional `ß`, an A-label passthrough, and rejections for
 §2's text and the shape of every accepted result; the expected A-labels are
 independently reproduced by a second UTS #46 implementation.
 
+## 2026-08-16 — WIST-1 §5.2, §7: what the recovery window admits, supersedes and settles (revision, not errata)
+
+Extends §5.2's recovery-rotation bullet and its fresh-identity bullet, adds
+the key-set disjointness rule to the recovery-keys paragraph, extends §7's
+`WIST1-E08` and `WIST1-E13` rows, and adds
+`vectors/wist1/recovery-settlement.json` plus two cases to
+`vectors/wist1/declaration-sequence.json`. Decision record: ADR-0015.
+
+**What it states.** A Delta is queued when it verifies under the union of
+the pre-recovery Key Set and the recovery Declaration's own. At the window's
+end every Declaration sealed inside it other than the recovery Declaration
+and the chain legitimately following it is superseded — an ordinary rotation
+and a fresh identity alike — and settlement revalidates each queued Delta
+against that chain's newest Key Set. `WIST1-E13` drops the queued copy and
+not the Delta's identity. Separately, `keys` and `recovery_keys` MUST name no
+`key_id` and no `public_key` in common.
+
+**Why it is a revision.** It fails the first errata condition in three
+places. An implementation reading "queued rather than sealed" as admitting
+only the pre-recovery set conformed and now does not; one rejecting an
+in-window fresh identity with `WIST1-E08` conformed and now must accept and
+supersede it; and one settling against "the recovery Declaration's" Key Set
+literally conformed and must now follow the chain. The disjointness rule is
+new prose that invalidates a previously schema-valid Declaration — including
+this suite's own `examples/publisher.json`, which reused one test public key
+under two `key_id`s and has been regenerated onto a second keypair.
+
+**What it does not change.** The window's start, its length, the queueing
+behavior, the `A`/`C` preservation, and the two-recovery-Declarations race
+rule are untouched. No error code is added.
+
+**Status.** Exercised. `vectors/wist1/recovery-settlement.json` carries five
+cases over both derivations — admission by union, a superseded thief
+rotation, a superseded fresh identity, a legitimate post-recovery rotation
+that moves the chain head, and a chain extended through a recovery key —
+recomputed by `vectors:wist1-recovery-settlement` from the case inputs.
+`vectors/wist1/declaration-sequence.json` adds the in-window fresh-identity
+acceptance and a Declaration naming one key in both sets.
+

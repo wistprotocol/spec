@@ -112,6 +112,27 @@ print("wist1 payload salt:", payload["salt"], "commitment:", commitment,
       "bytes:", len(content_canonical))
 print("wist1 payload path: /payloads/%s.json" % delta_id.split(":")[1])
 
+# The suite's second test keypair: the recovery key of the publisher example
+# below, and the fresh identity of the §5.2 sequencing vector. WIST-1 §5.2
+# forbids one key from serving as both a signing and a recovery key.
+SEED2 = bytes(range(32, 64))    # TEST ONLY — never use in production
+SEED3 = bytes(range(64, 96))    # TEST ONLY — never use in production
+SEED4 = bytes(range(96, 128))   # TEST ONLY — never use in production
+priv2 = Ed25519PrivateKey.from_private_bytes(SEED2)
+priv3 = Ed25519PrivateKey.from_private_bytes(SEED3)
+priv4 = Ed25519PrivateKey.from_private_bytes(SEED4)
+
+def raw_public(key) -> bytes:
+    return key.public_key().public_bytes(
+        serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+
+pub2_raw, pub3_raw, pub4_raw = raw_public(priv2), raw_public(priv3), raw_public(priv4)
+
+def sign_envelope_with(key, inner_name: str, inner: dict, key_id: str) -> dict:
+    return {inner_name: inner,
+            "sig": {"key_id": key_id, "alg": "Ed25519",
+                    "value": b64u(key.sign(rfc8785.dumps(inner)))}}
+
 # ------------------------------------------------------------ WIST-1: publisher
 publisher = {
     "wist_version": "1.0.0",
@@ -122,13 +143,11 @@ publisher = {
         {"key_id": "test-k1", "alg": "Ed25519", "public_key": b64u(pub_raw),
          "valid_from": "2026-08-02T12:00:00Z"}
     ],
-    # Illustrative only: a real recovery key MUST be a distinct keypair,
-    # generated independently and held offline, never reused as a signing
-    # key. The vector reuses the same test public key purely so the suite
-    # ships one deterministic keypair; WIST-1 §5.2 normatively requires
-    # recovery keys to sign nothing but Declarations.
+    # A distinct keypair, as WIST-1 §5.2 requires: the two sets share neither
+    # a key_id nor a public_key, because a recovery key that is also a signing
+    # key is not held offline and is stolen with the key it duplicates.
     "recovery_keys": [
-        {"key_id": "test-r1", "alg": "Ed25519", "public_key": b64u(pub_raw),
+        {"key_id": "test-r1", "alg": "Ed25519", "public_key": b64u(pub2_raw),
          "valid_from": "2026-08-02T12:00:00Z"}
     ],
     "contact": "mailto:webmaster@example.com",
@@ -146,23 +165,13 @@ print("wist1 publisher example written")
 # A second test keypair is needed for the rotation targets and for the fresh
 # identity — a Declaration signed by neither the stored signing keys nor the
 # stored recovery keys. Test-only, like the first.
-SEED2 = bytes(range(32, 64))  # TEST ONLY — never use in production
-priv2 = Ed25519PrivateKey.from_private_bytes(SEED2)
-pub2_raw = priv2.public_key().public_bytes(
-    serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-
-def sign_envelope_with(key, inner_name: str, inner: dict, key_id: str) -> dict:
-    return {inner_name: inner,
-            "sig": {"key_id": key_id, "alg": "Ed25519",
-                    "value": b64u(key.sign(rfc8785.dumps(inner)))}}
-
 def decl_hash(inner: dict) -> str:
     """WIST-1 §5.2: prev_declaration = sha256 over JCS of the inner object."""
     return "sha256:" + sha256_hex(rfc8785.dumps(inner))
 
-K2 = {"key_id": "test-k2", "alg": "Ed25519", "public_key": b64u(pub2_raw),
+K2 = {"key_id": "test-k2", "alg": "Ed25519", "public_key": b64u(pub3_raw),
       "valid_from": "2026-08-03T12:00:00Z"}
-R2 = {"key_id": "test-r2", "alg": "Ed25519", "public_key": b64u(pub2_raw),
+R2 = {"key_id": "test-r2", "alg": "Ed25519", "public_key": b64u(pub4_raw),
       "valid_from": "2026-08-03T12:00:00Z"}
 
 stored_decl = publisher
@@ -182,6 +191,11 @@ recovery_dropped_by_signing_key = variant(seq=1, prev_declaration=stored_hash,
 missing_prev = variant(seq=1, keys=[K2])
 wrong_prev = variant(seq=1, prev_declaration=decl_hash(mutated_same_seq), keys=[K2])
 fresh_identity = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
+overlapping_sets = variant(
+    seq=1, prev_declaration=stored_hash,
+    recovery_keys=[{"key_id": "test-r1", "alg": "Ed25519",
+                    "public_key": b64u(pub_raw),
+                    "valid_from": "2026-08-02T12:00:00Z"}])
 
 declaration_cases = [
     {"name": "identical re-serve",
@@ -221,7 +235,7 @@ declaration_cases = [
             "the previous Key Set; recovery_keys carried byte-identical."},
     {"name": "recovery rotation",
      "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", recovery_rotated, "test-r1"),
+     "fetched": sign_envelope_with(priv2, "publisher", recovery_rotated, "test-r1"),
      "expected": "recovery_rotation",
      "why": "§5.2: signed by a key in the previous Declaration's "
             "recovery_keys, which is what lets it replace them."},
@@ -233,17 +247,35 @@ declaration_cases = [
             "them MUST be signed by one of the recovery keys it replaces."},
     {"name": "fresh identity",
      "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope_with(priv2, "publisher", fresh_identity, "test-k2"),
+     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity, "test-k2"),
      "expected": "fresh_identity",
      "why": "§5.2: signed by neither the previous signing keys nor the "
             "previous recovery_keys, which it carries byte-identical — "
             "accepted, with A and C reset to zero (WIST-4 §6)."},
+    {"name": "fresh identity inside an open recovery window",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity, "test-k2"),
+     "recovery_window_open": True,
+     "expected": "fresh_identity",
+     "why": "§5.2: an open window changes nothing about acceptance — the "
+            "Declaration is sealed and superseded at the window's end, "
+            "because rejecting it at ingest would leave a thief's attempt "
+            "invisible to a party replaying the Log."},
+    {"name": "key named in both key sets",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope("publisher", overlapping_sets, "test-k1"),
+     "expected": "WIST1-E08",
+     "why": "§5.2: the same public_key in keys and recovery_keys. A recovery "
+            "key that is also a signing key is stolen with it, and a signer "
+            "in both sets leaves the recovery-window classification without "
+            "an answer every replaying party derives identically."},
 ]
 
 write_json(WIST1 / "declaration-sequence.json", {
     "note": ("WIST-1 §5.2 Declaration sequencing and classification. Each case "
              "evaluates `fetched` against the already-accepted `stored` for the "
-             "same domain, with no recovery window open. `expected` is one of "
+             "same domain; a case's own `recovery_window_open` overrides the "
+             "file-level default. `expected` is one of "
              "`idempotent` (accepted, replaces nothing), `ordinary_rotation`, "
              "`recovery_rotation`, `fresh_identity` (accepted, A and C reset), "
              "or the error code the evaluation rejects with."),
@@ -251,6 +283,108 @@ write_json(WIST1 / "declaration-sequence.json", {
     "cases": declaration_cases,
 })
 print("wist1 declaration-sequence vector written")
+
+# ------------------------------ WIST-1 §5.2: recovery-window settlement
+# The window's two derivations, over key_ids alone: which served Deltas are
+# admitted to the queue (the union of the pre-recovery Key Set and the
+# recovery Declaration's own), and what the window's end does with them
+# (revalidation against the recovery chain's newest Declaration). Every
+# Declaration sealed inside the window that does not legitimately follow the
+# recovery Declaration is superseded, whatever its classification.
+def settle_case(name, recovery, window, served, why):
+    chain = [recovery]
+    superseded = []
+    for decl in window:
+        head = chain[-1]
+        if decl["signer"] in head["keys"] + head.get("recovery_keys", []):
+            chain.append(decl)
+        else:
+            superseded.append(decl["label"])
+    effective = chain[-1]["keys"]
+    admitted = [d for d in served
+                if d["signer"] in PRE_RECOVERY_KEYS + recovery["keys"]]
+    return {
+        "name": name,
+        "pre_recovery_keys": PRE_RECOVERY_KEYS,
+        "recovery_declaration": recovery,
+        "window_declarations": window,
+        "served": served,
+        "expected": {
+            "queued": [d["delta_id"] for d in admitted],
+            "not_queued": [d["delta_id"] for d in served if d not in admitted],
+            "effective_keys": effective,
+            "superseded": superseded,
+            "sealed": [d["delta_id"] for d in admitted if d["signer"] in effective],
+            "rejected": [d["delta_id"] for d in admitted
+                         if d["signer"] not in effective],
+        },
+        "why": why,
+    }
+
+PRE_RECOVERY_KEYS = ["k1"]
+RECOVERY_DECL = {"label": "recovery", "signer": "r1", "keys": ["k2"],
+                 "recovery_keys": ["r2"]}
+
+settlement_cases = [
+    settle_case(
+        "no competing declaration", RECOVERY_DECL, [],
+        [{"delta_id": "d-old", "signer": "k1"},
+         {"delta_id": "d-new", "signer": "k2"},
+         {"delta_id": "d-alien", "signer": "kX"}],
+        "§5.2: the union admits the compromised key's Delta and the "
+        "recovered Publisher's alike, and the settlement keeps only what "
+        "verifies under the recovery Declaration's own keys. A Delta signed "
+        "by a key in neither set never reaches the queue (WIST1-E02)."),
+    settle_case(
+        "thief rotates inside the window", RECOVERY_DECL,
+        [{"label": "thief rotation", "signer": "k1", "keys": ["kT"],
+          "recovery_keys": ["r1"]}],
+        [{"delta_id": "d-thief", "signer": "k1"},
+         {"delta_id": "d-owner", "signer": "k2"}],
+        "§5.2: an ordinary rotation signed by the compromised key does not "
+        "follow the recovery Declaration, so it is superseded and its "
+        "Deltas are WIST1-E13."),
+    settle_case(
+        "fresh identity inside the window", RECOVERY_DECL,
+        [{"label": "fresh identity", "signer": "kF", "keys": ["kF"],
+          "recovery_keys": ["r2"]}],
+        [{"delta_id": "d-owner", "signer": "k2"}],
+        "§5.2: a fresh identity is accepted when served and superseded at "
+        "the window's end like any other non-following Declaration — "
+        "otherwise a thief answers a recovery by starting over under the "
+        "same domain."),
+    settle_case(
+        "recovered Publisher rotates again", RECOVERY_DECL,
+        [{"label": "post-recovery rotation", "signer": "k2", "keys": ["k3"],
+          "recovery_keys": ["r2"]}],
+        [{"delta_id": "d-k2", "signer": "k2"},
+         {"delta_id": "d-old", "signer": "k1"}],
+        "§5.2: signed by a key of the recovery Declaration's own Key Set, so "
+        "it legitimately follows and its Key Set is the one settlement "
+        "revalidates against — d-k2 no longer verifies under it."),
+    settle_case(
+        "recovery key rotates again", RECOVERY_DECL,
+        [{"label": "second recovery rotation", "signer": "r2",
+          "keys": ["k4"], "recovery_keys": ["r3"]},
+         {"label": "thief rotation after it", "signer": "k1",
+          "keys": ["kT"], "recovery_keys": ["r1"]}],
+        [{"delta_id": "d-k4", "signer": "k2"}],
+        "§5.2: the chain may extend through a recovery key too, and a "
+        "rotation signed by the compromised key is superseded wherever in "
+        "the window it lands."),
+]
+
+write_json(WIST1 / "recovery-settlement.json", {
+    "note": ("WIST-1 §5.2 recovery-window admission and settlement, over "
+             "key_ids alone — no signatures, because both derivations read "
+             "key membership and Log order and nothing else. `served` is in "
+             "acceptance order; `expected.queued` are the Deltas the union "
+             "rule admits, `expected.sealed` those the settlement keeps in "
+             "that order, and `expected.rejected` those it drops with "
+             "WIST1-E13 (the queued copy only — the Delta ID is not barred)."),
+    "cases": settlement_cases,
+})
+print("wist1 recovery-settlement vector written")
 
 # --------------------------------------- WIST-1 §4: the verification profile
 # RFC 8032 §5.1.7 leaves the cofactor, the reduction of `s` and the treatment

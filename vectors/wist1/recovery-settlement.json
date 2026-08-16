@@ -1,0 +1,281 @@
+{
+  "note": "WIST-1 \u00a75.2 recovery-window admission and settlement, over key_ids alone \u2014 no signatures, because both derivations read key membership and Log order and nothing else. `served` is in acceptance order; `expected.queued` are the Deltas the union rule admits, `expected.sealed` those the settlement keeps in that order, and `expected.rejected` those it drops with WIST1-E13 (the queued copy only \u2014 the Delta ID is not barred).",
+  "cases": [
+    {
+      "name": "no competing declaration",
+      "pre_recovery_keys": [
+        "k1"
+      ],
+      "recovery_declaration": {
+        "label": "recovery",
+        "signer": "r1",
+        "keys": [
+          "k2"
+        ],
+        "recovery_keys": [
+          "r2"
+        ]
+      },
+      "window_declarations": [],
+      "served": [
+        {
+          "delta_id": "d-old",
+          "signer": "k1"
+        },
+        {
+          "delta_id": "d-new",
+          "signer": "k2"
+        },
+        {
+          "delta_id": "d-alien",
+          "signer": "kX"
+        }
+      ],
+      "expected": {
+        "queued": [
+          "d-old",
+          "d-new"
+        ],
+        "not_queued": [
+          "d-alien"
+        ],
+        "effective_keys": [
+          "k2"
+        ],
+        "superseded": [],
+        "sealed": [
+          "d-new"
+        ],
+        "rejected": [
+          "d-old"
+        ]
+      },
+      "why": "\u00a75.2: the union admits the compromised key's Delta and the recovered Publisher's alike, and the settlement keeps only what verifies under the recovery Declaration's own keys. A Delta signed by a key in neither set never reaches the queue (WIST1-E02)."
+    },
+    {
+      "name": "thief rotates inside the window",
+      "pre_recovery_keys": [
+        "k1"
+      ],
+      "recovery_declaration": {
+        "label": "recovery",
+        "signer": "r1",
+        "keys": [
+          "k2"
+        ],
+        "recovery_keys": [
+          "r2"
+        ]
+      },
+      "window_declarations": [
+        {
+          "label": "thief rotation",
+          "signer": "k1",
+          "keys": [
+            "kT"
+          ],
+          "recovery_keys": [
+            "r1"
+          ]
+        }
+      ],
+      "served": [
+        {
+          "delta_id": "d-thief",
+          "signer": "k1"
+        },
+        {
+          "delta_id": "d-owner",
+          "signer": "k2"
+        }
+      ],
+      "expected": {
+        "queued": [
+          "d-thief",
+          "d-owner"
+        ],
+        "not_queued": [],
+        "effective_keys": [
+          "k2"
+        ],
+        "superseded": [
+          "thief rotation"
+        ],
+        "sealed": [
+          "d-owner"
+        ],
+        "rejected": [
+          "d-thief"
+        ]
+      },
+      "why": "\u00a75.2: an ordinary rotation signed by the compromised key does not follow the recovery Declaration, so it is superseded and its Deltas are WIST1-E13."
+    },
+    {
+      "name": "fresh identity inside the window",
+      "pre_recovery_keys": [
+        "k1"
+      ],
+      "recovery_declaration": {
+        "label": "recovery",
+        "signer": "r1",
+        "keys": [
+          "k2"
+        ],
+        "recovery_keys": [
+          "r2"
+        ]
+      },
+      "window_declarations": [
+        {
+          "label": "fresh identity",
+          "signer": "kF",
+          "keys": [
+            "kF"
+          ],
+          "recovery_keys": [
+            "r2"
+          ]
+        }
+      ],
+      "served": [
+        {
+          "delta_id": "d-owner",
+          "signer": "k2"
+        }
+      ],
+      "expected": {
+        "queued": [
+          "d-owner"
+        ],
+        "not_queued": [],
+        "effective_keys": [
+          "k2"
+        ],
+        "superseded": [
+          "fresh identity"
+        ],
+        "sealed": [
+          "d-owner"
+        ],
+        "rejected": []
+      },
+      "why": "\u00a75.2: a fresh identity is accepted when served and superseded at the window's end like any other non-following Declaration \u2014 otherwise a thief answers a recovery by starting over under the same domain."
+    },
+    {
+      "name": "recovered Publisher rotates again",
+      "pre_recovery_keys": [
+        "k1"
+      ],
+      "recovery_declaration": {
+        "label": "recovery",
+        "signer": "r1",
+        "keys": [
+          "k2"
+        ],
+        "recovery_keys": [
+          "r2"
+        ]
+      },
+      "window_declarations": [
+        {
+          "label": "post-recovery rotation",
+          "signer": "k2",
+          "keys": [
+            "k3"
+          ],
+          "recovery_keys": [
+            "r2"
+          ]
+        }
+      ],
+      "served": [
+        {
+          "delta_id": "d-k2",
+          "signer": "k2"
+        },
+        {
+          "delta_id": "d-old",
+          "signer": "k1"
+        }
+      ],
+      "expected": {
+        "queued": [
+          "d-k2",
+          "d-old"
+        ],
+        "not_queued": [],
+        "effective_keys": [
+          "k3"
+        ],
+        "superseded": [],
+        "sealed": [],
+        "rejected": [
+          "d-k2",
+          "d-old"
+        ]
+      },
+      "why": "\u00a75.2: signed by a key of the recovery Declaration's own Key Set, so it legitimately follows and its Key Set is the one settlement revalidates against \u2014 d-k2 no longer verifies under it."
+    },
+    {
+      "name": "recovery key rotates again",
+      "pre_recovery_keys": [
+        "k1"
+      ],
+      "recovery_declaration": {
+        "label": "recovery",
+        "signer": "r1",
+        "keys": [
+          "k2"
+        ],
+        "recovery_keys": [
+          "r2"
+        ]
+      },
+      "window_declarations": [
+        {
+          "label": "second recovery rotation",
+          "signer": "r2",
+          "keys": [
+            "k4"
+          ],
+          "recovery_keys": [
+            "r3"
+          ]
+        },
+        {
+          "label": "thief rotation after it",
+          "signer": "k1",
+          "keys": [
+            "kT"
+          ],
+          "recovery_keys": [
+            "r1"
+          ]
+        }
+      ],
+      "served": [
+        {
+          "delta_id": "d-k4",
+          "signer": "k2"
+        }
+      ],
+      "expected": {
+        "queued": [
+          "d-k4"
+        ],
+        "not_queued": [],
+        "effective_keys": [
+          "k4"
+        ],
+        "superseded": [
+          "thief rotation after it"
+        ],
+        "sealed": [],
+        "rejected": [
+          "d-k4"
+        ]
+      },
+      "why": "\u00a75.2: the chain may extend through a recovery key too, and a rotation signed by the compromised key is superseded wherever in the window it lands."
+    }
+  ]
+}
