@@ -221,7 +221,9 @@ Content-Type: application/json
 
 `host` MUST be a Canonical Host (WIST-1 §2). An Aggregator MUST reject a
 ping whose `host` is not canonical, and MUST reject a Feed whose
-`feed.domain` differs from the host it was fetched from.
+`feed.domain` differs from the host it was fetched from, with
+`WIST2-E04` (§7): a Feed naming another domain does not authenticate as
+this domain's Feed, whatever its signature verifies against.
 
 The Ping carries no content and no signature; authenticity comes from the
 subsequent HTTPS pull of the signed Feed and Deltas. Responses:
@@ -349,7 +351,7 @@ convenience. This asymmetry is the adoption incentive for WIST-1/WIST-2.
 | WIST2-E01 | Feed unreachable after Ping. Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 64 min; a fresh ping cancels a pending backoff and starts a new attempt, subject to quota. |
 | WIST2-E02 | Ping produced no new feed content. Counts as noise against the domain's Ping quota. |
 | WIST2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (WIST-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
-| WIST2-E04 | First contact or Feed authentication failure. Two cases, one code: a Feed whose signature does not verify against the domain's Key Set, and a first-contact pull (§5 step 0) whose `publisher.json` is missing, unreachable, malformed, or fails WIST-1 §5.1 verification — the second being the case where no Key Set exists to check the first against. The pull is discarded; counts as noise against the quota. The status endpoint (§7.1) MUST distinguish the two in its `detail` field, since a Publisher whose Declaration never loaded and one whose Feed signature is wrong take entirely different remedies. |
+| WIST2-E04 | First contact or Feed authentication failure. Three cases, one code, each one of the Feed failing to authenticate as this domain's: a Feed whose signature does not verify against the domain's Key Set; a Feed whose `feed.domain` differs from the host it was fetched from (§4), which authenticates as some other domain's Feed or as none, whatever key signed it; and a first-contact pull (§5 step 0) whose `publisher.json` is missing, unreachable, malformed, or fails WIST-1 §5.1 verification — the last being the case where no Key Set exists to check the first against. The pull is discarded; counts as noise against the quota. The status endpoint (§7.1) MUST distinguish them in its `detail` field, since a Publisher whose Declaration never loaded, one whose Feed signature is wrong, and one serving a misaddressed Feed take entirely different remedies. |
 | WIST2-E05 | Feed `generated_at` regression. The pull is discarded; it does not count against the quota — §4's noise set is closed at `WIST2-E02`/`WIST2-E04`. |
 
 ### 7.1. Publisher Status Endpoint
