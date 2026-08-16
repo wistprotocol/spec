@@ -1689,6 +1689,10 @@ NON_CONTENT_VALUES = {
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
     ("vectors/wist1/declaration-sequence.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/ed25519-strictness.json", "public_key_hex"):
+        "an Ed25519 public key (WIST-1 §4's verification profile), canonical, non-canonical and small-order alike",
+    ("vectors/wist1/ed25519-strictness.json", "signature_hex"):
+        "an Ed25519 signature over this vector's own published message",
     ("vectors/wist1/declaration-sequence.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-sequence.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 §5.2) — keys, domain and scope, no page content",
@@ -1950,6 +1954,104 @@ def _dc2_feed_domain_mismatch_code():
     assert ("Only pings resolving to `WIST2-E02` or `WIST2-E04` count against "
             "the domain's daily quota Q") in prose, "the noise set moved"
 check("spec:wist2-feed-domain-mismatch", _dc2_feed_domain_mismatch_code)
+
+def _wist1_verification_profile():
+    """WIST-1 §4: the pinned verification profile, recomputed case by case.
+
+    Each `reject` case is one that some RFC 8032 verifier accepts, so the
+    vector is only worth what the recomputation proves: the profile's own
+    checks — canonical `s`, canonical and non-small-order `A` and `R`, and
+    the cofactorless equation — are what separate them.
+    """
+    v = json.loads((ROOT / "vectors" / "wist1" / "ed25519-strictness.json").read_text())
+    msg = bytes.fromhex(v["message_hex"])
+
+    def small_order(pt):
+        return ecvrf._is_identity(ecvrf._mul(8, pt))
+
+    def profile_accepts(a_bytes, sig):
+        r_bytes, s_bytes = sig[:32], sig[32:]
+        if ecvrf.string_to_int(s_bytes) >= ecvrf.Q:
+            return False
+        try:
+            a_pt = ecvrf.string_to_point(a_bytes)
+            r_pt = ecvrf.string_to_point(r_bytes)
+        except ecvrf.InvalidProof:
+            return False
+        if small_order(a_pt) or small_order(r_pt):
+            return False
+        k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
+        lhs = ecvrf._mul(ecvrf.string_to_int(s_bytes), ecvrf.BASE)
+        return ecvrf._equal(lhs, ecvrf._add(r_pt, ecvrf._mul(k, a_pt)))
+
+    def cofactored_accepts(a_bytes, sig):
+        r_bytes, s_bytes = sig[:32], sig[32:]
+        try:
+            a_pt = ecvrf.string_to_point(a_bytes)
+            r_pt = ecvrf.string_to_point(r_bytes)
+        except ecvrf.InvalidProof:
+            return False
+        k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
+        lhs = ecvrf._mul(8, ecvrf._mul(ecvrf.string_to_int(s_bytes) % ecvrf.Q, ecvrf.BASE))
+        rhs = ecvrf._mul(8, ecvrf._add(r_pt, ecvrf._mul(k, a_pt)))
+        return ecvrf._equal(lhs, rhs)
+
+    seen_accept = seen_reject = False
+    for case in v["cases"]:
+        name = case["name"]
+        a_bytes = bytes.fromhex(case["public_key_hex"])
+        sig = bytes.fromhex(case["signature_hex"])
+        expected = case["expected"] == "accept"
+        assert profile_accepts(a_bytes, sig) == expected, \
+            f"{name}: the §4 profile disagrees with the vector"
+        seen_accept |= expected
+        seen_reject |= not expected
+        if case.get("cofactored_would_accept"):
+            assert cofactored_accepts(a_bytes, sig), \
+                f"{name}: claims to separate the two readings but the "\
+                "cofactored equation rejects it too"
+    assert seen_accept and seen_reject, "the vector exercises only one outcome"
+
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    for marker in ("the **cofactorless** one, `[s]B = R + [k]A`",
+                   "`s` MUST be canonically reduced, `0 \u2264 s < L`",
+                   "MUST NOT be a point of small order"):
+        assert marker in prose, f"§4 does not pin: {marker!r}"
+check("vectors:wist1-verification-profile", _wist1_verification_profile)
+
+def _wist1_host_canonicalization():
+    """WIST-1 §2: the Canonical Host vector, and the flags it is pinned to.
+
+    UTS #46 is not reimplemented here — the suite carries no IDNA
+    dependency, for the reason `tools/requirements.txt` gives about the VRF
+    — so what this proves is that the vector's flag block is the one §2
+    names, that every accepted case is a well-formed A-label domain, and
+    that each non-ASCII case's expected label decodes back through Punycode
+    to the mapped form the case cites.
+    """
+    v = json.loads((ROOT / "vectors" / "wist1" / "host-canonicalization.json").read_text())
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    for flag, value in v["flags"].items():
+        assert f"`{flag}={str(value).lower()}`" in prose, \
+            f"§2 does not pin {flag}={value}"
+    assert "MUST NOT lowercase the input first" in prose, \
+        "§2 does not forbid the pre-mapping lowercase step"
+    accepted = [c for c in v["cases"] if c["expected"] is not None]
+    rejected = [c for c in v["cases"] if c["expected"] is None]
+    assert accepted and rejected, "the vector exercises only one outcome"
+    for case in accepted:
+        host = case["expected"]
+        assert host.isascii() and host == host.lower(), f"{case['name']}: not an A-label host"
+        assert not host.endswith("."), f"{case['name']}: trailing dot survived"
+        for label in host.split("."):
+            assert 0 < len(label) <= 63, f"{case['name']}: label length out of range"
+            assert re.fullmatch(r"[a-z0-9-]+", label), f"{case['name']}: non-LDH label"
+            if label.startswith("xn--"):
+                decoded = label[4:].encode("ascii").decode("punycode")
+                assert not decoded.isascii(), f"{case['name']}: A-label decodes to ASCII"
+    hyphen_case = [c for c in accepted if c["input"] == "r2---sn-x.example"]
+    assert hyphen_case, "no CheckHyphens=false discriminator in the vector"
+check("vectors:wist1-host-canonicalization", _wist1_host_canonicalization)
 
 def _dc1_declaration_sequence_vector():
     """WIST-1 §5.2: the sequencing vector's cases are well-formed Declarations,

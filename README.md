@@ -76,6 +76,8 @@ deterministic: fixed test seed, fixed timestamps, no wall-clock.
 - [ADR-0009](decisions/0009-embeddings-outside-the-trust-boundary.md) — embeddings live outside the trust boundary, as companion packs
 - [ADR-0010](decisions/0010-auditor-fetch-limits.md) — Auditor fetches are bounded: size cap, redirect ceiling, timeout
 - [ADR-0011](decisions/0011-audit-effort-scales-with-the-roster.md) — audit effort scales with the roster, by design
+- [ADR-0013](decisions/0013-strict-ed25519-verification.md) — Ed25519 verification is strict, and the profile is pinned
+- [ADR-0014](decisions/0014-canonical-host-flag-profile.md) — the Canonical Host flag profile, and no lowercasing before it
 
 ## Licenses
 

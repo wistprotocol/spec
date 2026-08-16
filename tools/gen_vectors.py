@@ -252,6 +252,194 @@ write_json(WIST1 / "declaration-sequence.json", {
 })
 print("wist1 declaration-sequence vector written")
 
+# --------------------------------------- WIST-1 §4: the verification profile
+# RFC 8032 §5.1.7 leaves the cofactor, the reduction of `s` and the treatment
+# of small-order and non-canonically-encoded points to the verifier. §4 pins
+# all of them, and these cases are the ones that separate the pinned profile
+# from the permissive readings: each rejected case verifies under at least one
+# conforming-with-RFC-8032 implementation that skipped one of §4's checks.
+def ed25519_sign(seed: bytes, msg: bytes, published_a: bytes | None = None):
+    h = ecvrf._sha512(seed)
+    buf = bytearray(h[:32])
+    buf[0] &= 0xF8
+    buf[31] &= 0x7F
+    buf[31] |= 0x40
+    a = ecvrf.string_to_int(bytes(buf))
+    prefix = h[32:]
+    a_bytes = published_a or ecvrf.point_to_string(ecvrf._mul(a, ecvrf.BASE))
+    r = ecvrf.string_to_int(ecvrf._sha512(prefix, msg)) % ecvrf.Q
+    r_bytes = ecvrf.point_to_string(ecvrf._mul(r, ecvrf.BASE))
+    k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
+    s = (r + k * a) % ecvrf.Q
+    return a_bytes, r_bytes + ecvrf.int_to_string(s, 32)
+
+def ed25519_check(a_bytes: bytes, msg: bytes, sig: bytes, cofactored: bool) -> bool:
+    """The RFC 8032 §5.1.7 equation, with and without the cofactor."""
+    r_bytes, s_bytes = sig[:32], sig[32:]
+    s = ecvrf.string_to_int(s_bytes)
+    if s >= ecvrf.Q and not cofactored:
+        return False
+    try:
+        a_pt = ecvrf.string_to_point(a_bytes)
+        r_pt = ecvrf.string_to_point(r_bytes)
+    except ecvrf.InvalidProof:
+        return False
+    k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
+    lhs = ecvrf._mul(s % ecvrf.Q if cofactored else s, ecvrf.BASE)
+    rhs = ecvrf._add(r_pt, ecvrf._mul(k, a_pt))
+    if cofactored:
+        lhs, rhs = ecvrf._mul(8, lhs), ecvrf._mul(8, rhs)
+    return ecvrf._equal(lhs, rhs)
+
+def order_eight_point():
+    """A point of order exactly 8: [L]P for a P outside the prime-order group."""
+    for y in range(2, 500):
+        try:
+            pt = ecvrf.string_to_point(ecvrf.int_to_string(y, 32))
+        except ecvrf.InvalidProof:
+            continue
+        t = ecvrf._mul(ecvrf.Q, pt)
+        if ecvrf._is_identity(t) or ecvrf._is_identity(ecvrf._mul(4, t)):
+            continue
+        if ecvrf._is_identity(ecvrf._mul(8, t)):
+            return t
+    raise AssertionError("no order-8 point found")
+
+ED_MSG = b"WIST-1 verification profile vector"
+T8 = order_eight_point()
+T8_BYTES = ecvrf.point_to_string(T8)
+NONCANONICAL_ONE = ecvrf.int_to_string(ecvrf.P + 1, 32)   # decodes to y = 1
+BASE_A, BASE_SIG = ed25519_sign(SEED, ED_MSG)
+
+# A published key carrying a torsion component: the signature below satisfies
+# the cofactored equation and fails the cofactorless one, which is the single
+# case that separates the two readings on otherwise well-formed inputs.
+TORSION_A = ecvrf.point_to_string(
+    ecvrf._add(ecvrf.string_to_point(BASE_A), T8))
+_, TORSION_SIG = ed25519_sign(SEED, ED_MSG, published_a=TORSION_A)
+
+unreduced_sig = BASE_SIG[:32] + ecvrf.int_to_string(
+    ecvrf.string_to_int(BASE_SIG[32:]) + ecvrf.Q, 32)
+
+ed_cases = [
+    {"name": "valid signature", "public_key": BASE_A, "signature": BASE_SIG,
+     "expected": "accept",
+     "why": "§4: canonical A and R, s < L, neither point of small order."},
+    {"name": "s not reduced", "public_key": BASE_A, "signature": unreduced_sig,
+     "expected": "reject",
+     "why": "§4: s + L leaves [s]B unchanged, so a verifier omitting the "
+            "canonical-s check accepts a second signature for a message the "
+            "same key already signed."},
+    {"name": "public key non-canonically encoded", "public_key": NONCANONICAL_ONE,
+     "signature": BASE_SIG, "expected": "reject",
+     "why": "§4: the encoded y is p + 1, which is not less than p; a decoder "
+            "that reduces mod p silently reads it as the identity."},
+    {"name": "public key of small order", "public_key": T8_BYTES,
+     "signature": BASE_SIG, "expected": "reject",
+     "why": "§4: an order-8 A is a key under which one signature verifies for "
+            "many keys, which a domain-anchored identity cannot admit."},
+    {"name": "R non-canonically encoded", "public_key": BASE_A,
+     "signature": NONCANONICAL_ONE + BASE_SIG[32:], "expected": "reject",
+     "why": "§4: same encoding rule applied to R."},
+    {"name": "R of small order", "public_key": BASE_A,
+     "signature": T8_BYTES + BASE_SIG[32:], "expected": "reject",
+     "why": "§4: an order-8 R is killed by the cofactor, so a cofactored "
+            "verifier cannot see what it changes."},
+    {"name": "torsion in the public key", "public_key": TORSION_A,
+     "signature": TORSION_SIG, "expected": "reject",
+     "cofactored_would_accept": True,
+     "why": "§4: [8][s]B = [8](R + kA) holds while [s]B = R + kA does not — "
+            "the case that separates cofactored verification from the "
+            "cofactorless equation §4 pins."},
+]
+
+assert ed25519_check(BASE_A, ED_MSG, BASE_SIG, cofactored=False)
+assert not ed25519_check(TORSION_A, ED_MSG, TORSION_SIG, cofactored=False)
+assert ed25519_check(TORSION_A, ED_MSG, TORSION_SIG, cofactored=True)
+assert ed25519_check(BASE_A, ED_MSG, unreduced_sig, cofactored=True)
+
+write_json(WIST1 / "ed25519-strictness.json", {
+    "note": ("WIST-1 §4's verification profile: cofactorless equation, s "
+             "canonically reduced, A and R canonically encoded and not of "
+             "small order. `message_hex` is the signed octet string — these "
+             "cases exercise the profile itself, not Canonical Bytes. Every "
+             "`reject` case is one some RFC 8032 verifier accepts."),
+    "message_hex": ED_MSG.hex(),
+    "cases": [{"name": c["name"],
+               "public_key_hex": c["public_key"].hex(),
+               "signature_hex": c["signature"].hex(),
+               "expected": c["expected"],
+               **({"cofactored_would_accept": True}
+                  if c.get("cofactored_would_accept") else {}),
+               "why": c["why"]} for c in ed_cases],
+})
+print("wist1 ed25519-strictness vector written")
+
+# ------------------------------------------- WIST-1 §2: Canonical Host cases
+# The flags §2 pins are only observable where they disagree with the strict
+# defaults, so every case below is either a discriminator for one flag or a
+# rejection the definition owes an implementer. Expected A-labels are the
+# Punycode of the label after UTS #46's mapping step, computed here rather
+# than pasted; the mapping itself is quoted per case in `why`.
+def alabel(mapped: str) -> str:
+    return "xn--" + mapped.encode("punycode").decode("ascii")
+
+host_cases = [
+    {"name": "ASCII case and trailing dot", "input": "EXAMPLE.org.",
+     "expected": "example.org",
+     "why": "§2: UTS #46 mapping folds case; the trailing dot is removed."},
+    {"name": "hyphens in the third and fourth position",
+     "input": "r2---sn-x.example", "expected": "r2---sn-x.example",
+     "why": "§2: CheckHyphens=false. Under CheckHyphens=true this host — the "
+            "shape CDN nodes actually use — has no canonicalization at all."},
+    {"name": "leading hyphen", "input": "-foo.example",
+     "expected": "-foo.example",
+     "why": "§2: CheckHyphens=false places no positional restriction."},
+    {"name": "IDN label", "input": "bücher.example",
+     "expected": alabel("bücher") + ".example",
+     "why": "§2: mapping leaves ü, Punycode encodes it."},
+    {"name": "nontransitional sharp s", "input": "faß.de",
+     "expected": alabel("faß") + ".de",
+     "why": "§2: Transitional_Processing=false keeps ß rather than mapping it "
+            "to ss."},
+    {"name": "uppercase sigma", "input": "example.ΑΣ",
+     "expected": "example." + alabel("ασ"),
+     "why": "§2: UTS #46 maps Σ to σ context-free. An implementation that "
+            "lowercases first with a context-sensitive full lowercase gets ς "
+            "and therefore " + alabel("ας") + " — a different Canonical Host "
+            "for the same input, which is why §2 forbids the extra step."},
+    {"name": "A-label passthrough", "input": "xn--bcher-kva.example",
+     "expected": "xn--bcher-kva.example",
+     "why": "§2: an already-encoded A-label canonicalizes to itself."},
+    {"name": "IPv4 literal", "input": "127.0.0.1", "expected": "127.0.0.1",
+     "why": "§2: digits and dots pass UseSTD3ASCIIRules."},
+    {"name": "STD3 violation", "input": "under_score.example", "expected": None,
+     "why": "§2: UseSTD3ASCIIRules=true rejects ASCII outside letters, digits "
+            "and hyphen."},
+    {"name": "label too long", "input": "a" * 64 + ".example", "expected": None,
+     "why": "§2: VerifyDnsLength=true bounds a label at 63 octets."},
+    {"name": "empty host", "input": "", "expected": None,
+     "why": "§2: VerifyDnsLength=true rejects an empty domain."},
+    {"name": "zero-width non-joiner out of context", "input": "a‌b.example",
+     "expected": None,
+     "why": "§2: CheckJoiners=true — U+200C is admissible only after a virama "
+            "or in a joining context, and 'a' is neither."},
+    {"name": "bidi violation", "input": "אa.example", "expected": None,
+     "why": "§2: CheckBidi=true — an RTL label may not carry a strong LTR "
+            "character."},
+]
+
+write_json(WIST1 / "host-canonicalization.json", {
+    "note": ("WIST-1 §2 Canonical Host. `expected` is the Canonical Host, or "
+             "null where the input has no canonicalization and a validator "
+             "MUST reject the `url` carrying it with WIST1-E03."),
+    "flags": {"UseSTD3ASCIIRules": True, "CheckHyphens": False,
+              "CheckBidi": True, "CheckJoiners": True,
+              "Transitional_Processing": False, "VerifyDnsLength": True},
+    "cases": host_cases,
+})
+print("wist1 host-canonicalization vector written")
+
 # ----------------------------------------------------------------- WIST-2: feed
 feed = {
     "wist_version": "1.0.0",

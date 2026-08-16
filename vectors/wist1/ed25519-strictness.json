@@ -1,0 +1,56 @@
+{
+  "note": "WIST-1 \u00a74's verification profile: cofactorless equation, s canonically reduced, A and R canonically encoded and not of small order. `message_hex` is the signed octet string \u2014 these cases exercise the profile itself, not Canonical Bytes. Every `reject` case is one some RFC 8032 verifier accepts.",
+  "message_hex": "574953542d3120766572696669636174696f6e2070726f66696c6520766563746f72",
+  "cases": [
+    {
+      "name": "valid signature",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "signature_hex": "58699c1c04b7733235372a3fa160785e4029cb82f58e8ec8c68dd0a047c39be592a2b1d225136b412ff0e95380108a49c01d4c3346062b6263a8bb942b012f05",
+      "expected": "accept",
+      "why": "\u00a74: canonical A and R, s < L, neither point of small order."
+    },
+    {
+      "name": "s not reduced",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "signature_hex": "58699c1c04b7733235372a3fa160785e4029cb82f58e8ec8c68dd0a047c39be57f76a72f40767d99058de1f65e0a695ec01d4c3346062b6263a8bb942b012f15",
+      "expected": "reject",
+      "why": "\u00a74: s + L leaves [s]B unchanged, so a verifier omitting the canonical-s check accepts a second signature for a message the same key already signed."
+    },
+    {
+      "name": "public key non-canonically encoded",
+      "public_key_hex": "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+      "signature_hex": "58699c1c04b7733235372a3fa160785e4029cb82f58e8ec8c68dd0a047c39be592a2b1d225136b412ff0e95380108a49c01d4c3346062b6263a8bb942b012f05",
+      "expected": "reject",
+      "why": "\u00a74: the encoded y is p + 1, which is not less than p; a decoder that reduces mod p silently reads it as the identity."
+    },
+    {
+      "name": "public key of small order",
+      "public_key_hex": "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+      "signature_hex": "58699c1c04b7733235372a3fa160785e4029cb82f58e8ec8c68dd0a047c39be592a2b1d225136b412ff0e95380108a49c01d4c3346062b6263a8bb942b012f05",
+      "expected": "reject",
+      "why": "\u00a74: an order-8 A is a key under which one signature verifies for many keys, which a domain-anchored identity cannot admit."
+    },
+    {
+      "name": "R non-canonically encoded",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "signature_hex": "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f92a2b1d225136b412ff0e95380108a49c01d4c3346062b6263a8bb942b012f05",
+      "expected": "reject",
+      "why": "\u00a74: same encoding rule applied to R."
+    },
+    {
+      "name": "R of small order",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "signature_hex": "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a92a2b1d225136b412ff0e95380108a49c01d4c3346062b6263a8bb942b012f05",
+      "expected": "reject",
+      "why": "\u00a74: an order-8 R is killed by the cofactor, so a cofactored verifier cannot see what it changes."
+    },
+    {
+      "name": "torsion in the public key",
+      "public_key_hex": "b502ff3d92e31d8190b4aa4ea0414005167fad089c4de9dac8a2fc850fed4f58",
+      "signature_hex": "58699c1c04b7733235372a3fa160785e4029cb82f58e8ec8c68dd0a047c39be5b613e474c02f6e0c1251a3f691156c89ea80d87a50f71cb17ed2c08bc5116507",
+      "expected": "reject",
+      "cofactored_would_accept": true,
+      "why": "\u00a74: [8][s]B = [8](R + kA) holds while [s]B = R + kA does not \u2014 the case that separates cofactored verification from the cofactorless equation \u00a74 pins."
+    }
+  ]
+}
