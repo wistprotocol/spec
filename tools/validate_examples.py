@@ -869,6 +869,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
+    ("vectors/multilog/dedup.json", "commitment"): "payload:commitment",
     ("examples/audit-record.json", "response_commitment"): "audit:commitments",
     ("examples/audit-record.json", "ref_extract_commitment"): "audit:commitments",
     ("examples/audit-record.json", "evidence_commitment"): "audit:commitments",
@@ -1026,6 +1027,19 @@ def _commit(salt_b64: str, content: dict) -> str:
     return "hmac-sha256:" + hmac.new(
         b64u_decode(salt_b64), rfc8785.dumps(content), hashlib.sha256).hexdigest()
 
+def _multilog_commitment():
+    """The multi-Log dedup vector carries its own Delta and Payload, so its
+    commitment is a second one this check must recompute rather than compare
+    against the example's — a vector whose Payload did not reproduce its own
+    Delta would otherwise be caught only as an inequality with an unrelated
+    Delta's value."""
+    v = json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text())
+    payload, delta = v["payload"], v["delta"]["delta"]
+    got = _commit(payload["salt"], payload["content"])
+    assert got == delta["payload"]["commitment"], \
+        "the multi-Log vector's Payload does not reproduce its Delta's commitment"
+    return got
+
 def _payload_commitment():
     payload, delta = _load_payload_and_delta()
     assert delta["payload"]["alg"] == "HMAC-SHA256", "commitment algorithm is not HMAC-SHA256"
@@ -1033,6 +1047,7 @@ def _payload_commitment():
     expected = _commit(payload["salt"], payload["content"])
     assert expected == delta["payload"]["commitment"], \
         "the Payload does not reproduce the Delta's commitment"
+    recomputed = {expected, _multilog_commitment()}
 
     # Every shipped copy of this commitment is recomputed here, not argued for
     # transitively, so that each declaration naming this check is one this check
@@ -1042,12 +1057,12 @@ def _payload_commitment():
         values = _values_at(rel, key)
         assert values, f"{rel}: no {key!r} to recompute, but it is declared here"
         for got in values:
-            assert got == expected, \
+            assert got in recomputed, \
                 f"{rel}: {key} = {got[:28]}… is not HMAC(salt, JCS(content))"
     # Located, not read off the declarations, so an undeclared copy also fails.
-    covered_values = _locate_values(lambda v: v == expected)
+    covered_values = _locate_values(lambda v: v in recomputed)
 
-    _assert_schema_instances("payload:commitment", {expected})
+    _assert_schema_instances("payload:commitment", recomputed)
     covered_schema = _locate_schema_fields("payload:commitment")
 
     _assert_coverage("payload:commitment", covered_values, covered_schema)
@@ -1665,6 +1680,14 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/sampling.json", "beta_hex"): "the VRF output",
         ("vectors/wist4/sampling.json", "delta_id"): "a Delta ID",
     ("vectors/wist4/sampling.json", "auditor_public_key"): "an Ed25519 public key",
+    ("vectors/multilog/dedup.json", "block_hash"): "SHA-256 of a Block header",
+    ("vectors/multilog/dedup.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/multilog/dedup.json", "merkle_root"): "root over Entries, which carry commitments only",
+    ("vectors/multilog/dedup.json", "delta_id"): "a Delta ID",
+    ("vectors/multilog/dedup.json", "public_key"): "an Ed25519 public key",
+    ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
+    ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
+    ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
     ("vectors/wist4/audit-commitments.json", "audited_delta"): "a Delta ID",
     ("vectors/wist4/audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
 }
