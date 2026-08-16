@@ -40,9 +40,10 @@ clear to qualify as errata rather than as a revision.
 specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
-vectors/     deterministic test vectors (WIST-1 signature, WIST-2 link
-             extraction, WIST-3 Merkle and snapshot records, WIST-4 sampling,
-             reputation, decay table, audit commitments, link agreement)
+vectors/     deterministic test vectors (WIST-1 signature and Declaration
+             sequencing, WIST-2 link extraction, WIST-3 Merkle and snapshot
+             records, WIST-4 sampling, reputation, decay table, audit
+             commitments, link agreement, replay derivations)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
