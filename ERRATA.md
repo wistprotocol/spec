@@ -475,3 +475,33 @@ recovery-key alteration signed by a signing key, and a fresh identity.
 `vectors:wist1-declaration-sequence` proves every case's envelopes are
 schema-valid and verify under the key they name, so an expected
 `WIST1-E08` is earned by sequencing and never by a broken signature.
+## 2026-08-16 — WIST-2 §4, §7: the Feed-domain mismatch is `WIST2-E04` (revision, not errata)
+
+Types §4's `feed.domain` mismatch rejection and extends the §7 `WIST2-E04`
+row from two cases to three.
+
+**What it states.** §4 required an Aggregator to "reject a Feed whose
+`feed.domain` differs from the host it was fetched from" and named no
+code, in a suite where §7's registry is the code inventory and typed
+rejections are what a Publisher reads from the status endpoint (§7.1).
+The rejection is now `WIST2-E04`, whose two existing cases are the same
+failure — the Feed does not authenticate as this domain's — and whose
+quota accounting is the one that fits: a misaddressed Feed is noise the
+domain produced. §4's noise set is untouched and stays closed at
+`WIST2-E02`/`WIST2-E04`, and the §10 checklist item that restates it needs
+no change. The row's existing duty to distinguish its cases in the status
+`detail` field now covers three.
+
+**Why it is a revision.** It fails the first errata condition. The prior
+text determined that the Feed is rejected and not what the rejection is
+called, so an implementation that reported it as `WIST2-E01` conformed,
+and under this change it does not. The defect is scoped and is the reason
+the pin is worth making: `WIST2-E01` is "Feed unreachable after Ping" and
+carries the 1/4/16/64-minute backoff, so that implementation retries four
+times against a Feed that cannot become correct by being fetched again,
+and reports an outage to a Publisher whose actual remedy is to fix one
+string in a signed file. No new code is added and no other row moves.
+
+**Status.** Unexercised. No vector serves a Feed at all;
+`spec:wist2-feed-domain-mismatch` checks only that §4's sentence and the
+§7 row name the same code and that §4's noise set is unmoved.

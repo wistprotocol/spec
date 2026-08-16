@@ -1931,6 +1931,26 @@ def _dc3_parameter_tuple_effective_at():
 check("schema:wist3-parameter-effective-at", _dc3_parameter_tuple_effective_at)
 
 
+def _dc2_feed_domain_mismatch_code():
+    """WIST-2 §4: the Feed-domain mismatch rejection is typed, and its code is
+    the authentication code — the failure is that the Feed does not
+    authenticate as this domain's, not that it could not be fetched."""
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    assert ("MUST reject a Feed whose `feed.domain` differs from the host it "
+            "was fetched from, with `WIST2-E04`") in prose, \
+        "§4 does not type the feed.domain mismatch rejection"
+    row = [l for l in (ROOT / "specs" / "WIST-2-site-publication.md")
+           .read_text().splitlines() if l.startswith("| WIST2-E04 |")]
+    assert row, "no WIST2-E04 registry row"
+    assert "`feed.domain` differs from the host it was fetched from" in row[0], \
+        "the WIST2-E04 row does not name the mismatch case §4 assigns to it"
+    # §4's noise set stays closed at E02/E04, so the mismatch counts as noise
+    # by inheritance rather than by a second rule.
+    assert ("Only pings resolving to `WIST2-E02` or `WIST2-E04` count against "
+            "the domain's daily quota Q") in prose, "the noise set moved"
+check("spec:wist2-feed-domain-mismatch", _dc2_feed_domain_mismatch_code)
+
 def _dc1_declaration_sequence_vector():
     """WIST-1 §5.2: the sequencing vector's cases are well-formed Declarations,
     and the signature each case turns on is the one it names.
