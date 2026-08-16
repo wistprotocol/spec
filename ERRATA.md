@@ -619,3 +619,198 @@ recomputed by `vectors:wist1-recovery-settlement` from the case inputs.
 `vectors/wist1/declaration-sequence.json` adds the in-window fresh-identity
 acceptance and a Declaration naming one key in both sets.
 
+## 2026-08-16 — WIST-2 §3.2: a sealed Page's `generated_at`
+
+Adds a paragraph fixing which instant a sealed Page carries.
+
+**What it states.** §3.2 resolves a Page's Key Set through its
+`generated_at` — the bridge it calls "the only conversion permitted" — but
+never said whether that field is the cutover instant or the instant the
+Page's entries were first added to the Feed. It is the cutover: the same
+value the `feed.json` published at that cutover carries.
+
+**Why it qualifies.** Both conditions hold. The alternative reading is one
+no implementation could conform to: a Page is signed at cutover by
+whichever key the Publisher then holds, so stamping it with an earlier
+instant resolves a Key Set that need not contain that key, and a Page
+honestly sealed after a rotation would fail verification under its own
+signature — while §3.2's neighbouring sentence forbids rejecting a Page
+"solely because its signing key has since been retired". The reading now
+stated is the one that leaves the mechanism standing, the same standard the
+2026-08-15 confirmation-window entry applies.
+
+**Status.** Unexercised. No vector seals a Feed Page; the rule rests on
+§3.2's bridge and the signing order it implies.
+
+## 2026-08-16 — WIST-4 §7: the escalation windows are measured like every other
+
+Restates §7's escalation criteria in the window arithmetic §4 and §6.1
+already use.
+
+**What it states.** "3 within 90 days" and "3 severity-3 within 180 days"
+are the 90 or 180 **whole days ending at** Block N's `sealed_at`: a
+Confirmed Inconsistency counts when its confirming Block's §6.1 whole-day
+distance from N is below 90 (or below 180), end-inclusive and
+start-exclusive — the reading the 2026-08-15 entry pinned for every "30
+whole days ending at" window.
+
+**Why it qualifies. ** Both conditions hold. §6.1 defines whole-day distance
+and §4 states the window form three times over; the escalation criteria are
+the only spans in the document that named a number of days without the
+phrase, and no other arithmetic is available to a conforming implementation.
+Nothing that counted before stops counting except at the exact boundary,
+where the suite's own convention already gave the answer.
+
+**Status.** Exercised. `vectors/wist4/sanctions.json` carries the 89-day and
+91-day rows; the boundary rows at exactly 90 and 180 days are added with
+this change.
+
+## 2026-08-16 — WIST-4 §4: `ECVRF_validate_key` is required (revision, not errata)
+
+States that `ECVRF_verify` runs RFC 9381's optional key-validation step.
+
+**What it states.** A `vrf_proof` under an Auditor public key that fails
+key validation — a small-order or non-canonically encoded point — does not
+verify, and the Record is void for standing (`WIST4-E01`).
+
+**Why it is a revision.** RFC 9381 makes the step optional, so an
+implementation that skipped it conformed to §4's citation of the ciphersuite
+and now does not. The defect is scoped and stated: §11 relies on `beta`
+being the unique correct output for a Block, and without key validation a
+small-order Auditor key admits more than one valid `beta`, so an Auditor
+could grind selection sets until one omitted the Deltas it preferred not to
+audit — the steering §4 exists to make impossible. It is also the standard
+WIST-1 §4 now applies to the Ed25519 keys this ciphersuite shares.
+
+**Status.** Unexercised for the failure case: `tools/ecvrf.py` validates by
+default and `vectors/wist4/sampling.json` carries a valid key, so no vector
+yet presents a small-order Auditor key to be rejected.
+
+## 2026-08-16 — WIST-4 §6.4: which height a Ping quota reads (revision, not errata)
+
+States that `reputation_u` for the Ping quota is read at the highest Block
+sealed before the current UTC day began.
+
+**What it states.** Q is a per-UTC-day quantity, so it is computed once for
+that day from the Log as it stood when the day began. A domain whose Log has
+no earlier Block reads the empty log, which is the new-domain value §6.4
+already gives.
+
+**Why it is a revision.** §6.4 fixed the formula and left the height
+unstated, so an implementation reading the current chain head at check time
+conformed and now does not. The defect is that `WIST4-E06` makes a published
+quota recomputation-checkable: under the chain-head reading, Q drifts every
+hour inside one quota day and no third party can reproduce the Q a rejection
+was measured against without knowing the instant of the check, which is not
+in the Log.
+
+**Status.** Unexercised. No vector computes a live quota; `vectors/wist4/
+reputation.json` carries Q for given `reputation_u` values, which this
+change does not touch.
+
+## 2026-08-16 — WIST-4 §7: a late appeal is recorded and changes nothing (revision, not errata)
+
+Adds a bullet fixing the disposition of an `appeal` served after its window
+closed.
+
+**What it states.** It MAY be sealed and SHOULD be, because it is a signed
+Publisher statement and a rule permitting a silent drop is the suppression
+§4's `pull_attestation` exists to end. It discharges no **T**, starts no
+ruling deadline, and does not by itself alter the sanction's state; a
+`sanction_lift` remains available and is recorded as the discretionary act
+it is.
+
+**Why it is a revision.** §7 fixed the duty only for an appeal "served
+inside the appeal window", so an implementation that sealed a late appeal
+and started a ruling clock conformed and now does not. The defect is that
+under that behavior the appeal window is advisory: a filing weeks overdue
+reopens a closed process and can void a sanction's state on a deadline the
+Aggregator can no longer meet.
+
+**Status.** Unexercised. No vector carries an appeal; the rule rests on §7's
+deadline arithmetic.
+
+## 2026-08-16 — WIST-4 §4, §9.1, registry-update schema: a `coverage_attestation` names its Block (revision, not errata)
+
+Adds `block` to the attestation's REQUIRED `details`, completing the
+2026-08-16 entry above.
+
+**What it states.** The attestation names the audited Block by Block Hash —
+the same value that names the Auditor's well-known records file — so its
+`vrf_proof` has an input to verify against.
+
+**Why it is a revision.** It adds a required field: an attestation that was
+valid under the entry above is invalid under this one. The defect is the one
+that entry recorded as open: a sealed attestation was bound to its Block
+only by the `pull_attestation` that happened to list it, so a replaying party
+holding an attestation without one could neither verify the proof nor tell
+which duty it discharged.
+
+**Status.** Exercised. `schema:wist4-coverage-attestation` now asserts that
+an attestation omitting `block`, `vrf_proof` or `prev_record` fails schema
+validation.
+
+## 2026-08-16 — WIST-3 §5, `schemas/mirrors.schema.json`: the Mirror list has a shape (revision, not errata)
+
+Pins the shape of `/log/mirrors.json`, adds its schema and an example.
+
+**What it states.** It is an Envelope whose inner object is `mirrors`,
+carrying `wist_version`, `updated_at` (descriptive; no window reads it) and
+`mirror_urls` — `https` base URLs ending in `/`, so a Consumer resolves Log
+paths by concatenation rather than by a join rule two implementations could
+differ on.
+
+**Why it is a revision.** §5 required the file to be signed and to list base
+URLs and nothing more, so an implementation that invented an inner name and
+field set conformed and now does not. The defect is that §5 instructs
+Consumers to read the file: it was the only artifact in the suite a party is
+told to consume and given no shape for, which made the in-band Mirror
+discovery it describes unusable across implementations.
+
+**Status.** Exercised. `examples/mirrors.json` is generated by
+`tools/gen_vectors.py`, validated against the new schema, and its signature
+recomputed by the harness's envelope sweep.
+
+## 2026-08-16 — WIST-3 §7: the `parameter` tuple is keyed by identifier and `effective_at` (revision, not errata)
+
+Moves `effective_at` from the `parameter` tuple's value fields to its key
+fields, and states why.
+
+**What it states.** One tuple exists per amendment, not per identifier. A
+`parameter_change` sealed at or before `log_position` but effective after it
+is live state a resuming Consumer cannot re-derive — it will never see that
+Entry again — so the artifact carries both the value in force and any
+pending one, and the Consumer applies each at its own instant.
+
+**Why it is a revision.** The member order of a tuple is normative and the
+`state_digest` is computed over the tuples, so a state artifact written
+under the previous table produces a different digest. The defect is that the
+previous key admitted one tuple per identifier: a snapshot taken between a
+`parameter_change`'s sealing and its `effective_at` had to drop either the
+value in force or the one about to take effect, and a Consumer resuming from
+it applied the wrong value from that instant onward.
+
+**Status.** Exercised. `schema:wist3-parameter-effective-at` validates the
+re-ordered tuple and rejects a height, an offset form and a date in the
+`effective_at` position.
+
+## 2026-08-16 — WIST-3 §4: the empty-Block vector
+
+No document text changes. Adds `vectors/wist3/empty-block.json`, generated by
+`tools/gen_vectors.py`.
+
+**What it states.** What §4 already states: a Block with no Entries carries
+`merkle_root` = SHA-256(0x00), this suite's one deviation from RFC 6962,
+whose empty-tree constant is SHA-256 of the empty string. The vector
+publishes both constants side by side, with a signed heartbeat Block whose
+`block_hash` is SHA-256 over its header's JCS bytes.
+
+**Why it qualifies.** §4 states the rule and warns that "implementers wiring
+in an existing Certificate Transparency library MUST special-case empty
+Blocks"; the vector executes that warning rather than adding to it. It is
+also the case implementations demonstrably get wrong: wiring in a CT
+library without the special case rejects legal heartbeat Blocks.
+
+**Status.** Exercised. `vectors:wist3-empty-block` recomputes both
+constants, the Block Hash and the signature.
+
