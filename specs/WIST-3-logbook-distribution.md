@@ -1057,8 +1057,9 @@ fields…, value fields…]` with the members in exactly the order the table
 gives, none omitted and none added. Heights and block numbers are JSON
 integers; a "removed height or `null`" member is an integer or JSON
 `null`; instants (a window end, a deadline, a first-accepted
-`sealed_at`, a penalty's confirming `sealed_at`) are the whole-second
-literal-`Z` RFC 3339 strings the sealing Blocks carry (WIST-4 §2);
+`sealed_at`, a penalty's confirming `sealed_at`, a parameter's
+`effective_at`) are the whole-second literal-`Z` RFC 3339 strings the
+sealing Blocks and the Entries they seal carry (WIST-4 §2, §9.1);
 domains, URLs, `key_id`s, `auditor_id`s and parameter identifiers are
 the strings the sealed Entries carry; keys are raw base64url public
 keys; IDs are `sha256:`-prefixed. Three kinds need more than that:

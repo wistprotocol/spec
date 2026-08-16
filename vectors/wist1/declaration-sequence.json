@@ -1,0 +1,651 @@
+{
+  "note": "WIST-1 \u00a75.2 Declaration sequencing and classification. Each case evaluates `fetched` against the already-accepted `stored` for the same domain, with no recovery window open. `expected` is one of `idempotent` (accepted, replaces nothing), `ordinary_rotation`, `recovery_rotation`, `fresh_identity` (accepted, A and C reset), or the error code the evaluation rejects with.",
+  "recovery_window_open": false,
+  "cases": [
+    {
+      "name": "identical re-serve",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "expected": "idempotent",
+      "why": "\u00a75.2: the fetched publisher object is byte-identical to the accepted one, so the re-poll \u00a75.1's 24-hour cache TTL obliges is an idempotent acceptance, not WIST1-E08."
+    },
+    {
+      "name": "same seq, different bytes",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:security@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "upmZTc1XK8gBWiGzj8Y_4EzOh7YCi92yyr4mWmhoRRuauUGW_ipMzFP53S8t7FIuyNTof_S94LLicoSj0L51Bw"
+        }
+      },
+      "expected": "WIST1-E08",
+      "why": "\u00a75.2: seq is not greater than the highest accepted and the object differs \u2014 the superseded-replay case the rule catches."
+    },
+    {
+      "name": "stale lower seq",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:d0e827a622f5cf00bf03cb71915e10a66d974fee17c3a832b7820f00630a9ef2"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "slTf0L9pjZZHV90d2Eh2swj-lwR0w-SAWMlr5evA1ZYvZwcnmCz3cIgf-7qHL5jtGgkRQugZjCk_OchxVCcLBA"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "expected": "WIST1-E08",
+      "why": "\u00a75.2: seq 0 below the accepted seq 1."
+    },
+    {
+      "name": "missing prev_declaration",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "aObF45nb0hFZFnQ3fT4fATMiV3ASdvcho6fGByBpaxwsn2og9ZHz-kxu88ZE2QkLsS9kEW20_Gk4XEo0y5g_BA"
+        }
+      },
+      "expected": "WIST1-E08",
+      "why": "\u00a75.2: seq > 0 with prev_declaration absent."
+    },
+    {
+      "name": "mismatched prev_declaration",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:a7a815fa4963b0ec2d42d5fbbe214801da25edddcf67d1ff6fe59f93f24c43ae"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "3GPTfFQPdjXXBnTF8EcStH-JEKMtJGMnLSUA08BSBaeEUnv5lCmWDwAwOFeBYNv59U_KpQCy0JI9frfroaAiBw"
+        }
+      },
+      "expected": "WIST1-E08",
+      "why": "\u00a75.2: prev_declaration does not equal the hash of the previously accepted Declaration's publisher object."
+    },
+    {
+      "name": "ordinary rotation",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:d0e827a622f5cf00bf03cb71915e10a66d974fee17c3a832b7820f00630a9ef2"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "slTf0L9pjZZHV90d2Eh2swj-lwR0w-SAWMlr5evA1ZYvZwcnmCz3cIgf-7qHL5jtGgkRQugZjCk_OchxVCcLBA"
+        }
+      },
+      "expected": "ordinary_rotation",
+      "why": "\u00a75.2: higher seq, correct prev_declaration, signed by a key of the previous Key Set; recovery_keys carried byte-identical."
+    },
+    {
+      "name": "recovery rotation",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:d0e827a622f5cf00bf03cb71915e10a66d974fee17c3a832b7820f00630a9ef2"
+        },
+        "sig": {
+          "key_id": "test-r1",
+          "alg": "Ed25519",
+          "value": "O6awzV7ELpgt1bPsqa0s2r-bfM_5gNMmlpvfD2Fdi1ic2ZAzLXr41chMfGJEVdtzYtcrkRUitAKK3wh_GAbUCw"
+        }
+      },
+      "expected": "recovery_rotation",
+      "why": "\u00a75.2: signed by a key in the previous Declaration's recovery_keys, which is what lets it replace them."
+    },
+    {
+      "name": "recovery keys altered by a signing key",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:d0e827a622f5cf00bf03cb71915e10a66d974fee17c3a832b7820f00630a9ef2"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "CfxI0qmpQcgFFHH1tUNCBDdkvMpD4bttPFL8ChyJHii9EqlcvPMd7FoP--N1KUEK3AXeC_5_ghRfnqJg1rUnCw"
+        }
+      },
+      "expected": "WIST1-E08",
+      "why": "\u00a75.2: recovery keys protect themselves \u2014 a Declaration altering them MUST be signed by one of the recovery keys it replaces."
+    },
+    {
+      "name": "fresh identity",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OoKucmsknVaLAm-hA-GM9VSpopg0Aq89KCRA_-nYYBJnK1e2BQBPlEDUMHbYayOxP4OGxGmUYagsgP-DLItcBQ"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:d0e827a622f5cf00bf03cb71915e10a66d974fee17c3a832b7820f00630a9ef2"
+        },
+        "sig": {
+          "key_id": "test-k2",
+          "alg": "Ed25519",
+          "value": "l8zOwTuTkNerPRHtM8eArwoItJLJ6im673fgMMTZPkpzi4u42GIyNU7AnM7p8XXrXn1XQ16wEYI4LaA9UOSMAQ"
+        }
+      },
+      "expected": "fresh_identity",
+      "why": "\u00a75.2: signed by neither the previous signing keys nor the previous recovery_keys, which it carries byte-identical \u2014 accepted, with A and C reset to zero (WIST-4 \u00a76)."
+    }
+  ]
+}
