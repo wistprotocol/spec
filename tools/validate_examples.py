@@ -532,7 +532,7 @@ def _recovery_queue_disposition():
     w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
     w4 = re.sub(r"\s+", " ",
                 (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "revalidated against the Key Set in effect at the window's end" in w1
+    assert "revalidated against the Key Set of that chain's newest Declaration" in w1
     assert w1.count("WIST1-E13") >= 2, "E13 must appear in §5.2 and the §7 registry"
     assert "queued under WIST-1 §5.2" in w4, "§6.4 ceiling needs the recovery carve-out"
 
@@ -1955,6 +1955,53 @@ def _dc2_feed_domain_mismatch_code():
             "the domain's daily quota Q") in prose, "the noise set moved"
 check("spec:wist2-feed-domain-mismatch", _dc2_feed_domain_mismatch_code)
 
+def _wist1_recovery_settlement():
+    """WIST-1 §5.2: the window's admission and settlement derivations.
+
+    Recomputed here from the case inputs rather than read off `expected`, so
+    the vector states the rule and this check proves the file agrees with it.
+    """
+    v = json.loads((ROOT / "vectors" / "wist1" / "recovery-settlement.json").read_text())
+    saw_supersession = saw_chain_extension = saw_rejection = False
+    for case in v["cases"]:
+        name = case["name"]
+        recovery = case["recovery_declaration"]
+        admitted_keys = set(case["pre_recovery_keys"]) | set(recovery["keys"])
+        queued = [d for d in case["served"] if d["signer"] in admitted_keys]
+        not_queued = [d for d in case["served"] if d["signer"] not in admitted_keys]
+        assert [d["delta_id"] for d in queued] == case["expected"]["queued"], \
+            f"{name}: queue admission"
+        assert [d["delta_id"] for d in not_queued] == case["expected"]["not_queued"], \
+            f"{name}: non-admission"
+
+        head, superseded = recovery, []
+        for decl in case["window_declarations"]:
+            if decl["signer"] in set(head["keys"]) | set(head.get("recovery_keys", [])):
+                head = decl
+                saw_chain_extension = True
+            else:
+                superseded.append(decl["label"])
+        assert superseded == case["expected"]["superseded"], f"{name}: supersession"
+        assert head["keys"] == case["expected"]["effective_keys"], f"{name}: effective keys"
+        sealed = [d["delta_id"] for d in queued if d["signer"] in head["keys"]]
+        rejected = [d["delta_id"] for d in queued if d["signer"] not in head["keys"]]
+        assert sealed == case["expected"]["sealed"], f"{name}: sealed"
+        assert rejected == case["expected"]["rejected"], f"{name}: WIST1-E13"
+        saw_supersession |= bool(superseded)
+        saw_rejection |= bool(rejected)
+    assert saw_supersession and saw_chain_extension and saw_rejection, \
+        "the vector must exercise supersession, a chain extension and an E13 drop"
+
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    for marker in (
+            "verifies under **either** the Key Set in effect immediately before the "
+            "recovery **or** the recovery Declaration's own",
+            "an ordinary rotation and a fresh identity alike",
+            "revalidated against the Key Set of that chain's newest Declaration",
+            "The rejection is of the queued copy and not of the Delta's identity"):
+        assert marker in prose, f"§5.2 does not state: {marker!r}"
+check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
+
 def _wist1_verification_profile():
     """WIST-1 §4: the pinned verification profile, recomputed case by case.
 
@@ -2070,16 +2117,19 @@ def _dc1_declaration_sequence_vector():
                 "fresh_identity", "WIST1-E08"}
     seen = set()
     assert v["cases"], "no cases in the declaration-sequence vector"
-    # A rotation is signed by the *previous* Key Set (§5.2), so a signing key
-    # need not appear in the Declaration it signs: the pool is every key the
-    # vector declares anywhere.
-    pool = {}
+    def key_pool(case):
+        """A rotation is signed by the *previous* Key Set (§5.2), so a signing
+        key need not appear in the Declaration it signs: resolve against both
+        sides of the case, the stored Declaration first."""
+        pool = {}
+        for role in ("fetched", "stored"):
+            pub = case[role]["publisher"]
+            for k in pub["keys"] + pub.get("recovery_keys", []):
+                pool.setdefault(k["key_id"], k["public_key"])
+        return pool
+
     for case in v["cases"]:
-        for role in ("stored", "fetched"):
-            p = case[role]["publisher"]
-            for k in p["keys"] + p.get("recovery_keys", []):
-                pool[k["key_id"]] = k["public_key"]
-    for case in v["cases"]:
+        pool = key_pool(case)
         assert case["expected"] in outcomes, f"unknown outcome {case['expected']}"
         seen.add(case["expected"])
         for role in ("stored", "fetched"):
@@ -2091,6 +2141,20 @@ def _dc1_declaration_sequence_vector():
                 b64u_decode(pool[key_id])).verify(
                     b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["publisher"]))
     assert seen == outcomes, f"outcomes never exercised: {sorted(outcomes - seen)}"
+    assert any(c.get("recovery_window_open") for c in v["cases"]), \
+        "no case exercises an open recovery window"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    assert ("MUST NOT name the same `key_id`, or the same `public_key`, in both "
+            "`keys` and `recovery_keys`") in prose, \
+        "§5.2 does not forbid a key serving as both a signing and a recovery key"
+    # The suite's own Declaration must satisfy the rule it states.
+    publisher = json.loads((ROOT / "examples" / "publisher.json").read_text())["publisher"]
+    signing = {(k["key_id"], k["public_key"]) for k in publisher["keys"]}
+    recovery = {(k["key_id"], k["public_key"]) for k in publisher.get("recovery_keys", [])}
+    assert not {i for i, _ in signing} & {i for i, _ in recovery}, \
+        "the publisher example shares a key_id across its two key sets"
+    assert not {k for _, k in signing} & {k for _, k in recovery}, \
+        "the publisher example shares a public_key across its two key sets"
     idempotent = [c for c in v["cases"] if c["expected"] == "idempotent"]
     assert idempotent, "no idempotent re-serve case"
     for case in idempotent:

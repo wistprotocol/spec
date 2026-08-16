@@ -524,6 +524,16 @@ Declaration lists no recovery keys MAY establish them with an ordinary
 signing-key signature — there is nothing yet to protect — which is how a
 Publisher adopts recovery keys after the fact.
 
+The two sets are disjoint. A Declaration MUST NOT name the same `key_id`,
+or the same `public_key`, in both `keys` and `recovery_keys`, and one that
+does is rejected with `WIST1-E08`. A recovery key that is also a signing
+key is neither held offline nor signing only Declarations, so it offers
+nothing the signing key it duplicates does not already offer, and stealing
+one steals both. The rule is also what keeps the classification below
+answerable: whether a Declaration opens a recovery window is state every
+replaying party must derive identically, and a signer present in both sets
+would leave two defensible answers.
+
 **Compromise recovery.** A Declaration with a higher `seq` is classified
 by what signs it:
 
@@ -533,15 +543,33 @@ by what signs it:
   **recovery rotation**. The recovery window (Parameter Registry:
   `recovery_window_days`, 7 days) opens at the `sealed_at` of the Block
   sealing that Declaration's own `publisher_declaration` Entry, and during
-  it the domain's Deltas are queued rather than sealed. At the end of the
-  window the recovery Declaration takes effect with `A` and `C`
-  preserved, and it supersedes any ordinary rotation sealed during that
-  window — so a thief holding only a signing key cannot outrun the
-  holder of the recovery key. At the window's end the queue is settled
-  deterministically: each queued Delta is revalidated against the Key
-  Set in effect at the window's end — the recovery Declaration's — and
-  one that no longer verifies is rejected with `WIST1-E13` and surfaced
+  it the domain's Deltas are queued rather than sealed. A Delta is queued
+  when it verifies under **either** the Key Set in effect immediately
+  before the recovery **or** the recovery Declaration's own — the union,
+  because the Publisher that has just recovered must be able to keep
+  publishing under its new keys, and the compromised key's Deltas must
+  still reach the queue, which is where the settlement below rejects them
+  in the open rather than at an ingest no replaying party can see.
+  At the end of the window the recovery Declaration takes effect with `A`
+  and `C` preserved, and **every** Declaration sealed inside the window
+  other than the recovery Declaration and the chain legitimately following
+  it is superseded — an ordinary rotation and a fresh identity alike, so a
+  thief holding only a signing key cannot outrun the holder of the
+  recovery key by rotating *or* by generating a new key pair and starting
+  over under the same domain. A Declaration legitimately follows when its
+  signer is named in its predecessor's `keys` or `recovery_keys`, the
+  predecessor being the recovery Declaration or an earlier link of the
+  same chain: the recovering Publisher may therefore rotate again inside
+  its own window without forfeiting it. At the window's end the queue is
+  settled deterministically: each queued Delta is revalidated against the
+  Key Set of that chain's newest Declaration — the recovery Declaration's
+  own unless a legitimate follower was sealed inside the window — and one
+  that no longer verifies is rejected with `WIST1-E13` and surfaced
   on the status endpoint (WIST-2 §7.1) like any other typed rejection.
+  The rejection is of the queued copy and not of the Delta's identity: the
+  same Delta re-served later and verifying under the Key Set then in force
+  is sealed like any other, which is what keeps replay agreement free of a
+  per-Log list of dropped IDs that every Consumer would have to carry.
   A Delta signed by the superseded signing key is exactly the case this
   settles: if the recovery rotated that key out, the Delta dies with it,
   which is the point of the rotation. The survivors become eligible
@@ -583,7 +611,11 @@ by what signs it:
   so by holding the recovery keys the *first* Declaration now lists.
 - Signed by neither — a **fresh identity**. The Declaration is accepted,
   but `A` and `C` reset to zero and the domain re-enters Provisional
-  (WIST-4 §6).
+  (WIST-4 §6). Served inside an open recovery window it is accepted like
+  any other Declaration and superseded at the window's end by the rule
+  above; it is never a `WIST1-E08`, because nothing about it is a
+  sequencing violation, and rejecting it at ingest would leave the
+  attempt invisible to a party replaying the Log.
 
 A Publisher that loses both its signing keys and its recovery keys
 starts over; that is the honest outcome, because with no cryptographic
@@ -631,12 +663,12 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | WIST1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; or `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces; or the same `key_id` or `public_key` named in both `keys` and `recovery_keys`) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
-| WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. Dropped, never sealed; visible to the Publisher via the status endpoint (WIST-2 §7.1) |
+| WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and verifying under the Key Set then in force is sealed (§5.2) |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's accepted one
