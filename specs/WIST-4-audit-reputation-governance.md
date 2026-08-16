@@ -294,7 +294,18 @@ breach for a Delta the other never owed. Integers remove the disagreement
 rather than making it rare.
 
 The Auditor publishes the VRF proof `pi`, lowercase hex, in every Audit
-Record it emits for Block *B* (`vrf_proof`). Anyone can verify with the
+Record it emits for Block *B* (`vrf_proof`). Verification runs RFC 9381's
+`ECVRF_verify` **with** the optional `ECVRF_validate_key` step, which that
+document leaves to the application: a proof under an Auditor public key
+that fails key validation — a small-order or non-canonically encoded point
+— does not verify, and the Record is void for standing (`WIST4-E01`) like
+any other Record whose `vrf_proof` does not verify. The step is required
+because §11's claim rests on the uniqueness it buys: without it a small-order
+Auditor key admits more than one valid `beta` for the same Block, and an
+Auditor could grind selection sets until one omitted the Deltas it preferred
+not to audit. It is also the same standard WIST-1 §4 applies to the Ed25519
+keys of this suite, which RFC 9381 §5.5 shares with the VRF.
+Anyone can verify with the
 Auditor's public key that `beta` is the unique correct output for that
 Block, and can therefore recompute the Auditor's entire selection set for
 *B* — the VRF draw plus any Deltas the extension rule below names, every
@@ -314,9 +325,14 @@ Auditor MUST publish an Audit Record — or, when it cannot fetch at all, a
 Record with verdict `unreachable` — within 72 hours of that Block's
 `sealed_at`. When its VRF selects no Delta in a Block, it MUST instead
 publish, by the same deadline, a `coverage_attestation` Registry Update
-carrying that Block's VRF proof and the `prev_record` chain link every
-Record carries (§9.1), and nothing further: it reports no verdict,
-because there was nothing selected to audit.
+naming that Block and carrying its VRF proof and the `prev_record` chain
+link every Record carries (§9.1), and nothing further: it reports no
+verdict, because there was nothing selected to audit. It names the Block
+because a sealed attestation is otherwise bound to one only by the
+`pull_attestation` that happens to list it: the proof is over the Block
+Hash, so a replaying party that cannot tell which Block the attestation is
+for cannot verify the proof at all, and an attestation the Aggregator
+never attested to would discharge a duty no one could locate.
 
 **Withdrawn and unavailable Payloads discharge the duty.** A selected
 Delta whose Payload has been withdrawn (WIST-3 §6.2), or which the Auditor
@@ -1414,7 +1430,13 @@ Exactly three things:
 1. **Ping quota** (WIST-2 §4): `Q = 100 + ((10 000 × reputation_u) /
    1 000 000)` Pings per UTC day, integer division, parenthesized as
    written. The new-domain quota WIST-2 §5 refers to is this formula at
-   `reputation_u` = 100 000, i.e. **Q = 1100**.
+   `reputation_u` = 100 000, i.e. **Q = 1100**. `reputation_u` is read at
+   the **highest Block sealed before the UTC day began** — the day being
+   the quota's own window — so Q is one value for the whole day and any
+   party can recompute the exact Q a rejection was measured against
+   without knowing the instant the Aggregator checked. A domain with no
+   Block before its first day (a Log's first day) reads the empty log,
+   which is the new-domain value above.
 2. **Sampling rate** `p_1e7` (§4), which takes `reputation_u` directly at
    the height §4 fixes.
 3. **Inclusion latency**: `reputation_u` ≥ 500 000 → eligible for the next
@@ -1545,7 +1567,14 @@ Process requirements:
   2 at 3 within 90 days; level 3 at 10 within 90 days, or any severity-3;
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
   a level-3 domain that accrues a further Confirmed Inconsistency**. Level
-  4 is never conditioned on whether the Publisher appealed.
+  4 is never conditioned on whether the Publisher appealed. Each window is
+  measured exactly as §4's are: the 90 or 180 **whole days ending at**
+  Block N's `sealed_at`, so a Confirmed Inconsistency counts when the §6.1
+  whole-day distance from its confirming Block to N is below 90 (or below
+  180) — end-inclusive, start-exclusive. Nothing here introduces a second
+  way to measure a window: the Blocks that bound these spans sit on an
+  hourly cadence, so a finding exactly 90 days before N would otherwise be
+  in one implementation's count and outside another's.
 - **Every rung is derived, levels 3 and 4 included.** Once the escalation
   criteria above are met at some height N, the corresponding state is in
   force on recomputation from N's Block onward, whether or not the
@@ -1641,6 +1670,21 @@ Process requirements:
   sanction's *state* — the level 3 ingestion rejection or the level 4
   exclusion from materialization — is void on recomputation from T,
   exactly as a lapsed ruling deadline voids it below.
+- **A late appeal is recorded and changes nothing.** An `appeal` served
+  after the appeal window has closed MAY be sealed, and an Aggregator that
+  obtains one SHOULD seal it: it is a signed statement by the Publisher,
+  and a rule that let the Aggregator drop it without trace is the silent
+  suppression §4's `pull_attestation` exists to end elsewhere. What it does
+  not do is reopen the process. It does not discharge **T**, because the
+  window it belongs to already closed and only an `appeal` served inside
+  the window or an `"unappealed"` ruling discharges it; it starts no ruling
+  deadline; and it does not by itself alter the sanction's state. The
+  Aggregator may still act on what it reads — `sanction_lift` is always
+  available and needs no appeal to justify it — but that is a discretionary
+  act recorded as one, not a deadline the Publisher restarted by filing
+  late. Otherwise the appeal window would be advisory: a filing weeks
+  overdue would reopen a closed process and void a state on a deadline the
+  Aggregator could no longer meet.
 - **An `"unappealed"` ruling cannot precede what it reports.** Such a
   ruling discharges T only when the Block sealing it has a `sealed_at` at
   or after the close of the appeal window — the notice's Block `sealed_at`
@@ -2012,13 +2056,15 @@ mirroring §7 and §3:
   no Block or no result set would attest to nothing a replayer could
   hold the Aggregator to.
 
-- `coverage_attestation`: `vrf_proof` (the §4 VRF Proof for the Block
-  whose selection was empty, 80 octets as 160 lowercase hex characters)
-  and `prev_record` (§4), the same Auditor's preceding publication or
-  `null`; `subject` is the Auditor's `auditor_id`. Both are REQUIRED,
-  because the attestation exists to put the proof of an empty selection
-  in the Log where the coverage duty is derived from it (§4), and one
-  carrying no proof would attest to nothing a replayer could check.
+- `coverage_attestation`: `block` (the audited Block's Block Hash, the
+  same value that names the Auditor's well-known records file, §4),
+  `vrf_proof` (the §4 VRF Proof for that Block, 80 octets as 160 lowercase
+  hex characters) and `prev_record` (§4), the same Auditor's preceding
+  publication or `null`; `subject` is the Auditor's `auditor_id`. All three
+  are REQUIRED, because the attestation exists to put the proof of an empty
+  selection in the Log where the coverage duty is derived from it (§4): one
+  carrying no proof attests to nothing a replayer could check, and one
+  naming no Block leaves the proof with no input to verify against.
 
 `sanction_lift` carries an unconstrained `details` object, and an
 `appeal`'s is unconstrained beyond the `notice` it MUST name; every Audit

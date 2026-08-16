@@ -449,8 +449,9 @@
               "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
               "details": {
                 "type": "object",
-                "required": ["vrf_proof", "prev_record"],
+                "required": ["block", "vrf_proof", "prev_record"],
                 "properties": {
+                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The audited Block's Block Hash — the Block whose selection was empty, and the input the vrf_proof verifies against (WIST-4 §4)."},
                   "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$", "description": "The §4 VRF Proof for the Block whose selection was empty, 80 octets as 160 lowercase hex characters — the same form audit-record.schema.json fixes. An attestation without it claims an empty draw and proves nothing."},
                   "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}]}
                 }

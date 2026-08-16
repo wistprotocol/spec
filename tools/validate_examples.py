@@ -81,6 +81,7 @@ INNER_KEY = {
     "snapshot-index.json": "index", "snapshot-state.json": "state",
     "audit-record.json": "record", "registry-update.json": "update",
     "log-anchor.json": "anchor",
+    "mirrors.json": "mirrors",
     "status.json": None,  # not a signed Envelope — plain JSON (WIST-2 §7.1)
     "payload.json": None,  # unsigned: its integrity comes from the Delta's
                            # commitment, not from a signature (WIST-3 §6.1)
@@ -1579,6 +1580,9 @@ NON_CONTENT_DIGESTS = {
      "allOf[9]/then/properties/update/properties/details/properties/found/items"):
         "Audit Record and coverage_attestation IDs a pull returned (WIST-4 §4) — objects that carry only commitments",
     ("registry-update.schema.json",
+     "allOf[10]/then/properties/update/properties/details/properties/block"):
+        "SHA-256 of a Block header (the Block whose selection was empty, WIST-4 §4)",
+    ("registry-update.schema.json",
      "allOf[10]/then/properties/update/properties/details/properties/prev_record/oneOf[0]"):
         "the same per-auditor chain ID an Audit Record's prev_record carries (WIST-4 §4)",
     ("registry-update.schema.json",
@@ -1644,6 +1648,7 @@ NON_CONTENT_VALUES = {
     ("examples/feed.json", "deltas"): "Delta IDs",
     ("examples/feed.json", "value"): "an Ed25519 signature",
     ("examples/log-anchor.json", "public_key"): "an Ed25519 public key",
+    ("examples/mirrors.json", "value"): "an Ed25519 signature",
     ("examples/log-anchor.json", "value"): "an Ed25519 signature",
     ("examples/payload.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("examples/publisher.json", "public_key"): "an Ed25519 public key",
@@ -1674,6 +1679,13 @@ NON_CONTENT_VALUES = {
         ("vectors/wist3/block.json", "merkle_root"): "root over Entries, which carry commitments only",
     ("vectors/wist3/block.json", "prev"): "a Delta ID",
     ("vectors/wist3/block.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/empty-block.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist3/empty-block.json", "block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist3/empty-block.json", "merkle_root"):
+        "the empty tree's root, SHA-256(0x00) — no Entry, and therefore no content, in its preimage (WIST-3 §4)",
+    ("vectors/wist3/empty-block.json", "rfc6962_empty_root"):
+        "the RFC 6962 empty-tree constant this suite deviates from, published so the deviation is checkable (WIST-3 §4)",
+    ("vectors/wist3/empty-block.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
     ("vectors/wist4/sampling.json", "block_hash"): "SHA-256 of a Block header",
     ("vectors/wist4/sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
@@ -1884,7 +1896,8 @@ def _dc4_coverage_attestation():
             "wist_version": "1.0.0",
             "action": "coverage_attestation",
             "subject": "audit.example.net",
-            "details": {"vrf_proof": v["vrf_proof_hex"], "prev_record": None},
+            "details": {"block": v["block_hash"], "vrf_proof": v["vrf_proof_hex"],
+                        "prev_record": None},
             "effective_at": "2026-08-02T16:00:00Z",
         },
         "sig": json.loads(
@@ -1893,7 +1906,7 @@ def _dc4_coverage_attestation():
     Draft202012Validator(schema).validate(attestation)
     # §4 requires the proof, and the whole coverage duty is derived from it:
     # an attestation without one claims an empty draw and proves nothing.
-    for missing in ("vrf_proof", "prev_record"):
+    for missing in ("block", "vrf_proof", "prev_record"):
         bad = copy.deepcopy(attestation)
         del bad["update"]["details"][missing]
         try:
@@ -1917,12 +1930,12 @@ def _dc3_parameter_tuple_effective_at():
     envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
     good = copy.deepcopy(envelope)
     good["state"]["entries"].append(
-        ["parameter", "block_cadence_seconds", 7200, "2026-08-09T13:00:00Z"])
+        ["parameter", "block_cadence_seconds", "2026-08-09T13:00:00Z", 7200])
     validator.validate(good)
     for bad_value in (0, 12, "2026-08-09T13:00:00+00:00", "2026-08-09"):
         bad = copy.deepcopy(envelope)
         bad["state"]["entries"].append(
-            ["parameter", "block_cadence_seconds", 7200, bad_value])
+            ["parameter", "block_cadence_seconds", bad_value, 7200])
         try:
             validator.validate(bad)
         except ValidationError:
@@ -1932,6 +1945,8 @@ def _dc3_parameter_tuple_effective_at():
                    (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     assert "a parameter's `effective_at`) are the whole-second" in prose, \
         "§7's instant list does not name the parameter tuple's effective_at"
+    assert "One tuple exists per amendment rather than per identifier" in prose, \
+        "§7 does not key the parameter tuple on (identifier, effective_at)"
 check("schema:wist3-parameter-effective-at", _dc3_parameter_tuple_effective_at)
 
 
@@ -1954,6 +1969,35 @@ def _dc2_feed_domain_mismatch_code():
     assert ("Only pings resolving to `WIST2-E02` or `WIST2-E04` count against "
             "the domain's daily quota Q") in prose, "the noise set moved"
 check("spec:wist2-feed-domain-mismatch", _dc2_feed_domain_mismatch_code)
+
+def _wist3_empty_block():
+    """WIST-3 §4: the empty tree, and the Block that carries it.
+
+    The suite deviates from RFC 6962 here — SHA-256(0x00) rather than
+    SHA-256 of the empty string — and an implementation wiring in a CT
+    library inherits the other constant without noticing, which is exactly
+    the bug that shipped once. Both constants are recomputed here.
+    """
+    v = json.loads((ROOT / "vectors" / "wist3" / "empty-block.json").read_text())
+    block = v["block"]
+    assert block["entries"] == [], "the empty-Block vector carries Entries"
+    assert block["header"]["entry_count"] == 0
+    assert block["header"]["merkle_root"] == \
+        "sha256:" + hashlib.sha256(b"\x00").hexdigest(), "empty root is not SHA-256(0x00)"
+    assert v["rfc6962_empty_root"] == "sha256:" + hashlib.sha256(b"").hexdigest()
+    assert v["rfc6962_empty_root"] != block["header"]["merkle_root"], \
+        "the deviation the vector exists to pin has collapsed"
+    canonical = rfc8785.dumps(block["header"])
+    assert v["block_hash"] == "sha256:" + hashlib.sha256(canonical).hexdigest(), \
+        "block_hash is not SHA-256 over the header's JCS bytes"
+    Ed25519PublicKey.from_public_bytes(load_test_pubkey()).verify(
+        b64u_decode(block["sig"]["value"]), canonical)
+    Draft202012Validator(
+        json.loads((ROOT / "schemas" / "block.schema.json").read_text())).validate(block)
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "A Block MAY be empty (`entry_count: 0`)" in prose
+check("vectors:wist3-empty-block", _wist3_empty_block)
 
 def _wist1_recovery_settlement():
     """WIST-1 §5.2: the window's admission and settlement derivations.
@@ -2742,6 +2786,9 @@ TIMESTAMP_FIELDS = {
     ("snapshot-index.schema.json", "properties/index/properties/updated_at"):
         "descriptive: when the Aggregator last rewrote a mutable index (WIST-3 §6); a Snapshot is "
         "bound to the chain by `log_position` and `anchor_block_hash`, never by this",
+    ("mirrors.schema.json", "properties/mirrors/properties/updated_at"):
+        "descriptive: when the Aggregator last rewrote a mutable convenience list (WIST-3 §5), "
+        "which no window reads and which a Consumer is told not to trust as its sole source",
     ("status.schema.json", "properties/last_pull_at"):
         "the Publisher's debugging surface (WIST-2 §7.1), not a signed Envelope and not an "
         "artifact any party verifies",

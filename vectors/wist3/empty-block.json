@@ -1,0 +1,21 @@
+{
+  "note": "WIST-3 \u00a74: a Block with no Entries. `merkle_root` is SHA-256(0x00) \u2014 the empty-tree deviation from RFC 6962, whose own constant is SHA-256 of the empty string \u2014 and `block_hash` is SHA-256 over the JCS bytes of the header alone (\u00a73.1). A verifier that rejects this Block rejects every heartbeat the cadence requires.",
+  "block": {
+    "header": {
+      "wist_version": "1.0.0",
+      "block_number": 1,
+      "prev_block_hash": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+      "sealed_at": "2026-08-02T14:00:00Z",
+      "merkle_root": "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+      "entry_count": 0
+    },
+    "entries": [],
+    "sig": {
+      "key_id": "test-agg-k1",
+      "alg": "Ed25519",
+      "value": "MZhid4CNRxIdJUirA7bAHix-Sir4M_qLS9bSMupwL8mQXS0AIdFd4xUroIqHqVHrcAr5D00kL5f9DengQMIHBw"
+    }
+  },
+  "block_hash": "sha256:b62c777f579a1fc9963b1b4f8f1a8cecc02296838135116479af56acf598540e",
+  "rfc6962_empty_root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

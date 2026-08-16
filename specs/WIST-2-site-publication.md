@@ -133,6 +133,18 @@ current at the page's `generated_at`; because pages are immutable they are
 never re-signed on rotation, and a validator MUST NOT reject a page solely
 because its signing key has since been retired.
 
+A Page's `generated_at` is the instant of the cutover that sealed it — the
+same value the `feed.json` published at that cutover carries — and not the
+instant the entries on it were first added to the Feed. The Page is signed
+at cutover, by whichever key the Publisher holds then, and the rule above
+resolves its Key Set through this field; stamping it with an earlier
+instant would resolve a Key Set that need not contain the key that signed
+the Page, so a Page honestly sealed after a rotation would fail
+verification under its own signature. Sealing order and page numbering
+therefore agree with `generated_at` order, which is the same
+non-decreasing sequence §3.2 already requires of successive `feed.json`
+versions.
+
 WIST-1 §5.2's historical-verification procedure cannot be applied directly
 here: it resolves a Key Set by **Block height**, and Pages are never sealed
 into the Log, so a Page has no height. The bridge is stated once, and it is

@@ -1,6 +1,6 @@
 # ADR-0013: Ed25519 verification is strict, and the profile is pinned
 
-**Status:** accepted · **Date:** 2026-08-16
+**Status:** accepted (addendum 2026-08-16: the VRF's key validation) · **Date:** 2026-08-16
 
 ## Context
 
@@ -90,3 +90,21 @@ names no single behavior.
 - The suite gains a property it claimed but did not have: two conforming
   verifiers reach the same verdict on every signature, including
   adversarially constructed ones.
+
+## Addendum (2026-08-16) — the same standard for the VRF's keys
+
+RFC 9381 makes `ECVRF_validate_key` optional and leaves the choice to the
+application, exactly as RFC 8032 leaves the cofactor to the verifier. WIST-4
+§4 now requires it: a `vrf_proof` under an Auditor public key that fails key
+validation does not verify, and the Record is void for standing
+(`WIST4-E01`).
+
+The reasoning is this ADR's, applied to the key set one layer up.
+ECVRF-EDWARDS25519-SHA512-TAI shares the RFC 8032 key format (§5.5), so the
+same small-order points are reachable; and §11's argument that an Auditor
+cannot steer its own selection rests on `beta` being the *unique* correct
+output for a Block, which a small-order key destroys — an Auditor could then
+grind selection sets until one omitted the Deltas it preferred not to audit.
+Skipping the step is conforming under RFC 9381 read alone, which is why the
+requirement is stated in the suite rather than inherited.
+
