@@ -1405,6 +1405,49 @@ def _merkle_exhaustive():
     assert exercised == sum(range(1, 65)), "did not exercise every (n, index) pair"
 check("merkle-exhaustive", _merkle_exhaustive)
 
+# Transcribed verbatim from the Certificate Transparency reference
+# implementation (transparency-dev/merkle: testonly/constants.go leaf
+# inputs and RootHashes, rfc6962/rfc6962_test.go leaf/node cases) — the
+# published known answers for RFC 6962's hashing, which WIST-3 §4 adopts.
+_CT_LEAF_INPUTS = ["", "00", "10", "2021", "3031", "40414243",
+                   "5051525354555657", "606162636465666768696a6b6c6d6e6f"]
+_CT_ROOTS = [
+    "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+    "fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125",
+    "aeb6bcfe274b70a14fb067a5e5578264db0fa9b51af5e0ba159158f329e06e77",
+    "d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7",
+    "4e3bbb1f7b478dcfe71fb631631519a3bca12c9aefca1612bfce4c13a86264d4",
+    "76e67dadbcdf1e10e1b74ddc608abd2f98dfb16fbce75277b5232a127f2087ef",
+    "ddb89be403809e325750d3d263cd78929c2942b7942a34b77e122c9594a74c8c",
+    "5dc9da79a70659a9ad559cb701ded9a2ab9d823aad2f4960cfe370eff4604328",
+]
+
+def _merkle_ct_reference():
+    """External known-answer anchor for tools/merkle.py, in the mold of
+    ecvrf's RFC 9381 B.3 replay: the exhaustive property test above proves
+    generation and verification agree with *each other*, but two sides of
+    one authorship can share one misreading — only answers published by an
+    independent implementation prove the hashes themselves are RFC 6962's.
+    The empty-tree constant is asserted too, because WIST-3 deviates from
+    it deliberately (a heartbeat Block's root is SHA-256(0x00), see
+    vectors/wist3/empty-block.json) and the deviation only stays honest
+    while the reference value it deviates from is pinned beside it.
+    """
+    assert leaf_hash(b"").hex() == \
+        "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+    assert leaf_hash(b"L123456").hex() == \
+        "395aa064aa4c29f7010acfe3f25db9485bbd4b91897b6ad7ad547639252b4d56"
+    assert node_hash(b"N123", b"N456").hex() == \
+        "aa217fe888e47007fa15edab33c2b492a722cb106c64667fc2b044444de66bbb"
+    assert hashlib.sha256(b"").hexdigest() == \
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    leaves = [leaf_hash(bytes.fromhex(h)) for h in _CT_LEAF_INPUTS]
+    for n in range(1, 9):
+        got = merkle_root(leaves[:n]).hex()
+        assert got == _CT_ROOTS[n - 1], \
+            f"MTH(D[{n}]) drifted from the CT reference: {got}"
+check("merkle:ct-reference-vectors", _merkle_ct_reference)
+
 # 4. WIST-4 §4: the ECVRF primitive itself, then the sampling vector built on it.
 # The RFC 9381 Appendix B.3 vectors are the acceptance criterion for ecvrf.py:
 # a VRF that is subtly wrong still *looks* verifiable, so the primitive is
@@ -2046,6 +2089,33 @@ def _wist1_recovery_settlement():
         assert marker in prose, f"§5.2 does not state: {marker!r}"
 check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
 
+def _ed25519_profile_verdict(a_bytes: bytes, sig: bytes, msg: bytes):
+    """The WIST-1 §4 verification profile, as (accepted, stage).
+
+    `stage` names the first §4 check that fails — "s-range" (s not
+    canonically reduced), "decode" (A or R not a canonically-encoded curve
+    point), "small-order" (A or R of small order), "equation" (the
+    cofactorless equation itself) — or "accept". Both the strictness
+    vector's check and the external speccheck corpus below run through
+    this one implementation, so they anchor the same profile.
+    """
+    r_bytes, s_bytes = sig[:32], sig[32:]
+    if ecvrf.string_to_int(s_bytes) >= ecvrf.Q:
+        return False, "s-range"
+    try:
+        a_pt = ecvrf.string_to_point(a_bytes)
+        r_pt = ecvrf.string_to_point(r_bytes)
+    except ecvrf.InvalidProof:
+        return False, "decode"
+    if ecvrf._is_identity(ecvrf._mul(8, a_pt)) or \
+            ecvrf._is_identity(ecvrf._mul(8, r_pt)):
+        return False, "small-order"
+    k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
+    lhs = ecvrf._mul(ecvrf.string_to_int(s_bytes), ecvrf.BASE)
+    if ecvrf._equal(lhs, ecvrf._add(r_pt, ecvrf._mul(k, a_pt))):
+        return True, "accept"
+    return False, "equation"
+
 def _wist1_verification_profile():
     """WIST-1 §4: the pinned verification profile, recomputed case by case.
 
@@ -2056,24 +2126,6 @@ def _wist1_verification_profile():
     """
     v = json.loads((ROOT / "vectors" / "wist1" / "ed25519-strictness.json").read_text())
     msg = bytes.fromhex(v["message_hex"])
-
-    def small_order(pt):
-        return ecvrf._is_identity(ecvrf._mul(8, pt))
-
-    def profile_accepts(a_bytes, sig):
-        r_bytes, s_bytes = sig[:32], sig[32:]
-        if ecvrf.string_to_int(s_bytes) >= ecvrf.Q:
-            return False
-        try:
-            a_pt = ecvrf.string_to_point(a_bytes)
-            r_pt = ecvrf.string_to_point(r_bytes)
-        except ecvrf.InvalidProof:
-            return False
-        if small_order(a_pt) or small_order(r_pt):
-            return False
-        k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
-        lhs = ecvrf._mul(ecvrf.string_to_int(s_bytes), ecvrf.BASE)
-        return ecvrf._equal(lhs, ecvrf._add(r_pt, ecvrf._mul(k, a_pt)))
 
     def cofactored_accepts(a_bytes, sig):
         r_bytes, s_bytes = sig[:32], sig[32:]
@@ -2093,7 +2145,7 @@ def _wist1_verification_profile():
         a_bytes = bytes.fromhex(case["public_key_hex"])
         sig = bytes.fromhex(case["signature_hex"])
         expected = case["expected"] == "accept"
-        assert profile_accepts(a_bytes, sig) == expected, \
+        assert _ed25519_profile_verdict(a_bytes, sig, msg)[0] == expected, \
             f"{name}: the §4 profile disagrees with the vector"
         seen_accept |= expected
         seen_reject |= not expected
@@ -2109,6 +2161,99 @@ def _wist1_verification_profile():
                    "MUST NOT be a point of small order"):
         assert marker in prose, f"§4 does not pin: {marker!r}"
 check("vectors:wist1-verification-profile", _wist1_verification_profile)
+
+# Transcribed verbatim from novifinancial/ed25519-speccheck cases.json —
+# the published corpus of the paper "Taming the Many EdDSAs", built to
+# separate Ed25519 verifier behaviors. Per-case conditions from its
+# README table: (s_range, A_order, R_order, note).
+_SPECCHECK_CASES = [
+    ("8c93255d71dcab10e8f379c26200f3c7bd5f09d9bc3068d3ef4edeb4853022b6",
+     "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
+     "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a"
+     "0000000000000000000000000000000000000000000000000000000000000000",
+     "small-order", "small A and R"),
+    ("9bd9f44f4dcc75bd531b56b2cd280b0bb38fc1cd6d1230e14861d861de092e79",
+     "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
+     "f7badec5b8abeaf699583992219b7b223f1df3fbbea919844e3f7c554a43dd43"
+     "a5bb704786be79fc476f91d3f3f89b03984d8068dcf1bb7dfc6637b45450ac04",
+     "small-order", "small A only"),
+    ("aebf3f2601a0c8c5d39cc7d8911642f740b78168218da8471772b35f9d35b9ab",
+     "f7badec5b8abeaf699583992219b7b223f1df3fbbea919844e3f7c554a43dd43",
+     "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa"
+     "8c4bd45aecaca5b24fb97bc10ac27ac8751a7dfe1baff8b953ec9f5833ca260e",
+     "small-order", "small R only"),
+    ("9bd9f44f4dcc75bd531b56b2cd280b0bb38fc1cd6d1230e14861d861de092e79",
+     "cdb267ce40c5cd45306fa5d2f29731459387dbf9eb933b7bd5aed9a765b88d4d",
+     "9046a64750444938de19f227bb80485e92b83fdb4b6506c160484c016cc1852f"
+     "87909e14428a7a1d62e9f22f3d3ad7802db02eb2e688b6c52fcd6648a98bd009",
+     "accept", "mixed A and R, succeeds unless full order is checked"),
+    ("e47d62c63f830dc7a6851a0b1f33ae4bb2f507fb6cffec4011eaccd55b53f56c",
+     "cdb267ce40c5cd45306fa5d2f29731459387dbf9eb933b7bd5aed9a765b88d4d",
+     "160a1cb0dc9c0258cd0a7d23e94d8fa878bcb1925f2c64246b2dee1796bed512"
+     "5ec6bc982a269b723e0668e540911a9a6a58921d6925e434ab10aa7940551a09",
+     "equation", "cofactored-only acceptance"),
+    ("e47d62c63f830dc7a6851a0b1f33ae4bb2f507fb6cffec4011eaccd55b53f56c",
+     "cdb267ce40c5cd45306fa5d2f29731459387dbf9eb933b7bd5aed9a765b88d4d",
+     "21122a84e0b5fca4052f5b1235c80a537878b38f3142356b2c2384ebad4668b7"
+     "e40bc836dac0f71076f9abe3a53f9c03c1ceeeddb658d0030494ace586687405",
+     "equation", "cofactored-only, (8h) pre-reduction sensitive"),
+    ("85e241a07d148b41e47d62c63f830dc7a6851a0b1f33ae4bb2f507fb6cffec40",
+     "442aad9f089ad9e14647b1ef9099a1ff4798d78589e66f28eca69c11f582a623",
+     "e96f66be976d82e60150baecff9906684aebb1ef181f67a7189ac78ea23b6c0e"
+     "547f7690a0e2ddcd04d87dbc3490dc19b3b3052f7ff0538cb68afb369ba3a514",
+     "s-range", "S > L"),
+    ("85e241a07d148b41e47d62c63f830dc7a6851a0b1f33ae4bb2f507fb6cffec40",
+     "442aad9f089ad9e14647b1ef9099a1ff4798d78589e66f28eca69c11f582a623",
+     "8ce5b96c8f26d0ab6c47958c9e68b937104cd36e13c33566acd2fe8d38aa1942"
+     "7e71f98a473474f2f13f06f97c20d58cc3f54b8bd0d272f42b695dd7e89a8c22",
+     "s-range", "S >> L"),
+    ("9bedc267423725d473888631ebf45988bad3db83851ee85c85e241a07d148b41",
+     "f7badec5b8abeaf699583992219b7b223f1df3fbbea919844e3f7c554a43dd43",
+     "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+     "03be9678ac102edcd92b0210bb34d7428d12ffc5df5f37e359941266a4e35f0f",
+     "decode", "non-canonical R, reduced for hash"),
+    ("9bedc267423725d473888631ebf45988bad3db83851ee85c85e241a07d148b41",
+     "f7badec5b8abeaf699583992219b7b223f1df3fbbea919844e3f7c554a43dd43",
+     "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+     "ca8c5b64cd208982aa38d4936621a4775aa233aa0505711d8fdcfdaa943d4908",
+     "decode", "non-canonical R, not reduced for hash"),
+    ("e96b7021eb39c1a163b6da4e3093dcd3f21387da4cc4572be588fafae23c155b",
+     "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+     "a9d55260f765261eb9b84e106f665e00b867287a761990d7135963ee0a7d59dc"
+     "a5bb704786be79fc476f91d3f3f89b03984d8068dcf1bb7dfc6637b45450ac04",
+     "decode", "non-canonical A, reduced for hash"),
+    ("39a591f5321bbe07fd5a23dc2f39d025d74526615746727ceefd6e82ae65c06f",
+     "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+     "a9d55260f765261eb9b84e106f665e00b867287a761990d7135963ee0a7d59dc"
+     "a5bb704786be79fc476f91d3f3f89b03984d8068dcf1bb7dfc6637b45450ac04",
+     "decode", "non-canonical A, not reduced for hash"),
+]
+
+def _ed25519_speccheck_corpus():
+    """External corpus anchor for the §4 profile, in the ecvrf B.3 mold.
+
+    The strictness vector's cases were authored alongside this suite; a
+    misreading of §4 could shape both. The speccheck corpus was authored
+    independently, precisely to separate verifier behaviors, so the §4
+    profile must land on a published point of that behavior space: reject
+    everything except case 3 (mixed-order A and R, canonical encodings,
+    canonical s, cofactorless equation holds — §4 checks small order, not
+    full order), and reject each case at the stage its documented
+    condition dictates. A profile that quietly grew a full-order check
+    (over-strict, breaks case 3) or lost a canonicity check (under-strict,
+    shifts a "decode"/"s-range" stage) fails here even though the
+    strictness vector, regenerated by the same author, might follow it.
+    """
+    for i, (msg_hex, pk_hex, sig_hex, want_stage, note) in \
+            enumerate(_SPECCHECK_CASES):
+        accepted, stage = _ed25519_profile_verdict(
+            bytes.fromhex(pk_hex), bytes.fromhex(sig_hex),
+            bytes.fromhex(msg_hex))
+        assert stage == want_stage, \
+            f"speccheck case {i} ({note}): expected {want_stage}, got {stage}"
+        assert accepted == (want_stage == "accept")
+    assert sum(1 for c in _SPECCHECK_CASES if c[3] == "accept") == 1
+check("ed25519:speccheck-corpus", _ed25519_speccheck_corpus)
 
 def _wist1_host_canonicalization():
     """WIST-1 §2: the Canonical Host vector, and the flags it is pinned to.
