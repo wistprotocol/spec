@@ -66,6 +66,8 @@ WIST-1 delta ID and Ed25519 signature, recomputes the payload commitment
 that binds a delta to content the log does not carry, and recomputes the
 WIST-3 Merkle root and inclusion proof. Vector generation is fully
 deterministic: fixed test seed, fixed timestamps, no wall-clock.
+[tools/VERIFICATION.md](tools/VERIFICATION.md) inventories, per vector
+family, the independent anchor its verification rests on.
 
 ## Design decisions
 
