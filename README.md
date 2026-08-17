@@ -9,6 +9,10 @@ once, then follow an hourly delta stream — and query everything locally.
 No crawling for freshness, no trust in any operator: consumers verify
 signatures and hashes, never sources.
 
+Developed with generative-AI assistance — provenance record in
+[AI-USAGE.md](AI-USAGE.md), per-commit `Assisted-by:` trailers from its
+introduction onward.
+
 ```
 Publisher                 Aggregator                    Mirrors / Consumers
    │ writes delta to          │                               │
