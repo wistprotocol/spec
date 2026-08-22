@@ -187,12 +187,12 @@ confirm or refute it (WIST-4 §5 would record `not_auditable` forever) — a
 claim that is unfalsifiable by construction, sealed permanently, and free.
 
 An `attest` Delta carries no content of its own precisely because it claims
-none: what it is measured against is the Payload of the last
-content-bearing Delta *at or before it* in the same per-URL chain (WIST-4
-§5's Reference Payload), which is why §3.5's chain and WIST-2 §3.1's
-retention obligation reach further back than the Delta itself. The same
-holds for a `delete`, whose claim is that exactly that content is no longer
-served.
+none: an audit measures it against the anchor Payload as of the Record's
+reference Delta (WIST-4 §5) — its chain's newest sealed Delta at the
+audit's fetch, which may follow the `attest`. That is why §3.5's chain and
+WIST-2 §3.1's retention obligation reach further back than the Delta
+itself. The same holds for a `delete`, whose claim is that exactly that
+content is no longer served.
 
 ### 3.4. `observed_at`
 

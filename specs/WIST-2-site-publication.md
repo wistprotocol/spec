@@ -81,7 +81,7 @@ it re-anchors the chain instead, by publishing an `update` with a fresh
 Payload or a `delete`; what it MUST NOT do is keep attesting to content
 nobody can obtain. Payloads of superseded Deltas carry no such obligation
 on the Publisher; the Aggregator's own retention of them, which is what
-keeps an already-sealed Delta auditable, is WIST-3 §6.1's.
+keeps an already-sealed Audit Record verifiable, is WIST-3 §6.1's.
 
 **Withdrawal ends that duty and every other reason to serve.** From the
 height a `payload_withdrawal` for a Delta is sealed (WIST-3 §6.2), the

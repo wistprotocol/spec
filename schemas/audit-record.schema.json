@@ -8,12 +8,13 @@
   "properties": {
     "record": {
       "type": "object",
-      "required": ["wist_version", "audited_delta", "auditor_id", "fetched_at", "verdict", "vrf_proof", "prev_record"],
+      "required": ["wist_version", "audited_delta", "reference_delta", "auditor_id", "fetched_at", "verdict", "vrf_proof", "prev_record"],
       "additionalProperties": false,
-      "description": "Every content-derived value an Audit Record seals is a commitment keyed by the salt of the audit's Reference Payload (WIST-4 §5), never a bare digest: withdrawing that Payload destroys the salt and renders these commitments uncheckable at the same instant as the Delta's own.",
+      "description": "Every content-derived value an Audit Record seals is a commitment keyed by the salt of the audit's Reference Payload — the anchor as of `reference_delta` (WIST-4 §5), never a bare digest: withdrawing that Payload destroys the salt and renders these commitments uncheckable at the same instant as the Delta's own.",
       "properties": {
         "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "audited_delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "reference_delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Delta the audit measured against: the newest Delta of the audited Delta's per-URL chain sealed at or before `fetched_at` (WIST-4 §5). It fixes the Reference Payload and therefore the salt every commitment below is keyed by; it is never before `audited_delta` in the chain, and where the chain had not advanced by the fetch it equals `audited_delta`."},
         "auditor_id": {"type": "string", "format": "hostname", "maxLength": 253, "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The hostname the Auditor was admitted under: WIST-4 §3 requires it to be byte-identical to the `subject` of the `auditor_admit` covering `sig.key_id`, and the pattern is the one that `subject` carries, so a Record cannot claim a shape no admission could have."},
         "fetched_at": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at`. WIST-4 §3 has every validator recomputing reputation reject a Record whose `fetched_at` falls outside the closed interval between two Block `sealed_at` values, so the field is compared against Block timestamps by every replaying party and is written in the one form they carry."},
         "response_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},

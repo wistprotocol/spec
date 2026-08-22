@@ -43,7 +43,8 @@ examples/    one validated example per object type
 vectors/     deterministic test vectors (WIST-1 signature and Declaration
              sequencing, WIST-2 link extraction, WIST-3 Merkle and snapshot
              records, WIST-4 sampling, reputation, decay table, audit
-             commitments, link agreement, replay derivations)
+             commitments, link agreement, replay derivations, the audit
+             reference Delta)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
@@ -82,6 +83,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0013](decisions/0013-strict-ed25519-verification.md) — Ed25519 verification is strict, and the profile is pinned
 - [ADR-0014](decisions/0014-canonical-host-flag-profile.md) — The Canonical Host flag profile, and no lowercasing before it
 - [ADR-0015](decisions/0015-recovery-window-settlement.md) — What a recovery window admits, supersedes and settles
+- [ADR-0016](decisions/0016-audit-reference-follows-the-chain.md) — The audit reference is the chain tip at fetch
 
 ## Licenses
 

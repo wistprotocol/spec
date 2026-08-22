@@ -1,0 +1,208 @@
+{
+  "note": "WIST-4 \u00a75 reference_delta: which Delta an audit is measured against \u2014 the newest Delta of the audited Delta's per-URL chain sealed at or before fetched_at \u2014 the Reference Payload as the anchor as of it (WIST-3 \u00a76.1), the change type read for the delete mirror, \u00a76.1's C eligibility, and the three \u00a73/\u00a710 WIST4-E02 rejections over the reference. The chain carries two Deltas in one Block, so the tiebreak \u2014 ascending Block height, then chain order within a Block \u2014 is exercised. expected_reference is what an honest Auditor names; the stale-reference case is valid because naming an older tip is not decidable from the Log, and is met by independent confirmation, not rejection.",
+  "similarity_consistent": 600000,
+  "similarity_variance_floor": 300000,
+  "chain": [
+    {
+      "id": "d1",
+      "height": 1,
+      "sealed_at_s": 0,
+      "change": "update",
+      "payload": "P1"
+    },
+    {
+      "id": "d2",
+      "height": 3,
+      "sealed_at_s": 7200,
+      "change": "update",
+      "payload": "P2"
+    },
+    {
+      "id": "d3",
+      "height": 5,
+      "sealed_at_s": 14400,
+      "change": "attest",
+      "payload": null
+    },
+    {
+      "id": "d3b",
+      "height": 5,
+      "sealed_at_s": 14400,
+      "change": "attest",
+      "payload": null
+    },
+    {
+      "id": "d4",
+      "height": 7,
+      "sealed_at_s": 21600,
+      "change": "delete",
+      "payload": null
+    },
+    {
+      "id": "d5",
+      "height": 9,
+      "sealed_at_s": 28800,
+      "change": "new",
+      "payload": "P3"
+    }
+  ],
+  "other_chain": [
+    {
+      "id": "x1",
+      "height": 2,
+      "sealed_at_s": 3600,
+      "change": "update",
+      "payload": "PX"
+    }
+  ],
+  "cases": [
+    {
+      "label": "tip-unchanged",
+      "audited": "d1",
+      "fetched_at_s": 3600,
+      "reference": "d1",
+      "record_height": 2,
+      "record_sealed_at_s": 3600,
+      "valid": true,
+      "expected_reference": "d1",
+      "resolved_payload": "P1",
+      "reading_change": "update",
+      "similarity": 950000,
+      "effective_similarity": 950000,
+      "verdict": "consistent",
+      "counts_toward_c": true
+    },
+    {
+      "label": "honest-rewrite",
+      "audited": "d1",
+      "fetched_at_s": 10800,
+      "reference": "d2",
+      "record_height": 4,
+      "record_sealed_at_s": 10800,
+      "valid": true,
+      "expected_reference": "d2",
+      "resolved_payload": "P2",
+      "reading_change": "update",
+      "similarity": 980000,
+      "effective_similarity": 980000,
+      "verdict": "consistent",
+      "counts_toward_c": true
+    },
+    {
+      "label": "stale-reference-not-decidable",
+      "audited": "d1",
+      "fetched_at_s": 10800,
+      "reference": "d1",
+      "record_height": 4,
+      "record_sealed_at_s": 10800,
+      "valid": true,
+      "expected_reference": "d2",
+      "resolved_payload": "P1",
+      "reading_change": "update",
+      "similarity": 20000,
+      "effective_similarity": 20000,
+      "verdict": "inconsistent",
+      "counts_toward_c": false
+    },
+    {
+      "label": "attest-after-rewrite",
+      "audited": "d3",
+      "fetched_at_s": 18000,
+      "reference": "d3b",
+      "record_height": 6,
+      "record_sealed_at_s": 18000,
+      "valid": true,
+      "expected_reference": "d3b",
+      "resolved_payload": "P2",
+      "reading_change": "attest",
+      "similarity": 900000,
+      "effective_similarity": 900000,
+      "verdict": "consistent",
+      "counts_toward_c": false
+    },
+    {
+      "label": "audited-attest-tip-delete",
+      "audited": "d3",
+      "fetched_at_s": 25200,
+      "reference": "d4",
+      "record_height": 8,
+      "record_sealed_at_s": 25200,
+      "valid": true,
+      "expected_reference": "d4",
+      "resolved_payload": "P2",
+      "reading_change": "delete",
+      "similarity": 0,
+      "effective_similarity": 1000000,
+      "verdict": "consistent",
+      "counts_toward_c": false
+    },
+    {
+      "label": "delete-then-recreated",
+      "audited": "d4",
+      "fetched_at_s": 32400,
+      "reference": "d5",
+      "record_height": 10,
+      "record_sealed_at_s": 32400,
+      "valid": true,
+      "expected_reference": "d5",
+      "resolved_payload": "P3",
+      "reading_change": "new",
+      "similarity": 990000,
+      "effective_similarity": 990000,
+      "verdict": "consistent",
+      "counts_toward_c": true
+    },
+    {
+      "label": "reactive-truth-after-fetch",
+      "audited": "d1",
+      "fetched_at_s": 3600,
+      "reference": "d2",
+      "record_height": 4,
+      "record_sealed_at_s": 10800,
+      "valid": "WIST4-E02",
+      "expected_reference": "d1",
+      "resolved_payload": null,
+      "reading_change": null
+    },
+    {
+      "label": "reference-before-audited",
+      "audited": "d2",
+      "fetched_at_s": 10800,
+      "reference": "d1",
+      "record_height": 4,
+      "record_sealed_at_s": 10800,
+      "valid": "WIST4-E02",
+      "expected_reference": "d2",
+      "resolved_payload": null,
+      "reading_change": null
+    },
+    {
+      "label": "reference-from-another-chain",
+      "audited": "d1",
+      "fetched_at_s": 10800,
+      "reference": "x1",
+      "record_height": 4,
+      "record_sealed_at_s": 10800,
+      "valid": "WIST4-E02",
+      "expected_reference": "d2",
+      "resolved_payload": null,
+      "reading_change": null
+    },
+    {
+      "label": "boundary-sealed-at-equals-fetched-at",
+      "audited": "d1",
+      "fetched_at_s": 7200,
+      "reference": "d2",
+      "record_height": 4,
+      "record_sealed_at_s": 10800,
+      "valid": true,
+      "expected_reference": "d2",
+      "resolved_payload": "P2",
+      "reading_change": "update",
+      "similarity": 980000,
+      "effective_similarity": 980000,
+      "verdict": "consistent",
+      "counts_toward_c": true
+    }
+  ]
+}

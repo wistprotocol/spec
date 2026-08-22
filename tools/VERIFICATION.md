@@ -49,7 +49,7 @@ as anchors.
 | wist4 `sampling.json` | ECVRF primitive vs RFC 9381 Appendix B.3 (`ecvrf:rfc9381-b3-vectors`); the sampling rule above the primitive is harness-recomputed only | external-KAT (primitive) | partial |
 | wist4 `audit-commitments.json` | SHA-256 from the standard library; commitment structure recomputed | third-party-lib (hash) | partial |
 | wist4 `decay-table.json`, `reputation.json` | recomputed and checked against the WIST-4 appendix figures | prose-figures | self-consistency-only |
-| wist4 `confirmation.json`, `derivation.json`, `coverage.json`, `extension.json`, `sanctions.json`, `link-agreement.json` | replay semantics recomputed by the generator's own logic | self-consistency | self-consistency-only |
+| wist4 `confirmation.json`, `derivation.json`, `coverage.json`, `extension.json`, `sanctions.json`, `superseded-audit.json`, `link-agreement.json` | replay semantics recomputed by the generator's own logic | self-consistency | self-consistency-only |
 
 ## Reading the table
 

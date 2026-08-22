@@ -1587,6 +1587,86 @@ def _dc4_audit_commitment_tamper():
             f"{field}: the commitment does not depend on the salt"
 check("negative:audit-commitment-tamper", _dc4_audit_commitment_tamper)
 
+def _reference_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "superseded-audit.json").read_text())
+
+def _reference_recompute(chain, other, case):
+    """Independent recomputation of WIST-4 §5's reference_delta rules."""
+    ids = [d["id"] for d in chain]
+    def sealed(i): return chain[i]["sealed_at_s"]
+    tip = None
+    for d in chain:
+        if d["sealed_at_s"] <= case["fetched_at_s"]:
+            tip = d["id"]
+    ref, aud = case["reference"], case["audited"]
+    if ref not in ids:
+        return ("WIST4-E02", tip, None, None, None, None)
+    ri, ai = ids.index(ref), ids.index(aud)
+    if ri < ai or sealed(ri) > case["fetched_at_s"]:
+        return ("WIST4-E02", tip, None, None, None, None)
+    change = chain[ri]["change"]
+    anchor = next((chain[j]["payload"] for j in range(ri, -1, -1)
+                   if chain[j]["change"] in ("new", "update")), None)
+    if "similarity" not in case:
+        return (True, tip, anchor, change, None, None)
+    eff = 1_000_000 - case["similarity"] if change == "delete" else case["similarity"]
+    verdict = ("consistent" if eff >= 600_000 else
+               "dynamic_variance" if eff >= 300_000 else "inconsistent")
+    return (True, tip, anchor, change, verdict,
+            verdict == "consistent" and change in ("new", "update"))
+
+def _dc4_superseded_audit():
+    """WIST-4 §5: reference_delta, the anchor as of it, and §3's rejections."""
+    v = _reference_vector()
+    assert v["similarity_consistent"] == 600_000 and v["similarity_variance_floor"] == 300_000
+    heights = [d["height"] for d in v["chain"]]
+    assert heights == sorted(heights), "chain not in Log order"
+    labels = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        assert case["record_sealed_at_s"] >= case["fetched_at_s"], case["label"]
+        audited_delta = next(d for d in v["chain"] if d["id"] == case["audited"])
+        assert case["fetched_at_s"] >= audited_delta["sealed_at_s"], case["label"]
+        got = _reference_recompute(v["chain"], v["other_chain"], case)
+        exp = (case["valid"], case["expected_reference"], case["resolved_payload"],
+               case["reading_change"], case.get("verdict"), case.get("counts_toward_c"))
+        assert got == exp, f"{case['label']}: recomputed {got}, vector says {exp}"
+        if case["valid"] is True and "similarity" in case:
+            assert case["effective_similarity"] == (
+                1_000_000 - case["similarity"] if case["reading_change"] == "delete"
+                else case["similarity"]), case["label"]
+    for needed in ("honest-rewrite", "reactive-truth-after-fetch",
+                   "stale-reference-not-decidable", "reference-before-audited",
+                   "reference-from-another-chain", "attest-after-rewrite",
+                   "boundary-sealed-at-equals-fetched-at"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    assert len(heights) > len(set(heights)), \
+        "the chain shares no Block, so §5's intra-Block tiebreak is unexercised"
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    assert rec["reference_delta"] == rec["audited_delta"], \
+        "the example chain has one Delta, so its tip is the audited Delta"
+    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
+    assert "reference_delta" in schema["properties"]["record"]["required"]
+check("vectors:wist4-superseded-audit", _dc4_superseded_audit)
+
+def _dc4_superseded_audit_twin():
+    """The check above must notice a reference moved one Delta later."""
+    v = _reference_vector()
+    case = next(c for c in v["cases"] if c["label"] == "honest-rewrite")
+    mutated = dict(case, reference="d1")
+    got = _reference_recompute(v["chain"], v["other_chain"], mutated)
+    assert got[2] == "P1" and got[2] != case["resolved_payload"], \
+        "recomputation is blind to the reference"
+    mutated = dict(case, fetched_at_s=3_600)
+    assert _reference_recompute(v["chain"], v["other_chain"], mutated)[0] == "WIST4-E02", \
+        "recomputation is blind to a reference sealed after the fetch"
+    delete_case = next(c for c in v["cases"] if c["label"] == "audited-attest-tip-delete")
+    mutated = dict(delete_case, similarity=1_000_000)
+    got = _reference_recompute(v["chain"], v["other_chain"], mutated)
+    assert got[4] == "inconsistent" and got[5] is False, \
+        "recomputation is blind to the delete mirror"
+check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
+
 # WIST-3 §6.2: after a withdrawal the Log retains no unsalted digest of the
 # withdrawn content. That sentence is a claim about every object format in the
 # suite, so the guard below enumerates every schema and every example rather
@@ -1613,6 +1693,8 @@ NON_CONTENT_DIGESTS = {
     ("checkpoint.schema.json", "properties/checkpoint/properties/block_hash"):
         "SHA-256 of a Block header",
     ("audit-record.schema.json", "properties/record/properties/audited_delta"):
+        "a Delta ID",
+    ("audit-record.schema.json", "properties/record/properties/reference_delta"):
         "a Delta ID",
     ("audit-record.schema.json", "properties/record/properties/prev_record/oneOf[0]"):
         "an Audit Record or coverage_attestation ID: SHA-256 over an object that carries only commitments (WIST-4 §4's per-auditor chain)",
@@ -1681,6 +1763,7 @@ NON_CONTENT_DIGESTS = {
 
 NON_CONTENT_VALUES = {
     ("examples/audit-record.json", "audited_delta"): "a Delta ID",
+    ("examples/audit-record.json", "reference_delta"): "a Delta ID",
         ("examples/audit-record.json", "value"): "an Ed25519 signature",
         ("examples/block.json", "merkle_root"): "root over Entries, which carry commitments only",
     ("examples/block.json", "prev"): "a Delta ID",
@@ -1752,6 +1835,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-sequence.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 §5.2) — keys, domain and scope, no page content",
     ("vectors/wist4/audit-commitments.json", "audited_delta"): "a Delta ID",
+    ("vectors/wist4/audit-commitments.json", "reference_delta"): "a Delta ID",
     ("vectors/wist4/audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
 }
 

@@ -1,6 +1,7 @@
 {
-  "note": "Preimages of the example Audit Record's commitments. Each is HMAC-SHA256 keyed by the salt of the Payload the audit measured against \u2014 here examples/payload.json, the audited Delta's own Payload (WIST-4 \u00a75). Once that Payload is withdrawn the salt is gone and none of these commitments can be checked again.",
+  "note": "Preimages of the example Audit Record's commitments. Each is HMAC-SHA256 keyed by the salt of the Payload the audit measured against \u2014 here examples/payload.json, the Payload of the reference Delta, which in the example chain is the audited Delta itself (WIST-4 \u00a75). Once that Payload is withdrawn the salt is gone and none of these commitments can be checked again.",
   "audited_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+  "reference_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
   "salt_source": "examples/payload.json",
   "commitments": {
     "response_commitment": {

@@ -594,15 +594,17 @@ because they end at different times and for different reasons.
 
 *Resolution.* A URL's **anchor Payload as of a Delta *d*** is the Payload
 of the last content-bearing Delta at or before *d* in that URL's per-URL
-chain (WIST-1 §3.5). It is what an `attest` or `delete` Delta is audited
-against (WIST-4 §5) and the key under which that audit's own commitments are
-computed. The rule is relative to *d* rather than to the present, and
-carries no liveness qualifier: an anchor that moved whenever a later
-`update` was sealed would retroactively invalidate Records that were
-honest when they were written, and an anchor that a `delete` erased would
-leave a `delete` audit unable to name what it measured. Resolution never
-expires — the chain is in the Log — and it says nothing about whether the
-Payload can still be fetched.
+chain (WIST-1 §3.5). An audit names the Delta it resolves from — its
+`reference_delta`, the chain tip at fetch (WIST-4 §5) — and where that
+Delta is an `attest` or a `delete`, the anchor as of it is the Reference
+Payload and the key under which the audit's own commitments are
+computed. The rule is relative to a named *d* rather than to the
+present, so a sealed Record never changes meaning: an anchor that moved
+whenever a later `update` was sealed would retroactively invalidate
+Records that were honest when they were written, and an anchor that a
+`delete` erased would leave an audit of that `delete` unable to name
+what it measured. Resolution never expires — the chain is in the Log —
+and it says nothing about whether the Payload can still be fetched.
 
 *Serving.* An Aggregator MUST serve a Payload P, regardless of the
 availability window, until one availability window after the sealing of
@@ -617,7 +619,12 @@ nothing requires P to be served any longer. **A deleted URL's anchor
 Payload is therefore served for one window after the `delete` and no
 longer**: withdrawal is how content is removed *before* that point, not a
 precondition for removing it at all. A withdrawal under §6.2 ends the
-obligation immediately, at any point in its life.
+obligation immediately, at any point in its life. What the post-supersession
+window serves is verification: a fresh audit measures against the current
+anchor, served with no expiry while it remains the anchor and for one
+window after a `delete` ends the URL, and a Record sealed against the
+superseded one is checkable for as long as its Reference Payload can
+still be fetched.
 
 Resolution outliving serving is not a contradiction but the ordinary case:
 an audit whose Reference Payload it can name but cannot fetch is
