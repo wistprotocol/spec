@@ -2,6 +2,7 @@
   "record": {
     "wist_version": "1.0.0",
     "audited_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+    "reference_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": "hmac-sha256:07ef725032b51ef3fc4bfeb59324ad160f52363df4f165ff63e9473952bf637a",
@@ -16,6 +17,6 @@
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "8qG9hUuScEwY1SEUKu75m5Y-fRfzrswCxufvR-ny5tNb593xVLMT8gvY1x1vRw0DX_i-Pzkq6miaC9Tp_olVCg"
+    "value": "MkoPYoBheynD3wu316HLu9pWPNXlDrgMgInGB2WXLzlExPVI35-ZixiZT9Pvqr4gsIFqlWZde6vdWL6z-YMtDA"
   }
 }

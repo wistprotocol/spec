@@ -1041,6 +1041,9 @@ WARC_CAPTURE = b"warc-placeholder"
 audit_record = {
     "wist_version": "1.0.0",
     "audited_delta": delta_id,
+    # The example chain holds one Delta, so the chain tip at fetch is the
+    # audited Delta itself (WIST-4 §5).
+    "reference_delta": delta_id,
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": audit_commit(RESPONSE_BODY),
@@ -1068,10 +1071,13 @@ WIST4.mkdir(parents=True, exist_ok=True)
 write_json(WIST4 / "audit-commitments.json", {
     "note": ("Preimages of the example Audit Record's commitments. Each is "
              "HMAC-SHA256 keyed by the salt of the Payload the audit measured "
-             "against — here examples/payload.json, the audited Delta's own "
-             "Payload (WIST-4 §5). Once that Payload is withdrawn the salt is "
-             "gone and none of these commitments can be checked again."),
+             "against — here examples/payload.json, the Payload of the "
+             "reference Delta, which in the example chain is the audited "
+             "Delta itself (WIST-4 §5). Once that Payload is withdrawn the "
+             "salt is gone and none of these commitments can be checked "
+             "again."),
     "audited_delta": delta_id,
+    "reference_delta": delta_id,
     "salt_source": "examples/payload.json",
     "commitments": {
         "response_commitment": {
@@ -1994,6 +2000,159 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "void_cases": sanction_void_cases,
     "in_force_cases": sanction_in_force_cases,
 }))
+
+# ------------------------------------- WIST-4 §5: the reference Delta
+# A Record names `reference_delta`: the newest Delta of the audited Delta's
+# per-URL chain sealed at or before `fetched_at`. The Reference Payload is
+# the anchor as of that Delta, the change type read for the `delete` mirror
+# and the link dimension is that Delta's, and §3 rejects a reference outside
+# the chain, before the audited Delta, or sealed after `fetched_at`. The
+# expectations below are computed from the chain and asserted against a
+# hand-written table so the generator cannot drift from the prose silently.
+REF_CHAIN = [
+    {"id": "d1", "height": 1, "sealed_at_s": 0,      "change": "update", "payload": "P1"},
+    {"id": "d2", "height": 3, "sealed_at_s": 7_200,  "change": "update", "payload": "P2"},
+    {"id": "d3", "height": 5, "sealed_at_s": 14_400, "change": "attest", "payload": None},
+    {"id": "d3b", "height": 5, "sealed_at_s": 14_400, "change": "attest", "payload": None},
+    {"id": "d4", "height": 7, "sealed_at_s": 21_600, "change": "delete", "payload": None},
+    {"id": "d5", "height": 9, "sealed_at_s": 28_800, "change": "new",    "payload": "P3"},
+]
+REF_OTHER_CHAIN = [
+    {"id": "x1", "height": 2, "sealed_at_s": 3_600, "change": "update", "payload": "PX"},
+]
+CONTENT_BEARING = {"new", "update"}
+
+
+def ref_index(chain, delta_id):
+    for i, d in enumerate(chain):
+        if d["id"] == delta_id:
+            return i
+    return None
+
+
+def newest_at_or_before(chain, fetched_at_s):
+    """WIST-4 §5: the newest chain Delta whose Block sealed_at ≤ fetched_at."""
+    tip = None
+    for d in chain:
+        if d["sealed_at_s"] <= fetched_at_s:
+            tip = d["id"]
+    return tip
+
+
+def resolve_anchor(chain, delta_id):
+    """WIST-3 §6.1: the last content-bearing Delta at or before delta_id."""
+    for d in reversed(chain[: ref_index(chain, delta_id) + 1]):
+        if d["change"] in CONTENT_BEARING:
+            return d["payload"]
+    return None
+
+
+def reference_valid(chain, audited, reference, fetched_at_s):
+    """WIST-4 §3: the three recomputable rejections, in the order §3 lists them."""
+    ri, ai = ref_index(chain, reference), ref_index(chain, audited)
+    if ri is None:
+        return "WIST4-E02"
+    if ri < ai:
+        return "WIST4-E02"
+    if chain[ri]["sealed_at_s"] > fetched_at_s:
+        return "WIST4-E02"
+    return True
+
+
+def effective_similarity(similarity, change):
+    return MICRO - similarity if change == "delete" else similarity
+
+
+def verdict_from_effective(effective):
+    if effective >= SIMILARITY_CONSISTENT:
+        return "consistent"
+    if effective >= INCONSISTENT_EFFECTIVE_BELOW:
+        return "dynamic_variance"
+    return "inconsistent"
+
+
+SIMILARITY_CONSISTENT = 600_000
+
+
+def reference_case(label, audited, fetched_at_s, reference, record_height,
+                   record_sealed_at_s, similarity=None):
+    assert record_sealed_at_s >= fetched_at_s, "a Record seals after its fetch"
+    assert fetched_at_s >= REF_CHAIN[ref_index(REF_CHAIN, audited)]["sealed_at_s"], \
+        "a fetch precedes its audited Block"
+    valid = reference_valid(REF_CHAIN, audited, reference, fetched_at_s)
+    case = {
+        "label": label, "audited": audited, "fetched_at_s": fetched_at_s,
+        "reference": reference, "record_height": record_height,
+        "record_sealed_at_s": record_sealed_at_s, "valid": valid,
+        "expected_reference": newest_at_or_before(REF_CHAIN, fetched_at_s),
+        "resolved_payload": None, "reading_change": None,
+    }
+    if valid is True:
+        change = REF_CHAIN[ref_index(REF_CHAIN, reference)]["change"]
+        case["resolved_payload"] = resolve_anchor(REF_CHAIN, reference)
+        case["reading_change"] = change
+        if similarity is not None:
+            eff = effective_similarity(similarity, change)
+            verdict = verdict_from_effective(eff)
+            case.update({"similarity": similarity, "effective_similarity": eff,
+                         "verdict": verdict,
+                         "counts_toward_c": verdict == "consistent" and change in CONTENT_BEARING})
+    return case
+
+
+reference_cases = [
+    reference_case("tip-unchanged", "d1", 3_600, "d1", 2, 3_600, 950_000),
+    reference_case("honest-rewrite", "d1", 10_800, "d2", 4, 10_800, 980_000),
+    reference_case("stale-reference-not-decidable", "d1", 10_800, "d1", 4, 10_800, 20_000),
+    reference_case("attest-after-rewrite", "d3", 18_000, "d3b", 6, 18_000, 900_000),
+    reference_case("audited-attest-tip-delete", "d3", 25_200, "d4", 8, 25_200, 0),
+    reference_case("delete-then-recreated", "d4", 32_400, "d5", 10, 32_400, 990_000),
+    reference_case("reactive-truth-after-fetch", "d1", 3_600, "d2", 4, 10_800),
+    reference_case("reference-before-audited", "d2", 10_800, "d1", 4, 10_800),
+    reference_case("reference-from-another-chain", "d1", 10_800, "x1", 4, 10_800),
+    reference_case("boundary-sealed-at-equals-fetched-at", "d1", 7_200, "d2", 4, 10_800, 980_000),
+]
+
+REFERENCE_EXPECTED = {
+    "tip-unchanged":                        (True,        "d1",  "P1", "update", "consistent",   True),
+    "honest-rewrite":                       (True,        "d2",  "P2", "update", "consistent",   True),
+    "stale-reference-not-decidable":        (True,        "d2",  "P1", "update", "inconsistent", False),
+    "attest-after-rewrite":                 (True,        "d3b", "P2", "attest", "consistent",   False),
+    "audited-attest-tip-delete":            (True,        "d4",  "P2", "delete", "consistent",   False),
+    "delete-then-recreated":                (True,        "d5",  "P3", "new",    "consistent",   True),
+    "reactive-truth-after-fetch":           ("WIST4-E02", "d1",  None, None,     None,           None),
+    "reference-before-audited":             ("WIST4-E02", "d2",  None, None,     None,           None),
+    "reference-from-another-chain":         ("WIST4-E02", "d2",  None, None,     None,           None),
+    "boundary-sealed-at-equals-fetched-at": (True,        "d2",  "P2", "update", "consistent",   True),
+}
+for c in reference_cases:
+    exp = REFERENCE_EXPECTED[c["label"]]
+    got = (c["valid"], c["expected_reference"], c["resolved_payload"],
+           c["reading_change"], c.get("verdict"), c.get("counts_toward_c"))
+    assert got == exp, f"reference vector drifted: {c['label']}: {got} != {exp}"
+assert {c["valid"] for c in reference_cases} == {True, "WIST4-E02"}
+
+write_json(WIST4 / "superseded-audit.json", {
+    "note": ("WIST-4 §5 reference_delta: which Delta an audit is measured "
+             "against — the newest Delta of the audited Delta's per-URL chain "
+             "sealed at or before fetched_at — the Reference Payload as the "
+             "anchor as of it (WIST-3 §6.1), the change type read for the "
+             "delete mirror, §6.1's C eligibility, and the three §3/§10 "
+             "WIST4-E02 rejections over the reference. The chain carries "
+             "two Deltas in one Block, so the tiebreak — ascending Block "
+             "height, then chain order within a Block — is exercised. "
+             "expected_reference is what an honest Auditor names; the "
+             "stale-reference case is valid because naming an older tip is "
+             "not decidable from the Log, and is met by independent "
+             "confirmation, not rejection."),
+    "similarity_consistent": SIMILARITY_CONSISTENT,
+    "similarity_variance_floor": INCONSISTENT_EFFECTIVE_BELOW,
+    "chain": REF_CHAIN,
+    "other_chain": REF_OTHER_CHAIN,
+    "cases": reference_cases,
+})
+print("wist4 reference-delta vector: %d cases" % len(reference_cases))
+
 print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%d+%d+%d extension=%d+%d+%d+%d sanctions=%d+%d+%d+%d cases" % (
     len(confirmation_cases), len(derivation_scenarios),
     len(coverage_pair_cases), len(coverage_counting_cases), len(coverage_state_cases),

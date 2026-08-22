@@ -183,6 +183,17 @@ recomputing reputation MUST reject:
   cannot have fetched before that Block was sealed, and no Record is sealed
   before it is written. A `fetched_at` outside that interval contradicts
   the Log's own ordering;
+- a Record whose `reference_delta` (§5) is not a sealed Delta in the same
+  per-URL chain as `audited_delta`; or precedes `audited_delta` in that
+  chain; or is sealed in a Block whose `sealed_at` is after the Record's
+  `fetched_at` — which, with the interval above, also places it at or
+  before the Record's own Block. Each test reads the chain and two Block
+  timestamps, all in the Log. What no test reads is whether the Auditor
+  named the *newest* qualifying Delta rather than an older one: that is a
+  false statement of the same class as a false `similarity`, and it meets
+  the same answer — a Confirmed Inconsistency needs a second independent
+  Auditor, and a lone `inconsistent` against a stale reference is
+  contradicted by the peers §4's extension rule summons;
 - a Record whose Auditor audited a domain the self-audit rule above puts
   beyond it;
 - a Record whose Auditor was **in coverage failure** at the `sealed_at` of
@@ -204,7 +215,7 @@ recomputing reputation MUST reject:
   asserts a comparison against a reference set the audit had none of.
   Both cases are decidable from the Log by the party doing the
   rejecting: the verdict is in the Record, and a validator already
-  resolves `audited_delta` to its change type to apply §5's `delete`
+  resolves `reference_delta` to its change type to apply §5's `delete`
   mirror. The one neutral case this rejection does not reach is a
   non-HTML representation (WIST-2 §11), which no party can settle from the
   Log alone; there the reading is evidence like the rest of the Record's
@@ -559,6 +570,8 @@ Worked numbers for this section — real values from `vectors/wist4/sampling.jso
 
 An Audit Record is an Envelope whose inner object is `record` (WIST-1 §4),
 and its fields are: `audited_delta` (the Delta ID under audit),
+`reference_delta` (the Delta the audit measured against: the URL's chain
+tip at fetch, fixed below),
 `auditor_id` (the Auditor's hostname identity), `fetched_at` (when the
 Auditor fetched the URL), `response_commitment` (over the raw response
 body), `ref_extract_commitment` (over the Auditor's own reference
@@ -578,22 +591,52 @@ makes unique and permanent. `vrf_proof` is REQUIRED in every Record,
 `unreachable` and `not_auditable` included, because it is what establishes
 the Auditor's right and duty to have audited at all.
 
+**`reference_delta`.** Every Record names the Delta it measured against.
+`reference_delta` is the ID of the newest Delta in the audited Delta's
+per-URL chain (WIST-1 §3.5: the same Publisher, the same Normalized URL)
+sealed in a Block whose `sealed_at` is at or before the Record's
+`fetched_at`. "Newest" is Log order — ascending Block height, then chain
+order within a Block (WIST-3 §3.3). The audited Delta always qualifies,
+because §3 already places `fetched_at` at or after its Block's
+`sealed_at`, so the member is determinable for every Record,
+`unreachable` and `not_auditable` included; where the chain has not
+advanced by the fetch, `reference_delta` is `audited_delta`. An Auditor
+holds the Log head when it fetches — its selection is derived from Block
+Hashes — so the tip at fetch is a fact it already has.
+
 **The Reference Payload.** Every audit is measured against exactly one
-Payload, and which one is fixed by the audited Delta alone:
+Payload, and which one is fixed by `reference_delta` alone:
 
-- for a `new` or `update` Delta, the audited Delta's own Payload;
-- for an `attest` or a `delete` Delta, the Payload of the **last
-  content-bearing Delta at or before `audited_delta`** in that URL's
-  per-URL chain (WIST-1 §3.5) — the URL's anchor Payload as of the audited
-  Delta (WIST-3 §6.1).
+- for a `new` or `update` reference Delta, that Delta's own Payload;
+- for an `attest` or a `delete` reference Delta, the Payload of the **last
+  content-bearing Delta at or before `reference_delta`** in that URL's
+  per-URL chain — the URL's anchor Payload as of `reference_delta`
+  (WIST-3 §6.1).
 
-The qualifier "at or before `audited_delta`" is normative and is what
-makes a Record verifiable at any later height. Resolving the reference to
-whatever the URL's current anchor happens to be would silently change it
-whenever a later `update` is sealed, and with it the salt below, so a
-Record audited honestly would stop verifying through no act of its
-Auditor's. Because the chain, its order, and every Delta in it are in the
-Log, the resolution is deterministic from Log order alone.
+The reference is named in the Record rather than resolved from the URL's
+present state, and that is what makes a Record verifiable at any later
+height: a later `update` changes nothing the Record says, and the salt
+below stays the salt of the Payload the Auditor actually held. Measuring
+against the chain tip at fetch rather than against the audited Delta is
+what makes an audit a question the Publisher can answer honestly. The
+claim a page must carry at any instant is the Publisher's *latest* sealed
+claim: a Publisher that rewrote a page and sealed the rewrite before an
+Auditor fetched is judged on the rewrite, and a Publisher whose latest
+sealed claim is not what it serves is judged on that. A reference fixed
+by the audited Delta alone would instead measure an honest rewrite
+against text the Publisher had already replaced, and the extension rule
+(§4) — which summons every independent Auditor *after* the first
+divergence — would confirm the finding against every page that changes
+faster than the audit window. The reading is not the Record's own Block
+either: a reference that could be any Delta sealed before the Record
+seals would let a Publisher answer a fetch it noticed with an `update`
+declaring whatever it served, and every lie would be followed by its own
+absolution. Because the chain, its order, every Delta in it and the
+Block `sealed_at` values are in the Log, the resolution is deterministic
+from Log order alone.
+
+Wherever this section reads a change type — the `delete` mirror, the link
+dimension's applicability, §6's `C` — it reads the **reference Delta's**.
 
 A `delete` audit has a Reference Payload for the same reason it has
 anything to check: the claim a `delete` makes is that the content its
@@ -601,13 +644,13 @@ chain last committed to is no longer served (WIST-1 §3.3), so that Payload
 is what the claim is judged against, and the capture the Auditor preserves
 may contain that very content where the claim is false.
 
-When an audit has nothing to measure against, the verdict is
-`not_auditable`. That covers four cases: the Reference Payload has been
-withdrawn (WIST-3 §6.2); it cannot be fetched from any source; the URL's
-chain has never carried a content-bearing Delta, so no anchor exists to
-resolve; and the Reference Payload is obtained and verifies but its
-`extract` is empty under the normalization below, so the Payload exists and
-there is still no text the audit could confirm or refute.
+When an audit has nothing to measure against, the verdict is `not_auditable`.
+That covers four cases: the Reference Payload has been withdrawn (WIST-3
+§6.2); it cannot be fetched from any source; the URL's chain carries no
+content-bearing Delta at or before `reference_delta`, so no anchor exists to
+resolve; and the Reference Payload is obtained and verifies but its `extract`
+is empty under the normalization below, so the Payload exists and there is
+still no text the audit could confirm or refute.
 
 WIST-1 §3.3 requires `payload` on every `new` and `update`, so a Delta
 claiming content while committing to none is rejected (`WIST1-E09`) and never
@@ -660,8 +703,8 @@ Record carries a `similarity` whenever it carries a judgement that was read
 from one, and what the change type adjusts is the *reading* — the mirror
 below — never the presence of the field. That is what keeps §7's severity
 derivable for every Confirmed Inconsistency, and it is enforceable by the
-schema, which sees a verdict but cannot resolve `audited_delta` to a change
-type.
+schema, which sees a verdict but cannot resolve `reference_delta` to a
+change type.
 
 A bare digest here would undo the rest of this design. Moving extracts out
 of the Log accomplishes nothing if the Log keeps unsalted hashes of the
@@ -760,11 +803,14 @@ records it.
 **What an audit fetches.** The Delta commits to content it does not carry
 (WIST-1 §3.6), so an Auditor holding a Block fetches two further things: the
 audit's **Reference Payload**, defined below, from
-`/payloads/<reference-delta-id-hex>.json` at the Aggregator, a Mirror, or
-the Publisher (WIST-3 §6.1, WIST-2 §3.1) — where `<reference-delta-id-hex>`
-names the Delta whose Payload that is, which for an `attest` or a `delete`
-is an earlier Delta in the chain and not `audited_delta` — and the URL
-itself. It MUST verify that Payload against **its own** Delta's
+`/payloads/<delta-id-hex>.json` at the Aggregator, a Mirror, or the
+Publisher (WIST-3 §6.1, WIST-2 §3.1) — where `<delta-id-hex>` is the ID of
+the Delta whose Payload the Reference Payload is, `reference_delta` itself
+where that Delta is content-bearing and the last content-bearing Delta at
+or before it otherwise — and the URL itself. That Delta may be
+`audited_delta`, may be earlier than it in the chain, or, where a
+content-bearing reference was sealed after the audited Delta, may be later
+than it. The Auditor MUST verify that Payload against **its own** Delta's
 `commitment` and `bytes` before comparing anything, and MUST reject a
 Payload that fails (`WIST1-E10`) rather than audit against it. The
 commitment was fixed when the Publisher signed that Delta, so a Payload
@@ -954,8 +1000,8 @@ over the **effective similarity**:
 
 Every threshold in this suite is read over the effective similarity —
 the table below and §7's severity bands alike — while `similarity` is what
-the Record seals. A validator resolving `audited_delta` to its change type
-applies the mirror; nothing else in the pipeline changes shape.
+the Record seals. A validator resolving `reference_delta` to its change
+type applies the mirror; nothing else in the pipeline changes shape.
 
 | Verdict | Condition |
 |---------|-----------|
@@ -1010,13 +1056,12 @@ it — and the qualifying clause is simply vacuous, not applying, for a
 second over `link_agreement` where and only where the first admits it:
 exactly one verdict fits every audit, seven rows included.
 
-**The link dimension.** Where the audited change type is `new`, `update`
-or `attest` and the fetched representation is HTML in the sense WIST-2 §11
-fixes — by the `Content-Type` media type alone, never by sniffing the
-body — the Auditor also applies that section's extraction procedure to
-its own fetched octets and compares the result against the Reference
-Payload's `links` member. Two integer readings, each in micro-units,
-combine by minimum:
+**The link dimension.** Where the reference Delta's change type is `new`,
+`update` or `attest` and the fetched representation is HTML in the sense
+WIST-2 §11 fixes — by the `Content-Type` media type alone, never by sniffing
+the body — the Auditor also applies that section's extraction procedure to its
+own fetched octets and compares the result against the Reference Payload's
+`links` member. Two integer readings, each in micro-units, combine by minimum:
 
     subset  = floor(|D ∩ O| × 1 000 000 / |D ∪ O|)        D, O non-empty union
             = 1 000 000                                    D = O = ∅
@@ -1050,18 +1095,18 @@ no `link_agreement`, is a fact any party recomputing reputation can see
 and weigh, not a silent gap.
 
 **`delete` audits.** Two consequences of the mirror are worth stating
-outright. A `404` or `410` response to a `delete` audit is not a fetch
-failure but the state the Delta claims: the Auditor treats it as a
-representation, its observed text is empty, `similarity` is 0, the
-effective similarity is 1 000 000, and the verdict is `consistent`. And a
-URL still serving the content its chain committed to after a `delete` is
-`inconsistent` — its effective similarity is below 300 000 like any other,
-so §7 derives its severity from the same bands over the same sealed field
-as for every other Confirmed Inconsistency. A `delete` is a claim like
+outright. A `404` or `410` response to an audit whose reference Delta is a
+`delete` is not a fetch failure but the state the Delta claims: the Auditor
+treats it as a representation, its observed text is empty, `similarity` is 0,
+the effective similarity is 1 000 000, and the verdict is `consistent`. And a
+URL still serving the content its chain committed to after a `delete`
+reference is `inconsistent` — its effective similarity is below 300 000 like
+any other, so §7 derives its severity from the same bands over the same sealed
+field as for every other Confirmed Inconsistency. A `delete` is a claim like
 the rest and MUST NOT become a way to retire a false one by making it
-unmeasurable: were a false `delete` to carry no severity input, publishing
-one would be the cheapest way to end an audit trail that was about to
-contradict the Publisher.
+unmeasurable: were a false `delete` to carry no severity input, publishing one
+would be the cheapest way to end an audit trail that was about to contradict
+the Publisher.
 
 `attest` and `delete` Deltas carry no Payload of their own, so both depend
 on a Payload that may have been sealed long before
@@ -1079,10 +1124,11 @@ nonetheless unobtainable from every source, or has been withdrawn, the
 verdict is `not_auditable`.
 
 From the sealing height of a `payload_withdrawal` (WIST-3 §6.2), an Auditor
-MUST record `not_auditable` for the affected Delta even if it still holds
-or can still obtain a copy of the Payload. Auditing is the one process
-that would otherwise keep re-establishing, in a permanent public record,
-the link between a withdrawn text and its commitment.
+MUST record `not_auditable` for every audit whose Reference Payload is the
+withdrawn one, even if it still holds or can still obtain a copy of the
+Payload. Auditing is the one process that would otherwise keep
+re-establishing, in a permanent public record, the link between a withdrawn
+text and its commitment.
 
 `dynamic_variance`, `unreachable`, `not_auditable` and `link_variance` are
 neutral: they never contribute to sanctions. Like `dynamic_variance`, a
@@ -1174,9 +1220,11 @@ Record triggers can still seal a confirmation inside the window it
 serves. The window is measured on
 Blocks and not on `fetched_at` for the reason §3 gives: `fetched_at` is
 Auditor-supplied, and a confirmation nobody can recompute is not evidence.
-Only Confirmed Inconsistencies and Confirmed Link Inconsistencies enter
-the reputation formula and sanction ladder. This absorbs A/B tests,
-geo-variation, and legitimate change between push and audit.
+Only Confirmed Inconsistencies and Confirmed Link Inconsistencies enter the
+reputation formula and sanction ladder. Independence absorbs what differs by
+vantage or by moment — A/B tests, geo-variation, a transient defacement — and
+`reference_delta` absorbs sealed change: a rewrite the Publisher sealed before
+the fetch is what the fetch is measured against.
 
 ## 6. Reputation
 
@@ -1256,9 +1304,10 @@ lower bound, and everything from height 0 counts.
   (exactly the Provisional cap) at `A` = 0 to 1 000 000 at `A` ≥ 730.
 - **`C`** = the number of distinct Normalized URLs (WIST-1 §3.2) of this
   domain that have at least one `consistent` Audit Record — sealed above
-  the domain's most recent identity reset and at a height ≤ N — for a
-  content-bearing Delta (`new` or `update`) on that URL, capped at
-  `C_cap` = 500. Audits of `attest` and `delete` Deltas never contribute.
+  the domain's most recent identity reset and at a height ≤ N — whose
+  `reference_delta` (§5) is a content-bearing Delta (`new` or `update`)
+  on that URL, capped at `C_cap` = 500. A Record whose reference is an
+  `attest` or a `delete` never contributes, whatever Delta it audited.
   Counting distinct URLs rather than Records, and capping the count,
   prevents a high-volume Publisher from diluting penalties toward zero.
 - **Confirmed Inconsistencies and Confirmed Link Inconsistencies.** Only
@@ -1500,7 +1549,7 @@ Records seal a *high* `similarity`, because the content is still served,
 and the §5 mirror turns that into the low effective value the bands below
 are written over. Every `inconsistent` verdict has an effective similarity
 below 300 000 by §5's own table, so every Confirmed Inconsistency lands in
-exactly one row, whatever its audited Delta's change type.
+exactly one row, whatever its reference Delta's change type.
 
 | Condition | `severity` |
 |---|---|
@@ -2114,7 +2163,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
 | WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that does not verify or whose `audited_delta` is outside the selection and §4's extension rule; a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency, no coverage discharge. |
-| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored as WIST4-E01. |
+| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored as WIST4-E01. |
 | WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
 | WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
@@ -2164,12 +2213,13 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   that Record recomputes the whole selection set, so covering some selected
   Deltas and not others is a failure for the Block, not partial credit (§4).
 - **Reputation gaming via attest-farming.** A domain cannot inflate `C`
-  by emitting torrents of trivially-true `attest` Deltas: audits of
-  `attest` and `delete` Deltas never contribute to `C` (§6). Nor can it
-  inflate `C` by re-publishing the same URL: `C` counts *distinct*
-  Normalized URLs with a `consistent` audit, capped at 500, so the only
-  way to dilute a penalty is to publish, and keep passing audits on, many
-  different pages — exactly the thing that is expensive to fake at scale.
+  by emitting torrents of trivially-true `attest` Deltas: a Record whose
+  reference Delta is an `attest` or a `delete` never contributes to `C`,
+  whatever Delta it audited (§6.1). Nor can it inflate `C` by
+  re-publishing the same URL: `C` counts *distinct* Normalized URLs with
+  a `consistent` audit, capped at 500, so the only way to dilute a
+  penalty is to publish, and keep passing audits on, many different
+  pages — exactly the thing that is expensive to fake at scale.
 - **Domain resale.** Reputation attaches to key continuity, not the name.
   A Declaration signed by neither the previous Key Set nor the previous
   `recovery_keys` is a fresh identity: `A` and `C` reset and the domain
@@ -2207,7 +2257,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 - **A sanction's severity can be neither fabricated nor suppressed.**
   Severity is derived from the confirming Audit Records' **effective
   similarity** values (§5) by the §7 table — the sealed `similarity` read
-  directly, or mirrored where the audited Delta is a `delete` — not
+  directly, or mirrored where the reference Delta is a `delete` — not
   asserted by the Aggregator, and §6.1 counts every Confirmed
   Inconsistency's and Confirmed Link Inconsistency's penalty from its
   confirming Block onward regardless of whether a `sanction` Registry
@@ -2392,9 +2442,10 @@ hands.
 - [ ] Meets the coverage duty for every Block sealed while admitted, within
       72 hours of `sealed_at` — a Record for **every** selected Delta, or a
       `coverage_attestation` when its VRF selected nothing (§4)
-- [ ] Resolves the Reference Payload as of `audited_delta`, not as of the
-      URL's current state, and verifies it against its own Delta's
-      commitment before comparing anything (§5)
+- [ ] Names as `reference_delta` the newest Delta of the URL's chain sealed
+      at or before its fetch, resolves the Reference Payload as of it, and
+      verifies that Payload against its own Delta's commitment before
+      comparing anything (§5)
 - [ ] Serves a Declaration at its own `auditor_id` carrying the admitted
       key, writes that same hostname — the one its `auditor_admit` names —
       in every Record, and never audits a Delta from a Publisher domain
@@ -2408,11 +2459,12 @@ hands.
       fetch of the Reference Payload's page when checking the declared
       `links` member (§5, WIST-2 §11)
 - [ ] Computes `link_agreement` and seals the field on the Record
-      whenever the link dimension applies — a `new`, `update` or `attest`
-      audit of an HTML representation (WIST-2 §11) that produced a measured
-      verdict, never on an `unreachable` or `not_auditable` Record — and
-      reads `link_variance` or `link_inconsistent` from it once the
-      extract reading is also `consistent` (§5)
+      whenever the link dimension applies — a reference Delta whose
+      change type is `new`, `update` or `attest`, an HTML representation
+      (WIST-2 §11), and a measured verdict, never on an `unreachable` or
+      `not_auditable` Record — and reads `link_variance` or
+      `link_inconsistent` from it once the extract reading is also
+      `consistent` (§5)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
       — including where the file discriminates between admitted Auditors,
@@ -2501,8 +2553,9 @@ hands.
       their own Block's `sealed_at`, whether or not an `auditor_remove`
       was ever sealed, and counts them again once the failures age out of
       the 30-day window (§3, §4)
-- [ ] Excludes `attest` and `delete` audits from `C`, counts distinct
-      Normalized URLs, and applies `C_cap` (§6.1)
+- [ ] Excludes from `C` a Record whose `reference_delta` is an `attest`
+      or a `delete`, whatever Delta it audited; counts distinct
+      Normalized URLs; and applies `C_cap` (§6.1)
 - [ ] Applies the Provisional cap as a ceiling, not a floor (§6.2), and
       resets `A`/`C` only for a fresh identity — never for an ordinary or
       recovery rotation (§6.3)
