@@ -855,3 +855,40 @@ case — the reference an honest Auditor names, the anchor as of it, the
 reading change type, the verdict, `C` eligibility and the three
 rejections — and its twin proves the check sees a moved reference; the
 example Record carries the member.
+
+## 2026-08-22 — WIST-4 §6.1, vectors: a vector states no rule or formula (revision, not errata)
+
+Removes `note` from `vectors/wist4/decay-table.json` and `formula` from
+`vectors/wist4/reputation.json`; shortens the file-level `note` of
+`vectors/wist3/empty-block.json` and of `vectors/wist4/{confirmation,
+coverage,derivation,extension,link-agreement,sanctions,superseded-audit}.json`
+to a section pointer and the file's member layout; and rewrites two
+per-case notes in `reputation.json` to describe the input only. Each
+removed sentence restated the rule or formula the file's values are
+computed from — the §6.1 formulas, the hashing rule, window endpoints,
+tiebreaks, the link-agreement formula, an expected `Q`.
+`tools/gen_vectors.py` no longer emits them. The §6.1 pin on the decay
+table's bytes moves from
+`f0cd1eb48cbfb1647a083b4ba06e7f69e6c42d5b5f4bf8e4f42b97c6bfdf7dc1` to
+`1ef9e9be20c99e595c1c75c5ab63409e1cc4f9540b466b67ecebf4e2959986b9`. No
+value in any file changes.
+
+**What it states.** A rule has one statement, in the prose; a vector
+holds inputs and expected outputs. A paraphrase inside a vector is
+checked by nothing — the validator recomputes values, not notes — so it
+drifts from the prose silently, and being shorter it is the copy an
+implementer reads first; and a reader deriving the expected values from
+the prose alone, the check that detects a wrong vector, gets the answer
+handed to them by the file they are meant to check. The per-case `why`
+members of the WIST-1 vectors are kept: they cite the clause a case
+exercises, which is what a failing case needs, and state no procedure.
+
+**Why it is a revision.** It fails the first condition. §6.1 makes the
+decay table normative as bytes, so an implementation carrying the
+previous file — which conformed — no longer hashes to the pinned digest.
+Every other edit is to text no implementation reads. The change is
+scoped to the prose members and the pin; every value is unchanged.
+
+**Status.** Exercised. `vectors:wist4-decay-table` asserts the file's
+structure and that its digest is the one §6.1 pins; every other vector
+check recomputes the values the removed text described.

@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a77 ladder state derivation. Escalation criteria produce met-times from Confirmed Inconsistencies (identity-scoped per \u00a76.3 before they arrive here); notices, appeals and rulings produce void instants; a rung is in force at N when its latest met time at or before N is later than its latest clear time. Level 4's accrual branch counts findings sealed while level 3 was in force strictly before them.",
+  "note": "WIST-4 \u00a77 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
   "escalation": {
     "l2": {
       "count": 3,

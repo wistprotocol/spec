@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a74 coverage-failure counting. A failed (Auditor, Block) pair counts when a pull_attestation shows the duty unmet and no prev_record chain contradicts it, or when the pair is unattested \u2014 unless the Auditor holds chain proof of an unsealed published item in the same 30-day window. The state holds while strictly more than coverage_failures_max counting failures sit inside the 30 whole days ending at Block N (window end-inclusive, start-exclusive).",
+  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, and the coverage-failure state.",
   "coverage_deadline_hours": 72,
   "coverage_failures_max": 24,
   "record_seal_blocks": 24,

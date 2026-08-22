@@ -1,5 +1,5 @@
 {
-  "note": "Worked link_agreement cases (WIST-4 \u00a75): min(subset Jaccard, count agreement), integer micro-units.",
+  "note": "Worked link_agreement cases (WIST-4 \u00a75), integer micro-units.",
   "cases": [
     {
       "label": "exact-match",

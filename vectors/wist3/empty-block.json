@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a74: a Block with no Entries. `merkle_root` is SHA-256(0x00) \u2014 the empty-tree deviation from RFC 6962, whose own constant is SHA-256 of the empty string \u2014 and `block_hash` is SHA-256 over the JCS bytes of the header alone (\u00a73.1). A verifier that rejects this Block rejects every heartbeat the cadence requires.",
+  "note": "WIST-3 \u00a74: a Block with no Entries, hashed per \u00a73.1. `rfc6962_empty_root` is RFC 6962's own empty-tree constant, for contrast.",
   "block": {
     "header": {
       "wist_version": "1.0.0",

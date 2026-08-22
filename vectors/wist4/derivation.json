@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. Identity scope: heights strictly above the most recent reset at or below N, and at most N. penalty_inputs rows are [severity, t_days], ascending t then ascending Delta ID bytes, ready for \u00a76.1's penalty_n.",
+  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. penalty_inputs rows are [severity, t_days].",
   "c_cap": 500,
   "cases": [
     {
