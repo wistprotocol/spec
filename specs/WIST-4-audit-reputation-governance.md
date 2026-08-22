@@ -1344,7 +1344,7 @@ lower bound, and everything from height 0 counts.
   `decay(1825)` = 39 512 (3.95e-5 of full weight) to zero; that step can
   only raise a reputation, never lower one. The table is normative as
   *bytes*: SHA-256 of the file is
-  `f0cd1eb48cbfb1647a083b4ba06e7f69e6c42d5b5f4bf8e4f42b97c6bfdf7dc1`, and
+  `1ef9e9be20c99e595c1c75c5ab63409e1cc4f9540b466b67ecebf4e2959986b9`, and
   an implementation carrying a table that does not hash to that value is
   non-conforming even if every entry looks plausible. Changing the table
   changes every reputation in the system and is a `parameter_change` (§9)

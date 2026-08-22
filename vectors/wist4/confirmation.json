@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75/\u00a77 confirming-block selection over one Delta's inconsistent Records in Log order. The window is pairwise and ends at the confirming Record's Block; severity reads the highest effective similarity over the closed confirming set (records past confirming_index never move it). For link_inconsistent Records the selection is identical and severity is fixed at 1 (\u00a77).",
+  "note": "WIST-4 \u00a75/\u00a77 confirming-block selection and severity over one Delta's inconsistent Records in Log order.",
   "confirm_window_hours": 72,
   "severity_bands": {
     "minor_floor": 150000,

@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75 reference_delta: which Delta an audit is measured against \u2014 the newest Delta of the audited Delta's per-URL chain sealed at or before fetched_at \u2014 the Reference Payload as the anchor as of it (WIST-3 \u00a76.1), the change type read for the delete mirror, \u00a76.1's C eligibility, and the three \u00a73/\u00a710 WIST4-E02 rejections over the reference. The chain carries two Deltas in one Block, so the tiebreak \u2014 ascending Block height, then chain order within a Block \u2014 is exercised. expected_reference is what an honest Auditor names; the stale-reference case is valid because naming an older tip is not decidable from the Log, and is met by independent confirmation, not rejection.",
+  "note": "WIST-4 \u00a75 reference_delta and what is read as of it (WIST-3 \u00a76.1), plus the WIST4-E02 rejections over it. expected_reference is what an honest Auditor names.",
   "similarity_consistent": 600000,
   "similarity_variance_floor": 300000,
   "chain": [

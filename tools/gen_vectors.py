@@ -813,12 +813,7 @@ empty_block = {"header": empty_header, "entries": [],
                "sig": {"key_id": "test-agg-k1", "alg": "Ed25519",
                        "value": b64u(priv.sign(empty_canonical))}}
 write_json(WIST3 / "empty-block.json", {
-    "note": ("WIST-3 §4: a Block with no Entries. `merkle_root` is "
-             "SHA-256(0x00) — the empty-tree deviation from RFC 6962, whose "
-             "own constant is SHA-256 of the empty string — and `block_hash` "
-             "is SHA-256 over the JCS bytes of the header alone (§3.1). A "
-             "verifier that rejects this Block rejects every heartbeat the "
-             "cadence requires."),
+    "note": "WIST-3 §4: a Block with no Entries, hashed per §3.1. `rfc6962_empty_root` is RFC 6962's own empty-tree constant, for contrast.",
     "block": empty_block,
     "block_hash": "sha256:" + sha256_hex(empty_canonical),
     "rfc6962_empty_root": "sha256:" + hashlib.sha256(b"").hexdigest(),
@@ -1096,8 +1091,7 @@ write_json(WIST4 / "audit-commitments.json", {
 AGREE_D = CONTENT["links"]["urls"]          # the example Payload's declaration
 AGREE_TOTAL = CONTENT["links"]["total"]     # ditto, its total (WIST-1 §3.6 links.total)
 write_json(WIST4 / "link-agreement.json", {
-    "note": ("Worked link_agreement cases (WIST-4 §5): "
-             "min(subset Jaccard, count agreement), integer micro-units."),
+    "note": "Worked link_agreement cases (WIST-4 §5), integer micro-units.",
     "cases": [
         {"label": "exact-match", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
          "observed_urls": AGREE_D, "observed_total": AGREE_TOTAL,
@@ -1295,7 +1289,6 @@ assert all(decay_table[i] > decay_table[i + 1] for i in range(DECAY_MAX_DAYS)), 
 write_json(WIST4 / "decay-table.json", {
     "scale": DECAY_SCALE,
     "max_days": DECAY_MAX_DAYS,
-    "note": "decay(t) = floor(exp(-t/180) * 1e9); decay(t) = 0 for t > 1825",
     "values": decay_table,
 })
 print("wist4 decay table: decay(0)=%d decay(30)=%d decay(1825)=%d" % (
@@ -1405,12 +1398,10 @@ boundary = [
     reputation_case("gate-age-below-penalized", 29, 10, [(2, 30)],
                     "same, with a severity-2 Confirmed Inconsistency at t = 30"),
     reputation_case("gate-age-at-penalized", 30, 10, [(2, 30)],
-                    "the cap is a ceiling, so the penalty is not laundered away"),
+                    "same, exactly at both gates"),
     reputation_case("gate-c-below", 800, 9, [], "aged but under-audited: the cap binds"),
     reputation_case("gate-c-at", 800, 10, [], "the same domain one audited URL later"),
-    reputation_case("new-domain", 0, 0, [],
-                    "a brand-new domain: base_u equals the cap exactly, so the "
-                    "ungated formula already sits at 0.10 and Q = 1100"),
+    reputation_case("new-domain", 0, 0, [], "a brand-new domain"),
 ]
 
 write_json(WIST4 / "reputation.json", {
@@ -1430,8 +1421,6 @@ write_json(WIST4 / "reputation.json", {
         "quota_slope": 10_000,
         "inclusion_latency_threshold_u": 500_000,
     },
-    "formula": ("reputation_u = base_u x (C+1) x 1e9 / ((C+1) x 1e9 + 5 x penalty_n), "
-                "integer division; then min(., 100000) while A < 30 or C < 10"),
     "worked_example": primary,
     "boundary": boundary,
 })
@@ -1565,13 +1554,7 @@ for label, records in confirmation_scenarios:
     })
 
 write_json(WIST4 / "confirmation.json", spaced_labels({
-    "note": ("WIST-4 §5/§7 confirming-block selection over one Delta's "
-             "inconsistent Records in Log order. The window is pairwise and "
-             "ends at the confirming Record's Block; severity reads the "
-             "highest effective similarity over the closed confirming set "
-             "(records past confirming_index never move it). For "
-             "link_inconsistent Records the selection is identical and "
-             "severity is fixed at 1 (§7)."),
+    "note": "WIST-4 §5/§7 confirming-block selection and severity over one Delta's inconsistent Records in Log order.",
     "confirm_window_hours": CONFIRM_WINDOW_HOURS,
     "severity_bands": {"minor_floor": SEVERITY_MINOR_FLOOR,
                        "misleading_floor": SEVERITY_MISLEADING_FLOOR,
@@ -1649,11 +1632,7 @@ for case in derivation_scenarios:
     case["expected"] = derive_inputs(case)
 
 write_json(WIST4 / "derivation.json", spaced_labels({
-    "note": ("WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. "
-             "Identity scope: heights strictly above the most recent reset at "
-             "or below N, and at most N. penalty_inputs rows are "
-             "[severity, t_days], ascending t then ascending Delta ID bytes, "
-             "ready for §6.1's penalty_n."),
+    "note": "WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. penalty_inputs rows are [severity, t_days].",
     "c_cap": C_CAP,
     "cases": derivation_scenarios,
 }))
@@ -1718,14 +1697,7 @@ coverage_state_cases = [
 ]
 
 write_json(WIST4 / "coverage.json", spaced_labels({
-    "note": ("WIST-4 §4 coverage-failure counting. A failed (Auditor, Block) "
-             "pair counts when a pull_attestation shows the duty unmet and no "
-             "prev_record chain contradicts it, or when the pair is unattested "
-             "— unless the Auditor holds chain proof of an unsealed published "
-             "item in the same 30-day window. The state holds while strictly "
-             "more than coverage_failures_max counting failures sit inside "
-             "the 30 whole days ending at Block N (window end-inclusive, "
-             "start-exclusive)."),
+    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, and the coverage-failure state.",
     "coverage_deadline_hours": 72,
     "coverage_failures_max": COVERAGE_FAILURES_MAX,
     "record_seal_blocks": 24,
@@ -1822,15 +1794,7 @@ divergence_cases = [
 ]
 
 write_json(WIST4 / "extension.json", spaced_labels({
-    "note": ("WIST-4 §4 extension rule. A Record triggers when no earlier "
-             "inconsistent/link_inconsistent Record for the Delta sits inside "
-             "the confirmation window ending at its Block; a trigger summons "
-             "only while its Auditor has fewer than extension_triggers_max "
-             "summoning triggers in the trailing 30 days (a rationed-out "
-             "trigger consumes no ration); the summoned set is every admitted "
-             "Auditor independent of every filer and of the Publisher; "
-             "divergence holds while strictly more than contradictions_max "
-             "contradictions sit inside the trailing 30 days."),
+    "note": "WIST-4 §4 extension rule: trigger, ration, summoned set and divergence.",
     "confirm_window_hours": CONFIRM_WINDOW_HOURS,
     "extension_triggers_max": EXTENSION_TRIGGERS_MAX,
     "contradictions_max": CONTRADICTIONS_MAX,
@@ -1981,13 +1945,7 @@ sanction_in_force_cases = [
 ]
 
 write_json(WIST4 / "sanctions.json", spaced_labels({
-    "note": ("WIST-4 §7 ladder state derivation. Escalation criteria produce "
-             "met-times from Confirmed Inconsistencies (identity-scoped per "
-             "§6.3 before they arrive here); notices, appeals and rulings "
-             "produce void instants; a rung is in force at N when its latest "
-             "met time at or before N is later than its latest clear time. "
-             "Level 4's accrual branch counts findings sealed while level 3 "
-             "was in force strictly before them."),
+    "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
                    "l3_count": {"count": 10, "days": 90},
                    "l3_severity": 3,
@@ -2133,18 +2091,7 @@ for c in reference_cases:
 assert {c["valid"] for c in reference_cases} == {True, "WIST4-E02"}
 
 write_json(WIST4 / "superseded-audit.json", {
-    "note": ("WIST-4 §5 reference_delta: which Delta an audit is measured "
-             "against — the newest Delta of the audited Delta's per-URL chain "
-             "sealed at or before fetched_at — the Reference Payload as the "
-             "anchor as of it (WIST-3 §6.1), the change type read for the "
-             "delete mirror, §6.1's C eligibility, and the three §3/§10 "
-             "WIST4-E02 rejections over the reference. The chain carries "
-             "two Deltas in one Block, so the tiebreak — ascending Block "
-             "height, then chain order within a Block — is exercised. "
-             "expected_reference is what an honest Auditor names; the "
-             "stale-reference case is valid because naming an older tip is "
-             "not decidable from the Log, and is met by independent "
-             "confirmation, not rejection."),
+    "note": "WIST-4 §5 reference_delta and what is read as of it (WIST-3 §6.1), plus the WIST4-E02 rejections over it. expected_reference is what an honest Auditor names.",
     "similarity_consistent": SIMILARITY_CONSISTENT,
     "similarity_variance_floor": INCONSISTENT_EFFECTIVE_BELOW,
     "chain": REF_CHAIN,

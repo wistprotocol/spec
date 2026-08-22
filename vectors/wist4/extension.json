@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a74 extension rule. A Record triggers when no earlier inconsistent/link_inconsistent Record for the Delta sits inside the confirmation window ending at its Block; a trigger summons only while its Auditor has fewer than extension_triggers_max summoning triggers in the trailing 30 days (a rationed-out trigger consumes no ration); the summoned set is every admitted Auditor independent of every filer and of the Publisher; divergence holds while strictly more than contradictions_max contradictions sit inside the trailing 30 days.",
+  "note": "WIST-4 \u00a74 extension rule: trigger, ration, summoned set and divergence.",
   "confirm_window_hours": 72,
   "extension_triggers_max": 3,
   "contradictions_max": 2,

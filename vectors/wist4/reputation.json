@@ -15,7 +15,6 @@
     "quota_slope": 10000,
     "inclusion_latency_threshold_u": 500000
   },
-  "formula": "reputation_u = base_u x (C+1) x 1e9 / ((C+1) x 1e9 + 5 x penalty_n), integer division; then min(., 100000) while A < 30 or C < 10",
   "worked_example": {
     "label": "worked-example",
     "note": "A = 400 days, C = 12 distinct audited URLs, one severity-2 Confirmed Inconsistency confirmed 30 days before Block N.",
@@ -126,7 +125,7 @@
     },
     {
       "label": "gate-age-at-penalized",
-      "note": "the cap is a ceiling, so the penalty is not laundered away",
+      "note": "same, exactly at both gates",
       "A": 30,
       "distinct_audited_urls": 10,
       "C": 10,
@@ -186,7 +185,7 @@
     },
     {
       "label": "new-domain",
-      "note": "a brand-new domain: base_u equals the cap exactly, so the ungated formula already sits at 0.10 and Q = 1100",
+      "note": "a brand-new domain",
       "A": 0,
       "distinct_audited_urls": 0,
       "C": 0,
