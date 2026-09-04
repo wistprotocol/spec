@@ -1569,7 +1569,15 @@ Exactly three things:
    A Delta queued under WIST-1 §5.2's recovery window is not yet
    eligible: its eligibility, and with it this ceiling's clock, starts
    at the first Block at or after the window's end, after WIST-1 §5.2's
-   revalidation.
+   revalidation. Eligibility is gated the same way by WIST-3 §3.2's
+   per-domain Block capacity: where more of a domain's Deltas are
+   eligible for a Block than `domain_block_entries_max` admits, they take
+   the capacity in acceptance order, and a Delta the cap holds out of a
+   Block becomes eligible for the first Block with room for it, which is
+   where its ceiling's clock starts. The ceiling bounds the Aggregator's
+   delay of a Delta whose turn has come, not the domain's rate: a
+   backfill of 50 000 accepted Deltas seals over five Blocks at the
+   default cap, and none of them is late.
    The ceiling exists because both ends of the eligible-to-sealed gap
    are otherwise the Aggregator's, and operator revenue —
    subscriptions to the fresh stream — is proportional to the free
@@ -2625,7 +2633,8 @@ hands.
       `record_seal_blocks`, and seals a `pull_attestation` for every
       pull — including the empty ones (§4)
 - [ ] Seals an accepted Delta within `max_inclusion_blocks` of its
-      eligibility Block (§6.4)
+      eligibility Block — the first Block with room for it under the
+      per-domain capacity, in acceptance order (§6.4, WIST-3 §3.2)
 - [ ] Seals a served, valid recovery Declaration within
       `record_seal_blocks` of discovering it (WIST-1 §5.2)
 - [ ] Enforces the §8 invariants unconditionally
