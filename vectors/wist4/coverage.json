@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, and the coverage-failure state.",
+  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, and which WIST4-E01 voids (\u00a710) still discharge the duty.",
   "coverage_deadline_hours": 72,
   "coverage_failures_max": 24,
   "record_seal_blocks": 24,
@@ -189,6 +189,43 @@
       ],
       "n_sealed_at_s": 8640000,
       "in_coverage_failure": false
+    }
+  ],
+  "discharge_cases": [
+    {
+      "label": "standing record",
+      "void": null,
+      "discharges": true
+    },
+    {
+      "label": "removed after the audited block",
+      "void": "removed after audited block",
+      "discharges": true
+    },
+    {
+      "label": "in coverage failure at sealing",
+      "void": "coverage failure at sealing",
+      "discharges": true
+    },
+    {
+      "label": "never admitted at the audited block",
+      "void": "never admitted",
+      "discharges": false
+    },
+    {
+      "label": "proof gives no standing",
+      "void": "proof without standing",
+      "discharges": false
+    },
+    {
+      "label": "outside the selection domain",
+      "void": "outside selection domain",
+      "discharges": false
+    },
+    {
+      "label": "self audit",
+      "void": "self audit",
+      "discharges": false
     }
   ]
 }
