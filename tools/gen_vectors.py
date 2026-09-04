@@ -2111,6 +2111,62 @@ write_json(WIST4 / "extension-proof.json", spaced_labels({
 }))
 print("wist4 extension-proof vector written")
 
+# ------------------------------------- WIST-4 §9: which amendment is in force
+# effective_at is inclusive; the greatest effective_at at or before T
+# prevails; an equal pair is broken by Log order (height, then Entry index).
+def value_in_force(default, changes, t_s):
+    live = [(i, c) for i, c in enumerate(changes) if c["effective_at_s"] <= t_s]
+    if not live:
+        return default, None
+    i, c = max(live, key=lambda ic: (ic[1]["effective_at_s"],
+                                     ic[1]["block_number"], ic[1]["entry_index"]))
+    return c["value"], i
+
+
+def param_change(block_number, entry_index, effective_at_s, value):
+    return {"block_number": block_number, "entry_index": entry_index,
+            "sealed_at_s": block_number * HOUR_S, "effective_at_s": effective_at_s,
+            "value": value}
+
+
+def param_case(label, default, changes, query_times):
+    queries = []
+    for t in query_times:
+        value, source = value_in_force(default, changes, t)
+        queries.append({"t_s": t, "value": value, "from_index": source})
+    return {"label": label, "default": default, "changes": changes, "queries": queries}
+
+
+GRACE_S = 7 * DAY_S
+parameter_cases = [
+    param_case("effective-at-is-inclusive", 3600,
+               [param_change(10, 0, 10 * HOUR_S + GRACE_S, 1800)],
+               [10 * HOUR_S + GRACE_S - 1, 10 * HOUR_S + GRACE_S, 10 * HOUR_S + GRACE_S + 1]),
+    param_case("later-effective-at-prevails-whatever-sealed-first", 3600,
+               [param_change(10, 0, 20 * DAY_S, 900),
+                param_change(11, 0, 15 * DAY_S, 1800)],
+               [14 * DAY_S, 15 * DAY_S, 20 * DAY_S, 25 * DAY_S]),
+    param_case("equal-effective-at-across-blocks", 3600,
+               [param_change(10, 0, 20 * DAY_S, 900),
+                param_change(12, 0, 20 * DAY_S, 1800)],
+               [20 * DAY_S - 1, 20 * DAY_S]),
+    param_case("equal-effective-at-in-one-block", 3600,
+               [param_change(10, 0, 20 * DAY_S, 900),
+                param_change(10, 3, 20 * DAY_S, 1800)],
+               [20 * DAY_S]),
+    param_case("superseded-pair-then-a-later-amendment", 3600,
+               [param_change(10, 0, 20 * DAY_S, 900),
+                param_change(12, 0, 20 * DAY_S, 1800),
+                param_change(30, 0, 40 * DAY_S, 600)],
+               [30 * DAY_S, 40 * DAY_S]),
+]
+
+write_json(WIST4 / "parameter-in-force.json", spaced_labels({
+    "note": "WIST-4 §9 value in force. changes are in Log order with sealing and effective instants; each query gives the value in force at t_s and the index of the amendment it comes from (null for the default).",
+    "cases": parameter_cases,
+}))
+print("wist4 parameter-in-force vector written")
+
 # ----------------------------------------- WIST-4 §3, §4: the Auditor roster
 # One admitted key per auditor_id at any height. Removes sealed at an instant
 # apply before admits sealed at it, which is what lets a rotation seal in one

@@ -1,0 +1,175 @@
+{
+  "note": "WIST-4 \u00a79 value in force. changes are in Log order with sealing and effective instants; each query gives the value in force at t_s and the index of the amendment it comes from (null for the default).",
+  "cases": [
+    {
+      "label": "effective at is inclusive",
+      "default": 3600,
+      "changes": [
+        {
+          "block_number": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "effective_at_s": 640800,
+          "value": 1800
+        }
+      ],
+      "queries": [
+        {
+          "t_s": 640799,
+          "value": 3600,
+          "from_index": null
+        },
+        {
+          "t_s": 640800,
+          "value": 1800,
+          "from_index": 0
+        },
+        {
+          "t_s": 640801,
+          "value": 1800,
+          "from_index": 0
+        }
+      ]
+    },
+    {
+      "label": "later effective at prevails whatever sealed first",
+      "default": 3600,
+      "changes": [
+        {
+          "block_number": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "effective_at_s": 1728000,
+          "value": 900
+        },
+        {
+          "block_number": 11,
+          "entry_index": 0,
+          "sealed_at_s": 39600,
+          "effective_at_s": 1296000,
+          "value": 1800
+        }
+      ],
+      "queries": [
+        {
+          "t_s": 1209600,
+          "value": 3600,
+          "from_index": null
+        },
+        {
+          "t_s": 1296000,
+          "value": 1800,
+          "from_index": 1
+        },
+        {
+          "t_s": 1728000,
+          "value": 900,
+          "from_index": 0
+        },
+        {
+          "t_s": 2160000,
+          "value": 900,
+          "from_index": 0
+        }
+      ]
+    },
+    {
+      "label": "equal effective at across blocks",
+      "default": 3600,
+      "changes": [
+        {
+          "block_number": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "effective_at_s": 1728000,
+          "value": 900
+        },
+        {
+          "block_number": 12,
+          "entry_index": 0,
+          "sealed_at_s": 43200,
+          "effective_at_s": 1728000,
+          "value": 1800
+        }
+      ],
+      "queries": [
+        {
+          "t_s": 1727999,
+          "value": 3600,
+          "from_index": null
+        },
+        {
+          "t_s": 1728000,
+          "value": 1800,
+          "from_index": 1
+        }
+      ]
+    },
+    {
+      "label": "equal effective at in one block",
+      "default": 3600,
+      "changes": [
+        {
+          "block_number": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "effective_at_s": 1728000,
+          "value": 900
+        },
+        {
+          "block_number": 10,
+          "entry_index": 3,
+          "sealed_at_s": 36000,
+          "effective_at_s": 1728000,
+          "value": 1800
+        }
+      ],
+      "queries": [
+        {
+          "t_s": 1728000,
+          "value": 1800,
+          "from_index": 1
+        }
+      ]
+    },
+    {
+      "label": "superseded pair then a later amendment",
+      "default": 3600,
+      "changes": [
+        {
+          "block_number": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "effective_at_s": 1728000,
+          "value": 900
+        },
+        {
+          "block_number": 12,
+          "entry_index": 0,
+          "sealed_at_s": 43200,
+          "effective_at_s": 1728000,
+          "value": 1800
+        },
+        {
+          "block_number": 30,
+          "entry_index": 0,
+          "sealed_at_s": 108000,
+          "effective_at_s": 3456000,
+          "value": 600
+        }
+      ],
+      "queries": [
+        {
+          "t_s": 2592000,
+          "value": 1800,
+          "from_index": 1
+        },
+        {
+          "t_s": 3456000,
+          "value": 600,
+          "from_index": 2
+        }
+      ]
+    }
+  ]
+}

@@ -1900,6 +1900,25 @@ number. The coupling is stated rather than removed, and it binds the
 cadence: a `parameter_change` to `block_cadence_seconds` is also a change
 to how much shirking §4 tolerates, and MUST be weighed as both.
 
+**In force.** A `parameter_change` is in force at every instant T at or
+after its `effective_at`, the endpoint included. The value of a
+parameter in force at T is that of the amendment naming it with the
+greatest `effective_at` ≤ T, or the Registry default where no such
+amendment exists; where two amendments share that `effective_at`, the
+one later in Log order (WIST-3 §3.3: ascending Block height, then Entry
+index) prevails, being the Aggregator's later statement, and the other
+is superseded from the moment the later one seals and is never in
+force. Log order decides nothing else: two pending amendments for one
+identifier take effect each at its own instant (WIST-3 §7), so the one
+with the later `effective_at` prevails once that instant arrives even
+when it was sealed first. The endpoint is inclusive because the grace
+period lands exactly on the Block grid — `effective_at` seven days
+after a `sealed_at` is itself a `sealed_at` — and WIST-3 §3.1 reads the
+cadence "in force at the previous Block's `sealed_at`": a change
+effective at that instant governs the next Block, rather than leaving
+the Block sealed at `effective_at` under a value two readings could
+place on either side.
+
 **Every value the registry carries is an integer** in the unit its row
 states, and `details.value` is typed `integer` for that reason (§9.1).
 The suite computes reputation, sampling and similarity in integers end to
@@ -2603,6 +2622,10 @@ hands.
       period (§9)
 
 **Any party recomputing reputation:**
+
+- [ ] Reads a `parameter_change` as in force from its `effective_at`
+      inclusive, the greatest `effective_at` ≤ T prevailing among an
+      identifier's amendments and Log order breaking an equal pair (§9)
 
 - [ ] Reproduces §6 exactly (constants from the Parameter Registry as of
       the evaluated block height)
