@@ -1190,11 +1190,15 @@ happened to be down.
 **Declining audits is not indefinitely free.** A URL is **unauditable** at
 height N when the Log holds two **blocking Records** for Deltas on
 that URL, signed by Auditors independent of one another (§3), each of them
-sealed in a Block itself sealed no more than 30 whole days (Parameter
-Registry: `unauditable_horizon_days`) before Block N's `sealed_at`, and no
+sealed in a Block itself sealed inside the 30 whole days (Parameter
+Registry: `unauditable_horizon_days`) ending at Block N's `sealed_at` —
+end-inclusive and start-exclusive, measured as every window in this
+document is (§4, §7), so a blocking Record sealed exactly 30 whole days
+before N has aged out — and no
 Record for a Delta on that URL with verdict `consistent`, `inconsistent`,
 `dynamic_variance`, `link_variance` or `link_inconsistent`, signed by an
-Auditor independent of both, was sealed after the later of those two. An
+Auditor independent of both, was sealed after the later of those two and
+at or below N. An
 unauditable URL MUST be excluded from materialization (WIST-3 §7) for as
 long as that holds; it ceases to be unauditable when such a Record is
 sealed, or when the blocking Records age out of the window with none
