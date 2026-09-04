@@ -97,3 +97,25 @@ its own decision if that proves wrong in practice.
 - `vectors/wist4/superseded-audit.json` carries the cases that separate
   this rule from the rejected maximum: a reference sealed after the
   fetch is rejected, a stale reference is valid and measured.
+
+## Addendum (2026-09-04) — no minimum fetch delay
+
+The Consequences leave change that propagates to the served page after
+its Delta seals named rather than solved, and a minimum fetch delay in
+Blocks — a floor on `fetched_at` some cadences above the audited Block's
+`sealed_at`, so that caches settle before the first fetch — was the
+candidate remedy. It is not adopted.
+
+The Publisher holds both instants the race runs between: it purges its
+caches and it sends the Ping (WIST-2 §4), so it can ping when propagation
+is done, and its Delta's `observed_at` asserts the page already is what
+the Delta describes. An Auditor that fetches at the audited Block's
+`sealed_at` and meets a stale edge files `inconsistent`; the Auditors
+§4's extension rule summons fetch after *B₁* seals, at least one cadence
+later, and file `consistent`; the first filer is contradicted at a cost
+bounded by `contradictions_max` — the class the Consequences already
+accept, landing on the party that fetched early. A fixed delay would
+shift the same race later by a constant, protect only the Publishers
+whose propagation happens to fit inside it, and add a Registry parameter
+to §3's fetch interval for that. The incentive as it stands already
+points the eager Auditor at a later fetch, and no section is changed.
