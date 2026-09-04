@@ -3000,6 +3000,32 @@ def _parameter_registry_enum():
         f"the enum accepts identifiers §9 publishes no row for: {missing_from_table}"
 check("spec:parameter-registry-enum", _parameter_registry_enum)
 
+def _decay_parameters_twin():
+    """WIST-4 §6.1, §9: the decay constant is fixed by the table's bytes and
+    carries no identifier; the horizon is amendable only down to the table."""
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    example = json.loads((ROOT / "examples" / "registry-update.json").read_text())
+    def change(parameter, value):
+        doc = copy.deepcopy(example)
+        doc["update"]["action"] = "parameter_change"
+        doc["update"]["details"] = {"parameter": parameter, "value": value}
+        doc["update"]["effective_at"] = "2026-08-12T12:00:00Z"
+        return doc
+    rejected = lambda doc: bool(list(validator.iter_errors(doc)))
+    assert rejected(change("decay_constant_days", 90)), \
+        "the schema still accepts a parameter_change to the decay constant"
+    assert rejected(change("decay_horizon_days", 1826)), \
+        "the schema accepts a horizon past the table's last index"
+    assert not rejected(change("decay_horizon_days", 1825)), \
+        "the schema rejects the table's own horizon"
+    assert not rejected(change("decay_horizon_days", 365)), \
+        "the schema rejects a horizon inside the table"
+    table = json.loads((ROOT / "vectors" / "wist4" / "decay-table.json").read_text())
+    assert table["max_days"] == 1825 and len(table["values"]) == 1826, \
+        "the horizon bound and the table's length disagree"
+check("negative:wist4-decay-parameters", _decay_parameters_twin)
+
 def _parameter_change_bounds():
     """The bounds each `parameter_change` branch imposes, by identifier.
 

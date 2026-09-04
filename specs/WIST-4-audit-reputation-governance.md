@@ -1393,7 +1393,9 @@ bound, and everything from height 0 counts.
   ([`vectors/wist4/decay-table.json`](../vectors/wist4/decay-table.json)): an
   array of 1826 integers, `decay(t) = floor(exp(−t / 180) × 1e9)` — the
   decay scale 1e9 being 1 000 000 000 — indexed by whole days 0 … 1825,
-  with `decay(t) = 0` for `t` > 1825. The table,
+  with `decay(t) = 0` for `t` > `decay_horizon_days` (§9), whose default
+  is 1825 and which MUST NOT exceed the table's last index: a shorter
+  horizon reads a prefix of the table, and no horizon reads past it. The table,
   not `exp()`, is normative; implementations MUST read it and MUST NOT
   recompute it at runtime. `decay(0)` = 1 000 000 000 and the table is
   strictly decreasing. Expiry at the horizon drops a residue of
@@ -1403,8 +1405,12 @@ bound, and everything from height 0 counts.
   `1ef9e9be20c99e595c1c75c5ab63409e1cc4f9540b466b67ecebf4e2959986b9`, and
   an implementation carrying a table that does not hash to that value is
   non-conforming even if every entry looks plausible. Changing the table
-  changes every reputation in the system and is a `parameter_change` (§9)
-  like any other constant.
+  changes every reputation in the system, and it is not a
+  `parameter_change`: the table is normative as bytes, so a new one is a
+  new artifact of this suite (§9), and the constant it was generated
+  from — 180 days, the penalty decay constant — carries no identifier
+  for the same reason, since a bare number cannot regenerate bytes every
+  party must hold identically. The horizon alone is amendable, downward.
 - **`penalty_n`** = `Σ s_i × decay(t_i)`, in exact integer arithmetic. The
   sum is over integers, so its value does not depend on summation order;
   implementations that publish intermediate sums SHOULD nevertheless
@@ -1895,7 +1901,9 @@ are made by `parameter_change` Registry Updates and MUST have
 identifier is not independently amendable by `parameter_change`, for one of
 three reasons. It is a fixed structural definition, like the reputation
 resolution. It is changed by publishing a new artifact rather than a bare
-number, as the decay table digest is (§6). Or its value is meaningful only
+number, as the decay table digest is (§6) — and with it the decay
+constant the table was generated from, which no number can amend
+without regenerating the bytes the digest pins. Or its value is meaningful only
 against another parameter, which is the case for `coverage_failures_max`:
 it counts **Blocks**, so at the default hourly cadence 24 Blocks is a
 tolerance of about one day in thirty, and halving `block_cadence_seconds`
@@ -1967,8 +1975,7 @@ existing rather than a recommended setting.
 | `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (WIST-3 §3.1) |
 | `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
 | `age_norm_days` | ≥ 1 | zero is a division by zero in `base_u` (§6.1) |
-| `decay_constant_days` | ≥ 1 | zero is a division by zero in the decay table's own construction (§6.1) |
-| `decay_horizon_days` | ≥ 1 | a horizon of zero expires every penalty after a single day |
+| `decay_horizon_days` | ≥ 1 and ≤ 1825 | a horizon of zero expires every penalty after a single day; above the table's last index `decay(t)` has no entry to read for the days the horizon adds, and the table is normative as bytes (§6.1) |
 | `penalty_weight` | ≥ 1 | at zero `penalty_n` leaves the formula entirely and no Confirmed Inconsistency costs anything (§6.2) |
 | `c_cap` | ≥ 1 | at zero `C` is always zero, so no domain ever satisfies the `provisional_audits` gate and reputation is capped at the Provisional cap for ever (§6) |
 | `appeal_window_days` | ≥ 1 | a window of zero days closes before the notice can be read, which is the whole of the due process levels 3 and 4 carry (§7) |
@@ -2124,9 +2131,9 @@ combination cases above.
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
 | Reputation base at age 0 | — | 100 000 micro-units (= the Provisional cap) | §6 |
-| Penalty decay constant (1/e) | `decay_constant_days` | 180 days (the true half-life is 180·ln2 ≈ 124.8 days) | §6 |
+| Penalty decay constant (1/e) | — | 180 days (the true half-life is 180·ln2 ≈ 124.8 days; fixed by the table's bytes) | §6 |
 | Decay table horizon | `decay_horizon_days` | 1825 days | §6 |
-| Decay table digest (SHA-256) | — | `f0cd1eb4…bfdf7dc1` | §6 |
+| Decay table digest (SHA-256) | — | `1ef9e9be…959986b9` | §6 |
 | Distinct-URL cap `C_cap` | `c_cap` | 500 | §6 |
 | Reputation resolution | — | 1e-6 (micro-units) | §6 |
 | Penalty weight | `penalty_weight` | 5 | §6 |
