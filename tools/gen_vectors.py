@@ -2345,10 +2345,13 @@ print("wist4 unauditable vector written")
 ROSTER_LOG_ID = "log.example.org"
 
 
-def roster_entry(sealed_at_s, action, auditor_id, key_id, evidence=False):
+def roster_entry(sealed_at_s, action, auditor_id, key_id, evidence=None):
+    """evidence, on an auditor_remove, is the Registry Update's own member:
+    present and naming at least one ID for a removal for cause, absent for an
+    exit or a rotation (§4, §9.1)."""
     e = {"sealed_at_s": sealed_at_s, "action": action,
          "auditor_id": auditor_id, "key_id": key_id}
-    if action == "auditor_remove":
+    if evidence:
         e["evidence"] = evidence
     return e
 
@@ -2367,7 +2370,7 @@ def roster_replay(log_id, entries):
                 continue
             del key_of[e["auditor_id"]]
             retired.add(e["key_id"])
-            if e["evidence"]:
+            if e.get("evidence"):
                 barred.add(e["auditor_id"])
         admits = [(i, e) for i, e in at_t if e["action"] == "auditor_admit"]
         subjects = [e["auditor_id"] for _, e in admits]
@@ -2411,7 +2414,7 @@ roster_scenarios = [
      [(AUD_R, 7200)]),
     ("barred-subject-rejected",
      [roster_entry(0, "auditor_admit", AUD_R, "k1"),
-      roster_entry(3600, "auditor_remove", AUD_R, "k1", evidence=True),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1", evidence=["sha256:void-record"]),
       roster_entry(7200, "auditor_admit", AUD_R, "k2")],
      [(AUD_R, 7200)]),
     ("exit-then-re-entry-allowed",
@@ -2459,7 +2462,10 @@ assert [c["rejected_indices"] for c in roster_cases] == \
 write_json(WIST4 / "roster.json", spaced_labels({
     "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
              "acts in Log order, the indices a replayer rejects (WIST4-E07), and "
-             "the key an auditor_id holds at queried instants."),
+             "the key an auditor_id holds at queried instants. An auditor_remove "
+             "carries `evidence` exactly as the Registry Update does: present and "
+             "naming at least one ID when the removal is for cause, absent for an "
+             "exit or a rotation."),
     "cases": roster_cases,
 }))
 print("wist4 roster vector: %d cases" % len(roster_cases))

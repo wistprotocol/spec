@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73, \u00a74 roster derivation: per case a Log prefix of roster acts in Log order, the indices a replayer rejects (WIST4-E07), and the key an auditor_id holds at queried instants.",
+  "note": "WIST-4 \u00a73, \u00a74 roster derivation: per case a Log prefix of roster acts in Log order, the indices a replayer rejects (WIST4-E07), and the key an auditor_id holds at queried instants. An auditor_remove carries `evidence` exactly as the Registry Update does: present and naming at least one ID when the removal is for cause, absent for an exit or a rotation.",
   "cases": [
     {
       "label": "rotation in one block",
@@ -15,8 +15,7 @@
           "sealed_at_s": 3600,
           "action": "auditor_remove",
           "auditor_id": "audit.example.net",
-          "key_id": "k1",
-          "evidence": false
+          "key_id": "k1"
         },
         {
           "sealed_at_s": 3600,
@@ -96,8 +95,7 @@
           "sealed_at_s": 3600,
           "action": "auditor_remove",
           "auditor_id": "audit.example.net",
-          "key_id": "k1",
-          "evidence": false
+          "key_id": "k1"
         },
         {
           "sealed_at_s": 7200,
@@ -132,7 +130,9 @@
           "action": "auditor_remove",
           "auditor_id": "audit.example.net",
           "key_id": "k1",
-          "evidence": true
+          "evidence": [
+            "sha256:void-record"
+          ]
         },
         {
           "sealed_at_s": 7200,
@@ -166,8 +166,7 @@
           "sealed_at_s": 3600,
           "action": "auditor_remove",
           "auditor_id": "audit.example.net",
-          "key_id": "k1",
-          "evidence": false
+          "key_id": "k1"
         },
         {
           "sealed_at_s": 7200,
@@ -204,8 +203,7 @@
           "sealed_at_s": 3600,
           "action": "auditor_remove",
           "auditor_id": "audit.example.net",
-          "key_id": "k1",
-          "evidence": false
+          "key_id": "k1"
         }
       ],
       "rejected_indices": [],
@@ -269,8 +267,7 @@
           "sealed_at_s": 3600,
           "action": "auditor_remove",
           "auditor_id": "audit.example.net",
-          "key_id": "k9",
-          "evidence": false
+          "key_id": "k9"
         },
         {
           "sealed_at_s": 7200,
@@ -350,8 +347,7 @@
           "sealed_at_s": 3600,
           "action": "auditor_remove",
           "auditor_id": "audit.example.net",
-          "key_id": "k1",
-          "evidence": false
+          "key_id": "k1"
         },
         {
           "sealed_at_s": 3600,

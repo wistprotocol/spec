@@ -456,6 +456,19 @@
           }
         }
       }
+    },
+    {
+      "comment": "WIST-4 §4, §9.1: an auditor_remove is for cause exactly when it carries evidence, and an empty array names nothing — a removal neither for cause nor an exit — so `evidence`, where present, names at least one ID. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_remove"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "properties": {
+              "evidence": {"type": "array", "minItems": 1}
+            }
+          }
+        }
+      }
     }
   ]
 }

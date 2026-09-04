@@ -463,12 +463,15 @@ replayer MUST reject one (`WIST4-E07`, as every rejection in this
 paragraph); an `auditor_remove` naming a key its `subject` does not hold
 retires nothing and is rejected the same way. Whether it also bars the *`auditor_id`* is
 decided by the removal's own `evidence`. A removal carrying evidence —
-failed Blocks, void Records, systematic divergence — is for cause, and an
+an `evidence` member naming at least one ID: failed Blocks, void
+Records, systematic divergence — is for cause, and an
 `auditor_admit` whose `subject` is that `auditor_id` MUST thereafter be
 rejected by any party replaying the Log: without this, "removal is
 permanent" would be permanent for a key that costs nothing to replace and
 porous for the operator behind it, and a removed Auditor would re-enter
-by generating thirty-two fresh octets. A removal carrying no evidence is
+by generating thirty-two fresh octets. A removal carrying no evidence —
+the member absent; an empty array names nothing and is not a valid
+`auditor_remove` (§9.1) — is
 an exit or a rotation, and bars nothing — which *is* the key-rotation
 mechanism: an Auditor rotates by having an evidence-less `auditor_remove`
 for the old key and an `auditor_admit` for the new one sealed, same
@@ -2188,7 +2191,11 @@ mirroring §7 and §3:
   `auditor_id`, a hostname of at least two labels, because §3 anchors an
   Auditor to a domain and a Record's `auditor_id` is what §3's independence
   and self-audit tests compare.
-- `aggregator_key_remove`, `auditor_remove`: `key_id`.
+- `aggregator_key_remove`, `auditor_remove`: `key_id`. An
+  `auditor_remove`'s `evidence` (top-level), where present, MUST name at
+  least one ID: its presence is what makes the removal for cause (§4),
+  and an empty array would be a removal that is neither for cause nor an
+  exit.
 - `sanction`: `level` (1–4) and `severity` (1–3, §7); `evidence`
   (top-level, not `details`) MUST carry at least the two Audit Record IDs
   (§5) of the concurring, independent Auditors' Records that establish
