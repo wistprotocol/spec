@@ -287,7 +287,9 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    retried on the backoff schedule of §7.
 2. Diffs `feed.deltas` against the IDs it has already seen for the
    domain, following `next` through sealed Pages as required by §3.2.
-3. Fetches each new `deltas/<id>.json`; validates each per WIST-1 (§4, §7).
+3. Fetches each new `deltas/<id>.json`; validates each per WIST-1 (§4, §7),
+   retrieving and validating first, in chain order, any `prev` it has not
+   sealed (WIST-1 §3.5).
    For every content-bearing Delta it also fetches the corresponding
    `payloads/<id>.json` in the same pass and verifies it against the
    Delta's commitment and `bytes` (WIST-1 §3.6). A Delta whose Payload is

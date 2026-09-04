@@ -42,6 +42,17 @@ def sign_envelope(inner_name: str, inner: dict, key_id: str) -> dict:
 def write_json(path: pathlib.Path, obj: dict) -> None:
     path.write_text(json.dumps(obj, indent=2) + "\n")
 
+def spaced_labels(node):
+    """Labels are prose, not identifiers: spaces keep them outside the token
+    shapes the repo-wide digest sweep in validate_examples.py flags."""
+    if isinstance(node, dict):
+        return {k: (v.replace("-", " ") if k == "label" and isinstance(v, str)
+                    else spaced_labels(v)) for k, v in node.items()}
+    if isinstance(node, list):
+        return [spaced_labels(v) for v in node]
+    return node
+
+
 # -------------------------------------------------- WIST-1/WIST-3: payload + delta
 # A Delta commits to its content and does not carry it (WIST-1 §3.6). The content
 # travels as a Payload (WIST-3 §6.1) whose salt never reaches the Log.
@@ -919,6 +930,65 @@ write_json(WIST3 / "snapshot-records.json", {
     "links": snapshot_links,
 })
 
+# ------------------------------- WIST-3 §7: applying Deltas along their chains
+# A replayer applies a sealed Delta only when its prev is the chain tip the
+# state carries for (publisher, url); a fork of a sealed chain and a prev no
+# lower Entry sealed are ignored alike, and an ignored Delta never becomes a
+# tip (WIST-1 §3.5). Abstract ids: the rule reads prev links, not content.
+CHAIN_PUB, CHAIN_URL = "example.com", "https://example.com/a"
+
+
+def chain_delta(id_, prev, change_type="update", publisher=CHAIN_PUB, url=CHAIN_URL):
+    return {"id": id_, "publisher": publisher, "url": url, "prev": prev,
+            "change_type": change_type}
+
+
+def chain_replay(deltas):
+    tips, ignored = {}, []
+    for i, d in enumerate(deltas):
+        key = (d["publisher"], d["url"])
+        if d["prev"] != tips.get(key):
+            ignored.append(i)
+            continue
+        tips[key] = d["id"]
+    return ignored, [{"publisher": p, "url": u, "delta": t}
+                     for (p, u), t in sorted(tips.items())]
+
+
+chain_scenarios = [
+    ("linear-chain",
+     [chain_delta("d1", None, "new"), chain_delta("d2", "d1"), chain_delta("d3", "d2", "attest")]),
+    ("fork-ignored",
+     [chain_delta("d1", None, "new"), chain_delta("d2", "d1"), chain_delta("d3", "d1")]),
+    ("unsealed-prev-ignored",
+     [chain_delta("d1", None, "new"), chain_delta("d2", "d0")]),
+    ("successor-of-an-ignored-delta-ignored",
+     [chain_delta("d1", None, "new"), chain_delta("d2", "d0"), chain_delta("d3", "d2")]),
+    ("chain-continues-through-delete",
+     [chain_delta("d1", None, "new"), chain_delta("d2", "d1", "delete"),
+      chain_delta("d3", "d2", "new")]),
+    ("second-first-delta-ignored",
+     [chain_delta("d1", None, "new"), chain_delta("d2", None, "new")]),
+    ("publishers-chain-separately",
+     [chain_delta("d1", None, "new"),
+      chain_delta("e1", None, "new", publisher="www.example.com"),
+      chain_delta("e2", "e1", publisher="www.example.com")]),
+]
+chain_cases = []
+for label, deltas in chain_scenarios:
+    ignored, tips = chain_replay(deltas)
+    chain_cases.append({"label": label, "deltas": deltas,
+                        "ignored_indices": ignored, "tips": tips})
+assert [c["ignored_indices"] for c in chain_cases] == \
+    [[], [2], [1], [1, 2], [], [1], []], "chain replay drifted"
+write_json(WIST3 / "chain-materialization.json", spaced_labels({
+    "note": ("WIST-3 §7, WIST-1 §3.5: per case the sealed Deltas of one Log in "
+             "Log order, the indices a replayer ignores, and the chain tip per "
+             "(publisher, url) afterwards."),
+    "cases": chain_cases,
+}))
+print("wist3 chain-materialization vector: %d cases" % len(chain_cases))
+
 # ------------------------------------------- WIST-3 §7: the state artifact
 # The protocol state at log_position, one tuple per live item, kinds and
 # fields per WIST-3 §7's table. Aligned with snapshot-records above: the same
@@ -1454,17 +1524,6 @@ ESCALATIONS = {"l2": (3, 90, 0), "l3_count": (10, 90, 0), "l4_sev3": (3, 180, 3)
 APPEAL_WINDOW_DAYS = 14
 APPEAL_SEAL_DAYS = 7
 RULING_DEADLINE_DAYS = 30
-
-
-def spaced_labels(node):
-    """Labels are prose, not identifiers: spaces keep them outside the token
-    shapes the repo-wide digest sweep in validate_examples.py flags."""
-    if isinstance(node, dict):
-        return {k: (v.replace("-", " ") if k == "label" and isinstance(v, str)
-                    else spaced_labels(v)) for k, v in node.items()}
-    if isinstance(node, list):
-        return [spaced_labels(v) for v in node]
-    return node
 
 
 def independent(a: str, b: str) -> bool:

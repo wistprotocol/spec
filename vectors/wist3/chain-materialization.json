@@ -1,0 +1,243 @@
+{
+  "note": "WIST-3 \u00a77, WIST-1 \u00a73.5: per case the sealed Deltas of one Log in Log order, the indices a replayer ignores, and the chain tip per (publisher, url) afterwards.",
+  "cases": [
+    {
+      "label": "linear chain",
+      "deltas": [
+        {
+          "id": "d1",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "d2",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d1",
+          "change_type": "update"
+        },
+        {
+          "id": "d3",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d2",
+          "change_type": "attest"
+        }
+      ],
+      "ignored_indices": [],
+      "tips": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "delta": "d3"
+        }
+      ]
+    },
+    {
+      "label": "fork ignored",
+      "deltas": [
+        {
+          "id": "d1",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "d2",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d1",
+          "change_type": "update"
+        },
+        {
+          "id": "d3",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d1",
+          "change_type": "update"
+        }
+      ],
+      "ignored_indices": [
+        2
+      ],
+      "tips": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "delta": "d2"
+        }
+      ]
+    },
+    {
+      "label": "unsealed prev ignored",
+      "deltas": [
+        {
+          "id": "d1",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "d2",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d0",
+          "change_type": "update"
+        }
+      ],
+      "ignored_indices": [
+        1
+      ],
+      "tips": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "delta": "d1"
+        }
+      ]
+    },
+    {
+      "label": "successor of an ignored delta ignored",
+      "deltas": [
+        {
+          "id": "d1",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "d2",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d0",
+          "change_type": "update"
+        },
+        {
+          "id": "d3",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d2",
+          "change_type": "update"
+        }
+      ],
+      "ignored_indices": [
+        1,
+        2
+      ],
+      "tips": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "delta": "d1"
+        }
+      ]
+    },
+    {
+      "label": "chain continues through delete",
+      "deltas": [
+        {
+          "id": "d1",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "d2",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d1",
+          "change_type": "delete"
+        },
+        {
+          "id": "d3",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": "d2",
+          "change_type": "new"
+        }
+      ],
+      "ignored_indices": [],
+      "tips": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "delta": "d3"
+        }
+      ]
+    },
+    {
+      "label": "second first delta ignored",
+      "deltas": [
+        {
+          "id": "d1",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "d2",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        }
+      ],
+      "ignored_indices": [
+        1
+      ],
+      "tips": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "delta": "d1"
+        }
+      ]
+    },
+    {
+      "label": "publishers chain separately",
+      "deltas": [
+        {
+          "id": "d1",
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "e1",
+          "publisher": "www.example.com",
+          "url": "https://example.com/a",
+          "prev": null,
+          "change_type": "new"
+        },
+        {
+          "id": "e2",
+          "publisher": "www.example.com",
+          "url": "https://example.com/a",
+          "prev": "e1",
+          "change_type": "update"
+        }
+      ],
+      "ignored_indices": [],
+      "tips": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/a",
+          "delta": "d1"
+        },
+        {
+          "publisher": "www.example.com",
+          "url": "https://example.com/a",
+          "delta": "e2"
+        }
+      ]
+    }
+  ]
+}
