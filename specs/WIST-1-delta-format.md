@@ -229,6 +229,15 @@ domain participates; unavailability of a `prev` Delta is a `WIST1-E07`
 rejection of the *new* Delta, never a retroactive invalidation of the
 sealed chain.
 
+For an Aggregator, to have seen a Delta is to have sealed it or to hold
+it accepted for sealing: a retrieved `prev` enters ingest as any served
+Delta does (WIST-2 §5, under the same per-domain budget), and a Delta is
+never sealed ahead of the Delta its `prev` names. A `prev` that is not
+sealed at a lower Log position and cannot be — unavailable, or itself
+rejected — leaves the Delta naming it `WIST1-E07`; a Log in which every
+`prev` resolves to a lower Entry is what lets every replaying party walk a
+chain from the Log alone.
+
 ### 3.6. `payload` — the Payload Commitment
 
 A Delta commits to its content; it does not carry it. The content — the
@@ -662,7 +671,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
 | WIST1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
-| WIST1-E07 | `prev` chain violation: missing, non-existent, wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
+| WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
 | WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces; or the same `key_id` or `public_key` named in both `keys` and `recovery_keys`) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |

@@ -45,6 +45,7 @@ as anchors.
 | wist3 `block.json`, `inclusion-proof.json` | Merkle hashing vs the Certificate Transparency reference answers (`merkle:ct-reference-vectors`); exhaustive inclusion property test; signatures via third-party libs | external-KAT + property-test | anchored |
 | wist3 `empty-block.json` | the deliberate deviation from RFC 6962's empty root, with both constants pinned side by side | external-KAT (documented deviation) | anchored |
 | wist3 `snapshot-records.json` | materialization re-derived from the Payload | self-consistency | self-consistency-only |
+| wist3 `chain-materialization.json` | prose-traced chain-tip rule | self-consistency | self-consistency-only |
 | multilog `dedup.json` | prose-traced dedup rules | self-consistency | self-consistency-only |
 | wist4 `sampling.json` | ECVRF primitive vs RFC 9381 Appendix B.3 (`ecvrf:rfc9381-b3-vectors`); the sampling rule above the primitive is harness-recomputed only | external-KAT (primitive) | partial |
 | wist4 `extension-proof.json` | ECVRF primitive as above; which Block a proof binds a Record to is harness-recomputed only | external-KAT (primitive) | partial |

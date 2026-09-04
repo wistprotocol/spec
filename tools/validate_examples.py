@@ -1354,6 +1354,66 @@ def _snapshot_links_twin():
 
 check("negative:snapshot-links", _snapshot_links_twin)
 
+def _chain_vector():
+    return json.loads((ROOT / "vectors" / "wist3" / "chain-materialization.json").read_text())
+
+def _chain_replay(deltas):
+    """WIST-1 §3.5 / WIST-3 §7, recomputed independently of the generator:
+    a Delta is applied only when its prev is the chain tip the state
+    carries for (publisher, url) — absent for a chain's first Delta —
+    and is otherwise ignored, whether it forks a sealed chain or names a
+    prev nothing sealed; an ignored Delta never becomes a tip."""
+    tips, ignored = {}, []
+    for i, d in enumerate(deltas):
+        key = (d["publisher"], d["url"])
+        if d["prev"] != tips.get(key):
+            ignored.append(i)
+            continue
+        tips[key] = d["id"]
+    return ignored, [{"publisher": p, "url": u, "delta": t} for (p, u), t in sorted(tips.items())]
+
+def _dc3_chain_materialization():
+    """WIST-3 §7: which sealed Deltas a replayer applies, and the chain tips."""
+    v = _chain_vector()
+    labels = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        ignored, tips = _chain_replay(case["deltas"])
+        assert ignored == case["ignored_indices"], \
+            f"{case['label']}: recomputed ignored {ignored}, vector says {case['ignored_indices']}"
+        assert tips == sorted(case["tips"], key=lambda t: (t["publisher"], t["url"])), \
+            f"{case['label']}: recomputed tips {tips}, vector says {case['tips']}"
+        for i in ignored:
+            assert case["deltas"][i]["id"] not in {t["delta"] for t in tips}, \
+                f"{case['label']}: an ignored Delta became a tip"
+    for needed in ("linear chain", "fork ignored", "unsealed prev ignored",
+                   "successor of an ignored delta ignored", "chain continues through delete",
+                   "second first delta ignored", "publishers chain separately"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    prose1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    assert "is not the chain tip the state carries" in prose3, \
+        "WIST-3 §7 does not state the tip rule"
+    assert "never sealed ahead of the Delta its `prev` names" in prose1, \
+        "WIST-1 §3.5 does not state the sealing order"
+check("vectors:wist3-chain-materialization", _dc3_chain_materialization)
+
+def _dc3_chain_materialization_twin():
+    """The check above must notice an unsealed prev treated as a tip."""
+    v = _chain_vector()
+    case = next(c for c in v["cases"] if c["label"] == "unsealed prev ignored")
+    deltas = json.loads(json.dumps(case["deltas"]))
+    orphan = deltas[case["ignored_indices"][0]]
+    orphan["prev"] = deltas[0]["id"]
+    ignored, tips = _chain_replay(deltas)
+    assert ignored == [] and tips[0]["delta"] == orphan["id"], \
+        "recomputation is blind to the prev a Delta names"
+    case = next(c for c in v["cases"] if c["label"] == "fork ignored")
+    deltas = json.loads(json.dumps(case["deltas"]))
+    del deltas[1]
+    assert _chain_replay(deltas)[0] == [], "recomputation is blind to which Delta sealed first"
+check("negative:wist3-chain-materialization", _dc3_chain_materialization_twin)
+
 def _merkle_empty():
     expected = "sha256:" + hashlib.sha256(b"\x00").hexdigest()
     assert expected == "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", \

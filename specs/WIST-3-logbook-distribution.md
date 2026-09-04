@@ -822,8 +822,11 @@ keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
 a `new` or `update` Delta replaces the record's content and becomes the
 record's **anchor Delta** (§6.1); an `attest` Delta updates the record's
 freshness only and leaves the anchor where it was; a `delete` removes the
-record. A Delta that forks an already-materialized chain (WIST-1 §3.5) is
-ignored. Sanction levels apply as WIST-4 §7 derives them — from the evidence,
+record. A Delta whose `prev` is not the chain tip the state carries for
+its (Publisher domain, Normalized URL) — a fork of an already-materialized
+chain (WIST-1 §3.5), or a `prev` that no lower Entry sealed — is ignored
+and moves no tip; a chain's first Delta is the one that omits `prev` while
+the state carries no tip for its key. Sanction levels apply as WIST-4 §7 derives them — from the evidence,
 not from whether an Aggregator sealed a `sanction`: level 2 marks every
 record of that domain reduced-weight; level 3 stops that domain's later
 Deltas from being materialized at all, from the height it takes effect;
@@ -1168,8 +1171,8 @@ above, treats its coverage as partial.
     reputation inputs, chain tips. Every Entry applied in the next step
     is validated against this state exactly as a replaying Consumer
     validates against state it derived itself: a signature under a key
-    the state does not admit, a Delta forking a chain tip the state
-    carries, a Record from an Auditor the state shows removed, all fail
+    the state does not admit, a Delta whose `prev` is not the chain tip
+    the state carries, a Record from an Auditor the state shows removed, all fail
     as they would on full replay.
 11. Apply Entries in order to the local index, materializing content only
     from Payloads that verified.
