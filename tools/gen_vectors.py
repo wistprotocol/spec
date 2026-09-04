@@ -1632,6 +1632,12 @@ def in_scope(height, reset, n):
     return height <= n and (reset is None or height > reset)
 
 
+def record_in_scope(record_height, audited_height, reset, n):
+    """§6.1: a Record counts by its own height against N and by its
+    audited Delta's height against the reset."""
+    return record_height <= n and (reset is None or audited_height > reset)
+
+
 def derive_inputs(case):
     reset = most_recent_reset(case["resets"], case["n"]["height"])
     n_h, n_s = case["n"]["height"], case["n"]["sealed_at_s"]
@@ -1641,11 +1647,12 @@ def derive_inputs(case):
         first = min(accepted, key=lambda d: d["height"])
         a_days = (n_s - first["sealed_at_s"]) // DAY_S
     urls = {a["url"] for a in case["consistent_audits"]
-            if in_scope(a["height"], reset, n_h) and a["change"] in ("new", "update")}
+            if record_in_scope(a["height"], a["audited_height"], reset, n_h)
+            and a["change"] in ("new", "update")}
     c = min(len(urls), C_CAP)
     entries = []
     for finding in case["confirmed"]:
-        if not in_scope(finding["height"], reset, n_h):
+        if not record_in_scope(finding["height"], finding["audited_height"], reset, n_h):
             continue
         t = (n_s - finding["sealed_at_s"]) // DAY_S
         entries.append((t, finding["delta_id"], finding["severity"]))
@@ -1660,38 +1667,50 @@ derivation_scenarios = [
      "accepted": [{"height": 10, "sealed_at_s": 100 * DAY_S},
                   {"height": 20, "sealed_at_s": 110 * DAY_S}],
      "consistent_audits": [
-         {"height": 30, "url": "https://site.example/a", "change": "new"},
-         {"height": 40, "url": "https://site.example/a", "change": "update"},
-         {"height": 50, "url": "https://site.example/b", "change": "update"},
-         {"height": 60, "url": "https://site.example/c", "change": "attest"},
-         {"height": 70, "url": "https://site.example/d", "change": "delete"}],
+         {"height": 30, "audited_height": 28, "url": "https://site.example/a", "change": "new"},
+         {"height": 40, "audited_height": 38, "url": "https://site.example/a", "change": "update"},
+         {"height": 50, "audited_height": 48, "url": "https://site.example/b", "change": "update"},
+         {"height": 60, "audited_height": 58, "url": "https://site.example/c", "change": "attest"},
+         {"height": 70, "audited_height": 68, "url": "https://site.example/d", "change": "delete"}],
      "confirmed": [
-         {"height": 80, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:bb", "severity": 2},
-         {"height": 81, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
-         {"height": 90, "sealed_at_s": 120 * DAY_S, "delta_id": "sha256:cc", "severity": 1}]},
+         {"height": 80, "audited_height": 78, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:bb", "severity": 2},
+         {"height": 81, "audited_height": 78, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
+         {"height": 90, "audited_height": 88, "sealed_at_s": 120 * DAY_S, "delta_id": "sha256:cc", "severity": 1}]},
     {"label": "reset-rescopes-everything",
      "resets": [55], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
      "accepted": [{"height": 10, "sealed_at_s": 100 * DAY_S},
                   {"height": 60, "sealed_at_s": 120 * DAY_S}],
      "consistent_audits": [
-         {"height": 50, "url": "https://site.example/a", "change": "new"},
-         {"height": 70, "url": "https://site.example/b", "change": "new"}],
+         {"height": 50, "audited_height": 48, "url": "https://site.example/a", "change": "new"},
+         {"height": 70, "audited_height": 68, "url": "https://site.example/b", "change": "new"}],
      "confirmed": [
-         {"height": 55, "sealed_at_s": 110 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
-         {"height": 90, "sealed_at_s": 125 * DAY_S, "delta_id": "sha256:bb", "severity": 1}]},
+         {"height": 55, "audited_height": 53, "sealed_at_s": 110 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
+         {"height": 90, "audited_height": 88, "sealed_at_s": 125 * DAY_S, "delta_id": "sha256:bb", "severity": 1}]},
     {"label": "reset-with-nothing-after",
      "resets": [90], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
      "accepted": [{"height": 10, "sealed_at_s": 100 * DAY_S}],
      "consistent_audits": [
-         {"height": 30, "url": "https://site.example/a", "change": "new"}],
+         {"height": 30, "audited_height": 28, "url": "https://site.example/a", "change": "new"}],
      "confirmed": [
-         {"height": 80, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:aa", "severity": 3}]},
+         {"height": 80, "audited_height": 78, "sealed_at_s": 100 * DAY_S, "delta_id": "sha256:aa", "severity": 3}]},
+    {"label": "audits-straddling-a-reset",
+     "resets": [55], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
+     "accepted": [{"height": 50, "sealed_at_s": 100 * DAY_S},
+                  {"height": 56, "sealed_at_s": 120 * DAY_S}],
+     "consistent_audits": [
+         {"height": 58, "audited_height": 50, "url": "https://site.example/a", "change": "new"},
+         {"height": 58, "audited_height": 56, "url": "https://site.example/b", "change": "update"},
+         {"height": 57, "audited_height": 57, "url": "https://site.example/c", "change": "new"}],
+     "confirmed": [
+         {"height": 60, "audited_height": 50, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
+         {"height": 60, "audited_height": 57, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:bb", "severity": 1},
+         {"height": 54, "audited_height": 50, "sealed_at_s": 119 * DAY_S, "delta_id": "sha256:cc", "severity": 2}]},
 ]
 for case in derivation_scenarios:
     case["expected"] = derive_inputs(case)
 
 write_json(WIST4 / "derivation.json", spaced_labels({
-    "note": "WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. penalty_inputs rows are [severity, t_days].",
+    "note": "WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta. penalty_inputs rows are [severity, t_days].",
     "c_cap": C_CAP,
     "cases": derivation_scenarios,
 }))
