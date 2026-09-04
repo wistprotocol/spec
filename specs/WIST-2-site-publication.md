@@ -396,11 +396,14 @@ pings, sitemap `<lastmod>` changes, and llms.txt updates.
 
 An unsigned hint MUST NOT produce content attributed to the domain.
 
-A hint MAY trigger an auditor re-fetch of the hinted URL. If the domain
-has signed Deltas for that URL, the result enters the log as an Audit
-Record (WIST-4 §5), signed by the auditor. For URLs with no signed Deltas,
-hints only inform the Aggregator's pull and audit scheduling — they
-produce no log entries.
+A hint MAY advance an Auditor's fetch of a Delta already in its
+selection set (WIST-4 §4) — the hinted URL's Delta, where the Auditor's
+own draw or the extension rule names it — and nothing more. A Record
+for a Delta outside the Auditor's selection set is void (WIST-4 §10,
+`WIST4-E01`) whatever prompted the fetch, so a hint never creates an
+Audit Record; it only times one the Auditor owed. For every other URL,
+with signed Deltas or without, hints only inform the Aggregator's pull
+and audit scheduling — they produce no log entries.
 
 The signed path always has higher weight and lower latency: signed Deltas
 enter the log directly on the publisher's authority, while hints are

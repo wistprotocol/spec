@@ -1489,3 +1489,29 @@ only removes the reading under which honest replication was a fault.
 
 **Status.** Unexercised. The order is a serving discipline over
 artifacts the harness verifies separately.
+
+## 2026-09-04 — WIST-2 §6: a hint times an audit, it never creates one
+
+Rewords §6's second paragraph: a hint MAY advance an Auditor's fetch of
+a Delta already in its selection set, and nothing more; a Record for a
+Delta outside the selection set is `WIST4-E01` whatever prompted it, so
+a hint never creates a Record.
+
+**What it states.** §6 said a hint-triggered fetch of a URL with signed
+Deltas "enters the log as an Audit Record (WIST-4 §5)", but WIST-4 §3
+and §4 admit a Record only for a Delta the Auditor's VRF draw or the
+extension rule selected, and void every other; the two documents
+contradicted each other, and WIST-4's rule is the one every replayer
+enforces. What a hint can lawfully do is bring forward a fetch the
+Auditor already owes for that URL's Delta, which is scheduling — the
+only role §6 gives hints for URLs without signed Deltas, now the role
+for every URL.
+
+**Why it qualifies.** Both conditions hold. A Record a hint created
+was void under WIST-4 as written; §6 now says so instead of promising
+otherwise, and an Auditor that used hints only to schedule conformed
+and still does.
+
+**Status.** Unexercised. Hints are an input the harness does not model;
+the Record-standing rule §6 now defers to is exercised by
+`vectors:wist4-selection-domain` and `vectors:wist4-extension-proof`.
