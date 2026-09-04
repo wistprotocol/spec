@@ -280,11 +280,18 @@ inside *B*'s **selection domain** — every such Delta except one that
 WIST-3 §7's one-URL, one-Publisher rule excludes from materialization at
 *B*'s height, a parent's Delta for a host whose own `seq`-0 Declaration
 Entry is sealed at or below *B* — the Auditor
-MUST audit *d* if and only if the VRF test below selects it — or the
+MUST audit *d* if and only if the VRF test below selects it and §3's
+self-audit rule does not bar the Auditor from *d* — or the
 **extension rule** below names it, which is the one path into any
 Auditor's selection set that no VRF draw gates. A Delta outside the
 domain is in no Auditor's selection set by either path: a Record for it
-is void (§3, `WIST4-E01`) and triggers no extension. The domain
+is void (§3, `WIST4-E01`) and triggers no extension. A Delta §3 bars an
+Auditor from is in none of *that* Auditor's selection sets by either
+path, whatever its draw says: the Auditor owes no Record for it, a
+Record it publishes anyway is void (§3, `WIST4-E01`), and its own
+domain's Deltas cost it no coverage and earn it nothing — the bar reads
+two hostnames the Log carries and consults no draw, so every party
+derives the same selection set for the same Auditor. The domain
 excludes exactly what no party materializes — auditing such a Delta
 would spend fetches on a claim nobody consumes and could sanction the
 parent for content the subdomain serves — and it reads Declaration
@@ -361,10 +368,12 @@ by its key and the Block, and any deviation is detectable. And assignment
 needs no coordinator: each Auditor's duties for each Block are derived, not
 allocated.
 
-**Coverage duty.** For **every** Delta its VRF selects in a Block, an
+**Coverage duty.** For **every** Delta in its selection set for a Block
+— those its VRF selects, less those §3's self-audit rule bars it from —
+an
 Auditor MUST publish an Audit Record — or, when it cannot fetch at all, a
 Record with verdict `unreachable` — within 72 hours of that Block's
-`sealed_at`. When its VRF selects no Delta in a Block, it MUST instead
+`sealed_at`. When that selection set is empty, it MUST instead
 publish, by the same deadline, a `coverage_attestation` Registry Update
 naming that Block and carrying its VRF proof and the `prev_record` chain
 link every Record carries (§9.1), and nothing further: it reports no

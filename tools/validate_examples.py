@@ -1824,9 +1824,18 @@ def _dc4_selection_domain():
                    "mixed block"):
         assert needed in labels, f"vector lacks the {needed} case"
     assert outcomes == {True, False}
+    barred = set()
+    for case in v["self_audit_cases"]:
+        got = not _roster_independent(case["auditor_id"], case["publisher"])
+        assert got == case["barred"], \
+            f"{case['label']}: recomputed barred={got}, vector says {case['barred']}"
+        barred.add(got)
+    assert barred == {True, False}, "self_audit_cases must exercise both outcomes"
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
     assert "inside *B*'s **selection domain**" in prose, "§4 does not define the selection domain"
+    assert "A Delta §3 bars an Auditor from is in none of *that* Auditor's selection sets by either path" in prose, \
+        "§4 does not take a barred Delta out of the Auditor's selection set"
 check("vectors:wist4-selection-domain", _dc4_selection_domain)
 
 def _dc4_selection_domain_twin():
@@ -1841,6 +1850,9 @@ def _dc4_selection_domain_twin():
     mutated["entries"][0]["publisher"] = mutated["entries"][0]["url_host"]
     assert _selection_domain_excluded(mutated) == [], \
         "recomputation is blind to whose Delta it is"
+    kin = next(c for c in v["self_audit_cases"] if c["label"] == "publisher under the auditors suffix")
+    assert _roster_independent(kin["auditor_id"], "shop.example.org"), \
+        "recomputation is blind to the Publisher's suffix"
 check("negative:wist4-selection-domain", _dc4_selection_domain_twin)
 
 def _parameter_vector():
