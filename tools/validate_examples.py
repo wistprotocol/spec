@@ -1659,17 +1659,18 @@ def _proof_standing(v, case):
     Record, gives standing through the extension rule; any other proof
     gives none (WIST4-E01).
     """
-    pk = b64u_decode(v["auditor_public_key"])
+    pk_audited = b64u_decode(case["admitted_at"]["audited_block"])
+    pk_trigger = b64u_decode(case["admitted_at"]["trigger_block"])
     pi = bytes.fromhex(case["vrf_proof_hex"])
     audited = bytes.fromhex(v["audited_block"]["alpha_hex"])
     trigger = bytes.fromhex(v["trigger_block"]["alpha_hex"])
-    if ecvrf.verify(pk, audited, pi):
+    if ecvrf.verify(pk_audited, audited, pi):
         beta = ecvrf.proof_to_hash(pi)
         D = int.from_bytes(
             hashlib.sha256(beta + v["audited_delta"].encode()).digest()[:8], "big")
         p_1e7 = min(max(200_000 + 3 * (1_000_000 - v["reputation_u"]), 200_000), 5_000_000)
         return ("audited", "selection" if D * 10**7 < p_1e7 * 2**64 else "WIST4-E01")
-    if ecvrf.verify(pk, trigger, pi):
+    if ecvrf.verify(pk_trigger, trigger, pi):
         return ("trigger", "extension" if case["named_by_extension"] else "WIST4-E01")
     return (None, "WIST4-E01")
 
@@ -1697,9 +1698,15 @@ def _dc4_extension_proof():
             f"{case['label']}: recomputed {got}, vector says {(case['proof_block'], case['standing'])}"
         standings.add(case["standing"])
     for needed in ("extension proof over trigger block", "audited block proof unselected",
-                   "proof over neither block", "trigger proof but not summoned"):
+                   "proof over neither block", "trigger proof but not summoned",
+                   "rotated between the blocks proof under the key held at b1",
+                   "rotated between the blocks b1 proof under the audited blocks key",
+                   "rotated between the blocks audited proof under the key held at b1"):
         assert needed in labels, f"vector lacks the {needed} case"
     assert standings == {"extension", "WIST4-E01"}, standings
+    assert v["rotated_public_key"] != v["auditor_public_key"], "the rotation admits the same key"
+    assert any(c["admitted_at"]["audited_block"] != c["admitted_at"]["trigger_block"]
+               for c in v["cases"]), "no case rotates between the audited Block and B₁"
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
     assert "in whose selection set the Auditor holds `audited_delta`" in prose, \
@@ -1715,6 +1722,12 @@ def _dc4_extension_proof_twin():
         "recomputation is blind to an extension Record carrying the audited Block's proof"
     assert _proof_standing(v, dict(ext, named_by_extension=False))[1] == "WIST4-E01", \
         "recomputation is blind to a proof over B₁ from an Auditor B₁ did not summon"
+    old_key = next(c for c in v["cases"]
+                   if c["label"] == "rotated between the blocks b1 proof under the audited blocks key")
+    steady = dict(old_key, admitted_at={"audited_block": v["auditor_public_key"],
+                                        "trigger_block": v["auditor_public_key"]})
+    assert _proof_standing(v, steady)[1] == "extension", \
+        "recomputation is blind to which key the Auditor held at B₁"
 check("negative:wist4-extension-proof", _dc4_extension_proof_twin)
 
 def _roster_vector():
@@ -1792,7 +1805,10 @@ def _dc4_roster():
                    "two admits for one subject in one block both rejected",
                    "same public key under a fresh key id after exit rejected",
                    "public key held by another auditor rejected",
-                   "key id held by another auditor rejected"):
+                   "key id held by another auditor rejected",
+                   "retired key id re admitted by another auditor rejected",
+                   "rejected for cause remove bars nothing",
+                   "same block for cause remove and admit rejected"):
         assert needed in labels, f"vector lacks the {needed} case"
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
@@ -1982,7 +1998,10 @@ def _dc4_unauditable():
     for needed in ("second blocking exactly thirty days before n",
                    "second blocking one second inside the horizon",
                    "cleared by a third independent auditor",
-                   "clearing auditor dependent on a blocker"):
+                   "clearing auditor dependent on a blocker",
+                   "clearing record at the later blocking instant",
+                   "clearing record exactly at n",
+                   "three blockers one pair uncleared"):
         assert needed in labels, f"vector lacks the {needed} case"
     assert set(v["clearing_verdicts"]) == {"consistent", "inconsistent", "dynamic_variance",
                                            "link_variance", "link_inconsistent"}
@@ -2310,6 +2329,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/extension-proof.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
     ("vectors/wist4/extension-proof.json", "audited_delta"): "a Delta ID",
     ("vectors/wist4/extension-proof.json", "auditor_public_key"): "an Ed25519 public key",
+    ("vectors/wist4/extension-proof.json", "rotated_public_key"): "an Ed25519 public key",
+    ("vectors/wist4/extension-proof.json", "audited_block"): "the Ed25519 public key the Auditor held at the audited Block",
+    ("vectors/wist4/extension-proof.json", "trigger_block"): "the Ed25519 public key the Auditor held at B₁",
     ("vectors/multilog/dedup.json", "block_hash"): "SHA-256 of a Block header",
     ("vectors/multilog/dedup.json", "prev_block_hash"): "SHA-256 of a Block header",
     ("vectors/multilog/dedup.json", "merkle_root"): "root over Entries, which carry commitments only",

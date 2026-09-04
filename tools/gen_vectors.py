@@ -2194,12 +2194,21 @@ trigger_alpha = bytes.fromhex(sha256_hex(empty_canonical))
 trigger_pi = ecvrf.prove(SEED, trigger_alpha)
 neither_alpha = hashlib.sha256(b"wist-test-block|neither").digest()
 neither_pi = ecvrf.prove(SEED, neither_alpha)
+# A rotation between the audited Block and B₁: each Block's proof verifies
+# under the key the Auditor held at that Block's sealed_at (§3), so the B₁
+# proof under the audited Block's key gives no standing.
+rotated_trigger_pi = ecvrf.prove(SEED2, trigger_alpha)
+rotated_audited_pi = ecvrf.prove(SEED2, alpha)
+STEADY = {"audited_block": b64u(pub_raw), "trigger_block": b64u(pub_raw)}
+ROTATED = {"audited_block": b64u(pub_raw), "trigger_block": b64u(pub2_raw)}
 write_json(WIST4 / "extension-proof.json", spaced_labels({
     "note": ("WIST-4 §3, §4: the Block an Audit Record's vrf_proof is over. "
              "audited_block carries audited_delta; trigger_block is B₁, the Block "
-             "sealing the triggering Record. Each case gives the proof, the Block it "
-             "verifies over and the standing it earns."),
+             "sealing the triggering Record. Each case gives the proof, the key the "
+             "Auditor held at each Block's sealed_at (admitted_at), the Block the "
+             "proof verifies over under that Block's key, and the standing it earns."),
     "auditor_public_key": b64u(pub_raw),
+    "rotated_public_key": b64u(pub2_raw),
     "audited_delta": delta_id,
     "audited_block": {"block_hash": block_hash, "alpha_hex": alpha.hex()},
     "trigger_block": {"block_hash": "sha256:" + sha256_hex(empty_canonical),
@@ -2207,13 +2216,26 @@ write_json(WIST4 / "extension-proof.json", spaced_labels({
     "reputation_u": EXTENSION_REPUTATION_U,
     "cases": [
         {"label": "extension-proof-over-trigger-block", "vrf_proof_hex": trigger_pi.hex(),
+         "admitted_at": STEADY,
          "named_by_extension": True, "proof_block": "trigger", "standing": "extension"},
         {"label": "audited-block-proof-unselected", "vrf_proof_hex": pi.hex(),
+         "admitted_at": STEADY,
          "named_by_extension": True, "proof_block": "audited", "standing": "WIST4-E01"},
         {"label": "proof-over-neither-block", "vrf_proof_hex": neither_pi.hex(),
+         "admitted_at": STEADY,
          "named_by_extension": True, "proof_block": None, "standing": "WIST4-E01"},
         {"label": "trigger-proof-but-not-summoned", "vrf_proof_hex": trigger_pi.hex(),
+         "admitted_at": STEADY,
          "named_by_extension": False, "proof_block": "trigger", "standing": "WIST4-E01"},
+        {"label": "rotated-between-the-blocks-proof-under-the-key-held-at-b1",
+         "vrf_proof_hex": rotated_trigger_pi.hex(), "admitted_at": ROTATED,
+         "named_by_extension": True, "proof_block": "trigger", "standing": "extension"},
+        {"label": "rotated-between-the-blocks-b1-proof-under-the-audited-blocks-key",
+         "vrf_proof_hex": trigger_pi.hex(), "admitted_at": ROTATED,
+         "named_by_extension": True, "proof_block": None, "standing": "WIST4-E01"},
+        {"label": "rotated-between-the-blocks-audited-proof-under-the-key-held-at-b1",
+         "vrf_proof_hex": rotated_audited_pi.hex(), "admitted_at": ROTATED,
+         "named_by_extension": True, "proof_block": None, "standing": "WIST4-E01"},
     ],
 }))
 print("wist4 extension-proof vector written")
@@ -2308,6 +2330,7 @@ def unauditable_case(label, blocking, others, n_s):
 
 N_S = 100 * DAY_S
 A1, A2, A3, A2_KIN = "audit.example.org", "checker.example.net", "verify.example.com", "other.example.net"
+A3_KIN, A4 = "mirror.example.com", "probe.sample.org"
 unauditable_cases = [
     unauditable_case("two-independent-blocking-inside-the-horizon",
                      [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
@@ -2341,7 +2364,27 @@ unauditable_cases = [
                      [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
                       {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
                      [{"auditor": A3, "sealed_at_s": N_S + DAY_S, "verdict": "consistent"}], N_S),
+    unauditable_case("clearing-record-at-the-later-blocking-instant",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [{"auditor": A3, "sealed_at_s": N_S - 10 * DAY_S, "verdict": "consistent"}], N_S),
+    unauditable_case("clearing-record-exactly-at-n",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [{"auditor": A3, "sealed_at_s": N_S, "verdict": "consistent"}], N_S),
+    unauditable_case("three-blockers-one-pair-uncleared",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S},
+                      {"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S}],
+                     [{"auditor": A3_KIN, "sealed_at_s": N_S - 2 * DAY_S, "verdict": "consistent"}], N_S),
+    unauditable_case("three-blockers-every-pair-cleared",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S},
+                      {"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S}],
+                     [{"auditor": A4, "sealed_at_s": N_S - 2 * DAY_S, "verdict": "consistent"}], N_S),
 ]
+assert [c["unauditable"] for c in unauditable_cases[-4:]] == [True, False, True, False], \
+    "unauditable boundary cases drifted"
 
 write_json(WIST4 / "unauditable.json", spaced_labels({
     "note": "WIST-4 §5 unauditable predicate at Block N. blocking are the URL's blocking Records, other_records its Records of any other verdict, both as (auditor, sealing instant).",
@@ -2478,6 +2521,22 @@ roster_scenarios = [
       roster_entry(3600, "auditor_admit", AUD_R2, "k1", public_key="pk-other"),
       roster_entry(7200, "auditor_admit", AUD_R2, "k2")],
      [(AUD_R, 3600), (AUD_R2, 3600), (AUD_R2, 7200)]),
+    ("retired-key-id-re-admitted-by-another-auditor-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1"),
+      roster_entry(7200, "auditor_admit", AUD_R2, "k1", public_key="pk-other")],
+     [(AUD_R2, 7200)]),
+    ("rejected-for-cause-remove-bars-nothing",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k9", evidence=["sha256:void-record"]),
+      roster_entry(7200, "auditor_remove", AUD_R, "k1"),
+      roster_entry(10800, "auditor_admit", AUD_R, "k2")],
+     [(AUD_R, 3600), (AUD_R, 7200), (AUD_R, 10800)]),
+    ("same-block-for-cause-remove-and-admit-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1", evidence=["sha256:void-record"]),
+      roster_entry(3600, "auditor_admit", AUD_R, "k2")],
+     [(AUD_R, 3599), (AUD_R, 3600)]),
     ("rotation-beside-a-second-admit-in-one-block",
      [roster_entry(0, "auditor_admit", AUD_R, "k1"),
       roster_entry(3600, "auditor_remove", AUD_R, "k1"),
@@ -2496,7 +2555,7 @@ roster_cases = [
     for label, entries, queries in roster_scenarios
 ]
 assert [c["rejected_indices"] for c in roster_cases] == \
-    [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2], [1], [1], [2, 3]], "roster rejections drifted"
+    [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2], [1], [1], [2], [1], [2], [2, 3]], "roster rejections drifted"
 write_json(WIST4 / "roster.json", spaced_labels({
     "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
              "acts in Log order, the indices a replayer rejects (WIST4-E07), and "
