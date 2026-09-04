@@ -1685,3 +1685,34 @@ and a rotation — remove then admit at one instant — is unchanged.
 **Status.** Exercised. `vectors:wist4-roster` recomputes both cases —
 two admits alone, and a rotation whose admit is joined by a second —
 and its twin proves the check accepts a lone admit.
+
+## 2026-09-04 — WIST-4 §4, §9.1; registry-update schema: a removal is for cause exactly when its `evidence` names something
+
+Adds to §4 that a removal "carrying evidence" is one whose `evidence`
+member names at least one ID and that a removal carrying none has the
+member absent, and to §9.1 that an `auditor_remove`'s `evidence`, where
+present, MUST name at least one ID; `schemas/registry-update.schema.json`
+gains an appended `auditor_remove` branch with `minItems` 1.
+`vectors/wist4/roster.json` carries `evidence` as the Registry Update
+does — present for a removal for cause, absent for an exit.
+
+**What it states.** §4 decided a bar by whether the removal was
+"carrying evidence", and the schema typed `evidence` as an optional
+array with no lower bound, so `"evidence": []` was schema-valid and
+carried a member that named nothing. One reader took presence as
+evidence and barred the `auditor_id`; another took the empty list as
+none and let it rotate. The words meant the second — evidence is what
+the array names, and an empty one names nothing — and an array that
+names nothing is now not an `auditor_remove` at all, so no replayer has
+to decide.
+
+**Why it qualifies.** Both conditions hold. An Aggregator that named
+its evidence conformed and still does; an empty array was never a
+removal §4 described. The schema change forbids a form the text gave
+no meaning to.
+
+**Status.** Exercised. `schema:wist4-auditor-remove-evidence` validates
+a removal with one ID and one with the member absent, rejects an empty
+array, and checks the vector carries both a removal for cause and an
+exit; `vectors:wist4-roster` recomputes the bar from the member's
+presence.

@@ -1743,7 +1743,7 @@ def _roster_replay(log_id, entries):
                 continue
             holding[e["auditor_id"]] = (None, t)
             retired.add(e["key_id"])
-            if e["evidence"]:
+            if e.get("evidence"):
                 barred.add(e["auditor_id"])
         admits = [x for x in acts if x[1]["action"] == "auditor_admit"]
         for i, e in admits:
@@ -2522,6 +2522,37 @@ def _dc4_coverage_attestation():
             continue
         raise AssertionError(f"coverage_attestation without {missing} validated")
 check("schema:wist4-coverage-attestation", _dc4_coverage_attestation)
+
+def _dc4_auditor_remove_evidence():
+    """WIST-4 §4, §9.1: an auditor_remove is for cause exactly when it carries
+    evidence, so an empty `evidence` array — a removal neither for cause nor
+    an exit — is not a valid Registry Update."""
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
+    def remove(**over):
+        update = {"wist_version": "1.0.0", "action": "auditor_remove",
+                  "subject": "audit.example.net", "details": {"key_id": "test-aud-k1"},
+                  "effective_at": "2026-08-02T16:00:00Z"}
+        update.update(over)
+        return {"update": update, "sig": sig}
+    Draft202012Validator(schema).validate(remove())
+    Draft202012Validator(schema).validate(remove(evidence=["sha256:" + "0" * 64]))
+    try:
+        Draft202012Validator(schema).validate(remove(evidence=[]))
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("an auditor_remove with an empty evidence array validated")
+    v = _roster_vector()
+    removes = [e for c in v["cases"] for e in c["entries"] if e["action"] == "auditor_remove"]
+    assert all(e["evidence"] for e in removes if "evidence" in e), \
+        "a roster vector remove carries an empty evidence array"
+    assert any("evidence" in e for e in removes) and any("evidence" not in e for e in removes), \
+        "the roster vector must carry both a removal for cause and an exit"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "an `evidence` member naming at least one ID" in prose, "§4 does not pin what carrying evidence means"
+check("schema:wist4-auditor-remove-evidence", _dc4_auditor_remove_evidence)
 
 def _dc3_parameter_tuple_effective_at():
     """WIST-3 §7: a `parameter` tuple's `effective_at` is the instant the
