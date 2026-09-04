@@ -1848,6 +1848,119 @@ write_json(WIST4 / "extension-proof.json", spaced_labels({
 }))
 print("wist4 extension-proof vector written")
 
+# ----------------------------------------- WIST-4 §3, §4: the Auditor roster
+# One admitted key per auditor_id at any height. Removes sealed at an instant
+# apply before admits sealed at it, which is what lets a rotation seal in one
+# Block; every other roster act §3/§4 reject is a case here (WIST4-E07).
+ROSTER_LOG_ID = "log.example.org"
+
+
+def roster_entry(sealed_at_s, action, auditor_id, key_id, evidence=False):
+    e = {"sealed_at_s": sealed_at_s, "action": action,
+         "auditor_id": auditor_id, "key_id": key_id}
+    if action == "auditor_remove":
+        e["evidence"] = evidence
+    return e
+
+
+def roster_replay(log_id, entries):
+    """Rejected Entry indices under §3/§4, in Log order."""
+    key_of, retired, barred, rejected = {}, set(), set(), []
+    instants = sorted({e["sealed_at_s"] for e in entries})
+    for t in instants:
+        at_t = [(i, e) for i, e in enumerate(entries) if e["sealed_at_s"] == t]
+        for i, e in at_t:
+            if e["action"] != "auditor_remove":
+                continue
+            if key_of.get(e["auditor_id"]) != e["key_id"]:
+                rejected.append(i)
+                continue
+            del key_of[e["auditor_id"]]
+            retired.add(e["key_id"])
+            if e["evidence"]:
+                barred.add(e["auditor_id"])
+        for i, e in at_t:
+            if e["action"] != "auditor_admit":
+                continue
+            if (e["key_id"] in retired or e["auditor_id"] in barred
+                    or e["auditor_id"] in key_of or not independent(e["auditor_id"], log_id)):
+                rejected.append(i)
+                continue
+            key_of[e["auditor_id"]] = e["key_id"]
+    return sorted(rejected)
+
+
+def roster_admitted_at(log_id, entries, auditor_id, t):
+    """The key auditor_id holds at instant t: admitted at or before t and not
+    removed at or before t."""
+    rejected = set(roster_replay(log_id, entries))
+    key = None
+    for i, e in enumerate(entries):
+        if i in rejected or e["auditor_id"] != auditor_id or e["sealed_at_s"] > t:
+            continue
+        key = e["key_id"] if e["action"] == "auditor_admit" else None
+    return key
+
+
+AUD_R = "audit.example.net"
+roster_scenarios = [
+    ("rotation-in-one-block",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1"),
+      roster_entry(3600, "auditor_admit", AUD_R, "k2")],
+     [(AUD_R, 0), (AUD_R, 3599), (AUD_R, 3600), (AUD_R, 7200)]),
+    ("overlapping-admit-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_admit", AUD_R, "k2")],
+     [(AUD_R, 3600), (AUD_R, 7200)]),
+    ("retired-key-id-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1"),
+      roster_entry(7200, "auditor_admit", AUD_R, "k1")],
+     [(AUD_R, 7200)]),
+    ("barred-subject-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1", evidence=True),
+      roster_entry(7200, "auditor_admit", AUD_R, "k2")],
+     [(AUD_R, 7200)]),
+    ("exit-then-re-entry-allowed",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1"),
+      roster_entry(7200, "auditor_admit", AUD_R, "k2")],
+     [(AUD_R, 5000), (AUD_R, 7200)]),
+    ("removal-ends-admission-at-its-instant",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1")],
+     [(AUD_R, 3599), (AUD_R, 3600)]),
+    ("dependent-on-the-log-id-rejected",
+     [roster_entry(0, "auditor_admit", "audit.example.org", "k1"),
+      roster_entry(0, "auditor_admit", "checker.example.net", "k2")],
+     [("audit.example.org", 0), ("checker.example.net", 0)]),
+    ("remove-of-a-key-not-held-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k9"),
+      roster_entry(7200, "auditor_admit", AUD_R, "k2")],
+     [(AUD_R, 3600), (AUD_R, 7200)]),
+]
+roster_cases = [
+    {"label": label, "log_id": ROSTER_LOG_ID, "entries": entries,
+     "rejected_indices": roster_replay(ROSTER_LOG_ID, entries),
+     "admitted_key_at": [
+         {"auditor_id": aid, "sealed_at_s": t,
+          "key_id": roster_admitted_at(ROSTER_LOG_ID, entries, aid, t)}
+         for aid, t in queries]}
+    for label, entries, queries in roster_scenarios
+]
+assert [c["rejected_indices"] for c in roster_cases] == \
+    [[], [1], [2], [2], [], [], [0], [1, 2]], "roster rejections drifted"
+write_json(WIST4 / "roster.json", spaced_labels({
+    "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
+             "acts in Log order, the indices a replayer rejects (WIST4-E07), and "
+             "the key an auditor_id holds at queried instants."),
+    "cases": roster_cases,
+}))
+print("wist4 roster vector: %d cases" % len(roster_cases))
+
 
 def criterion_times(findings, count, span_days, min_severity):
     qualifying = [f["sealed_at_s"] for f in findings if f["severity"] >= min_severity]
