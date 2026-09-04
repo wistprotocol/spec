@@ -2402,11 +2402,26 @@ selection_domain_cases = [
 ]
 assert [c["excluded_indices"] for c in selection_domain_cases] == \
     [[], [], [0], [0], [], [], [1]], "selection domain drifted"
+self_audit_cases = [
+    {"label": label, "auditor_id": auditor, "publisher": publisher,
+     "barred": not independent(auditor, publisher)}
+    for label, auditor, publisher in [
+        ("independent-publisher", "audit.example.org", "shop.example.net"),
+        ("publisher-under-the-auditors-suffix", "audit.example.net", "blog.example.net"),
+        ("publisher-is-the-auditors-own-host", "audit.example.net", "audit.example.net"),
+        ("shared-two-label-public-suffix", "a.com.br", "b.com.br"),
+        ("auditor-is-the-publishers-subdomain", "audit.shop.example.org", "shop.example.org"),
+    ]
+]
+
 write_json(WIST4 / "selection-domain.json", spaced_labels({
     "note": ("WIST-4 §4 selection domain: per case a Block's height, the seq-0 "
              "Declaration heights of self-declared hosts, the Block's Deltas as "
-             "(publisher, url_host), and the indices outside every Auditor's draw."),
+             "(publisher, url_host), and the indices outside every Auditor's draw; "
+             "self_audit_cases give (auditor_id, publisher) pairs and whether §3 "
+             "bars that Auditor from the Publisher's Deltas."),
     "cases": selection_domain_cases,
+    "self_audit_cases": self_audit_cases,
 }))
 print("wist4 selection-domain vector: %d cases" % len(selection_domain_cases))
 

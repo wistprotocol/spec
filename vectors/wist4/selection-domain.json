@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a74 selection domain: per case a Block's height, the seq-0 Declaration heights of self-declared hosts, the Block's Deltas as (publisher, url_host), and the indices outside every Auditor's draw.",
+  "note": "WIST-4 \u00a74 selection domain: per case a Block's height, the seq-0 Declaration heights of self-declared hosts, the Block's Deltas as (publisher, url_host), and the indices outside every Auditor's draw; self_audit_cases give (auditor_id, publisher) pairs and whether \u00a73 bars that Auditor from the Publisher's Deltas.",
   "cases": [
     {
       "label": "own host always selectable",
@@ -147,6 +147,38 @@
       "excluded_indices": [
         1
       ]
+    }
+  ],
+  "self_audit_cases": [
+    {
+      "label": "independent publisher",
+      "auditor_id": "audit.example.org",
+      "publisher": "shop.example.net",
+      "barred": false
+    },
+    {
+      "label": "publisher under the auditors suffix",
+      "auditor_id": "audit.example.net",
+      "publisher": "blog.example.net",
+      "barred": true
+    },
+    {
+      "label": "publisher is the auditors own host",
+      "auditor_id": "audit.example.net",
+      "publisher": "audit.example.net",
+      "barred": true
+    },
+    {
+      "label": "shared two label public suffix",
+      "auditor_id": "a.com.br",
+      "publisher": "b.com.br",
+      "barred": true
+    },
+    {
+      "label": "auditor is the publishers subdomain",
+      "auditor_id": "audit.shop.example.org",
+      "publisher": "shop.example.org",
+      "barred": true
     }
   ]
 }
