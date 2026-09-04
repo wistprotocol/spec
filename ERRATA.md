@@ -1366,3 +1366,43 @@ predicate for nine cases, among them a second blocking Record sealed
 exactly 30 whole days before N (aged out) and one sealed a second
 inside the horizon (counted); its twin proves the check flips on a
 horizon read end-inclusive at 30.
+
+## 2026-09-04 — WIST-4 §6.1, §9; registry-update schema: the decay constant carries no identifier, and the horizon amends only downward (revision, not errata)
+
+Removes `decay_constant_days` from §9's bounds table, the identifier
+column of its defaults table and the `parameter_change` enum in
+`schemas/registry-update.schema.json`; bounds `decay_horizon_days` at
+the table's last index, 1825, in §9 and the schema; has §6.1 say that
+changing the table is not a `parameter_change` and that `decay(t)` is
+zero above the horizon in force rather than above 1825; corrects §9's
+abbreviated decay-table digest to the value §6.1 pins; and adds a
+schema twin to `tools/validate_examples.py`.
+
+**What it states.** §6.1 makes the decay table normative as bytes —
+"implementations MUST read it and MUST NOT recompute it at runtime" —
+while §9 listed the constant it was generated from as an amendable
+identifier, so a schema-valid `parameter_change` to
+`decay_constant_days` had no defined effect: no party may regenerate
+the table, and the table in force still hashed to the pinned digest.
+§9's own second reason for an identifier's absence — a value "changed
+by publishing a new artifact rather than a bare number, as the decay
+table digest is" — already covered the constant, and §6.1's closing
+sentence, which called a table change "a `parameter_change` like any
+other constant", contradicted it. The horizon is different: a shorter
+one reads a prefix of the table and is well-defined, a longer one
+reads entries the table does not have, so it stays amendable with the
+table's length as its ceiling. The §9 digest row still abbreviated the
+value the 2026-08-22 entry replaced.
+
+**Why it is a revision.** It fails the first condition. An Aggregator
+that sealed a `parameter_change` to `decay_constant_days`, or to a
+horizon above 1825, conformed to the schema; a replayer now rejects
+both as `WIST4-E03`. It is scoped to the two rows: the table, its
+digest and every reputation computed from it are unchanged.
+
+**Status.** Exercised. `spec:parameter-registry-enum` holds §9's table
+and the schema's enum to the same identifier set, so neither can
+re-admit the constant alone; `negative:wist4-decay-parameters` proves
+the schema rejects a change to the constant and a horizon of 1826 and
+accepts 1825 and a horizon inside the table, and that the bound is the
+table's length.
