@@ -182,6 +182,102 @@
       ],
       "n_sealed_at_s": 8640000,
       "unauditable": true
+    },
+    {
+      "label": "clearing record at the later blocking instant",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 7776000,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "clearing record exactly at n",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 8640000,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": false
+    },
+    {
+      "label": "three blockers one pair uncleared",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        },
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 8208000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "mirror.example.com",
+          "sealed_at_s": 8467200,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "three blockers every pair cleared",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        },
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 8208000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "probe.sample.org",
+          "sealed_at_s": 8467200,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": false
     }
   ]
 }
