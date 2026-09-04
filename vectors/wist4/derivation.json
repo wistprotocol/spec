@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. penalty_inputs rows are [severity, t_days].",
+  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta. penalty_inputs rows are [severity, t_days].",
   "c_cap": 500,
   "cases": [
     {
@@ -22,26 +22,31 @@
       "consistent_audits": [
         {
           "height": 30,
+          "audited_height": 28,
           "url": "https://site.example/a",
           "change": "new"
         },
         {
           "height": 40,
+          "audited_height": 38,
           "url": "https://site.example/a",
           "change": "update"
         },
         {
           "height": 50,
+          "audited_height": 48,
           "url": "https://site.example/b",
           "change": "update"
         },
         {
           "height": 60,
+          "audited_height": 58,
           "url": "https://site.example/c",
           "change": "attest"
         },
         {
           "height": 70,
+          "audited_height": 68,
           "url": "https://site.example/d",
           "change": "delete"
         }
@@ -49,18 +54,21 @@
       "confirmed": [
         {
           "height": 80,
+          "audited_height": 78,
           "sealed_at_s": 8640000,
           "delta_id": "sha256:bb",
           "severity": 2
         },
         {
           "height": 81,
+          "audited_height": 78,
           "sealed_at_s": 8640000,
           "delta_id": "sha256:aa",
           "severity": 3
         },
         {
           "height": 90,
+          "audited_height": 88,
           "sealed_at_s": 10368000,
           "delta_id": "sha256:cc",
           "severity": 1
@@ -108,11 +116,13 @@
       "consistent_audits": [
         {
           "height": 50,
+          "audited_height": 48,
           "url": "https://site.example/a",
           "change": "new"
         },
         {
           "height": 70,
+          "audited_height": 68,
           "url": "https://site.example/b",
           "change": "new"
         }
@@ -120,12 +130,14 @@
       "confirmed": [
         {
           "height": 55,
+          "audited_height": 53,
           "sealed_at_s": 9504000,
           "delta_id": "sha256:aa",
           "severity": 3
         },
         {
           "height": 90,
+          "audited_height": 88,
           "sealed_at_s": 10800000,
           "delta_id": "sha256:bb",
           "severity": 1
@@ -161,6 +173,7 @@
       "consistent_audits": [
         {
           "height": 30,
+          "audited_height": 28,
           "url": "https://site.example/a",
           "change": "new"
         }
@@ -168,6 +181,7 @@
       "confirmed": [
         {
           "height": 80,
+          "audited_height": 78,
           "sealed_at_s": 8640000,
           "delta_id": "sha256:aa",
           "severity": 3
@@ -178,6 +192,80 @@
         "a_days": 0,
         "c": 0,
         "penalty_inputs": []
+      }
+    },
+    {
+      "label": "audits straddling a reset",
+      "resets": [
+        55
+      ],
+      "n": {
+        "height": 100,
+        "sealed_at_s": 11232000
+      },
+      "accepted": [
+        {
+          "height": 50,
+          "sealed_at_s": 8640000
+        },
+        {
+          "height": 56,
+          "sealed_at_s": 10368000
+        }
+      ],
+      "consistent_audits": [
+        {
+          "height": 58,
+          "audited_height": 50,
+          "url": "https://site.example/a",
+          "change": "new"
+        },
+        {
+          "height": 58,
+          "audited_height": 56,
+          "url": "https://site.example/b",
+          "change": "update"
+        },
+        {
+          "height": 57,
+          "audited_height": 57,
+          "url": "https://site.example/c",
+          "change": "new"
+        }
+      ],
+      "confirmed": [
+        {
+          "height": 60,
+          "audited_height": 50,
+          "sealed_at_s": 10454400,
+          "delta_id": "sha256:aa",
+          "severity": 3
+        },
+        {
+          "height": 60,
+          "audited_height": 57,
+          "sealed_at_s": 10454400,
+          "delta_id": "sha256:bb",
+          "severity": 1
+        },
+        {
+          "height": 54,
+          "audited_height": 50,
+          "sealed_at_s": 10281600,
+          "delta_id": "sha256:cc",
+          "severity": 2
+        }
+      ],
+      "expected": {
+        "reset": 55,
+        "a_days": 10,
+        "c": 2,
+        "penalty_inputs": [
+          [
+            1,
+            9
+          ]
+        ]
       }
     }
   ]

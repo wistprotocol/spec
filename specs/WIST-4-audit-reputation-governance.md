@@ -1335,9 +1335,14 @@ arises.
 
 **Identity scope.** `A`, `C`, and the set of Confirmed Inconsistencies are
 all scoped to the domain's **current identity**: every one of them counts
-only Log events sealed at a height greater than the domain's most recent
-identity reset (§6.3) and ≤ N. A domain that has never reset has no such
-lower bound, and everything from height 0 counts.
+only Log events sealed at a height ≤ N that belong to that identity, and
+an event belongs to the identity whose Delta it concerns. An accepted
+Delta belongs by its own sealing height; an Audit Record — a `consistent`
+one for `C`, a confirming one for a Confirmed Inconsistency — by the
+sealing height of its `audited_delta`, never by its own. That height
+MUST be greater than the domain's most recent identity reset (§6.3) for
+the event to count. A domain that has never reset has no such lower
+bound, and everything from height 0 counts.
 
 - **`A`** = whole days between the `sealed_at` of the Block that first
   contained an accepted Delta from this domain under its current identity
@@ -1348,16 +1353,18 @@ lower bound, and everything from height 0 counts.
   division, parenthesized as written. It rises linearly from 100 000
   (exactly the Provisional cap) at `A` = 0 to 1 000 000 at `A` ≥ 730.
 - **`C`** = the number of distinct Normalized URLs (WIST-1 §3.2) of this
-  domain that have at least one `consistent` Audit Record — sealed above
-  the domain's most recent identity reset and at a height ≤ N — whose
+  domain that have at least one `consistent` Audit Record — sealed at a
+  height ≤ N, for an `audited_delta` sealed above the domain's most
+  recent identity reset — whose
   `reference_delta` (§5) is a content-bearing Delta (`new` or `update`)
   on that URL, capped at `C_cap` = 500. A Record whose reference is an
   `attest` or a `delete` never contributes, whatever Delta it audited.
   Counting distinct URLs rather than Records, and capping the count,
   prevents a high-volume Publisher from diluting penalties toward zero.
 - **Confirmed Inconsistencies and Confirmed Link Inconsistencies.** Only
-  those whose confirming Audit Record is sealed above the domain's most
-  recent identity reset and at a height ≤ N count. For each such Confirmed
+  those whose confirming Audit Record is sealed at a height ≤ N and whose
+  Delta — the `audited_delta` its confirming Records share (§5) — is
+  sealed above the domain's most recent identity reset count. For each such Confirmed
   Inconsistency or Confirmed Link Inconsistency *i*: `s_i` is computed
   from its confirming Records (§7) by the §7 severity table — {1 = minor
   divergence, 2 = misleading extract, 3 = fabricated content} — for a
@@ -1465,15 +1472,26 @@ reset** at the height its Declaration Entry is sealed. Call that height
   sealing an accepted Delta from the domain. Until such a Block exists,
   `A` = 0.
 - **`C`** counts only distinct URLs whose qualifying `consistent` Audit
-  Record is sealed above `R`. A URL audited before the reset does not
-  count again unless it is audited again after it, and the pre-reset
-  Records remain in the Log — they simply belong to the previous identity.
-- **Penalties do not carry across a reset.** Confirmed Inconsistencies
-  confirmed at or below `R` leave `penalty_n` entirely; only those
-  confirmed above `R` count. A fresh identity starts clean, for exactly
+  Record audits a Delta sealed above `R`. A URL audited before the reset
+  does not count again until a Delta the fresh identity sealed on it is
+  audited, and the pre-reset Records remain in the Log — they simply
+  belong to the previous identity, as does a Record sealed above `R` for
+  one of its Deltas.
+- **Penalties do not carry across a reset.** A Confirmed Inconsistency
+  for a Delta sealed at or below `R` leaves `penalty_n` entirely,
+  whenever its confirming Record lands; only those for Deltas sealed
+  above `R` count. A fresh identity starts clean, for exactly
   the reason `A` and `C` start at zero: it is a different party as far as
   the protocol can tell, and the Provisional cap — not inherited debt — is
-  what bounds what it can claim.
+  what bounds what it can claim. The finding follows the claim, not the
+  confirmation: a Delta sealed below `R` is the previous identity's
+  statement, and an audit that lands above `R` — inside that Delta's
+  audit window, or under §4's extension rule — measures a statement the
+  fresh identity never made and can only retract with a Delta of its own.
+  Scoping by the confirming Record's height instead would hand the fresh
+  identity a penalty, and under §7 a ladder rung, for content it did not
+  publish, and would let the previous identity's timing decide which
+  party a finding lands on.
 
 **Sanction state binds the key identity too.** The §7 ladder is state
 about the same party `A`, `C` and `penalty_n` are state about, and it
@@ -2612,6 +2630,9 @@ hands.
 - [ ] Applies the Provisional cap as a ceiling, not a floor (§6.2), and
       resets `A`/`C` only for a fresh identity — never for an ordinary or
       recovery rotation (§6.3)
+- [ ] Scopes `C` and every Confirmed Inconsistency to the current identity
+      by the sealing height of the Record's `audited_delta`, not the
+      Record's own (§6.1, §6.3)
 - [ ] Recomputes severity from evidence and rejects unsupported sanctions (§7)
 - [ ] Counts every Confirmed Inconsistency's and Confirmed Link
       Inconsistency's penalty from its confirming Block onward,
