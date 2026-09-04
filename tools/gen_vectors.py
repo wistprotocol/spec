@@ -202,6 +202,8 @@ recovery_dropped_by_signing_key = variant(seq=1, prev_declaration=stored_hash,
 missing_prev = variant(seq=1, keys=[K2])
 wrong_prev = variant(seq=1, prev_declaration=decl_hash(mutated_same_seq), keys=[K2])
 fresh_identity = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
+fresh_identity_dropping_recovery = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
+del fresh_identity_dropping_recovery["recovery_keys"]
 overlapping_sets = variant(
     seq=1, prev_declaration=stored_hash,
     recovery_keys=[{"key_id": "test-r1", "alg": "Ed25519",
@@ -272,6 +274,14 @@ declaration_cases = [
             "Declaration is sealed and superseded at the window's end, "
             "because rejecting it at ingest would leave a thief's attempt "
             "invisible to a party replaying the Log."},
+    {"name": "fresh identity dropping the recovery keys",
+     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
+     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity_dropping_recovery, "test-k2"),
+     "expected": "WIST1-E08",
+     "why": "§5.2: recovery keys protect themselves against every Declaration "
+            "not signed by one of them — a fresh identity included, or a "
+            "party holding only the web server could shed them and sever "
+            "the owner's path back."},
     {"name": "key named in both key sets",
      "stored": sign_envelope("publisher", stored_decl, "test-k1"),
      "fetched": sign_envelope("publisher", overlapping_sets, "test-k1"),
