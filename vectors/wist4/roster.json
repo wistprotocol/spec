@@ -1,0 +1,300 @@
+{
+  "note": "WIST-4 \u00a73, \u00a74 roster derivation: per case a Log prefix of roster acts in Log order, the indices a replayer rejects (WIST4-E07), and the key an auditor_id holds at queried instants.",
+  "cases": [
+    {
+      "label": "rotation in one block",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "evidence": false
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2"
+        }
+      ],
+      "rejected_indices": [],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 0,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3599,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": "k2"
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": "k2"
+        }
+      ]
+    },
+    {
+      "label": "overlapping admit rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2"
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": "k1"
+        }
+      ]
+    },
+    {
+      "label": "retired key id rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "evidence": false
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        }
+      ],
+      "rejected_indices": [
+        2
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": null
+        }
+      ]
+    },
+    {
+      "label": "barred subject rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "evidence": true
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2"
+        }
+      ],
+      "rejected_indices": [
+        2
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": null
+        }
+      ]
+    },
+    {
+      "label": "exit then re entry allowed",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "evidence": false
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2"
+        }
+      ],
+      "rejected_indices": [],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 5000,
+          "key_id": null
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": "k2"
+        }
+      ]
+    },
+    {
+      "label": "removal ends admission at its instant",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "evidence": false
+        }
+      ],
+      "rejected_indices": [],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3599,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": null
+        }
+      ]
+    },
+    {
+      "label": "dependent on the log id rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.org",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "checker.example.net",
+          "key_id": "k2"
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.org",
+          "sealed_at_s": 0,
+          "key_id": null
+        },
+        {
+          "auditor_id": "checker.example.net",
+          "sealed_at_s": 0,
+          "key_id": "k2"
+        }
+      ]
+    },
+    {
+      "label": "remove of a key not held rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k9",
+          "evidence": false
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2"
+        }
+      ],
+      "rejected_indices": [
+        1,
+        2
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": "k1"
+        }
+      ]
+    }
+  ]
+}

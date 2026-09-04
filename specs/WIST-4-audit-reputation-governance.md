@@ -153,7 +153,20 @@ Record signatures **and** it is the VRF public key against which its
 `vrf_proof` is checked (§4). ECVRF-EDWARDS25519-SHA512-TAI and Ed25519
 share the [RFC 8032] key format, so no second key is admitted, and there is
 no way for an Auditor to sign under one identity while drawing its audit
-assignments under another.
+assignments under another. **An `auditor_id` holds at most one admitted
+key at any height**, and which key that is at a given Block is read from
+that Block's `sealed_at`: a key is held from the `sealed_at` of the Block
+sealing its `auditor_admit` to the `sealed_at` of the Block sealing its
+`auditor_remove`, the latter instant excluded, and an `auditor_admit`
+whose `subject` holds a key not removed at or before the admit's own
+Block is rejected by every replaying party (§4, `WIST4-E07`). Every duty
+and proof of a Block reads the key held at that Block's `sealed_at`; a
+Record's signature reads the key held at the Record's own Block. Across
+a rotation the two differ — a Record sealed after it for a Block before
+it is signed under the new key and carries a proof under the old one —
+and both are the same `auditor_id`'s, by the binding above. Were two keys
+held at once, the Auditor would hold two draws for every Block and could
+publish whichever selected less.
 
 **Windows and admission run on `sealed_at`.** `fetched_at` is
 Auditor-supplied and unverifiable by anyone else, so nothing anchored to it
@@ -414,7 +427,9 @@ under the duty, never a way around removal.
 **What removal binds, and how an Auditor rotates.** An `auditor_remove`
 retires its `key_id` permanently, exactly as an `aggregator_key_remove`
 does (WIST-3 §3.4): no later `auditor_admit` may name that `key_id`, and a
-replayer MUST reject one. Whether it also bars the *`auditor_id`* is
+replayer MUST reject one (`WIST4-E07`, as every rejection in this
+paragraph); an `auditor_remove` naming a key its `subject` does not hold
+retires nothing and is rejected the same way. Whether it also bars the *`auditor_id`* is
 decided by the removal's own `evidence`. A removal carrying evidence —
 failed Blocks, void Records, systematic divergence — is for cause, and an
 `auditor_admit` whose `subject` is that `auditor_id` MUST thereafter be
@@ -425,7 +440,10 @@ by generating thirty-two fresh octets. A removal carrying no evidence is
 an exit or a rotation, and bars nothing — which *is* the key-rotation
 mechanism: an Auditor rotates by having an evidence-less `auditor_remove`
 for the old key and an `auditor_admit` for the new one sealed, same
-`auditor_id`, each duty still anchored to whichever key was admitted at
+`auditor_id`, in one Block or the removal first — §3 holds one key per
+`auditor_id` per height, and a removal sealed at an instant ends the old
+key's tenure before an admission sealed at the same instant is read —
+each duty still anchored to whichever key was admitted at
 the relevant Block's `sealed_at` (§4). A compromised Auditor key is the
 rotation case with urgency: the removal ends the key's authority from
 its sealing height forward, and Records the stolen key signed for Blocks
@@ -2186,6 +2204,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
 | WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
+| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id`, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, or an `auditor_id` failing §3's independence test against `log_id`; or an `auditor_remove` naming a key its `subject` does not hold. Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
 
 ## 11. Security Considerations
 
@@ -2561,6 +2580,9 @@ hands.
 - [ ] Derives `A` and every `t_i` from Block `sealed_at`, never from
       `observed_at` or wall clock time (§6.1)
 - [ ] Verifies VRF proofs before counting a Record (§4)
+- [ ] Derives the roster from the Log — one key per `auditor_id` per
+      height, read at each Block's `sealed_at` — rejecting the acts
+      `WIST4-E07` names (§3, §4, §10)
 - [ ] Counts a Record only when its Auditor's key was admitted at its own
       Block's `sealed_at`, its `auditor_id` matches that admission's
       `subject`, its `fetched_at` lies in §3's interval, and the audit was

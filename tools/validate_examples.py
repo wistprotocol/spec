@@ -567,7 +567,7 @@ def _wist4_error_registry():
     assert "## 13. Conformance Checklist" in w4
     assert "## 10. Security Considerations" not in w4
     codes = re.findall(r"WIST4-E(\d{2})", w4)
-    assert sorted(set(codes)) == ["01", "02", "03", "04", "05", "06"], sorted(set(codes))
+    assert sorted(set(codes)) == ["01", "02", "03", "04", "05", "06", "07"], sorted(set(codes))
     assert "never invalidates the containing Block" in re.sub(r"\s+", " ", w4)
 
 check("spec:wist4-error-registry", _wist4_error_registry)
@@ -1582,6 +1582,93 @@ def _dc4_extension_proof_twin():
     assert _proof_standing(v, dict(ext, named_by_extension=False))[1] == "WIST4-E01", \
         "recomputation is blind to a proof over B₁ from an Auditor B₁ did not summon"
 check("negative:wist4-extension-proof", _dc4_extension_proof_twin)
+
+def _roster_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "roster.json").read_text())
+
+def _roster_independent(a, b):
+    sa, sb = a.split(".")[-2:], b.split(".")[-2:]
+    return len(sa) < 2 or len(sb) < 2 or sa != sb
+
+def _roster_replay(log_id, entries):
+    """WIST-4 §3/§4 roster derivation, recomputed independently of the
+    generator: at most one admitted key per auditor_id at any height;
+    removes at an instant apply before admits at it; a retired key_id,
+    a subject barred for cause, an overlapping admit, a subject dependent
+    on log_id, and a remove of a key its subject does not hold are all
+    rejected (WIST4-E07)."""
+    holding, retired, barred, rejected = {}, set(), set(), []
+    by_instant = {}
+    for i, e in enumerate(entries):
+        by_instant.setdefault(e["sealed_at_s"], []).append((i, e))
+    for t in sorted(by_instant):
+        acts = by_instant[t]
+        for i, e in [x for x in acts if x[1]["action"] == "auditor_remove"]:
+            if holding.get(e["auditor_id"], (None,))[0] != e["key_id"]:
+                rejected.append(i)
+                continue
+            holding[e["auditor_id"]] = (None, t)
+            retired.add(e["key_id"])
+            if e["evidence"]:
+                barred.add(e["auditor_id"])
+        for i, e in [x for x in acts if x[1]["action"] == "auditor_admit"]:
+            held = holding.get(e["auditor_id"], (None, None))[0]
+            if (e["key_id"] in retired or e["auditor_id"] in barred or held is not None
+                    or not _roster_independent(e["auditor_id"], log_id)):
+                rejected.append(i)
+                continue
+            holding[e["auditor_id"]] = (e["key_id"], t)
+    return sorted(rejected)
+
+def _roster_admitted_at(log_id, entries, auditor_id, t):
+    rejected = set(_roster_replay(log_id, entries))
+    key = None
+    for i, e in enumerate(entries):
+        if i in rejected or e["auditor_id"] != auditor_id or e["sealed_at_s"] > t:
+            continue
+        key = e["key_id"] if e["action"] == "auditor_admit" else None
+    return key
+
+def _dc4_roster():
+    """WIST-4 §3, §4: one admitted key per auditor_id per height, and the
+    roster acts a replayer rejects."""
+    v = _roster_vector()
+    labels = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        seals = [e["sealed_at_s"] for e in case["entries"]]
+        assert seals == sorted(seals), f"{case['label']}: entries not in Log order"
+        got = _roster_replay(case["log_id"], case["entries"])
+        assert got == case["rejected_indices"], \
+            f"{case['label']}: recomputed rejections {got}, vector says {case['rejected_indices']}"
+        for q in case["admitted_key_at"]:
+            key = _roster_admitted_at(case["log_id"], case["entries"], q["auditor_id"], q["sealed_at_s"])
+            assert key == q["key_id"], \
+                f"{case['label']}: at {q['sealed_at_s']} recomputed {key}, vector says {q['key_id']}"
+    for needed in ("rotation in one block", "overlapping admit rejected",
+                   "retired key id rejected", "barred subject rejected",
+                   "exit then re entry allowed", "removal ends admission at its instant",
+                   "dependent on the log id rejected", "remove of a key not held rejected"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "at most one admitted key at any height" in prose, "§3 does not pin one key per height"
+    assert "| WIST4-E07 |" in prose, "§10 has no roster row"
+check("vectors:wist4-roster", _dc4_roster)
+
+def _dc4_roster_twin():
+    """The check above must notice a rotation whose removal went missing."""
+    v = _roster_vector()
+    case = next(c for c in v["cases"] if c["label"] == "rotation in one block")
+    entries = [e for e in case["entries"] if e["action"] != "auditor_remove"]
+    assert _roster_replay(case["log_id"], entries) == [1], \
+        "recomputation is blind to a second key admitted beside a live one"
+    case = next(c for c in v["cases"] if c["label"] == "removal ends admission at its instant")
+    remove = next(e for e in case["entries"] if e["action"] == "auditor_remove")
+    assert _roster_admitted_at(case["log_id"], case["entries"], remove["auditor_id"],
+                               remove["sealed_at_s"] - 1) == remove["key_id"], \
+        "recomputation is blind to the instant before a removal"
+check("negative:wist4-roster", _dc4_roster_twin)
 
 def _dc4_audit_commitments():
     """Every content-derived value in an Audit Record is salted (WIST-4 §5).
