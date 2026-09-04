@@ -361,7 +361,17 @@ and by the Checkpoint's `block_hash`.
 The Aggregator publishes a signed Checkpoint (schema:
 [`schemas/checkpoint.schema.json`](../schemas/checkpoint.schema.json)) at
 the fixed URL `/log/checkpoint.json` after sealing each Block: the
-`block_number`, that Block's `block_hash`, and its `sealed_at`.
+`block_number`, that Block's `block_hash`, and its `sealed_at`. It MUST
+NOT publish the Checkpoint for Block N before Block N, and every lower
+Block, is durably stored and retrievable at its §6 path. A Checkpoint is
+a permanent signed commitment to one Block Hash: published ahead of a
+Block the Aggregator can still lose, it is honored only by re-sealing
+byte-identical bytes — the same header over the same Entries — and is
+otherwise contradicted by whatever Block N is sealed next, which is
+equivocation against itself. A Consumer holding a Checkpoint whose Block
+no source serves has a `WIST3-E01` it cannot clear, never a `WIST3-E02`:
+the Checkpoint is evidence of what the Aggregator committed to, and the
+Block's absence is the Aggregator's to remedy.
 
 - Mirrors MUST retain every Checkpoint they have ever served.
 - Consumers SHOULD fetch Checkpoints from more than one Mirror and
@@ -1324,7 +1334,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       monotonicity on the cadence grid, whole-second `sealed_at` ending
       in `Z`, canonical Entry order, the per-domain Entry capacity,
       correct Block Hash and Merkle root)
-- [ ] Publishes a Checkpoint per sealed Block at the fixed URL (§5)
+- [ ] Publishes a Checkpoint per sealed Block at the fixed URL, never
+      before the Block it names and every lower Block are durably stored
+      and served (§5)
 - [ ] Serves the static layout of §6 with immutable Block files
 - [ ] Serves every sealed Delta's Payload at `/payloads/<delta-id-hex>.json`
       for at least the availability window, byte-identical to what it

@@ -1057,3 +1057,33 @@ after the subdomain's Declaration height, the subdomain's own Delta, an
 unrelated Declaration, and a mixed Block — reporting the excluded
 indices; its twin proves the check sees the Declaration's height and
 whose Delta it is.
+
+## 2026-09-04 — WIST-3 §5, §12: a Block is durable before its Checkpoint
+
+Adds to §5 that the Aggregator MUST NOT publish the Checkpoint for Block
+N before Block N and every lower Block are durably stored and
+retrievable at their §6 paths, what a Checkpoint published earlier
+commits it to, and that a Consumer holding a Checkpoint whose Block no
+source serves has an uncleared `WIST3-E01`, never a `WIST3-E02`. The
+Aggregator checklist line follows.
+
+**What it states.** §5 already makes a Checkpoint the equivocation
+evidence — two validly signed Checkpoints for one `block_number` with
+different hashes — and §6 already requires every Block retrievable from
+genesis. A Checkpoint published before its Block is durable can only be
+honored by re-sealing the same bytes; any other Block N the Aggregator
+seals after losing the first is the second Checkpoint's hash, and the
+Aggregator has equivocated against itself with no adversary. The order
+was implied by what the two artifacts are; this states it, and says what
+a Consumer that meets the gap concludes.
+
+**Why it qualifies.** Both conditions hold. An Aggregator that published
+Checkpoints only for Blocks it served conformed and still does; a
+Consumer already fetched a missing Block from another source under
+`WIST3-E01`, and the entry only forbids it from reading the absence as
+divergence.
+
+**Status.** Unexercised. The order is a serving discipline over two
+artifacts the harness verifies separately; nothing recomputable
+distinguishes a Checkpoint published before its Block from one published
+after.
