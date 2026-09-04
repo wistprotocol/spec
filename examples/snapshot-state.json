@@ -18,6 +18,12 @@
       ],
       [
         "record",
+        "example.com",
+        "https://example.com/blog/retired",
+        "sha256:4b54cd176877c08c49db29ae2d360329920a8de20f1bb0660322d087393a24eb"
+      ],
+      [
+        "record",
         "reduced.example.org",
         "https://reduced.example.org/notice",
         "sha256:8c6bba6e9b10e50e49add730368bcdc5d455a2f7311f372cb01b53137567e346"
@@ -47,6 +53,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "Rr-vAjzHTvGD_An9BkSCbwiokAoNW8Lq3yl5dZvRVSXo2f36qi-C7huMGUpyua3wLdzg9BWUeVt1RchIInBxDg"
+    "value": "PgsxaRUJ2ci2FnqENpPRKSfY0X6HuW5bWdiVFnqGeDaJSI3bJeAXGgyJkSWGhFLkhmlmZ6sd26AGF6G77Sc-CA"
   }
 }
