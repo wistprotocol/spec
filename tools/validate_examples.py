@@ -2442,6 +2442,70 @@ def _wist1_recovery_settlement():
         assert marker in prose, f"§5.2 does not state: {marker!r}"
 check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
 
+def _keyset_vector():
+    return json.loads((ROOT / "vectors" / "wist1" / "keyset-at-height.json").read_text())
+
+def _keyset_at(declarations, height):
+    """WIST-1 §5.2, ordinary case: the highest-seq Declaration sealed at a
+    height <= N, the Block's own Declarations included."""
+    best = None
+    for d in declarations:
+        if d["height"] <= height and (best is None or d["seq"] > best["seq"]):
+            best = d
+    return best["keys"] if best else []
+
+def _wist1_keyset_at_height():
+    """WIST-1 §5.2: the Key Set a sealed Delta verifies under is resolved at
+    its own sealing height, with WIST-3 §3.3's Declarations-first order."""
+    v = _keyset_vector()
+    saw_beside_rejected = saw_beside_verified = saw_orphan = False
+    for case in v["cases"]:
+        name = case["name"]
+        decls = case["declarations"]
+        heights = [d["height"] for d in decls]
+        assert heights == sorted(heights), f"{name}: declarations not in Log order"
+        for q in case["expected"]["key_set_at"]:
+            assert _keyset_at(decls, q["height"]) == q["keys"], \
+                f"{name}: Key Set at {q['height']}"
+        verifies = [d["delta_id"] for d in case["deltas"]
+                    if d["signer"] in _keyset_at(decls, d["height"])]
+        rejected = [d["delta_id"] for d in case["deltas"] if d["delta_id"] not in verifies]
+        assert verifies == case["expected"]["verifies"], f"{name}: verifies"
+        assert rejected == case["expected"]["rejected"], f"{name}: WIST1-E02"
+        for d in case["deltas"]:
+            beside = [x for x in decls if x["height"] == d["height"]]
+            if beside and d["signer"] not in beside[-1]["keys"] and d["delta_id"] in rejected:
+                saw_beside_rejected = True
+            if beside and d["signer"] in beside[-1]["keys"] and d["delta_id"] in verifies:
+                saw_beside_verified = True
+            if not any(x["height"] <= d["height"] for x in decls):
+                saw_orphan = d["delta_id"] in rejected
+    assert saw_beside_rejected and saw_beside_verified and saw_orphan, \
+        "the vector must exercise a Delta beside the retiring Declaration, one " \
+        "beside the admitting one, and one below every Declaration"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
+    for marker in (
+            "MUST NOT seal a Delta that does not verify under the Key Set resolved "
+            "at its sealing height, the sealing Block's own Declaration Entries included",
+            "rejected with `WIST1-E02` at sealing"):
+        assert marker in prose, f"§5.2 does not state: {marker!r}"
+check("vectors:wist1-keyset-at-height", _wist1_keyset_at_height)
+
+def _wist1_keyset_at_height_twin():
+    """The check above must notice a Delta sealed beside the Declaration
+    retiring its key: with that Declaration read one Block late, the
+    Delta would verify."""
+    v = _keyset_vector()
+    case = next(c for c in v["cases"] if c["name"] == "rotation retiring the old key")
+    late = [dict(d, height=d["height"] + 1) if d["seq"] > 0 else d
+            for d in case["declarations"]]
+    beside = next(d for d in case["deltas"] if d["delta_id"] == "d-beside-old")
+    assert beside["signer"] in _keyset_at(late, beside["height"]), \
+        "the twin's late Declaration did not admit the stranded Delta"
+    assert beside["signer"] not in _keyset_at(case["declarations"], beside["height"]), \
+        "recomputation is blind to a Declaration sealed beside the Delta"
+check("negative:wist1-keyset-at-height", _wist1_keyset_at_height_twin)
+
 def _ed25519_profile_verdict(a_bytes: bytes, sig: bytes, msg: bytes):
     """The WIST-1 §4 verification profile, as (accepted, stage).
 

@@ -299,7 +299,11 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    sealed without its Payload would be permanently unauditable.
 4. Queues accepted Deltas for the next log block (WIST-3 §3), and the
    Payloads it verified for publication alongside the Block that seals
-   them (WIST-3 §6.1).
+   them (WIST-3 §6.1). A queued Delta is sealed only where it verifies
+   under the Key Set WIST-1 §5.2 resolves at the sealing Block: one whose
+   signing key a Declaration accepted since the pull has retired is
+   `WIST1-E02` at sealing, reported (§7.1) and not sealed, and its ID is
+   pulled again once the Publisher re-signs it (step 2).
 
 Aggregators MUST also poll known feeds at a low baseline frequency
 (default: every 24 hours, a Parameter Registry value — WIST-4 §9) regardless
