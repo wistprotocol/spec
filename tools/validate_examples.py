@@ -1741,19 +1741,23 @@ def _roster_replay(log_id, entries):
             if holding.get(e["auditor_id"], (None,))[0] != e["key_id"]:
                 rejected.append(i)
                 continue
-            holding[e["auditor_id"]] = (None, t)
             retired.add(e["key_id"])
+            retired.add(holding[e["auditor_id"]][2])
+            holding[e["auditor_id"]] = (None, t, None)
             if e.get("evidence"):
                 barred.add(e["auditor_id"])
         admits = [x for x in acts if x[1]["action"] == "auditor_admit"]
         for i, e in admits:
-            held = holding.get(e["auditor_id"], (None, None))[0]
+            held = holding.get(e["auditor_id"], (None, None, None))[0]
+            live = {x for k, _, pk in holding.values() if k is not None for x in (k, pk)}
             twice = sum(1 for _, o in admits if o["auditor_id"] == e["auditor_id"]) > 1
-            if (e["key_id"] in retired or e["auditor_id"] in barred or held is not None
+            if (e["key_id"] in retired or e["public_key"] in retired
+                    or e["key_id"] in live or e["public_key"] in live
+                    or e["auditor_id"] in barred or held is not None
                     or twice or not _roster_independent(e["auditor_id"], log_id)):
                 rejected.append(i)
                 continue
-            holding[e["auditor_id"]] = (e["key_id"], t)
+            holding[e["auditor_id"]] = (e["key_id"], t, e["public_key"])
     return sorted(rejected)
 
 def _roster_admitted_at(log_id, entries, auditor_id, t):
@@ -1785,7 +1789,10 @@ def _dc4_roster():
                    "retired key id rejected", "barred subject rejected",
                    "exit then re entry allowed", "removal ends admission at its instant",
                    "dependent on the log id rejected", "remove of a key not held rejected",
-                   "two admits for one subject in one block both rejected"):
+                   "two admits for one subject in one block both rejected",
+                   "same public key under a fresh key id after exit rejected",
+                   "public key held by another auditor rejected",
+                   "key id held by another auditor rejected"):
         assert needed in labels, f"vector lacks the {needed} case"
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
@@ -1808,6 +1815,11 @@ def _dc4_roster_twin():
     case = next(c for c in v["cases"] if c["label"] == "two admits for one subject in one block both rejected")
     assert _roster_replay(case["log_id"], case["entries"][:1]) == [], \
         "recomputation rejects a lone admit as if a second stood beside it"
+    case = next(c for c in v["cases"] if c["label"] == "same public key under a fresh key id after exit rejected")
+    fresh = copy.deepcopy(case["entries"])
+    fresh[2]["public_key"] = "pk-fresh"
+    assert _roster_replay(case["log_id"], fresh) == [3], \
+        "recomputation is blind to the public_key a re-admission names"
 check("negative:wist4-roster", _dc4_roster_twin)
 
 def _selection_domain_vector():

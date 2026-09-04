@@ -1716,3 +1716,34 @@ a removal with one ID and one with the member absent, rejects an empty
 array, and checks the vector carries both a removal for cause and an
 exit; `vectors:wist4-roster` recomputes the bar from the member's
 presence.
+
+## 2026-09-04 — WIST-4 §3, §4, §10: a removal retires the key, not only its label, and no two admissions share one (revision, not errata)
+
+Adds to §4 that an `auditor_remove` retires the `public_key` admitted
+under its `key_id` as permanently as the `key_id` itself, and that an
+`auditor_admit` naming a `key_id` or a `public_key` another admission
+holds at its Block is rejected; §3 states the one-key-one-Auditor
+invariant beside its one-Auditor-one-key one, and the §10 `WIST4-E07`
+row lists both cases. `vectors/wist4/roster.json` entries carry an
+abstract `public_key`, and three cases are added.
+
+**What it states.** §4 retired "its `key_id`" and said nothing of the
+`public_key`, so the same thirty-two octets re-admitted under a fresh
+label were accepted, and nothing stopped two live `auditor_id`s from
+holding one `key_id` string — which §3's Record binding, "the `subject`
+of the `auditor_admit` that admitted the key named in its `sig.key_id`",
+presumes unique — or one `public_key`, which is one party that §3's
+independence test would read as two. The rule now mirrors WIST-1 §5.2's
+for a Publisher's key sets: no shared `key_id`, no shared `public_key`,
+retirement binding both.
+
+**Why it is a revision.** It fails the first condition. A replayer that
+accepted a retired key under a fresh label, or a second admission of a
+held string, conformed to the words and now rejects those acts. It is
+scoped to the roster: the bar for cause, the rotation mechanism and the
+one-key-per-`auditor_id` rule are unchanged.
+
+**Status.** Exercised. `vectors:wist4-roster` recomputes the three
+cases — a removed key re-admitted under a fresh `key_id`, a `public_key`
+held by another Auditor, a `key_id` held by another Auditor — and its
+twin proves the check reads the `public_key` a re-admission names.
