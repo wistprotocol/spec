@@ -322,6 +322,16 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    it did before.
 2. Diffs `feed.deltas` against the IDs it has already seen for the
    domain, following `next` through sealed Pages as required by §3.2.
+   An ID is seen when the Aggregator has sealed it or holds it accepted
+   for sealing — queued, or held under a recovery window — and not
+   otherwise (WIST-1 §3.5). An ID rejected on an earlier pull, for a
+   transient cause (`WIST2-E03` on a momentary `404`, `WIST1-E06` on
+   skew) or a lasting one, is therefore pulled again on the next pull
+   and, failing again, rejected again, the rejection recorded afresh
+   (§7.1) and the pull disposed of against the quota as §4 says for its
+   code. Republishing byte-identical files yields the same ID, so a
+   Publisher that has fixed what was wrong is pulled once more and one
+   that changed nothing is refused once more.
 3. Fetches each new `deltas/<id>.json`; validates each per WIST-1 (§4, §7),
    retrieving and validating first, in chain order, any `prev` it has not
    sealed (WIST-1 §3.5).
@@ -509,6 +519,8 @@ adjacent to the layout it walks.
       `WIST2-E04` (§5, §7)
 - [ ] Follows `next` through sealed Pages until reaching already-ingested
       content or `null`; never diffs only the live `feed.json` (§3.2)
+- [ ] Treats an ID as seen only once sealed or held accepted for sealing,
+      and pulls a rejected ID again on the next pull (§5, WIST-1 §3.5)
 - [ ] Verifies a sealed Page against the Key Set current at its
       `generated_at`, or that of the first applicable Declaration sealed
       after it (§3.2)
