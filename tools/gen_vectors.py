@@ -1726,6 +1726,16 @@ def pair_status(selected, recorded, attested):
     return "discharged" if all(d in recorded for d in selected) else "failed"
 
 
+DISCHARGING_VOIDS = {None, "removed after audited block", "coverage failure at sealing"}
+
+
+def void_record_discharges(void):
+    """§3, §10: a Record void only for a removal after the audited Block or
+    for coverage failure still discharges the duty anchored there; every
+    other WIST4-E01 case had no duty to discharge."""
+    return void in DISCHARGING_VOIDS
+
+
 def pair_counts(attestation, chain_proof_in_window):
     if attestation == "unmet":
         return True
@@ -1773,9 +1783,21 @@ coverage_state_cases = [
      "in_coverage_failure": in_coverage_failure(times, n_s, COVERAGE_FAILURES_MAX)}
     for label, times, n_s in coverage_state_scenarios
 ]
+coverage_discharge_cases = [
+    {"label": label, "void": void, "discharges": void_record_discharges(void)}
+    for label, void in [
+        ("standing-record", None),
+        ("removed-after-the-audited-block", "removed after audited block"),
+        ("in-coverage-failure-at-sealing", "coverage failure at sealing"),
+        ("never-admitted-at-the-audited-block", "never admitted"),
+        ("proof-gives-no-standing", "proof without standing"),
+        ("outside-the-selection-domain", "outside selection domain"),
+        ("self-audit", "self audit"),
+    ]
+]
 
 write_json(WIST4 / "coverage.json", spaced_labels({
-    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, and the coverage-failure state.",
+    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, and which WIST4-E01 voids (§10) still discharge the duty.",
     "coverage_deadline_hours": 72,
     "coverage_failures_max": COVERAGE_FAILURES_MAX,
     "record_seal_blocks": 24,
@@ -1783,6 +1805,7 @@ write_json(WIST4 / "coverage.json", spaced_labels({
     "pair_cases": coverage_pair_cases,
     "counting_cases": coverage_counting_cases,
     "state_cases": coverage_state_cases,
+    "discharge_cases": coverage_discharge_cases,
 }))
 
 
