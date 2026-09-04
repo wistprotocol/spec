@@ -817,12 +817,20 @@ print("wist2 text-extraction vector:",
 # recovery exception is exercised by wist1/recovery-settlement.json).
 def page_keyset_current(declarations, generated_at_s):
     at_or_before = [d for d in declarations if d["sealed_at_s"] <= generated_at_s]
-    return max(at_or_before, key=lambda d: d["sealed_at_s"])["keys"] if at_or_before else []
+    return max(at_or_before, key=lambda d: (d["sealed_at_s"], d["seq"]))["keys"] \
+        if at_or_before else []
 
 
 def page_keyset_next(declarations, generated_at_s):
+    """§3.2: the Key Set of the first Block after generated_at sealing a
+    Declaration of the domain — the highest seq's where it seals several,
+    the Key Set WIST-1 §5.2 resolves at that height."""
     after = [d for d in declarations if d["sealed_at_s"] > generated_at_s]
-    return min(after, key=lambda d: d["sealed_at_s"])["keys"] if after else []
+    if not after:
+        return []
+    first_s = min(d["sealed_at_s"] for d in after)
+    return max((d for d in after if d["sealed_at_s"] == first_s),
+               key=lambda d: d["seq"])["keys"]
 
 
 def page_case(name, declarations, pages, why):
@@ -879,14 +887,29 @@ page_cases = [
         "equals the rotation's sealed_at is current under the rotation; the "
         "retired key is under neither resolution, and the next Declaration "
         "after 200 is the second rotation, whose key k3 therefore verifies."),
+    page_case(
+        "two rotations sealed in one block",
+        [{"label": "genesis", "seq": 0, "sealed_at_s": 100, "keys": ["k1"]},
+         {"label": "rotation", "seq": 1, "sealed_at_s": 200, "keys": ["k2"]},
+         {"label": "second rotation", "seq": 2, "sealed_at_s": 200, "keys": ["k3"]}],
+        [{"page": 0, "generated_at_s": 150, "signer": "k3"},
+         {"page": 1, "generated_at_s": 150, "signer": "k2"},
+         {"page": 2, "generated_at_s": 200, "signer": "k3"},
+         {"page": 3, "generated_at_s": 200, "signer": "k2"}],
+        "§3.2: one Block seals seq 1 and seq 2, so both resolutions read the "
+        "Block's Key Set — the highest seq's, as WIST-1 §5.2 resolves it at "
+        "that height. k3 verifies under next for a Page cut before the Block "
+        "and under current for one cut at its instant; k2 was the Key Set at "
+        "no instant and verifies under neither."),
 ]
 
 write_json(WIST2V / "page-keyset.json", {
     "note": ("WIST-2 §3.2 Key Set resolution for a sealed Page, over key_ids "
              "alone: `declarations` carry seq, sealing instant and keys, every "
              "one applicable; each Page carries generated_at and signer. Each "
-             "`expected` row gives the Key Set current at generated_at, the "
-             "first Declaration's after it, and which of the two the Page "
+             "`expected` row gives the Key Set current at generated_at, that "
+             "of the first Block after it sealing a Declaration (the highest "
+             "seq's where it seals several), and which of the two the Page "
              "verifies under (`current`, `next`, or null for WIST2-E04)."),
     "cases": page_cases,
 })

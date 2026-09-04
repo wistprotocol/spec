@@ -130,8 +130,9 @@ exactly one Page, never on two and never on none.
 
 **Verification of sealed pages.** A page is verified against the Key Set
 current at the page's `generated_at` or, where that Key Set does not
-hold the key that signed it, against the Key Set of the domain's first
-applicable Declaration sealed after `generated_at` (the bridge below);
+hold the key that signed it, against the Key Set of the first Block
+after `generated_at` sealing an applicable Declaration of the domain
+(the bridge below);
 because pages are immutable they are
 never re-signed on rotation, and a validator MUST NOT reject a page solely
 because its signing key has since been retired, or because the
@@ -155,7 +156,9 @@ here: it resolves a Key Set by **Block height**, and Pages are never sealed
 into the Log, so a Page has no height. The bridge is stated once, and it is
 the only conversion permitted: the Key Set current at a `generated_at` is
 the one declared by the domain's `publisher_declaration` Entry (WIST-3 §3.3)
-with the greatest `sealed_at` not later than that `generated_at` — with
+with the greatest `sealed_at` not later than that `generated_at` — the
+highest `seq` among them where one Block seals several, which is the Key
+Set WIST-1 §5.2 resolves at that Block's height — with
 WIST-1 §5.2's recovery exception applied to that comparison exactly as it is
 applied to the by-height one, so a Declaration superseded by a recovery
 rotation is excluded here too. `sealed_at` is strictly increasing across
@@ -180,14 +183,19 @@ and seals a Delta only where the Key Set at its height verifies it
 (WIST-1 §5.2); a Page is never sealed, so nothing holds it. The second
 resolution above closes the gap: a Page whose signing key the Key Set
 current at `generated_at` does not hold verifies if that key is in the
-Key Set of the **first** applicable Declaration — the same recovery
-exception applied — sealed after `generated_at`, the Publisher's own
-act attested one seal late. It is the first such Declaration and not any
-later one, so a Page cannot claim a key from a rotation two seals ahead;
-and both lookups read Blocks every validator holds, so two validators
-still resolve one Page to one answer. A Page cut before the domain's
-first Declaration sealed resolves, by the same rule, to that
-Declaration's Key Set.
+Key Set of the **first** Block sealed after `generated_at` that seals an
+applicable Declaration of the domain — the same recovery exception
+applied — the Publisher's own act attested one seal late. Where that
+Block seals several Declarations of the domain, the Key Set is the
+highest `seq`'s, exactly as at a height: the lower one was the Key Set
+at no instant — WIST-1 §5.2 resolves the higher `seq` at that Block —
+and a Page accepted under it would be one no Delta could ever have been
+sealed under. It is the first such Block and not any later one, so a
+Page cannot claim a key from a rotation two seals ahead; and both
+lookups read Blocks every validator holds, so two validators still
+resolve one Page to one answer. A Page cut before the domain's first
+Declaration sealed resolves, by the same rule, to that Declaration's
+Key Set.
 
 **Aggregator obligation.** On each pull, an Aggregator MUST follow `next`
 until it reaches a page whose newest Delta ID it has already ingested, or
@@ -525,8 +533,9 @@ adjacent to the layout it walks.
 - [ ] Treats an ID as seen only once sealed or held accepted for sealing,
       and pulls a rejected ID again on the next pull (§5, WIST-1 §3.5)
 - [ ] Verifies a sealed Page against the Key Set current at its
-      `generated_at`, or that of the first applicable Declaration sealed
-      after it (§3.2)
+      `generated_at`, or that of the first Block after it sealing an
+      applicable Declaration — the highest `seq`'s where a Block seals
+      several (§3.2)
 - [ ] Applies the per-domain ingest budget to that walk, suspending and
       resuming across days rather than truncating it (§5)
 - [ ] Runs baseline polling independent of Pings (§5)

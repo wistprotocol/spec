@@ -1625,3 +1625,36 @@ together, and a carve-out beside a no-duty reason, and the five
 `anchor_cases` — a draw removed after and at the audited Block, an
 extension removed after *B₁*, between the audited Block and *B₁*, and
 at *B₁*.
+
+## 2026-09-04 — WIST-2 §3.2, §10: a Block that seals two rotations resolves a Page to its Key Set (revision, not errata)
+
+Rewords §3.2's second resolution from "the first applicable Declaration
+sealed after `generated_at`" to the Key Set of the first Block after
+`generated_at` sealing an applicable Declaration of the domain — the
+highest `seq`'s where that Block seals several — and states the same
+tie for the current resolution; the §10 Aggregator line follows. Adds
+the case *two rotations sealed in one block* to
+`vectors/wist2/page-keyset.json`.
+
+**What it states.** Two Declarations of one domain can seal in one
+Block, `seq` *n* and *n*+1 at one `sealed_at`. WIST-1 §5.2 resolves the
+Key Set at that height to the highest `seq`, so `seq` *n*'s keys were
+the Key Set at no height — no Delta was ever sealed under them. Read
+literally, "the first Declaration sealed after `generated_at`" named
+`seq` *n*, and a Page cut before that Block verified under a key that
+never held, while one signed under `seq` *n*+1 — the key every Delta of
+that Block verifies under — was `WIST2-E04`. Both resolutions now read
+the Block's Key Set: the same lookup a validator already performs for
+that Block's Deltas, with a timestamp in place of a height.
+
+**Why it is a revision.** It fails the first condition. A validator
+that read the lowest `seq` conformed to the words and now rejects a
+Page it accepted and accepts one it rejected. It is scoped to the
+same-Block tie: a Block sealing one Declaration resolves as before, and
+the first-Block-not-any-later rule is unchanged.
+
+**Status.** Exercised. `vectors:wist2-page-keyset` recomputes the new
+case — `seq` 2's key verifies under `next` for a Page cut before the
+Block and under `current` for one cut at its instant, `seq` 1's under
+neither — and its twin proves the check reads the Block's Key Set
+rather than its lowest `seq`.

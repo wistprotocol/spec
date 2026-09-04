@@ -423,12 +423,15 @@ def _page_keyset_vector():
 
 def _page_keyset_resolve(declarations, generated_at_s, signer):
     """WIST-2 §3.2: the Declaration with the greatest sealed_at not later
-    than generated_at, then the first sealed after it."""
+    than generated_at, then the first Block sealed after it that seals one;
+    where a Block seals several, the highest seq's, as WIST-1 §5.2 resolves
+    it at that height."""
     current, nxt = None, None
     for d in declarations:
-        if d["sealed_at_s"] <= generated_at_s and (current is None or d["sealed_at_s"] > current["sealed_at_s"]):
+        rank = (d["sealed_at_s"], d["seq"])
+        if d["sealed_at_s"] <= generated_at_s and (current is None or rank > (current["sealed_at_s"], current["seq"])):
             current = d
-        if d["sealed_at_s"] > generated_at_s and (nxt is None or d["sealed_at_s"] < nxt["sealed_at_s"]):
+        if d["sealed_at_s"] > generated_at_s and (nxt is None or (-d["sealed_at_s"], d["seq"]) > (-nxt["sealed_at_s"], nxt["seq"])):
             nxt = d
     current_keys = current["keys"] if current else []
     next_keys = nxt["keys"] if nxt else []
@@ -462,7 +465,8 @@ def _wist2_page_keyset():
         f"the vector must exercise both resolutions, a WIST2-E04, a Page before first contact and one between a rotation and its seal; saw {saw}"
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     for marker in (
-            "against the Key Set of the domain's first applicable Declaration sealed after `generated_at`",
+            "against the Key Set of the first Block after `generated_at` sealing an applicable Declaration of the domain",
+            "the Key Set is the highest `seq`'s, exactly as at a height",
             "A page that verifies under neither Key Set is `WIST2-E04`"):
         assert marker in prose, f"§3.2 does not state: {marker!r}"
 check("vectors:wist2-page-keyset", _wist2_page_keyset)
@@ -480,6 +484,12 @@ def _wist2_page_keyset_twin():
         [d for d in case["declarations"] if d["sealed_at_s"] <= late["generated_at_s"]],
         late["generated_at_s"], late["signer"])
     assert under is None, "recomputation verified the Page without the Declaration sealed after it"
+    same_block = next(c for c in v["cases"] if c["name"] == "two rotations sealed in one block")
+    lowest = min((d for d in same_block["declarations"] if d["sealed_at_s"] == 200), key=lambda d: d["seq"])
+    for pg in same_block["pages"]:
+        _, _, under = _page_keyset_resolve(same_block["declarations"], pg["generated_at_s"], pg["signer"])
+        assert (pg["signer"] in lowest["keys"]) == (under is None), \
+            "recomputation reads the lowest seq of a Block rather than its Key Set"
 check("negative:wist2-page-keyset", _wist2_page_keyset_twin)
 
 def _text_extraction_twin():
