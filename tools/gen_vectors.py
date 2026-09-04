@@ -1919,14 +1919,31 @@ def pair_status(selected, recorded, attested):
     return "discharged" if all(d in recorded for d in selected) else "failed"
 
 
-DISCHARGING_VOIDS = {None, "removed after audited block", "coverage failure at sealing"}
+DISCHARGING_VOIDS = {"removed after anchor block", "coverage failure at sealing",
+                     "malformed as evidence"}
 
 
-def void_record_discharges(void):
-    """§3, §10: a Record void only for a removal after the audited Block or
-    for coverage failure still discharges the duty anchored there; every
-    other WIST4-E01 case had no duty to discharge."""
-    return void in DISCHARGING_VOIDS
+def void_record_discharges(voids):
+    """§3, §10: a Record void only for a removal after the Block its duty is
+    anchored to, for coverage failure, or as malformed evidence still
+    discharges the duty; any reason under which no duty existed discharges
+    nothing, whatever else is also true of the Record."""
+    return all(v in DISCHARGING_VOIDS for v in voids)
+
+
+def duty_anchor_s(named_by, audited_s, trigger_s):
+    """§4: the Block a duty is anchored to — the audited Block for a VRF
+    selection, B₁ for a Delta the extension rule names."""
+    return trigger_s if named_by == "extension" else audited_s
+
+
+def removal_void(named_by, audited_s, trigger_s, removed_s):
+    """§10: which WIST4-E01 case a removal puts a Record in, read at the
+    anchor Block — held there and removed after is the carve-out, removed
+    at or before it is a key never admitted at that Block."""
+    anchor_s = duty_anchor_s(named_by, audited_s, trigger_s)
+    return "removed after anchor block" if removed_s > anchor_s \
+        else "never admitted at anchor block"
 
 
 def pair_counts(attestation, chain_proof_in_window):
@@ -1977,20 +1994,42 @@ coverage_state_cases = [
     for label, times, n_s in coverage_state_scenarios
 ]
 coverage_discharge_cases = [
-    {"label": label, "void": void, "discharges": void_record_discharges(void)}
-    for label, void in [
-        ("standing-record", None),
-        ("removed-after-the-audited-block", "removed after audited block"),
-        ("in-coverage-failure-at-sealing", "coverage failure at sealing"),
-        ("never-admitted-at-the-audited-block", "never admitted"),
-        ("proof-gives-no-standing", "proof without standing"),
-        ("outside-the-selection-domain", "outside selection domain"),
-        ("self-audit", "self audit"),
+    {"label": label, "void": voids, "discharges": void_record_discharges(voids)}
+    for label, voids in [
+        ("standing-record", []),
+        ("removed-after-the-anchor-block", ["removed after anchor block"]),
+        ("in-coverage-failure-at-sealing", ["coverage failure at sealing"]),
+        ("malformed-as-evidence", ["malformed as evidence"]),
+        ("never-admitted-at-the-anchor-block", ["never admitted at anchor block"]),
+        ("proof-gives-no-standing", ["proof without standing"]),
+        ("outside-the-selection-domain", ["outside selection domain"]),
+        ("self-audit", ["self audit"]),
+        ("both-carve-outs", ["removed after anchor block", "coverage failure at sealing"]),
+        ("malformed-beside-a-carve-out", ["malformed as evidence", "coverage failure at sealing"]),
+        ("carve-out-beside-a-no-duty-case", ["removed after anchor block", "self audit"]),
+        ("malformed-beside-a-no-duty-case", ["malformed as evidence", "never admitted at anchor block"]),
     ]
 ]
+AUDITED_S, TRIGGER_S = 100 * DAY_S, 101 * DAY_S
+coverage_anchor_cases = [
+    {"label": label, "named_by": named_by, "audited_sealed_at_s": AUDITED_S,
+     "trigger_sealed_at_s": TRIGGER_S, "removed_at_s": removed_s,
+     "void": removal_void(named_by, AUDITED_S, TRIGGER_S, removed_s),
+     "discharges": void_record_discharges(
+         [removal_void(named_by, AUDITED_S, TRIGGER_S, removed_s)])}
+    for label, named_by, removed_s in [
+        ("draw-removed-after-the-audited-block", "draw", AUDITED_S + HOUR_S),
+        ("draw-removed-at-the-audited-block", "draw", AUDITED_S),
+        ("extension-removed-after-b1", "extension", TRIGGER_S + HOUR_S),
+        ("extension-removed-between-the-audited-block-and-b1", "extension", TRIGGER_S - HOUR_S),
+        ("extension-removed-at-b1", "extension", TRIGGER_S),
+    ]
+]
+assert [c["discharges"] for c in coverage_anchor_cases] == [True, False, True, False, False], \
+    "anchor cases drifted"
 
 write_json(WIST4 / "coverage.json", spaced_labels({
-    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, and which WIST4-E01 voids (§10) still discharge the duty.",
+    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — and, per anchor case, the Block a removal is read against: the audited Block for a draw, B₁ for a Delta the extension rule names.",
     "coverage_deadline_hours": 72,
     "coverage_failures_max": COVERAGE_FAILURES_MAX,
     "record_seal_blocks": 24,
@@ -1999,6 +2038,7 @@ write_json(WIST4 / "coverage.json", spaced_labels({
     "counting_cases": coverage_counting_cases,
     "state_cases": coverage_state_cases,
     "discharge_cases": coverage_discharge_cases,
+    "anchor_cases": coverage_anchor_cases,
 }))
 
 

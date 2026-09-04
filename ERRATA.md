@@ -1584,3 +1584,44 @@ scoped to the tip: the content tuples, the tier layout and
 **Status.** Exercised. `examples/snapshot-state.json` carries a
 `record` tuple for a URL that has no content tuple, and the manifest's
 `state_digest` covers it; `tools/validate_examples.py` recomputes both.
+
+## 2026-09-04 — WIST-4 §3, §10, §13: a malformed Record discharges the duty, and the carve-out reads the anchor Block
+
+Adds to §3 that a Record rejected as malformed evidence (`WIST4-E02`)
+discharges the §4 duty it answers, that a Record void for more than one
+reason discharges only if every reason is a discharging one, and that
+the removal carve-out is read at the Block the duty is anchored to — the
+audited Block for a VRF selection, *B₁* for a Delta the extension rule
+names; rewords the §10 `WIST4-E01` and `WIST4-E02` rows and the §13
+Auditor line to match. `vectors/wist4/coverage.json`'s
+`discharge_cases` now list every reason a Record is void, and it gains
+`anchor_cases`.
+
+**What it states.** The `WIST4-E02` row ended "Ignored as WIST4-E01"
+without saying which of that row's two coverage readings applied, and
+the `E01` row's carve-out named "the audited Block" although §4 counts
+an extension Record's duty against the (Auditor, *B₁*) pair. Both were
+already decided elsewhere. §3 scopes the standing rejections it excuses
+"to reputation" because the Auditor "met its duty" by publishing; a
+`WIST4-E02` Record was published under standing, so the duty it answers
+is met and only its weight as evidence is withheld — §4 discharges the
+duty "by any verdict", `unreachable` included, so publication, not
+evidentiary quality, was always the test. And a removal is read against
+whichever Block the duty is anchored to, because that anchoring is what
+the carve-out exists to respect: an Auditor removed between the audited
+Block and *B₁* was never admitted at *B₁*, so §4's extension rule never
+named it and there is no duty to discharge.
+
+**Why it qualifies.** Both conditions hold. An implementation that
+discharged on a `WIST4-E02` Record conformed to §4's "any verdict" and
+still does; one that read the extension carve-out at *B₁* conformed to
+§4's pair and still does. The many-reasons sentence states what the
+`E01` row's "in every other case there was no duty" already implied: a
+reason under which no duty existed cannot be cured by a second reason.
+
+**Status.** Exercised. `vectors:wist4-coverage` recomputes the twelve
+`discharge_cases`, including the malformed case, both carve-outs
+together, and a carve-out beside a no-duty reason, and the five
+`anchor_cases` — a draw removed after and at the audited Block, an
+extension removed after *B₁*, between the audited Block and *B₁*, and
+at *B₁*.

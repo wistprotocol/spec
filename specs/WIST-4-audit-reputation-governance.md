@@ -243,11 +243,18 @@ recomputing reputation MUST reject:
 The first and the coverage-failure rejections are scoped to reputation and
 do not reach coverage: an Auditor removed after a Block was sealed but
 before its coverage deadline still discharges its §4 duty for that Block by
-publishing, because coverage is anchored to the audited Block's `sealed_at`
-rather than to the height at which the Record lands, and an Auditor in
+publishing, because coverage is anchored to the `sealed_at` of the Block
+the duty is anchored to — the audited Block for a VRF selection, *B₁* for
+a Delta §4's extension rule names — rather than to the height at which
+the Record lands, and an Auditor in
 coverage failure still discharges — and can still recover from — the duty
 by publishing. Such a Record proves the Auditor met its duty; it does not
-enter any domain's reputation.
+enter any domain's reputation. A Record §10 rejects as malformed evidence
+(`WIST4-E02`) discharges the duty the same way: the Auditor held standing,
+fetched and published, and what the rejection withholds is the Record's
+weight as evidence, not the fact of its publication. A Record void for
+more than one reason discharges only if every reason is one of these;
+one reason under which no duty existed leaves nothing to discharge.
 
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
 `aggregator_key_remove` actions defined in WIST-3 §3.4; their `details`
@@ -2274,8 +2281,8 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the audited Block's `sealed_at`, or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored at the audited Block; in every other case there was no duty to discharge — a key never admitted at the audited Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing. |
-| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored as WIST4-E01. |
+| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the `sealed_at` of the Block its duty is anchored to — the audited Block for a VRF selection, *B₁* for an extension (§4) — or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored there; in every other case there was no duty to discharge — a key never admitted at that Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing, whatever else is also true of it. |
+| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
 | WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
 | WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
@@ -2605,8 +2612,9 @@ hands.
       carrying the Record, and fetches inside the interval §3 fixes — with
       the coverage carve-out: an Auditor removed after a Block was sealed
       but before that Block's coverage deadline still discharges its §4
-      duty by publishing under the key admitted at the *audited* Block's
-      `sealed_at`, and such a Record proves the duty was met without
+      duty by publishing under the key admitted at the `sealed_at` of the
+      Block the duty is anchored to — the audited Block, or *B₁* for an
+      extension — and such a Record proves the duty was met without
       entering any domain's reputation (§3, §4)
 - [ ] Commits the response, its own extraction and its WARC capture under
       the Reference Payload's salt — never as bare digests (§5)
