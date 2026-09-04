@@ -120,7 +120,12 @@ forever.
 **Per-domain Block capacity.** A Block MUST NOT carry more than
 `domain_block_entries_max` (Parameter Registry; default 10 000)
 `publisher_delta` Entries whose Publisher is one domain, and a Consumer
-replaying the Log MUST reject a Block that does. This is the one bound in
+replaying the Log MUST reject a Block that does. Where a domain has more
+accepted Deltas eligible for a Block than the cap admits, the surplus
+waits its turn in acceptance order, and WIST-4 §6.4's inclusion ceiling
+runs from the Block a Delta's turn arrives in — so the cap never obliges
+an Aggregator to breach the ceiling, nor the ceiling to breach the cap.
+This is the one bound in
 the suite on how much a domain may publish, and it is deliberately a
 bound on *rate*, not on worth or on standing: reputation caps quota,
 sampling and latency and nothing else (WIST-4 §6.4), judging content's

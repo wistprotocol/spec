@@ -1431,3 +1431,35 @@ rejected IDs conformed and still does.
 
 **Status.** Unexercised. No vector serves a Feed; the rule is a
 bookkeeping discipline over pulls the harness does not model.
+
+## 2026-09-04 — WIST-4 §6.4, §13; WIST-3 §3.2: the inclusion ceiling runs from a Delta's turn under the per-domain capacity (revision, not errata)
+
+Adds to §6.4's inclusion-latency rule that eligibility is gated by
+WIST-3 §3.2's per-domain Block capacity — a domain's eligible Deltas
+take the capacity in acceptance order, and one the cap holds out of a
+Block becomes eligible for the first Block with room for it, where its
+ceiling's clock starts; WIST-3 §3.2's capacity paragraph and the
+Aggregator checklist say the same from their side.
+
+**What it states.** §3.2 caps a domain at `domain_block_entries_max`
+Entries per Block (default 10 000) and §6.4 requires an accepted Delta
+sealed within `max_inclusion_blocks` (default 4) of its eligibility
+Block, and nothing related them: a backfill of 50 000 Deltas accepted
+at once had to breach one MUST or the other. The cap is a bound on
+rate and the ceiling a bound on the Aggregator's delay; making the cap
+a gate on eligibility keeps both, since a Delta whose turn has not come
+is not one the Aggregator is shelving. Acceptance order is the only
+order the Aggregator can be held to — the ceiling is already
+observable by the Publisher rather than derivable from the Log — and
+it is the order §6.4's duty was implicitly stated over.
+
+**Why it is a revision.** It fails the first condition. An Aggregator
+that sealed a domain's surplus above the cap conformed to §6.4 and
+breached §3.2, or the reverse; neither is conforming now, and an
+Aggregator's seal must apply both bounds. It is scoped to the
+relation: both values, the eligibility latencies and the recovery hold
+are unchanged.
+
+**Status.** Unexercised. The ceiling is a duty over acceptances the Log
+does not carry; nothing recomputable distinguishes a Delta sealed at
+its turn from one sealed late.
