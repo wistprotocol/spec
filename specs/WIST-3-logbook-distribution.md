@@ -596,7 +596,12 @@ no content for it.
 **Availability window.** An Aggregator and any Mirror serving a Block MUST
 serve that Block's Payloads for at least the payload availability window
 (Parameter Registry; default 180 days), except for Payloads withdrawn
-under §6.2. A Payload that is absent without a withdrawal entry is a
+under §6.2, and MUST NOT serve the Block before every Payload its
+content-bearing Deltas commit to, less those withdrawn, is retrievable
+at its path: Payloads replicate first, and the Block follows, the same
+order §5 fixes between a Block and its Checkpoint, so a Payload is never
+absent at a Mirror merely because replication has not reached it. A
+Payload that is absent without a withdrawal entry is a
 `WIST3-E05` fault against that Mirror; this is what distinguishes a lawful
 withdrawal from a Mirror quietly dropping content it dislikes.
 
@@ -1353,8 +1358,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       and served (§5)
 - [ ] Serves the static layout of §6 with immutable Block files
 - [ ] Serves every sealed Delta's Payload at `/payloads/<delta-id-hex>.json`
-      for at least the availability window, byte-identical to what it
-      verified at ingest (§6.1)
+      from no later than the Block that seals it, for at least the
+      availability window, byte-identical to what it verified at ingest
+      (§6.1)
 - [ ] Serves a URL's anchor Payload with no expiry until a superseding
       content-bearing Delta or a `delete` is sealed for that URL, then for
       one further availability window, then no longer (§6.1)
@@ -1396,8 +1402,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       (§6)
 - [ ] Retains all Checkpoints ever served, without expiry (§5, §6)
 - [ ] Serves the Payloads of every Block it serves for at least the
-      availability window, and stops serving one only after a
-      `payload_withdrawal` is sealed for it (§6.1, §6.2)
+      availability window, never serves a Block before its Payloads, and
+      stops serving one only after a `payload_withdrawal` is sealed for
+      it (§6.1, §6.2)
 - [ ] Stops serving any Snapshot artifact containing withdrawn content,
       on the same terms as the Aggregator (§6.2, §7)
 
