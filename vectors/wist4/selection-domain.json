@@ -1,0 +1,152 @@
+{
+  "note": "WIST-4 \u00a74 selection domain: per case a Block's height, the seq-0 Declaration heights of self-declared hosts, the Block's Deltas as (publisher, url_host), and the indices outside every Auditor's draw.",
+  "cases": [
+    {
+      "label": "own host always selectable",
+      "block_height": 9,
+      "declarations": [
+        {
+          "domain": "blog.example.com",
+          "seq0_height": 5
+        }
+      ],
+      "entries": [
+        {
+          "delta_id": "d1",
+          "publisher": "example.com",
+          "url_host": "example.com"
+        }
+      ],
+      "excluded_indices": []
+    },
+    {
+      "label": "parent delta before the declaration",
+      "block_height": 4,
+      "declarations": [
+        {
+          "domain": "blog.example.com",
+          "seq0_height": 5
+        }
+      ],
+      "entries": [
+        {
+          "delta_id": "d1",
+          "publisher": "example.com",
+          "url_host": "blog.example.com"
+        }
+      ],
+      "excluded_indices": []
+    },
+    {
+      "label": "parent delta at the declaration height",
+      "block_height": 5,
+      "declarations": [
+        {
+          "domain": "blog.example.com",
+          "seq0_height": 5
+        }
+      ],
+      "entries": [
+        {
+          "delta_id": "d1",
+          "publisher": "example.com",
+          "url_host": "blog.example.com"
+        }
+      ],
+      "excluded_indices": [
+        0
+      ]
+    },
+    {
+      "label": "parent delta after the declaration",
+      "block_height": 9,
+      "declarations": [
+        {
+          "domain": "blog.example.com",
+          "seq0_height": 5
+        }
+      ],
+      "entries": [
+        {
+          "delta_id": "d1",
+          "publisher": "example.com",
+          "url_host": "blog.example.com"
+        }
+      ],
+      "excluded_indices": [
+        0
+      ]
+    },
+    {
+      "label": "subdomain own delta selectable",
+      "block_height": 9,
+      "declarations": [
+        {
+          "domain": "blog.example.com",
+          "seq0_height": 5
+        }
+      ],
+      "entries": [
+        {
+          "delta_id": "d1",
+          "publisher": "blog.example.com",
+          "url_host": "blog.example.com"
+        }
+      ],
+      "excluded_indices": []
+    },
+    {
+      "label": "unrelated declaration excludes nothing",
+      "block_height": 9,
+      "declarations": [
+        {
+          "domain": "shop.example.com",
+          "seq0_height": 1
+        }
+      ],
+      "entries": [
+        {
+          "delta_id": "d1",
+          "publisher": "example.com",
+          "url_host": "blog.example.com"
+        }
+      ],
+      "excluded_indices": []
+    },
+    {
+      "label": "mixed block",
+      "block_height": 9,
+      "declarations": [
+        {
+          "domain": "blog.example.com",
+          "seq0_height": 5
+        }
+      ],
+      "entries": [
+        {
+          "delta_id": "d1",
+          "publisher": "example.com",
+          "url_host": "example.com"
+        },
+        {
+          "delta_id": "d2",
+          "publisher": "example.com",
+          "url_host": "blog.example.com"
+        },
+        {
+          "delta_id": "d3",
+          "publisher": "blog.example.com",
+          "url_host": "blog.example.com"
+        },
+        {
+          "delta_id": "d4",
+          "publisher": "example.com",
+          "url_host": "shop.example.com"
+        }
+      ],
+      "excluded_indices": [
+        1
+      ]
+    }
+  ]
+}

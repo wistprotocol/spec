@@ -1730,6 +1730,55 @@ def _dc4_roster_twin():
         "recomputation is blind to the instant before a removal"
 check("negative:wist4-roster", _dc4_roster_twin)
 
+def _selection_domain_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "selection-domain.json").read_text())
+
+def _selection_domain_excluded(case):
+    """WIST-4 §4 / WIST-3 §7, recomputed independently of the generator: a
+    Delta is outside the Block's selection domain when its URL host has its
+    own seq-0 Declaration sealed at or below the Block and the Delta's
+    Publisher is not that host."""
+    declared = {d["domain"]: d["seq0_height"] for d in case["declarations"]}
+    return [i for i, e in enumerate(case["entries"])
+            if e["url_host"] != e["publisher"]
+            and declared.get(e["url_host"], case["block_height"] + 1) <= case["block_height"]]
+
+def _dc4_selection_domain():
+    """WIST-4 §4: which Deltas of a Block any Auditor's draw can select."""
+    v = _selection_domain_vector()
+    labels = set()
+    outcomes = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        got = _selection_domain_excluded(case)
+        assert got == case["excluded_indices"], \
+            f"{case['label']}: recomputed {got}, vector says {case['excluded_indices']}"
+        outcomes.add(bool(got))
+    for needed in ("own host always selectable", "parent delta before the declaration",
+                   "parent delta at the declaration height", "parent delta after the declaration",
+                   "subdomain own delta selectable", "unrelated declaration excludes nothing",
+                   "mixed block"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    assert outcomes == {True, False}
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "inside *B*'s **selection domain**" in prose, "§4 does not define the selection domain"
+check("vectors:wist4-selection-domain", _dc4_selection_domain)
+
+def _dc4_selection_domain_twin():
+    """The check above must notice a Declaration moved past the Block."""
+    v = _selection_domain_vector()
+    case = next(c for c in v["cases"] if c["label"] == "parent delta at the declaration height")
+    mutated = json.loads(json.dumps(case))
+    mutated["declarations"][0]["seq0_height"] += 1
+    assert _selection_domain_excluded(mutated) == [], \
+        "recomputation is blind to the Declaration's height"
+    mutated = json.loads(json.dumps(case))
+    mutated["entries"][0]["publisher"] = mutated["entries"][0]["url_host"]
+    assert _selection_domain_excluded(mutated) == [], \
+        "recomputation is blind to whose Delta it is"
+check("negative:wist4-selection-domain", _dc4_selection_domain_twin)
+
 def _dc4_audit_commitments():
     """Every content-derived value in an Audit Record is salted (WIST-4 §5).
 

@@ -275,10 +275,21 @@ signs the Auditor's Records. *B*'s Block Hash is
 octets and nothing else: not the `sha256:`-prefixed string, not its ASCII
 hex, not the header bytes.
 
-For each Delta *d* carried by a `publisher_delta` Entry of *B*, the Auditor
+For each Delta *d* carried by a `publisher_delta` Entry of *B* and
+inside *B*'s **selection domain** — every such Delta except one that
+WIST-3 §7's one-URL, one-Publisher rule excludes from materialization at
+*B*'s height, a parent's Delta for a host whose own `seq`-0 Declaration
+Entry is sealed at or below *B* — the Auditor
 MUST audit *d* if and only if the VRF test below selects it — or the
 **extension rule** below names it, which is the one path into any
-Auditor's selection set that no VRF draw gates. For the VRF test:
+Auditor's selection set that no VRF draw gates. A Delta outside the
+domain is in no Auditor's selection set by either path: a Record for it
+is void (§3, `WIST4-E01`) and triggers no extension. The domain
+excludes exactly what no party materializes — auditing such a Delta
+would spend fetches on a claim nobody consumes and could sanction the
+parent for content the subdomain serves — and it reads Declaration
+heights the Log carries, which every Auditor replays already. For the
+VRF test:
 
     D(d)  = first 8 octets of SHA-256(beta || d.delta_id_utf8),
             read big-endian: an integer in [0, 2^64)
@@ -2198,7 +2209,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency, no coverage discharge. |
+| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency, no coverage discharge. |
 | WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored as WIST4-E01. |
 | WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
@@ -2475,7 +2486,8 @@ hands.
 
 **Auditor:**
 
-- [ ] Audits exactly its VRF-selected set and publishes `vrf_proof` (§4)
+- [ ] Audits exactly its VRF-selected set, drawn over the Block's selection
+      domain, and publishes `vrf_proof` (§4)
 - [ ] Meets the coverage duty for every Block sealed while admitted, within
       72 hours of `sealed_at` — a Record for **every** selected Delta, or a
       `coverage_attestation` when its VRF selected nothing (§4)
