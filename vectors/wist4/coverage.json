@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, and which WIST4-E01 voids (\u00a710) still discharge the duty.",
+  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (\u00a710) still discharge the duty \u2014 `void` lists every reason the Record is void, empty for a standing Record \u2014 and, per anchor case, the Block a removal is read against: the audited Block for a draw, B\u2081 for a Delta the extension rule names.",
   "coverage_deadline_hours": 72,
   "coverage_failures_max": 24,
   "record_seal_blocks": 24,
@@ -194,37 +194,135 @@
   "discharge_cases": [
     {
       "label": "standing record",
-      "void": null,
+      "void": [],
       "discharges": true
     },
     {
-      "label": "removed after the audited block",
-      "void": "removed after audited block",
+      "label": "removed after the anchor block",
+      "void": [
+        "removed after anchor block"
+      ],
       "discharges": true
     },
     {
       "label": "in coverage failure at sealing",
-      "void": "coverage failure at sealing",
+      "void": [
+        "coverage failure at sealing"
+      ],
       "discharges": true
     },
     {
-      "label": "never admitted at the audited block",
-      "void": "never admitted",
+      "label": "malformed as evidence",
+      "void": [
+        "malformed as evidence"
+      ],
+      "discharges": true
+    },
+    {
+      "label": "never admitted at the anchor block",
+      "void": [
+        "never admitted at anchor block"
+      ],
       "discharges": false
     },
     {
       "label": "proof gives no standing",
-      "void": "proof without standing",
+      "void": [
+        "proof without standing"
+      ],
       "discharges": false
     },
     {
       "label": "outside the selection domain",
-      "void": "outside selection domain",
+      "void": [
+        "outside selection domain"
+      ],
       "discharges": false
     },
     {
       "label": "self audit",
-      "void": "self audit",
+      "void": [
+        "self audit"
+      ],
+      "discharges": false
+    },
+    {
+      "label": "both carve outs",
+      "void": [
+        "removed after anchor block",
+        "coverage failure at sealing"
+      ],
+      "discharges": true
+    },
+    {
+      "label": "malformed beside a carve out",
+      "void": [
+        "malformed as evidence",
+        "coverage failure at sealing"
+      ],
+      "discharges": true
+    },
+    {
+      "label": "carve out beside a no duty case",
+      "void": [
+        "removed after anchor block",
+        "self audit"
+      ],
+      "discharges": false
+    },
+    {
+      "label": "malformed beside a no duty case",
+      "void": [
+        "malformed as evidence",
+        "never admitted at anchor block"
+      ],
+      "discharges": false
+    }
+  ],
+  "anchor_cases": [
+    {
+      "label": "draw removed after the audited block",
+      "named_by": "draw",
+      "audited_sealed_at_s": 8640000,
+      "trigger_sealed_at_s": 8726400,
+      "removed_at_s": 8643600,
+      "void": "removed after anchor block",
+      "discharges": true
+    },
+    {
+      "label": "draw removed at the audited block",
+      "named_by": "draw",
+      "audited_sealed_at_s": 8640000,
+      "trigger_sealed_at_s": 8726400,
+      "removed_at_s": 8640000,
+      "void": "never admitted at anchor block",
+      "discharges": false
+    },
+    {
+      "label": "extension removed after b1",
+      "named_by": "extension",
+      "audited_sealed_at_s": 8640000,
+      "trigger_sealed_at_s": 8726400,
+      "removed_at_s": 8730000,
+      "void": "removed after anchor block",
+      "discharges": true
+    },
+    {
+      "label": "extension removed between the audited block and b1",
+      "named_by": "extension",
+      "audited_sealed_at_s": 8640000,
+      "trigger_sealed_at_s": 8726400,
+      "removed_at_s": 8722800,
+      "void": "never admitted at anchor block",
+      "discharges": false
+    },
+    {
+      "label": "extension removed at b1",
+      "named_by": "extension",
+      "audited_sealed_at_s": 8640000,
+      "trigger_sealed_at_s": 8726400,
+      "removed_at_s": 8726400,
+      "void": "never admitted at anchor block",
       "discharges": false
     }
   ]
