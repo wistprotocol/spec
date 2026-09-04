@@ -1,0 +1,44 @@
+{
+  "note": "WIST-4 \u00a73, \u00a74: the Block an Audit Record's vrf_proof is over. audited_block carries audited_delta; trigger_block is B\u2081, the Block sealing the triggering Record. Each case gives the proof, the Block it verifies over and the standing it earns.",
+  "auditor_public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "audited_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+  "audited_block": {
+    "block_hash": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+    "alpha_hex": "f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487"
+  },
+  "trigger_block": {
+    "block_hash": "sha256:b62c777f579a1fc9963b1b4f8f1a8cecc02296838135116479af56acf598540e",
+    "alpha_hex": "b62c777f579a1fc9963b1b4f8f1a8cecc02296838135116479af56acf598540e"
+  },
+  "reputation_u": 900000,
+  "cases": [
+    {
+      "label": "extension proof over trigger block",
+      "vrf_proof_hex": "b0c6f56e1ade76485df29676fb814bad3aa7552365b29ef6e1c646547966e379112c0c1ca4fc76a868984f14f6d2dc4c1521ea7a7d7a12ffddc1d3064640cfe58ea7e96a994659947acd2dabfc601707",
+      "named_by_extension": true,
+      "proof_block": "trigger",
+      "standing": "extension"
+    },
+    {
+      "label": "audited block proof unselected",
+      "vrf_proof_hex": "defb838b0b6ea0932bbd29a9ac6c5f89ef0d8bac94f76e2cf92dea63bc98f0bc80b9d48617d2aca12c50449654647c3e60f63a8f9b9e1fb5c5232316c6ed6ff184358bb73f251175fb6a4ac8b935ca09",
+      "named_by_extension": true,
+      "proof_block": "audited",
+      "standing": "WIST4-E01"
+    },
+    {
+      "label": "proof over neither block",
+      "vrf_proof_hex": "5429dc51e239ec23a36045ffd7a09d3cb5a7e6614e0273c297e881d3dee20f6cab3ffb1a0bc338e9d302d39ef4bb5f012c1749bcf7e994637950667b82d3d3d839445c6423e76b0744cea7225fdd6a0f",
+      "named_by_extension": true,
+      "proof_block": null,
+      "standing": "WIST4-E01"
+    },
+    {
+      "label": "trigger proof but not summoned",
+      "vrf_proof_hex": "b0c6f56e1ade76485df29676fb814bad3aa7552365b29ef6e1c646547966e379112c0c1ca4fc76a868984f14f6d2dc4c1521ea7a7d7a12ffddc1d3064640cfe58ea7e96a994659947acd2dabfc601707",
+      "named_by_extension": false,
+      "proof_block": "trigger",
+      "standing": "WIST4-E01"
+    }
+  ]
+}

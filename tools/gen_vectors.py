@@ -1811,6 +1811,43 @@ write_json(WIST4 / "extension.json", spaced_labels({
     "divergence_cases": divergence_cases,
 }))
 
+# ------------------------------------ WIST-4 §4: the extension Record's proof
+# A Record the extension rule names carries the proof for B₁, the Block that
+# sealed the triggering Record: the draw over the audited Block did not select
+# the Delta, and the Record's standing is B₁'s selection set. B₁ here is the
+# empty Block; a third alpha stands for a Block that names the Delta for
+# nobody, and the audited Block's own proof shows the draw that did not select.
+EXTENSION_REPUTATION_U = 900_000
+assert not selected(D_primary, sampling_p_1e7(EXTENSION_REPUTATION_U)), \
+    "the extension-proof vector needs a Delta the audited Block's draw does not select"
+trigger_alpha = bytes.fromhex(sha256_hex(empty_canonical))
+trigger_pi = ecvrf.prove(SEED, trigger_alpha)
+neither_alpha = hashlib.sha256(b"wist-test-block|neither").digest()
+neither_pi = ecvrf.prove(SEED, neither_alpha)
+write_json(WIST4 / "extension-proof.json", spaced_labels({
+    "note": ("WIST-4 §3, §4: the Block an Audit Record's vrf_proof is over. "
+             "audited_block carries audited_delta; trigger_block is B₁, the Block "
+             "sealing the triggering Record. Each case gives the proof, the Block it "
+             "verifies over and the standing it earns."),
+    "auditor_public_key": b64u(pub_raw),
+    "audited_delta": delta_id,
+    "audited_block": {"block_hash": block_hash, "alpha_hex": alpha.hex()},
+    "trigger_block": {"block_hash": "sha256:" + sha256_hex(empty_canonical),
+                      "alpha_hex": trigger_alpha.hex()},
+    "reputation_u": EXTENSION_REPUTATION_U,
+    "cases": [
+        {"label": "extension-proof-over-trigger-block", "vrf_proof_hex": trigger_pi.hex(),
+         "named_by_extension": True, "proof_block": "trigger", "standing": "extension"},
+        {"label": "audited-block-proof-unselected", "vrf_proof_hex": pi.hex(),
+         "named_by_extension": True, "proof_block": "audited", "standing": "WIST4-E01"},
+        {"label": "proof-over-neither-block", "vrf_proof_hex": neither_pi.hex(),
+         "named_by_extension": True, "proof_block": None, "standing": "WIST4-E01"},
+        {"label": "trigger-proof-but-not-summoned", "vrf_proof_hex": trigger_pi.hex(),
+         "named_by_extension": False, "proof_block": "trigger", "standing": "WIST4-E01"},
+    ],
+}))
+print("wist4 extension-proof vector written")
+
 
 def criterion_times(findings, count, span_days, min_severity):
     qualifying = [f["sealed_at_s"] for f in findings if f["severity"] >= min_severity]

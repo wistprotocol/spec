@@ -172,16 +172,22 @@ recomputing reputation MUST reject:
 
 - a Record signed by a key not admitted at, or removed at or before, the
   `sealed_at` of the Block carrying that Record;
-- a Record whose `vrf_proof` does not verify — over the audited Block's
-  Block Hash, under the key admitted at that Block's `sealed_at` (§4) — or
-  whose `audited_delta` is neither in the selection set that proof
-  determines nor named for that Auditor by §4's extension rule;
+- a Record whose `vrf_proof` gives it no standing: one that does not
+  verify over the audited Block's Block Hash, under the key admitted at
+  that Block's `sealed_at` (§4), with `audited_delta` in the selection
+  set that proof determines — and does not verify over the Block Hash of
+  a Block *B₁* at which §4's extension rule names `audited_delta` for
+  that Auditor, under the key admitted at *B₁*'s `sealed_at`. The proof
+  names the path: an extension Record's proof is over *B₁*, whose
+  selection set the Delta joined, never over the audited Block, whose
+  draw did not select it;
 - a Record whose `fetched_at` falls outside the closed interval from the
-  `sealed_at` of the audited Delta's Block to the `sealed_at` of the
+  `sealed_at` of the Block its proof is over — the audited Delta's Block,
+  or *B₁* for an extension Record — to the `sealed_at` of the
   Record's own Block. Neither end rests on trust: an Auditor's selection is
-  derived from the audited Block's Block Hash, so under this protocol it
-  cannot have fetched before that Block was sealed, and no Record is sealed
-  before it is written. A `fetched_at` outside that interval contradicts
+  derived from that Block's Block Hash, so under this protocol it
+  cannot have fetched for the duty before that Block was sealed, and no
+  Record is sealed before it is written. A `fetched_at` outside that interval contradicts
   the Log's own ordering;
 - a Record whose `reference_delta` (§5) is not a sealed Delta in the same
   per-URL chain as `audited_delta`; or precedes `audited_delta` in that
@@ -446,8 +452,12 @@ Record within `confirm_window_hours / 2` hours (integer division) of
 selection, discharged by any verdict, `unreachable` and `not_auditable`
 included, and counted by the same failure arithmetic. A Record produced
 under this rule carries the `vrf_proof` for *B₁* like any Record for a
-selection in *B₁* — the proof demonstrates the draw that did *not* select
-*d*, and the extension is why the Record is nonetheless valid. Without
+selection in *B₁* — *B₁*'s selection set is the one *d* joined, and the
+proof over *B₁* is what binds the Record to the Block whose `sealed_at`
+fixes the Auditor's admission, its deadline and its fetch interval (§3);
+the audited Block's draw did *not* select *d*, and the extension is why
+the Record is nonetheless valid. It is served at *B₁*'s records path
+below, and its duty is counted against the (Auditor, *B₁*) pair. Without
 this rule the document would promise what §3 forbids: §5's "re-audit by
 additional Auditors" would name an act that voids the Record of any
 Auditor performing it, confirmation would exist only where two VRF draws
@@ -504,13 +514,14 @@ anyone.
 **How Records reach the Log.** Every duty above is discharged by a
 Record or attestation *sealed* in the Log, and this paragraph is the
 transport that makes sealing depend on no party's goodwill. An Auditor
-MUST serve everything it publishes for an audited Block — its Audit
-Records and any `coverage_attestation` — as a single JSON array at
+MUST serve everything it publishes for a Block — the Audit Records for
+that Block's selection set, VRF-drawn and extension-named alike, and any
+`coverage_attestation` — as a single JSON array at
 
     https://<auditor_id>/.well-known/wist/records/<block-hash-hex>.json
 
-(the audited Block's Block Hash in hex, without its `sha256:` prefix),
-by its §4 deadline for that Block, and MUST keep serving it until every
+(that Block's Block Hash in hex, without its `sha256:` prefix), by its
+§4 deadlines for that Block, and MUST keep serving it until every
 item in it is sealed. Each Record and each `coverage_attestation` an
 Auditor publishes carries `prev_record`: the ID of the same Auditor's
 immediately preceding Record or attestation in its own publication
@@ -521,8 +532,9 @@ missing item existed and was published before its successor — so the
 absence is suppression or a failed pull, never shirking, and a coverage
 failure MUST NOT be derived from it. For each sealed Block and each
 Auditor admitted at its `sealed_at`, the Aggregator MUST fetch that
-Auditor's path for the Block after the Auditor's deadline passes and
-MUST seal everything it finds within `record_seal_blocks` Blocks
+Auditor's path for the Block after the Auditor's coverage deadline for
+it passes — the later of its deadlines there, by §9's combination rule —
+and MUST seal everything it finds within `record_seal_blocks` Blocks
 (Parameter Registry; default 24) of the fetch, and MUST seal alongside
 it a `pull_attestation` Registry Update — `subject` the `auditor_id`,
 details naming the audited Block and the IDs found, empty where the
@@ -581,13 +593,17 @@ captures the Auditor preserves and for how long), `link_agreement` (the §5 link
 integer in micro-units, present only where that dimension applies),
 `robots_excluded` (present only on an `unreachable` Record the
 `robots.txt` rule below produced), and `vrf_proof` (the §4 VRF Proof
-over the Block Hash of the Block carrying the audited Delta, 80 octets as
-160 lowercase hex characters). Every Record also carries `prev_record`
+over the Block Hash of the Block in whose selection set the Auditor holds
+`audited_delta`: the Block carrying the audited Delta, or, for a Record
+§4's extension rule names, the Block *B₁* that sealed the triggering
+Record; 80 octets as 160 lowercase hex characters). Every Record also carries `prev_record`
 (§4): the ID of the same Auditor's preceding publication, or `null` for
 its first. The Record names no Block: the audited
 Block is the one Block
 whose `publisher_delta` Entries carry `audited_delta`, which WIST-3 §3.2
-makes unique and permanent. `vrf_proof` is REQUIRED in every Record,
+makes unique and permanent, and *B₁*, where the proof is over it, is the
+Block that sealed the Record which named `audited_delta` for this
+Auditor — a fact of the Log a verifier locates before it verifies. `vrf_proof` is REQUIRED in every Record,
 `unreachable` and `not_auditable` included, because it is what establishes
 the Auditor's right and duty to have audited at all.
 
@@ -1917,7 +1933,9 @@ MUST NOT be shorter than `block_cadence_seconds`, or a duty falls due
 before the Block that could discharge it can be sealed — and
 `confirm_window_hours / 2` (integer division), the extension duty's own
 span (§4), MUST NOT be shorter than `block_cadence_seconds` either, or a
-re-audit can never seal inside the window it exists to serve;
+re-audit can never seal inside the window it exists to serve, and MUST
+NOT be longer than `coverage_deadline_hours`, or an Auditor's path for
+*B₁* is pulled before the extension duty *B₁* carries falls due;
 `block_decompressed_cap_bytes` MUST NOT be below the size of the largest
 Block the Aggregator seals, since only the pair decides whether any Block
 is applicable; and the `mirror_retention_days` sum below. `links_cap_bytes`
@@ -2162,7 +2180,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that does not verify or whose `audited_delta` is outside the selection and §4's extension rule; a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency, no coverage discharge. |
+| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency, no coverage discharge. |
 | WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored as WIST4-E01. |
 | WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
@@ -2482,7 +2500,8 @@ hands.
       `audit_fetch_timeout_seconds` — recording `not_auditable` for the
       first two and `unreachable` for the last two (§5, §9)
 - [ ] Audits every Delta §4's extension rule names for it, within the
-      extension deadline, exactly as a VRF selection (§4)
+      extension deadline, exactly as a VRF selection — the Record carrying
+      the proof for *B₁* and served at *B₁*'s records path (§4)
 - [ ] Serves its Records and attestations per audited Block at its
       well-known records path until sealed, each carrying `prev_record`
       in its own publication order (§4)
