@@ -475,7 +475,11 @@ A validator MAY cache a Key Set for at most 24 hours (Parameter Registry:
 Key Set cache TTL). While a cached Key Set is valid, a discovery failure
 does not block validation. When no valid cached Key Set exists and
 discovery fails, the validator MUST fail closed: Deltas are rejected with
-`WIST1-E02` and MUST NOT be sealed.
+`WIST1-E02` and MUST NOT be sealed. The cache is a ceiling on staleness,
+not a licence for it: a signature that fails under a cached Key Set is
+the one observation that tells a validator the cache may be behind a
+rotation, and an Aggregator MUST re-fetch the Declaration once on that
+observation before it counts the failure (WIST-2 §5).
 
 `valid_from` bounds a key's use: a Delta whose `observed_at` precedes the
 `valid_from` of the key named in `sig.key_id` MUST be rejected with
