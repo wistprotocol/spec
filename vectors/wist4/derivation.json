@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta. penalty_inputs rows are [severity, t_days].",
+  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta; a Delta sealed at the reset height R is the fresh identity's. penalty_inputs rows are [severity, t_days].",
   "c_cap": 500,
   "cases": [
     {
@@ -263,6 +263,71 @@
         "penalty_inputs": [
           [
             1,
+            9
+          ]
+        ]
+      }
+    },
+    {
+      "label": "delta sealed at the reset height",
+      "resets": [
+        55
+      ],
+      "n": {
+        "height": 100,
+        "sealed_at_s": 11232000
+      },
+      "accepted": [
+        {
+          "height": 54,
+          "sealed_at_s": 10195200
+        },
+        {
+          "height": 55,
+          "sealed_at_s": 10368000
+        },
+        {
+          "height": 70,
+          "sealed_at_s": 10800000
+        }
+      ],
+      "consistent_audits": [
+        {
+          "height": 58,
+          "audited_height": 54,
+          "url": "https://site.example/a",
+          "change": "new"
+        },
+        {
+          "height": 58,
+          "audited_height": 55,
+          "url": "https://site.example/b",
+          "change": "new"
+        }
+      ],
+      "confirmed": [
+        {
+          "height": 60,
+          "audited_height": 55,
+          "sealed_at_s": 10454400,
+          "delta_id": "sha256:aa",
+          "severity": 3
+        },
+        {
+          "height": 60,
+          "audited_height": 54,
+          "sealed_at_s": 10454400,
+          "delta_id": "sha256:bb",
+          "severity": 2
+        }
+      ],
+      "expected": {
+        "reset": 55,
+        "a_days": 10,
+        "c": 1,
+        "penalty_inputs": [
+          [
+            3,
             9
           ]
         ]

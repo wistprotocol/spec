@@ -1747,3 +1747,32 @@ one-key-per-`auditor_id` rule are unchanged.
 cases — a removed key re-admitted under a fresh `key_id`, a `public_key`
 held by another Auditor, a `key_id` held by another Auditor — and its
 twin proves the check reads the `public_key` a re-admission names.
+
+## 2026-09-04 — WIST-4 §6.1, §6.3: a Delta sealed at the reset height belongs to the fresh identity (revision, not errata)
+
+Changes every reset bound on a Delta in §6.1 and §6.3 from "above `R`"
+to "at or above `R`" — `A`'s first Block, `C`'s audited Delta, the
+Deltas whose Confirmed Inconsistencies count — and states why: a Delta
+sealed at `R` is the fresh identity's own. Adds the case *delta sealed
+at the reset height* to `vectors/wist4/derivation.json`.
+
+**What it states.** WIST-3 §3.3 lets a fresh identity's Declaration
+seal in the same Block as the first Delta it authorizes, and applies
+Declarations before Deltas within a Block; WIST-1 §5.2 seals a Delta
+only where the Key Set at its height verifies it. At `R` that Key Set
+is already the fresh identity's, so nothing of the previous identity
+seals there and a Delta at `R` is the fresh identity's statement. Read
+strictly, it started no `A`, counted no `C`, and a Confirmed
+Inconsistency on it left `penalty_n` entirely — the one Delta the reset
+could not have been meant to excuse.
+
+**Why it is a revision.** It fails the first condition: a replayer that
+read the strict bound conformed to the words and now derives a
+different `A`, `C` or `penalty_n` for a domain whose first post-reset
+Delta sealed at `R`. It is scoped to that one height; a Delta below
+`R` is the previous identity's as before.
+
+**Status.** Exercised. `vectors:wist4-derivation` recomputes the new
+case: an accepted Delta at `R` starts `A`, its `consistent` audit
+counts one URL, and the Confirmed Inconsistency on it enters
+`penalty_inputs` while the one on a Delta at `R` − 1 does not.
