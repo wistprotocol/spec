@@ -1406,3 +1406,28 @@ re-admit the constant alone; `negative:wist4-decay-parameters` proves
 the schema rejects a change to the constant and a horizon of 1826 and
 accepts 1825 and a horizon inside the table, and that the bound is the
 table's length.
+
+## 2026-09-04 — WIST-2 §5, §10: what "already seen" means
+
+Adds to §5 step 2 that an ID is seen when the Aggregator has sealed it
+or holds it accepted for sealing — queued, or held under a recovery
+window — and not otherwise, so a rejected ID is pulled again on the
+next pull, rejected again if it still fails, and disposed of against
+the quota as §4 says for its code; the Aggregator checklist follows.
+
+**What it states.** "The IDs it has already seen" was undefined. Under
+the natural reading — anything ever fetched — an ID rejected for a
+transient cause was never pulled again, and because a byte-identical
+republication has the same ID, a Publisher could not recover from a
+momentary `404` or a skewed clock without changing its Delta. WIST-1
+§3.5 already fixed the term for an Aggregator's `prev` retrieval —
+"to have seen a Delta is to have sealed it or to hold it accepted for
+sealing" — and step 2 now reads the same definition. Nothing in §4's
+noise set changes: a re-pull is a pull, and its code decides the rest.
+
+**Why it qualifies.** Both conditions hold. The term was defined once,
+in WIST-1 §3.5, and §5 now points at it; an Aggregator that re-pulled
+rejected IDs conformed and still does.
+
+**Status.** Unexercised. No vector serves a Feed; the rule is a
+bookkeeping discipline over pulls the harness does not model.
