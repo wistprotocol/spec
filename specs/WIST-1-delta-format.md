@@ -526,13 +526,18 @@ Publisher recovering from key loss from a party that has merely acquired
 the domain.
 
 Recovery keys protect themselves. Once a Declaration lists a non-empty
-`recovery_keys`, every later Declaration signed only by a signing key
-MUST carry a byte-identical `recovery_keys`; a Declaration that adds,
+`recovery_keys`, every later Declaration not signed by one of them MUST
+carry a byte-identical `recovery_keys` — a Declaration signed by a
+signing key and one signed by neither set, the fresh identity below,
+alike; a Declaration that adds,
 removes, or alters a recovery key MUST be signed by one of the recovery
 keys it is replacing, and is rejected with `WIST1-E08` otherwise. Without
 this rule the mechanism would be worthless: a thief holding a signing
 key could rotate and drop the recovery keys in the same Declaration,
-permanently severing the owner's path back. A Publisher whose previous
+permanently severing the owner's path back — and a thief holding only
+the web server could do the same with a fresh identity, which is why the
+rule reads the signer and not the classification: whatever a Declaration
+is, only a recovery key can change the recovery keys. A Publisher whose previous
 Declaration lists no recovery keys MAY establish them with an ordinary
 signing-key signature — there is nothing yet to protect — which is how a
 Publisher adopts recovery keys after the fact.

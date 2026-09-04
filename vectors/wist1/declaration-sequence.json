@@ -721,6 +721,70 @@
       "why": "\u00a75.2: an open window changes nothing about acceptance \u2014 the Declaration is sealed and superseded at the window's end, because rejecting it at ingest would leave a thief's attempt invisible to a party replaying the Log."
     },
     {
+      "name": "fresh identity dropping the recovery keys",
+      "stored": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k1",
+              "alg": "Ed25519",
+              "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+        }
+      },
+      "fetched": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+        },
+        "sig": {
+          "key_id": "test-k2",
+          "alg": "Ed25519",
+          "value": "0s03mFhCCG95JoaZYc_ZoauCsDIdEWANnWwh8TfHdybr68cSrlAyy5Im0dEWoAOzMsK-PPrmBV66zBg7MbOtDg"
+        }
+      },
+      "expected": "WIST1-E08",
+      "why": "\u00a75.2: recovery keys protect themselves against every Declaration not signed by one of them \u2014 a fresh identity included, or a party holding only the web server could shed them and sever the owner's path back."
+    },
+    {
       "name": "key named in both key sets",
       "stored": {
         "publisher": {
