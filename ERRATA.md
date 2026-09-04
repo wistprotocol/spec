@@ -1198,3 +1198,33 @@ key, one keeping it, and a Delta below every Declaration — and which
 Deltas verify: the discriminating Delta is the one sealed beside the
 retiring Declaration, which its twin proves the check rejects only
 because the Declaration is read at its own Block and not one later.
+
+## 2026-09-04 — WIST-1 §5.1; WIST-2 §5, §7, §10: a Feed signature failure re-fetches the Declaration before it counts (revision, not errata)
+
+Adds to WIST-2 §5 step 1 that a Feed whose signature does not verify
+against the Key Set the Aggregator holds MUST trigger one re-fetch of
+`publisher.json`, evaluated under WIST-1 §5.2, and a second
+verification of the same Feed bytes, before the pull is `WIST2-E04`;
+the `WIST2-E04` row and the Aggregator checklist follow, and WIST-1 §5.1
+says of its cache that a signature failing under it is the observation
+that obliges the re-fetch.
+
+**What it states.** WIST-1 §5.1 lets a validator cache a Key Set for 24
+hours, and WIST-2 §5 re-fetched the Declaration only on first contact.
+A Publisher that rotates and signs its next Feed under the new key was
+therefore `WIST2-E04` on every pull until the cache expired — noise
+against its own quota, with its Deltas stalled for up to a day — for
+doing exactly what §5.2 tells it to do. A failing signature is the one
+observation that distinguishes a stale cache from a bad Feed, and one
+re-fetch settles which: a Feed that fails under the current Declaration
+too is the rejection it always was.
+
+**Why it is a revision.** It fails the first condition. An Aggregator
+that re-fetched only on first contact conformed to §5 as written and
+does not now. It is scoped to the failing pull: the TTL, first contact,
+the noise set and every other rejection are unchanged, and an
+Aggregator that already re-fetches the Declaration on every pull
+satisfies it as it stands.
+
+**Status.** Unexercised. No vector serves a Feed; the rule is a fetch
+discipline over two artifacts the harness verifies separately.
