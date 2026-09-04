@@ -41,6 +41,7 @@ as anchors.
 | wist1 `host-canonicalization.json` | flags pinned to §2; A-label structure and Punycode round-trip recomputed; full UTS #46 mapping deliberately not reimplemented here (`requirements.txt`), so byte-level recomputation happens in consumers' independent UTS #46 libraries | structural + external | partial |
 | wist1 `declaration-sequence.json` | prose-traced sequencing rules | self-consistency | self-consistency-only |
 | wist1 `recovery-settlement.json` | prose-traced settlement rules | self-consistency | self-consistency-only |
+| wist1 `keyset-at-height.json` | prose-traced resolution rule | self-consistency | self-consistency-only |
 | wist2 `link-extraction.json`, `text-extraction.json` | recomputed by `tools/link_extraction.py` over the fixture page | self-consistency | self-consistency-only |
 | wist3 `block.json`, `inclusion-proof.json` | Merkle hashing vs the Certificate Transparency reference answers (`merkle:ct-reference-vectors`); exhaustive inclusion property test; signatures via third-party libs | external-KAT + property-test | anchored |
 | wist3 `empty-block.json` | the deliberate deviation from RFC 6962's empty root, with both constants pinned side by side | external-KAT (documented deviation) | anchored |

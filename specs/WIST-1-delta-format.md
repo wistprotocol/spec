@@ -652,6 +652,27 @@ the Aggregator. "Took effect under the Compromise recovery rule" is
 therefore a predicate every replaying party evaluates identically, rather
 than a claim resting on an entry the Aggregator may or may not have filed.
 
+The Key Set so resolved is the one a sealed Delta MUST verify under, and
+it is not always the one the Aggregator ingested against. Ingest
+verifies a Delta against the Key Set current at the pull; a Declaration
+accepted between that pull and the seal can retire the key that signed
+it; and WIST-3 §3.3 applies a Block's Declaration Entries before its
+Deltas, so a Delta sealed in the same Block as — or above — the
+Declaration retiring its signing key fails under the resolution above on
+every replay. An Aggregator therefore MUST NOT seal a Delta that does not
+verify under the Key Set resolved at its sealing height, the sealing
+Block's own Declaration Entries included. While the Block it queued the
+Delta for is still open, sealing the Delta there and the Declaration in
+the next Block satisfies this — Block membership is the Aggregator's
+choice — and otherwise the Delta is rejected with `WIST1-E02` at
+sealing, reported through the status endpoint (WIST-2 §7.1), and never
+sealed. The Publisher's remedy is to re-sign the Delta under its new Key
+Set: the Delta ID is over the inner object (§4) and is unchanged, and a
+rejected ID is pulled again (WIST-2 §5). A replaying Consumer that meets
+such a Delta in a Log — an Aggregator's breach — ignores the Entry: it is
+applied to nothing and moves no chain tip (WIST-3 §7), exactly as a
+Delta whose `prev` is not the tip.
+
 ## 6. Deliberate Normative Absence
 
 This specification defines no field by which a publisher may declare the
@@ -666,7 +687,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | Code | Meaning |
 |---------|--------------------------------------------------------------|
 | WIST1-E01 | Invalid signature (does not verify against the named key) |
-| WIST1-E02 | Unknown key (`sig.key_id` not in the current Key Set) |
+| WIST1-E02 | Unknown key (`sig.key_id` not in the current Key Set at ingest, or, at sealing, not in the Key Set §5.2 resolves at the Delta's sealing height — a Delta a Declaration accepted since the pull has stranded, never sealed) |
 | WIST1-E03 | URL out of scope, not normalized, or not normalizable (host not covered by domain/`subdomain_scope`; `url` not byte-identical to its own Normalized URL; or `url` has no normalization at all — §2) |
 | WIST1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
 | WIST1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
@@ -848,6 +869,10 @@ copies already served.
 - [ ] Applies the 10-minute clock-skew allowance to `observed_at` (§3.4)
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
       by Block height (§5.2)
+- [ ] Seals a Delta only where it verifies under the Key Set resolved at
+      its sealing height, the sealing Block's own Declarations included —
+      a Delta a later-accepted Declaration stranded is `WIST1-E02`, not
+      sealed (§5.2)
 - [ ] Compares URLs and hosts only after normalization (§2)
 
 ## Appendix A. Test Vectors

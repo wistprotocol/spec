@@ -189,7 +189,12 @@ chains are trees rooted outside the Block and cycles are impossible
 chain relation apply in leaf-hash order without observable difference.
 `audit_record` Entries apply last; nothing they change reads intra-Block
 position. No conforming behavior depends on any ordering freedom this
-paragraph does not name.
+paragraph does not name. Because Declarations apply first, the Key Set a
+`publisher_delta` Entry verifies under is the one WIST-1 §5.2 resolves at
+its own Block with that Block's Declarations already applied: an
+Aggregator MUST NOT seal a Delta that fails it (WIST-1 §5.2), and a
+Consumer that meets one ignores the Entry as it ignores a fork — applied
+to nothing, moving no chain tip (§7).
 
 ### 3.4. Aggregator Keys and the Log Anchor
 
@@ -1365,7 +1370,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Block frame's decompressed size (§6)
 - [ ] Publishes a Log Anchor and admits all later keys in-band (§3.4)
 - [ ] Seals a `publisher_declaration` Entry for a domain before, or in
-      the same Block as, the first Delta it authorizes (§3.3)
+      the same Block as, the first Delta it authorizes, and never seals a
+      Delta the Key Set resolved at its own Block no longer verifies
+      (§3.3, WIST-1 §5.2)
 
 **Mirror:**
 

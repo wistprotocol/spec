@@ -397,6 +397,75 @@ write_json(WIST1 / "recovery-settlement.json", {
 })
 print("wist1 recovery-settlement vector written")
 
+# ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
+# The ordinary resolution rule over key_ids alone: a Delta sealed at height N
+# verifies under the highest-seq Declaration sealed at a height <= N, the
+# Block's own Declarations included (WIST-3 §3.3 applies them first). The
+# recovery exception is exercised by recovery-settlement.json.
+def keyset_at(declarations, height):
+    applicable = [d for d in declarations if d["height"] <= height]
+    if not applicable:
+        return []
+    return max(applicable, key=lambda d: d["seq"])["keys"]
+
+
+def keyset_case(name, declarations, deltas, why):
+    verifies = [d["delta_id"] for d in deltas
+                if d["signer"] in keyset_at(declarations, d["height"])]
+    rejected = [d["delta_id"] for d in deltas if d["delta_id"] not in verifies]
+    heights = sorted({d["height"] for d in deltas} | {d["height"] for d in declarations})
+    return {"name": name, "declarations": declarations, "deltas": deltas,
+            "expected": {"key_set_at": [{"height": h, "keys": keyset_at(declarations, h)}
+                                        for h in heights],
+                         "verifies": verifies, "rejected": rejected},
+            "why": why}
+
+
+ROTATION = [{"label": "genesis", "seq": 0, "height": 1, "keys": ["k1"]},
+            {"label": "rotation", "seq": 1, "height": 5, "keys": ["k2"]}]
+keyset_cases = [
+    keyset_case(
+        "rotation retiring the old key",
+        ROTATION,
+        [{"delta_id": "d-below", "height": 4, "signer": "k1"},
+         {"delta_id": "d-beside-old", "height": 5, "signer": "k1"},
+         {"delta_id": "d-beside-new", "height": 5, "signer": "k2"},
+         {"delta_id": "d-above-old", "height": 6, "signer": "k1"},
+         {"delta_id": "d-above-new", "height": 6, "signer": "k2"}],
+        "§5.2: the Key Set at height N is the highest-seq Declaration sealed "
+        "at or below N, so a Delta signed by the retired key verifies below "
+        "the rotation's Block and nowhere at or above it — the Block's own "
+        "Declaration applies first (WIST-3 §3.3) — while the new key "
+        "verifies from that Block onward."),
+    keyset_case(
+        "rotation keeping the old key",
+        [{"label": "genesis", "seq": 0, "height": 1, "keys": ["k1"]},
+         {"label": "rotation", "seq": 1, "height": 5, "keys": ["k1", "k2"]}],
+        [{"delta_id": "d-beside-old", "height": 5, "signer": "k1"},
+         {"delta_id": "d-above-old", "height": 9, "signer": "k1"}],
+        "§5.2: a rotation that carries the old key forward retires nothing, "
+        "and Deltas under it verify at every height."),
+    keyset_case(
+        "before the first declaration",
+        ROTATION,
+        [{"delta_id": "d-orphan", "height": 0, "signer": "k1"}],
+        "§5.2, WIST-3 §3.3: no Declaration is sealed at or below the Delta's "
+        "height, so no Key Set applies and the Delta does not verify — the "
+        "Declaration must seal before or beside the first Delta it "
+        "authorizes."),
+]
+
+write_json(WIST1 / "keyset-at-height.json", {
+    "note": ("WIST-1 §5.2 historical verification, ordinary case, over key_ids "
+             "alone: `declarations` carry seq, sealing height and keys; each "
+             "Delta carries its sealing height and signer. `expected.key_set_at` "
+             "is the Key Set resolved at each height present, `verifies` and "
+             "`rejected` (WIST1-E02) the Deltas by that resolution. The recovery "
+             "exception is exercised by recovery-settlement.json."),
+    "cases": keyset_cases,
+})
+print("wist1 keyset-at-height vector written")
+
 # --------------------------------------- WIST-1 §4: the verification profile
 # RFC 8032 §5.1.7 leaves the cofactor, the reduction of `s` and the treatment
 # of small-order and non-canonically-encoded points to the verifier. §4 pins

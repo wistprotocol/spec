@@ -1,0 +1,208 @@
+{
+  "note": "WIST-1 \u00a75.2 historical verification, ordinary case, over key_ids alone: `declarations` carry seq, sealing height and keys; each Delta carries its sealing height and signer. `expected.key_set_at` is the Key Set resolved at each height present, `verifies` and `rejected` (WIST1-E02) the Deltas by that resolution. The recovery exception is exercised by recovery-settlement.json.",
+  "cases": [
+    {
+      "name": "rotation retiring the old key",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "height": 1,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "height": 5,
+          "keys": [
+            "k2"
+          ]
+        }
+      ],
+      "deltas": [
+        {
+          "delta_id": "d-below",
+          "height": 4,
+          "signer": "k1"
+        },
+        {
+          "delta_id": "d-beside-old",
+          "height": 5,
+          "signer": "k1"
+        },
+        {
+          "delta_id": "d-beside-new",
+          "height": 5,
+          "signer": "k2"
+        },
+        {
+          "delta_id": "d-above-old",
+          "height": 6,
+          "signer": "k1"
+        },
+        {
+          "delta_id": "d-above-new",
+          "height": 6,
+          "signer": "k2"
+        }
+      ],
+      "expected": {
+        "key_set_at": [
+          {
+            "height": 1,
+            "keys": [
+              "k1"
+            ]
+          },
+          {
+            "height": 4,
+            "keys": [
+              "k1"
+            ]
+          },
+          {
+            "height": 5,
+            "keys": [
+              "k2"
+            ]
+          },
+          {
+            "height": 6,
+            "keys": [
+              "k2"
+            ]
+          }
+        ],
+        "verifies": [
+          "d-below",
+          "d-beside-new",
+          "d-above-new"
+        ],
+        "rejected": [
+          "d-beside-old",
+          "d-above-old"
+        ]
+      },
+      "why": "\u00a75.2: the Key Set at height N is the highest-seq Declaration sealed at or below N, so a Delta signed by the retired key verifies below the rotation's Block and nowhere at or above it \u2014 the Block's own Declaration applies first (WIST-3 \u00a73.3) \u2014 while the new key verifies from that Block onward."
+    },
+    {
+      "name": "rotation keeping the old key",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "height": 1,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "height": 5,
+          "keys": [
+            "k1",
+            "k2"
+          ]
+        }
+      ],
+      "deltas": [
+        {
+          "delta_id": "d-beside-old",
+          "height": 5,
+          "signer": "k1"
+        },
+        {
+          "delta_id": "d-above-old",
+          "height": 9,
+          "signer": "k1"
+        }
+      ],
+      "expected": {
+        "key_set_at": [
+          {
+            "height": 1,
+            "keys": [
+              "k1"
+            ]
+          },
+          {
+            "height": 5,
+            "keys": [
+              "k1",
+              "k2"
+            ]
+          },
+          {
+            "height": 9,
+            "keys": [
+              "k1",
+              "k2"
+            ]
+          }
+        ],
+        "verifies": [
+          "d-beside-old",
+          "d-above-old"
+        ],
+        "rejected": []
+      },
+      "why": "\u00a75.2: a rotation that carries the old key forward retires nothing, and Deltas under it verify at every height."
+    },
+    {
+      "name": "before the first declaration",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "height": 1,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "height": 5,
+          "keys": [
+            "k2"
+          ]
+        }
+      ],
+      "deltas": [
+        {
+          "delta_id": "d-orphan",
+          "height": 0,
+          "signer": "k1"
+        }
+      ],
+      "expected": {
+        "key_set_at": [
+          {
+            "height": 0,
+            "keys": []
+          },
+          {
+            "height": 1,
+            "keys": [
+              "k1"
+            ]
+          },
+          {
+            "height": 5,
+            "keys": [
+              "k2"
+            ]
+          }
+        ],
+        "verifies": [],
+        "rejected": [
+          "d-orphan"
+        ]
+      },
+      "why": "\u00a75.2, WIST-3 \u00a73.3: no Declaration is sealed at or below the Delta's height, so no Key Set applies and the Delta does not verify \u2014 the Declaration must seal before or beside the first Delta it authorizes."
+    }
+  ]
+}
