@@ -2167,6 +2167,83 @@ write_json(WIST4 / "parameter-in-force.json", spaced_labels({
 }))
 print("wist4 parameter-in-force vector written")
 
+# ---------------------------------------- WIST-4 §5: the unauditable predicate
+# Two blocking Records from independent Auditors inside the horizon ending
+# at N, with no clearing Record from an Auditor independent of both sealed
+# after the later of the two and at or below N.
+UNAUDITABLE_HORIZON_DAYS = 30
+CLEARING_VERDICTS = ("consistent", "inconsistent", "dynamic_variance",
+                     "link_variance", "link_inconsistent")
+
+
+def unauditable_at(blocking, others, n_s, horizon_days):
+    live = [b for b in blocking if within_days_ending_at(b["sealed_at_s"], n_s, horizon_days)]
+    for i, b1 in enumerate(live):
+        for b2 in live[i + 1:]:
+            if not independent(b1["auditor"], b2["auditor"]):
+                continue
+            later = max(b1["sealed_at_s"], b2["sealed_at_s"])
+            cleared = any(
+                later < c["sealed_at_s"] <= n_s and c["verdict"] in CLEARING_VERDICTS
+                and independent(c["auditor"], b1["auditor"])
+                and independent(c["auditor"], b2["auditor"])
+                for c in others)
+            if not cleared:
+                return True
+    return False
+
+
+def unauditable_case(label, blocking, others, n_s):
+    return {"label": label, "blocking": blocking, "other_records": others,
+            "n_sealed_at_s": n_s,
+            "unauditable": unauditable_at(blocking, others, n_s, UNAUDITABLE_HORIZON_DAYS)}
+
+
+N_S = 100 * DAY_S
+A1, A2, A3, A2_KIN = "audit.example.org", "checker.example.net", "verify.example.com", "other.example.net"
+unauditable_cases = [
+    unauditable_case("two-independent-blocking-inside-the-horizon",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+    unauditable_case("second-blocking-exactly-thirty-days-before-n",
+                     [{"auditor": A1, "sealed_at_s": N_S - 30 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+    unauditable_case("second-blocking-one-second-inside-the-horizon",
+                     [{"auditor": A1, "sealed_at_s": N_S - 30 * DAY_S + 1},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+    unauditable_case("blocking-pair-not-independent",
+                     [{"auditor": A2, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2_KIN, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+    unauditable_case("cleared-by-a-third-independent-auditor",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [{"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S, "verdict": "consistent"}], N_S),
+    unauditable_case("clearing-auditor-dependent-on-a-blocker",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [{"auditor": A2_KIN, "sealed_at_s": N_S - 5 * DAY_S, "verdict": "consistent"}], N_S),
+    unauditable_case("clearing-record-before-the-later-blocking",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [{"auditor": A3, "sealed_at_s": N_S - 15 * DAY_S, "verdict": "consistent"}], N_S),
+    unauditable_case("unreachable-does-not-clear",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [{"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S, "verdict": "unreachable"}], N_S),
+    unauditable_case("clearing-record-above-n",
+                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
+                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [{"auditor": A3, "sealed_at_s": N_S + DAY_S, "verdict": "consistent"}], N_S),
+]
+
+write_json(WIST4 / "unauditable.json", spaced_labels({
+    "note": "WIST-4 §5 unauditable predicate at Block N. blocking are the URL's blocking Records, other_records its Records of any other verdict, both as (auditor, sealing instant).",
+    "unauditable_horizon_days": UNAUDITABLE_HORIZON_DAYS,
+    "clearing_verdicts": list(CLEARING_VERDICTS),
+    "cases": unauditable_cases,
+}))
+print("wist4 unauditable vector written")
+
 # ----------------------------------------- WIST-4 §3, §4: the Auditor roster
 # One admitted key per auditor_id at any height. Removes sealed at an instant
 # apply before admits sealed at it, which is what lets a rotation seal in one

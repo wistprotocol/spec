@@ -1,0 +1,187 @@
+{
+  "note": "WIST-4 \u00a75 unauditable predicate at Block N. blocking are the URL's blocking Records, other_records its Records of any other verdict, both as (auditor, sealing instant).",
+  "unauditable_horizon_days": 30,
+  "clearing_verdicts": [
+    "consistent",
+    "inconsistent",
+    "dynamic_variance",
+    "link_variance",
+    "link_inconsistent"
+  ],
+  "cases": [
+    {
+      "label": "two independent blocking inside the horizon",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "second blocking exactly thirty days before n",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6048000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": false
+    },
+    {
+      "label": "second blocking one second inside the horizon",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6048001
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "blocking pair not independent",
+      "blocking": [
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "other.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": false
+    },
+    {
+      "label": "cleared by a third independent auditor",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 8208000,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": false
+    },
+    {
+      "label": "clearing auditor dependent on a blocker",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "other.example.net",
+          "sealed_at_s": 8208000,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "clearing record before the later blocking",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 7344000,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "unreachable does not clear",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 8208000,
+          "verdict": "unreachable"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "clearing record above n",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000
+        }
+      ],
+      "other_records": [
+        {
+          "auditor": "verify.example.com",
+          "sealed_at_s": 8726400,
+          "verdict": "consistent"
+        }
+      ],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    }
+  ]
+}

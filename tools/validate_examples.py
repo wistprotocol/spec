@@ -1902,6 +1902,66 @@ def _dc4_parameter_in_force_twin():
         "recomputation is blind to which of an equal pair sealed later"
 check("negative:wist4-parameter-in-force", _dc4_parameter_in_force_twin)
 
+def _unauditable_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "unauditable.json").read_text())
+
+def _unauditable_at(v, case, end_inclusive_start_exclusive=True):
+    """WIST-4 §5: two independent blocking Records inside the horizon
+    ending at N, uncleared by an independent third Record sealed after the
+    later of them and at or below N."""
+    horizon_s = v["unauditable_horizon_days"] * 86400
+    n_s = case["n_sealed_at_s"]
+    def in_window(t):
+        if end_inclusive_start_exclusive:
+            return t <= n_s and n_s - t < horizon_s
+        return t <= n_s and n_s - t <= horizon_s
+    live = [b for b in case["blocking"] if in_window(b["sealed_at_s"])]
+    for i, b1 in enumerate(live):
+        for b2 in live[i + 1:]:
+            if not _roster_independent(b1["auditor"], b2["auditor"]):
+                continue
+            later = max(b1["sealed_at_s"], b2["sealed_at_s"])
+            if not any(later < c["sealed_at_s"] <= n_s
+                       and c["verdict"] in v["clearing_verdicts"]
+                       and _roster_independent(c["auditor"], b1["auditor"])
+                       and _roster_independent(c["auditor"], b2["auditor"])
+                       for c in case["other_records"]):
+                return True
+    return False
+
+def _dc4_unauditable():
+    """WIST-4 §5: the unauditable predicate, with its horizon measured like
+    every other window."""
+    v = _unauditable_vector()
+    labels = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        got = _unauditable_at(v, case)
+        assert got == case["unauditable"], \
+            f"{case['label']}: recomputed {got}, vector says {case['unauditable']}"
+    for needed in ("second blocking exactly thirty days before n",
+                   "second blocking one second inside the horizon",
+                   "cleared by a third independent auditor",
+                   "clearing auditor dependent on a blocker"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    assert set(v["clearing_verdicts"]) == {"consistent", "inconsistent", "dynamic_variance",
+                                           "link_variance", "link_inconsistent"}
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert ("sealed inside the 30 whole days (Parameter Registry: `unauditable_horizon_days`) "
+            "ending at Block N's `sealed_at`") in prose, "§5 does not measure the horizon as a window ending at N"
+check("vectors:wist4-unauditable", _dc4_unauditable)
+
+def _dc4_unauditable_twin():
+    """The check above must notice a horizon read end-inclusive at 30."""
+    v = _unauditable_vector()
+    case = next(c for c in v["cases"] if c["label"] == "second blocking exactly thirty days before n")
+    assert _unauditable_at(v, case, end_inclusive_start_exclusive=False) is True, \
+        "the twin's closed horizon did not admit the thirtieth-day Record"
+    assert _unauditable_at(v, case) is False, \
+        "recomputation is blind to the horizon's start"
+check("negative:wist4-unauditable", _dc4_unauditable_twin)
+
 def _dc4_audit_commitments():
     """Every content-derived value in an Audit Record is salted (WIST-4 §5).
 
