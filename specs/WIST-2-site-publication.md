@@ -129,9 +129,14 @@ history: every Delta ID the Publisher has ever sealed MUST appear on
 exactly one Page, never on two and never on none.
 
 **Verification of sealed pages.** A page is verified against the Key Set
-current at the page's `generated_at`; because pages are immutable they are
+current at the page's `generated_at` or, where that Key Set does not
+hold the key that signed it, against the Key Set of the domain's first
+applicable Declaration sealed after `generated_at` (the bridge below);
+because pages are immutable they are
 never re-signed on rotation, and a validator MUST NOT reject a page solely
-because its signing key has since been retired.
+because its signing key has since been retired, or because the
+Declaration admitting it had not been sealed when the page was cut. A
+page that verifies under neither Key Set is `WIST2-E04`.
 
 A Page's `generated_at` is the instant of the cutover that sealed it — the
 same value the `feed.json` published at that cutover carries — and not the
@@ -163,6 +168,26 @@ to the same Key Set. Because that comparison is against a Block's
 `sealed_at` does (`schemas/feed.schema.json`, WIST-3 §3.1): the two values
 compare directly, with no normalization step for two implementations to
 perform differently.
+
+A Page can be cut under a key no sealed Declaration yet holds. The
+Publisher rotates and seals a Page in one act, and the Declaration
+recording the rotation seals only when an Aggregator next pulls it — or,
+before first contact, when an Aggregator first learns the domain exists,
+which can be a thousand Deltas and several Pages after the Publisher
+started. A Delta has no such gap, because an Aggregator seals a
+Declaration before or beside the first Delta it authorizes (WIST-3 §3.3)
+and seals a Delta only where the Key Set at its height verifies it
+(WIST-1 §5.2); a Page is never sealed, so nothing holds it. The second
+resolution above closes the gap: a Page whose signing key the Key Set
+current at `generated_at` does not hold verifies if that key is in the
+Key Set of the **first** applicable Declaration — the same recovery
+exception applied — sealed after `generated_at`, the Publisher's own
+act attested one seal late. It is the first such Declaration and not any
+later one, so a Page cannot claim a key from a rotation two seals ahead;
+and both lookups read Blocks every validator holds, so two validators
+still resolve one Page to one answer. A Page cut before the domain's
+first Declaration sealed resolves, by the same rule, to that
+Declaration's Key Set.
 
 **Aggregator obligation.** On each pull, an Aggregator MUST follow `next`
 until it reaches a page whose newest Delta ID it has already ingested, or
@@ -484,6 +509,9 @@ adjacent to the layout it walks.
       `WIST2-E04` (§5, §7)
 - [ ] Follows `next` through sealed Pages until reaching already-ingested
       content or `null`; never diffs only the live `feed.json` (§3.2)
+- [ ] Verifies a sealed Page against the Key Set current at its
+      `generated_at`, or that of the first applicable Declaration sealed
+      after it (§3.2)
 - [ ] Applies the per-domain ingest budget to that walk, suspending and
       resuming across days rather than truncating it (§5)
 - [ ] Runs baseline polling independent of Pings (§5)

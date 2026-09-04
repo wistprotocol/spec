@@ -418,6 +418,70 @@ def _text_extraction_vector():
 
 check("vectors:wist2-text-extraction", _text_extraction_vector)
 
+def _page_keyset_vector():
+    return json.loads((ROOT / "vectors" / "wist2" / "page-keyset.json").read_text())
+
+def _page_keyset_resolve(declarations, generated_at_s, signer):
+    """WIST-2 §3.2: the Declaration with the greatest sealed_at not later
+    than generated_at, then the first sealed after it."""
+    current, nxt = None, None
+    for d in declarations:
+        if d["sealed_at_s"] <= generated_at_s and (current is None or d["sealed_at_s"] > current["sealed_at_s"]):
+            current = d
+        if d["sealed_at_s"] > generated_at_s and (nxt is None or d["sealed_at_s"] < nxt["sealed_at_s"]):
+            nxt = d
+    current_keys = current["keys"] if current else []
+    next_keys = nxt["keys"] if nxt else []
+    under = "current" if signer in current_keys else "next" if signer in next_keys else None
+    return current_keys, next_keys, under
+
+def _wist2_page_keyset():
+    """WIST-2 §3.2: a sealed Page verifies under the Key Set current at its
+    generated_at or under the first Declaration sealed after it."""
+    v = _page_keyset_vector()
+    saw = set()
+    for case in v["cases"]:
+        name = case["name"]
+        by_page = {pg["page"]: pg for pg in case["pages"]}
+        assert [r["page"] for r in case["expected"]] == [pg["page"] for pg in case["pages"]], \
+            f"{name}: expected rows out of order"
+        for row in case["expected"]:
+            pg = by_page[row["page"]]
+            current, nxt, under = _page_keyset_resolve(
+                case["declarations"], pg["generated_at_s"], pg["signer"])
+            assert current == row["current_keys"], f"{name} page {pg['page']}: current Key Set"
+            assert nxt == row["next_keys"], f"{name} page {pg['page']}: next Key Set"
+            assert under == row["verifies_under"], f"{name} page {pg['page']}: resolution"
+            assert row["verifies"] == (under is not None), f"{name} page {pg['page']}: verifies"
+            saw.add(under)
+            if not current and under == "next":
+                saw.add("before first contact")
+            if current and pg["signer"] not in current and under == "next":
+                saw.add("between rotation and seal")
+    assert saw >= {"current", "next", None, "before first contact", "between rotation and seal"}, \
+        f"the vector must exercise both resolutions, a WIST2-E04, a Page before first contact and one between a rotation and its seal; saw {saw}"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    for marker in (
+            "against the Key Set of the domain's first applicable Declaration sealed after `generated_at`",
+            "A page that verifies under neither Key Set is `WIST2-E04`"):
+        assert marker in prose, f"§3.2 does not state: {marker!r}"
+check("vectors:wist2-page-keyset", _wist2_page_keyset)
+
+def _wist2_page_keyset_twin():
+    """The check above must notice a Page resolved to a Declaration two seals
+    ahead, and one resolved to the current Key Set alone."""
+    v = _page_keyset_vector()
+    case = next(c for c in v["cases"] if c["name"] == "page cut between a rotation and its sealing")
+    two_ahead = next(pg for pg in case["pages"] if pg["signer"] == "k3")
+    _, _, under = _page_keyset_resolve(case["declarations"], two_ahead["generated_at_s"], two_ahead["signer"])
+    assert under is None, "recomputation admits a key from the second Declaration after generated_at"
+    late = next(pg for pg in case["pages"] if pg["signer"] == "k2")
+    _, _, under = _page_keyset_resolve(
+        [d for d in case["declarations"] if d["sealed_at_s"] <= late["generated_at_s"]],
+        late["generated_at_s"], late["signer"])
+    assert under is None, "recomputation verified the Page without the Declaration sealed after it"
+check("negative:wist2-page-keyset", _wist2_page_keyset_twin)
+
 def _text_extraction_twin():
     """Mutation twin: appended visible text must change the extraction, and
     removing the committed text from the observed side must sink the score."""

@@ -1,0 +1,297 @@
+{
+  "note": "WIST-2 \u00a73.2 Key Set resolution for a sealed Page, over key_ids alone: `declarations` carry seq, sealing instant and keys, every one applicable; each Page carries generated_at and signer. Each `expected` row gives the Key Set current at generated_at, the first Declaration's after it, and which of the two the Page verifies under (`current`, `next`, or null for WIST2-E04).",
+  "cases": [
+    {
+      "name": "page cut after its declaration sealed",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "sealed_at_s": 100,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "sealed_at_s": 200,
+          "keys": [
+            "k2"
+          ]
+        },
+        {
+          "label": "second rotation",
+          "seq": 2,
+          "sealed_at_s": 300,
+          "keys": [
+            "k3"
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "page": 0,
+          "generated_at_s": 250,
+          "signer": "k2"
+        },
+        {
+          "page": 1,
+          "generated_at_s": 250,
+          "signer": "k1"
+        }
+      ],
+      "expected": [
+        {
+          "page": 0,
+          "current_keys": [
+            "k2"
+          ],
+          "next_keys": [
+            "k3"
+          ],
+          "verifies_under": "current",
+          "verifies": true
+        },
+        {
+          "page": 1,
+          "current_keys": [
+            "k2"
+          ],
+          "next_keys": [
+            "k3"
+          ],
+          "verifies_under": null,
+          "verifies": false
+        }
+      ],
+      "why": "\u00a73.2: the Key Set current at generated_at is the rotation's, so its key verifies and the retired key does not \u2014 the retired key was current at no instant at or after the rotation sealed."
+    },
+    {
+      "name": "page cut between a rotation and its sealing",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "sealed_at_s": 100,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "sealed_at_s": 200,
+          "keys": [
+            "k2"
+          ]
+        },
+        {
+          "label": "second rotation",
+          "seq": 2,
+          "sealed_at_s": 300,
+          "keys": [
+            "k3"
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "page": 0,
+          "generated_at_s": 150,
+          "signer": "k2"
+        },
+        {
+          "page": 1,
+          "generated_at_s": 150,
+          "signer": "k1"
+        },
+        {
+          "page": 2,
+          "generated_at_s": 150,
+          "signer": "k3"
+        }
+      ],
+      "expected": [
+        {
+          "page": 0,
+          "current_keys": [
+            "k1"
+          ],
+          "next_keys": [
+            "k2"
+          ],
+          "verifies_under": "next",
+          "verifies": true
+        },
+        {
+          "page": 1,
+          "current_keys": [
+            "k1"
+          ],
+          "next_keys": [
+            "k2"
+          ],
+          "verifies_under": "current",
+          "verifies": true
+        },
+        {
+          "page": 2,
+          "current_keys": [
+            "k1"
+          ],
+          "next_keys": [
+            "k2"
+          ],
+          "verifies_under": null,
+          "verifies": false
+        }
+      ],
+      "why": "\u00a73.2: the Publisher rotated to k2 and cut a Page before an Aggregator sealed the rotation; k2 is in the first Declaration sealed after generated_at, so the Page verifies; k1 was current; k3 belongs to the second Declaration after, which the rule never reaches."
+    },
+    {
+      "name": "page cut before first contact",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "sealed_at_s": 100,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "sealed_at_s": 200,
+          "keys": [
+            "k2"
+          ]
+        },
+        {
+          "label": "second rotation",
+          "seq": 2,
+          "sealed_at_s": 300,
+          "keys": [
+            "k3"
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "page": 0,
+          "generated_at_s": 50,
+          "signer": "k1"
+        },
+        {
+          "page": 1,
+          "generated_at_s": 50,
+          "signer": "k2"
+        }
+      ],
+      "expected": [
+        {
+          "page": 0,
+          "current_keys": [],
+          "next_keys": [
+            "k1"
+          ],
+          "verifies_under": "next",
+          "verifies": true
+        },
+        {
+          "page": 1,
+          "current_keys": [],
+          "next_keys": [
+            "k1"
+          ],
+          "verifies_under": null,
+          "verifies": false
+        }
+      ],
+      "why": "\u00a73.2: no Declaration is sealed at or before generated_at, so the first Declaration sealed after it \u2014 the domain's own seq-0 Declaration \u2014 is what a Page cut before first contact resolves to."
+    },
+    {
+      "name": "generated_at equal to a sealing instant",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "sealed_at_s": 100,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "sealed_at_s": 200,
+          "keys": [
+            "k2"
+          ]
+        },
+        {
+          "label": "second rotation",
+          "seq": 2,
+          "sealed_at_s": 300,
+          "keys": [
+            "k3"
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "page": 0,
+          "generated_at_s": 200,
+          "signer": "k2"
+        },
+        {
+          "page": 1,
+          "generated_at_s": 200,
+          "signer": "k1"
+        },
+        {
+          "page": 2,
+          "generated_at_s": 200,
+          "signer": "k3"
+        }
+      ],
+      "expected": [
+        {
+          "page": 0,
+          "current_keys": [
+            "k2"
+          ],
+          "next_keys": [
+            "k3"
+          ],
+          "verifies_under": "current",
+          "verifies": true
+        },
+        {
+          "page": 1,
+          "current_keys": [
+            "k2"
+          ],
+          "next_keys": [
+            "k3"
+          ],
+          "verifies_under": null,
+          "verifies": false
+        },
+        {
+          "page": 2,
+          "current_keys": [
+            "k2"
+          ],
+          "next_keys": [
+            "k3"
+          ],
+          "verifies_under": "next",
+          "verifies": true
+        }
+      ],
+      "why": "\u00a73.2: \"not later than\" is inclusive, so a Page whose generated_at equals the rotation's sealed_at is current under the rotation; the retired key is under neither resolution, and the next Declaration after 200 is the second rotation, whose key k3 therefore verifies."
+    }
+  ]
+}

@@ -809,6 +809,89 @@ write_json(WIST2V / "text-extraction.json", {
 print("wist2 text-extraction vector:",
       [c["label"] for c in TEXT_FIXTURES + SIM_FIXTURES])
 
+# ------------------------------- WIST-2 §3.2: the Key Set a sealed Page verifies under
+# Over key_ids alone: a Page verifies under the Key Set current at its
+# generated_at — the Declaration with the greatest sealed_at not later than
+# it — or, where that Key Set lacks the signer, under the first Declaration
+# sealed after generated_at. Declarations here are all applicable (the
+# recovery exception is exercised by wist1/recovery-settlement.json).
+def page_keyset_current(declarations, generated_at_s):
+    at_or_before = [d for d in declarations if d["sealed_at_s"] <= generated_at_s]
+    return max(at_or_before, key=lambda d: d["sealed_at_s"])["keys"] if at_or_before else []
+
+
+def page_keyset_next(declarations, generated_at_s):
+    after = [d for d in declarations if d["sealed_at_s"] > generated_at_s]
+    return min(after, key=lambda d: d["sealed_at_s"])["keys"] if after else []
+
+
+def page_case(name, declarations, pages, why):
+    resolved = []
+    for pg in pages:
+        current = page_keyset_current(declarations, pg["generated_at_s"])
+        nxt = page_keyset_next(declarations, pg["generated_at_s"])
+        under = ("current" if pg["signer"] in current
+                 else "next" if pg["signer"] in nxt else None)
+        resolved.append({"page": pg["page"], "current_keys": current,
+                         "next_keys": nxt, "verifies_under": under,
+                         "verifies": under is not None})
+    return {"name": name, "declarations": declarations, "pages": pages,
+            "expected": resolved, "why": why}
+
+
+PAGE_DECLS = [{"label": "genesis", "seq": 0, "sealed_at_s": 100, "keys": ["k1"]},
+              {"label": "rotation", "seq": 1, "sealed_at_s": 200, "keys": ["k2"]},
+              {"label": "second rotation", "seq": 2, "sealed_at_s": 300, "keys": ["k3"]}]
+page_cases = [
+    page_case(
+        "page cut after its declaration sealed",
+        PAGE_DECLS,
+        [{"page": 0, "generated_at_s": 250, "signer": "k2"},
+         {"page": 1, "generated_at_s": 250, "signer": "k1"}],
+        "§3.2: the Key Set current at generated_at is the rotation's, so its "
+        "key verifies and the retired key does not — the retired key was "
+        "current at no instant at or after the rotation sealed."),
+    page_case(
+        "page cut between a rotation and its sealing",
+        PAGE_DECLS,
+        [{"page": 0, "generated_at_s": 150, "signer": "k2"},
+         {"page": 1, "generated_at_s": 150, "signer": "k1"},
+         {"page": 2, "generated_at_s": 150, "signer": "k3"}],
+        "§3.2: the Publisher rotated to k2 and cut a Page before an Aggregator "
+        "sealed the rotation; k2 is in the first Declaration sealed after "
+        "generated_at, so the Page verifies; k1 was current; k3 belongs to the "
+        "second Declaration after, which the rule never reaches."),
+    page_case(
+        "page cut before first contact",
+        PAGE_DECLS,
+        [{"page": 0, "generated_at_s": 50, "signer": "k1"},
+         {"page": 1, "generated_at_s": 50, "signer": "k2"}],
+        "§3.2: no Declaration is sealed at or before generated_at, so the first "
+        "Declaration sealed after it — the domain's own seq-0 Declaration — "
+        "is what a Page cut before first contact resolves to."),
+    page_case(
+        "generated_at equal to a sealing instant",
+        PAGE_DECLS,
+        [{"page": 0, "generated_at_s": 200, "signer": "k2"},
+         {"page": 1, "generated_at_s": 200, "signer": "k1"},
+         {"page": 2, "generated_at_s": 200, "signer": "k3"}],
+        "§3.2: \"not later than\" is inclusive, so a Page whose generated_at "
+        "equals the rotation's sealed_at is current under the rotation; the "
+        "retired key is under neither resolution, and the next Declaration "
+        "after 200 is the second rotation, whose key k3 therefore verifies."),
+]
+
+write_json(WIST2V / "page-keyset.json", {
+    "note": ("WIST-2 §3.2 Key Set resolution for a sealed Page, over key_ids "
+             "alone: `declarations` carry seq, sealing instant and keys, every "
+             "one applicable; each Page carries generated_at and signer. Each "
+             "`expected` row gives the Key Set current at generated_at, the "
+             "first Declaration's after it, and which of the two the Page "
+             "verifies under (`current`, `next`, or null for WIST2-E04)."),
+    "cases": page_cases,
+})
+print("wist2 page-keyset vector written")
+
 # ------------------------------------------------------------ WIST-3: log anchor
 anchor = {
     "wist_version": "1.0.0",
