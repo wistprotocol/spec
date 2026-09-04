@@ -847,7 +847,10 @@ keyed by (Publisher domain, Normalized URL). Applying Entries in Log order:
 a `new` or `update` Delta replaces the record's content and becomes the
 record's **anchor Delta** (§6.1); an `attest` Delta updates the record's
 freshness only and leaves the anchor where it was; a `delete` removes the
-record. A Delta whose `prev` is not the chain tip the state carries for
+record's content and moves the chain tip like any other Delta — the key
+keeps a tip, the `delete` itself, because a chain never restarts (WIST-1
+§3.5) and the URL's next Delta names it as `prev`. A Delta whose `prev`
+is not the chain tip the state carries for
 its (Publisher domain, Normalized URL) — a fork of an already-materialized
 chain (WIST-1 §3.5), or a `prev` that no lower Entry sealed — is ignored
 and moves no tip; a chain's first Delta is the one that omits `prev` while
@@ -1095,7 +1098,16 @@ which is what keeps the key unambiguous. A
 `record` tuple carries the chain tip — the newest Delta of the chain,
 which the content tuple does not name (its `delta_id` is the anchor) —
 because a resuming Consumer must reject a fork of the live chain
-exactly as a replaying one would (WIST-1 §3.5). `state_digest` is the §7
+exactly as a replaying one would (WIST-1 §3.5). One `record` tuple
+exists per (Publisher domain, Normalized URL) the state carries a tip
+for, a deleted URL included: a `delete` removes the content tuple and
+leaves the tip, which is the `delete` itself, so the `record` tuples'
+keys are a superset of the content tuples' and not the same set. A
+resuming Consumer therefore holds the tip the URL's next Delta will name
+and applies that Delta exactly as a replaying one does; a state that
+omitted the tuple would have it ignore that Delta as a fork of nothing
+while full replay applied it, and the two would never agree again on
+that URL. `state_digest` is the §7
 construction verbatim — `sha256:` over the concatenation of the sorted
 JCS bytes of every tuple — and every field above is Log-derived, so the
 digest is computable after any withdrawal, for the §7 reasons. A

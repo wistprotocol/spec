@@ -1167,9 +1167,40 @@ def counted_url_digest(domain: str, url: str) -> str:
     return sha256_hex(rfc8785.dumps(domain) + rfc8785.dumps(url))[:32]
 
 
+# A deleted URL keeps its chain tip (WIST-3 §7): the `delete` is the tip the
+# URL's next Delta names as prev, so the state carries a `record` tuple for it
+# although no content tuple exists — the tuple's keys are a superset of the
+# content tuples' keys.
+DELETED_URL = "https://example.com/blog/retired"
+retired_new = {
+    "wist_version": "1.0.0",
+    "url": DELETED_URL,
+    "change_type": "new",
+    "observed_at": "2026-08-01T09:00:00Z",
+    "payload": {"commitment": "hmac-sha256:" + hmac.new(
+                    hashlib.sha256(b"wist-test-salt|" + DELETED_URL.encode()).digest()[:16],
+                    rfc8785.dumps({"extract": "Retired.", "links": {"total": 0, "urls": []}}),
+                    hashlib.sha256).hexdigest(),
+                "alg": "HMAC-SHA256",
+                "bytes": len(rfc8785.dumps({"extract": "Retired.", "links": {"total": 0, "urls": []}}))},
+    "meta": {"lang": "en"},
+}
+retired_new_id = "sha256:" + sha256_hex(rfc8785.dumps(retired_new))
+retired_delete = {
+    "wist_version": "1.0.0",
+    "url": DELETED_URL,
+    "change_type": "delete",
+    "observed_at": "2026-08-02T10:00:00Z",
+    "prev": retired_new_id,
+}
+retired_delete_id = "sha256:" + sha256_hex(rfc8785.dumps(retired_delete))
+assert all(r["url"] != DELETED_URL for r in snapshot_records), \
+    "a deleted URL has no content tuple"
+
 state_entries = [
     ["aggregator_key", "test-agg-k1", b64u(pub_raw), 0, None],
     ["record", "example.com", DELTA_URL, delta_id],
+    ["record", "example.com", DELETED_URL, retired_delete_id],
     ["record", "reduced.example.org", REDUCED_URL, reduced_delta_id],
     # C = 1 for example.com: the audit-record example seals a `consistent`
     # verdict for the vector Delta's URL, so the counted-URL digest set has

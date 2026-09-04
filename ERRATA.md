@@ -1550,3 +1550,37 @@ the domain, the extension rule and the void are unchanged.
 suffix, the Auditor's own host, a shared two-label public suffix, and
 an Auditor under the Publisher's suffix — and its twin proves the check
 reads the Publisher's suffix.
+
+## 2026-09-04 — WIST-3 §7: a deleted URL keeps its chain tip in the state artifact (revision, not errata)
+
+Adds to §7's materialized-state paragraph that a `delete` removes the
+record's content and moves the chain tip like any other Delta, and to
+the state-artifact prose that one `record` tuple exists per (Publisher
+domain, Normalized URL) the state carries a tip for, a deleted URL
+included, so the `record` tuples' keys are a superset of the content
+tuples' keys. `examples/snapshot-state.json` gains the tuple for a
+deleted URL, and `examples/snapshot-manifest.json` its `state_digest`.
+
+**What it states.** §7 said a `delete` "removes the record", and the
+`record` tuple — the only carrier of a chain tip in the artifact — was
+read from the records, so a state built that way held no tip for a
+deleted URL. WIST-1 §3.5 says the chain for a URL never restarts: the
+Delta that recreates a page names the `delete` as `prev`. A Consumer
+resuming from a Snapshot held no tip for that key and, by §7's own tip
+rule, ignored that Delta as a fork of nothing; a Consumer replaying from
+genesis applied it. Two conforming Consumers diverged on that URL from
+then on, and the artifact stopped being the state a replay derives —
+the property §7 makes it an assertion anyone can falsify. The tip now
+survives the delete in both places: a `delete` is a tip like any Delta,
+and the state carries it.
+
+**Why it is a revision.** It fails the first condition. A state
+artifact built from the content tuples conformed and no longer does —
+it omits a tuple the digest now covers — and a resuming Consumer that
+treated a missing key as "no chain" conformed and no longer does. It is
+scoped to the tip: the content tuples, the tier layout and
+`content_digest` are unchanged, and no Delta means anything new.
+
+**Status.** Exercised. `examples/snapshot-state.json` carries a
+`record` tuple for a URL that has no content tuple, and the manifest's
+`state_digest` covers it; `tools/validate_examples.py` recomputes both.
