@@ -2020,6 +2020,59 @@ write_json(WIST4 / "roster.json", spaced_labels({
 }))
 print("wist4 roster vector: %d cases" % len(roster_cases))
 
+# ------------------------------------- WIST-4 §4: the Block's selection domain
+# The VRF test runs over the Deltas of a Block that WIST-3 §7's one-URL,
+# one-Publisher rule does not exclude at the Block's height: a parent's Delta
+# for a host whose own seq-0 Declaration is sealed at or below the Block is
+# outside every Auditor's draw. Abstract ids; the rule reads heights and hosts.
+PARENT, SUB = "example.com", "blog.example.com"
+
+
+def domain_entry(id_, publisher, url_host):
+    return {"delta_id": id_, "publisher": publisher, "url_host": url_host}
+
+
+def selection_domain_excluded(block_height, declarations, entries):
+    declared = {d["domain"]: d["seq0_height"] for d in declarations}
+    return [i for i, e in enumerate(entries)
+            if e["url_host"] != e["publisher"]
+            and e["url_host"] in declared and declared[e["url_host"]] <= block_height]
+
+
+selection_domain_scenarios = [
+    ("own-host-always-selectable", 9, [{"domain": SUB, "seq0_height": 5}],
+     [domain_entry("d1", PARENT, PARENT)]),
+    ("parent-delta-before-the-declaration", 4, [{"domain": SUB, "seq0_height": 5}],
+     [domain_entry("d1", PARENT, SUB)]),
+    ("parent-delta-at-the-declaration-height", 5, [{"domain": SUB, "seq0_height": 5}],
+     [domain_entry("d1", PARENT, SUB)]),
+    ("parent-delta-after-the-declaration", 9, [{"domain": SUB, "seq0_height": 5}],
+     [domain_entry("d1", PARENT, SUB)]),
+    ("subdomain-own-delta-selectable", 9, [{"domain": SUB, "seq0_height": 5}],
+     [domain_entry("d1", SUB, SUB)]),
+    ("unrelated-declaration-excludes-nothing", 9,
+     [{"domain": "shop.example.com", "seq0_height": 1}],
+     [domain_entry("d1", PARENT, SUB)]),
+    ("mixed-block", 9, [{"domain": SUB, "seq0_height": 5}],
+     [domain_entry("d1", PARENT, PARENT), domain_entry("d2", PARENT, SUB),
+      domain_entry("d3", SUB, SUB), domain_entry("d4", PARENT, "shop.example.com")]),
+]
+selection_domain_cases = [
+    {"label": label, "block_height": height, "declarations": declarations,
+     "entries": entries,
+     "excluded_indices": selection_domain_excluded(height, declarations, entries)}
+    for label, height, declarations, entries in selection_domain_scenarios
+]
+assert [c["excluded_indices"] for c in selection_domain_cases] == \
+    [[], [], [0], [0], [], [], [1]], "selection domain drifted"
+write_json(WIST4 / "selection-domain.json", spaced_labels({
+    "note": ("WIST-4 §4 selection domain: per case a Block's height, the seq-0 "
+             "Declaration heights of self-declared hosts, the Block's Deltas as "
+             "(publisher, url_host), and the indices outside every Auditor's draw."),
+    "cases": selection_domain_cases,
+}))
+print("wist4 selection-domain vector: %d cases" % len(selection_domain_cases))
+
 
 def criterion_times(findings, count, span_days, min_severity):
     qualifying = [f["sealed_at_s"] for f in findings if f["severity"] >= min_severity]
