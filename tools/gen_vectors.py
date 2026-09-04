@@ -2369,11 +2369,12 @@ def roster_replay(log_id, entries):
             retired.add(e["key_id"])
             if e["evidence"]:
                 barred.add(e["auditor_id"])
-        for i, e in at_t:
-            if e["action"] != "auditor_admit":
-                continue
+        admits = [(i, e) for i, e in at_t if e["action"] == "auditor_admit"]
+        subjects = [e["auditor_id"] for _, e in admits]
+        for i, e in admits:
             if (e["key_id"] in retired or e["auditor_id"] in barred
-                    or e["auditor_id"] in key_of or not independent(e["auditor_id"], log_id)):
+                    or e["auditor_id"] in key_of or subjects.count(e["auditor_id"]) > 1
+                    or not independent(e["auditor_id"], log_id)):
                 rejected.append(i)
                 continue
             key_of[e["auditor_id"]] = e["key_id"]
@@ -2431,6 +2432,18 @@ roster_scenarios = [
       roster_entry(3600, "auditor_remove", AUD_R, "k9"),
       roster_entry(7200, "auditor_admit", AUD_R, "k2")],
      [(AUD_R, 3600), (AUD_R, 7200)]),
+    ("two-admits-for-one-subject-in-one-block-both-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(0, "auditor_admit", AUD_R, "k2"),
+      roster_entry(3600, "auditor_admit", AUD_R, "k3")],
+     [(AUD_R, 0), (AUD_R, 3600)]),
+    ("rotation-beside-a-second-admit-in-one-block",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1"),
+      roster_entry(3600, "auditor_admit", AUD_R, "k2"),
+      roster_entry(3600, "auditor_admit", AUD_R, "k3"),
+      roster_entry(7200, "auditor_admit", AUD_R, "k4")],
+     [(AUD_R, 3599), (AUD_R, 3600), (AUD_R, 7200)]),
 ]
 roster_cases = [
     {"label": label, "log_id": ROSTER_LOG_ID, "entries": entries,
@@ -2442,7 +2455,7 @@ roster_cases = [
     for label, entries, queries in roster_scenarios
 ]
 assert [c["rejected_indices"] for c in roster_cases] == \
-    [[], [1], [2], [2], [], [], [0], [1, 2]], "roster rejections drifted"
+    [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2, 3]], "roster rejections drifted"
 write_json(WIST4 / "roster.json", spaced_labels({
     "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
              "acts in Log order, the indices a replayer rejects (WIST4-E07), and "

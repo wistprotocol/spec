@@ -1658,3 +1658,30 @@ case — `seq` 2's key verifies under `next` for a Page cut before the
 Block and under `current` for one cut at its instant, `seq` 1's under
 neither — and its twin proves the check reads the Block's Key Set
 rather than its lowest `seq`.
+
+## 2026-09-04 — WIST-4 §3, §10: two admits for one subject in one Block are both rejected
+
+Adds to §3 that two `auditor_admit` Entries naming one `subject` in one
+Block are both rejected (`WIST4-E07`), and the case to the §10 row.
+Adds *two admits for one subject in one block both rejected* and
+*rotation beside a second admit in one block* to
+`vectors/wist4/roster.json`.
+
+**What it states.** §3 holds one admitted key per `auditor_id` at any
+height, and WIST-3 §3.3 reads Registry Updates at Block granularity,
+their position within a Block carrying no meaning. Two admits for one
+`subject` in one Block therefore had no first: accepting one and
+rejecting the other read a position §3.3 says means nothing, and two
+replayers ordering the Block's Entries differently would derive two
+rosters from one Log. Rejecting both is the only reading that consults
+no position, and it costs nothing a conforming Aggregator would seal —
+an Auditor admitted twice at once was never a valid state.
+
+**Why it qualifies.** Both conditions hold. No text determined which
+admit stood, so no implementation conformed by picking one; the rule
+follows from the one-key invariant and §3.3's position rule together,
+and a rotation — remove then admit at one instant — is unchanged.
+
+**Status.** Exercised. `vectors:wist4-roster` recomputes both cases —
+two admits alone, and a rotation whose admit is joined by a second —
+and its twin proves the check accepts a lone admit.
