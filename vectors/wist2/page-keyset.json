@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 \u00a73.2 Key Set resolution for a sealed Page, over key_ids alone: `declarations` carry seq, sealing instant and keys, every one applicable; each Page carries generated_at and signer. Each `expected` row gives the Key Set current at generated_at, the first Declaration's after it, and which of the two the Page verifies under (`current`, `next`, or null for WIST2-E04).",
+  "note": "WIST-2 \u00a73.2 Key Set resolution for a sealed Page, over key_ids alone: `declarations` carry seq, sealing instant and keys, every one applicable; each Page carries generated_at and signer. Each `expected` row gives the Key Set current at generated_at, that of the first Block after it sealing a Declaration (the highest seq's where it seals several), and which of the two the Page verifies under (`current`, `next`, or null for WIST2-E04).",
   "cases": [
     {
       "name": "page cut after its declaration sealed",
@@ -292,6 +292,100 @@
         }
       ],
       "why": "\u00a73.2: \"not later than\" is inclusive, so a Page whose generated_at equals the rotation's sealed_at is current under the rotation; the retired key is under neither resolution, and the next Declaration after 200 is the second rotation, whose key k3 therefore verifies."
+    },
+    {
+      "name": "two rotations sealed in one block",
+      "declarations": [
+        {
+          "label": "genesis",
+          "seq": 0,
+          "sealed_at_s": 100,
+          "keys": [
+            "k1"
+          ]
+        },
+        {
+          "label": "rotation",
+          "seq": 1,
+          "sealed_at_s": 200,
+          "keys": [
+            "k2"
+          ]
+        },
+        {
+          "label": "second rotation",
+          "seq": 2,
+          "sealed_at_s": 200,
+          "keys": [
+            "k3"
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "page": 0,
+          "generated_at_s": 150,
+          "signer": "k3"
+        },
+        {
+          "page": 1,
+          "generated_at_s": 150,
+          "signer": "k2"
+        },
+        {
+          "page": 2,
+          "generated_at_s": 200,
+          "signer": "k3"
+        },
+        {
+          "page": 3,
+          "generated_at_s": 200,
+          "signer": "k2"
+        }
+      ],
+      "expected": [
+        {
+          "page": 0,
+          "current_keys": [
+            "k1"
+          ],
+          "next_keys": [
+            "k3"
+          ],
+          "verifies_under": "next",
+          "verifies": true
+        },
+        {
+          "page": 1,
+          "current_keys": [
+            "k1"
+          ],
+          "next_keys": [
+            "k3"
+          ],
+          "verifies_under": null,
+          "verifies": false
+        },
+        {
+          "page": 2,
+          "current_keys": [
+            "k3"
+          ],
+          "next_keys": [],
+          "verifies_under": "current",
+          "verifies": true
+        },
+        {
+          "page": 3,
+          "current_keys": [
+            "k3"
+          ],
+          "next_keys": [],
+          "verifies_under": null,
+          "verifies": false
+        }
+      ],
+      "why": "\u00a73.2: one Block seals seq 1 and seq 2, so both resolutions read the Block's Key Set \u2014 the highest seq's, as WIST-1 \u00a75.2 resolves it at that height. k3 verifies under next for a Page cut before the Block and under current for one cut at its instant; k2 was the Key Set at no instant and verifies under neither."
     }
   ]
 }
