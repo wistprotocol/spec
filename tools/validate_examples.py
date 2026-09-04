@@ -1843,6 +1843,65 @@ def _dc4_selection_domain_twin():
         "recomputation is blind to whose Delta it is"
 check("negative:wist4-selection-domain", _dc4_selection_domain_twin)
 
+def _parameter_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "parameter-in-force.json").read_text())
+
+def _value_in_force(default, changes, t_s, inclusive=True):
+    """WIST-4 §9: greatest effective_at at or before t_s, Log order breaking
+    an equal pair; the default where nothing is in force."""
+    best = None
+    for i, c in enumerate(changes):
+        live = c["effective_at_s"] <= t_s if inclusive else c["effective_at_s"] < t_s
+        if not live:
+            continue
+        key = (c["effective_at_s"], c["block_number"], c["entry_index"])
+        if best is None or key > best[0]:
+            best = (key, i, c["value"])
+    return (default, None) if best is None else (best[2], best[1])
+
+def _dc4_parameter_in_force():
+    """WIST-4 §9: which amendment is in force at an instant."""
+    v = _parameter_vector()
+    labels = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        order = [(c["block_number"], c["entry_index"]) for c in case["changes"]]
+        assert order == sorted(order), f"{case['label']}: changes not in Log order"
+        for c in case["changes"]:
+            assert c["effective_at_s"] - c["sealed_at_s"] >= 7 * 86400, \
+                f"{case['label']}: an amendment inside the grace period"
+        for q in case["queries"]:
+            value, source = _value_in_force(case["default"], case["changes"], q["t_s"])
+            assert (value, source) == (q["value"], q["from_index"]), \
+                f"{case['label']} at {q['t_s']}: recomputed {(value, source)}, vector says {(q['value'], q['from_index'])}"
+    for needed in ("effective at is inclusive", "later effective at prevails whatever sealed first",
+                   "equal effective at across blocks", "equal effective at in one block"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("in force at every instant T at or after its `effective_at`, the endpoint included",
+                   "the one later in Log order (WIST-3 §3.3: ascending Block height, then Entry index) prevails"):
+        assert marker in prose, f"§9 does not state: {marker!r}"
+check("vectors:wist4-parameter-in-force", _dc4_parameter_in_force)
+
+def _dc4_parameter_in_force_twin():
+    """The check above must notice an exclusive endpoint and a tie broken
+    the other way."""
+    v = _parameter_vector()
+    case = next(c for c in v["cases"] if c["label"] == "effective at is inclusive")
+    at = next(q for q in case["queries"] if q["from_index"] is not None and
+              q["t_s"] == case["changes"][0]["effective_at_s"])
+    assert _value_in_force(case["default"], case["changes"], at["t_s"], inclusive=False)[1] is None, \
+        "the twin's exclusive endpoint still read the amendment as in force"
+    case = next(c for c in v["cases"] if c["label"] == "equal effective at across blocks")
+    reversed_changes = list(reversed(case["changes"]))
+    for c, b in zip(reversed_changes, [x["block_number"] for x in case["changes"]]):
+        c["block_number"] = b
+    tied = next(q for q in case["queries"] if q["from_index"] is not None)
+    assert _value_in_force(case["default"], reversed_changes, tied["t_s"])[0] != tied["value"], \
+        "recomputation is blind to which of an equal pair sealed later"
+check("negative:wist4-parameter-in-force", _dc4_parameter_in_force_twin)
+
 def _dc4_audit_commitments():
     """Every content-derived value in an Audit Record is salted (WIST-4 §5).
 

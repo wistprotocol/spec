@@ -1077,7 +1077,11 @@ tuple exists per amendment rather than per identifier, which is why
 cannot re-derive — it will never see that Entry again — and a single tuple
 per identifier would force the artifact to choose between the value in
 force and the one about to be. Both appear, and a Consumer applies each at
-its own instant. A
+its own instant — `effective_at` inclusive, the greatest `effective_at`
+at or before an instant prevailing (WIST-4 §9). An amendment that another
+amendment with the same `effective_at`, sealed later in Log order,
+supersedes is never in force and is not state: no tuple exists for it,
+which is what keeps the key unambiguous. A
 `record` tuple carries the chain tip — the newest Delta of the chain,
 which the content tuple does not name (its `delta_id` is the anchor) —
 because a resuming Consumer must reject a fork of the live chain
