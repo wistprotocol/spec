@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73, \u00a74 roster derivation: per case a Log prefix of roster acts in Log order, the indices a replayer rejects (WIST4-E07), and the key an auditor_id holds at queried instants. An auditor_remove carries `evidence` exactly as the Registry Update does: present and naming at least one ID when the removal is for cause, absent for an exit or a rotation.",
+  "note": "WIST-4 \u00a73, \u00a74 roster derivation: per case a Log prefix of roster acts in Log order, the indices a replayer rejects (WIST4-E07), and the key an auditor_id holds at queried instants; a removal retires the key_id and the public_key admitted under it, and an admit naming either a retired one or one another admission holds is rejected. public_key is an abstract label for the key octets. An auditor_remove carries `evidence` exactly as the Registry Update does: present and naming at least one ID when the removal is for cause, absent for an exit or a rotation.",
   "cases": [
     {
       "label": "rotation in one block",
@@ -9,7 +9,8 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
@@ -21,7 +22,8 @@
           "sealed_at_s": 3600,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         }
       ],
       "rejected_indices": [],
@@ -56,13 +58,15 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         }
       ],
       "rejected_indices": [
@@ -89,7 +93,8 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
@@ -101,7 +106,8 @@
           "sealed_at_s": 7200,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         }
       ],
       "rejected_indices": [
@@ -123,7 +129,8 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
@@ -138,7 +145,8 @@
           "sealed_at_s": 7200,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         }
       ],
       "rejected_indices": [
@@ -160,7 +168,8 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
@@ -172,7 +181,8 @@
           "sealed_at_s": 7200,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         }
       ],
       "rejected_indices": [],
@@ -197,7 +207,8 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
@@ -228,13 +239,15 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.org",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "checker.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         }
       ],
       "rejected_indices": [
@@ -261,7 +274,8 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
@@ -273,7 +287,8 @@
           "sealed_at_s": 7200,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         }
       ],
       "rejected_indices": [
@@ -301,19 +316,22 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         },
         {
           "sealed_at_s": 3600,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k3"
+          "key_id": "k3",
+          "public_key": "pk-k3"
         }
       ],
       "rejected_indices": [
@@ -334,6 +352,148 @@
       ]
     },
     {
+      "label": "same public key under a fresh key id after exit rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "public_key": "pk-k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2",
+          "public_key": "pk-k1"
+        },
+        {
+          "sealed_at_s": 10800,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k3",
+          "public_key": "pk-k3"
+        }
+      ],
+      "rejected_indices": [
+        2
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": null
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 10800,
+          "key_id": "k3"
+        }
+      ]
+    },
+    {
+      "label": "public key held by another auditor rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "public_key": "pk-k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_admit",
+          "auditor_id": "checker.sample.org",
+          "key_id": "k2",
+          "public_key": "pk-k1"
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "checker.sample.org",
+          "key_id": "k3",
+          "public_key": "pk-k3"
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "checker.sample.org",
+          "sealed_at_s": 3600,
+          "key_id": null
+        },
+        {
+          "auditor_id": "checker.sample.org",
+          "sealed_at_s": 7200,
+          "key_id": "k3"
+        }
+      ]
+    },
+    {
+      "label": "key id held by another auditor rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "public_key": "pk-k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_admit",
+          "auditor_id": "checker.sample.org",
+          "key_id": "k1",
+          "public_key": "pk-other"
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "checker.sample.org",
+          "key_id": "k2",
+          "public_key": "pk-k2"
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "checker.sample.org",
+          "sealed_at_s": 3600,
+          "key_id": null
+        },
+        {
+          "auditor_id": "checker.sample.org",
+          "sealed_at_s": 7200,
+          "key_id": "k2"
+        }
+      ]
+    },
+    {
       "label": "rotation beside a second admit in one block",
       "log_id": "log.example.org",
       "entries": [
@@ -341,7 +501,8 @@
           "sealed_at_s": 0,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k1"
+          "key_id": "k1",
+          "public_key": "pk-k1"
         },
         {
           "sealed_at_s": 3600,
@@ -353,19 +514,22 @@
           "sealed_at_s": 3600,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k2"
+          "key_id": "k2",
+          "public_key": "pk-k2"
         },
         {
           "sealed_at_s": 3600,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k3"
+          "key_id": "k3",
+          "public_key": "pk-k3"
         },
         {
           "sealed_at_s": 7200,
           "action": "auditor_admit",
           "auditor_id": "audit.example.net",
-          "key_id": "k4"
+          "key_id": "k4",
+          "public_key": "pk-k4"
         }
       ],
       "rejected_indices": [

@@ -2345,19 +2345,24 @@ print("wist4 unauditable vector written")
 ROSTER_LOG_ID = "log.example.org"
 
 
-def roster_entry(sealed_at_s, action, auditor_id, key_id, evidence=None):
+def roster_entry(sealed_at_s, action, auditor_id, key_id, evidence=None, public_key=None):
     """evidence, on an auditor_remove, is the Registry Update's own member:
     present and naming at least one ID for a removal for cause, absent for an
-    exit or a rotation (§4, §9.1)."""
+    exit or a rotation (§4, §9.1). public_key is an abstract label for the
+    key octets an admit names; it defaults to one per key_id."""
     e = {"sealed_at_s": sealed_at_s, "action": action,
          "auditor_id": auditor_id, "key_id": key_id}
+    if action == "auditor_admit":
+        e["public_key"] = public_key or "pk-" + key_id
     if evidence:
         e["evidence"] = evidence
     return e
 
 
 def roster_replay(log_id, entries):
-    """Rejected Entry indices under §3/§4, in Log order."""
+    """Rejected Entry indices under §3/§4, in Log order. A removal retires
+    the key_id and the public_key admitted under it; an admit naming either
+    a retired one or one another admission holds is rejected."""
     key_of, retired, barred, rejected = {}, set(), set(), []
     instants = sorted({e["sealed_at_s"] for e in entries})
     for t in instants:
@@ -2365,22 +2370,26 @@ def roster_replay(log_id, entries):
         for i, e in at_t:
             if e["action"] != "auditor_remove":
                 continue
-            if key_of.get(e["auditor_id"]) != e["key_id"]:
+            held = key_of.get(e["auditor_id"])
+            if held is None or held[0] != e["key_id"]:
                 rejected.append(i)
                 continue
             del key_of[e["auditor_id"]]
-            retired.add(e["key_id"])
+            retired.update(held)
             if e.get("evidence"):
                 barred.add(e["auditor_id"])
         admits = [(i, e) for i, e in at_t if e["action"] == "auditor_admit"]
         subjects = [e["auditor_id"] for _, e in admits]
         for i, e in admits:
-            if (e["key_id"] in retired or e["auditor_id"] in barred
+            held_strings = {x for held in key_of.values() for x in held}
+            if (e["key_id"] in retired or e["public_key"] in retired
+                    or e["key_id"] in held_strings or e["public_key"] in held_strings
+                    or e["auditor_id"] in barred
                     or e["auditor_id"] in key_of or subjects.count(e["auditor_id"]) > 1
                     or not independent(e["auditor_id"], log_id)):
                 rejected.append(i)
                 continue
-            key_of[e["auditor_id"]] = e["key_id"]
+            key_of[e["auditor_id"]] = (e["key_id"], e["public_key"])
     return sorted(rejected)
 
 
@@ -2396,7 +2405,7 @@ def roster_admitted_at(log_id, entries, auditor_id, t):
     return key
 
 
-AUD_R = "audit.example.net"
+AUD_R, AUD_R2 = "audit.example.net", "checker.sample.org"
 roster_scenarios = [
     ("rotation-in-one-block",
      [roster_entry(0, "auditor_admit", AUD_R, "k1"),
@@ -2440,6 +2449,22 @@ roster_scenarios = [
       roster_entry(0, "auditor_admit", AUD_R, "k2"),
       roster_entry(3600, "auditor_admit", AUD_R, "k3")],
      [(AUD_R, 0), (AUD_R, 3600)]),
+    ("same-public-key-under-a-fresh-key-id-after-exit-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_remove", AUD_R, "k1"),
+      roster_entry(7200, "auditor_admit", AUD_R, "k2", public_key="pk-k1"),
+      roster_entry(10800, "auditor_admit", AUD_R, "k3")],
+     [(AUD_R, 7200), (AUD_R, 10800)]),
+    ("public-key-held-by-another-auditor-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_admit", AUD_R2, "k2", public_key="pk-k1"),
+      roster_entry(7200, "auditor_admit", AUD_R2, "k3")],
+     [(AUD_R, 3600), (AUD_R2, 3600), (AUD_R2, 7200)]),
+    ("key-id-held-by-another-auditor-rejected",
+     [roster_entry(0, "auditor_admit", AUD_R, "k1"),
+      roster_entry(3600, "auditor_admit", AUD_R2, "k1", public_key="pk-other"),
+      roster_entry(7200, "auditor_admit", AUD_R2, "k2")],
+     [(AUD_R, 3600), (AUD_R2, 3600), (AUD_R2, 7200)]),
     ("rotation-beside-a-second-admit-in-one-block",
      [roster_entry(0, "auditor_admit", AUD_R, "k1"),
       roster_entry(3600, "auditor_remove", AUD_R, "k1"),
@@ -2458,11 +2483,14 @@ roster_cases = [
     for label, entries, queries in roster_scenarios
 ]
 assert [c["rejected_indices"] for c in roster_cases] == \
-    [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2, 3]], "roster rejections drifted"
+    [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2], [1], [1], [2, 3]], "roster rejections drifted"
 write_json(WIST4 / "roster.json", spaced_labels({
     "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
              "acts in Log order, the indices a replayer rejects (WIST4-E07), and "
-             "the key an auditor_id holds at queried instants. An auditor_remove "
+             "the key an auditor_id holds at queried instants; a removal retires "
+             "the key_id and the public_key admitted under it, and an admit naming "
+             "either a retired one or one another admission holds is rejected. "
+             "public_key is an abstract label for the key octets. An auditor_remove "
              "carries `evidence` exactly as the Registry Update does: present and "
              "naming at least one ID when the removal is for cause, absent for an "
              "exit or a rotation."),

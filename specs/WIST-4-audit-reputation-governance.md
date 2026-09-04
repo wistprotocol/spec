@@ -154,7 +154,8 @@ Record signatures **and** it is the VRF public key against which its
 share the [RFC 8032] key format, so no second key is admitted, and there is
 no way for an Auditor to sign under one identity while drawing its audit
 assignments under another. **An `auditor_id` holds at most one admitted
-key at any height**, and which key that is at a given Block is read from
+key at any height**, a key — its `key_id` and its `public_key` alike —
+is held by at most one `auditor_id` (§4), and which key that is at a given Block is read from
 that Block's `sealed_at`: a key is held from the `sealed_at` of the Block
 sealing its `auditor_admit` to the `sealed_at` of the Block sealing its
 `auditor_remove`, the latter instant excluded, and an `auditor_admit`
@@ -457,11 +458,22 @@ sealed `auditor_remove` does not age out — removal is the Log-native fact
 under the duty, never a way around removal.
 
 **What removal binds, and how an Auditor rotates.** An `auditor_remove`
-retires its `key_id` permanently, exactly as an `aggregator_key_remove`
-does (WIST-3 §3.4): no later `auditor_admit` may name that `key_id`, and a
+retires its `key_id`, and the `public_key` admitted under it,
+permanently, exactly as an `aggregator_key_remove` does (WIST-3 §3.4):
+no later `auditor_admit` may name either, under any `subject`, and a
 replayer MUST reject one (`WIST4-E07`, as every rejection in this
 paragraph); an `auditor_remove` naming a key its `subject` does not hold
-retires nothing and is rejected the same way. Whether it also bars the *`auditor_id`* is
+retires nothing and is rejected the same way. Nor may an `auditor_admit`
+name a `key_id` or a `public_key` that another admission holds at its
+Block — one key, one Auditor, as WIST-1 §5.2 holds for a Publisher's key
+sets — and a replayer MUST reject one. §3 binds a Record to the
+admission that admitted the key its `sig.key_id` names, and two live
+admissions sharing it would leave that binding to the Auditor's own
+choice; two `auditor_id`s sharing a `public_key` are one party that §3's
+independence test would read as two; and a removed key re-admitted
+under a fresh label is the same thirty-two octets returning through a
+door the retirement was meant to close. Every test reads strings the
+Log carries, so every party derives the same roster. Whether it also bars the *`auditor_id`* is
 decided by the removal's own `evidence`. A removal carrying evidence —
 an `evidence` member naming at least one ID: failed Blocks, void
 Records, systematic divergence — is for cause, and an
@@ -2299,7 +2311,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
 | WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id`, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; or an `auditor_remove` naming a key its `subject` does not hold. Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
+| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; or an `auditor_remove` naming a key its `subject` does not hold. Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
 
 ## 11. Security Considerations
 
