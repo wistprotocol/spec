@@ -295,6 +295,104 @@
           "key_id": "k1"
         }
       ]
+    },
+    {
+      "label": "two admits for one subject in one block both rejected",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k3"
+        }
+      ],
+      "rejected_indices": [
+        0,
+        1
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 0,
+          "key_id": null
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": "k3"
+        }
+      ]
+    },
+    {
+      "label": "rotation beside a second admit in one block",
+      "log_id": "log.example.org",
+      "entries": [
+        {
+          "sealed_at_s": 0,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_remove",
+          "auditor_id": "audit.example.net",
+          "key_id": "k1",
+          "evidence": false
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k2"
+        },
+        {
+          "sealed_at_s": 3600,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k3"
+        },
+        {
+          "sealed_at_s": 7200,
+          "action": "auditor_admit",
+          "auditor_id": "audit.example.net",
+          "key_id": "k4"
+        }
+      ],
+      "rejected_indices": [
+        2,
+        3
+      ],
+      "admitted_key_at": [
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3599,
+          "key_id": "k1"
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 3600,
+          "key_id": null
+        },
+        {
+          "auditor_id": "audit.example.net",
+          "sealed_at_s": 7200,
+          "key_id": "k4"
+        }
+      ]
     }
   ]
 }

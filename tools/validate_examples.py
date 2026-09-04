@@ -1745,10 +1745,12 @@ def _roster_replay(log_id, entries):
             retired.add(e["key_id"])
             if e["evidence"]:
                 barred.add(e["auditor_id"])
-        for i, e in [x for x in acts if x[1]["action"] == "auditor_admit"]:
+        admits = [x for x in acts if x[1]["action"] == "auditor_admit"]
+        for i, e in admits:
             held = holding.get(e["auditor_id"], (None, None))[0]
+            twice = sum(1 for _, o in admits if o["auditor_id"] == e["auditor_id"]) > 1
             if (e["key_id"] in retired or e["auditor_id"] in barred or held is not None
-                    or not _roster_independent(e["auditor_id"], log_id)):
+                    or twice or not _roster_independent(e["auditor_id"], log_id)):
                 rejected.append(i)
                 continue
             holding[e["auditor_id"]] = (e["key_id"], t)
@@ -1782,7 +1784,8 @@ def _dc4_roster():
     for needed in ("rotation in one block", "overlapping admit rejected",
                    "retired key id rejected", "barred subject rejected",
                    "exit then re entry allowed", "removal ends admission at its instant",
-                   "dependent on the log id rejected", "remove of a key not held rejected"):
+                   "dependent on the log id rejected", "remove of a key not held rejected",
+                   "two admits for one subject in one block both rejected"):
         assert needed in labels, f"vector lacks the {needed} case"
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
@@ -1802,6 +1805,9 @@ def _dc4_roster_twin():
     assert _roster_admitted_at(case["log_id"], case["entries"], remove["auditor_id"],
                                remove["sealed_at_s"] - 1) == remove["key_id"], \
         "recomputation is blind to the instant before a removal"
+    case = next(c for c in v["cases"] if c["label"] == "two admits for one subject in one block both rejected")
+    assert _roster_replay(case["log_id"], case["entries"][:1]) == [], \
+        "recomputation rejects a lone admit as if a second stood beside it"
 check("negative:wist4-roster", _dc4_roster_twin)
 
 def _selection_domain_vector():

@@ -159,7 +159,12 @@ that Block's `sealed_at`: a key is held from the `sealed_at` of the Block
 sealing its `auditor_admit` to the `sealed_at` of the Block sealing its
 `auditor_remove`, the latter instant excluded, and an `auditor_admit`
 whose `subject` holds a key not removed at or before the admit's own
-Block is rejected by every replaying party (§4, `WIST4-E07`). Every duty
+Block is rejected by every replaying party (§4, `WIST4-E07`). Two
+`auditor_admit` Entries naming one `subject` in one Block are both
+rejected the same way: either would have the `auditor_id` hold two keys
+at that `sealed_at`, and a Registry Update's position within a Block
+carries no meaning (WIST-3 §3.3), so there is no first of the two to
+prefer. Every duty
 and proof of a Block reads the key held at that Block's `sealed_at`; a
 Record's signature reads the key held at the Record's own Block. Across
 a rotation the two differ — a Record sealed after it for a Block before
@@ -2287,7 +2292,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
 | WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id`, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, or an `auditor_id` failing §3's independence test against `log_id`; or an `auditor_remove` naming a key its `subject` does not hold. Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
+| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id`, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; or an `auditor_remove` naming a key its `subject` does not hold. Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
 
 ## 11. Security Considerations
 
