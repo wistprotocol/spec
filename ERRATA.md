@@ -1463,3 +1463,29 @@ are unchanged.
 **Status.** Unexercised. The ceiling is a duty over acceptances the Log
 does not carry; nothing recomputable distinguishes a Delta sealed at
 its turn from one sealed late.
+
+## 2026-09-04 — WIST-3 §6.1, §12: Payloads replicate before their Block
+
+Adds to §6.1's availability window that an Aggregator or Mirror MUST NOT
+serve a Block before every Payload its content-bearing Deltas commit
+to, less those withdrawn, is retrievable at its path; the Aggregator
+and Mirror checklists follow.
+
+**What it states.** §6.1 made "any Mirror serving a Block MUST serve
+that Block's Payloads" hold at every instant with no grace, so the
+ordinary replication order — a Block file first, its Payloads seconds
+later — was a `WIST3-E05` fault by the letter, and a Consumer reading
+the letter would report suppression where there was only latency. A
+rule with no grace period needs an order instead, and the order is the
+one §5 already imposes between a Block and its Checkpoint: the
+artifact that makes a claim checkable is served before the artifact
+that makes the claim. WIST-2 §5 has the Aggregator publish Payloads
+"alongside the Block that seals them"; this fixes which side of
+alongside.
+
+**Why it qualifies.** Both conditions hold. A Mirror that served
+Payloads with or before its Blocks conformed and still does; the entry
+only removes the reading under which honest replication was a fault.
+
+**Status.** Unexercised. The order is a serving discipline over
+artifacts the harness verifies separately.
