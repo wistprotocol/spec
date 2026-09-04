@@ -1514,6 +1514,75 @@ def _dc4_audit_record_proof():
     assert rec["vrf_proof"] == v["vrf_proof_hex"], "record proof differs from vector proof"
 check("vectors:wist4-audit-record-proof", _dc4_audit_record_proof)
 
+def _extension_proof_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "extension-proof.json").read_text())
+
+def _proof_standing(v, case):
+    """WIST-4 §3/§4: the Block a Record's proof gives it standing for.
+
+    A proof over the audited Block gives standing through the draw it
+    determines; a proof over B₁, the Block that sealed the triggering
+    Record, gives standing through the extension rule; any other proof
+    gives none (WIST4-E01).
+    """
+    pk = b64u_decode(v["auditor_public_key"])
+    pi = bytes.fromhex(case["vrf_proof_hex"])
+    audited = bytes.fromhex(v["audited_block"]["alpha_hex"])
+    trigger = bytes.fromhex(v["trigger_block"]["alpha_hex"])
+    if ecvrf.verify(pk, audited, pi):
+        beta = ecvrf.proof_to_hash(pi)
+        D = int.from_bytes(
+            hashlib.sha256(beta + v["audited_delta"].encode()).digest()[:8], "big")
+        p_1e7 = min(max(200_000 + 3 * (1_000_000 - v["reputation_u"]), 200_000), 5_000_000)
+        return ("audited", "selection" if D * 10**7 < p_1e7 * 2**64 else "WIST4-E01")
+    if ecvrf.verify(pk, trigger, pi):
+        return ("trigger", "extension" if case["named_by_extension"] else "WIST4-E01")
+    return (None, "WIST4-E01")
+
+def _dc4_extension_proof():
+    """WIST-4 §4: an extension Record's vrf_proof is over B₁, not the audited Block."""
+    v = _extension_proof_vector()
+    block = json.loads((ROOT / "examples" / "block.json").read_text())
+    empty = json.loads((ROOT / "vectors" / "wist3" / "empty-block.json").read_text())
+    audited_hash = "sha256:" + hashlib.sha256(rfc8785.dumps(block["header"])).hexdigest()
+    assert v["audited_block"]["block_hash"] == audited_hash, "audited Block is not the example Block"
+    assert v["trigger_block"]["block_hash"] == empty["block_hash"], "B₁ is not the empty Block"
+    for key in ("audited_block", "trigger_block"):
+        assert v[key]["alpha_hex"] == v[key]["block_hash"].split(":")[1], f"{key}: alpha"
+    assert empty["block"]["header"]["block_number"] > block["header"]["block_number"], \
+        "B₁ must be sealed after the audited Block"
+    assert any("sha256:" + hashlib.sha256(rfc8785.dumps(e["body"]["delta"])).hexdigest()
+               == v["audited_delta"] for e in block["entries"]), \
+        "audited_delta is not an Entry of the audited Block"
+    labels = set()
+    standings = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        got = _proof_standing(v, case)
+        assert got == (case["proof_block"], case["standing"]), \
+            f"{case['label']}: recomputed {got}, vector says {(case['proof_block'], case['standing'])}"
+        standings.add(case["standing"])
+    for needed in ("extension proof over trigger block", "audited block proof unselected",
+                   "proof over neither block", "trigger proof but not summoned"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    assert standings == {"extension", "WIST4-E01"}, standings
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "in whose selection set the Auditor holds `audited_delta`" in prose, \
+        "§5 does not state which Block an extension Record's proof is over"
+check("vectors:wist4-extension-proof", _dc4_extension_proof)
+
+def _dc4_extension_proof_twin():
+    """The check above must notice a proof over the wrong Block."""
+    v = _extension_proof_vector()
+    ext = next(c for c in v["cases"] if c["label"] == "extension proof over trigger block")
+    aud = next(c for c in v["cases"] if c["label"] == "audited block proof unselected")
+    assert _proof_standing(v, dict(ext, vrf_proof_hex=aud["vrf_proof_hex"]))[1] == "WIST4-E01", \
+        "recomputation is blind to an extension Record carrying the audited Block's proof"
+    assert _proof_standing(v, dict(ext, named_by_extension=False))[1] == "WIST4-E01", \
+        "recomputation is blind to a proof over B₁ from an Auditor B₁ did not summon"
+check("negative:wist4-extension-proof", _dc4_extension_proof_twin)
+
 def _dc4_audit_commitments():
     """Every content-derived value in an Audit Record is salted (WIST-4 §5).
 
@@ -1818,6 +1887,10 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/sampling.json", "beta_hex"): "the VRF output",
         ("vectors/wist4/sampling.json", "delta_id"): "a Delta ID",
     ("vectors/wist4/sampling.json", "auditor_public_key"): "an Ed25519 public key",
+    ("vectors/wist4/extension-proof.json", "block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist4/extension-proof.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
+    ("vectors/wist4/extension-proof.json", "audited_delta"): "a Delta ID",
+    ("vectors/wist4/extension-proof.json", "auditor_public_key"): "an Ed25519 public key",
     ("vectors/multilog/dedup.json", "block_hash"): "SHA-256 of a Block header",
     ("vectors/multilog/dedup.json", "prev_block_hash"): "SHA-256 of a Block header",
     ("vectors/multilog/dedup.json", "merkle_root"): "root over Entries, which carry commitments only",
