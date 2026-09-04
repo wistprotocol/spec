@@ -1845,13 +1845,15 @@ def most_recent_reset(resets, n):
 
 
 def in_scope(height, reset, n):
-    return height <= n and (reset is None or height > reset)
+    """§6.3: a Delta sealed at R is the fresh identity's own — Declarations
+    apply before Deltas within a Block — so the reset bound is inclusive."""
+    return height <= n and (reset is None or height >= reset)
 
 
 def record_in_scope(record_height, audited_height, reset, n):
     """§6.1: a Record counts by its own height against N and by its
-    audited Delta's height against the reset."""
-    return record_height <= n and (reset is None or audited_height > reset)
+    audited Delta's height against the reset, at or above R."""
+    return record_height <= n and (reset is None or audited_height >= reset)
 
 
 def derive_inputs(case):
@@ -1921,12 +1923,23 @@ derivation_scenarios = [
          {"height": 60, "audited_height": 50, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
          {"height": 60, "audited_height": 57, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:bb", "severity": 1},
          {"height": 54, "audited_height": 50, "sealed_at_s": 119 * DAY_S, "delta_id": "sha256:cc", "severity": 2}]},
+    {"label": "delta-sealed-at-the-reset-height",
+     "resets": [55], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
+     "accepted": [{"height": 54, "sealed_at_s": 118 * DAY_S},
+                  {"height": 55, "sealed_at_s": 120 * DAY_S},
+                  {"height": 70, "sealed_at_s": 125 * DAY_S}],
+     "consistent_audits": [
+         {"height": 58, "audited_height": 54, "url": "https://site.example/a", "change": "new"},
+         {"height": 58, "audited_height": 55, "url": "https://site.example/b", "change": "new"}],
+     "confirmed": [
+         {"height": 60, "audited_height": 55, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
+         {"height": 60, "audited_height": 54, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:bb", "severity": 2}]},
 ]
 for case in derivation_scenarios:
     case["expected"] = derive_inputs(case)
 
 write_json(WIST4 / "derivation.json", spaced_labels({
-    "note": "WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta. penalty_inputs rows are [severity, t_days].",
+    "note": "WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta; a Delta sealed at the reset height R is the fresh identity's. penalty_inputs rows are [severity, t_days].",
     "c_cap": C_CAP,
     "cases": derivation_scenarios,
 }))

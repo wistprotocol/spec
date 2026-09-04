@@ -1394,8 +1394,8 @@ bound, and everything from height 0 counts.
   (exactly the Provisional cap) at `A` = 0 to 1 000 000 at `A` ≥ 730.
 - **`C`** = the number of distinct Normalized URLs (WIST-1 §3.2) of this
   domain that have at least one `consistent` Audit Record — sealed at a
-  height ≤ N, for an `audited_delta` sealed above the domain's most
-  recent identity reset — whose
+  height ≤ N, for an `audited_delta` sealed at or above the domain's
+  most recent identity reset (§6.3) — whose
   `reference_delta` (§5) is a content-bearing Delta (`new` or `update`)
   on that URL, capped at `C_cap` = 500. A Record whose reference is an
   `attest` or a `delete` never contributes, whatever Delta it audited.
@@ -1404,7 +1404,8 @@ bound, and everything from height 0 counts.
 - **Confirmed Inconsistencies and Confirmed Link Inconsistencies.** Only
   those whose confirming Audit Record is sealed at a height ≤ N and whose
   Delta — the `audited_delta` its confirming Records share (§5) — is
-  sealed above the domain's most recent identity reset count. For each such Confirmed
+  sealed at or above the domain's most recent identity reset (§6.3)
+  count. For each such Confirmed
   Inconsistency or Confirmed Link Inconsistency *i*: `s_i` is computed
   from its confirming Records (§7) by the §7 severity table — {1 = minor
   divergence, 2 = misleading extract, 3 = fabricated content} — for a
@@ -1514,19 +1515,19 @@ key in the previous Declaration's `recovery_keys` — is an **identity
 reset** at the height its Declaration Entry is sealed. Call that height
 `R`; the domain re-enters Provisional, and from `R` onward:
 
-- **`A`** is measured from the `sealed_at` of the first Block above `R`
-  sealing an accepted Delta from the domain. Until such a Block exists,
-  `A` = 0.
+- **`A`** is measured from the `sealed_at` of the first Block at or
+  above `R` sealing an accepted Delta from the domain. Until such a
+  Block exists, `A` = 0.
 - **`C`** counts only distinct URLs whose qualifying `consistent` Audit
-  Record audits a Delta sealed above `R`. A URL audited before the reset
+  Record audits a Delta sealed at or above `R`. A URL audited before the reset
   does not count again until a Delta the fresh identity sealed on it is
   audited, and the pre-reset Records remain in the Log — they simply
   belong to the previous identity, as does a Record sealed above `R` for
   one of its Deltas.
 - **Penalties do not carry across a reset.** A Confirmed Inconsistency
-  for a Delta sealed at or below `R` leaves `penalty_n` entirely,
+  for a Delta sealed below `R` leaves `penalty_n` entirely,
   whenever its confirming Record lands; only those for Deltas sealed
-  above `R` count. A fresh identity starts clean, for exactly
+  at or above `R` count. A fresh identity starts clean, for exactly
   the reason `A` and `C` start at zero: it is a different party as far as
   the protocol can tell, and the Provisional cap — not inherited debt — is
   what bounds what it can claim. The finding follows the claim, not the
@@ -1537,7 +1538,12 @@ reset** at the height its Declaration Entry is sealed. Call that height
   Scoping by the confirming Record's height instead would hand the fresh
   identity a penalty, and under §7 a ladder rung, for content it did not
   publish, and would let the previous identity's timing decide which
-  party a finding lands on.
+  party a finding lands on. A Delta sealed at `R` itself is the fresh
+  identity's own statement: Declarations apply before Deltas within a
+  Block (WIST-3 §3.3) and a Delta is sealed only where the Key Set at
+  its height verifies it (WIST-1 §5.2), so at `R` that Key Set is
+  already the fresh identity's and nothing of the previous identity
+  seals there — which is why every bound above reads "at or above".
 
 **Sanction state binds the key identity too.** The §7 ladder is state
 about the same party `A`, `C` and `penalty_n` are state about, and it
