@@ -85,10 +85,11 @@
             "properties": {
               "details": {
                 "type": "object",
-                "required": ["level", "severity"],
+                "required": ["level", "severity", "finding"],
                 "properties": {
                   "level": {"type": "integer", "minimum": 1, "maximum": 4},
-                  "severity": {"type": "integer", "minimum": 1, "maximum": 3}
+                  "severity": {"type": "integer", "minimum": 1, "maximum": 3},
+                  "finding": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
                 }
               },
               "evidence": {

@@ -3079,3 +3079,19 @@ to score the same Delta. Permanent reservation excludes that reading.
 later and simultaneous collisions, disjoint bindings, exact repeats,
 invalid contenders and successful reuse after rejection. Record occurrence
 aliases exercise score deduplication independently of checkpoint count.
+
+## 2026-09-05 — WIST-4 §7, §9.1 and Registry Update schema: sanction primary finding (revision, not errata)
+
+**What changed.** A sanction requires `details.finding`, identifying the
+first confirming Record of its primary finding. Its severity and required
+quorum refer to that finding; optional evidence may include differently
+severe findings. ADR-0031 amends ADR-0012.
+
+**Why a revision.** The former single severity had no primary-finding
+selector. Requiring that selector changes the sealed contract.
+
+**Exercised.** `sanctions.json` supplies signed sanction envelopes over
+closed confirming-set fixtures: mixed optional findings, reversed evidence
+order, wrong severity or subject, a non-confirming selector, a missing
+quorum member and a missing selector. The harness derives severity from
+the supplied effective similarities and checks the primary quorum.

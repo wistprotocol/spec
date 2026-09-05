@@ -3105,6 +3105,33 @@ def _dc4_retired_escalations():
     assert v["retired_escalation_cases"][0]["levels"] == [1, 1, 2]
 check("vectors:wist4-retired-escalations", _dc4_retired_escalations)
 
+def _dc4_sanction_primary():
+    v = _sanctions_vector()
+    schema = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["process"]["public_key"]))
+    findings = {f["confirming_record"]: f for f in v["primary"]["findings"]}
+    all_ids = {r["id"] for f in findings.values() for r in f["records"]}
+    for case in v["primary"]["cases"]:
+        doc = case["envelope"]
+        key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+        error = None
+        if not schema.is_valid(doc):
+            error = "WIST4-E04"
+        else:
+            u = doc["update"]; f = findings.get(u["details"]["finding"])
+            evidence = set(u["evidence"])
+            if (f is None or f["subject"] != u["subject"] or not evidence <= all_ids
+                    or not {r["id"] for r in f["records"]} <= evidence):
+                error = "WIST4-E05"
+            else:
+                levels = [1 if r["effective_similarity"] >= 150000 else 2 if r["effective_similarity"] >= 50000 else 3 for r in f["records"]]
+                if u["details"]["severity"] != min(levels):
+                    error = "WIST4-E05"
+        assert error == case["error"], case["label"]
+    assert v["primary"]["cases"][0]["error"] is None
+    assert len({min(1 if r["effective_similarity"] >= 150000 else 2 if r["effective_similarity"] >= 50000 else 3 for r in f["records"]) for f in findings.values()}) == 2
+check("vectors:wist4-sanction-primary", _dc4_sanction_primary)
+
 def _dc4_sanction_transitions_twin():
     cases = _sanctions_vector()["transition_cases"]
     aging = next(c for c in cases if c["label"] == "level two survives evidence aging")
@@ -3872,6 +3899,7 @@ check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
 # be an `hmac-sha256:` commitment under the Payload salt, or it fails. Adding a
 # field here is the deliberate act of asserting it carries no content.
 NON_CONTENT_DIGESTS = {
+    ("registry-update.schema.json", "allOf[2]/then/properties/update/properties/details/properties/finding"): "an Audit Record ID identifying a primary finding",
     ("registry-update.schema.json",
      "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/leaf_hash"):
         "SHA-256 over served bytes carrying a fresh secret nonce (WIST-4 §5.1)",
@@ -3984,6 +4012,9 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/sanctions.json", "finding"): "a first confirming Audit Record ID",
+    ("vectors/wist4/sanctions.json", "confirming_record"): "a first confirming Audit Record ID",
+    ("vectors/wist4/sanctions.json", "id"): "an Audit Record ID",
     ("vectors/wist4/parameter-combinations.json", "wire_public_key"): "an Ed25519 public key",
     ("vectors/wist4/parameter-combinations.json", "value"): "an Ed25519 signature when opaque",
     ("vectors/wist4/parameter-combinations.json", "parameter"): "a Parameter Registry identifier",

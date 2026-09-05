@@ -2349,6 +2349,22 @@ which was never conditioned on the sanction's existence. The Aggregator
 therefore records ladder actions; it does not decide, and cannot suppress,
 the reputation weight of what the evidence already shows.
 
+**A sanction names one primary finding.** `details.finding` is the Audit
+Record ID of that finding's first confirming Record (§5), identifying the
+Delta and extract/link kind through the Record itself. The finding MUST
+belong to the sanction's `subject` and already exist at the sanction's
+Block. Its `details.severity` MUST equal the §7 severity of that finding's
+full closed confirming set, not an extremum across unrelated evidence.
+The top-level `evidence` MUST include `details.finding` and a complete
+quorum establishing that finding at its first confirming Record. It MAY
+also carry other Audit Record IDs, including complete findings with other
+severities. Those optional Records do not change the primary severity or
+invalidate the sanction merely by differing from it. Every cited ID must
+resolve to an Audit Record available at that Block. Missing or malformed
+required fields are `WIST4-E04`; a well-shaped claim failing this evidence
+contract is `WIST4-E05`. The ladder still derives from all findings, not
+only the primary one a sanction selects.
+
 Process requirements:
 
 - Levels 1–2 follow automatically from the escalation criteria; levels 3
@@ -3106,10 +3122,12 @@ mirroring §7 and §3:
   least one ID: its presence is what makes the removal for cause (§4),
   and an empty array would be a removal that is neither for cause nor an
   exit.
-- `sanction`: `level` (1–4) and `severity` (1–3, §7); `evidence`
+- `sanction`: `level` (1–4), `severity` (1–3, §7), and `finding`
+  (the first confirming Audit Record ID of its primary finding); `evidence`
   (top-level, not `details`) MUST carry the Audit Record IDs (§5) of a
   complete quorum of concurring, independent Auditors that establish
-  the Confirmed Inconsistency (§5's own minimum).
+  the primary finding at that Record (§5's own minimum), including
+  `finding` itself. Additional Audit Record evidence is permitted under §7.
 - `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
   additionally requires `reason`, `appeal_deadline`, and a top-level
   `evidence` naming what the notice is about; a `"recovery"` notice
