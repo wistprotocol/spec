@@ -2765,6 +2765,37 @@ def _dc4_cadence_transitions():
     assert all((p["confirm_window_hours"]//2)*3600 + p["record_seal_blocks"]*p["block_cadence_seconds"] <= p["confirm_window_hours"]*3600 for p in v["cadence_transition_cases"][0]["profiles"])
 check("vectors:wist4-cadence-transitions", _dc4_cadence_transitions)
 
+def _dc4_process_retention():
+    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    profiles = v["retention_profiles"]
+    def param(at_s, name):
+        eligible = [p for p in profiles if p["from_s"]<=at_s]
+        return eligible[-1][name]
+    for p in profiles:
+        assert p["mirror_retention_days"] >= p["appeal_window_days"]+p["appeal_seal_days"]+p["ruling_deadline_days"]
+    for case in v["retention_cases"]:
+        floor_end = case["evidence_first_served_s"] + param(case["evidence_first_served_s"], "mirror_retention_days") * 86400
+        for probe in case["probes"]:
+            n = probe["n_s"]; ends = []
+            for notice in case["notices"]:
+                opened = notice["sealed_at_s"]
+                if not notice["accepted"] or opened > n:
+                    continue
+                t = opened+(param(opened,"appeal_window_days")+param(opened,"appeal_seal_days"))*86400
+                a,r = notice["appeal_s"],notice["merits_ruling_s"]
+                ends.append(t)
+                if a is not None and opened <= a <= t and a <= n:
+                    deadline = a+param(a,"ruling_deadline_days")*86400
+                    ends[-1] = r if r is not None and a <= r <= deadline and r <= n else deadline
+            assert ends == probe["process_ends_s"]
+            assert (n < floor_end or any(e>=n for e in ends)) == probe["must_serve"], (case["label"],n)
+    mixed = v["retention_cases"][0]
+    late = next(p for p in mixed["probes"] if p["n_s"] == 119*86400)
+    assert late["must_serve"] and late["n_s"] > 77*86400
+    before_appeal = next(p for p in mixed["probes"] if p["n_s"] == 55*86400)
+    assert before_appeal["process_ends_s"] == [61*86400]
+check("vectors:wist4-process-retention", _dc4_process_retention)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 

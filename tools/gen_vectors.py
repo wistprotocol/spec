@@ -3024,6 +3024,53 @@ for label, rows, expected in (
 assert not cadence_transition_cases[0]["actual_seal_inside_window"]
 assert cadence_transition_cases[1]["actual_seal_inside_window"]
 
+RETENTION_PROFILES = [
+    {"from_s":0, "appeal_window_days":14, "appeal_seal_days":7, "ruling_deadline_days":30, "mirror_retention_days":51},
+    {"from_s":47*DAY_S, "appeal_window_days":1, "appeal_seal_days":1, "ruling_deadline_days":60, "mirror_retention_days":62},
+    {"from_s":90*DAY_S, "appeal_window_days":1, "appeal_seal_days":1, "ruling_deadline_days":75, "mirror_retention_days":77},
+]
+
+
+def retention_profile(at_s):
+    return max((p for p in RETENTION_PROFILES if p["from_s"] <= at_s), key=lambda p:p["from_s"])
+
+
+def retention_at(notices, n_s):
+    ends = []
+    for notice in notices:
+        if notice["sealed_at_s"] > n_s or not notice["accepted"]:
+            continue
+        profile = retention_profile(notice["sealed_at_s"])
+        t = notice["sealed_at_s"] + (profile["appeal_window_days"] + profile["appeal_seal_days"]) * DAY_S
+        end = t
+        appeal = notice["appeal_s"]
+        if appeal is not None and appeal <= min(t,n_s):
+            end = appeal + retention_profile(appeal)["ruling_deadline_days"] * DAY_S
+            merits = notice["merits_ruling_s"]
+            if merits is not None and appeal <= merits <= min(end,n_s):
+                end = merits
+        ends.append(end)
+    return {"process_ends_s":ends, "must_serve":n_s < 51*DAY_S or any(n_s<=e for e in ends)}
+
+
+retention_cases = []
+for label, rows in (
+    ("old notice and newer ruling span", [(40,60,None,None,True)]),
+    ("unappealed statement cannot close retention early", [(40,None,None,54,True)]),
+    ("accepted merits ruling closes process", [(40,60,80,None,True)]),
+    ("late appeal does not extend retention", [(40,62,None,None,True)]),
+    ("overlapping notices retain shared evidence", [(40,None,None,None,True), (60,None,None,None,True)]),
+    ("rejected notice creates no retention duty", [(40,60,None,None,False)]),
+):
+    notices = [{"sealed_at_s":n*DAY_S, "appeal_s":None if a is None else a*DAY_S,
+        "merits_ruling_s":None if r is None else r*DAY_S, "unappealed_s":None if u is None else u*DAY_S,
+        "accepted":accepted} for n,a,r,u,accepted in rows]
+    probes = sorted({51*DAY_S-1,51*DAY_S,55*DAY_S,60*DAY_S,61*DAY_S,61*DAY_S+1,
+        62*DAY_S,62*DAY_S+1,80*DAY_S,80*DAY_S+1,119*DAY_S,120*DAY_S,120*DAY_S+1})
+    retention_cases.append({"label":label, "evidence_first_served_s":0,
+        "notices":notices, "probes":[{"n_s":t, **retention_at(notices,t)} for t in probes]})
+assert retention_cases[0]["probes"][-2]["must_serve"] and not retention_cases[0]["probes"][-1]["must_serve"]
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
@@ -3031,6 +3078,8 @@ write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "extension_window_cases": extension_window_cases,
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_cases": prospective_cases,
+    "retention_profiles": RETENTION_PROFILES,
+    "retention_cases": retention_cases,
     "cadence_transition_cases": cadence_transition_cases,
     "wire_public_key": b64u(pub_raw),
     "wire_cases": parameter_wire_cases,

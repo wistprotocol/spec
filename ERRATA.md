@@ -3183,3 +3183,21 @@ and staged changes, the exact old-window expiry boundary and a brief
 cadence increase. A Block-grid simulation supplies an actual late-sealing
 counterexample. The canary cadence counterpart is exercised by
 `observer-checkpoints.json`'s actual-opportunity cases.
+
+## 2026-09-05 — WIST-3 §6, WIST-4 §7, §9: evidence retention through actual proceedings (revision, not errata)
+
+**What changed.** A Mirror serving an accepted sanction notice must also
+serve its cited Record Blocks through the actual process, acquiring older
+evidence before serving that notice. Ordinary retention reads its floor
+at first service. ADR-0036 amends ADR-0012, ADR-0022 and ADR-0027.
+
+**Why a revision.** A fixed retention floor could expire before a process
+combining an older notice window with a newer ruling span. It also failed
+to protect evidence already old when cited. The new serving duty excludes
+both previously possible losses.
+
+**Exercised.** `parameter-combinations.json` covers mixed profiles,
+old evidence, future and late appeals, an early unappealed statement,
+a merits ruling, overlapping notices and the exact closing endpoint.
+The harness derives retention from only the process events available at
+each probe and preserves the accepted appeal's ruling profile.

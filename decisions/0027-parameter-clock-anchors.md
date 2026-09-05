@@ -1,6 +1,6 @@
 # ADR-0027: Anchor parameters for in-flight windows
 
-**Status:** accepted; amended by ADR-0035 (2026-09-05: cadence transitions preserve older extension profiles); amended by ADR-0034 (2026-09-05: canary reveals require actual post-duty sealing opportunities) · **Date:** 2026-09-05
+**Status:** accepted; amended by ADR-0036 (2026-09-05: retain cited Blocks through each actual notice process); amended by ADR-0035 (2026-09-05: cadence transitions preserve older extension profiles); amended by ADR-0034 (2026-09-05: canary reveals require actual post-duty sealing opportunities) · **Date:** 2026-09-05
 **Amends:** ADR-0012, ADR-0019, ADR-0022
 
 ## Context

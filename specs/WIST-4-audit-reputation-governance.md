@@ -2381,6 +2381,25 @@ required fields are `WIST4-E04`; a well-shaped claim failing this evidence
 contract is `WIST4-E05`. The ladder still derives from all findings, not
 only the primary one a sanction selects.
 
+**Retain sealed evidence through the actual process.** For WIST-3 §6's
+Mirror duty, an accepted sanction notice's process closes at T if no timely
+appeal is accepted. An `unappealed` statement before T does not close this
+retention interval early: a timely sealed appeal can still override it.
+When an appeal is accepted, the process closes at its derived ruling
+deadline, or at the Block sealing an accepted merits ruling if earlier.
+Keep the notice and its cited Audit Record Blocks retrievable through
+that closing instant, including the endpoint, and for longer if another
+retention obligation requires it. Recompute from the available prefix:
+a future appeal or ruling moves nothing before it seals. A late or rejected
+act changes no retention deadline. Clearing a rung does not by itself
+close its still-open notice process.
+
+The appeal and seal spans retain the notice's parameters; the ruling span
+retains the accepted appeal's parameters (§9). Thus a later ruling-span
+amendment may lengthen a process that began under a different profile,
+and the evidence duty follows that process rather than assuming that one
+parameter map bounds its total length.
+
 **A sanction notice targets one activation.** Its `details.level` is 3
 or 4 and `details.activation` is the Audit Record ID of the confirming
 Record that first armed that level for its `subject`. The named activation
@@ -2886,7 +2905,7 @@ existing rather than a recommended setting.
 | `param_grace_days` | ≥ 1 | at zero a parameter changes in the Block that announces it, and the notice period this very section rests on is gone |
 | `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (WIST-3 §6.1) |
 | `unauditable_horizon_days` | ≥ 7 | below, whether a URL is excluded turns on publication scheduling rather than on its `robots.txt` (§5) |
-| `mirror_retention_days` | ≥ 51 | below, an appellant cannot fetch the Records its own sanction rests on (WIST-3 §6) |
+| `mirror_retention_days` | ≥ 51 | baseline Block retention covers the default notice-to-ruling span; §7 and WIST-3 §6 additionally protect cited evidence through each actual proceeding |
 | `warc_retention_days` | ≥ 51 | below, the capture behind a confirming Record can lawfully be gone before the appeal that contests it can conclude (§5, §7) |
 | `record_seal_blocks` | ≥ 1 | at zero the Aggregator must seal what it pulled in the Block of the pull itself, so every pull is a breach the instant it completes (§4) |
 | `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (WIST-3 §3.2) |
@@ -3032,14 +3051,14 @@ within `appeal_window_days` of the `notice`'s Block, MUST be sealed within
 `appeal_seal_days` of that window closing, and MUST be ruled on within
 `ruling_deadline_days` of the Block sealing it, so at present defaults 51
 days is the
-longest span the process itself guarantees between the sanction complained
-of and the ruling on it. A Mirror free to drop a Block sooner could leave an
-appellant unable to fetch the Audit Records its own sanction rests on, which
-would decide an appeal on retention policy rather than on evidence; the floor
-is therefore set at exactly that span, so the schema's number and the
-deadlines it protects have the same derivation rather than merely the same
-order of magnitude. The floor is a floor, not a target: the default is 90
-days, and the sum is the point below which the process stops working at all.
+longest span between a notice and its ruling while those parameters stay
+fixed. An in-flight process may combine different anchored profiles;
+§7 and WIST-3 §6 therefore retain its cited Record Blocks through its
+actual closing instant, including evidence already old when the notice
+sealed. The baseline floor remains 51 days, the default profile's span,
+and the default retention remains 90 days. The per-process serving duty
+supplies the stronger guarantee when evidence age or mixed profiles makes
+that baseline insufficient.
 
 Because that sum is of three amendable parameters, the schema can pin the
 constant but not the combination. A `parameter_change` raising

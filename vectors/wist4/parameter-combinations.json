@@ -519,6 +519,658 @@
       ]
     }
   ],
+  "retention_profiles": [
+    {
+      "from_s": 0,
+      "appeal_window_days": 14,
+      "appeal_seal_days": 7,
+      "ruling_deadline_days": 30,
+      "mirror_retention_days": 51
+    },
+    {
+      "from_s": 4060800,
+      "appeal_window_days": 1,
+      "appeal_seal_days": 1,
+      "ruling_deadline_days": 60,
+      "mirror_retention_days": 62
+    },
+    {
+      "from_s": 7776000,
+      "appeal_window_days": 1,
+      "appeal_seal_days": 1,
+      "ruling_deadline_days": 75,
+      "mirror_retention_days": 77
+    }
+  ],
+  "retention_cases": [
+    {
+      "label": "old notice and newer ruling span",
+      "evidence_first_served_s": 0,
+      "notices": [
+        {
+          "sealed_at_s": 3456000,
+          "appeal_s": 5184000,
+          "merits_ruling_s": null,
+          "unappealed_s": null,
+          "accepted": true
+        }
+      ],
+      "probes": [
+        {
+          "n_s": 4406399,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4406400,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4752000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5184000,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270400,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270401,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5356800,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5356801,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 6912000,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 6912001,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 10281600,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 10368000,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 10368001,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": false
+        }
+      ]
+    },
+    {
+      "label": "unappealed statement cannot close retention early",
+      "evidence_first_served_s": 0,
+      "notices": [
+        {
+          "sealed_at_s": 3456000,
+          "appeal_s": null,
+          "merits_ruling_s": null,
+          "unappealed_s": 4665600,
+          "accepted": true
+        }
+      ],
+      "probes": [
+        {
+          "n_s": 4406399,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4406400,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4752000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5184000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270400,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270401,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 5356800,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 5356801,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912001,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10281600,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368001,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        }
+      ]
+    },
+    {
+      "label": "accepted merits ruling closes process",
+      "evidence_first_served_s": 0,
+      "notices": [
+        {
+          "sealed_at_s": 3456000,
+          "appeal_s": 5184000,
+          "merits_ruling_s": 6912000,
+          "unappealed_s": null,
+          "accepted": true
+        }
+      ],
+      "probes": [
+        {
+          "n_s": 4406399,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4406400,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4752000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5184000,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270400,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270401,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5356800,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5356801,
+          "process_ends_s": [
+            10368000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 6912000,
+          "process_ends_s": [
+            6912000
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 6912001,
+          "process_ends_s": [
+            6912000
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10281600,
+          "process_ends_s": [
+            6912000
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368000,
+          "process_ends_s": [
+            6912000
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368001,
+          "process_ends_s": [
+            6912000
+          ],
+          "must_serve": false
+        }
+      ]
+    },
+    {
+      "label": "late appeal does not extend retention",
+      "evidence_first_served_s": 0,
+      "notices": [
+        {
+          "sealed_at_s": 3456000,
+          "appeal_s": 5356800,
+          "merits_ruling_s": null,
+          "unappealed_s": null,
+          "accepted": true
+        }
+      ],
+      "probes": [
+        {
+          "n_s": 4406399,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4406400,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4752000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5184000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270400,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270401,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 5356800,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 5356801,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912001,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10281600,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368001,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": false
+        }
+      ]
+    },
+    {
+      "label": "overlapping notices retain shared evidence",
+      "evidence_first_served_s": 0,
+      "notices": [
+        {
+          "sealed_at_s": 3456000,
+          "appeal_s": null,
+          "merits_ruling_s": null,
+          "unappealed_s": null,
+          "accepted": true
+        },
+        {
+          "sealed_at_s": 5184000,
+          "appeal_s": null,
+          "merits_ruling_s": null,
+          "unappealed_s": null,
+          "accepted": true
+        }
+      ],
+      "probes": [
+        {
+          "n_s": 4406399,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4406400,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 4752000,
+          "process_ends_s": [
+            5270400
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5184000,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270400,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5270401,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5356800,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": true
+        },
+        {
+          "n_s": 5356801,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912000,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912001,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10281600,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368000,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368001,
+          "process_ends_s": [
+            5270400,
+            5356800
+          ],
+          "must_serve": false
+        }
+      ]
+    },
+    {
+      "label": "rejected notice creates no retention duty",
+      "evidence_first_served_s": 0,
+      "notices": [
+        {
+          "sealed_at_s": 3456000,
+          "appeal_s": 5184000,
+          "merits_ruling_s": null,
+          "unappealed_s": null,
+          "accepted": false
+        }
+      ],
+      "probes": [
+        {
+          "n_s": 4406399,
+          "process_ends_s": [],
+          "must_serve": true
+        },
+        {
+          "n_s": 4406400,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 4752000,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 5184000,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 5270400,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 5270401,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 5356800,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 5356801,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912000,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 6912001,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 10281600,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368000,
+          "process_ends_s": [],
+          "must_serve": false
+        },
+        {
+          "n_s": 10368001,
+          "process_ends_s": [],
+          "must_serve": false
+        }
+      ]
+    }
+  ],
   "cadence_transition_cases": [
     {
       "label": "new map alone misses old extension",
