@@ -2585,3 +2585,36 @@ audited Block's window — the last rebuilt so that no evidence of either
 kind falls inside it. `vectors:wist4-coverage-establishing` recomputes
 every height and probe, and its twin fails the reading under which a
 later attestation moves the height.
+
+## 2026-09-05 — WIST-4 §3.1, §5.1: the scoring window's endpoints
+
+Adds one sentence to §5.1's account of the scoring window, one clause to
+§3.1's Observer serving duty, `payload_window_days` to
+`vectors/wist4/canary.json`'s parameters and `scoring_window_cases` to
+the vector.
+
+**What it states.** A reveal's scoring window is open at a Block N when
+the whole days (§6.1) from the reveal's Block `sealed_at` to N's are
+fewer than `payload_window_days`: open at the reveal's own Block, lapsed
+at the first Block sealed `payload_window_days` whole days or more after
+it — end-inclusive and start-exclusive, as every window in the document
+is measured. §5.2 reads the scoreboard at N over exactly the reveals open
+there. An Observer's duty to keep serving what it publishes for
+`payload_window_days` runs from the publication, an instant only the
+Observer holds, and no derivation reads it; what replay reads is the
+scoring window on the reveal's Block.
+
+**Why it qualifies.** §5.1 said the domain serves the bytes "for
+`payload_window_days`" and that the window "lapses as a Reference
+Payload's does", and §5.2 read scoreboards over reveals whose window "is
+open at N", without saying which Block is the last one inside. Every
+other window here — §4's 30 days, §5's horizon, §7's escalation spans —
+is measured the same way and says so; the sentence applies that
+measurement to the one window that lacked it and changes nothing an
+implementation following the document's own convention computed.
+
+**Status.** Exercised. `canary.json`'s `scoring_window_cases` probe the
+reveal's own Block, a Block inside the window, the last Block inside it,
+the first Block a whole window later and one after; `vectors:wist4-canary`
+recomputes each and requires §5.1 to state the rule, and its twin fails an
+end-inclusive reading of the closing endpoint.

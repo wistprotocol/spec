@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75.1, \u00a75.2: a canary commitment over four leaves of served bytes (three revealed, one not), each carrying a nonce; the credit_commitment check per signer; the hard hit over both canary classes with the dynamic_variance buffer between; reveal timing against the lead, the minimum with the checkpoint-budget rotation, and the lifetime; and the per-tier scoreboard. Every revealed leaf's Reference Payload is examples/payload.json, whose salt keys every commitment here. Nonces are derived from a fixed string for reproducibility; a planter draws them from a CSPRNG.",
+  "note": "WIST-4 \u00a75.1, \u00a75.2: a canary commitment over four leaves of served bytes (three revealed, one not), each carrying a nonce; the credit_commitment check per signer; the hard hit over both canary classes with the dynamic_variance buffer between; reveal timing against the lead, the minimum with the checkpoint-budget rotation, and the lifetime; the scoring window's endpoints on the Block grid; and the per-tier scoreboard. Every revealed leaf's Reference Payload is examples/payload.json, whose salt keys every commitment here. Nonces are derived from a fixed string for reproducibility; a planter draws them from a CSPRNG.",
   "parameters": {
     "canary_lead_blocks": 24,
     "canary_reveal_min_blocks": 168,
@@ -11,7 +11,8 @@
     "similarity_consistent": 600000,
     "similarity_variance_floor": 300000,
     "min_observed_words": 40,
-    "latency_threshold_u": 500000
+    "latency_threshold_u": 500000,
+    "payload_window_days": 180
   },
   "salt_source": "examples/payload.json",
   "reference_extract": "WIST is an open, verifiable, push-based web index protocol.",
@@ -320,6 +321,58 @@
       "latest_reveal_height": 1540,
       "lead_respected": true,
       "valid": true
+    }
+  ],
+  "scoring_window_cases": [
+    {
+      "label": "open at the reveals own block",
+      "reveal_height": 500,
+      "reveal_sealed_at_s": 1800000,
+      "n_height": 500,
+      "n_sealed_at_s": 1800000,
+      "payload_window_days": 180,
+      "whole_days": 0,
+      "open": true
+    },
+    {
+      "label": "open inside the window",
+      "reveal_height": 500,
+      "reveal_sealed_at_s": 1800000,
+      "n_height": 2500,
+      "n_sealed_at_s": 9000000,
+      "payload_window_days": 180,
+      "whole_days": 83,
+      "open": true
+    },
+    {
+      "label": "open at the last block inside the window",
+      "reveal_height": 500,
+      "reveal_sealed_at_s": 1800000,
+      "n_height": 4819,
+      "n_sealed_at_s": 17348400,
+      "payload_window_days": 180,
+      "whole_days": 179,
+      "open": true
+    },
+    {
+      "label": "lapsed at the first block a whole window later",
+      "reveal_height": 500,
+      "reveal_sealed_at_s": 1800000,
+      "n_height": 4820,
+      "n_sealed_at_s": 17352000,
+      "payload_window_days": 180,
+      "whole_days": 180,
+      "open": false
+    },
+    {
+      "label": "lapsed after the window",
+      "reveal_height": 500,
+      "reveal_sealed_at_s": 1800000,
+      "n_height": 4821,
+      "n_sealed_at_s": 17355600,
+      "payload_window_days": 180,
+      "whole_days": 180,
+      "open": false
     }
   ],
   "scoreboard_records": [
