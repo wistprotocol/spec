@@ -3768,6 +3768,24 @@ for label in ("nonexistent notice", "other subject notice", "recovery notice"):
         "probes": [{"n_s": 21 * DAY_S, "expected": process_result(notice, acts, 21 * DAY_S)}]})
     assert process_cases[-1]["probes"][0]["expected"]["appeal_index"] is None
 
+retired_escalation_cases = []
+for parameter, value, severities, expected in (
+    ("escalation_l2", 1, [1, 1, 1], [1, 1, 2]),
+    ("escalation_l3", 1, [1, 3], [1, 3]),
+    ("escalation_l4", 1, [3, 1], [3, 4]),
+):
+    envelope = sign_envelope("update", {"wist_version": "1.0.0", "action": "parameter_change",
+        "subject": "log.sample.net", "effective_at": "2026-08-12T00:00:00Z",
+        "details": {"parameter": parameter, "value": value}}, "test-process-k1")
+    blocks = [{"height": i + 200, "sealed_at_s": (8 + i) * DAY_S, "lift": False,
+        "void_levels": [], "findings": [{"entry_index": 0, "severity": severity}]}
+        for i, severity in enumerate(severities)]
+    active = sanction_transitions(blocks)
+    assert [max(a) for a in active] == expected
+    retired_escalation_cases.append({"label": parameter + " has no numeric mapping", "envelope": envelope,
+        "sealed_at": "2026-08-01T00:00:00Z", "error": "WIST4-E03", "blocks": blocks,
+        "active_rungs": active, "levels": expected})
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -3784,6 +3802,7 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "ladder_cases": sanction_ladder_cases,
     "reversal_cases": sanction_reversal_cases,
     "transition_cases": sanction_transition_cases,
+    "retired_escalation_cases": retired_escalation_cases,
     "process": {"public_key": b64u(pub_raw), "notice_sealed_at_s": 0,
                 "notice": process_notice, "cases": process_cases},
 }))

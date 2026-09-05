@@ -2675,6 +2675,12 @@ number. The coupling is stated rather than removed, and it binds the
 cadence: a `parameter_change` to `block_cadence_seconds` is also a change
 to how much shirking §4 tolerates, and MUST be weighed as both.
 
+The escalation ladder's count, window and severity predicates in §7 are
+fixed compound rules, with no `parameter_change` identifier. The retired
+names `escalation_l2`, `escalation_l3` and `escalation_l4` are invalid
+identifiers (`WIST4-E03`), whatever integer they carry. Changing that
+ladder requires a protocol revision with a defined representation.
+
 **In force.** A `parameter_change` is in force at every instant T at or
 after its `effective_at`, the endpoint included. The value of a
 parameter in force at T is that of the amendment naming it with the
@@ -2878,10 +2884,7 @@ of 168, and the lifetime 1440 Blocks against 192.
 
 Every remaining identifier carries no bound because none reduces to one,
 and each is named here so that "exactly those bounds" above is a claim a
-reader can check rather than take. `escalation_l2`, `escalation_l3` and
-`escalation_l4` publish compound criteria rather than single numbers, so
-§7's criteria and not an integer are what a party checks them against.
-`clock_skew_seconds`, `keyset_cache_ttl_seconds` and `baseline_poll_seconds`
+reader can check rather than take. `clock_skew_seconds`, `keyset_cache_ttl_seconds` and `baseline_poll_seconds`
 set tolerances rather than mechanisms: at zero each is the strict reading
 of the rule it relaxes, and nothing ceases to exist. `sampling_slope` at
 zero stops the audit rate varying with reputation, while selection,
@@ -3016,7 +3019,7 @@ table publishes and gives the unattested path 51 days to fit into 30.
 | Provisional reputation cap (ceiling, not floor) | `provisional_cap_u` | 0.10 = 100 000 micro-units | §6 |
 | Ping quota base / slope | `quota_base` / `quota_slope` | 100 / 10000 per day | §6 |
 | Inclusion latency threshold | `latency_threshold_u` | reputation 0.5 = 500 000 micro-units | §6 |
-| Escalation: level 2 / level 3 / level 4 | `escalation_l2` / `escalation_l3` / `escalation_l4` | 3 in 90 days / 10 in 90 days or severity 3 / 3 severity-3 in 180 days or a level-3 domain's next Confirmed Inconsistency | §7 |
+| Escalation: level 2 / level 3 / level 4 | — | 3 in 90 days / 10 in 90 days or severity 3 / 3 severity-3 in 180 days or a level-3 domain's next Confirmed Inconsistency | §7 |
 | Appeal window | `appeal_window_days` | 14 days | §7 |
 | Appeal sealing deadline | `appeal_seal_days` | 7 days | §7 |
 | Appeal ruling deadline | `ruling_deadline_days` | 30 days | §7 |

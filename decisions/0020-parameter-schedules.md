@@ -48,3 +48,22 @@ the ruling clock reads the accepted appeal.
 Recomputation preserves established deadlines and findings. Epoch,
 selection, reputation and materialization reads keep their explicit
 anchors. A fixed count of Blocks still follows the actual cadence.
+
+## Escalation predicates have no numeric amendment
+
+### Context
+
+The Registry admitted integer amendments for three compound ladder rules
+without mapping those integers to counts, windows or severity branches.
+
+### Decision
+
+Remove `escalation_l2`, `escalation_l3` and `escalation_l4` from the
+identifier table and schema. Reject them as `WIST4-E03`; retain §7's
+printed predicates. Amending the ladder requires a protocol revision.
+
+### Consequences
+
+An arbitrary integer cannot silently disable a severity branch or choose
+which component of a compound rule changes. Existing ladder transitions
+remain unchanged after a rejected amendment.

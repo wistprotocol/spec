@@ -1229,6 +1229,209 @@
       ]
     }
   ],
+  "retired_escalation_cases": [
+    {
+      "label": "escalation_l2 has no numeric mapping",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "escalation_l2",
+            "value": 1
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "uUd9P-FJuKBxAtY6jYEUBBUfqBGoTZUVxy0OZ9w_7jIs39i7hIh9FzWxrk3jQKocXwS7lOjjqC3__7ipel-DDA"
+        }
+      },
+      "sealed_at": "2026-08-01T00:00:00Z",
+      "error": "WIST4-E03",
+      "blocks": [
+        {
+          "height": 200,
+          "sealed_at_s": 691200,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 201,
+          "sealed_at_s": 777600,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 202,
+          "sealed_at_s": 864000,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "levels": [
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "label": "escalation_l3 has no numeric mapping",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "escalation_l3",
+            "value": 1
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "zhTkFNX0i3Sjnik42lbppLdeF2ZwUg3VyFVUOw2vcW79NFW7nTDi9i7LN4q7K_sXLQw313jDpci6xCwO5YyLDA"
+        }
+      },
+      "sealed_at": "2026-08-01T00:00:00Z",
+      "error": "WIST4-E03",
+      "blocks": [
+        {
+          "height": 200,
+          "sealed_at_s": 691200,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 201,
+          "sealed_at_s": 777600,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "levels": [
+        1,
+        3
+      ]
+    },
+    {
+      "label": "escalation_l4 has no numeric mapping",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "escalation_l4",
+            "value": 1
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "-AbN6ZyCoy5lq1AwK2yQbo_Fx9Gj_sSOlG4_TQXktuna9Yw1Brd0o7VQ6SwtNCIDtc6EQ2gxL33WuyMVJ0FaDQ"
+        }
+      },
+      "sealed_at": "2026-08-01T00:00:00Z",
+      "error": "WIST4-E03",
+      "blocks": [
+        {
+          "height": 200,
+          "sealed_at_s": 691200,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        },
+        {
+          "height": 201,
+          "sealed_at_s": 777600,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          3,
+          4
+        ]
+      ],
+      "levels": [
+        3,
+        4
+      ]
+    }
+  ],
   "process": {
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "notice_sealed_at_s": 0,
