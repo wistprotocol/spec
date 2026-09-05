@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (\u00a710) still discharge the duty \u2014 `void` lists every reason the Record is void, empty for a standing Record \u2014 per anchor case the Block a removal is read against (the audited Block for a draw, B\u2081 for a Delta the extension rule names), the establishing height from which a failed duty enters the count \u2014 the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it \u2014 and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
+  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (\u00a710) still discharge the duty \u2014 `void` lists every reason the Record is void, empty for a standing Record \u2014 per anchor case the Block a removal is read against (the audited Block for a draw, B\u2081 for a Delta the extension rule names), the establishing height from which a failed duty enters the count \u2014 the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it \u2014 and the per-(Auditor, Log) `prev_record` chain. A gap alone supplies no exemption. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
   "coverage_deadline_hours": 72,
   "coverage_failures_max": 24,
   "record_seal_blocks": 24,
@@ -61,34 +61,140 @@
     {
       "label": "attested unmet counts",
       "attestation": "unmet",
-      "chain_proof_in_window": false,
+      "chain_gap_in_window": false,
       "counts": true
     },
     {
       "label": "chain contradiction stops count",
       "attestation": "unmet-chain-contradicted",
-      "chain_proof_in_window": false,
+      "chain_gap_in_window": false,
       "counts": false
     },
     {
       "label": "unattested counts",
       "attestation": "missing",
-      "chain_proof_in_window": false,
+      "chain_gap_in_window": false,
       "counts": true
     },
     {
-      "label": "chain proof excludes unattested",
+      "label": "bare chain gap does not exclude unattested",
       "attestation": "missing",
-      "chain_proof_in_window": true,
-      "counts": false
+      "chain_gap_in_window": true,
+      "counts": true
     },
     {
-      "label": "chain proof does not shield attested",
+      "label": "bare chain gap does not shield attested",
       "attestation": "unmet",
-      "chain_proof_in_window": true,
+      "chain_gap_in_window": true,
       "counts": true
     }
   ],
+  "authenticated_gap": {
+    "note": "The successor is sealed after the receipts in the same Log; its named predecessor is absent. The original pair is established and incomplete. The successor covers a different, empty Block, so it does not discharge that pair.",
+    "keys": [
+      {
+        "key_id": "receipt-auditor-k1",
+        "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+      },
+      {
+        "key_id": "test-agg-k1",
+        "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      }
+    ],
+    "pulled_block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+    "successor": {
+      "update": {
+        "wist_version": "1.0.0",
+        "action": "coverage_attestation",
+        "subject": "audit.sample.net",
+        "effective_at": "2026-08-05T12:00:00Z",
+        "details": {
+          "block": "sha256:b62c777f579a1fc9963b1b4f8f1a8cecc02296838135116479af56acf598540e",
+          "prev_record": "sha256:1814a012b1da70784470e7c55706de4fb2ace471e75bc4cfb1ed9deb124d60ed",
+          "vrf_proof": "0eb7f8b115e74d2159efde4d36cfd9505f494d1ab389e370d0d8700427f0848d28a1c33b6aff151a5356db5c01e2a10c60cfa08ea8b0789f10933a540f3c891f6d7045eff8b6c501d9b86c2a03604304"
+        }
+      },
+      "sig": {
+        "key_id": "receipt-auditor-k1",
+        "alg": "Ed25519",
+        "value": "_hTLg-jf_a5AZKcp1x08lcu3x9okqUA2_0tnpRQcKly7DNbDnxLnj_IvZBrI150k6XJ7MkL35vJBhA6Cso9MDw"
+      }
+    },
+    "cases": [
+      {
+        "label": "fabricated predecessor without receipt",
+        "receipt": null,
+        "exempt": false
+      },
+      {
+        "label": "Aggregator acknowledged missing ID",
+        "receipt": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "pull_attestation",
+            "subject": "audit.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+              "found": [
+                "sha256:1814a012b1da70784470e7c55706de4fb2ace471e75bc4cfb1ed9deb124d60ed"
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "DfurFEiGQdVxQsCrRYMubJizH_JbGBR9qBTWvxpEafjlfz94dVT3g2mS-NA1TZJkEvTB_rtigEB2TrDMsa-EAQ"
+          }
+        },
+        "exempt": true
+      },
+      {
+        "label": "receipt names another ID",
+        "receipt": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "pull_attestation",
+            "subject": "audit.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+              "found": [
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "QNbiUt-xQqyS7KZ0Ij16NkjKEUsoIlJY8ShoDncGhmkNRU5l8LlbyzRQSoi6SNNDrAtdQrchdXdkR0jWzUDXBA"
+          }
+        },
+        "exempt": false
+      },
+      {
+        "label": "receipt reports empty path",
+        "receipt": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "pull_attestation",
+            "subject": "audit.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+              "found": []
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "-A9wS6ZJwmJWdkVhV2lYqd3X4_9PNzZWY9LWQ_tJkipmjG-zDmlx49SNF3hCSSSz2HOMNdYpW9lOAwf2TKFcAw"
+          }
+        },
+        "exempt": false
+      }
+    ]
+  },
   "state_cases": [
     {
       "label": "at the maximum",

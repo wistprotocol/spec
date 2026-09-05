@@ -2105,13 +2105,13 @@ def removal_void(named_by, audited_s, trigger_s, removed_s):
         else "never admitted at anchor block"
 
 
-def pair_counts(attestation, chain_proof_in_window):
+def pair_counts(attestation, chain_gap_in_window):
     if attestation == "unmet":
         return True
     if attestation == "unmet-chain-contradicted":
         return False
     assert attestation == "missing"
-    return not chain_proof_in_window
+    return True
 
 
 def in_coverage_failure(times_s, n_s, failures_max):
@@ -2132,14 +2132,14 @@ coverage_pair_cases = [
     ]
 ]
 coverage_counting_cases = [
-    {"label": label, "attestation": att, "chain_proof_in_window": chain,
+    {"label": label, "attestation": att, "chain_gap_in_window": chain,
      "counts": pair_counts(att, chain)}
     for label, att, chain in [
         ("attested-unmet-counts", "unmet", False),
         ("chain-contradiction-stops-count", "unmet-chain-contradicted", False),
         ("unattested-counts", "missing", False),
-        ("chain-proof-excludes-unattested", "missing", True),
-        ("chain-proof-does-not-shield-attested", "unmet", True),
+        ("bare-chain-gap-does-not-exclude-unattested", "missing", True),
+        ("bare-chain-gap-does-not-shield-attested", "unmet", True),
     ]
 ]
 coverage_state_scenarios = [
@@ -2393,14 +2393,37 @@ for label, found, successor_auditor, successor_log, successor_height, missing_ar
         "predecessor_sealed_height": missing_arrives, "n_height": 90,
         "chain_contradicts": attributable})
 
+fabricated_predecessor = "sha256:" + sha256_hex(b"fabricated predecessor label")
+suppression_empty_hash = "sha256:" + sha256_hex(empty_canonical)
+suppression_successor = sign_envelope_with(priv2, "update", {"wist_version": "1.0.0",
+    "action": "coverage_attestation", "subject": "audit.sample.net", "effective_at": "2026-08-05T12:00:00Z",
+    "details": {"block": suppression_empty_hash, "prev_record": fabricated_predecessor,
+        "vrf_proof": ecvrf.prove(SEED2, bytes.fromhex(suppression_empty_hash[7:])).hex()}}, "receipt-auditor-k1")
+suppression_receipt_cases = []
+for label, found, expected in (
+    ("fabricated predecessor without receipt", None, False),
+    ("Aggregator acknowledged missing ID", [fabricated_predecessor], True),
+    ("receipt names another ID", ["sha256:" + "2" * 64], False),
+    ("receipt reports empty path", [], False),
+):
+    receipt = None if found is None else sign_envelope("update", {"wist_version": "1.0.0",
+        "action": "pull_attestation", "subject": "audit.sample.net", "effective_at": "2026-08-05T12:00:00Z",
+        "details": {"block": block_hash, "found": found}}, "test-agg-k1")
+    exempt = receipt is not None and fabricated_predecessor in found
+    assert exempt == expected
+    suppression_receipt_cases.append({"label": label, "receipt": receipt, "exempt": exempt})
+
 write_json(WIST4 / "coverage.json", spaced_labels({
-    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count — the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it — and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
+    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count — the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it — and the per-(Auditor, Log) `prev_record` chain. A gap alone supplies no exemption. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
     "coverage_deadline_hours": 72,
     "coverage_failures_max": COVERAGE_FAILURES_MAX,
     "record_seal_blocks": 24,
     "window_days": RATION_WINDOW_DAYS,
     "pair_cases": coverage_pair_cases,
     "counting_cases": coverage_counting_cases,
+    "authenticated_gap": {"note": "The successor is sealed after the receipts in the same Log; its named predecessor is absent. The original pair is established and incomplete. The successor covers a different, empty Block, so it does not discharge that pair.",
+        "keys": [{"key_id": "receipt-auditor-k1", "public_key": b64u(pub2_raw)}, {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}],
+        "pulled_block": block_hash, "successor": suppression_successor, "cases": suppression_receipt_cases},
     "state_cases": coverage_state_cases,
     "discharge_cases": coverage_discharge_cases,
     "anchor_cases": coverage_anchor_cases,

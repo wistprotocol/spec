@@ -1,75 +1,66 @@
-# ADR-0019: Late-sealed discharge clears the current coverage count
+# ADR-0019: Audit duty accounting from authenticated Log prefixes
 
 **Status:** draft · **Date:** 2026-09-05
 
 ## Context
 
-WIST-4 §4 requires publication by a deadline but permits subsequent
-sealing. It does not expressly settle a Record first sealed after an
-unmet pull attestation or the unattested fallback established a failure.
-The sealing instant alone cannot prove when the Record was published.
+WIST-4 §4 makes coverage failures and extension allocation derivable from
+the Log. Publication and sealing are distinct events: delayed transport can
+leave a complete duty temporarily unseen, while a missing predecessor hash
+does not prove that its signer published any Record. Accounting must use
+available authenticated evidence without rewriting an earlier prefix.
 
 ## Decision
 
-Read completed duty from the available Log prefix. A complete discharge
-removes the pair from the current count from its completion Block,
-without requiring suppression evidence. Partial completion does not.
-Apply the existing standing and void-discharge rules. Empty selection
-still needs its coverage attestation.
-
-## Consequences
-
-Later completion changes no prior prefix or sealed removal. It proves
-completion rather than timely publication; the publication duty remains.
-Keeping a failure solely because its discharge sealed late would make
-an allowed transport delay indistinguishable from Auditor shirking.
-
-## Extension triggers spend ration in Log order
-
-### Context
-
-Two eligible triggers by one Auditor can seal in one Block with one
-ration slot remaining. WIST-4 §4 gave no tie rule, while WIST-3 §3.3
-claimed Audit Records did not read intra-Block position. Confirmation
-already reads the canonical stored Entry order.
-
-### Decision
+### Extension allocation
 
 Evaluate triggers in ascending Block height and Entry index. Eligibility
 and ration use the strict prefix before each trigger, including earlier
-Entries in its Block. Peer exclusion also includes the trigger itself. Extract and link inconsistency
-Records share the per-Delta trigger sequence and per-Auditor ration.
-The earlier eligible Entry spends the last slot. A later Record remains
-valid and contributes to confirmation even when it summons nobody.
+Entries in its Block. Peer exclusion also includes the trigger itself.
+Extract and link inconsistency Records share the per-Delta trigger sequence
+and per-Auditor ration. The earlier eligible Entry spends the last slot;
+a later Record remains valid and may confirm a finding without summoning
+another extension. A later filing cannot cancel an earlier trigger or
+retroactively remove its summoned peers.
 
-### Consequences
+### Completion and late sealing
 
-Canonical Entry order supplies the tie without new ordering freedom.
-A later same-Block filing cannot retroactively cancel a trigger or remove
-one of its summoned peers. WIST-3 names the ordering-dependent extension
-and confirmation rules explicitly.
+Read duty completion from the available Log prefix. A complete discharge
+removes the pair from the current coverage-failure count from its completion
+Block, without requiring suppression evidence. Partial completion does not.
+Apply the standing and void-discharge rules; an empty selection still needs
+its coverage attestation. Late completion changes no prior prefix or sealed
+removal and establishes completion rather than timely publication.
 
-## Attested suppression evidence names the affected duty
+### Authenticated suppression evidence
 
-### Context
+A missing `prev_record` can be fabricated without holding its preimage.
+It therefore earns no exemption by itself. For a pair-specific exemption,
+the missing ID must appear in that pull attestation's signed `found` list.
+The same Auditor's successor in the same Log must seal at or above the
+attestation height, including the same Block. Read the successor and
+missing-ID test from the prefix through the evaluation height. Once the
+missing item seals, ordinary discharge determines completion.
 
-A missing `prev_record` ID contains no visible Auditor duty or Block.
-WIST-4 §4 nevertheless asks whether a successor contradicts a particular
-unmet pull attestation. A generic missing predecessor cannot supply that
-attribution.
+Empty or unrelated receipts exempt no pair. Complete withholding and
+nonpublication can leave indistinguishable Log prefixes: the fallback
+preserves countability but can count an honest Auditor when the Aggregator
+withholds both its publication and a receipt.
 
-### Decision
+## Consequences and alternatives
 
-Require the missing ID to appear in that pull attestation's `found` list.
-The same Auditor's successor for the same Log must seal at or above the
-attestation height, including its own Block. Read both the successor and
-the missing-ID test from the prefix through N. An unrelated gap exempts
-no attested pair. Once the missing item seals, ordinary discharge decides
-completion.
+Canonical position resolves ration competition without adding ordering
+freedom. Completion can repair the current count without claiming that a
+deadline was met. An Aggregator's signed receipt supplies authenticated
+attribution; a signer-created gap cannot erase arbitrary duties.
 
-### Consequences
+Keeping every late-sealed failure would confuse permitted transport delay
+with shirking. Accepting unauthenticated predecessor gaps would let a
+shirker manufacture exemptions. Neither choice is compatible with evidence
+limited to what the Log actually authenticates.
 
-The Aggregator's signed receipt supplies the pair attribution without
-putting off-Log publication time into replay. Empty or unrelated receipts
-give no chain-based exemption. This decision does not expand the separate
-unattested-pair rule.
+## Verification
+
+`vectors/wist4/extension.json` and `coverage.json` exercise ordering,
+completion and receipt-backed exemptions. Publication timing and honest
+availability remain live-service obligations under WIST-4's checklists.

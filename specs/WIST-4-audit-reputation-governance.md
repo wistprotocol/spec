@@ -643,10 +643,10 @@ The Aggregator MUST also remove it by `auditor_remove` (§3), whose
 `evidence` MUST name the failed Blocks — but the `auditor_remove` records
 the consequence and does not create it. A failure count is exactly as
 recomputable as the selection set that produced it, and the state a
-provably shirking Auditor's Records are in MUST NOT depend on whether the
+Auditor's Records are in once coverage failure is established MUST NOT depend on whether the
 one party those Records are evidence against chooses to file: an Aggregator
-holding an Auditor key of its own would otherwise keep a demonstrably
-shirking Auditor on the roster and keep counting whatever it did publish.
+holding an Auditor key of its own would otherwise keep an Auditor with
+failed duties on the roster and keep counting whatever it did publish.
 
 **The state is dated where it becomes derivable.** *Shows* is read at N
 and nowhere else. A Block enters the count above only from the
@@ -880,14 +880,12 @@ everything it feeds is: WIST-3 §8 makes an Auditor roster, and every
 state computed from that roster's Records, a function of one chain's
 replay, and a single chain spanning an Auditor's Logs would leave each
 of them holding items whose named predecessor it can neither find nor
-attribute to another Log — a permanent gap, and by the rule below a
-permanent amnesty, granted in proportion to the number of Logs an
-Auditor joined. The chain is what turns selective
-suppression into evidence: a sealed item whose `prev_record` names an
-ID the Log does not contain proves, to any replaying party, that the
-missing item existed and was published before its successor — so the
-absence is suppression or a failed pull, never shirking, and a coverage
-failure MUST NOT be derived from it. For each sealed Block and each
+attribute to another Log. A successor's signed `prev_record` is a claim
+about a predecessor, not proof that its signer held or published one:
+any signer can invent a hash without knowing a preimage. A missing link
+alone therefore excludes no coverage failure. The attested exemption
+below additionally requires the Aggregator's signed acknowledgment of
+that ID on the particular duty's path. For each sealed Block and each
 Auditor admitted at its `sealed_at`, the Aggregator MUST fetch that
 Auditor's path for the Block after the Auditor's coverage deadline for
 it passes — the later of its deadlines there, by §9's combination rule —
@@ -907,22 +905,13 @@ after the confirmation window the extension exists to serve has closed
 and §9's combination rule bounds the pair so that a Record published
 at the extension deadline seals inside the window. The attestation and
 the failure count read the coverage-deadline pull alone, which is the
-one that sees the path complete. A coverage failure for an (Auditor, Block)
-pair enters the §4 failure count **only** when the Log carries the
-Aggregator's `pull_attestation` for that pair showing the duty unmet
-and no sealed successor contradicts it by chain as defined below, and
-it enters that count from the height of the Block that sealed the attestation, never
-from the height of the Block whose duty it records. The asymmetry is
-deliberate, and it is the appeal pattern (§7, WIST-2 §3.3) applied to the
-one evidence class that lacked it: without the attestation requirement,
-an Aggregator could manufacture an honest Auditor's removal by silently
-declining to pull — a coverage failure needs no `auditor_remove`, so
-suppression and shirking would be indistinguishable on replay, the
-opposite of what §11 claims. With it, silence stops counting against
-the Auditor and starts counting against the Aggregator, whose missing
-attestation for a duty it owes is itself derivable by replay; and a
-false attestation is a permanent signed statement that any third party
-who fetched the Auditor's path during the window can contradict.
+one that sees the path complete. An unmet attested pair counts unless a sealed successor supplies the
+pair-specific contradiction below. Its establishing height is the earlier
+of this attestation and the unattested fallback, as defined above. A false
+attestation is a permanent signed statement that another party who fetched
+the path can contest. Before the fallback, a missing attestation delays
+counting; after it, silence no longer exempts the duty. This keeps the
+count derivable without claiming that absence proves which party failed.
 
 **An attested contradiction is pair-specific.** At height N, a chain
 successor contradicts an unmet `pull_attestation` only when it is this
@@ -936,32 +925,29 @@ attestation's own Block qualifies; no Entry-position tie is read.
 An unrelated missing predecessor, an empty `found` list, or another
 Auditor's chain supplies no contradiction of this pair. Once the named
 item seals, this missing-item exemption ends; the ordinary discharge
-rule determines whether the duty is complete. This rule does not
-broaden the unattested-pair exemption below into an attested-pair amnesty.
+rule determines whether the duty is complete. This acknowledgment exempts only its named pair, never other
+unattested duties of the same Auditor.
 
 **The gate is not an amnesty.** Gating the failure count on the
 attestation protects an honest Auditor from a silent Aggregator, but
 read alone it would hand every shirking Auditor the same protection:
 an Aggregator that simply never attests would make coverage failure
-uncountable for the whole roster, and §11's "shirking is detectable
-from the Log alone" would be true of the detection and false of the
-consequence. So the omission resolves rather than suspends. When the
+uncountable for the whole roster, with visible missing discharge but
+no consequence. So the omission resolves rather than suspends. When the
 Log carries no `pull_attestation` for an (Auditor, Block) pair by
 `record_seal_blocks` Blocks after that Auditor's coverage deadline —
 the `record_seal_blocks`-th Block whose `sealed_at` is after that
 deadline — the pair is **unattested** from that Block's height, and an
 unattested pair counts toward the §4 failure count from that height
-exactly as an attested unmet duty does from its own — unless the
-Log carries, for that Auditor, any sealed item whose `prev_record`
-chain shows a published item the Aggregator did not seal, in which
-case every unattested pair for that Auditor in the same 30-day window
-is excluded from the count instead. The chain is the discriminator the
-attestation cannot be: an Auditor that published has proof it
-published, and one that published nothing has none. An Aggregator that
-stops attesting therefore stops shielding shirkers without gaining any
-lever over the Auditors who serve their duty, which is the only
-division of the two cases that rests on evidence rather than on
-either party's word.
+exactly as an attested unmet duty does from its own. A bare predecessor
+gap supplies no exemption, even if its successor is signed and sealed.
+Complete later discharge still clears the current failure count as stated
+above. An Aggregator that withholds every receipt and publication can
+therefore make an honest Auditor's Log prefix indistinguishable from a
+shirker's. Replay cannot infer publication from that prefix; the missing
+receipt remains a visible Aggregator duty breach, not evidence that the
+Auditor published. No unverified claim of a predecessor repairs that
+information limit.
 
 Worked numbers for this section — real values from `vectors/wist4/sampling.json`
 — are in the Appendix.
@@ -3303,18 +3289,14 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   never a derived state, because §4 answers a contradiction by escalating
   the audited domain's sampling — the Log cannot tell a lying filer from
   a cloaked one, and more looks resolve both.
-- **Shirking is detectable from the Log alone, whole or partial.** For every
-  Block sealed in an Auditor's admitted window the Log must hold that
-  Auditor's `vrf_proof` — inside an Audit Record for each selected Delta,
-  or inside a `coverage_attestation` where the VRF selected nothing (§4).
-  An Auditor that audits nothing and attests nothing is therefore not merely
-  suspected but demonstrated, by any party replaying the Log, with no
-  challenge protocol, no side channel, and no cooperation from the Auditor
-  — demonstrated, that is, once the Aggregator's `pull_attestation` for the
-  pair is sealed, which §4 requires before any failure counts: absence
-  alone is never evidence against the Auditor, because absence is exactly
-  what suppression would manufacture, and the `prev_record` chain turns
-  any selectively suppressed item into proof of its own existence.
+- **Coverage shortfalls are derivable; their cause is not always provable.**
+  Each selected Delta requires a Record and an empty draw requires a
+  coverage attestation. Missing discharge counts under §4's attested or
+  fallback rule. The signed, pair-specific receipt can authenticate an
+  Aggregator's acknowledgment of an omitted item; a bare predecessor hash
+  cannot. Complete withholding by the Aggregator and nonpublication by
+  the Auditor can leave the same prefix, so coverage state alone does not
+  prove which party failed.
   Since the proof is published either way, an Auditor cannot hide behind "my
   VRF selected nothing": that claim is a signed, falsifiable statement whose
   proof anyone can check against the Block Hash. Nor can it shirk *part* of

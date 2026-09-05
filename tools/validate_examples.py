@@ -2446,6 +2446,29 @@ check("schema:wist4-unmeasured", _dc4_unmeasured_field)
 def _coverage_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
 
+def _dc4_authenticated_coverage_gap():
+    v = _coverage_vector(); gap = v["authenticated_gap"]
+    keys = {k["key_id"]: b64u_decode(k["public_key"]) for k in gap["keys"]}
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    def verify(doc):
+        validator.validate(doc)
+        Ed25519PublicKey.from_public_bytes(keys[doc["sig"]["key_id"]]).verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+    successor = gap["successor"]; verify(successor)
+    d = successor["update"]["details"]
+    assert ecvrf.verify(keys[successor["sig"]["key_id"]], bytes.fromhex(d["block"][7:]), bytes.fromhex(d["vrf_proof"]))
+    for case in gap["cases"]:
+        receipt = case["receipt"]
+        if receipt is not None:
+            verify(receipt)
+        matches = receipt is not None and receipt["update"]["subject"] == successor["update"]["subject"] and receipt["update"]["details"]["block"] == gap["pulled_block"] and d["prev_record"] in receipt["update"]["details"]["found"]
+        assert matches == case["exempt"], case["label"]
+    for case in v["counting_cases"]:
+        counts = case["attestation"] != "unmet-chain-contradicted"
+        assert counts == case["counts"], case["label"]
+    fabricated = gap["cases"][0]
+    assert d["prev_record"] is not None and fabricated["receipt"] is None and not fabricated["exempt"]
+check("vectors:wist4-authenticated-coverage-gap", _dc4_authenticated_coverage_gap)
+
 def _establishing_height(case, attestation_overrides=False):
     """WIST-4 §4: the earlier of the two evidence heights the Log carries —
     the attestation's Block, or the record_seal_blocks-th Block sealed after
@@ -4079,6 +4102,12 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/coverage.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist4/coverage.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/coverage.json", "block"): "a Block hash",
+    ("vectors/wist4/coverage.json", "pulled_block"): "a Block hash",
+    ("vectors/wist4/coverage.json", "prev_record"): "a claimed predecessor ID, fabricated in the negative case",
+    ("vectors/wist4/coverage.json", "found"): "a signed acknowledgment of a Record or attestation ID",
     ("vectors/wist4/sanctions.json", "activation"): "a confirming Audit Record ID",
     ("vectors/wist4/sanctions.json", "record_id"): "an Audit Record ID",
     ("vectors/wist4/sanctions.json", "current_activation_at_reversal"): "a confirming Audit Record ID",
@@ -4356,8 +4385,8 @@ def _dc4_coverage_attestation():
 
     An Auditor whose VRF selects nothing in a Block publishes a
     `coverage_attestation` carrying that Block's vrf_proof, so the proof
-    reaches the Log either way and shirking is detectable without any
-    out-of-band challenge.
+    supplies evidence even for an empty draw. Missing discharge is counted
+    under §4; absence alone does not identify who withheld the evidence.
     """
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     actions = schema["properties"]["update"]["properties"]["action"]["enum"]
