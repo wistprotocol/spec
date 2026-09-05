@@ -3157,6 +3157,8 @@ sanction_void_scenarios = [
     ("late-ruling-does-not-cure", 0, 10 * DAY_S, ["upheld", 45 * DAY_S]),
     ("overturned-voids-when-sealed", 0, 10 * DAY_S, ["overturned", 20 * DAY_S]),
     ("appeal-after-t-does-not-discharge", 0, (14 + 7 + 1) * DAY_S, None),
+    ("appeal-sealed-at-t-discharges", 0, (14 + 7) * DAY_S, None),
+    ("appeal-sealed-after-the-window-by-t-discharges", 0, 16 * DAY_S, None),
 ]
 sanction_void_cases = [
     {"label": label, "notice_sealed_at_s": notice, "appeal_sealed_at_s": appeal,
@@ -3165,6 +3167,8 @@ sanction_void_cases = [
                                 None if ruling is None else (ruling[0], ruling[1]))}
     for label, notice, appeal, ruling in sanction_void_scenarios
 ]
+assert [c["void_at_s"] for c in sanction_void_cases[-3:]] == \
+    [21 * DAY_S, 51 * DAY_S, 46 * DAY_S], "appeal timeliness reads the Block"
 sanction_in_force_scenarios = [
     ("never-met", [], [], 100),
     ("met-uncleared", [50], [], 100),
