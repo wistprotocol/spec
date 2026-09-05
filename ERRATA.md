@@ -1777,6 +1777,33 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-2 §8: a redirect chain terminates (revision, not errata)
+
+Adds two bounds and their rationale to §8's *Cache poisoning of
+`.well-known`* bullet.
+
+**What it states.** §8 constrained a redirect's target and nothing else,
+and the target rule alone does not terminate: two hosts both listed in a
+Publisher's `subdomain_scope` may point at each other for ever, and every
+hop satisfies the rule. An Aggregator now MUST NOT follow a redirect to a
+URL it has already fetched in the same chain, and MUST NOT follow more
+than five in one. A resource whose chain exceeds either bound is not
+retrieved, which for a Feed is `WIST2-E01` like any other failure to
+fetch. The five is the allowance WIST-4 §9's `audit_redirect_max` already
+gives an Auditor, chosen for symmetry rather than derived.
+
+**Why it is a revision.** It fails the first condition. An Aggregator
+that followed an in-scope chain of six hops conformed to the previous
+text and does not conform now, and the Publisher it was reaching becomes
+unreachable to it. The defect it closes is worse than the break: a
+Publisher able to set two in-scope redirects could hold an Aggregator's
+fetch open indefinitely, at no cost to itself, from inside the authority
+the target rule exists to confine it to.
+
+**Status.** Unexercised. No vector exercises redirects at all; the bounds
+rest on reading. They belong with the first fetch-behavior fixtures,
+which no vector format currently covers.
+
 ## 2026-09-04 — WIST-3 §5: which Aggregator key signs a Checkpoint
 
 Adds three sentences to §5.
