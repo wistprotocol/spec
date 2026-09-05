@@ -1777,6 +1777,46 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-4 §5: vectors that tell the normalization apart
+
+No document text changes. Adds five cases to
+`vectors/wist2/text-extraction.json`, implements §5's normalization in
+`tools/link_extraction.py` — which had stood in for it with a lowercase
+and a whitespace split — and adds `tools/segmentation.py`,
+`tools/unicode_tables.py` and the Unicode Consortium's own segmentation
+test files under `tools/ucd/`.
+
+**What it states.** What §5 already states, in cases that can tell it
+apart from the readings it excludes. Every text fixture in the suite was
+ASCII letters and spaces, where a lowercase, a whitespace split and a
+code-point count all agree with default full case-folding, untailored
+UAX #29 segmentation and extended grapheme clusters — so the vectors
+could not distinguish a conforming Auditor from one that had implemented
+none of it, and the reference tool itself had implemented none of it. The
+new cases separate them: sharp s folds to `ss` where a lowercase leaves
+it; a decomposed and a precomposed spelling are one text under NFC; a Han
+page written without spaces has as many words as characters and clears
+the mass guard, where a whitespace split sees one word and rules it
+`not_auditable`; a punctuation segment carries no L* or N* character and
+is discarded; and the short branch counts six grapheme clusters where a
+code-point reading counts twelve, which caps the shingle length
+differently and scores the pair differently.
+
+**Why it qualifies.** Each case executes sentences already in §5; none
+adds to them. `tools/segmentation.py` implements UAX #29 from the annex
+rather than from a library, for the reason `ecvrf.py` gives for the VRF,
+and is checked in full against the Consortium's `WordBreakTest.txt` and
+`GraphemeBreakTest.txt` on every harness run — 1826 word cases and 1093
+grapheme cases — so the reading is anchored outside this repository
+rather than against a second reading of the same text.
+
+**Status.** Exercised, and anchored. `vectors:wist2-text-extraction`
+recomputes all five cases, `unicode:uax29-conformance` proves the
+segmentation beneath them against the Consortium's published answers, and
+`negative:wist2-normalization` recomputes each case under the one reading
+it exists to rule out and fails if the two agree — so a fixture that
+discriminates nothing cannot enter the vector unnoticed.
+
 ## 2026-09-04 — WIST-1 §2, §13; WIST-4 §5, §13: one pinned Unicode version (revision, not errata)
 
 Adds the Unicode version pin to WIST-1 §2's Canonical Host and WIST-4

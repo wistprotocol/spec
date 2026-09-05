@@ -62,6 +62,12 @@ tools/.venv/bin/python tools/validate_examples.py   # validates examples + vecto
 tools/.venv/bin/python tools/gen_vectors.py         # regenerates (byte-identical)
 ```
 
+`tools/unicode_tables.py` is generated from the Unicode Character
+Database for the release [ADR-0017](decisions/0017-one-pinned-unicode-version.md)
+pins, by `tools/gen_unicode_tables.py`; it is committed, so validation and
+generation stay offline, and the script is re-run only when that release
+moves.
+
 The harness validates every example against its schema, recomputes the
 WIST-1 delta ID and Ed25519 signature, recomputes the payload commitment
 that binds a delta to content the log does not carry, and recomputes the

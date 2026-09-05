@@ -30,7 +30,12 @@ verification surface, listed here to stay visible rather than implicit.
 
 Every family additionally has mutation twins or negative cases where
 applicable; those prove sensitivity, not correctness, and are not listed
-as anchors.
+as anchors. `negative:wist2-normalization` is stronger than most: it
+recomputes each normalization case under the one reading that case exists
+to rule out — a lowercase instead of a case fold, no NFC, a whitespace
+split instead of UAX #29, code points instead of grapheme clusters — and
+fails if the two readings agree, so a fixture that discriminates nothing
+cannot enter the vector unnoticed.
 
 ## Inventory
 
@@ -42,7 +47,8 @@ as anchors.
 | wist1 `declaration-sequence.json` | prose-traced sequencing rules | self-consistency | self-consistency-only |
 | wist1 `recovery-settlement.json` | prose-traced settlement rules | self-consistency | self-consistency-only |
 | wist1 `keyset-at-height.json` | prose-traced resolution rule | self-consistency | self-consistency-only |
-| wist2 `link-extraction.json`, `text-extraction.json` | recomputed by `tools/link_extraction.py` over the fixture page | self-consistency | self-consistency-only |
+| wist2 `link-extraction.json` | recomputed by `tools/link_extraction.py` over the fixture page | self-consistency | self-consistency-only |
+| wist2 `text-extraction.json` | extraction and the containment quotient are harness-recomputed; the WIST-4 §5 normalization beneath them segments by `tools/segmentation.py`, checked in full against the Unicode Consortium's `WordBreakTest.txt` and `GraphemeBreakTest.txt` (`unicode:uax29-conformance`) | external-KAT (segmentation) | partial |
 | wist2 `page-keyset.json` | prose-traced resolution rule | self-consistency | self-consistency-only |
 | wist3 `block.json`, `inclusion-proof.json` | Merkle hashing vs the Certificate Transparency reference answers (`merkle:ct-reference-vectors`); exhaustive inclusion property test; signatures via third-party libs | external-KAT + property-test | anchored |
 | wist3 `empty-block.json` | the deliberate deviation from RFC 6962's empty root, with both constants pinned side by side | external-KAT (documented deviation) | anchored |
