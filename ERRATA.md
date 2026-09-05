@@ -2546,3 +2546,42 @@ reader checking the claim would have caught, and changes no value.
 `vectors/wist4/link-agreement.json`'s one-dropped case floors 2/3 to
 666 666; `spec:wist4-evaluation-order` now requires §6 to name the
 divisions outside it and §4 and §5 to write them out.
+
+## 2026-09-05 — WIST-4 §4: the establishing height is the earlier evidence the Log carries
+
+Adds one clause and two sentences to §4's *The state is dated where it
+becomes derivable* paragraph, and corrects `vectors/wist4/coverage.json`'s
+`establishing_cases`.
+
+**What it states.** A failed duty has two possible evidences, each fixed
+by the transport: the Block sealing the `pull_attestation` for the pair,
+and the `record_seal_blocks`-th Block sealed after the coverage deadline,
+from which an unattested pair counts. Where the Log carries both, the
+failure counts from the earlier. A party reading the Log at a height
+between the unattested rule's Block and an attestation sealed later
+carries no attestation, derives the unattested failure and counts it;
+the attestation, when it seals, confirms a failure already counted and
+moves nothing, because nothing sealed above a height changes what the
+Log shows at it.
+
+**Why it qualifies.** The paragraph already said *Shows* is read at N
+and nowhere else and that every state is a function of the Log up to the
+height it is read at. The vectors nonetheless dated a failure to the
+attestation's Block wherever an attestation existed anywhere in the
+case, so at a height below that Block — with the unattested rule's
+evidence already sealed — they expected the failure not to count. That
+is a reading from above N, which the paragraph's own words exclude; the
+two expectations it produced (heights 179 and 819 of the former cases 0
+and 3) were wrong, and an implementation following the text disagreed
+with them. The correction states what the text implied and changes no
+rule.
+
+**Status.** Exercised. `coverage.json`'s establishing cases now hold an
+attestation sealed before the unattested rule's Block (establishing at
+the attestation), one sealed after it (establishing at the unattested
+Block, with probes on both sides of the later attestation), the
+unattested case, the not-yet-passed deadline, and evidence outside the
+audited Block's window — the last rebuilt so that no evidence of either
+kind falls inside it. `vectors:wist4-coverage-establishing` recomputes
+every height and probe, and its twin fails the reading under which a
+later attestation moves the height.
