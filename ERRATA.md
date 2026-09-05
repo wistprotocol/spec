@@ -3107,3 +3107,15 @@ behavior and schemas are unchanged.
 checkpoint, a zero scoreboard and a disagreeing scoreboard. The harness
 checks signatures and IDs and derives the admitted key without treating
 the scoreboard as a promotion predicate.
+
+## 2026-09-05 — WIST-4 §5.2: alternate commitment input octets
+
+**What changed.** `canary.json` now supplies the exact alternate body and
+salt used by its cloaked-fetch and wrong-salt cases. Its existing
+`salt_source` identifies the Reference Payload used by every leaf.
+Protocol behavior and commitment outputs are unchanged.
+
+**Exercised.** The harness recomputes both HMACs for both cases from the
+published octets, including signer identity for `credit_commitment`.
+The cloaked-fetch case no longer substitutes a mismatch check for a
+recomputation of its sealed values.

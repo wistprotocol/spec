@@ -4276,6 +4276,8 @@ write_json(WIST4 / "canary.json", spaced_labels({
                    "commitment_envelope": canary_commitment_envelope,
                    "cases": canary_membership_cases},
     "payload_page_hex": PAYLOAD_PAGE.hex(),
+    "alternate_inputs": {"other_nonce_body_hex": canary_page(EXTRACT, canary_nonce(99)).hex(),
+                         "other_salt_hex": OTHER_SALT.hex()},
     "leaves": canary_leaves,
     "credit_cases": canary_credit_cases,
     "binding": {"note": "All timing, domain and authorization prerequisites are satisfied; the events isolate membership and binding replay. An occurrence index denotes the same fixed Record in scoreboard_records, regardless of how many Entries or checkpoints carry it.",
