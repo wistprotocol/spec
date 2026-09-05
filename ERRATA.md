@@ -1777,6 +1777,33 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-3 §5: which Aggregator key signs a Checkpoint
+
+Adds three sentences to §5.
+
+**What it states.** A Checkpoint for Block N is signed by a `key_id`
+valid at height N in §3.4's sense, and a Consumer verifies it against
+that key set rather than against the genesis key alone. The verification
+order follows: the key set valid at N is what the Blocks up to N
+establish, so the Checkpoint's signature is checked after those Blocks
+are walked, and nothing rests on checking it earlier — each Block
+authenticates itself under §3.4, and the Checkpoint's `block_hash` binds
+it to the Block at N.
+
+**Why it qualifies.** §3.4 already defines validity at a height and
+already governs every Aggregator signature the suite defines; §5 simply
+never said which of those keys a Checkpoint carries. An Aggregator that
+never rotated is unaffected, since the genesis key is valid at every
+height until an `aggregator_key_remove` retires it, and a Consumer that
+verified against the genesis key alone was reading the only key it had.
+Nothing that verified before fails now: the genesis key remains in the
+set until retired.
+
+**Status.** Unexercised. No vector rotates an Aggregator key, so both
+the Block rule §3.4 states and the Checkpoint rule this adds rest on
+reading. A vector that admits a second Aggregator key and seals a Block
+under it belongs with the first Log-succession fixtures.
+
 ## 2026-09-04 — WIST-1 §4: a JSON number is parsed with correct rounding
 
 Adds the first half of the paragraph *A number is the double it denotes*
