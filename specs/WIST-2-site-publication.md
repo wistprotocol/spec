@@ -207,7 +207,9 @@ pulls.
 
 `next` MUST be an absolute `https` URL whose Canonical Host is within the
 Publisher's authority and whose path is under
-`/.well-known/wist/`.
+`/.well-known/wist/`. A `next` that is not is `WIST2-E01`: the walk stops
+there with no usable Page, exactly as it stops at a Page it cannot
+fetch, and an Aggregator MUST NOT follow it.
 
 **Caching.** Publishers SHOULD serve `feed.json` with `Cache-Control:
 no-cache` and an `ETag`; Aggregators SHOULD use conditional requests. A
@@ -316,8 +318,13 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    honest large site backfills across days; a hostile deep feed costs
    its own hosting bill, not the Aggregator's month.
 1. Fetches `feed.json`; verifies its signature against the domain's Key
-   Set (WIST-1 §5). A Feed that cannot be fetched at all is `WIST2-E01` and is
-   retried on the backoff schedule of §7. A Feed whose signature does
+   Set (WIST-1 §5). A Feed the Aggregator cannot use is `WIST2-E01` and is
+   retried on the backoff schedule of §7 — one that cannot be fetched at
+   all, and one fetched but unusable: not well-formed JSON, failing the
+   Feed schema, or naming a `next` outside the Publisher's authority
+   (§3.2). The two share a code because they share a remedy and a
+   remedier: the Aggregator holds no Feed either way, nothing about the
+   domain's state has changed, and only the Publisher can fix it. A Feed whose signature does
    not verify against the Key Set the Aggregator holds MUST trigger one
    re-fetch of `publisher.json`, evaluated under WIST-1 §5.2, and a
    second verification of the same Feed bytes against the Key Set that
@@ -422,7 +429,7 @@ convenience. This asymmetry is the adoption incentive for WIST-1/WIST-2.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| WIST2-E01 | Feed unreachable after Ping. Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 64 min; a fresh ping cancels a pending backoff and starts a new attempt, subject to quota. |
+| WIST2-E01 | Feed unusable after Ping: unreachable, or fetched and unusable — not well-formed JSON, failing the Feed schema, or naming a `next` outside the Publisher's authority (§3.2, §5). Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 64 min; a fresh ping cancels a pending backoff and starts a new attempt, subject to quota. The pull is not noise (§4): the backoff, not the quota, is what bounds a domain that keeps serving one. |
 | WIST2-E02 | Ping produced no new feed content. Counts as noise against the domain's Ping quota. |
 | WIST2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (WIST-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
 | WIST2-E04 | First contact or Feed authentication failure. Three cases, one code, each one of the Feed failing to authenticate as this domain's: a Feed whose signature does not verify against the domain's Key Set even after the one Declaration re-fetch §5 step 1 requires; a Feed whose `feed.domain` differs from the host it was fetched from (§4), which authenticates as some other domain's Feed or as none, whatever key signed it; and a first-contact pull (§5 step 0) whose `publisher.json` is missing, unreachable, malformed, or fails WIST-1 §5.1 verification — the last being the case where no Key Set exists to check the first against. The pull is discarded; counts as noise against the quota. The status endpoint (§7.1) MUST distinguish them in its `detail` field, since a Publisher whose Declaration never loaded, one whose Feed signature is wrong, and one serving a misaddressed Feed take entirely different remedies. |
