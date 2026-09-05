@@ -2466,3 +2466,31 @@ Delta sealed at the reset height already discriminates the two readings
 on all three inputs: under the inclusive bound the Delta at `R` starts
 `A`, its URL counts toward `C` and its Confirmed Inconsistency enters
 `penalty_n`; under the strict bound none of the three does.
+
+## 2026-09-05 — WIST-4 §6.3: what a reset buys is the formula's rate, not the ceiling
+
+Rewrites one clause of §6.3's *Sanction state binds the key identity too*
+paragraph and adds `rate_cases` to `vectors/wist4/sampling.json`.
+
+**What it states.** A domain that resets re-enters Provisional at
+`reputation_u` 100 000, and §4's formula at that reputation gives
+`p_1e7` = 200 000 + 3 × 900 000 = 2 900 000. The paragraph called that
+"the sampling ceiling §4 applies at that reputation", but §4 displaces
+the formula to `sampling_ceiling` (5 000 000) under exactly two states —
+a level-1 sanction and an escalation — and a reset lifts the rung, so
+the reset domain reads the formula. The clause now names the value and
+what the lift trades: the ceiling for the formula's near-maximum, never
+for an established domain's rate.
+
+**Why it qualifies.** The sentence explained a rule and misstated the
+number the rule produces; §4's formula, the Parameter Registry and
+Appendix A all give 2 900 000 at the cap and were never in doubt. No
+implementation could have conformed to the gloss without contradicting
+§4, and the correction changes nothing computed.
+
+**Status.** Exercised. `sampling.json`'s `rate_cases` give the rate at
+the Provisional cap with no rung in force (the formula's 2 900 000),
+the same reputation under a level-1 rung (the ceiling), and the two ends
+of the formula with and without an escalation; `vectors:wist4-sampling`
+recomputes each and requires §6.3 to name the cap's value, and its twin
+fails a reading that puts the ceiling at the cap.

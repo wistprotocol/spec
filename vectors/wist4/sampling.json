@@ -72,5 +72,42 @@
       "rhs_approx": "9.223e24",
       "selected": false
     }
+  ],
+  "rate_cases": [
+    {
+      "label": "provisional cap under no rung",
+      "reputation_u": 100000,
+      "level1_or_escalation": false,
+      "p_1e7": 2900000,
+      "is_ceiling": false
+    },
+    {
+      "label": "provisional cap under a level 1 rung",
+      "reputation_u": 100000,
+      "level1_or_escalation": true,
+      "p_1e7": 5000000,
+      "is_ceiling": true
+    },
+    {
+      "label": "reputation zero under no rung",
+      "reputation_u": 0,
+      "level1_or_escalation": false,
+      "p_1e7": 3200000,
+      "is_ceiling": false
+    },
+    {
+      "label": "full reputation under no rung",
+      "reputation_u": 1000000,
+      "level1_or_escalation": false,
+      "p_1e7": 200000,
+      "is_ceiling": false
+    },
+    {
+      "label": "full reputation under escalation",
+      "reputation_u": 1000000,
+      "level1_or_escalation": true,
+      "p_1e7": 5000000,
+      "is_ceiling": true
+    }
   ]
 }

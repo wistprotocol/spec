@@ -1562,6 +1562,28 @@ for idx, did, dbytes, D in (
 assert any(c["selected"] for c in selection_cases), "no selected case in the vector"
 assert not all(c["selected"] for c in selection_cases), "no rejected case in the vector"
 
+
+def sampling_rate(reputation_u: int, displaced: bool) -> int:
+    """§4: a level-1 sanction or an escalation in force displaces the formula
+    to sampling_ceiling; nothing else does, the Provisional cap included."""
+    return SAMPLING_CEILING_1E7 if displaced else sampling_p_1e7(reputation_u)
+
+
+rate_cases = [
+    {"label": label, "reputation_u": rep_u, "level1_or_escalation": displaced,
+     "p_1e7": sampling_rate(rep_u, displaced),
+     "is_ceiling": sampling_rate(rep_u, displaced) == SAMPLING_CEILING_1E7}
+    for label, rep_u, displaced in [
+        ("provisional-cap-under-no-rung", 100_000, False),
+        ("provisional-cap-under-a-level-1-rung", 100_000, True),
+        ("reputation-zero-under-no-rung", 0, False),
+        ("full-reputation-under-no-rung", 1_000_000, False),
+        ("full-reputation-under-escalation", 1_000_000, True),
+    ]
+]
+assert [c["p_1e7"] for c in rate_cases] == [2_900_000, 5_000_000, 3_200_000, 200_000, 5_000_000], \
+    "rate cases drifted"
+
 write_json(WIST4 / "sampling.json", {
     "auditor_public_key": b64u(pub_raw),
     "ciphersuite": "ECVRF-EDWARDS25519-SHA512-TAI",
@@ -1575,6 +1597,7 @@ write_json(WIST4 / "sampling.json", {
     "parameters": {"floor_1e7": SAMPLING_FLOOR_1E7, "ceiling_1e7": SAMPLING_CEILING_1E7,
                    "slope_per_micro": SAMPLING_SLOPE},
     "selection": selection_cases,
+    "rate_cases": spaced_labels(rate_cases),
 })
 print("wist4 sampling alpha:", alpha.hex())
 print("wist4 sampling pi:", pi.hex())
