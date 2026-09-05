@@ -877,8 +877,8 @@ the failure count read the coverage-deadline pull alone, which is the
 one that sees the path complete. A coverage failure for an (Auditor, Block)
 pair enters the §4 failure count **only** when the Log carries the
 Aggregator's `pull_attestation` for that pair showing the duty unmet
-and no later-sealed item contradicts it by chain, and it enters that
-count from the height of the Block that sealed the attestation, never
+and no sealed successor contradicts it by chain as defined below, and
+it enters that count from the height of the Block that sealed the attestation, never
 from the height of the Block whose duty it records. The asymmetry is
 deliberate, and it is the appeal pattern (§7, WIST-2 §3.3) applied to the
 one evidence class that lacked it: without the attestation requirement,
@@ -890,6 +890,21 @@ the Auditor and starts counting against the Aggregator, whose missing
 attestation for a duty it owes is itself derivable by replay; and a
 false attestation is a permanent signed statement that any third party
 who fetched the Auditor's path during the window can contradict.
+
+**An attested contradiction is pair-specific.** At height N, a chain
+successor contradicts an unmet `pull_attestation` only when it is this
+Auditor's publication for this Log, is sealed at or above the
+attestation's height and at or below N, and its non-null `prev_record`
+names an ID that the attestation lists in `details.found` but the Log
+prefix through N lacks. The attestation's signed `block` and `found`
+provide the missing duty attribution: the Aggregator itself recorded
+that this ID was returned from that pair's path. A successor in the
+attestation's own Block qualifies; no Entry-position tie is read.
+An unrelated missing predecessor, an empty `found` list, or another
+Auditor's chain supplies no contradiction of this pair. Once the named
+item seals, this missing-item exemption ends; the ordinary discharge
+rule determines whether the duty is complete. This rule does not
+broaden the unattested-pair exemption below into an attested-pair amnesty.
 
 **The gate is not an amnesty.** Gating the failure count on the
 attestation protects an honest Auditor from a silent Aggregator, but

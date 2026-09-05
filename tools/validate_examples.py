@@ -2522,6 +2522,26 @@ def _dc4_late_discharge_twin():
     assert case["pull_height"] < after["height"] and after["complete"]
 check("negative:wist4-late-discharge", _dc4_late_discharge_twin)
 
+def _dc4_suppression_attribution():
+    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
+    for case in v["attribution_cases"]:
+        pull, successor = case["pull"], case["successor"]
+        n, arrived = case["n_height"], case["predecessor_sealed_height"]
+        proof = all((pull["height"] <= successor["height"] <= n,
+                     successor["auditor"] == case["auditor"], successor["log"] == case["log"],
+                     successor["prev_record"] in pull["found"],
+                     arrived is None or arrived > n))
+        assert proof == case["chain_contradicts"], case["label"]
+check("vectors:wist4-suppression-attribution", _dc4_suppression_attribution)
+
+def _dc4_suppression_attribution_twin():
+    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
+    unrelated = next(c for c in v["attribution_cases"] if c["label"] == "unrelated missing predecessor")
+    assert unrelated["predecessor_sealed_height"] is None and not unrelated["chain_contradicts"]
+    related = next(c for c in v["attribution_cases"] if c["label"] == "related missing predecessor")
+    assert related["successor"] == unrelated["successor"] and related["chain_contradicts"]
+check("negative:wist4-suppression-attribution", _dc4_suppression_attribution_twin)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 

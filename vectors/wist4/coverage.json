@@ -1217,5 +1217,185 @@
         }
       ]
     }
+  ],
+  "attribution_cases": [
+    {
+      "label": "related missing predecessor",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing a"
+        ]
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log a",
+        "height": 81,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": true
+    },
+    {
+      "label": "unrelated missing predecessor",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing b"
+        ]
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log a",
+        "height": 81,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": false
+    },
+    {
+      "label": "empty receipt supplies no attribution",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": []
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log a",
+        "height": 81,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": false
+    },
+    {
+      "label": "another Auditor cannot contradict",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing a"
+        ]
+      },
+      "successor": {
+        "auditor": "checker.example.org",
+        "log": "log a",
+        "height": 81,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": false
+    },
+    {
+      "label": "another Log cannot contradict",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing a"
+        ]
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log b",
+        "height": 81,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": false
+    },
+    {
+      "label": "successor in pull Block qualifies",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing a"
+        ]
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log a",
+        "height": 80,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": true
+    },
+    {
+      "label": "successor before pull does not contradict",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing a"
+        ]
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log a",
+        "height": 79,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": false
+    },
+    {
+      "label": "missing predecessor arrives",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing a"
+        ]
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log a",
+        "height": 81,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": 90,
+      "n_height": 90,
+      "chain_contradicts": false
+    },
+    {
+      "label": "future successor supplies no proof",
+      "auditor": "audit.example.net",
+      "log": "log a",
+      "pull": {
+        "height": 80,
+        "found": [
+          "missing a"
+        ]
+      },
+      "successor": {
+        "auditor": "audit.example.net",
+        "log": "log a",
+        "height": 91,
+        "prev_record": "missing a"
+      },
+      "predecessor_sealed_height": null,
+      "n_height": 90,
+      "chain_contradicts": false
+    }
   ]
 }

@@ -2967,3 +2967,20 @@ changes the persistent-failure alternative and is not errata.
 Records and an empty-selection attestation, with partial completion and
 a non-discharging Record. The harness reads only sealed prefix inputs
 and discriminates a failure latched at its first unmet pull.
+
+## 2026-09-05 — WIST-4 §4: attribute an attested chain contradiction (revision, not errata)
+
+**What changed.** A successor contradicts an unmet pull only when its
+missing predecessor appears in that pull's `found` list, for the same
+Auditor and Log, and the successor seals at or above the pull height.
+Both same-Block evidence and later arrival of the missing item are
+explicit. ADR-0024 amends ADR-0012.
+
+**Why a revision.** The old phrase "contradicts it by chain" did not
+identify a particular duty from an absent object's hash. Requiring a
+matching signed receipt changes broader possible exemptions.
+
+**Exercised.** `vectors/wist4/coverage.json` contrasts related and
+unrelated predecessor gaps, empty receipts, another Auditor or Log,
+same-Block successors and arrival of the missing item. The harness
+recomputes attribution and discriminates a global-gap exemption.
