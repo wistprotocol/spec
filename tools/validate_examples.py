@@ -3434,12 +3434,14 @@ def _dc4_canary():
     bound = [l["delta_id"] for l in v["leaves"] if l["revealed"]]
     assert len(bound) == len(set(bound)), "a Delta is bound to two leaves"
     recomputed, labels = set(), set()
-    other_salt = bytes(b ^ 0x01 for b in salt)
+    other_salt = bytes.fromhex(v["alternate_inputs"]["other_salt_hex"])
+    assert other_salt != salt
     for case in v["credit_cases"]:
         labels.add(case["label"])
         leaf = next(l for l in v["leaves"] if l["index"] == case["leaf_index"])
         held = {"leaf": bodies[case["leaf_index"]],
-                "payload_page": bytes.fromhex(v["payload_page_hex"])}.get(case["held"])
+                "payload_page": bytes.fromhex(v["payload_page_hex"]),
+                "other_nonce": bytes.fromhex(v["alternate_inputs"]["other_nonce_body_hex"])}.get(case["held"])
         key = salt if case["salt"] == "reference" else other_salt
         if case["held"] is None:
             # §5: a not_auditable Record carries no commitment — an encounter
@@ -3448,12 +3450,6 @@ def _dc4_canary():
                 and case["response_commitment"] is None, f"{case['label']}: a neutral Record commits to nothing"
             assert case["reproduces"] is False and case["hard_hit"] is False
             assert leaf["derived_similarity"] is None, f"{case['label']}: the honest verdict below the guard"
-            continue
-        if case["held"] == "other_nonce":
-            # Bytes the vector does not carry: the sealed value must simply
-            # fail to reproduce over the leaf and must not equal any leaf value.
-            assert case["credit_commitment"] != _canary_credit(salt, bodies[case["leaf_index"]], case["auditor_id"])
-            assert case["reproduces"] is False and case["hard_hit"] is False
             continue
         signer = case["copied_from"] or case["auditor_id"]
         sealed = _canary_credit(key, held, signer)
@@ -4055,6 +4051,7 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/canary.json", "other_salt_hex"): "an alternate test salt, not content-derived",
     ("vectors/wist4/roster.json", "public_key"): "an Ed25519 public key when opaque",
     ("vectors/wist4/roster.json", "value"): "an Ed25519 signature",
     ("vectors/wist4/roster.json", "head"): "an Audit Record ID",
