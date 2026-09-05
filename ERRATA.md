@@ -3119,3 +3119,19 @@ Protocol behavior and commitment outputs are unchanged.
 published octets, including signer identity for `credit_commitment`.
 The cloaked-fetch case no longer substitutes a mismatch check for a
 recomputation of its sealed values.
+
+## 2026-09-05 — WIST-4 §7, §9.1 and Registry Update schema: notice activation target (revision, not errata)
+
+**What changed.** Sanction notices require level and activation Record ID,
+with one accepted process per target. Conflicting simultaneous notices
+reject together; old reversals affect only their matching activation.
+ADR-0032 amends ADR-0012, ADR-0021 and ADR-0022.
+
+**Why a revision.** The old fields could not identify which rung or
+rearming an appeal concerned. These new fields and multiplicity rules
+change valid sealed notices.
+
+**Exercised.** `sanctions.json` carries signed notice-target cases for
+wrong level, missing or foreign activation, duplicate and competing
+notices, same-Block activation, rearming and stale reversal. Existing
+appeal/ruling envelopes now reference notices with explicit targets.

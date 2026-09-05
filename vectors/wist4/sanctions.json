@@ -1229,6 +1229,670 @@
       ]
     }
   ],
+  "notice_target_cases": [
+    {
+      "label": "one process survives later notice",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        },
+        {
+          "height": 2,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 1",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "ZF5kc6MqTXCtFj3H40E6GOF6EYXT2p0u_qpRGcoVv1fuQwStlx1RHoyWIW3rMQrdoxoQSuVNh9Nd2ky5U_9yCw"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [
+        0
+      ],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": null
+    },
+    {
+      "label": "simultaneous notices conflict",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        },
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 1",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "ZF5kc6MqTXCtFj3H40E6GOF6EYXT2p0u_qpRGcoVv1fuQwStlx1RHoyWIW3rMQrdoxoQSuVNh9Nd2ky5U_9yCw"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+    },
+    {
+      "label": "conflict allows later notice",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        },
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 1",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "ZF5kc6MqTXCtFj3H40E6GOF6EYXT2p0u_qpRGcoVv1fuQwStlx1RHoyWIW3rMQrdoxoQSuVNh9Nd2ky5U_9yCw"
+            }
+          }
+        },
+        {
+          "height": 2,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 2",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "lqras-CKhja_ucBFjjS2rb8ZorCpiUxhJmn4Zald1X1DpNe1U1pJOPXDOQ5oWdEj3_MoJNpuJIVBeXMb3JpgDA"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [
+        2
+      ],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": null
+    },
+    {
+      "label": "duplicate notice is one process",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        },
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        },
+        {
+          "height": 2,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [
+        0
+      ],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": null
+    },
+    {
+      "label": "wrong level blocks nobody",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 4,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "1bDrZWSjR4kEOrD5LJJ86zbtCn2KvSBYCkgel2F7M1fY6Q4LpE518-HteCPWJTbAvc51X9Kd513jOHLJPG8nAg"
+            }
+          }
+        },
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 1",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "ZF5kc6MqTXCtFj3H40E6GOF6EYXT2p0u_qpRGcoVv1fuQwStlx1RHoyWIW3rMQrdoxoQSuVNh9Nd2ky5U_9yCw"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [
+        1
+      ],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": null
+    },
+    {
+      "label": "unknown activation",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:97e5550283695bccd634f4aa2efb4ea67669f6652c88373865949d21ca9e10d3"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "ir4KJGv4yh86kW7N-tP6oOsUql1zutDUJxdW17UWvYmKOfz1Qr63q4aEOdU4-dXWkRhhS3AxL44TAF_2ffxvDw"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+    },
+    {
+      "label": "same Block activation",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 0,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [
+        0
+      ],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": null
+    },
+    {
+      "label": "missing activation",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "LwWuNyYoPgy50bEBd-KL9Koh9xiZNV1NRX0bO133JtKGLb9NwHkUGATUJKmzOrZ0l3H0W5RVNJNGNu3BL2dTDA"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+    },
+    {
+      "label": "foreign subject activation",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "other.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "b0eaXW2_9fOXlBIjTow0rQKk2ku3HUQeXssEor0pNa66Fw3zaxFmtHZ1pxnHv7vbixGKQkTXap8-gDFK9xV6AQ"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [],
+      "current_activation_at_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+      "activation_after_reversal": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+    },
+    {
+      "label": "notice cannot target cleared activation",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": 2
+      },
+      "notices": [
+        {
+          "height": 3,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [],
+      "current_activation_at_reversal": "sha256:97e5550283695bccd634f4aa2efb4ea67669f6652c88373865949d21ca9e10d3",
+      "activation_after_reversal": "sha256:97e5550283695bccd634f4aa2efb4ea67669f6652c88373865949d21ca9e10d3"
+    },
+    {
+      "label": "old reversal leaves rearmed rung",
+      "activation": {
+        "subject": "site.sample.net",
+        "level": 3,
+        "record_id": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+        "height": 0,
+        "cleared_height": null
+      },
+      "notices": [
+        {
+          "height": 1,
+          "envelope": {
+            "update": {
+              "wist_version": "1.0.0",
+              "action": "notice",
+              "subject": "site.sample.net",
+              "effective_at": "2026-08-02T00:00:00Z",
+              "details": {
+                "kind": "sanction",
+                "level": 3,
+                "reason": "confirmed finding 0",
+                "appeal_deadline": "2026-08-16T00:00:00Z",
+                "activation": "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4"
+              },
+              "evidence": [
+                "sha256:2e313fa70e1465520bc886051d1954033d591b1013182673ac0a346aae7fb9b4",
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              ]
+            },
+            "sig": {
+              "key_id": "test-process-k1",
+              "alg": "Ed25519",
+              "value": "yTdayOtEkoLmwfdmAdkzgx7n63an-SUhyWoL4FUZvJxZuStjtYg0RQTu0jNHSOl4d9NRk48YRLAMMhGiQVeoDA"
+            }
+          }
+        }
+      ],
+      "accepted_indices": [
+        0
+      ],
+      "current_activation_at_reversal": "sha256:97e5550283695bccd634f4aa2efb4ea67669f6652c88373865949d21ca9e10d3",
+      "activation_after_reversal": "sha256:97e5550283695bccd634f4aa2efb4ea67669f6652c88373865949d21ca9e10d3"
+    }
+  ],
   "retired_escalation_cases": [
     {
       "label": "escalation_l2 has no numeric mapping",
@@ -1700,6 +2364,8 @@
         "effective_at": "2026-08-02T00:00:00Z",
         "details": {
           "kind": "sanction",
+          "level": 3,
+          "activation": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
           "reason": "confirmed evidence",
           "appeal_deadline": "2026-08-16T00:00:00Z"
         },
@@ -1710,7 +2376,7 @@
       "sig": {
         "key_id": "test-process-k1",
         "alg": "Ed25519",
-        "value": "S97cZd8Vt1MCj6uba7Lk7o5fCjLrskBzyFDKNQ8AWExWnHfrRs3BWQ5faJDuX7_TyBYy16VjqBVskeVFNMXSBg"
+        "value": "fP9dZ_SM8WCLqwVrRbxzbQvcRA-JmGmQjuDRez-QOGIdSKC-OZf7JIrMQ83jCoxo7R4shaOCW3UcAq_5NJ6CCg"
       }
     },
     "cases": [
@@ -1726,14 +2392,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -1746,7 +2412,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 1"
                 }
@@ -1754,7 +2420,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+                "value": "idp_I8ofFa1cvUtkLBtZmLz75mIkgNqBDISqbmLGgHBCiVidV1yUf67NUmkiP19DzuIlfZvrKOZYMHgpWq2uCg"
               }
             }
           },
@@ -1767,7 +2433,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "overturned",
                   "reasoning": "decision 2"
                 }
@@ -1775,7 +2441,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "hNVeVPsU4UgZ_iKraFMETrAT6agoKLSJNzQFNpLT0CRA9Hu_jsnj_f2JwDu1fqboOvfFTUpRlnOoMSvIvDhODQ"
+                "value": "FL_mJc49x4Bs7AUIZbImqSywhk-nAdVSmziFo3mEh2_BEfV1GK3X--ps1qVLxA3DO6A-72MxL1U0X5AyFXEACA"
               }
             }
           }
@@ -1876,14 +2542,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -1896,7 +2562,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "overturned",
                   "reasoning": "decision 1"
                 }
@@ -1904,7 +2570,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "_lsAU9-iSqRBNbml1YWf22q4jk-aoVinn2JjbyY4dxJnB9aylfz-xorAfznPZ48-r5chxntwqPF2BzPZUQnUAQ"
+                "value": "Sl7lKCJcBcwT1fLHameSRgcQJ_3aEPnTY94RtC81sOwYb1uRagYTyUd4kvUj-_NQB96rX40K1Wf6hdgmeJslBA"
               }
             }
           },
@@ -1917,7 +2583,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 2"
                 }
@@ -1925,7 +2591,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "-JVTmjRRwiz25XBEUGDQbsO-TEu0yyDooHIL9wcKoHKItcZbfyXi0Be1wb70iM0n20M8pc05kDjzifmwIKLeBQ"
+                "value": "t5_saonruYiJknbs-1jj4MtnTIuXPCsoT86myS_DtDoVpLBNBCqwP8dmqcjboyIU6YFsQtUihWUP0lcsRniaDw"
               }
             }
           }
@@ -2026,14 +2692,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -2046,7 +2712,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 1"
                 }
@@ -2054,7 +2720,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+                "value": "idp_I8ofFa1cvUtkLBtZmLz75mIkgNqBDISqbmLGgHBCiVidV1yUf67NUmkiP19DzuIlfZvrKOZYMHgpWq2uCg"
               }
             }
           },
@@ -2067,7 +2733,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "overturned",
                   "reasoning": "decision 2"
                 }
@@ -2075,7 +2741,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "hNVeVPsU4UgZ_iKraFMETrAT6agoKLSJNzQFNpLT0CRA9Hu_jsnj_f2JwDu1fqboOvfFTUpRlnOoMSvIvDhODQ"
+                "value": "FL_mJc49x4Bs7AUIZbImqSywhk-nAdVSmziFo3mEh2_BEfV1GK3X--ps1qVLxA3DO6A-72MxL1U0X5AyFXEACA"
               }
             }
           }
@@ -2167,14 +2833,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -2187,7 +2853,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 1"
                 }
@@ -2195,7 +2861,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+                "value": "idp_I8ofFa1cvUtkLBtZmLz75mIkgNqBDISqbmLGgHBCiVidV1yUf67NUmkiP19DzuIlfZvrKOZYMHgpWq2uCg"
               }
             }
           },
@@ -2208,7 +2874,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "overturned",
                   "reasoning": "decision 2"
                 }
@@ -2216,7 +2882,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "hNVeVPsU4UgZ_iKraFMETrAT6agoKLSJNzQFNpLT0CRA9Hu_jsnj_f2JwDu1fqboOvfFTUpRlnOoMSvIvDhODQ"
+                "value": "FL_mJc49x4Bs7AUIZbImqSywhk-nAdVSmziFo3mEh2_BEfV1GK3X--ps1qVLxA3DO6A-72MxL1U0X5AyFXEACA"
               }
             }
           },
@@ -2229,7 +2895,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 3"
                 }
@@ -2237,7 +2903,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "5IgKFG44ADLmkQNUjqwzeOs92sCJAx4kGSYk8OzBWrrPG0JBgqqg5SR8N9M8awp5fRLoh-QS34bf5A7IzsiJCA"
+                "value": "0u9Jl-i3nHoyM-vRDqoHqTC6EnbMY1ZlGNPCZ3wXm81Zwdjm-hJwiIwD7Krc5y_9224vggLtOHVJApYrZM1yCQ"
               }
             }
           }
@@ -2338,14 +3004,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -2358,14 +3024,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 1"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+                "value": "43H5qOIN5AYPIFKodQtsHXdNHS5d8oWybxvMjnikydDS97vqm6qRCNSbzDIsdAqLMDjlLx7M26tM0px1V1euAw"
               }
             }
           }
@@ -2448,14 +3114,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -2468,14 +3134,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 1"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+                "value": "43H5qOIN5AYPIFKodQtsHXdNHS5d8oWybxvMjnikydDS97vqm6qRCNSbzDIsdAqLMDjlLx7M26tM0px1V1euAw"
               }
             }
           },
@@ -2488,14 +3154,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 2"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "6AgUMoTjbb2g6iu3dDQMkGiGxuibgxcDtZoPB6RK7RCQiH6LQlBzsAhknkL8CmTqlb2fb7ntr0y2I6GIsfEGCA"
+                "value": "NDvHbl3yBPoHBYPdL0AzXMr7ipyeTKgKKpYVzbTcUjlgvHb0FujaJOv7aXODWOvFHefPxFWFApLtHhcmoIORDA"
               }
             }
           }
@@ -2587,14 +3253,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -2607,14 +3273,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 1"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+                "value": "43H5qOIN5AYPIFKodQtsHXdNHS5d8oWybxvMjnikydDS97vqm6qRCNSbzDIsdAqLMDjlLx7M26tM0px1V1euAw"
               }
             }
           }
@@ -2706,7 +3372,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 0"
                 }
@@ -2714,7 +3380,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "jpTR0P778ZaxyWIOYch4yDe8JPR6eVt7FBuHabF9VOak5npEQpHjWqYwe0KgreAJIVWvS4y5E5ztzDyxMIObBQ"
+                "value": "N22ym9gojzfM9RPODoFHMK5_KM8Md6mKHWeErVIQervtbHqeICkuUr6sgdGRk5ov85JKWrgzX2v6RHf676feDw"
               }
             }
           },
@@ -2727,14 +3393,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 1"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+                "value": "43H5qOIN5AYPIFKodQtsHXdNHS5d8oWybxvMjnikydDS97vqm6qRCNSbzDIsdAqLMDjlLx7M26tM0px1V1euAw"
               }
             }
           }
@@ -2817,7 +3483,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 0"
                 }
@@ -2825,7 +3491,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "jpTR0P778ZaxyWIOYch4yDe8JPR6eVt7FBuHabF9VOak5npEQpHjWqYwe0KgreAJIVWvS4y5E5ztzDyxMIObBQ"
+                "value": "N22ym9gojzfM9RPODoFHMK5_KM8Md6mKHWeErVIQervtbHqeICkuUr6sgdGRk5ov85JKWrgzX2v6RHf676feDw"
               }
             }
           },
@@ -2838,14 +3504,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 1"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+                "value": "43H5qOIN5AYPIFKodQtsHXdNHS5d8oWybxvMjnikydDS97vqm6qRCNSbzDIsdAqLMDjlLx7M26tM0px1V1euAw"
               }
             }
           }
@@ -2928,7 +3594,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "unappealed",
                   "reasoning": "decision 0"
                 }
@@ -2936,7 +3602,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "W23USujRrVI5QHrdl2lS35_yMBkXAbc4uIL5KQKJeDJPFuYKtchnbYoOwCWmcwa2jGhzFDHNBBU976F1jWXrBQ"
+                "value": "LjvX0zGl5OIahTqSu7sOXYPEn6dOyod-iGe7wi3WYvtsBu7m89DTY86mtuFQP7crdNN7LcqwiAIUAQyJ4rjCDw"
               }
             }
           },
@@ -2949,14 +3615,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 1"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+                "value": "43H5qOIN5AYPIFKodQtsHXdNHS5d8oWybxvMjnikydDS97vqm6qRCNSbzDIsdAqLMDjlLx7M26tM0px1V1euAw"
               }
             }
           }
@@ -3039,14 +3705,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -3059,7 +3725,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 1"
                 }
@@ -3067,7 +3733,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+                "value": "idp_I8ofFa1cvUtkLBtZmLz75mIkgNqBDISqbmLGgHBCiVidV1yUf67NUmkiP19DzuIlfZvrKOZYMHgpWq2uCg"
               }
             }
           }
@@ -3159,14 +3825,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -3179,7 +3845,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "upheld",
                   "reasoning": "decision 1"
                 }
@@ -3187,7 +3853,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+                "value": "idp_I8ofFa1cvUtkLBtZmLz75mIkgNqBDISqbmLGgHBCiVidV1yUf67NUmkiP19DzuIlfZvrKOZYMHgpWq2uCg"
               }
             }
           }
@@ -3270,14 +3936,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           },
@@ -3290,14 +3956,14 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "statement": "appeal 0"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+                "value": "JzYKEZ4_liJug_6R2H2kb7QfQCXJ2M972ND_g2K-K5hdpmT0ZiVzRsXJd14HYG-uxfIWug_uAq314t0vHvLXBg"
               }
             }
           }
@@ -3380,7 +4046,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "unappealed",
                   "reasoning": "decision 0"
                 }
@@ -3388,7 +4054,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "W23USujRrVI5QHrdl2lS35_yMBkXAbc4uIL5KQKJeDJPFuYKtchnbYoOwCWmcwa2jGhzFDHNBBU976F1jWXrBQ"
+                "value": "LjvX0zGl5OIahTqSu7sOXYPEn6dOyod-iGe7wi3WYvtsBu7m89DTY86mtuFQP7crdNN7LcqwiAIUAQyJ4rjCDw"
               }
             }
           },
@@ -3401,7 +4067,7 @@
                 "subject": "page.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a",
                   "outcome": "unappealed",
                   "reasoning": "decision 1"
                 }
@@ -3409,7 +4075,7 @@
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "u8MwOKJIQGhZYwI0djGsqgF45GjHxBImrU1hEFNmMYEUFLe9uzzqv6wGsMhJKaOemAs5SuAcRK-R2XJRRn7LBw"
+                "value": "_To21O4QE__gVD9ioLuBY8i5Fdo7rX_xglaUWDoVmgZPZJLkiZBAS6j7SLRJqzEbojEMEx8DeFC3un_i6OGIDA"
               }
             }
           }
@@ -3481,6 +4147,8 @@
             "effective_at": "2026-08-02T00:00:00Z",
             "details": {
               "kind": "sanction",
+              "level": 3,
+              "activation": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
               "reason": "confirmed evidence",
               "appeal_deadline": "2026-08-16T00:00:00Z"
             },
@@ -3491,7 +4159,7 @@
           "sig": {
             "key_id": "test-process-k1",
             "alg": "Ed25519",
-            "value": "S97cZd8Vt1MCj6uba7Lk7o5fCjLrskBzyFDKNQ8AWExWnHfrRs3BWQ5faJDuX7_TyBYy16VjqBVskeVFNMXSBg"
+            "value": "fP9dZ_SM8WCLqwVrRbxzbQvcRA-JmGmQjuDRez-QOGIdSKC-OZf7JIrMQ83jCoxo7R4shaOCW3UcAq_5NJ6CCg"
           }
         },
         "acts": [
@@ -3537,6 +4205,8 @@
             "effective_at": "2026-08-02T00:00:00Z",
             "details": {
               "kind": "sanction",
+              "level": 3,
+              "activation": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
               "reason": "confirmed evidence",
               "appeal_deadline": "2026-08-16T00:00:00Z"
             },
@@ -3547,7 +4217,7 @@
           "sig": {
             "key_id": "test-process-k1",
             "alg": "Ed25519",
-            "value": "S97cZd8Vt1MCj6uba7Lk7o5fCjLrskBzyFDKNQ8AWExWnHfrRs3BWQ5faJDuX7_TyBYy16VjqBVskeVFNMXSBg"
+            "value": "fP9dZ_SM8WCLqwVrRbxzbQvcRA-JmGmQjuDRez-QOGIdSKC-OZf7JIrMQ83jCoxo7R4shaOCW3UcAq_5NJ6CCg"
           }
         },
         "acts": [
@@ -3560,13 +4230,13 @@
                 "subject": "other.publisher.test",
                 "effective_at": "2026-08-02T00:00:00Z",
                 "details": {
-                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f"
+                  "notice": "sha256:c2398634b4092b0706ece48b9cf8ea8448d4da4f8f0aa6f4b04d5c38e5abb94a"
                 }
               },
               "sig": {
                 "key_id": "test-process-k1",
                 "alg": "Ed25519",
-                "value": "y_iM4yi79yTmAgaNtzbZ1zAteA8ABELTRXVA0N7vc9lC9ffYggnXSLHN4UTF9V1ElHITMkHLmbDjakv-Kk7VAQ"
+                "value": "VJ2qvSjcc3jcHX0XZg-1B6vNxyyUWKC9pgpJ44dV6MV2fL3ytBBFecYwo9A9HcXlC2fvBQGuEbahEp8549-JCg"
               }
             }
           }

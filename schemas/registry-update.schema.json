@@ -114,6 +114,8 @@
                 "required": ["kind"],
                 "properties": {
                   "kind": {"enum": ["sanction", "recovery"]},
+                  "level": {"type": "integer", "enum": [3, 4]},
+                  "activation": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
                   "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
                   "appeal_deadline": {
                     "type": "string",
@@ -123,7 +125,7 @@
                   }
                 },
                 "if": {"properties": {"kind": {"const": "sanction"}}},
-                "then": {"required": ["reason", "appeal_deadline"]}
+                "then": {"required": ["reason", "appeal_deadline", "level", "activation"]}
               }
             },
             "if": {"properties": {"details": {"properties": {"kind": {"const": "sanction"}}}}},

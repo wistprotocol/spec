@@ -3170,6 +3170,33 @@ def _dc4_sanction_primary():
     assert len({min(1 if r["effective_similarity"] >= 150000 else 2 if r["effective_similarity"] >= 50000 else 3 for r in f["records"]) for f in findings.values()}) == 2
 check("vectors:wist4-sanction-primary", _dc4_sanction_primary)
 
+def _dc4_notice_targets():
+    v = _sanctions_vector()
+    schema = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["process"]["public_key"]))
+    for case in v["notice_target_cases"]:
+        target = case["activation"]
+        seen, candidates = set(), collections.defaultdict(list)
+        for i,n in sorted(enumerate(case["notices"]), key=lambda p:p[1]["height"]):
+            doc = n["envelope"]; u = doc["update"]; encoded = rfc8785.dumps(u)
+            key.verify(b64u_decode(doc["sig"]["value"]), encoded)
+            if encoded in seen:
+                continue
+            seen.add(encoded)
+            d = u["details"]
+            if (schema.is_valid(doc) and u["subject"] == target["subject"] and d["level"] == target["level"]
+                    and d["activation"] == target["record_id"] and target["height"] <= n["height"]
+                    and (target["cleared_height"] is None or n["height"] < target["cleared_height"])):
+                candidates[n["height"]].append(i)
+        chosen = next((ids for h,ids in sorted(candidates.items()) if len(ids) == 1), [])
+        assert chosen == case["accepted_indices"], case["label"]
+        current = case["current_activation_at_reversal"]
+        after = None if chosen and current == target["record_id"] else current
+        assert after == case["activation_after_reversal"], case["label"]
+    stale = next(c for c in v["notice_target_cases"] if c["label"] == "old reversal leaves rearmed rung")
+    assert stale["accepted_indices"] and stale["activation_after_reversal"] is not None
+check("vectors:wist4-notice-targets", _dc4_notice_targets)
+
 def _dc4_sanction_transitions_twin():
     cases = _sanctions_vector()["transition_cases"]
     aging = next(c for c in cases if c["label"] == "level two survives evidence aging")
@@ -3938,6 +3965,7 @@ check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
 # be an `hmac-sha256:` commitment under the Payload salt, or it fails. Adding a
 # field here is the deliberate act of asserting it carries no content.
 NON_CONTENT_DIGESTS = {
+    ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/details/properties/activation"): "a confirming Audit Record ID identifying one rung activation",
     ("registry-update.schema.json", "allOf[2]/then/properties/update/properties/details/properties/finding"): "an Audit Record ID identifying a primary finding",
     ("registry-update.schema.json",
      "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/leaf_hash"):
@@ -4051,6 +4079,10 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/sanctions.json", "activation"): "a confirming Audit Record ID",
+    ("vectors/wist4/sanctions.json", "record_id"): "an Audit Record ID",
+    ("vectors/wist4/sanctions.json", "current_activation_at_reversal"): "a confirming Audit Record ID",
+    ("vectors/wist4/sanctions.json", "activation_after_reversal"): "a confirming Audit Record ID",
     ("vectors/wist4/canary.json", "other_salt_hex"): "an alternate test salt, not content-derived",
     ("vectors/wist4/roster.json", "public_key"): "an Ed25519 public key when opaque",
     ("vectors/wist4/roster.json", "value"): "an Ed25519 signature",
@@ -5571,7 +5603,7 @@ def _timestamp_anchoring():
             f"registry-update.schema.json accepts non-exact effective_at {bad!r}"
     notice = {"update": {"wist_version": "1.0.0", "action": "notice",
                          "subject": "example.com",
-                         "details": {"kind": "sanction", "reason": "see evidence",
+                         "details": {"kind": "sanction", "level": 3, "activation": "sha256:" + "1" * 64, "reason": "see evidence",
                                      "appeal_deadline": "2026-08-16T12:00:00Z"},
                          "evidence": ["sha256:" + "0" * 64],
                          "effective_at": "2026-08-02T12:00:00Z"},

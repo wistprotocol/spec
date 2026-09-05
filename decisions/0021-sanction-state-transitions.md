@@ -1,6 +1,6 @@
 # ADR-0021: Sanction rungs latch until reversed
 
-**Status:** accepted · **Date:** 2026-09-05
+**Status:** accepted; amended by ADR-0032 (2026-09-05: notices bind one rung activation and one process) · **Date:** 2026-09-05
 **Amends:** ADR-0012
 
 ## Context
