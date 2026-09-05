@@ -1787,6 +1787,24 @@ Process requirements:
   derivation is bounded to the sanction's *state* and never to `penalty_n`:
   §6.1 counts the penalty from the evidence regardless, and an appeal has
   never reached it.
+- **What each reversal reaches.** The four are not interchangeable, and
+  each one's reach is fixed here. The three that hang on a `notice` — an
+  `"overturned"` ruling, a lapsed ruling deadline, a lapsed
+  appeal-sealing deadline — reverse only the state that notice was
+  required for: the level-3 ingestion rejection or the level-4 exclusion.
+  The rungs below stand, because a notice was never what put them in
+  force. A domain whose level-3 state voids at **T** is a level-2 domain
+  if the level-2 criterion is met at that height and a level-1 domain if
+  only that one is, and its Deltas are ingested again at whichever rung
+  results. A `sanction_lift` reaches further: it clears every rung in
+  force at its own height, which is why it needs no appeal to justify it
+  and no notice to precede it. It is not an erasure of the evidence, and
+  it grants no immunity: the escalation criteria keep running from that
+  height, and a rung whose criterion is met again *after* the lift is in
+  force again from the height it is met. A lift is therefore an
+  Aggregator's discretionary statement about a domain's standing up to
+  now, recorded as one, and never a way to spend one Entry on a permanent
+  exemption from §7.
 
   The limit is worth naming rather than glossing. The appeal window is
   anchored to a `notice`'s Block, so where the criteria are met
