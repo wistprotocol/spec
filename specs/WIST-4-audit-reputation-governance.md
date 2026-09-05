@@ -1693,9 +1693,10 @@ where a leaf's `index` is outside 0 … `leaves` − 1 or repeated; where a
 or has its inclusion proof fail; or where the reveal is sealed **too
 early or too late**. Too early is fewer than `canary_reveal_min_blocks`
 Blocks (default 168) plus one rotation of the checkpoint budget —
-`(⌈S / observer_checkpoint_budget⌉ − 1) × epoch_blocks` Blocks, S the
-suffixes registered at the newest bound Delta's Block — after that
-Delta's Block: the Records for the last leaf are due
+`(max(⌈S / observer_checkpoint_budget⌉, 1) − 1) × epoch_blocks` Blocks,
+S the suffixes registered at the newest bound Delta's Block, so that a
+Log with no Observer registered adds no rotation and subtracts none —
+after that Delta's Block: the Records for the last leaf are due
 `coverage_deadline_hours` after its Block and seal `record_seal_blocks`
 later, an Observer's covering checkpoint seals once its suffix's turn
 comes, and a reveal that outruns them turns honest late Records into

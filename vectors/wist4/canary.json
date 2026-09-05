@@ -368,6 +368,34 @@
       "latest_reveal_height": 1540,
       "lead_respected": true,
       "valid": true
+    },
+    {
+      "label": "no observer registered reveal at the minimum",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 368,
+      "suffixes_registered": 0,
+      "earliest_reveal_height": 368,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": true
+    },
+    {
+      "label": "no observer registered reveal one block early",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 367,
+      "suffixes_registered": 0,
+      "earliest_reveal_height": 368,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": false
     }
   ],
   "scoring_window_cases": [
