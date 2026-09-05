@@ -4474,9 +4474,17 @@ def _dc4_evaluation_order():
     for form in forms:
         assert form in spec, f"WIST-4 §6 no longer writes {form!r} parenthesized"
     # The stated count and the enumeration must agree, or a reader cannot
-    # tell which divisions the parenthesization rule covers.
-    assert "exactly **four**" in spec, \
+    # tell which divisions the parenthesization rule covers; the divisions
+    # outside §6 are named there too, so the count is not read as exhaustive.
+    assert "The **four** that reputation and\nits consumers perform are tabulated here" in spec, \
         f"WIST-4 §6 no longer states the division count, which is {len(forms)}"
+    for elsewhere in ("`confirm_window_hours / 2` in §4's extension deadline",
+                      "the two\nlink-agreement quotients in §5"):
+        assert elsewhere in spec, f"WIST-4 §6 no longer names the division {elsewhere!r}"
+    assert "`confirm_window_hours / 2` hours (integer division)" in spec, \
+        "§4 no longer writes the extension deadline's division out"
+    assert "floor(|D ∩ O| × 1 000 000 / |D ∪ O|)" in spec, \
+        "§5 no longer writes the link subset quotient out"
     table_rows = [ln for ln in spec.splitlines()
                   if ln.startswith("| ") and ") / " in ln and "§6" in ln]
     assert len(table_rows) == len(forms), \

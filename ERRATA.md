@@ -2520,3 +2520,29 @@ conform to both, and the correction changes no rule.
 the example Record with `link_agreement` removed, fails a `link_variance`
 and a `link_inconsistent` Record without it, fails a `not_auditable`
 Record carrying it, and requires the checklist line to defer to §5.
+
+## 2026-09-05 — WIST-4 §6: the four divisions are reputation's, not the suite's
+
+Rewrites the sentence introducing §6's evaluation-order table.
+
+**What it states.** The table lists the four integer divisions that
+reputation and its consumers perform — the day count, `base_u`, the
+formula and `Q` — and the sentence said the suite carried "exactly
+four, all of them here". §4's extension deadline divides
+`confirm_window_hours / 2`, explicitly marked integer division, and
+§5's link dimension floors two quotients, each written out with its
+operands where it stands. The sentence now says which four the table
+holds, names the divisions outside §6, and states that the same
+parenthesization rule governs them.
+
+**Why it qualifies.** The count was a claim about the text, not a rule
+in it; every division the claim omitted was already fully specified
+where it appears, so no implementation computed anything differently
+under either reading. The correction removes a false statement a
+reader checking the claim would have caught, and changes no value.
+
+**Status.** Exercised. `vectors/wist4/extension.json`'s deadline case at
+`confirm_window_hours` 73 floors the half-window, and
+`vectors/wist4/link-agreement.json`'s one-dropped case floors 2/3 to
+666 666; `spec:wist4-evaluation-order` now requires §6 to name the
+divisions outside it and §4 and §5 to write them out.

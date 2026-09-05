@@ -1784,9 +1784,13 @@ exact integer arithmetic on the full-width product, and only that quotient
 is truncated. No addition or subtraction standing outside the parentheses
 is ever folded into a dividend, and no operand is divided before being
 multiplied. The rule governs every integer division in this suite,
-including any a later revision adds. Today there are exactly **four**, all
-of them here — §4's selection test contains none — together with the two
-misreadings that produce different and non-conforming results:
+including any a later revision adds. The **four** that reputation and
+its consumers perform are tabulated here — §4's selection test contains
+none — together with the two misreadings that produce different and
+non-conforming results; the suite's other integer divisions,
+`confirm_window_hours / 2` in §4's extension deadline and the two
+link-agreement quotients in §5, are each written out with their operands
+where they stand, and the same rule governs them:
 
 | # | Correct | Wrong | Why it matters |
 |---|---|---|---|
