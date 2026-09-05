@@ -3001,3 +3001,19 @@ previously possible final rosters.
 key-ID and public-key collisions across both roles, connected conflicts,
 incumbent retention, admission precedence and invalid contenders. The
 harness compares the final state under every permutation of each batch.
+
+## 2026-09-05 — WIST-3 §3.3, WIST-4 §9, §10: prospective parameter validation (revision, not errata)
+
+**What changed.** Validate each amendment against every prospective map
+in the accepted schedule, including pending effective times. Canonical
+Log order chooses the candidate rejected as `WIST4-E03`; earlier
+acceptances stand and rejected amendments are not retried. ADR-0026
+amends ADR-0012.
+
+**Why a revision.** Checking only the map at sealing accepted amendments
+that failed together later. Prospective validation rejects that reading.
+
+**Exercised.** `vectors/wist4/parameter-combinations.json` covers both
+activation orders, same-time replacement, same-Block precedence,
+invalid intermediate states and a rejected amendment that later changes
+would make feasible. The harness independently reconstructs every map.
