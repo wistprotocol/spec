@@ -1781,6 +1781,44 @@ def _dc4_sampling_rate_twin():
         "the same reputation under a rung must read the ceiling"
 check("negative:wist4-sampling-rate", _dc4_sampling_rate_twin)
 
+def _dc4_link_agreement_optional():
+    """WIST-4 §5, §13: a measured Record SHOULD carry `link_agreement` where
+    the dimension applies, so the schema admits one without it; a link
+    verdict asserts a reading and cannot omit it; the neutral verdicts
+    cannot carry it."""
+    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    example = json.loads((ROOT / "examples" / "audit-record.json").read_text())
+    assert "link_agreement" in example["record"], "the example Record should carry the field"
+    without = copy.deepcopy(example)
+    del without["record"]["link_agreement"]
+    validator.validate(without)
+    for verdict in ("link_variance", "link_inconsistent"):
+        link = copy.deepcopy(without)
+        link["record"]["verdict"] = verdict
+        link["record"]["similarity"] = 1_000_000
+        try:
+            validator.validate(link)
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError(f"a {verdict} Record without link_agreement validated")
+    neutral = copy.deepcopy(example)
+    neutral["record"]["verdict"] = "not_auditable"
+    for field in ("response_commitment", "credit_commitment", "ref_extract_commitment",
+                  "similarity", "evidence_commitment"):
+        neutral["record"].pop(field, None)
+    try:
+        validator.validate(neutral)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("a not_auditable Record carrying link_agreement validated")
+    checklist = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "seals the field on the Record as §5 says it SHOULD" in checklist, \
+        "§13's link checklist line does not defer to §5's SHOULD"
+check("schema:wist4-link-agreement-optional", _dc4_link_agreement_optional)
+
 def _dc4_audit_record_proof():
     """The published Record's vrf_proof must verify for the Block it audits."""
     rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]

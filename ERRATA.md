@@ -2494,3 +2494,29 @@ the same reputation under a level-1 rung (the ceiling), and the two ends
 of the formula with and without an escalation; `vectors:wist4-sampling`
 recomputes each and requires §6.3 to name the cap's value, and its twin
 fails a reading that puts the ceiling at the cap.
+
+## 2026-09-05 — WIST-4 §13: the link checklist line defers to §5's SHOULD
+
+Rewrites the Auditor checklist line on `link_agreement`.
+
+**What it states.** §5 says a Record that produced a measured verdict for
+a non-`delete` audit of an HTML representation SHOULD carry
+`link_agreement`, and spends a paragraph on what an omission is: a
+dimension left visibly unaudited for that Delta, a fact any recomputing
+party can see and weigh, not a silent gap and not malformed evidence.
+The §13 line said the Auditor seals the field "whenever the link
+dimension applies", with no qualification — a MUST by another name. The
+line now computes the reading where the dimension applies, seals it as
+§5 says it SHOULD, and never seals a link verdict without it, which is
+the one case the schema does require.
+
+**Why it qualifies.** A checklist restates requirements and creates
+none; where it read stronger than the section it cites, an Auditor
+following it lost nothing and a validator following it would have
+rejected Records §5 and the schema accept. No implementation could
+conform to both, and the correction changes no rule.
+
+**Status.** Exercised. `schema:wist4-link-agreement-optional` validates
+the example Record with `link_agreement` removed, fails a `link_variance`
+and a `link_inconsistent` Record without it, fails a `not_auditable`
+Record carrying it, and requires the checklist line to defer to §5.

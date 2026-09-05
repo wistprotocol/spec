@@ -3288,13 +3288,15 @@ bound by WIST-3 §6.2's destroy obligation exactly as an Auditor is.
 - [ ] Applies WIST-2 §11's extraction procedure, unchanged, to its own
       fetch of the Reference Payload's page when checking the declared
       `links` member (§5, WIST-2 §11)
-- [ ] Computes `link_agreement` and seals the field on the Record
-      whenever the link dimension applies — a reference Delta whose
-      change type is `new`, `update` or `attest`, an HTML representation
-      (WIST-2 §11), and a measured verdict, never on an `unreachable` or
-      `not_auditable` Record — and reads `link_variance` or
-      `link_inconsistent` from it once the extract reading is also
-      `consistent` (§5)
+- [ ] Computes `link_agreement` where the link dimension applies — a
+      reference Delta whose change type is `new`, `update` or `attest`,
+      an HTML representation (WIST-2 §11), and a measured verdict, never
+      on an `unreachable` or `not_auditable` Record — and seals the
+      field on the Record as §5 says it SHOULD, an omission there being a
+      visibly unaudited dimension rather than malformed evidence; reads
+      `link_variance` or `link_inconsistent` from it once the extract
+      reading is also `consistent`, and never seals a link verdict
+      without it (§5)
 - [ ] Emits `unreachable` (never `inconsistent`) for failed fetches, and
       sets `robots_excluded` when and only when `robots.txt` is the reason
       — including where the file discriminates between admitted Auditors,
