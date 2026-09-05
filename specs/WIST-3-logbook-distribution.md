@@ -192,8 +192,10 @@ a Delta in the same Block applies after it, which is well-defined because
 chains are trees rooted outside the Block and cycles are impossible
 (a Delta ID includes its `prev` in its preimage), and two Deltas with no
 chain relation apply in leaf-hash order without observable difference.
-`audit_record` Entries apply last; nothing they change reads intra-Block
-position. No conforming behavior depends on any ordering freedom this
+`audit_record` Entries apply last, in ascending Entry index in the
+canonical stored order. WIST-4 §4 reads that order for extension triggers
+and ration allocation, and WIST-4 §6.1 and §7 read it for the earliest
+confirming Record and its closed evidence prefix. No conforming behavior depends on any ordering freedom this
 paragraph does not name. Because Declarations apply first, the Key Set a
 `publisher_delta` Entry verifies under is the one WIST-1 §5.2 resolves at
 its own Block with that Block's Declarations already applied: an

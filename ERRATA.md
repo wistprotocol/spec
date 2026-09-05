@@ -2897,3 +2897,20 @@ Selecting a complete-window quorum changes those readings.
 extract, link and contradiction cases, a stale member beside a fresh
 pair, inclusive endpoints, dependent members, and a later full quorum.
 The harness recomputes these and discriminates the fresh-pair reading.
+
+## 2026-09-05 — WIST-3 §3.3, WIST-4 §4: extension allocation order (revision, not errata)
+
+**What changed.** Trigger eligibility and ration allocation read the
+strict prefix in ascending Block height and canonical Entry index.
+Peer exclusion additionally includes the triggering Record. Extract and link triggers share one sequence per Delta and one
+ration per Auditor. ADR-0020 amends ADR-0012.
+
+**Why a revision.** No tie was specified, and WIST-3 explicitly denied
+intra-Block effects that WIST-4's confirmation rule already required.
+Selecting canonical Entry order changes other possible allocations.
+
+**Exercised.** `vectors/wist4/extension.json` includes two eligible
+same-Block triggers with one remaining slot, mixed verdict kinds,
+a shared-Delta suppression case, and a later same-Block peer filing.
+The harness recomputes allocation and peer sets and discriminates a
+reversed tie and a whole-Block eligibility reading.

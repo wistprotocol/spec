@@ -732,6 +732,18 @@ half the confirmation window so that a Record published at the deadline
 can still seal inside the window it exists to serve; §9's combination
 rules bound the pair.
 
+Trigger eligibility and ration allocation are evaluated in Log order:
+ascending Block height, then ascending Entry index in the canonical
+stored order WIST-3 §3.3 defines. Eligibility and ration read the strict
+prefix before the triggering Record, including earlier Entries of *B₁*.
+The already-sealed filers used to exclude dependent peers additionally
+include the triggering Record itself. Both `inconsistent` and `link_inconsistent` belong to the same
+per-Delta trigger sequence and spend the same per-Auditor ration.
+A later Entry in the same Block neither prevents an earlier trigger nor
+changes the peers that trigger summons. If two eligible triggers share
+a Block and only one ration slot remains, the earlier Entry spends it;
+the later Record remains valid but summons nobody.
+
 **Extensions are rationed, and the ration is per triggering Auditor.**
 A triggering Record extends selection sets only while its signing
 Auditor has triggered fewer than `extension_triggers_max` (Parameter

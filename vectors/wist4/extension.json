@@ -222,6 +222,216 @@
       ]
     }
   ],
+  "order_cases": [
+    {
+      "label": "two Deltas one remaining slot",
+      "records": [
+        {
+          "block_height": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "delta": "delta a",
+          "auditor": "audit.example.net",
+          "verdict": "inconsistent"
+        },
+        {
+          "block_height": 10,
+          "entry_index": 1,
+          "sealed_at_s": 36000,
+          "delta": "delta b",
+          "auditor": "audit.example.net",
+          "verdict": "inconsistent"
+        }
+      ],
+      "prior_triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          3600
+        ]
+      ],
+      "roster": [
+        "audit.example.net",
+        "checker.example.org",
+        "watch.sample.net"
+      ],
+      "publisher_domain": "page.publisher.test",
+      "eligible": [
+        true,
+        true
+      ],
+      "summons": [
+        true,
+        false
+      ],
+      "summoned_auditors": [
+        [
+          "checker.example.org",
+          "watch.sample.net"
+        ],
+        []
+      ]
+    },
+    {
+      "label": "mixed kinds share ration",
+      "records": [
+        {
+          "block_height": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "delta": "delta a",
+          "auditor": "audit.example.net",
+          "verdict": "link_inconsistent"
+        },
+        {
+          "block_height": 10,
+          "entry_index": 1,
+          "sealed_at_s": 36000,
+          "delta": "delta b",
+          "auditor": "audit.example.net",
+          "verdict": "inconsistent"
+        }
+      ],
+      "prior_triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          3600
+        ]
+      ],
+      "roster": [
+        "audit.example.net",
+        "checker.example.org",
+        "watch.sample.net"
+      ],
+      "publisher_domain": "page.publisher.test",
+      "eligible": [
+        true,
+        true
+      ],
+      "summons": [
+        true,
+        false
+      ],
+      "summoned_auditors": [
+        [
+          "checker.example.org",
+          "watch.sample.net"
+        ],
+        []
+      ]
+    },
+    {
+      "label": "mixed kinds share Delta trigger sequence",
+      "records": [
+        {
+          "block_height": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "delta": "delta a",
+          "auditor": "audit.example.net",
+          "verdict": "inconsistent"
+        },
+        {
+          "block_height": 10,
+          "entry_index": 1,
+          "sealed_at_s": 36000,
+          "delta": "delta a",
+          "auditor": "checker.example.org",
+          "verdict": "link_inconsistent"
+        }
+      ],
+      "prior_triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          3600
+        ]
+      ],
+      "roster": [
+        "audit.example.net",
+        "checker.example.org",
+        "watch.sample.net"
+      ],
+      "publisher_domain": "page.publisher.test",
+      "eligible": [
+        true,
+        false
+      ],
+      "summons": [
+        true,
+        false
+      ],
+      "summoned_auditors": [
+        [
+          "checker.example.org",
+          "watch.sample.net"
+        ],
+        []
+      ]
+    },
+    {
+      "label": "later peer does not cancel summons",
+      "records": [
+        {
+          "block_height": 10,
+          "entry_index": 0,
+          "sealed_at_s": 36000,
+          "delta": "delta a",
+          "auditor": "audit.example.net",
+          "verdict": "inconsistent"
+        },
+        {
+          "block_height": 10,
+          "entry_index": 1,
+          "sealed_at_s": 36000,
+          "delta": "delta a",
+          "auditor": "checker.example.org",
+          "verdict": "inconsistent"
+        }
+      ],
+      "prior_triggers": [
+        [
+          "audit.example.net",
+          0
+        ],
+        [
+          "audit.example.net",
+          3600
+        ]
+      ],
+      "roster": [
+        "audit.example.net",
+        "checker.example.org",
+        "watch.sample.net"
+      ],
+      "publisher_domain": "page.publisher.test",
+      "eligible": [
+        true,
+        false
+      ],
+      "summons": [
+        true,
+        false
+      ],
+      "summoned_auditors": [
+        [
+          "checker.example.org",
+          "watch.sample.net"
+        ],
+        []
+      ]
+    }
+  ],
   "summons_cases": [
     {
       "label": "dependents of filers and publisher excluded",
