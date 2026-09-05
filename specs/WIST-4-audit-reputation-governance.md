@@ -1823,9 +1823,10 @@ an event belongs to the identity whose Delta it concerns. An accepted
 Delta belongs by its own sealing height; an Audit Record — a `consistent`
 one for `C`, a confirming one for a Confirmed Inconsistency — by the
 sealing height of its `audited_delta`, never by its own. That height
-MUST be greater than the domain's most recent identity reset (§6.3) for
-the event to count. A domain that has never reset has no such lower
-bound, and everything from height 0 counts.
+MUST be at or above the domain's most recent identity reset (§6.3) for
+the event to count — a Delta sealed at the reset height is the fresh
+identity's own, for the reason §6.3 gives. A domain that has never reset
+has no such lower bound, and everything from height 0 counts.
 
 - **`A`** = whole days between the `sealed_at` of the Block that first
   contained an accepted Delta from this domain under its current identity

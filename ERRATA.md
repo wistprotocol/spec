@@ -2439,3 +2439,30 @@ mid-Log change of `epoch_blocks`, and what a checkpoint fixes before a
 reveal; its twin fails a static queue and an epoch read from the Block's
 own value. The four acts and `track_record` are validated as schema
 instances with each REQUIRED member removed in turn.
+
+## 2026-09-05 — WIST-4 §6.1: the Identity scope sentence reads the reset bound inclusively
+
+Rewrites one sentence of §6.1's *Identity scope* paragraph.
+
+**What it states.** An event counts toward `A`, `C` or the set of
+Confirmed Inconsistencies when the height it belongs by — a Delta's own
+sealing height, an Audit Record's `audited_delta` height — is at or
+above the domain's most recent identity reset. The paragraph's opening
+sentence still said "greater than", while the `C` bullet, the Confirmed
+Inconsistency bullet and every bound in §6.3 read "at or above" and
+§6.3 explains why: Declarations apply before Deltas within a Block
+(WIST-3 §3.3), so at the reset height the Key Set is already the fresh
+identity's and nothing of the previous identity seals there.
+
+**Why it qualifies.** The 2026-09-04 revision that made every reset
+bound inclusive missed this sentence, leaving §6.1 contradicting itself
+on a Delta sealed at the reset height — an event the bullets count and
+the opening sentence excludes. The bullets are the operative definitions
+and the sentence a summary of them; the correction makes the summary say
+what the definitions already do, and changes nothing computed.
+
+**Status.** Exercised. `vectors/wist4/derivation.json`'s case for a
+Delta sealed at the reset height already discriminates the two readings
+on all three inputs: under the inclusive bound the Delta at `R` starts
+`A`, its URL counts toward `C` and its Confirmed Inconsistency enters
+`penalty_n`; under the strict bound none of the three does.
