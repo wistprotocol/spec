@@ -1777,6 +1777,35 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-2 §3.2, §5, §7: a Feed fetched but unusable (revision, not errata)
+
+Rewrites the `WIST2-E01` row of §7, the first sentence of §5 step 1, and
+adds a code to §3.2's `next` rule.
+
+**What it states.** `WIST2-E01` covered a Feed that could not be fetched
+and nothing else, so a Feed the Aggregator retrieved but could not use
+had no code at all: not well-formed JSON, failing the Feed schema, or
+naming a `next` outside the Publisher's authority — a constraint §3.2
+stated without saying what violating it costs. All of them are now
+`WIST2-E01`, retried on the same backoff, and none is noise against the
+quota. They share a code because they share a remedy and a remedier: the
+Aggregator holds no usable Feed either way, nothing about the domain's
+state has changed, and only the Publisher can fix it. The backoff, not
+the quota, is what bounds a domain that keeps serving one.
+
+**Why it is a revision.** It fails the first condition. The suite named
+no code for these cases, so an implementation that reached for the
+nearest one — `WIST2-E04`, which is metered as noise — conformed as
+defensibly as one that reached for `WIST2-E01`, and now must stop
+charging the quota for them. Leaving it unstated was worse than either
+answer: the same malformed Feed cost one Publisher its quota and another
+nothing, and a Publisher reading §7.1 could not tell which had happened
+to it.
+
+**Status.** Unexercised. No vector serves a malformed Feed or a `next`
+outside the Publisher's authority; the classification rests on reading.
+Both belong with the first pull-behavior fixtures.
+
 ## 2026-09-04 — WIST-2 §8: a redirect chain terminates (revision, not errata)
 
 Adds two bounds and their rationale to §8's *Cache poisoning of
