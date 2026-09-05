@@ -3135,3 +3135,18 @@ change valid sealed notices.
 wrong level, missing or foreign activation, duplicate and competing
 notices, same-Block activation, rearming and stale reversal. Existing
 appeal/ruling envelopes now reference notices with explicit targets.
+
+## 2026-09-05 — WIST-4 §4, §11: authenticated coverage exemptions (revision, not errata)
+
+**What changed.** A missing predecessor hash earns no unattested-pair
+exemption. The signed, pair-specific `found` receipt remains the basis for
+an attested contradiction. Complete withholding cannot be distinguished
+from nonpublication by replay alone. ADR-0033 amends ADR-0012 and ADR-0024.
+
+**Why a revision.** The former rule excluded every unattested duty after
+a fabricated chain gap. Removing that exclusion changes failure counts.
+
+**Exercised.** `coverage.json` contrasts a signed successor with a
+fabricated predecessor, a matching signed receipt and an unrelated receipt.
+Counting vectors now retain unattested failures despite chain gaps. The
+harness verifies signatures, the successor's VRF proof and receipt matching.

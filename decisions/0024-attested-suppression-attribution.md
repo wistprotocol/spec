@@ -1,6 +1,6 @@
 # ADR-0024: Attested suppression evidence names the affected duty
 
-**Status:** accepted · **Date:** 2026-09-05
+**Status:** accepted; amended by ADR-0033 (2026-09-05: bare predecessor gaps earn no coverage exemption) · **Date:** 2026-09-05
 **Amends:** ADR-0012
 
 ## Context
