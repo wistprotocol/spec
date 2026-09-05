@@ -2118,3 +2118,81 @@ exactly the boundaries and rotations these cover.
 rotation cases under the key held at each Block, and its twin proves
 the check reads that key; `vectors:wist4-unauditable` and
 `vectors:wist4-roster` recompute the new cases.
+
+## 2026-09-04 — WIST-4 §4, §13: a derived state is dated where it becomes derivable
+
+Adds the paragraph *The state is dated where it becomes derivable* to §4,
+one clause to the divergence sentence, the establishing height to both
+transport rules, one clause to the §13 validator checklist line that
+stops counting a coverage-failed Auditor's Records, and the
+`establishing_cases` array to `vectors/wist4/coverage.json`.
+
+**What it states.** §4 defined coverage failure "at a height N when the
+Log shows it failing the duty for more than `coverage_failures_max`
+Blocks inside the 30 whole days ending at Block N's `sealed_at`", and
+defined divergence in the same shape, without saying when the Log shows
+it. The evidence for a Block's duty cannot exist at that Block: the
+Aggregator pulls after the coverage deadline and seals within
+`record_seal_blocks` of the pull, so the earliest height at which any
+party can derive the failure is far above the Block whose duty was
+failed. *Shows* is now read at N and nowhere else, and each case has an
+**establishing height**: the Block sealing the `pull_attestation` for
+the pair, or, for an unattested pair, the `record_seal_blocks`-th Block
+sealed after that Auditor's coverage deadline. The 30 whole days stay
+anchored to the audited Blocks, so a Block whose establishing height
+falls outside its own window counts at no height at all.
+
+**Why it qualifies.** The alternative — dating the state to the audited
+Block and applying it once the evidence arrives — was never available.
+`reputation_u` sets `p_1e7`, quotas and ingestion suspension (§6.4), so
+a state that reached back would change the sampling and the acceptance
+of every Block sealed between the audited Block and its evidence, which
+§8 invariant 3 forbids; and WIST-3 §7's `coverage_failure` state kind is
+written at a Snapshot's `log_position` alone, so a Consumer resuming
+there could not carry a state dated below it that the Log had not yet
+established. No implementation could conform to the reading this
+removes.
+
+**Status.** Exercised. `vectors/wist4/coverage.json` gains four
+establishing cases — an attestation's own Block, the unattested case's
+count of Blocks past the deadline, a deadline not yet passed by
+`record_seal_blocks` Blocks, and evidence arriving past the audited
+Block's window — each with the heights at which the failure counts and
+does not. The family's anchor status is the row `tools/VERIFICATION.md`
+already carries for it.
+
+## 2026-09-04 — WIST-4 §4, §9.1, §13, audit-record schema: the `prev_record` chain is per Log (revision, not errata)
+
+Rewrites the `prev_record` sentence in §4's transport paragraph, the two
+§9.1 restatements, the §13 Auditor checklist line and the schema's
+`prev_record` description, and adds the `chain_scope_cases` array to
+`vectors/wist4/coverage.json`.
+
+**What it states.** `prev_record` names the same Auditor's immediately
+preceding Record or attestation published for the same Log, and is
+`null` for its first there. The chain is per (Auditor, Log).
+
+**Why it is a revision.** It fails the first condition: the previous
+text said "in its own publication order", one order across everything
+the Auditor publishes, and an Auditor serving two Logs that chained its
+items in that single order conformed to those words. It now MUST keep
+one chain per Log, so its published `prev_record` values change. The
+change is forced by what the chain feeds. WIST-3 §8 makes an Auditor
+roster, and every state computed from that roster's Records, a function
+of one chain's replay; §4's gap discriminator reads a sealed item whose
+`prev_record` names an ID its Log does not contain as proof that the
+Aggregator suppressed or failed to pull a published item, and excludes
+every unattested pair for that Auditor in the window. Under a single
+cross-Log order, every item an Auditor publishes for one Log names a
+predecessor published for another, which no Log can find or attribute —
+so each Log holds a permanent gap, and *The gate is not an amnesty*
+inverts into a permanent amnesty scaled to the number of Logs an Auditor
+joined. No Log-side test can repair it: a Log cannot tell a missing ID
+belonging to a peer Log from one its own Aggregator withheld.
+
+**Status.** Exercised. The two chain-scope cases run one Auditor's five
+publications interleaved across two Logs — nothing suppressed, then one
+item withheld by one of them — and carry, beside the per-Log chain and
+each Log's gap verdict, the chain and verdicts the ruled-out cross-Log
+order produces, so a party checking the vector proves the two readings
+disagree rather than assuming it.

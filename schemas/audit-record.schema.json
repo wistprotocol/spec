@@ -25,7 +25,7 @@
         "link_agreement": {"type": "integer", "minimum": 0, "maximum": 1000000},
         "robots_excluded": {"const": true, "description": "Present only on an `unreachable` Record whose fetch was forbidden by robots.txt (WIST-4 §5); it is what the unauditable horizon counts, so it distinguishes a URL nobody may check from one that was merely down."},
         "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$"},
-        "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}], "description": "The ID of this Auditor's immediately preceding Audit Record or coverage_attestation in its own publication order, or null for its first ever (WIST-4 §4). The per-auditor chain is what turns a selectively suppressed submission into proof of its own existence: a sealed successor naming an unsealed predecessor demonstrates the predecessor was published."}
+        "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}], "description": "The ID of this Auditor's immediately preceding Audit Record or coverage_attestation published for the same Log, or null for its first there (WIST-4 §4). The chain is per (Auditor, Log), because every state derived from it is (WIST-3 §8). The per-auditor chain is what turns a selectively suppressed submission into proof of its own existence: a sealed successor naming an unsealed predecessor demonstrates the predecessor was published."}
       }
     },
     "sig": {

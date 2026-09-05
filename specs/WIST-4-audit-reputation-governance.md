@@ -450,6 +450,28 @@ one party those Records are evidence against chooses to file: an Aggregator
 holding an Auditor key of its own would otherwise keep a demonstrably
 shirking Auditor on the roster and keep counting whatever it did publish.
 
+**The state is dated where it becomes derivable.** *Shows* is read at N
+and nowhere else. A Block enters the count above only from the
+**establishing height** at which the Log carries the evidence that its
+duty was failed — the height of the Block sealing the `pull_attestation`
+for the pair, or, for an unattested pair, the height of the
+`record_seal_blocks`-th Block sealed after that Auditor's coverage
+deadline for it, both fixed by the transport below — so every state this
+section derives is a function of the Log up to the height it is read at,
+and none is ever dated to a height at which its own evidence was not yet
+sealed. The alternative reading is closed rather than merely
+unattractive: the evidence for a Block's duty lands
+`coverage_deadline_hours` and `record_seal_blocks` after the Block it
+speaks to, `reputation_u` sets `p_1e7`, quotas and ingestion suspension
+(§6.4), and a state dated to a height before it was derivable would
+retroactively change the sampling and the acceptance of every Block
+sealed in between — which §8 invariant 3 forbids, and which WIST-3 §7's
+`coverage_failure` state kind, written at a Snapshot's `log_position`
+alone, could not carry. The 30 whole days are anchored to the audited
+Blocks and not to their evidence: the window measures the duty, so a
+Block whose establishing height falls outside the 30 whole days ending at
+its own `sealed_at` counts at no height at all.
+
 The derived exclusion tracks the predicate rather than outliving it: as
 failures age out of the 30-day window with none replacing them, the Auditor
 is no longer in coverage failure and its later Records count again. A
@@ -562,7 +584,9 @@ contradictions in that window — which is why `contradictions_max` MUST
 be below `extension_triggers_max` (§9). An Auditor whose Records were
 contradicted more than `contradictions_max` times (Parameter Registry;
 default 2) in the 30 whole days ending at height N is in **divergence**
-from that height, and for as long as it holds: a validator recomputing
+from that height — counted, like a coverage failure, only from the height
+at which the Log establishes each contradiction, never from the height of
+the Record contradicted — and for as long as it holds: a validator recomputing
 reputation rejects
 every Record it signs, exactly as for coverage failure (§4), and the
 Aggregator MUST remove it by `auditor_remove` naming the contradicted
@@ -589,8 +613,15 @@ that Block's selection set, VRF-drawn and extension-named alike, and any
 §4 deadlines for that Block, and MUST keep serving it until every
 item in it is sealed. Each Record and each `coverage_attestation` an
 Auditor publishes carries `prev_record`: the ID of the same Auditor's
-immediately preceding Record or attestation in its own publication
-order, or `null` for its first ever. The chain is what turns selective
+immediately preceding Record or attestation published for the same Log,
+or `null` for its first there. The chain is per (Auditor, Log) because
+everything it feeds is: WIST-3 §8 makes an Auditor roster, and every
+state computed from that roster's Records, a function of one chain's
+replay, and a single chain spanning an Auditor's Logs would leave each
+of them holding items whose named predecessor it can neither find nor
+attribute to another Log — a permanent gap, and by the rule below a
+permanent amnesty, granted in proportion to the number of Logs an
+Auditor joined. The chain is what turns selective
 suppression into evidence: a sealed item whose `prev_record` names an
 ID the Log does not contain proves, to any replaying party, that the
 missing item existed and was published before its successor — so the
@@ -606,7 +637,9 @@ details naming the audited Block and the IDs found, empty where the
 fetch found nothing to seal. A coverage failure for an (Auditor, Block)
 pair enters the §4 failure count **only** when the Log carries the
 Aggregator's `pull_attestation` for that pair showing the duty unmet
-and no later-sealed item contradicts it by chain. The asymmetry is
+and no later-sealed item contradicts it by chain, and it enters that
+count from the height of the Block that sealed the attestation, never
+from the height of the Block whose duty it records. The asymmetry is
 deliberate, and it is the appeal pattern (§7, WIST-2 §3.3) applied to the
 one evidence class that lacked it: without the attestation requirement,
 an Aggregator could manufacture an honest Auditor's removal by silently
@@ -626,9 +659,11 @@ uncountable for the whole roster, and §11's "shirking is detectable
 from the Log alone" would be true of the detection and false of the
 consequence. So the omission resolves rather than suspends. When the
 Log carries no `pull_attestation` for an (Auditor, Block) pair by
-`record_seal_blocks` Blocks after that Auditor's coverage deadline,
-the pair is **unattested**, and an unattested pair counts toward the
-§4 failure count exactly as an attested unmet duty does — unless the
+`record_seal_blocks` Blocks after that Auditor's coverage deadline —
+the `record_seal_blocks`-th Block whose `sealed_at` is after that
+deadline — the pair is **unattested** from that Block's height, and an
+unattested pair counts toward the §4 failure count from that height
+exactly as an attested unmet duty does from its own — unless the
 Log carries, for that Auditor, any sealed item whose `prev_record`
 chain shows a published item the Aggregator did not seal, in which
 case every unattested pair for that Auditor in the same 30-day window
@@ -2316,7 +2351,8 @@ mirroring §7 and §3:
   same value that names the Auditor's well-known records file, §4),
   `vrf_proof` (the §4 VRF Proof for that Block, 80 octets as 160 lowercase
   hex characters) and `prev_record` (§4), the same Auditor's preceding
-  publication or `null`; `subject` is the Auditor's `auditor_id`. All three
+  publication for that Log or `null`; `subject` is the Auditor's
+  `auditor_id`. All three
   are REQUIRED, because the attestation exists to put the proof of an empty
   selection in the Log where the coverage duty is derived from it (§4): one
   carrying no proof attests to nothing a replayer could check, and one
@@ -2325,7 +2361,7 @@ mirroring §7 and §3:
 `sanction_lift` carries an unconstrained `details` object, and an
 `appeal`'s is unconstrained beyond the `notice` it MUST name; every Audit
 Record carries `prev_record` (§4), the same Auditor's preceding
-publication or `null`.
+publication for that Log or `null`.
 §4 and §7 govern the rest of their content in prose, not the schema.
 The same is true of any action a future major revision adds.
 
@@ -2695,7 +2731,7 @@ hands.
       the proof for *B₁* and served at *B₁*'s records path (§4)
 - [ ] Serves its Records and attestations per audited Block at its
       well-known records path until sealed, each carrying `prev_record`
-      in its own publication order (§4)
+      in its own publication order for that Log (§4)
 - [ ] Signs Records with a key admitted at the `sealed_at` of the Block
       carrying the Record, and fetches inside the interval §3 fixes — with
       the coverage carve-out: an Auditor removed after a Block was sealed
@@ -2770,7 +2806,8 @@ hands.
       independent Auditors inside the `sealed_at` window (§3, §5, §7)
 - [ ] Stops counting the Records of an Auditor in coverage failure at
       their own Block's `sealed_at`, whether or not an `auditor_remove`
-      was ever sealed, and counts them again once the failures age out of
+      was ever sealed, counts a failed duty only from its establishing
+      height, and counts the Records again once the failures age out of
       the 30-day window (§3, §4)
 - [ ] Excludes from `C` a Record whose `reference_delta` is an `attest`
       or a `delete`, whatever Delta it audited; counts distinct

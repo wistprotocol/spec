@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (\u00a710) still discharge the duty \u2014 `void` lists every reason the Record is void, empty for a standing Record \u2014 and, per anchor case, the Block a removal is read against: the audited Block for a draw, B\u2081 for a Delta the extension rule names.",
+  "note": "WIST-4 \u00a74 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (\u00a710) still discharge the duty \u2014 `void` lists every reason the Record is void, empty for a standing Record \u2014 per anchor case the Block a removal is read against (the audited Block for a draw, B\u2081 for a Delta the extension rule names), the establishing height from which a failed duty enters the count, and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
   "coverage_deadline_hours": 72,
   "coverage_failures_max": 24,
   "record_seal_blocks": 24,
@@ -324,6 +324,446 @@
       "removed_at_s": 8726400,
       "void": "never admitted at anchor block",
       "discharges": false
+    }
+  ],
+  "establishing_cases": [
+    {
+      "label": "attested unmet establishes at the attestation",
+      "audited_block": {
+        "height": 100,
+        "sealed_at_s": 360000
+      },
+      "coverage_deadline_hours": 72,
+      "coverage_deadline_s": 619200,
+      "record_seal_blocks": 4,
+      "blocks": [
+        {
+          "height": 170,
+          "sealed_at_s": 612000
+        },
+        {
+          "height": 171,
+          "sealed_at_s": 615600
+        },
+        {
+          "height": 172,
+          "sealed_at_s": 619200
+        },
+        {
+          "height": 173,
+          "sealed_at_s": 622800
+        },
+        {
+          "height": 174,
+          "sealed_at_s": 626400
+        },
+        {
+          "height": 175,
+          "sealed_at_s": 630000
+        },
+        {
+          "height": 176,
+          "sealed_at_s": 633600
+        },
+        {
+          "height": 177,
+          "sealed_at_s": 637200
+        },
+        {
+          "height": 178,
+          "sealed_at_s": 640800
+        },
+        {
+          "height": 179,
+          "sealed_at_s": 644400
+        },
+        {
+          "height": 180,
+          "sealed_at_s": 648000
+        },
+        {
+          "height": 181,
+          "sealed_at_s": 651600
+        },
+        {
+          "height": 182,
+          "sealed_at_s": 655200
+        },
+        {
+          "height": 183,
+          "sealed_at_s": 658800
+        },
+        {
+          "height": 184,
+          "sealed_at_s": 662400
+        }
+      ],
+      "attestation_height": 180,
+      "establishing_height": 180,
+      "counts_at": [
+        {
+          "height": 175,
+          "sealed_at_s": 630000,
+          "counts": false
+        },
+        {
+          "height": 179,
+          "sealed_at_s": 644400,
+          "counts": false
+        },
+        {
+          "height": 180,
+          "sealed_at_s": 648000,
+          "counts": true
+        },
+        {
+          "height": 181,
+          "sealed_at_s": 651600,
+          "counts": true
+        }
+      ]
+    },
+    {
+      "label": "unattested establishes record seal blocks after the deadline",
+      "audited_block": {
+        "height": 100,
+        "sealed_at_s": 360000
+      },
+      "coverage_deadline_hours": 72,
+      "coverage_deadline_s": 619200,
+      "record_seal_blocks": 4,
+      "blocks": [
+        {
+          "height": 170,
+          "sealed_at_s": 612000
+        },
+        {
+          "height": 171,
+          "sealed_at_s": 615600
+        },
+        {
+          "height": 172,
+          "sealed_at_s": 619200
+        },
+        {
+          "height": 173,
+          "sealed_at_s": 622800
+        },
+        {
+          "height": 174,
+          "sealed_at_s": 626400
+        },
+        {
+          "height": 175,
+          "sealed_at_s": 630000
+        },
+        {
+          "height": 176,
+          "sealed_at_s": 633600
+        },
+        {
+          "height": 177,
+          "sealed_at_s": 637200
+        },
+        {
+          "height": 178,
+          "sealed_at_s": 640800
+        },
+        {
+          "height": 179,
+          "sealed_at_s": 644400
+        },
+        {
+          "height": 180,
+          "sealed_at_s": 648000
+        },
+        {
+          "height": 181,
+          "sealed_at_s": 651600
+        },
+        {
+          "height": 182,
+          "sealed_at_s": 655200
+        },
+        {
+          "height": 183,
+          "sealed_at_s": 658800
+        },
+        {
+          "height": 184,
+          "sealed_at_s": 662400
+        }
+      ],
+      "attestation_height": null,
+      "establishing_height": 176,
+      "counts_at": [
+        {
+          "height": 172,
+          "sealed_at_s": 619200,
+          "counts": false
+        },
+        {
+          "height": 175,
+          "sealed_at_s": 630000,
+          "counts": false
+        },
+        {
+          "height": 176,
+          "sealed_at_s": 633600,
+          "counts": true
+        },
+        {
+          "height": 177,
+          "sealed_at_s": 637200,
+          "counts": true
+        }
+      ]
+    },
+    {
+      "label": "deadline not yet passed by record seal blocks",
+      "audited_block": {
+        "height": 100,
+        "sealed_at_s": 360000
+      },
+      "coverage_deadline_hours": 72,
+      "coverage_deadline_s": 619200,
+      "record_seal_blocks": 4,
+      "blocks": [
+        {
+          "height": 170,
+          "sealed_at_s": 612000
+        },
+        {
+          "height": 171,
+          "sealed_at_s": 615600
+        },
+        {
+          "height": 172,
+          "sealed_at_s": 619200
+        },
+        {
+          "height": 173,
+          "sealed_at_s": 622800
+        },
+        {
+          "height": 174,
+          "sealed_at_s": 626400
+        },
+        {
+          "height": 175,
+          "sealed_at_s": 630000
+        }
+      ],
+      "attestation_height": null,
+      "establishing_height": null,
+      "counts_at": [
+        {
+          "height": 174,
+          "sealed_at_s": 626400,
+          "counts": false
+        },
+        {
+          "height": 175,
+          "sealed_at_s": 630000,
+          "counts": false
+        }
+      ]
+    },
+    {
+      "label": "evidence outside the window counts at no height",
+      "audited_block": {
+        "height": 100,
+        "sealed_at_s": 360000
+      },
+      "coverage_deadline_hours": 72,
+      "coverage_deadline_s": 619200,
+      "record_seal_blocks": 4,
+      "blocks": [
+        {
+          "height": 815,
+          "sealed_at_s": 2934000
+        },
+        {
+          "height": 816,
+          "sealed_at_s": 2937600
+        },
+        {
+          "height": 817,
+          "sealed_at_s": 2941200
+        },
+        {
+          "height": 818,
+          "sealed_at_s": 2944800
+        },
+        {
+          "height": 819,
+          "sealed_at_s": 2948400
+        },
+        {
+          "height": 820,
+          "sealed_at_s": 2952000
+        },
+        {
+          "height": 821,
+          "sealed_at_s": 2955600
+        },
+        {
+          "height": 822,
+          "sealed_at_s": 2959200
+        },
+        {
+          "height": 823,
+          "sealed_at_s": 2962800
+        },
+        {
+          "height": 824,
+          "sealed_at_s": 2966400
+        }
+      ],
+      "attestation_height": 820,
+      "establishing_height": 820,
+      "counts_at": [
+        {
+          "height": 819,
+          "sealed_at_s": 2948400,
+          "counts": false
+        },
+        {
+          "height": 820,
+          "sealed_at_s": 2952000,
+          "counts": false
+        },
+        {
+          "height": 824,
+          "sealed_at_s": 2966400,
+          "counts": false
+        }
+      ]
+    }
+  ],
+  "chain_scope_cases": [
+    {
+      "label": "nothing suppressed",
+      "publications": [
+        {
+          "id": "sha256:p1",
+          "log": "log-a"
+        },
+        {
+          "id": "sha256:p2",
+          "log": "log-b"
+        },
+        {
+          "id": "sha256:p3",
+          "log": "log-a"
+        },
+        {
+          "id": "sha256:p4",
+          "log": "log-b"
+        },
+        {
+          "id": "sha256:p5",
+          "log": "log-a"
+        }
+      ],
+      "suppressed": [],
+      "prev_record": {
+        "sha256:p1": null,
+        "sha256:p2": null,
+        "sha256:p3": "sha256:p1",
+        "sha256:p4": "sha256:p2",
+        "sha256:p5": "sha256:p3"
+      },
+      "prev_record_under_global_publication_order": {
+        "sha256:p1": null,
+        "sha256:p2": "sha256:p1",
+        "sha256:p3": "sha256:p2",
+        "sha256:p4": "sha256:p3",
+        "sha256:p5": "sha256:p4"
+      },
+      "logs": [
+        {
+          "log": "log-a",
+          "sealed": [
+            "sha256:p1",
+            "sha256:p3",
+            "sha256:p5"
+          ],
+          "chain_gap": false,
+          "chain_gap_under_global_publication_order": true
+        },
+        {
+          "log": "log-b",
+          "sealed": [
+            "sha256:p2",
+            "sha256:p4"
+          ],
+          "chain_gap": false,
+          "chain_gap_under_global_publication_order": true
+        }
+      ]
+    },
+    {
+      "label": "log a suppresses one item",
+      "publications": [
+        {
+          "id": "sha256:p1",
+          "log": "log-a"
+        },
+        {
+          "id": "sha256:p2",
+          "log": "log-b"
+        },
+        {
+          "id": "sha256:p3",
+          "log": "log-a"
+        },
+        {
+          "id": "sha256:p4",
+          "log": "log-b"
+        },
+        {
+          "id": "sha256:p5",
+          "log": "log-a"
+        }
+      ],
+      "suppressed": [
+        "sha256:p3"
+      ],
+      "prev_record": {
+        "sha256:p1": null,
+        "sha256:p2": null,
+        "sha256:p3": "sha256:p1",
+        "sha256:p4": "sha256:p2",
+        "sha256:p5": "sha256:p3"
+      },
+      "prev_record_under_global_publication_order": {
+        "sha256:p1": null,
+        "sha256:p2": "sha256:p1",
+        "sha256:p3": "sha256:p2",
+        "sha256:p4": "sha256:p3",
+        "sha256:p5": "sha256:p4"
+      },
+      "logs": [
+        {
+          "log": "log-a",
+          "sealed": [
+            "sha256:p1",
+            "sha256:p5"
+          ],
+          "chain_gap": true,
+          "chain_gap_under_global_publication_order": true
+        },
+        {
+          "log": "log-b",
+          "sealed": [
+            "sha256:p2",
+            "sha256:p4"
+          ],
+          "chain_gap": false,
+          "chain_gap_under_global_publication_order": true
+        }
+      ]
     }
   ]
 }
