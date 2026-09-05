@@ -334,9 +334,11 @@ Records are is public from the moment they are served: anyone can read
 its `inconsistent` verdict on a Publisher whether or not any Log ever
 counts it, which is watch-value before it is admission evidence. An
 Observer MUST keep serving every Record and attestation it publishes for
-`payload_window_days` after publishing it, so that the scoreboard §5.2
-derives can be computed by anyone for as long as the reveals it reads
-are live.
+`payload_window_days` after publishing it — a span only the Observer can
+measure, since publication is not a Log event, and one no derivation
+reads: what replay reads is §5.1's scoring window, anchored to the
+reveal's Block — so that the scoreboard §5.2 derives can be computed by
+anyone for as long as the reveals it reads are live.
 
 **Checkpoints fix the record before the outcome is knowable.** A served
 Record proves nothing about when it was written, and a history served
@@ -1667,6 +1669,12 @@ lapses as a Reference Payload's does, because a Log that kept raw page
 bytes forever would repeal WIST-1 §3.6's unconfirmability by a side door;
 after it, the reveal is a sealed fact, and the scores computed under it
 survive in the sealed `auditor_admit` Entries that cited them (§3.1).
+The window is measured as every window in this document is (§4, §7): it
+is **open** at a Block N when the whole days (§6.1) from the reveal's
+Block `sealed_at` to N's are fewer than `payload_window_days` — open at
+the reveal's own Block, lapsed at the first Block sealed
+`payload_window_days` whole days or more after it — and a scoreboard
+read at N (§5.2) reads exactly the reveals open there.
 
 A reveal is rejected on replay (`WIST4-E08`) where the commitment it
 names is not a sealed `canary_commitment` or has been revealed already;

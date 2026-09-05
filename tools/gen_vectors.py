@@ -3396,7 +3396,35 @@ CANARY_PARAMS = {"canary_lead_blocks": 24, "canary_reveal_min_blocks": 168,
                  "observer_checkpoint_budget": 1024, "canary_leaves_max": 1024,
                  "canary_commitments_max": 8, "similarity_consistent": 600_000,
                  "similarity_variance_floor": 300_000, "min_observed_words": 40,
-                 "latency_threshold_u": 500_000}
+                 "latency_threshold_u": 500_000, "payload_window_days": 180}
+
+
+def scoring_window_open(reveal_sealed_at_s, n_sealed_at_s, days):
+    """§5.1: open at N while the whole days from the reveal's Block to N
+    are fewer than payload_window_days — end-inclusive, start-exclusive,
+    as every window in the document is measured."""
+    return n_sealed_at_s >= reveal_sealed_at_s and (n_sealed_at_s - reveal_sealed_at_s) // DAY_S < days
+
+
+CANARY_REVEAL_BLOCK = 500
+canary_scoring_window_cases = [
+    {"label": label, "reveal_height": CANARY_REVEAL_BLOCK,
+     "reveal_sealed_at_s": CANARY_REVEAL_BLOCK * HOUR_S,
+     "n_height": n, "n_sealed_at_s": n * HOUR_S,
+     "payload_window_days": CANARY_PARAMS["payload_window_days"],
+     "whole_days": ((n - CANARY_REVEAL_BLOCK) * HOUR_S) // DAY_S,
+     "open": scoring_window_open(CANARY_REVEAL_BLOCK * HOUR_S, n * HOUR_S,
+                                 CANARY_PARAMS["payload_window_days"])}
+    for label, n in [
+        ("open-at-the-reveals-own-block", CANARY_REVEAL_BLOCK),
+        ("open-inside-the-window", CANARY_REVEAL_BLOCK + 2000),
+        ("open-at-the-last-block-inside-the-window", CANARY_REVEAL_BLOCK + 180 * 24 - 1),
+        ("lapsed-at-the-first-block-a-whole-window-later", CANARY_REVEAL_BLOCK + 180 * 24),
+        ("lapsed-after-the-window", CANARY_REVEAL_BLOCK + 180 * 24 + 1),
+    ]
+]
+assert [c["open"] for c in canary_scoring_window_cases] == [True, True, True, False, False], \
+    "scoring window cases drifted"
 
 
 def canary_timing(commitment_height, delta_heights, reveal_height, suffixes, p=CANARY_PARAMS):
@@ -3464,7 +3492,8 @@ write_json(WIST4 / "canary.json", spaced_labels({
              "(three revealed, one not), each carrying a nonce; the credit_commitment "
              "check per signer; the hard hit over both canary classes with the "
              "dynamic_variance buffer between; reveal timing against the lead, the "
-             "minimum with the checkpoint-budget rotation, and the lifetime; and the "
+             "minimum with the checkpoint-budget rotation, and the lifetime; the "
+             "scoring window's endpoints on the Block grid; and the "
              "per-tier scoreboard. Every revealed leaf's Reference Payload is "
              "examples/payload.json, whose salt keys every commitment here. Nonces are "
              "derived from a fixed string for reproducibility; a planter draws them "
@@ -3479,6 +3508,7 @@ write_json(WIST4 / "canary.json", spaced_labels({
     "leaves": canary_leaves,
     "credit_cases": canary_credit_cases,
     "timing_cases": canary_timing_cases,
+    "scoring_window_cases": canary_scoring_window_cases,
     "scoreboard_records": canary_scoreboard_records,
     "scoreboards": canary_scoreboards,
 }))

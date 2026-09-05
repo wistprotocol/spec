@@ -2667,6 +2667,16 @@ def _canary_timing(v, case):
     lead_ok = all(h >= case["commitment_height"] + p["canary_lead_blocks"] for h in case["delta_heights"])
     return earliest, latest, lead_ok, lead_ok and earliest <= case["reveal_height"] <= latest
 
+def _canary_window_open(case, end_inclusive_start_exclusive=True):
+    """WIST-4 §5.1: the scoring window is open at N while the whole days from
+    the reveal's Block to N are fewer than payload_window_days."""
+    span = case["n_sealed_at_s"] - case["reveal_sealed_at_s"]
+    if span < 0:
+        return False
+    whole = span // 86400
+    return whole < case["payload_window_days"] if end_inclusive_start_exclusive \
+        else whole <= case["payload_window_days"]
+
 def _dc4_canary():
     import link_extraction
     """WIST-4 §5.1, §5.2: leaves hash to the committed root under their
@@ -2740,6 +2750,19 @@ def _dc4_canary():
                    "consistent in the buffer band is no hit", "inconsistent in the buffer band is no hit",
                    "a cloaked fetch misses", "the wrong salt reproduces nothing"):
         assert needed in labels, f"vector lacks the {needed} case"
+    for case in v["scoring_window_cases"]:
+        labels.add(case["label"])
+        whole = (case["n_sealed_at_s"] - case["reveal_sealed_at_s"]) // 86400
+        assert whole == case["whole_days"], f"{case['label']}: whole days"
+        assert case["payload_window_days"] == v["parameters"]["payload_window_days"]
+        assert _canary_window_open(case) == case["open"], f"{case['label']}: open"
+    for needed in ("open at the reveals own block", "open at the last block inside the window",
+                   "lapsed at the first block a whole window later"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert ("it is **open** at a Block N when the whole days (§6.1) from the reveal's Block "
+            "`sealed_at` to N's are fewer than `payload_window_days`") in prose, \
+        "§5.1 does not fix the scoring window's endpoints"
     for case in v["timing_cases"]:
         got = _canary_timing(v, case)
         want = (case["earliest_reveal_height"], case["latest_reveal_height"],
@@ -2806,6 +2829,11 @@ def _dc4_canary_twin():
         "recomputation is blind to the leaf's index"
     early = next(c for c in v["timing_cases"] if c["label"] == "reveal one block early")
     assert _canary_timing(v, dict(early, reveal_height=early["reveal_height"] + 1))[3] is True
+    lapsed = next(c for c in v["scoring_window_cases"]
+                  if c["label"] == "lapsed at the first block a whole window later")
+    assert _canary_window_open(lapsed, end_inclusive_start_exclusive=False) is True \
+        and _canary_window_open(lapsed) is False, \
+        "recomputation is blind to the window's closing endpoint"
 check("negative:wist4-canary", _dc4_canary_twin)
 
 def _observer_vector():
