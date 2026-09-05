@@ -3445,6 +3445,118 @@ for label, rows, expected in (
     sanction_transition_cases.append({"label": label, "blocks": blocks,
                                      "active_rungs": active, "levels": expected})
 
+def process_result(notice, acts, n_s):
+    if notice["update"]["details"]["kind"] != "sanction":
+        return {"appeal_index": None, "merits_index": None, "unappealed_index": None, "void_at_s": None}
+    notice_id = "sha256:" + sha256_hex(rfc8785.dumps(notice["update"]))
+    seen, entries = set(), []
+    for i, event in sorted(enumerate(acts), key=lambda pair: pair[1]["sealed_at_s"]):
+        if event["sealed_at_s"] > n_s:
+            continue
+        inner = event["envelope"]["update"]
+        rid = "sha256:" + sha256_hex(rfc8785.dumps(inner))
+        if rid in seen:
+            continue
+        seen.add(rid)
+        if (notice["update"]["details"]["kind"] == "sanction"
+                and inner["subject"] == notice["update"]["subject"]
+                and inner["details"]["notice"] == notice_id):
+            entries.append((i, event["sealed_at_s"], inner))
+    def first_slot(candidates):
+        for instant in sorted({t for _, t, _ in candidates}):
+            group = [e for e in candidates if e[1] == instant]
+            if len(group) == 1:
+                return group[0]
+        return None
+    appeal = first_slot([e for e in entries if e[2]["action"] == "appeal"])
+    timely = appeal if appeal is not None and appeal[1] <= 21 * DAY_S else None
+    merits = first_slot([e for e in entries if e[2]["action"] == "appeal_ruling"
+                        and e[2]["details"]["outcome"] in ("upheld", "overturned")
+                        and timely is not None and timely[1] <= e[1] <= timely[1] + 30 * DAY_S])
+    unappealed = first_slot([e for e in entries if e[2]["action"] == "appeal_ruling"
+                           and e[2]["details"]["outcome"] == "unappealed"
+                           and 14 * DAY_S <= e[1] <= 21 * DAY_S
+                           and (timely is None or e[1] < timely[1])])
+    void = None
+    if timely is None:
+        if unappealed is None and n_s >= 21 * DAY_S:
+            void = 21 * DAY_S
+    elif merits is not None:
+        if merits[2]["details"]["outcome"] == "overturned":
+            void = merits[1]
+    elif n_s >= timely[1] + 30 * DAY_S:
+        void = timely[1] + 30 * DAY_S
+    return {"appeal_index": None if appeal is None else appeal[0],
+            "merits_index": None if merits is None else merits[0],
+            "unappealed_index": None if unappealed is None else unappealed[0],
+            "void_at_s": void}
+
+process_notice = sign_envelope("update", {
+    "wist_version": "1.0.0", "action": "notice", "subject": "page.publisher.test",
+    "effective_at": "2026-08-02T00:00:00Z",
+    "details": {"kind": "sanction", "reason": "confirmed evidence",
+                "appeal_deadline": "2026-08-16T00:00:00Z"},
+    "evidence": ["sha256:" + "0" * 64],
+}, "test-process-k1")
+process_notice_id = "sha256:" + sha256_hex(rfc8785.dumps(process_notice["update"]))
+process_cases = []
+for label, rows, void_day in (
+    ("first upheld ruling wins", [(1, "appeal"), (10, "upheld"), (11, "overturned")], None),
+    ("first overturned ruling wins", [(1, "appeal"), (10, "overturned"), (11, "upheld")], 10),
+    ("same Block conflicting rulings both rejected", [(1, "appeal"), (10, "upheld"), (10, "overturned")], 31),
+    ("valid ruling after rejected conflict", [(1, "appeal"), (10, "upheld"), (10, "overturned"), (11, "upheld")], None),
+    ("same Block competing appeals both rejected", [(1, "appeal"), (1, "appeal")], 21),
+    ("later appeal after rejected conflict", [(1, "appeal"), (1, "appeal"), (2, "appeal")], 32),
+    ("later distinct appeal cannot restart clock", [(1, "appeal"), (20, "appeal")], 31),
+    ("same Block appeal before ruling", [(10, "upheld"), (10, "appeal")], None),
+    ("ruling before appeal is ineligible", [(0, "upheld"), (1, "appeal")], 31),
+    ("appeal overrides earlier unappealed statement", [(14, "unappealed"), (20, "appeal")], 50),
+    ("late merits ruling cannot cure expiry", [(1, "appeal"), (32, "upheld")], 31),
+    ("ruling exactly at deadline", [(1, "appeal"), (31, "upheld")], None),
+    ("duplicate appeal ID is idempotent", [(1, "appeal"), (1, "duplicate")], 31),
+    ("same Block competing unappealed statements", [(14, "unappealed"), (14, "unappealed")], 21),
+):
+    acts = []
+    for i, (day, kind) in enumerate(rows):
+        if kind == "duplicate":
+            envelope = acts[0]["envelope"]
+        else:
+            details = {"notice": process_notice_id}
+            if kind != "appeal":
+                details.update({"outcome": kind, "reasoning": "decision " + str(i)})
+            else:
+                details["statement"] = "appeal " + str(i)
+            envelope = sign_envelope("update", {
+                "wist_version": "1.0.0", "action": "appeal" if kind == "appeal" else "appeal_ruling",
+                "subject": "page.publisher.test", "effective_at": "2026-08-02T00:00:00Z",
+                "details": details,
+            }, "test-process-k1")
+        acts.append({"sealed_at_s": day * DAY_S, "envelope": envelope})
+    result = process_result(process_notice, acts, 60 * DAY_S)
+    assert result["void_at_s"] == (None if void_day is None else void_day * DAY_S), label
+    process_cases.append({"label": label, "acts": acts,
+        "probes": [{"n_s": day * DAY_S, "expected": process_result(process_notice, acts, day * DAY_S)}
+                   for day in sorted({0, 14, 21, 31, 50, 60} | {d for d, _ in rows})]})
+
+for label in ("nonexistent notice", "other subject notice", "recovery notice"):
+    notice = json.loads(json.dumps(process_notice))
+    if label == "recovery notice":
+        inner = notice["update"]
+        inner["details"] = {"kind": "recovery"}
+        inner.pop("evidence")
+        notice = sign_envelope("update", inner, "test-process-k1")
+    target = "sha256:" + sha256_hex(rfc8785.dumps(notice["update"]))
+    envelope = sign_envelope("update", {
+        "wist_version": "1.0.0", "action": "appeal",
+        "subject": "other.publisher.test" if label == "other subject notice" else "page.publisher.test",
+        "effective_at": "2026-08-02T00:00:00Z",
+        "details": {"notice": "sha256:" + "1" * 64 if label == "nonexistent notice" else target},
+    }, "test-process-k1")
+    acts = [{"sealed_at_s": DAY_S, "envelope": envelope}]
+    process_cases.append({"label": label, "notice": notice, "acts": acts,
+        "probes": [{"n_s": 21 * DAY_S, "expected": process_result(notice, acts, 21 * DAY_S)}]})
+    assert process_cases[-1]["probes"][0]["expected"]["appeal_index"] is None
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -3461,6 +3573,8 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "ladder_cases": sanction_ladder_cases,
     "reversal_cases": sanction_reversal_cases,
     "transition_cases": sanction_transition_cases,
+    "process": {"public_key": b64u(pub_raw), "notice_sealed_at_s": 0,
+                "notice": process_notice, "cases": process_cases},
 }))
 
 

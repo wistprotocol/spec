@@ -2478,6 +2478,42 @@ Process requirements:
   end. The constraint is a comparison of two Block `sealed_at` values and
   a parameter, so every replaying party applies it identically; no schema
   can express it, because the two Blocks are different Entries.
+- **One process per notice, with explicit multiplicity rules.** Replay
+  identifies acts by Registry Update ID: repeated occurrences of one ID
+  are idempotent, and only its earliest sealing Block participates.
+  For each notice, the first eligible `appeal` is its appeal. At each
+  Block, group previously unseen, otherwise-valid appeals by notice;
+  if two or more distinct IDs compete for an unfilled appeal slot in
+  that Block, reject all of them (`WIST4-E05`). A later Block may still
+  supply the appeal. Once filled, a different appeal is `WIST4-E05` and
+  changes no deadline. The slot can hold a late appeal as a statement,
+  with exactly the lack of effect described above.
+
+  Resolve appeal slots before rulings in the same Block, independent
+  of Entry position. An `upheld` or `overturned` ruling is eligible only
+  with that notice's timely appeal already sealed, in this Block or a
+  lower one, and at or before its ruling deadline. The first eligible
+  merits ruling closes that process. Distinct eligible merits rulings
+  competing in one Block are all `WIST4-E05`; subsequent Blocks may
+  supply one before the deadline. Once a merits ruling has been
+  accepted, later distinct merits rulings are `WIST4-E05`, even if they
+  repeat its outcome. A ruling sealed after expiry cannot undo a void;
+  `sanction_lift` remains available for a discretionary change.
+
+  An `unappealed` ruling is a separate statement, never a merits ruling.
+  It can discharge T only if sealed between the window close and T,
+  both included, with no timely appeal in the prefix being read. A
+  timely appeal sealed after that statement overrides it and starts
+  its own ruling deadline; the statement cannot suppress a sealed
+  appeal. Distinct eligible `unappealed` statements in one Block are
+  all `WIST4-E05`; otherwise the first one occupies that statement slot
+  and later distinct ones are `WIST4-E05`. A ruling outside these
+  eligibility rules is `WIST4-E05` and fills no slot. Every act must name
+  a sealed sanction notice for its own `subject`, including one sealed
+  in its Block; a nonexistent, recovery-kind or other-subject notice
+  rejects the act as `WIST4-E05`. None of these rules reads a Registry
+  Update's stored Entry position or its self-declared `effective_at`.
+
 - **Why the omission carries the consequence.** Suppressing an appeal was
   otherwise strictly more effective than suppressing a ruling, which this
   section already closes: an unsealed appeal starts no clock, so a sanction
@@ -3039,7 +3075,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2); a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
 | WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, or whose `subject` has none and carries one (§3.1). Ignored as WIST4-E03. |
-| WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
+| WIST4-E05 | An appeal or ruling violating §7's process identity, eligibility or multiplicity rules; or a governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
 | WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` under a key not registered at its Block or naming no Audit Record or `coverage_attestation` (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
 | WIST4-E08 | Canary act rejected (§5.1): a `canary_commitment` past its planter suffix's epoch ration or with `leaves` outside 1 … `canary_leaves_max`; a `canary_reveal` naming no sealed or an already-revealed commitment, an index out of range or repeated, a Delta that is not the canary domain's or was sealed inside the lead, a Delta bound to two leaves, an inclusion proof that fails, or a reveal sealed before the reveal minimum or after the lifetime. Ignored during replay; the commitment stays unrevealed, and nothing scores under it. |

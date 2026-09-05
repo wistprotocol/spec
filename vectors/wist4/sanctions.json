@@ -1228,5 +1228,1952 @@
         3
       ]
     }
-  ]
+  ],
+  "process": {
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+    "notice_sealed_at_s": 0,
+    "notice": {
+      "update": {
+        "wist_version": "1.0.0",
+        "action": "notice",
+        "subject": "page.publisher.test",
+        "effective_at": "2026-08-02T00:00:00Z",
+        "details": {
+          "kind": "sanction",
+          "reason": "confirmed evidence",
+          "appeal_deadline": "2026-08-16T00:00:00Z"
+        },
+        "evidence": [
+          "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        ]
+      },
+      "sig": {
+        "key_id": "test-process-k1",
+        "alg": "Ed25519",
+        "value": "S97cZd8Vt1MCj6uba7Lk7o5fCjLrskBzyFDKNQ8AWExWnHfrRs3BWQ5faJDuX7_TyBYy16VjqBVskeVFNMXSBg"
+      }
+    },
+    "cases": [
+      {
+        "label": "first upheld ruling wins",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 950400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "overturned",
+                  "reasoning": "decision 2"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "hNVeVPsU4UgZ_iKraFMETrAT6agoKLSJNzQFNpLT0CRA9Hu_jsnj_f2JwDu1fqboOvfFTUpRlnOoMSvIvDhODQ"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 864000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 950400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          }
+        ]
+      },
+      {
+        "label": "first overturned ruling wins",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "overturned",
+                  "reasoning": "decision 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "_lsAU9-iSqRBNbml1YWf22q4jk-aoVinn2JjbyY4dxJnB9aylfz-xorAfznPZ48-r5chxntwqPF2BzPZUQnUAQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 950400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 2"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "-JVTmjRRwiz25XBEUGDQbsO-TEu0yyDooHIL9wcKoHKItcZbfyXi0Be1wb70iM0n20M8pc05kDjzifmwIKLeBQ"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 864000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": 864000
+            }
+          },
+          {
+            "n_s": 950400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": 864000
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": 864000
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": 864000
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": 864000
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": 864000
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": 864000
+            }
+          }
+        ]
+      },
+      {
+        "label": "same Block conflicting rulings both rejected",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "overturned",
+                  "reasoning": "decision 2"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "hNVeVPsU4UgZ_iKraFMETrAT6agoKLSJNzQFNpLT0CRA9Hu_jsnj_f2JwDu1fqboOvfFTUpRlnOoMSvIvDhODQ"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 864000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          }
+        ]
+      },
+      {
+        "label": "valid ruling after rejected conflict",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "overturned",
+                  "reasoning": "decision 2"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "hNVeVPsU4UgZ_iKraFMETrAT6agoKLSJNzQFNpLT0CRA9Hu_jsnj_f2JwDu1fqboOvfFTUpRlnOoMSvIvDhODQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 950400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 3"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "5IgKFG44ADLmkQNUjqwzeOs92sCJAx4kGSYk8OzBWrrPG0JBgqqg5SR8N9M8awp5fRLoh-QS34bf5A7IzsiJCA"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 864000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 950400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 3,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 3,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 3,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 3,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 3,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 3,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          }
+        ]
+      },
+      {
+        "label": "same Block competing appeals both rejected",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          }
+        ]
+      },
+      {
+        "label": "later appeal after rejected conflict",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 172800,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 2"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "6AgUMoTjbb2g6iu3dDQMkGiGxuibgxcDtZoPB6RK7RCQiH6LQlBzsAhknkL8CmTqlb2fb7ntr0y2I6GIsfEGCA"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 172800,
+            "expected": {
+              "appeal_index": 2,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 2,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 2,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 2,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 2,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2764800
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 2,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2764800
+            }
+          }
+        ]
+      },
+      {
+        "label": "later distinct appeal cannot restart clock",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 1728000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1728000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          }
+        ]
+      },
+      {
+        "label": "same Block appeal before ruling",
+        "acts": [
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "jpTR0P778ZaxyWIOYch4yDe8JPR6eVt7FBuHabF9VOak5npEQpHjWqYwe0KgreAJIVWvS4y5E5ztzDyxMIObBQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 864000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 864000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": 0,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": 0,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": 0,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": 0,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": 0,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": 0,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          }
+        ]
+      },
+      {
+        "label": "ruling before appeal is ineligible",
+        "acts": [
+          {
+            "sealed_at_s": 0,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "jpTR0P778ZaxyWIOYch4yDe8JPR6eVt7FBuHabF9VOak5npEQpHjWqYwe0KgreAJIVWvS4y5E5ztzDyxMIObBQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          }
+        ]
+      },
+      {
+        "label": "appeal overrides earlier unappealed statement",
+        "acts": [
+          {
+            "sealed_at_s": 1209600,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "unappealed",
+                  "reasoning": "decision 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "W23USujRrVI5QHrdl2lS35_yMBkXAbc4uIL5KQKJeDJPFuYKtchnbYoOwCWmcwa2jGhzFDHNBBU976F1jWXrBQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 1728000,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "XjeCNLIf3s43Q23--1YM35KJjkQkx74G0oD2yoialSqYvqf_jQZy8mBcl7qPCikkL2ug2Xd_wdeDptDmeGe4DA"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": 0,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1728000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": 0,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": 0,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": 0,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": 0,
+              "void_at_s": 4320000
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 1,
+              "merits_index": null,
+              "unappealed_index": 0,
+              "void_at_s": 4320000
+            }
+          }
+        ]
+      },
+      {
+        "label": "late merits ruling cannot cure expiry",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 2764800,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 2764800,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          }
+        ]
+      },
+      {
+        "label": "ruling exactly at deadline",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 2678400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "upheld",
+                  "reasoning": "decision 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "xCj7Wf5iZknZXqLl1Opf2-Hu7s7BPHLZ_RJVEuMLCHY81spyjKlqPn34foE119rAgax-2gbkbAlm2yudhsv-AQ"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 1,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          }
+        ]
+      },
+      {
+        "label": "duplicate appeal ID is idempotent",
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "statement": "appeal 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "mdO1FBsPFCDsYaw_FdUSxE6jrZ7ejeH4iXuf2ex2NVsXy4zooIVq0idnVyAX3q4T3QPtvPqA6Ly4rB49bNCqDg"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 86400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 2678400
+            }
+          }
+        ]
+      },
+      {
+        "label": "same Block competing unappealed statements",
+        "acts": [
+          {
+            "sealed_at_s": 1209600,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "unappealed",
+                  "reasoning": "decision 0"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "W23USujRrVI5QHrdl2lS35_yMBkXAbc4uIL5KQKJeDJPFuYKtchnbYoOwCWmcwa2jGhzFDHNBBU976F1jWXrBQ"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 1209600,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal_ruling",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f",
+                  "outcome": "unappealed",
+                  "reasoning": "decision 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "u8MwOKJIQGhZYwI0djGsqgF45GjHxBImrU1hEFNmMYEUFLe9uzzqv6wGsMhJKaOemAs5SuAcRK-R2XJRRn7LBw"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1209600,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          },
+          {
+            "n_s": 2678400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          },
+          {
+            "n_s": 4320000,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          },
+          {
+            "n_s": 5184000,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          }
+        ]
+      },
+      {
+        "label": "nonexistent notice",
+        "notice": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "notice",
+            "subject": "page.publisher.test",
+            "effective_at": "2026-08-02T00:00:00Z",
+            "details": {
+              "kind": "sanction",
+              "reason": "confirmed evidence",
+              "appeal_deadline": "2026-08-16T00:00:00Z"
+            },
+            "evidence": [
+              "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "S97cZd8Vt1MCj6uba7Lk7o5fCjLrskBzyFDKNQ8AWExWnHfrRs3BWQ5faJDuX7_TyBYy16VjqBVskeVFNMXSBg"
+          }
+        },
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "EsTo__wuG0_lQ56GW2tmHr2Og8_WDX7LJUY4LpLqE-uKK4PWBMzuPUA6Or4ecrgBGPk-mcDuvP87bpbaY0iwCQ"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          }
+        ]
+      },
+      {
+        "label": "other subject notice",
+        "notice": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "notice",
+            "subject": "page.publisher.test",
+            "effective_at": "2026-08-02T00:00:00Z",
+            "details": {
+              "kind": "sanction",
+              "reason": "confirmed evidence",
+              "appeal_deadline": "2026-08-16T00:00:00Z"
+            },
+            "evidence": [
+              "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "S97cZd8Vt1MCj6uba7Lk7o5fCjLrskBzyFDKNQ8AWExWnHfrRs3BWQ5faJDuX7_TyBYy16VjqBVskeVFNMXSBg"
+          }
+        },
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "other.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:1abde1c08d8ac24b867c4087d99c652eb86aaff6edd178a30e49bc3210463f3f"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "y_iM4yi79yTmAgaNtzbZ1zAteA8ABELTRXVA0N7vc9lC9ffYggnXSLHN4UTF9V1ElHITMkHLmbDjakv-Kk7VAQ"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": 1814400
+            }
+          }
+        ]
+      },
+      {
+        "label": "recovery notice",
+        "notice": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "notice",
+            "subject": "page.publisher.test",
+            "effective_at": "2026-08-02T00:00:00Z",
+            "details": {
+              "kind": "recovery"
+            }
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "ydWqL7yj8j5CXNy9kxm_peBn4xvjYVhp7eHecax5q67rZXXDI599UYDUdP88trA4cWuICaEacGOE9zTpCO-BCQ"
+          }
+        },
+        "acts": [
+          {
+            "sealed_at_s": 86400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "appeal",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "details": {
+                  "notice": "sha256:58f09d7ce064c1c220bcf7b1fd3169980f4a936b94c42bf67c36412a56cb0315"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "quT_Bs_MapH0v_Z6eNF1n3j7vMLHf0tjng_ZOvWG08NuIhdjcE7S0D5tPcUvLATpD6Gz5bd4frrgLJB7XAHsCw"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "n_s": 1814400,
+            "expected": {
+              "appeal_index": null,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          }
+        ]
+      }
+    ]
+  }
 }

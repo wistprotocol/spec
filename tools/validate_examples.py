@@ -2721,6 +2721,91 @@ def _sanction_void_at(v, case, service_inside_window=None):
             return None
     return due
 
+def _process_prefix(process, case, n_s, reverse=False):
+    notice = case.get("notice", process["notice"])["update"]
+    if notice["details"]["kind"] != "sanction":
+        return {"appeal_index": None, "merits_index": None, "unappealed_index": None, "void_at_s": None}
+    notice_id = "sha256:" + hashlib.sha256(rfc8785.dumps(notice)).hexdigest()
+    start = process["notice_sealed_at_s"]
+    t = start + 21 * 86400
+    slots, seen = {}, set()
+    groups = collections.defaultdict(list)
+    for i, act in enumerate(case["acts"]):
+        if start <= act["sealed_at_s"] <= n_s:
+            groups[act["sealed_at_s"]].append((i, act["envelope"]["update"]))
+    for instant in sorted(groups):
+        unseen = []
+        for i, inner in sorted(groups[instant], reverse=reverse):
+            rid = hashlib.sha256(rfc8785.dumps(inner)).digest()
+            if rid in seen:
+                continue
+            seen.add(rid)
+            if (notice["details"]["kind"] == "sanction" and inner["subject"] == notice["subject"]
+                    and inner["details"]["notice"] == notice_id):
+                unseen.append((i, inner))
+        proposals = [e for e in unseen if e[1]["action"] == "appeal"]
+        if "appeal" not in slots and len(proposals) == 1:
+            slots["appeal"] = (proposals[0][0], instant, proposals[0][1])
+        appeal = slots.get("appeal")
+        timely = appeal is not None and appeal[1] <= t
+        for slot in ("merits", "unappealed"):
+            if slot in slots:
+                continue
+            candidates = []
+            for i, inner in unseen:
+                if inner["action"] != "appeal_ruling":
+                    continue
+                outcome = inner["details"]["outcome"]
+                eligible = (outcome in ("upheld", "overturned") and timely
+                            and instant <= appeal[1] + 30 * 86400) if slot == "merits" else (
+                            outcome == "unappealed" and start + 14 * 86400 <= instant <= t and not timely)
+                if eligible:
+                    candidates.append((i, instant, inner))
+            if len(candidates) == 1:
+                slots[slot] = candidates[0]
+    appeal = slots.get("appeal")
+    merits = slots.get("merits")
+    void = None
+    if appeal is None or appeal[1] > t:
+        if "unappealed" not in slots and n_s >= t:
+            void = t
+    elif merits is not None:
+        if merits[2]["details"]["outcome"] == "overturned":
+            void = merits[1]
+    elif n_s >= appeal[1] + 30 * 86400:
+        void = appeal[1] + 30 * 86400
+    return {name + "_index": slots[name][0] if name in slots else None
+            for name in ("appeal", "merits", "unappealed")} | {"void_at_s": void}
+
+def _dc4_appeal_process():
+    process = _sanctions_vector()["process"]
+    pub = Ed25519PublicKey.from_public_bytes(b64u_decode(process["public_key"]))
+    validator = Draft202012Validator(json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text()))
+    for envelope in [process["notice"]] + [c["notice"] for c in process["cases"] if "notice" in c] + [a["envelope"] for c in process["cases"] for a in c["acts"]]:
+        validator.validate(envelope)
+        pub.verify(b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(envelope["update"]))
+    for case in process["cases"]:
+        for probe in case["probes"]:
+            assert _process_prefix(process, case, probe["n_s"]) == probe["expected"], case["label"]
+check("vectors:wist4-appeal-process", _dc4_appeal_process)
+
+def _dc4_appeal_process_twin():
+    process = _sanctions_vector()["process"]
+    for case in process["cases"]:
+        for probe in case["probes"]:
+            reversed_result = _process_prefix(process, case, probe["n_s"], reverse=True)
+            for slot in ("appeal", "merits", "unappealed"):
+                key = slot + "_index"
+                actual, expected = reversed_result[key], probe["expected"][key]
+                if actual != expected:
+                    assert actual is not None and expected is not None
+                    assert case["acts"][actual]["envelope"]["update"] == case["acts"][expected]["envelope"]["update"]
+            assert reversed_result["void_at_s"] == probe["expected"]["void_at_s"]
+    conflict = next(c for c in process["cases"] if c["label"] == "same Block conflicting rulings both rejected")
+    assert conflict["probes"][-1]["expected"]["merits_index"] is None
+    assert conflict["probes"][-1]["expected"]["void_at_s"] == 31 * 86400
+check("negative:wist4-appeal-process", _dc4_appeal_process_twin)
+
 def _dc4_sanction_voids():
     """WIST-4 §7: the void instants of a level-3/4 state, recomputed from the
     notice, the appeal's Block and the ruling."""
@@ -3661,6 +3746,10 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/sanctions.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist4/sanctions.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/sanctions.json", "notice"): "a Registry Update ID",
+    ("vectors/wist4/sanctions.json", "evidence"): "an Audit Record ID",
     ("vectors/wist4/canary.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist4/canary.json", "value"): "an Ed25519 signature",
     ("vectors/wist4/canary.json", "commitment"): "a Registry Update ID over a root and leaf count",
