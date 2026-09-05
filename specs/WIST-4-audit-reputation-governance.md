@@ -366,21 +366,30 @@ Block seals — and MUST seal each `observer_checkpoint` it finds there
 within `record_seal_blocks` Blocks of the fetch. Which Observers an
 epoch budgets is derived. Take every Observer registered at the epoch's
 first Block and group them by the two-label suffix §3's independence
-test reads; order the suffixes by ascending octet order of
-`SHA-256(be64(epoch number) ‖ suffix)`, where `be64` is the number as
-eight big-endian octets and `suffix` its UTF-8; the first
-`observer_checkpoint_budget` suffixes (Parameter Registry; default 1024)
-are budgeted, and within each of them the one Observer whose
-`SHA-256(be64(epoch number) ‖ observer_id)` is least. A slot is keyed by
-the suffix because a subdomain costs a registrant nothing: a crowd of
-identities under one suffix consumes one suffix's slot and shares it by
-the same rotation. The order is hashed over the epoch number rather than
-fixed by anything — registration height, hostname order — because a
-fixed queue starves every suffix past the budget permanently, and credit
-validity hangs on checkpoint timing, so a starvable queue is a lever
-aimed at a candidate's history before it can form; rotation turns
-permanent zero into a bounded delay of `⌈S / observer_checkpoint_budget⌉`
-epochs for S registered suffixes, which §5.1's reveal minimum absorbs.
+test reads; order the S suffixes by ascending octet order of
+`SHA-256(suffix)`, `suffix` its UTF-8, at positions 0 … S − 1; the
+epoch budgets the suffixes at positions
+`(epoch number × observer_checkpoint_budget + k) mod S` for every k from
+0 below `min(observer_checkpoint_budget, S)` (Parameter Registry;
+default 1024), and within each of them the one Observer whose
+`SHA-256(be64(epoch number) ‖ observer_id)` is least, where `be64` is the
+number as eight big-endian octets. A slot is keyed by the suffix because
+a subdomain costs a registrant nothing: a crowd of identities under one
+suffix consumes one suffix's slot and shares it by that hash, and the
+bound below is the suffix's. The window walks a fixed order by one budget
+per epoch rather than standing still — a fixed queue starves every
+suffix past the budget permanently, and credit validity hangs on
+checkpoint timing, so a starvable queue is a lever aimed at a
+candidate's history before it can form — and walks it rather than
+drawing the order afresh each epoch, because a fresh draw bounds
+nothing: hashed over the epoch number, two suffixes and a budget of one
+can name the same suffix three epochs running. Walking turns permanent
+zero into a bounded delay: across any `⌈S / observer_checkpoint_budget⌉`
+consecutive epochs at whose first Blocks the same S suffixes are
+registered, every one of them is budgeted at least once, which §5.1's
+reveal minimum absorbs. A registration or admission between two epochs
+moves the positions after it, and a suffix so moved is budgeted within
+one such span of the change.
 An Aggregator MAY seal checkpoints beyond the budget; what it MUST NOT do
 is leave a budgeted one it fetched unsealed. A checkpoint under a key
 not registered at its Block, or whose `head` is not an Audit Record or

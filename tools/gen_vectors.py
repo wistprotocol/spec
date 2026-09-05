@@ -3561,34 +3561,74 @@ def two_label_suffix(host: str) -> str:
     return ".".join(host.split(".")[-2:])
 
 
-def epoch_budget(observers, epoch, budget):
+def suffix_groups(observers):
     groups = {}
     for o in observers:
         groups.setdefault(two_label_suffix(o), []).append(o)
+    return groups
+
+
+def epoch_budget(observers, epoch, budget):
+    """§3.1: suffixes in a fixed order by SHA-256(suffix); the epoch budgets
+    the window of one budget starting at position epoch × budget mod S, and
+    within each suffix the Observer least by the per-epoch hash."""
+    groups = suffix_groups(observers)
+    order = sorted(groups, key=lambda sfx: hashlib.sha256(sfx.encode()).hexdigest())
+    size = len(order)
+    positions = [(epoch * budget + k) % size for k in range(min(budget, size))] if size else []
+    chosen = [min(groups[order[p]], key=lambda o: epoch_priority(epoch, o)) for p in positions]
+    return order, positions, chosen
+
+
+def epoch_budget_rehashed(observers, epoch, budget):
+    """The ruled-out reading: an order drawn afresh each epoch over
+    SHA-256(be64(epoch) ‖ suffix), which bounds no suffix's wait."""
+    groups = suffix_groups(observers)
     order = sorted(groups, key=lambda sfx: epoch_priority(epoch, sfx))
-    chosen = [min(groups[sfx], key=lambda o: epoch_priority(epoch, o)) for sfx in order[:budget]]
-    return order, chosen
+    return [min(groups[sfx], key=lambda o: epoch_priority(epoch, o)) for sfx in order[:budget]]
+
+
+def budget_bound_epochs(suffixes: int, budget: int) -> int:
+    return -(-suffixes // budget) if suffixes else 0
 
 
 OBSERVERS = ["a.example.net", "b.example.net", "c.example.org", "d.sample.net", "e.other.io"]
+TWO_SUFFIXES = ["a.example.net", "b.sample.net"]
 observer_budget_cases = []
 for label, observers, budget, epochs in [
     ("under-budget-every-suffix-budgeted", OBSERVERS, 5, [0, 1]),
     ("over-budget-rotates-across-epochs", OBSERVERS, 2, [0, 1, 2, 3]),
     ("a-crowd-under-one-suffix-shares-one-slot", OBSERVERS[:2] + ["f.example.net", "g.other.io"], 1,
      [0, 1, 2, 3]),
+    ("two-suffixes-and-one-slot-alternate", TWO_SUFFIXES, 1, [5, 6, 7, 8]),
 ]:
     per_epoch = []
     for e in epochs:
-        order, chosen = epoch_budget(observers, e, budget)
-        per_epoch.append({"epoch": e, "suffix_order": order, "budgeted": chosen})
+        order, positions, chosen = epoch_budget(observers, e, budget)
+        entry = {"epoch": e, "suffix_order": order, "positions": positions, "budgeted": chosen}
+        if observers is TWO_SUFFIXES:
+            entry["budgeted_under_per_epoch_rehash"] = epoch_budget_rehashed(observers, e, budget)
+        per_epoch.append(entry)
+    suffixes = len(suffix_groups(observers))
+    bound = budget_bound_epochs(suffixes, budget)
+    first = epochs[0]
+    for start in range(first, first + bound):
+        seen = set()
+        for e in range(start, start + bound):
+            seen.update(two_label_suffix(o) for o in epoch_budget(observers, e, budget)[2])
+        assert len(seen) == suffixes, f"{label}: a suffix waits longer than the bound"
     observer_budget_cases.append({"label": label, "registered": observers, "budget": budget,
-                                  "epochs": per_epoch})
+                                  "suffixes": suffixes, "bound_epochs": bound, "epochs": per_epoch})
 rotating = observer_budget_cases[1]["epochs"]
 assert len({tuple(e["budgeted"]) for e in rotating}) > 1, "the over-budget case must rotate"
 assert all(len(e["budgeted"]) == 1 for e in observer_budget_cases[2]["epochs"]) and \
     len({e["budgeted"][0] for e in observer_budget_cases[2]["epochs"]}) > 1, \
     "the crowd case must share one slot and rotate inside it"
+alternate = observer_budget_cases[3]["epochs"]
+assert [two_label_suffix(e["budgeted"][0]) for e in alternate] == \
+    ["example.net", "sample.net", "example.net", "sample.net"], "two suffixes under one slot must alternate"
+assert [two_label_suffix(e["budgeted_under_per_epoch_rehash"][0]) for e in alternate[:3]] == \
+    ["example.net"] * 3, "the ruled-out reading must show the repeated winner"
 
 
 def epoch_of_block(block, changes, default=OBS_EPOCH_DEFAULT):
@@ -3644,9 +3684,12 @@ assert [list(c["fixed_before_reveal"].values()) for c in observer_coverage_cases
     [[True, True, True, False, False], [True] * 5, [False] * 5], "coverage cases drifted"
 
 write_json(WIST4 / "observer-checkpoints.json", spaced_labels({
-    "note": ("WIST-4 §3.1: which Observers an epoch budgets (suffix slots ordered by "
-             "SHA-256 over the big-endian epoch number and the suffix, one Observer per "
-             "suffix by the same hash over the observer_id), which epoch a Block belongs "
+    "note": ("WIST-4 §3.1: which Observers an epoch budgets (suffixes in a fixed order by "
+             "SHA-256 over the suffix, the epoch's window of one budget starting at "
+             "position epoch × budget mod S, one Observer per suffix by SHA-256 over the "
+             "big-endian epoch number and the observer_id; every suffix budgeted at least "
+             "once in any bound_epochs consecutive epochs, and budgeted_under_per_epoch_rehash "
+             "the ruled-out fresh draw that repeats a winner), which epoch a Block belongs "
              "to under a mid-Log change of epoch_blocks (each epoch spans the value in "
              "force at its first Block), and which chain items a sealed checkpoint fixes "
              "before a reveal."),
