@@ -2931,3 +2931,22 @@ application order. The chosen transitions change the alternative readings.
 rungs after a high-rung void, rearming after a void, same-Block lift and
 finding, and two findings in one Block. The harness independently derives
 rung state and discriminates expiry and a lift applied after findings.
+
+## 2026-09-05 — WIST-4 §7, §10: appeal and ruling multiplicity (revision, not errata)
+
+**What changed.** Processes deduplicate Registry Update IDs and accept
+one appeal, merits ruling and unappealed statement per notice. The first
+eligible Block wins; distinct same-Block competitors all fail as
+`WIST4-E05`. Appeals resolve before same-Block rulings. Merits rulings
+need a timely appeal and cannot reverse expiry. Notice identity and
+subject must match. ADR-0022 amends ADR-0012.
+
+**Why a revision.** The old text did not choose among contradictory
+sealed acts. These precedence and rejection rules change alternative
+readings and therefore fail the errata conditions.
+
+**Exercised.** `vectors/wist4/sanctions.json` carries signed process acts
+covering successive and simultaneous conflicting rulings, simultaneous
+appeals, duplicate IDs, an appeal overriding an unappealed statement,
+and ruling eligibility and expiry. The harness derives slot selection
+and void times and checks same-Block permutation invariance.
