@@ -582,11 +582,12 @@
                     "minItems": 1,
                     "items": {
                       "type": "object",
-                      "required": ["index", "delta_id", "path"],
+                      "required": ["index", "delta_id", "leaf_hash", "path"],
                       "additionalProperties": false,
                       "properties": {
                         "index": {"type": "integer", "minimum": 0},
                         "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                        "leaf_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "SHA-256(0x00 || served bytes), including the embedded nonce; the starting hash for Log-only membership verification (WIST-4 §5.1)."},
                         "path": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "description": "The leaf's Inclusion Proof siblings (WIST-3 §4), leaf level first: nodes over canary leaves, each keyed by its leaf's nonce (WIST-4 §5.1)."}
                       }
                     }

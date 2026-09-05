@@ -23,6 +23,515 @@
     "leaves": 5,
     "height": 100
   },
+  "membership": {
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+    "commitment_envelope": {
+      "update": {
+        "wist_version": "1.0.0",
+        "action": "canary_commitment",
+        "subject": "planter.example.io",
+        "effective_at": "2026-08-02T12:00:00Z",
+        "details": {
+          "root": "sha256:65b85ec65d6fbd0f5eb068933ad1830dd5746d25eb495c4b95c13668de84b25f",
+          "leaves": 5
+        }
+      },
+      "sig": {
+        "key_id": "test-canary-k1",
+        "alg": "Ed25519",
+        "value": "QUYXtZkOcKjTuRpctx5iNVIZgK53K_i4s0W-GPtjinsFb6l6POh7eguPIGQjM25yQ18Id_5uqAvMCHk2k8VxBQ"
+      }
+    },
+    "cases": [
+      {
+        "label": "all revealed leaves",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 0,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                  "path": [
+                    "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "mgct6TKPVcWGAcXPbVVJCHXwsnUdLukdl7DrXHj4xSdOieFA8pXRDClHyTrPtbIu9fsKyKnfRxyO7JqxFxQ3AA"
+          }
+        },
+        "membership_valid": true,
+        "error": null
+      },
+      {
+        "label": "wrong starting hash",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 0,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "S3ICGnP44xFS7uQq15Y2N1YQ809tvlQTxQhoaenYb9ygV9oKgZFionbP2SM2_DHR0kHgW0bdieNryjOCMYGYAQ"
+          }
+        },
+        "membership_valid": false,
+        "error": "WIST4-E08"
+      },
+      {
+        "label": "missing starting hash",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 0,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "path": [
+                    "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "C3UXofGiC3EBMXqd6u9qeAayS7tTW6sz2Djpxt7kckVWShcXedWFQSiTuqgq_ZiIdeRmEtyoOZOXoIN2Rn6VCw"
+          }
+        },
+        "membership_valid": false,
+        "error": "WIST4-E08"
+      },
+      {
+        "label": "malformed starting hash",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 0,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "leaf_hash": "sha256:00",
+                  "path": [
+                    "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "8K3HeMPxErjTW138OufqnjILNqOVkjekDcbjEjTKTQ5KWvptRInRZmyolJi4sQK4n9ASZtMsc2cRonKc6ynvDg"
+          }
+        },
+        "membership_valid": false,
+        "error": "WIST4-E08"
+      },
+      {
+        "label": "short path",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 0,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                  "path": [
+                    "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "mmYDkl5SbxP-TTt-hik2WNUYF8jcc0vo3QhqrqHtJin-G6q_2xxctDhJUpdCazZBxxI554LNGlrxTHTMd_YyCQ"
+          }
+        },
+        "membership_valid": false,
+        "error": "WIST4-E08"
+      },
+      {
+        "label": "surplus path",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 0,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                  "path": [
+                    "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                    "sha256:65b85ec65d6fbd0f5eb068933ad1830dd5746d25eb495c4b95c13668de84b25f"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "RKTW1Geee2FRtgApN1__FLAhBG2TpTLliFY7JnqqMHXpHfJLk1sH9trODTVzwuz4Lj82biKox8I8X8zDVdRhBQ"
+          }
+        },
+        "membership_valid": false,
+        "error": "WIST4-E08"
+      },
+      {
+        "label": "wrong sibling",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 0,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                  "path": [
+                    "sha256:65b85ec65d6fbd0f5eb068933ad1830dd5746d25eb495c4b95c13668de84b25f",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "fscty0Ahzf_smwawTIi_EbyzEZmMHkMUqZSbiLURtXYsv9X5YL2w3CnvTLAgmA9dOWhvVUhKo1rwk90k_9jVBg"
+          }
+        },
+        "membership_valid": false,
+        "error": "WIST4-E08"
+      },
+      {
+        "label": "out of range index",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "canary_reveal",
+            "subject": "example.com",
+            "effective_at": "2026-08-26T04:00:00Z",
+            "details": {
+              "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+              "leaves": [
+                {
+                  "index": 5,
+                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                  "path": [
+                    "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 1,
+                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                  "path": [
+                    "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                    "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 2,
+                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+                  "path": [
+                    "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+                    "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+                    "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                  ]
+                },
+                {
+                  "index": 4,
+                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+                  "path": [
+                    "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+                  ]
+                }
+              ]
+            }
+          },
+          "sig": {
+            "key_id": "test-canary-k1",
+            "alg": "Ed25519",
+            "value": "pX698yYTk_6KUuEknKzELnQelCYUUS6WqFVJrIFY_7-ePjcWrDBhIafLNJN0CMVtuHmovg1HXy02QQuMGFxRDA"
+          }
+        },
+        "membership_valid": false,
+        "error": "WIST4-E08"
+      }
+    ]
+  },
   "payload_page_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c703e5749535420697320616e206f70656e2c2076657269666961626c652c20707573682d62617365642077656220696e6465782070726f746f636f6c2e3c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
   "leaves": [
     {

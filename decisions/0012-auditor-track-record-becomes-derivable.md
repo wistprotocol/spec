@@ -1,6 +1,6 @@
 # ADR-0012: Auditor track record becomes derivable
 
-**Status:** accepted (revision landed 2026-09-05; parameters and readings in the addendum below) · **Amends:** ADR-0016 · **Date:** 2026-08-13
+**Status:** accepted; amended by ADR-0018 (2026-09-05: reveals seal their proof starting hash) (revision landed 2026-09-05; parameters and readings in the addendum below) · **Amends:** ADR-0016 · **Date:** 2026-08-13
 
 > The suite was frozen on 2026-08-05 (ERRATA.md). This ADR records the
 > decision; the WIST-4 changes it entails are neither errata nor a

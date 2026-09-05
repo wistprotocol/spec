@@ -3600,6 +3600,50 @@ canary_scoreboards = {a: scoreboard(canary_scoreboard_records, a) for a in (CANA
 assert canary_scoreboards[CANARY_AUD_A] == {"provisional": [1, 1, 0], "standing": [2, 2, 1], "mature": [1, 1, 0]}
 assert canary_scoreboards[CANARY_AUD_B] == {"provisional": [0, 0, 0], "standing": [1, 0, 0], "mature": [1, 0, 0]}
 
+canary_commitment_envelope = sign_envelope("update", {
+    "wist_version": "1.0.0", "action": "canary_commitment", "subject": CANARY_PLANTER,
+    "effective_at": "2026-08-02T12:00:00Z",
+    "details": {"root": canary_root, "leaves": len(canary_leaves)},
+}, "test-canary-k1")
+canary_commitment_id = "sha256:" + sha256_hex(rfc8785.dumps(canary_commitment_envelope["update"]))
+canary_membership_cases = []
+for label, mutation, expected in (
+    ("all revealed leaves", None, True),
+    ("wrong starting hash", "hash", False),
+    ("missing starting hash", "missing", False),
+    ("malformed starting hash", "malformed", False),
+    ("short path", "short", False),
+    ("surplus path", "surplus", False),
+    ("wrong sibling", "sibling", False),
+    ("out of range index", "index", False),
+):
+    leaves = [{k: l[k] for k in ("index", "delta_id", "leaf_hash", "path")}
+              for l in canary_leaves if l["revealed"]]
+    leaves = json.loads(json.dumps(leaves))
+    first = leaves[0]
+    if mutation == "hash":
+        first["leaf_hash"] = canary_leaves[1]["leaf_hash"]
+    elif mutation == "missing":
+        del first["leaf_hash"]
+    elif mutation == "malformed":
+        first["leaf_hash"] = "sha256:00"
+    elif mutation == "short":
+        first["path"].pop()
+    elif mutation == "surplus":
+        first["path"].append(canary_root)
+    elif mutation == "sibling":
+        first["path"][0] = canary_root
+    elif mutation == "index":
+        first["index"] = len(canary_leaves)
+    envelope = sign_envelope("update", {
+        "wist_version": "1.0.0", "action": "canary_reveal", "subject": CANARY_DOMAIN,
+        "effective_at": "2026-08-26T04:00:00Z",
+        "details": {"commitment": canary_commitment_id, "leaves": leaves},
+    }, "test-canary-k1")
+    canary_membership_cases.append({"label": label, "envelope": envelope,
+                                    "membership_valid": expected,
+                                    "error": None if expected else "WIST4-E08"})
+
 write_json(WIST4 / "canary.json", spaced_labels({
     "note": ("WIST-4 §5.1, §5.2: a canary commitment over five leaves of served bytes "
              "(four revealed, one not), each carrying a nonce, one of them below the "
@@ -3618,6 +3662,9 @@ write_json(WIST4 / "canary.json", spaced_labels({
     "planter": CANARY_PLANTER,
     "canary_domain": CANARY_DOMAIN,
     "commitment": {"root": canary_root, "leaves": len(CANARY_LEAF_SPECS), "height": 100},
+    "membership": {"public_key": b64u(pub_raw),
+                   "commitment_envelope": canary_commitment_envelope,
+                   "cases": canary_membership_cases},
     "payload_page_hex": PAYLOAD_PAGE.hex(),
     "leaves": canary_leaves,
     "credit_cases": canary_credit_cases,

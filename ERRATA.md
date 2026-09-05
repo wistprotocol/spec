@@ -2862,3 +2862,21 @@ removed key, and a key never admitted, each with its void reason and
 whether it counts and discharges; `vectors:wist4-coverage-signature`
 recomputes them and requires §4 to name both keys, and its twin fails a
 signature read against the duty key.
+
+## 2026-09-05 — WIST-4 §5.1, §9.1: seal the canary proof starting hash (revision, not errata)
+
+**What changed.** Every revealed leaf requires `leaf_hash`, the
+`sha256:`-prefixed digest of `0x00 ‖ served bytes`. Replay walks its
+inclusion proof from that hash and rejects missing or malformed hashes
+and short or surplus paths as `WIST4-E08`. The scorer still checks the
+served bytes separately. ADR-0018 amends ADR-0012.
+
+**Why a revision.** The old schema forbade this field and left a
+multi-leaf membership check dependent on unavailable bytes. Requiring
+it changes accepted envelopes and cannot satisfy the errata conditions.
+
+**Exercised.** `vectors/wist4/canary.json` carries signed commitment and
+reveal envelopes with valid and invalid multi-leaf membership witnesses.
+The harness verifies membership from those envelopes alone, validates
+required fields and signatures, and rejects corrupted, missing, short
+and surplus proof inputs.
