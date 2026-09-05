@@ -2370,6 +2370,29 @@ for label, selected_deltas, records, coverage_height, pull_height in (
         "selected": selected_deltas, "records": entries, "coverage_attestation_height": coverage_height,
         "probes": probes})
 
+attribution_cases = []
+for label, found, successor_auditor, successor_log, successor_height, missing_arrives, expected in (
+    ("related missing predecessor", ["missing a"], AUD_A, "log a", 81, None, True),
+    ("unrelated missing predecessor", ["missing b"], AUD_A, "log a", 81, None, False),
+    ("empty receipt supplies no attribution", [], AUD_A, "log a", 81, None, False),
+    ("another Auditor cannot contradict", ["missing a"], AUD_B, "log a", 81, None, False),
+    ("another Log cannot contradict", ["missing a"], AUD_A, "log b", 81, None, False),
+    ("successor in pull Block qualifies", ["missing a"], AUD_A, "log a", 80, None, True),
+    ("successor before pull does not contradict", ["missing a"], AUD_A, "log a", 79, None, False),
+    ("missing predecessor arrives", ["missing a"], AUD_A, "log a", 81, 90, False),
+    ("future successor supplies no proof", ["missing a"], AUD_A, "log a", 91, None, False),
+):
+    attributable = (successor_auditor == AUD_A and successor_log == "log a"
+                    and 80 <= successor_height <= 90 and "missing a" in found
+                    and (missing_arrives is None or missing_arrives > 90))
+    assert attributable == expected
+    attribution_cases.append({"label": label, "auditor": AUD_A, "log": "log a",
+        "pull": {"height": 80, "found": found},
+        "successor": {"auditor": successor_auditor, "log": successor_log,
+                      "height": successor_height, "prev_record": "missing a"},
+        "predecessor_sealed_height": missing_arrives, "n_height": 90,
+        "chain_contradicts": attributable})
+
 write_json(WIST4 / "coverage.json", spaced_labels({
     "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count — the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it — and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
     "coverage_deadline_hours": 72,
@@ -2385,6 +2408,7 @@ write_json(WIST4 / "coverage.json", spaced_labels({
     "establishing_cases": coverage_establishing_cases,
     "chain_scope_cases": coverage_chain_scope_cases,
     "late_discharge_cases": late_discharge_cases,
+    "attribution_cases": attribution_cases,
 }))
 
 
