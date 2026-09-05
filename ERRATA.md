@@ -2914,3 +2914,20 @@ same-Block triggers with one remaining slot, mixed verdict kinds,
 a shared-Delta suppression case, and a later same-Block peer filing.
 The harness recomputes allocation and peer sets and discriminates a
 reversed tie and a whole-Block eligibility reading.
+
+## 2026-09-05 — WIST-4 §7: latched rungs and same-Block reversals (revision, not errata)
+
+**What changed.** Rungs latch until their own reversal or identity reset.
+Evidence aging is not an expiry. Registry reversals apply before that
+Block's new findings; new qualifying findings can rearm cleared rungs.
+The further-finding branch reads level 3 immediately before each finding
+in confirming-Record order. ADR-0021 amends ADR-0012.
+
+**Why a revision.** The prior text supported both predicate expiry and
+latched readings, and its height-based lift wording conflicted with
+application order. The chosen transitions change the alternative readings.
+
+**Exercised.** `vectors/wist4/sanctions.json` carries aging, aged lower
+rungs after a high-rung void, rearming after a void, same-Block lift and
+finding, and two findings in one Block. The harness independently derives
+rung state and discriminates expiry and a lift applied after findings.

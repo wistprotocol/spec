@@ -451,7 +451,7 @@
         50
       ],
       "n_s": 100,
-      "in_force": false
+      "in_force": true
     }
   ],
   "ladder_cases": [
@@ -787,6 +787,445 @@
           "n_s": 1728000,
           "level": 2
         }
+      ]
+    }
+  ],
+  "transition_cases": [
+    {
+      "label": "level two survives evidence aging",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at_s": 10368000,
+          "lift": false,
+          "void_levels": [],
+          "findings": []
+        }
+      ],
+      "active_rungs": [
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "levels": [
+        1,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "label": "high void preserves aged lower rung",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at_s": 259200,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at_s": 10368000,
+          "lift": false,
+          "void_levels": [
+            3
+          ],
+          "findings": []
+        }
+      ],
+      "active_rungs": [
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "levels": [
+        1,
+        1,
+        2,
+        3,
+        2
+      ]
+    },
+    {
+      "label": "void rearms only on qualifying new finding",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 864000,
+          "lift": false,
+          "void_levels": [
+            3
+          ],
+          "findings": []
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 950400,
+          "lift": false,
+          "void_levels": [],
+          "findings": []
+        },
+        {
+          "height": 3,
+          "sealed_at_s": 1036800,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at_s": 1123200,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        },
+        {
+          "height": 5,
+          "sealed_at_s": 1209600,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3,
+          4
+        ]
+      ],
+      "levels": [
+        3,
+        1,
+        1,
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "label": "lift precedes same Block finding",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "lift": true,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ],
+        [
+          1
+        ]
+      ],
+      "levels": [
+        3,
+        1
+      ]
+    },
+    {
+      "label": "same Block severity and further finding",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            },
+            {
+              "entry_index": 1,
+              "severity": 1
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3,
+          4
+        ]
+      ],
+      "levels": [
+        4
+      ]
+    },
+    {
+      "label": "same Block reverse finding order",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1
+            },
+            {
+              "entry_index": 1,
+              "severity": 3
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ]
+      ],
+      "levels": [
+        3
+      ]
+    },
+    {
+      "label": "one finding cannot be its own further finding",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ]
+      ],
+      "levels": [
+        3
+      ]
+    },
+    {
+      "label": "void precedes same Block new severity finding",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "lift": false,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "lift": false,
+          "void_levels": [
+            3
+          ],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "levels": [
+        3,
+        3
       ]
     }
   ]

@@ -2343,19 +2343,36 @@ Process requirements:
   `"overturned"` ruling, a lapsed ruling deadline, a lapsed
   appeal-sealing deadline — reverse only the state that notice was
   required for: the level-3 ingestion rejection or the level-4 exclusion.
-  The rungs below stand, because a notice was never what put them in
-  force. A domain whose level-3 state voids at **T** is a level-2 domain
-  if the level-2 criterion is met at that height and a level-1 domain if
-  only that one is, and its Deltas are ingested again at whichever rung
-  results. A `sanction_lift` reaches further: it clears every rung in
-  force at its own height, which is why it needs no appeal to justify it
-  and no notice to precede it. It is not an erasure of the evidence, and
-  it grants no immunity: the escalation criteria keep running from that
-  height, and a rung whose criterion is met again *after* the lift is in
-  force again from the height it is met. A lift is therefore an
-  Aggregator's discretionary statement about a domain's standing up to
-  now, recorded as one, and never a way to spend one Entry on a permanent
-  exemption from §7. A lift clears rungs, never findings: every Confirmed
+  Rungs are **latched**: once reached, a rung stays active until its
+  own reversal or an identity reset clears it. Aging evidence out of a
+  counting window does not itself clear an active rung. A notice-scoped
+  void clears only its level-3 or level-4 activation, leaving every
+  other active rung unchanged, including a lower rung whose original
+  evidence has aged out. It never clears a later rearming of that rung.
+  An activation begins at the confirming Record that first arms an
+  inactive rung; further criteria met while it is active do not replace
+  that activation. The derived level is the highest active rung, or zero
+  if none remains.
+
+  At each Block, apply resets and Registry Updates before confirming
+  Audit Records, as WIST-3 §3.3 requires. A `sanction_lift` clears all
+  active rungs before that Block's findings. Notice-scoped reversals,
+  including a deadline reached at that Block, also clear their target
+  before its new findings. Process new findings in confirming-Record
+  order (§6.1). A finding in the lift's own Block can therefore rearm a
+  rung; storage position of the lift does not put it after the finding.
+
+  Evaluate a branch only when a **new qualifying finding** arrives:
+  every finding for level 1, the all-severity count branches and level
+  4's further-finding branch; a new severity-3 finding for level 3's
+  severity branch and level 4's severity-3 count branch. Count qualifying
+  findings in the stated windows through the new one, including those
+  before a lift or void. For the further-finding branch, level 3 must
+  already be active immediately before this finding. Thus two findings
+  in one Block can reach level 3 and then level 4 in Entry order; one
+  finding never counts as its own further finding. A reversal alone,
+  or the passage of a Block with no new qualifying finding, rearms
+  nothing. A lift clears rungs, never findings: every Confirmed
   Inconsistency sealed before it stays inside the windows the criteria
   read, so a count criterion is met again at the first finding after the
   lift that completes its count, with the earlier findings inside it. That

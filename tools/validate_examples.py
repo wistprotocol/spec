@@ -2791,6 +2791,49 @@ def _ladder_levels_from_findings(v, findings, lifts, lift_erases_findings=False)
         return 0
     return levels, l4_count, l4_accrual, level_at
 
+def _transition_rungs(case, expiry=False, lift_after=False):
+    raised, cleared, findings, outputs = {}, {}, [], []
+    for block in case["blocks"]:
+        clear = (block["height"], -1)
+        for level in range(1, 5):
+            if block["lift"] and not lift_after or level in block["void_levels"]:
+                cleared[level] = clear
+        for f in sorted(block["findings"], key=lambda f: f["entry_index"]):
+            pos = (block["height"], f["entry_index"])
+            had_three = raised.get(3, (-1, -1)) > cleared.get(3, (-1, -1))
+            findings.append((block["sealed_at_s"], f["severity"]))
+            total = sum(0 <= block["sealed_at_s"] - t < 90 * 86400 for t, severity in findings)
+            severe = sum(severity == 3 and 0 <= block["sealed_at_s"] - t < 180 * 86400 for t, severity in findings)
+            predicates = (True, total >= 3, total >= 10 or f["severity"] == 3,
+                          had_three or f["severity"] == 3 and severe >= 3)
+            for level, met in enumerate(predicates, 1):
+                if met:
+                    raised[level] = pos
+        if block["lift"] and lift_after:
+            for level in range(1, 5):
+                cleared[level] = (block["height"], 10**9)
+        active = [level for level in range(1, 5)
+                  if raised.get(level, (-1, -1)) > cleared.get(level, (-1, -1))]
+        if expiry and sum(0 <= block["sealed_at_s"] - t < 90 * 86400 for t, severity in findings) < 3:
+            active = [level for level in active if level != 2]
+        outputs.append(active)
+    return outputs
+
+def _dc4_sanction_transitions():
+    for case in _sanctions_vector()["transition_cases"]:
+        active = _transition_rungs(case)
+        assert active == case["active_rungs"], case["label"]
+        assert [max(a, default=0) for a in active] == case["levels"], case["label"]
+check("vectors:wist4-sanction-transitions", _dc4_sanction_transitions)
+
+def _dc4_sanction_transitions_twin():
+    cases = _sanctions_vector()["transition_cases"]
+    aging = next(c for c in cases if c["label"] == "level two survives evidence aging")
+    same = next(c for c in cases if c["label"] == "lift precedes same Block finding")
+    assert _transition_rungs(aging, expiry=True) != aging["active_rungs"]
+    assert _transition_rungs(same, lift_after=True) != same["active_rungs"]
+check("negative:wist4-sanction-transitions", _dc4_sanction_transitions_twin)
+
 def _dc4_ladder_reversals():
     """WIST-4 §7: a lift clears rungs and never findings, and level 4's
     three-severity-3 branch is first to fire only across reversals."""

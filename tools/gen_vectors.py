@@ -3206,7 +3206,7 @@ def criterion_times(findings, count, span_days, min_severity):
 def in_force_strictly_before(met, clear, t_s):
     last_met = max((m for m in met if m < t_s), default=None)
     last_clear = max((c for c in clear if c < t_s), default=None)
-    return last_met is not None and (last_clear is None or last_clear < last_met)
+    return last_met is not None and (last_clear is None or last_clear <= last_met)
 
 
 def l4_accrual_times(findings, l3_met, l3_clear):
@@ -3238,7 +3238,7 @@ def state_void_at(notice_s, appeal_s, ruling):
 def in_force(met, clear, n_s):
     last_met = max((m for m in met if m <= n_s), default=None)
     last_clear = max((c for c in clear if c <= n_s), default=None)
-    return last_met is not None and (last_clear is None or last_clear < last_met)
+    return last_met is not None and (last_clear is None or last_clear <= last_met)
 
 
 def ladder_level(levels, n_s):
@@ -3404,6 +3404,47 @@ assert [[p["level"] for p in c["probes"]] for c in sanction_reversal_cases] == \
 assert sanction_reversal_cases[0]["l4_accrual_branch_times_s"] == [] and \
     sanction_reversal_cases[0]["l4_count_branch_times_s"] == [50 * DAY_S]
 
+def sanction_transitions(blocks):
+    active, findings, levels = set(), [], []
+    for block in blocks:
+        if block["lift"]:
+            active.clear()
+        active.difference_update(block["void_levels"])
+        for finding in sorted(block["findings"], key=lambda f: f["entry_index"]):
+            was_three = 3 in active
+            findings.append((block["sealed_at_s"], finding["severity"]))
+            recent = [s for t, s in findings if block["sealed_at_s"] - t < 90 * DAY_S]
+            severe = [s for t, s in findings if block["sealed_at_s"] - t < 180 * DAY_S and s == 3]
+            active.add(1)
+            if len(recent) >= 3:
+                active.add(2)
+            if len(recent) >= 10 or finding["severity"] == 3:
+                active.add(3)
+            if was_three or finding["severity"] == 3 and len(severe) >= 3:
+                active.add(4)
+        levels.append(sorted(active))
+    return levels
+
+sanction_transition_cases = []
+for label, rows, expected in (
+    ("level two survives evidence aging", [(0, [1], False, []), (1, [1], False, []), (2, [1], False, []), (120, [], False, [])], [1, 1, 2, 2]),
+    ("high void preserves aged lower rung", [(0, [1], False, []), (1, [1], False, []), (2, [1], False, []), (3, [3], False, []), (120, [], False, [3])], [1, 1, 2, 3, 2]),
+    ("void rearms only on qualifying new finding", [(0, [3], False, []), (10, [], False, [3]), (11, [], False, []), (12, [1], False, []), (13, [3], False, []), (14, [1], False, [])], [3, 1, 1, 1, 3, 4]),
+    ("lift precedes same Block finding", [(0, [3], False, []), (1, [1], True, [])], [3, 1]),
+    ("same Block severity and further finding", [(0, [3, 1], False, [])], [4]),
+    ("same Block reverse finding order", [(0, [1, 3], False, [])], [3]),
+    ("one finding cannot be its own further finding", [(0, [3], False, [])], [3]),
+    ("void precedes same Block new severity finding", [(0, [3], False, []), (1, [3], False, [3])], [3, 3]),
+):
+    blocks = [{"height": i, "sealed_at_s": day * DAY_S, "lift": lift,
+               "void_levels": voids, "findings": [{"entry_index": j, "severity": severity}
+                                                   for j, severity in enumerate(severities)]}
+              for i, (day, severities, lift, voids) in enumerate(rows)]
+    active = sanction_transitions(blocks)
+    assert [max(a, default=0) for a in active] == expected
+    sanction_transition_cases.append({"label": label, "blocks": blocks,
+                                     "active_rungs": active, "levels": expected})
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -3419,6 +3460,7 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "in_force_cases": sanction_in_force_cases,
     "ladder_cases": sanction_ladder_cases,
     "reversal_cases": sanction_reversal_cases,
+    "transition_cases": sanction_transition_cases,
 }))
 
 
