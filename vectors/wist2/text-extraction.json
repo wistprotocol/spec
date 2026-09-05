@@ -61,6 +61,46 @@
       "shingle_size": 4,
       "similarity": 833333,
       "verdict_input": 833333
+    },
+    {
+      "label": "full-case-folding-folds-sharp-s",
+      "reference": "die stra\u00dfe ist lang und breit und sch\u00f6n und alt",
+      "observed": "pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad DIE STRASSE IST LANG UND BREIT UND SCH\u00d6N UND ALT",
+      "shingle_size": 8,
+      "similarity": 1000000,
+      "verdict_input": 1000000
+    },
+    {
+      "label": "nfc-precomposes-before-comparison",
+      "reference": "cafe\u0301 au lait est tres bon ici aujourd hui",
+      "observed": "pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad caf\u00e9 au lait est tres bon ici aujourd hui",
+      "shingle_size": 8,
+      "similarity": 1000000,
+      "verdict_input": 1000000
+    },
+    {
+      "label": "han-segments-per-character",
+      "reference": "\u5929\u5730\u7384\u9ec4\u5b87\u5b99\u6d2a\u8352\u65e5\u6708",
+      "observed": "\u5929\u5730\u7384\u9ec4\u5b87\u5b99\u6d2a\u8352\u65e5\u6708\u76c8\u6603\u8fb0\u5bbf\u5217\u5f35\u5bd2\u4f86\u76c8\u6603\u8fb0\u5bbf\u5217\u5f35\u5bd2\u4f86\u76c8\u6603\u8fb0\u5bbf\u5217\u5f35\u5bd2\u4f86\u76c8\u6603\u8fb0\u5bbf\u5217\u5f35\u5bd2\u4f86\u76c8\u6603\u8fb0\u5bbf\u5217\u5f35\u5bd2\u4f86",
+      "shingle_size": 8,
+      "similarity": 1000000,
+      "verdict_input": 1000000
+    },
+    {
+      "label": "punctuation-segments-are-discarded",
+      "reference": "alpha, beta; gamma. delta! epsilon? zeta: eta - theta",
+      "observed": "pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad alpha beta gamma delta epsilon zeta eta theta",
+      "shingle_size": 8,
+      "similarity": 1000000,
+      "verdict_input": 1000000
+    },
+    {
+      "label": "short-branch-counts-grapheme-clusters",
+      "reference": "q\u0330w\u0330r\u0330t\u0330y\u0330p\u0330",
+      "observed": "pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad pad q\u0330w\u0330r\u0330t\u0330y\u0330",
+      "shingle_size": 8,
+      "similarity": 0,
+      "verdict_input": 0
     }
   ]
 }

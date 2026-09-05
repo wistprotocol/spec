@@ -774,6 +774,14 @@ for label, html in (
 PAD = "pad " * 40                     # 40 words: exactly at the default guard
 REF9 = "one two three four five six seven eight nine"
 HALF_OBS = PAD + "one two three four five six seven eight ten"
+# Han: a page with no spaces at all, long enough to clear the mass guard
+# only once each character counts as its own word.
+HAN_REF = "\u5929\u5730\u7384\u9ec4\u5b87\u5b99\u6d2a\u8352\u65e5\u6708"
+HAN_OBS = HAN_REF + "\u76c8\u6603\u8fb0\u5bbf\u5217\u5f35\u5bd2\u4f86" * 5
+# Six letters each carrying U+0330: six grapheme clusters over twelve code
+# points, and an observed text holding five of the six.
+TILDE_REF = "q\u0330w\u0330r\u0330t\u0330y\u0330p\u0330"
+TILDE_OBS = "q\u0330w\u0330r\u0330t\u0330y\u0330"
 SIM_FIXTURES = []
 for label, ref, obs, shingle in (
     # Whole-document containment: the committed text embedded in template
@@ -795,13 +803,39 @@ for label, ref, obs, shingle in (
     # And a shorter amendment leaves both texts on the word branch with a
     # shorter shingle, which the same pair scores differently again.
     ("amended-shingle-size-shortens-the-word-shingle", REF9, HALF_OBS, 4),
+    # §5 step 2 is default full case-folding, not a lowercase: it folds
+    # sharp s to "ss", so the two spellings are one word.
+    ("full-case-folding-folds-sharp-s",
+     "die stra\u00dfe ist lang und breit und sch\u00f6n und alt",
+     PAD + "DIE STRASSE IST LANG UND BREIT UND SCH\u00d6N UND ALT", 8),
+    # §5 step 1 is NFC: the decomposed and precomposed spellings of the
+    # same reference are one text.
+    ("nfc-precomposes-before-comparison",
+     "cafe\u0301 au lait est tres bon ici aujourd hui",
+     PAD + "caf\u00e9 au lait est tres bon ici aujourd hui", 8),
+    # §5 step 3 is untailored UAX #29: Han characters each stand as their
+    # own word, so a page written without spaces has as many words as
+    # characters and clears the mass guard, where a whitespace split
+    # would see one word and rule it not_auditable.
+    ("han-segments-per-character", HAN_REF, HAN_OBS, 8),
+    # §5 step 4 discards every segment carrying no L* or N* character, so
+    # the punctuation between the words is not part of the word sequence.
+    ("punctuation-segments-are-discarded",
+     "alpha, beta; gamma. delta! epsilon? zeta: eta - theta",
+     PAD + "alpha beta gamma delta epsilon zeta eta theta", 8),
+    # The short branch shingles extended grapheme clusters of the
+    # normalized form, not code points: each letter here carries a
+    # combining tilde below, so six clusters span twelve code points and
+    # the two units cap the shingle length differently.
+    ("short-branch-counts-grapheme-clusters", TILDE_REF, PAD + TILDE_OBS, 8),
 ):
     sim = link_extraction.similarity(ref, obs, shingle_size=shingle)
     SIM_FIXTURES.append({"label": label, "reference": ref, "observed": obs,
                          "shingle_size": shingle, "similarity": sim,
                          "verdict_input": "not_auditable" if sim is None else sim})
 assert [f["verdict_input"] for f in SIM_FIXTURES] == \
-    [1_000_000, 500_000, "not_auditable", 1_000_000, 885_714, 833_333], \
+    [1_000_000, 500_000, "not_auditable", 1_000_000, 885_714, 833_333,
+     1_000_000, 1_000_000, 1_000_000, 1_000_000, 0], \
     "similarity fixtures drifted"
 
 write_json(WIST2V / "text-extraction.json", {

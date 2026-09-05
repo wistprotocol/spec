@@ -522,6 +522,100 @@ def _text_extraction_twin():
 
 check("negative:wist2-text-extraction", _text_extraction_twin)
 
+def _uax29_conformance():
+    """External known-answer test: the Unicode Consortium's own
+    WordBreakTest.txt and GraphemeBreakTest.txt for the release ADR-0017
+    pins, run in full against tools/segmentation.py. The annex is
+    implemented from its text, so this is what keeps that reading honest."""
+    import segmentation
+    assert segmentation.UNICODE_VERSION == "16.0.0", \
+        f"the tables carry Unicode {segmentation.UNICODE_VERSION}, not the pinned release"
+    ucd = ROOT / "tools" / "ucd"
+
+    def cases(path):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.split("#")[0].strip()
+            if not line:
+                continue
+            text, expected, current = "", [], ""
+            for token in line.split():
+                if token == "\u00f7":
+                    if current:
+                        expected.append(current)
+                        current = ""
+                elif token != "\u00d7":
+                    ch = chr(int(token, 16))
+                    text += ch
+                    current += ch
+            if current:
+                expected.append(current)
+            yield text, expected
+
+    for name, fn in (("WordBreakTest.txt", segmentation.split_word_bounds),
+                     ("GraphemeBreakTest.txt", segmentation.grapheme_clusters)):
+        total = 0
+        for text, expected in cases(ucd / name):
+            total += 1
+            got = fn(text)
+            assert got == expected, f"{name}: {text!r}: {got!r} != {expected!r}"
+        assert total > 1000, f"{name}: only {total} cases parsed"
+
+check("unicode:uax29-conformance", _uax29_conformance)
+
+def _normalization_twin():
+    """Mutation twin: each normalization case must come out differently under
+    the one reading it exists to rule out, so a fixture that every
+    implementation passes cannot sit in the vector unnoticed."""
+    import unicodedata
+    import segmentation
+    import link_extraction
+    vec = json.loads((ROOT / "vectors" / "wist2" / "text-extraction.json").read_text())
+
+    def scored(reference, observed, guard, shingle, nfc, fold, split, unit):
+        def words(text):
+            text = unicodedata.normalize("NFC", text) if nfc else text
+            text = text.casefold() if fold == "casefold" else text.lower()
+            if split == "whitespace":
+                return text.split(), text
+            kept = [seg for seg in segmentation.split_word_bounds(text)
+                    if any(unicodedata.category(c)[0] in ("L", "N") for c in seg)]
+            return kept, " ".join(kept)
+
+        ref_words, ref_form = words(reference)
+        obs_words, obs_form = words(observed)
+        if not ref_words or len(obs_words) < guard:
+            return None
+        if len(ref_words) >= shingle and len(obs_words) >= shingle:
+            a = link_extraction._shingles(ref_words, shingle)
+            b = link_extraction._shingles(obs_words, shingle)
+        else:
+            units = (list if unit == "codepoint" else segmentation.grapheme_clusters)
+            ref_units, obs_units = units(ref_form), units(obs_form)
+            n = min(shingle, len(ref_units), len(obs_units))
+            a = link_extraction._shingles(ref_units, n)
+            b = link_extraction._shingles(obs_units, n)
+        return (len(a & b) * 1_000_000) // len(a) if a else None
+
+    NORMATIVE = dict(nfc=True, fold="casefold", split="uax29", unit="cluster")
+    # Each case names the single step it rules out, and the reading that
+    # skips that step must score it differently.
+    ruled_out = {
+        "full-case-folding-folds-sharp-s": {"fold": "lower"},
+        "nfc-precomposes-before-comparison": {"nfc": False},
+        "han-segments-per-character": {"split": "whitespace"},
+        "punctuation-segments-are-discarded": {"split": "whitespace"},
+        "short-branch-counts-grapheme-clusters": {"unit": "codepoint"},
+    }
+    by_label = {c["label"]: c for c in vec["similarity"]}
+    for label, difference in ruled_out.items():
+        case = by_label[label]
+        got = scored(case["reference"], case["observed"], vec["min_observed_words"],
+                     case["shingle_size"], **{**NORMATIVE, **difference})
+        assert got != case["similarity"], \
+            f"{label}: {difference} also yields {got!r} — the case discriminates nothing"
+
+check("negative:wist2-normalization", _normalization_twin)
+
 def _snapshot_state_counted_urls():
     """WIST-3 §7: reputation_inputs carries counted-URL *digests*, never URLs.
 
