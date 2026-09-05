@@ -519,6 +519,147 @@
       ]
     }
   ],
+  "cadence_transition_cases": [
+    {
+      "label": "new map alone misses old extension",
+      "profiles": [
+        {
+          "from_s": 0,
+          "confirm_window_hours": 72,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 864000,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 7200
+        }
+      ],
+      "transition_valid": false,
+      "anchor_s": 856800,
+      "pull_s": 986400,
+      "window_end_s": 1116000,
+      "latest_seal_s": 1159200,
+      "actual_seal_inside_window": false
+    },
+    {
+      "label": "larger window staged before slower cadence",
+      "profiles": [
+        {
+          "from_s": 0,
+          "confirm_window_hours": 72,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 864000,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 1123200,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 7200
+        }
+      ],
+      "transition_valid": true,
+      "anchor_s": 856800,
+      "pull_s": 986400,
+      "window_end_s": 1116000,
+      "latest_seal_s": 1072800,
+      "actual_seal_inside_window": true
+    },
+    {
+      "label": "one second before old profile expires",
+      "profiles": [
+        {
+          "from_s": 0,
+          "confirm_window_hours": 72,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 864000,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 1123199,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 7200
+        }
+      ],
+      "transition_valid": false,
+      "anchor_s": 856800,
+      "pull_s": 986400,
+      "window_end_s": 1116000,
+      "latest_seal_s": 1072800,
+      "actual_seal_inside_window": true
+    },
+    {
+      "label": "later interval still overlaps old profile",
+      "profiles": [
+        {
+          "from_s": 0,
+          "confirm_window_hours": 72,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 864000,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 950400,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 7200
+        }
+      ],
+      "transition_valid": false,
+      "anchor_s": 856800,
+      "pull_s": 986400,
+      "window_end_s": 1116000,
+      "latest_seal_s": 1159200,
+      "actual_seal_inside_window": false
+    },
+    {
+      "label": "short cadence increase remains bounded conservatively",
+      "profiles": [
+        {
+          "from_s": 0,
+          "confirm_window_hours": 72,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        },
+        {
+          "from_s": 864000,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 7200
+        },
+        {
+          "from_s": 867600,
+          "confirm_window_hours": 96,
+          "record_seal_blocks": 24,
+          "block_cadence_seconds": 3600
+        }
+      ],
+      "transition_valid": false,
+      "anchor_s": 856800,
+      "pull_s": 986400,
+      "window_end_s": 1116000,
+      "latest_seal_s": 1072800,
+      "actual_seal_inside_window": true
+    }
+  ],
   "wire_public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "wire_cases": [
     {

@@ -2739,6 +2739,32 @@ def _dc4_parameter_wire_range():
     assert min(100000, cap["envelope"]["update"]["details"]["value"]) < 0 and not cap["schema_valid"]
 check("vectors:wist4-parameter-wire-range", _dc4_parameter_wire_range)
 
+def _dc4_cadence_transitions():
+    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    for case in v["cadence_transition_cases"]:
+        profiles = case["profiles"]; invalid = False
+        for i,p in enumerate(profiles):
+            end = profiles[i+1]["from_s"] if i+1 < len(profiles) else None
+            for q in profiles[i:]:
+                if end is None or q["from_s"] < end+p["confirm_window_hours"]*3600:
+                    remaining = (p["confirm_window_hours"] - p["confirm_window_hours"]//2)*3600
+                    invalid |= p["record_seal_blocks"]*q["block_cadence_seconds"] > remaining
+        assert (not invalid) == case["transition_valid"], case["label"]
+        t = case["anchor_s"]; sealed = 0
+        while sealed < 24:
+            cadence = profiles[0]["block_cadence_seconds"]
+            for p in profiles:
+                if p["from_s"] <= t:
+                    cadence = p["block_cadence_seconds"]
+            t += cadence - t % cadence
+            if t > case["pull_s"]:
+                sealed += 1
+        assert t == case["latest_seal_s"]
+        assert (t <= case["window_end_s"]) == case["actual_seal_inside_window"]
+    assert not v["cadence_transition_cases"][0]["transition_valid"]
+    assert all((p["confirm_window_hours"]//2)*3600 + p["record_seal_blocks"]*p["block_cadence_seconds"] <= p["confirm_window_hours"]*3600 for p in v["cadence_transition_cases"][0]["profiles"])
+check("vectors:wist4-cadence-transitions", _dc4_cadence_transitions)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 

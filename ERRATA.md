@@ -3166,3 +3166,20 @@ to eight, a budget reduction, a longer epoch, a faster cadence and the
 disappearance of an
 original suffix. Prefix probes distinguish the numeric minimum, the last
 permitted checkpoint height and the first permitted reveal height.
+
+## 2026-09-05 — WIST-4 §9: in-flight cadence compatibility (revision, not errata)
+
+**What changed.** Prospective validation now checks an old extension's
+anchored window and seal count against cadences that may occur before it
+closes. A conservative maximum over scheduled intervals bounds the seal
+allowance. ADR-0035 amends ADR-0012, ADR-0026 and ADR-0027.
+
+**Why a revision.** Individually valid old and new maps could jointly
+make a pending extension unsealable within its own window. Such schedules
+now reject.
+
+**Exercised.** `parameter-combinations.json` distinguishes simultaneous
+and staged changes, the exact old-window expiry boundary and a brief
+cadence increase. A Block-grid simulation supplies an actual late-sealing
+counterexample. The canary cadence counterpart is exercised by
+`observer-checkpoints.json`'s actual-opportunity cases.

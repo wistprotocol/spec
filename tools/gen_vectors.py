@@ -2989,6 +2989,41 @@ for parameter, value, schema_valid, combinations_hold in (
         "canonical_integer": canonical, "schema_valid": schema_valid,
         "combinations_hold_at_defaults": combinations_hold})
 
+def cadence_transition_safe(profiles):
+    for i,p in enumerate(profiles):
+        end = profiles[i+1]["from_s"] if i+1 < len(profiles) else None
+        latest_close = None if end is None else end + p["confirm_window_hours"] * 3600
+        cadence = max(q["block_cadence_seconds"] for q in profiles[i:]
+            if latest_close is None or q["from_s"] < latest_close)
+        if (p["confirm_window_hours"] // 2) * 3600 + p["record_seal_blocks"] * cadence > p["confirm_window_hours"] * 3600:
+            return False
+    return True
+
+
+cadence_transition_cases = []
+for label, rows, expected in (
+    ("new map alone misses old extension", [(0,72,3600), (10*DAY_S,96,7200)], False),
+    ("larger window staged before slower cadence", [(0,72,3600), (10*DAY_S,96,3600), (13*DAY_S,96,7200)], True),
+    ("one second before old profile expires", [(0,72,3600), (10*DAY_S,96,3600), (13*DAY_S-1,96,7200)], False),
+    ("later interval still overlaps old profile", [(0,72,3600), (10*DAY_S,96,3600), (11*DAY_S,96,7200)], False),
+    ("short cadence increase remains bounded conservatively", [(0,72,3600), (10*DAY_S,96,7200), (10*DAY_S+3600,96,3600)], False),
+):
+    profiles = [{"from_s":t, "confirm_window_hours":cw, "record_seal_blocks":24, "block_cadence_seconds":cadence} for t,cw,cadence in rows]
+    assert all((p["confirm_window_hours"]//2)*3600 + 24*p["block_cadence_seconds"] <= p["confirm_window_hours"]*3600 for p in profiles)
+    assert cadence_transition_safe(profiles) == expected
+    anchor = 10*DAY_S-2*3600; pull = anchor+36*3600
+    grid = [anchor]
+    while len([t for t in grid if t > pull]) < 24:
+        profile = max((p for p in profiles if p["from_s"] <= grid[-1]), key=lambda p:p["from_s"])
+        cadence = profile["block_cadence_seconds"]
+        grid.append((grid[-1]//cadence+1)*cadence)
+    latest_seal = [t for t in grid if t > pull][23]
+    cadence_transition_cases.append({"label":label, "profiles":profiles, "transition_valid":expected,
+        "anchor_s":anchor, "pull_s":pull, "window_end_s":anchor+72*3600,
+        "latest_seal_s":latest_seal, "actual_seal_inside_window":latest_seal<=anchor+72*3600})
+assert not cadence_transition_cases[0]["actual_seal_inside_window"]
+assert cadence_transition_cases[1]["actual_seal_inside_window"]
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
@@ -2996,6 +3031,7 @@ write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "extension_window_cases": extension_window_cases,
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_cases": prospective_cases,
+    "cadence_transition_cases": cadence_transition_cases,
     "wire_public_key": b64u(pub_raw),
     "wire_cases": parameter_wire_cases,
     "clock_defaults": CLOCK_DEFAULTS,

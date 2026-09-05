@@ -1,6 +1,6 @@
 # ADR-0026: Parameter combinations validate the prospective schedule
 
-**Status:** accepted · **Date:** 2026-09-05
+**Status:** accepted; amended by ADR-0035 (2026-09-05: cadence transitions preserve older extension profiles) · **Date:** 2026-09-05
 **Amends:** ADR-0012
 
 ## Context

@@ -2784,7 +2784,8 @@ requirements. For a remaining candidate, tentatively add it to the
 accepted prefix, including amendments not yet effective. At the sealing
 instant and at every `effective_at` at or after that instant in this
 tentative prefix, derive the complete parameter map by the in-force rule
-above and check every combination rule below. Between those instants
+above and check every combination rule below, including the transition
+checks over successive maps. Between those instants
 the map is constant; after the final one it remains that final map.
 If any checked map violates a combination, reject this candidate as
 `WIST4-E03` and retain the previously accepted schedule unchanged.
@@ -2966,6 +2967,29 @@ covering even one leaf cannot be revealed inside its lifetime. A party
 replaying the Log MUST reject a `parameter_change` that leaves either
 otherwise. At the defaults the reveal sum is 144 hours against a minimum
 of 168, and the lifetime 1440 Blocks against 192.
+
+**Cadence transitions preserve open extension windows.** Checking each
+map separately is insufficient when an extension retains an older window
+and seal count. In the tentative accepted schedule, divide time into
+maximal intervals with a constant complete parameter map, starting at the
+Log's first Block. For each interval P, let C be its
+`confirm_window_hours` × 3600, H its integer-divided extension publication
+span `confirm_window_hours / 2` × 3600, and k its `record_seal_blocks`.
+Let e be P's exclusive end, or infinity for the final interval. Let c be
+the greatest `block_cadence_seconds` of P and every later interval that
+starts strictly before e + C. Require H + k × c ≤ C; otherwise reject the
+candidate amendment as `WIST4-E03` under prospective validation above.
+
+This is a conservative transition bound over possible extension anchors
+throughout P, independent of whether a trigger actually occurs. Each
+successor Block's gap on a fully sealed grid is at most the cadence read
+at its predecessor, so k × c bounds the sealing allowance after the pull.
+A slower cadence may require increasing the confirmation window first and
+waiting for the previous profile's possible windows to close. A change
+at e + C is outside those old windows; a short intervening cadence increase
+is still included in the maximum. Canary reveal readiness separately
+reads actual Blocks and checkpoint opportunities under §5.1, including
+cadence changes that alter how many Blocks fit before a coverage deadline.
 
 Every remaining identifier carries no additional parameter-specific bound,
 and each is named here so that "exactly those bounds" above is a claim a
