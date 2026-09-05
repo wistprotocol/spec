@@ -46,7 +46,7 @@ shown here.
   such Record, measured on Block `sealed_at` (§5, §7).
 - **Registry Update**: the signed governance object this document defines,
   sealed as a `registry_update` Entry (WIST-3 §3.3). Its `action` selects one
-  of the thirteen governance acts of §3, §4, §7 and §9.1; `subject` names
+  of the seventeen governance acts of §3, §3.1, §4, §5.1, §7 and §9.1; `subject` names
   what the act is about; `details` and `evidence` are constrained per
   `action` by §9.1.
 - **Sanction**: a graduated, logged penalty against a domain (§7).
@@ -57,6 +57,19 @@ shown here.
   reputation capped, full participation otherwise (§6).
 - **Sanctioned Quarantine**: sanction level 3 (§7), a punitive state that
   suspends ingestion.
+- **Observer**: a keyed, domain-anchored identity registered by its own
+  `observer_register` (§3.1) that performs an Auditor's duties voluntarily;
+  its Records weigh nothing and are the evidence an `auditor_admit` cites.
+- **Canary Domain**: a Publisher whose served bytes are committed in a
+  `canary_commitment` before they are served and bound to its Deltas by a
+  `canary_reveal` afterwards (§5.1), so that a party that verdicts without
+  fetching can be caught against them.
+- **Credit Commitment**: the signer-bound commitment every measured Audit
+  Record carries over the served bytes (§5.2) — the proof of fetch-work a
+  revealed canary scores.
+- **Hard Hit**: a Record whose Credit Commitment reproduces over a revealed
+  canary and whose verdict is two bands from the one those bytes yield
+  (§5.2): proven possession and a proven lie.
 
 Every signed object in this document carries `wist_version` (WIST-1 §3.1)
 and the WIST-1 §4 signature block (`key_id`, `alg`, `value`).
@@ -265,6 +278,143 @@ one reason under which no duty existed leaves nothing to discharge.
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
 `aggregator_key_remove` actions defined in WIST-3 §3.4; their `details`
 sub-schema is specified in §9.1.
+
+### 3.1. Observers
+
+Admission is the one act in this document that stays a judgement, and
+§11 says so plainly. What this section changes is not the judgement but
+its darkness: a party that wants to be admitted can do the work first, in
+public, against evidence the Log fixes before the outcome is knowable
+(§5.1, §5.2), and the `auditor_admit` that follows names what it weighed.
+
+**Registration.** Any party MAY register as an **Observer** by an
+`observer_register` Registry Update signed by its own key. Its `subject`
+is the registrant's `observer_id`, a hostname of at least two labels
+anchored exactly as an `auditor_id` is above: the registrant MUST serve a
+Declaration (WIST-1 §5.1) at
+`https://<observer_id>/.well-known/wist/publisher.json` whose Key Set
+carries the `key_id` and `public_key` the `details` name, and the
+Aggregator MUST verify it before sealing, falsifiable as the
+`auditor_admit` check is. The act reaches the Log by the path §9.1 fixes
+for every self-signed act. A registration is rejected by every replaying
+party (`WIST4-E07`) where its `subject` fails §3's independence test
+against the Log's `log_id`, where its `subject` holds an admitted key at
+its Block, or where the key it names is retired, or is held at that Block
+by an admission or by another Observer's registration; and an
+`auditor_admit` naming a key an Observer other than its own `subject`
+holds is rejected exactly as one naming a key another admission holds
+(§4). A second `observer_register` for the same `subject` is that
+Observer's rotation — the earlier key's tenure ends at the later
+registration's `sealed_at` — and no removal act exists, because nothing
+an Observer signs carries weight a removal would have to withdraw. An
+`auditor_admit` whose `subject` is a registered Observer MAY name the key
+that registration holds, since the identity that earned the record is
+the one being admitted, and from the admission's `sealed_at` that
+identity is an Auditor and its registration has ended. A registration
+ends at nothing else: an Observer that stops publishing has a chain that
+stops, and nothing more.
+
+**Duties, performed identically and weighed nowhere.** An Observer
+computes its selection set for every Block exactly as §4 has an Auditor
+compute one — its own VRF over the Block Hash under its registered key,
+over the Block's selection domain, less the Deltas §3's self-audit rule
+bars it from, its `observer_id` standing wherever §3 reads `auditor_id`
+— audits those Deltas under §5 in the same Record schema, with the same
+`vrf_proof`, the same `credit_commitment` (§5.2) and the same
+per-(Observer, Log) `prev_record` chain, and serves the result at the
+same well-known records path §4 fixes, under its own hostname. The
+extension rule names Deltas for an Observer as it does for an admitted
+Auditor. The duty is voluntary throughout: no coverage failure, no ration
+and no attestation attaches to an Observer, and nothing it publishes
+counts anywhere — it enters no domain's `C` or `penalty_n`, confirms
+nothing, contradicts nothing, triggers no extension, and a Record signed
+under a registered key that reaches the Log is void for standing like
+any Record under an unadmitted key (`WIST4-E01`). What an Observer's
+Records are is public from the moment they are served: anyone can read
+its `inconsistent` verdict on a Publisher whether or not any Log ever
+counts it, which is watch-value before it is admission evidence. An
+Observer MUST keep serving every Record and attestation it publishes for
+`payload_window_days` after publishing it, so that the scoreboard §5.2
+derives can be computed by anyone for as long as the reveals it reads
+are live.
+
+**Checkpoints fix the record before the outcome is knowable.** A served
+Record proves nothing about when it was written, and a history served
+only from the Observer's own host could be composed after the canaries
+it scores against were revealed. An Observer therefore serves, with its
+other self-signed acts (§9.1), an `observer_checkpoint`: a Registry
+Update signed by its registered key, `subject` its `observer_id`,
+`details.head` the ID of its newest Record or `coverage_attestation`
+for this Log — its chain head. A sealed checkpoint **covers** every
+item on the chain from that head back through `prev_record`, and a
+Record credits toward a revealed canary (§5.2) only if a checkpoint
+covering it was sealed in a Block below the reveal's: the reveal is
+what makes the outcome knowable, and a Record checkpointed after it
+could have been written with the answer in hand.
+
+The Aggregator's duty to seal checkpoints is bounded, and the bound is
+allocated by mechanism rather than by choice. Blocks are grouped into
+**epochs**: the first epoch begins at Block 0, each epoch spans the
+`epoch_blocks` (Parameter Registry; default 24) in force at its first
+Block's `sealed_at`, the next begins at the Block after its last, and
+epochs are numbered from 0. For each epoch the Aggregator MUST fetch
+the submissions path (§9.1) of every Observer that epoch **budgets** —
+after the epoch's last Block seals and before the following epoch's last
+Block seals — and MUST seal each `observer_checkpoint` it finds there
+within `record_seal_blocks` Blocks of the fetch. Which Observers an
+epoch budgets is derived. Take every Observer registered at the epoch's
+first Block and group them by the two-label suffix §3's independence
+test reads; order the suffixes by ascending octet order of
+`SHA-256(be64(epoch number) ‖ suffix)`, where `be64` is the number as
+eight big-endian octets and `suffix` its UTF-8; the first
+`observer_checkpoint_budget` suffixes (Parameter Registry; default 1024)
+are budgeted, and within each of them the one Observer whose
+`SHA-256(be64(epoch number) ‖ observer_id)` is least. A slot is keyed by
+the suffix because a subdomain costs a registrant nothing: a crowd of
+identities under one suffix consumes one suffix's slot and shares it by
+the same rotation. The order is hashed over the epoch number rather than
+fixed by anything — registration height, hostname order — because a
+fixed queue starves every suffix past the budget permanently, and credit
+validity hangs on checkpoint timing, so a starvable queue is a lever
+aimed at a candidate's history before it can form; rotation turns
+permanent zero into a bounded delay of `⌈S / observer_checkpoint_budget⌉`
+epochs for S registered suffixes, which §5.1's reveal minimum absorbs.
+An Aggregator MAY seal checkpoints beyond the budget; what it MUST NOT do
+is leave a budgeted one it fetched unsealed. A checkpoint under a key
+not registered at its Block, or whose `head` is not an Audit Record or
+`coverage_attestation` ID, is `WIST4-E07`.
+
+**Admission cites the scoreboard.** An `auditor_admit` whose `subject`
+has a sealed `observer_register` at or below the admit's Block MUST
+carry `details.track_record` (§9.1): the ID of the newest sealed
+`observer_checkpoint` for that `subject`, and the scoreboard §5.2
+derives for it at the admit's Block, per tier. One without it is
+`WIST4-E04`, and one whose `subject` was never an Observer MUST NOT carry
+it, there being no record for it to cite. The scoreboard is derivable by
+anyone while the reveals it reads are live — §5.1 keeps each live for
+`payload_window_days` — and a party holding them SHOULD recompute it;
+after they lapse, the sealed `auditor_admit` naming its evidence is the
+durable fact, on §3's Declaration pattern: falsifiable when made, trusted
+on replay. That is why a scoreboard that disagrees with the
+recomputation is not a replay rejection — two replayers at different
+heights hold different reveals and MUST NOT derive different rosters —
+but a public, signed misstatement by the one party §11 says a deployment
+must otherwise trust, weighed by the commons as every admission is (§8,
+invariant 4). There is deliberately no promotion predicate: no floor per
+tier, no probation window, no rate limit, and so no admission a formula
+compels. The roster's composition stays a judgement made in public
+against evidence made in public.
+
+The scoreboard does not stop at admission. An admitted Auditor's Records
+stay in the Log, canaries are as unidentifiable to it as to a candidate,
+and its credit history keeps accruing under §5.2 with the Log's own
+sealing in place of a checkpoint. Going dark is therefore not silence
+but a visible collapse — a commitment sealed over the Payload's bytes
+reproduces on no watermark canary — and a sustained collapse, or a hard
+hit (§5.2), is evidence for `auditor_remove` in the same pattern
+admission uses: read by the judgement, never by a floor, because a
+cloaking planter (§11) would otherwise farm a removal as readily as an
+admission denial.
 
 ## 4. Audit Sampling
 
@@ -526,9 +676,11 @@ the unauditable horizon: nothing here is punitive, and what it withdraws is
 the weight of Records from a party the Log already shows was not doing the
 work they claim to be part of.
 
-`coverage_attestation` is the second class of Registry Update not signed by
-the Aggregator (the first is `appeal`, §7): the Auditor signs it with its
-own admitted key, and its `subject` is the Auditor's `auditor_id`.
+`coverage_attestation` is one of the classes of Registry Update not
+signed by the Aggregator — with `appeal` (§7), `observer_register` and
+`observer_checkpoint` (§3.1), and `canary_commitment` and `canary_reveal`
+(§5.1): the Auditor signs it with its own admitted key, and its `subject`
+is the Auditor's `auditor_id`.
 
 **The extension rule.** When a Block *B₁* seals an `inconsistent` or
 `link_inconsistent` Record for a Delta *d*, and no earlier such Record for
@@ -721,7 +873,8 @@ and its fields are: `audited_delta` (the Delta ID under audit),
 tip at fetch, fixed below),
 `auditor_id` (the Auditor's hostname identity), `fetched_at` (when the
 Auditor fetched the URL), `response_commitment` (over the raw response
-body), `ref_extract_commitment` (over the Auditor's own reference
+body), `credit_commitment` (over the same body with the signer's identity
+appended, §5.2), `ref_extract_commitment` (over the Auditor's own reference
 extraction), `similarity` (the §5 metric value, an integer in micro-units),
 `verdict`, `evidence_commitment` (over the WARC capture; §5 fixes which
 captures the Auditor preserves and for how long), `link_agreement` (the §5 link-dimension reading, an
@@ -819,8 +972,9 @@ construction the Delta uses, under the same key:
     <commitment> = "hmac-sha256:" + hex(HMAC-SHA256(key = salt,
                                                     message = <octets>))
 
-where `<octets>` is the raw response body, the UTF-8 bytes of the
-Auditor's reference extraction, or the bytes of the WARC capture, and
+where `<octets>` is the raw response body, that body with the signer's
+`auditor_id` appended (the credit commitment, §5.2), the UTF-8 bytes of
+the Auditor's reference extraction, or the bytes of the WARC capture, and
 `salt` is **the salt of the audit's Reference Payload** (WIST-1 §3.6). The
 Auditor holds that salt because it MUST verify that Payload before
 comparing anything, so no second salt, and no second lifecycle, is
@@ -835,10 +989,11 @@ any party computes. An Auditor SHOULD nonetheless write WARC 1.1, so that
 an appellant fetching the capture under §7 can read the evidence with
 ordinary WARC tooling rather than with the Auditor's.
 
-`response_commitment`, `ref_extract_commitment`, `evidence_commitment` and
-`similarity` are REQUIRED when the verdict is `consistent`, `inconsistent`,
-`dynamic_variance`, `link_variance`, or `link_inconsistent`, and MUST be
-omitted when it is `unreachable` or `not_auditable`. Those two verdicts
+`response_commitment`, `credit_commitment`, `ref_extract_commitment`,
+`evidence_commitment` and `similarity` are REQUIRED when the verdict is
+`consistent`, `inconsistent`, `dynamic_variance`, `link_variance`, or
+`link_inconsistent`, and MUST be omitted when it is `unreachable` or
+`not_auditable`. Those two verdicts
 are exactly the cases with nothing to commit to and no key to commit
 under: `unreachable` records that no representation of the page was
 obtained to compare against, whether the fetch failed outright, returned
@@ -861,8 +1016,8 @@ A bare digest here would undo the rest of this design. Moving extracts out
 of the Log accomplishes nothing if the Log keeps unsalted hashes of the
 same text: a party holding a copy could recompute one and confirm the text
 was there, which is exactly the confirmability WIST-1 §3.6's salt exists to
-destroy. Binding one salt to all four commitments — the Publisher's and
-the Auditor's three — makes them expire together rather than leaving the
+destroy. Binding one salt to all five commitments — the Publisher's and
+the Auditor's four — makes them expire together rather than leaving the
 weakest one governing.
 
 **Which captures are preserved.** The preservation duty is scoped to the
@@ -928,7 +1083,7 @@ the appeal it is being used to justify.
 
 What an appellant can and cannot do in that window follows directly. For
 every confirming Record whose Reference Payload is still served, it can
-obtain the salt, demand the Auditor's capture, and recompute all three
+obtain the salt, demand the Auditor's capture, and recompute all four
 commitments — the full check. For a Record whose Reference Payload is gone
 it can do none of that, and neither can the Aggregator, the Auditor, or
 the party ruling on the appeal: the evidence is symmetrically unverifiable
@@ -1406,6 +1561,198 @@ reputation formula and sanction ladder. Independence absorbs what differs by
 vantage or by moment — A/B tests, geo-variation, a transient defacement — and
 `reference_delta` absorbs sealed change: a rewrite the Publisher sealed before
 the fetch is what the fetch is measured against.
+
+### 5.1. Canary Domains
+
+A Record's `response_commitment` says what its signer held, not that it
+fetched: for an unchanged page the Reference Payload is the answer, and a
+party holding it can seal a `consistent` Record with a perfect similarity
+and no contact with the page at all. TLS cannot supply a proof of fetch —
+its transcripts are designated-verifier by construction — so the proof
+comes from the Log's own side: pages whose served bytes are unknowable
+without fetching them, committed before they are served and revealed
+after they are audited. Any party MAY plant one, and that is
+load-bearing: a canary known only to its planter disciplines everyone but
+the planter's own creatures, so canaries planted by the Aggregator alone
+would exempt exactly the party §11 declines to trust.
+
+**The commitment.** A **planter** — any domain holding a Declaration
+(WIST-1 §5.1) — MAY seal a `canary_commitment`: a Registry Update signed
+by its Key Set at the sealing Block (WIST-1 §5.2), `subject` the
+planter's domain, `details.root` a Merkle root and `details.leaves` a
+count *n*, 1 ≤ *n* ≤ `canary_leaves_max` (Parameter Registry; default
+1024). The tree is WIST-3 §4's, over *n* leaves in index order, each leaf
+the served bytes of one future Delta's URL: `leaf = SHA-256(0x00 ‖ served
+bytes)`. The served bytes MUST embed a **nonce** of at least 16 octets
+from a cryptographically secure random source, fresh per leaf, so that no
+two leaves are byte-identical and no leaf is reproducible by a party that
+did not fetch it: the nonce carries all the unguessability, and the
+Reference Payload's salt, which travels with the Payload, contributes
+none. The commitment names no domain but the planter's own, and a
+planter's canaries need not be under it — a commitment that named the
+canary domain would hand a fabricator the list of exactly the pages to
+fetch. It reaches the Log by the path §9.1 fixes, and a planter's
+two-label suffix (§3) may seal at most `canary_commitments_max` of them
+per epoch (§3.1; default 8): a further one in the same epoch is
+`WIST4-E08`, which bounds what the Log carries for a planter that never
+reveals.
+
+**Leaves are served bytes, fixed per Delta.** A leaf is bound at the
+reveal to one Delta of the canary domain, and stands for the raw
+response body the domain served for that Delta's URL throughout the
+Delta's tenure as the URL's chain tip — from the `sealed_at` of the Block
+sealing it to the `sealed_at` of the Block sealing its successor
+(WIST-1 §3.5). Every change type may carry a leaf, `attest` and `delete`
+included, because a Delta boundary is where the nonce may change, and a
+fresh nonce per leaf is what keeps adjacent leaves distinct: a reused
+nonce on an unchanged page makes them byte-identical, and one fetch then
+earns credit on every later Delta without contact. Served bytes MUST NOT
+change inside a Delta's tenure, and a page whose bytes vary per request
+cannot carry a leaf — what the commitment fixes is what every fetcher
+receives. The Delta MUST be sealed at least `canary_lead_blocks` Blocks
+(default 24) after the commitment, so that the commitment provably
+preceded every audit of the leaf: premeditation is anchored to the audits
+it disciplines rather than to the domain's birth, and an established
+honest domain that turns canary pays opportunity cost, not farming.
+
+**Two classes, one machinery.** A **watermark canary** serves its
+truthful content with the nonce embedded where §5's extraction discards
+it — an HTML comment, an attribute value, anything WIST-2 §12 does not
+extract — so its extract, its similarity and the honest verdict
+(`consistent`) are untouched: it commits no fraud, triggers no
+extension, eats no sanction, and is indistinguishable from the dynamic
+bytes §5's tolerance already absorbs. What changes is only the raw
+response body, which is exactly what the credit commitment covers, and
+a non-fetcher's best guess — the Payload's own bytes — reproduces
+nothing. Because nothing burns, a Publisher MAY watermark its ordinary
+Deltas indefinitely, in its actual tier, and the mature stratum's canary
+supply is its ordinary population rather than a sacrifice. A **fraud
+canary** deliberately serves bytes whose extract mismatches its committed
+Payload: the full simulation, distinguished from fraud by premeditation
+alone. It eats its ladder like anyone — **a reveal voids no sanction, no
+penalty and no rung**, so a caught fraudster's retroactive "it was a
+test" buys nothing, and the only effects of a reveal are the scoring
+§5.2 defines. The fraud class is the one detector of a party that
+fetches and then lies, and the one measure of the roster's true catch
+rate; its volume is the planter's choice, and §11 states what a stratum
+no fraud canary visits leaves uncaught.
+
+**The reveal.** A `canary_reveal` is a Registry Update signed by the
+**canary domain's** Key Set at the sealing Block — `subject` that domain,
+so that only a domain's own keys can declare it a canary — naming in
+`details.commitment` the Registry Update ID (§7) of the commitment and
+in `details.leaves` the leaves it reveals: for each, its `index`, the
+`delta_id` it is bound to, and the Inclusion Proof `path` (WIST-3 §4) of
+the leaf under `root`, with `index` as the position and `leaves` as the
+tree size. A commitment is revealed once, wholly or in part, and an
+unrevealed leaf scores nothing. From the reveal's Block the canary domain
+MUST serve each revealed leaf's bytes, unchanged, at
+
+    https://<domain>/.well-known/wist/canary/<commitment-id-hex>/<index>
+
+(the commitment's Registry Update ID in hex without its `sha256:`
+prefix, then the decimal index) for `payload_window_days` — the
+**scoring window** — and MUST serve every revealed leaf's Reference
+Payload (the anchor as of its Delta, §5) at its own `payloads/` path
+(WIST-2 §3.1) for the same span, whatever WIST-3 §6.1 asks of the
+Aggregator: the credit check needs the bytes and the salt together, and
+the planter is the one party that holds both by construction. The window
+lapses as a Reference Payload's does, because a Log that kept raw page
+bytes forever would repeal WIST-1 §3.6's unconfirmability by a side door;
+after it, the reveal is a sealed fact, and the scores computed under it
+survive in the sealed `auditor_admit` Entries that cited them (§3.1).
+
+A reveal is rejected on replay (`WIST4-E08`) where the commitment it
+names is not a sealed `canary_commitment` or has been revealed already;
+where a leaf's `index` is outside 0 … `leaves` − 1 or repeated; where a
+`delta_id` is not a Delta of the canary domain sealed at least
+`canary_lead_blocks` Blocks after the commitment, is bound to two leaves,
+or has its inclusion proof fail; or where the reveal is sealed **too
+early or too late**. Too early is fewer than `canary_reveal_min_blocks`
+Blocks (default 168) plus one rotation of the checkpoint budget —
+`(⌈S / observer_checkpoint_budget⌉ − 1) × epoch_blocks` Blocks, S the
+suffixes registered at the newest bound Delta's Block — after that
+Delta's Block: the Records for the last leaf are due
+`coverage_deadline_hours` after its Block and seal `record_seal_blocks`
+later, an Observer's covering checkpoint seals once its suffix's turn
+comes, and a reveal that outruns them turns honest late Records into
+misses. Too late is more than `canary_lifetime_blocks` Blocks (default
+1440) after the commitment's Block, which bounds how long a planter may
+hold a commitment open. A rejected reveal reveals nothing, and bytes
+served under it score nothing. The inclusion proof and the Delta binding
+are checked by every replaying party from the Log alone; whether the
+served bytes hash to the leaf is checked by whoever computes a score,
+the same off-Log verification a Record's own commitments receive (§5).
+
+### 5.2. Credit and the Hard Hit
+
+Every Record that carries `response_commitment` also carries
+`credit_commitment`: the §5 construction under the same salt, over the
+served bytes with the signer's identity appended —
+
+    credit_commitment = "hmac-sha256:" + hex(HMAC-SHA256(key = salt,
+                          message = <raw response body> ‖ <auditor_id as UTF-8>))
+
+where `salt` is the Reference Payload's, exactly as for the other three
+(§5). `response_commitment` cannot carry credit: keyed by the Reference
+Payload's salt alone, every fetcher of a fixed leaf seals the identical
+value, and that value is public long before any reveal — Observer
+Records are served as they are made, Auditors' are sealed by the
+ordinary pull, and the extension a fraud canary's first `inconsistent`
+triggers multiplies the sealed copies. A proof of fetch-work that can be
+copied is no proof; binding the signer into the message makes every
+credit value distinct and worthless secondhand. The field is REQUIRED
+wherever `response_commitment` is and MUST be omitted wherever that is,
+and a measured Record without it is malformed evidence (`WIST4-E02`).
+
+**Credit.** A Record **encounters** a revealed leaf when its
+`reference_delta` is the Delta the leaf is bound to and the Record was
+fixed before the reveal — sealed in a Block below the reveal's or, for
+an Observer, covered by an `observer_checkpoint` sealed in one (§3.1).
+An encountered Record **credits** when its `credit_commitment`
+reproduces over the leaf's served bytes under its Reference Payload's
+salt and its own `auditor_id`: its signer held those bytes before they
+were knowable, whatever it said about them. The check is byte
+possession, never the verdict, so it reads identically over both canary
+classes. **A miss carries no demerit.** An encountered Record whose
+credit does not reproduce proves nothing by itself, because a planter
+can cloak — serve a targeted party bytes matching the Payload, then
+reveal others — and frame an honest fetch as fabrication; §5 lets a
+`consistent` capture be discarded, so the frame would be undefendable,
+and punishing misses would oblige every party to retain every capture
+in self-defense. A miss is still not weightless: it sits on the
+scoreboard as an encounter without credit, which is the residue §11
+names.
+
+**The hard hit.** The one derivable demerit is a Record that proves
+possession and a lie at once: its `credit_commitment` reproduces over
+the revealed bytes, and its `verdict` is `consistent` where the
+effective similarity §5 derives over those bytes against its Reference
+Payload is below `similarity_variance_floor`, or `inconsistent` where
+that derived value is at or above `similarity_consistent`. Both are
+recomputable by anyone holding the reveal and the Payload — the
+observed text is WIST-2 §12's extraction over the served bytes, the
+reference text the Payload's `extract`, the arithmetic §5's — and the
+`dynamic_variance` band between them is the buffer that keeps a boundary
+case from ever being one: a hard hit is a verdict two bands from the
+bytes its signer proved it held. A fraud canary produces the first form
+and a watermark the second, and an honest party structurally produces
+neither: a lying `consistent` had to carry a fabricated in-band
+`similarity` to pass §3's malformed-evidence rejection, and a lying
+`inconsistent` had to seal a similarity the bytes it held refute.
+
+**The scoreboard.** For any identity and any height N, its scoreboard
+is computed over every reveal sealed at or below N whose scoring window
+is open at N, per **tier** of the audited domain, and is three integers
+per tier: Records encountered, Records credited, hard hits. The tier is
+`domain(d)`'s at height *B* − 1 of the leaf's Delta's Block *B*, read as
+§4 reads reputation there: `provisional` where the domain is Provisional
+(§6.2), `mature` where its `reputation_u` is at least
+`latency_threshold_u` (§6.4), and `standing` otherwise. The tiers read
+thresholds the suite already carries, so no new parameter sets them, and
+they exist because the mature stratum is the one an admission is for and
+the one a cheap canary flood cannot reach. An `auditor_admit` cites the
+scoreboard (§3.1); nothing computes from it.
 
 ## 6. Reputation
 
@@ -2180,6 +2527,13 @@ existing rather than a recommended setting.
 | `audit_fetch_cap_bytes` | ≥ 65 536 | twice the largest `extract` a Publisher may commit to (WIST-1 §3.6); below it an honest page carrying a full-cap extract in marked-up HTML cannot be read, and the blocking-Record path (§5) turns that into exclusion from materialization — a `parameter_change` route to emptying the tiers without sanctioning anyone |
 | `audit_redirect_max` | ≥ 1 | at zero no redirect is followed at all, so every URL served from a redirecting host is `unreachable` whatever it serves (§5) |
 | `audit_fetch_timeout_seconds` | ≥ 1 | at zero every fetch expires before it can complete and every audit is `unreachable` (§5) |
+| `epoch_blocks` | ≥ 1 | at zero no epoch holds a Block, no checkpoint is ever budgeted, and no Observer Record can ever credit (§3.1, §5.2) |
+| `observer_checkpoint_budget` | ≥ 1 | at zero no suffix is budgeted in any epoch, which is the permanent starvation the rotation exists to remove (§3.1) |
+| `canary_lead_blocks` | ≥ 1 | at zero a commitment may share the Block of a Delta it covers, and Log order no longer proves the commitment preceded the audits (§5.1) |
+| `canary_leaves_max` | ≥ 1 | at zero no commitment can carry a leaf and nothing can ever be revealed (§5.1) |
+| `canary_commitments_max` | ≥ 1 | at zero no planter can commit, and the scoreboard has no evidence to read (§5.1) |
+| `canary_reveal_min_blocks` | ≥ 1 | at zero a reveal may share the last leaf's Block, before any Record for it can exist, so every honest Record is a miss (§5.1) |
+| `canary_lifetime_blocks` | ≥ 2 | a lifetime shorter than the lead plus one Block admits no reveal at all, and the combination rule below holds it above the reveal minimum too (§5.1) |
 | `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (WIST-1 §2, §3.2) |
 
 Where the rule does not reduce to a fixed bound — a value that is
@@ -2230,7 +2584,21 @@ largest Payload WIST-1 §3.6 permits, which are the two fetches one audit
 makes (§5) — or the day's budget cannot cover a single audit of the domain
 and every Delta it publishes is `not_auditable` on arrival — which the
 blocking-Record rule then reads as a page nobody can measure rather than
-as a budget nobody could meet.
+as a budget nobody could meet. `canary_reveal_min_blocks` ×
+`block_cadence_seconds` MUST NOT be less than `coverage_deadline_hours` ×
+3600 + (`record_seal_blocks` + 2 × `epoch_blocks`) ×
+`block_cadence_seconds`: the last leaf's Records are due
+`coverage_deadline_hours` after its Block, an Auditor's seal
+`record_seal_blocks` later, and a budgeted Observer's covering checkpoint
+is fetched after the epoch holding its publication ends and before the
+next one does, then sealed `record_seal_blocks` later — so a reveal
+minimum below that sum makes a miss of the honest Record that published
+last (§5.1, §5.2). `canary_lifetime_blocks` MUST exceed
+`canary_lead_blocks` + `canary_reveal_min_blocks`, or a commitment
+covering even one leaf cannot be revealed inside its lifetime. A party
+replaying the Log MUST reject a `parameter_change` that leaves either
+otherwise. At the defaults the reveal sum is 144 hours against a minimum
+of 168, and the lifetime 1440 Blocks against 192.
 
 Every remaining identifier carries no bound because none reduces to one,
 and each is named here so that "exactly those bounds" above is a claim a
@@ -2351,6 +2719,13 @@ table publishes and gives the unattested path 51 days to fit into 30.
 | Shingle size | `shingle_size` | 8 — the shingle length, in words or in grapheme clusters on §5's short-text branch, and the word count at which §5 takes the word branch | §5 |
 | Observed-text mass guard | `min_observed_words` | 40 words | §5 |
 | Extension ration (per Auditor per 30 days) | `extension_triggers_max` | 3 | §4 |
+| Epoch length | `epoch_blocks` | 24 Blocks | §3.1 |
+| Observer checkpoint budget (suffixes per epoch) | `observer_checkpoint_budget` | 1024 | §3.1 |
+| Canary commitment lead | `canary_lead_blocks` | 24 Blocks | §5.1 |
+| Canary leaves per commitment | `canary_leaves_max` | 1024 | §5.1 |
+| Canary commitments (per planter suffix per epoch) | `canary_commitments_max` | 8 | §5.1 |
+| Canary reveal minimum (after the newest bound Delta) | `canary_reveal_min_blocks` | 168 Blocks | §5.1 |
+| Canary commitment lifetime | `canary_lifetime_blocks` | 1440 Blocks | §5.1 |
 | Unauditable horizon | `unauditable_horizon_days` | 30 days | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
@@ -2382,7 +2757,38 @@ mirroring §7 and §3:
   `auditor_admit`'s `subject` additionally MUST be the Auditor's
   `auditor_id`, a hostname of at least two labels, because §3 anchors an
   Auditor to a domain and a Record's `auditor_id` is what §3's independence
-  and self-audit tests compare.
+  and self-audit tests compare. An `auditor_admit` whose `subject` has a
+  sealed `observer_register` at or below its Block MUST also carry
+  `track_record` (§3.1): `checkpoint`, the Registry Update ID of the
+  newest sealed `observer_checkpoint` for that `subject`, and
+  `scoreboard`, an object with the members `provisional`, `standing` and
+  `mature`, each an array of three integers — encountered, credited, hard
+  hits — as §5.2 derives them at the admit's Block. One whose `subject`
+  has no such registration MUST NOT carry it.
+- `observer_register`: `key_id`, `alg` and `public_key` as for
+  `auditor_admit`, `subject` the registrant's `observer_id` in the same
+  hostname shape, and `sig.key_id` the very `key_id` the `details` name:
+  the act is self-signed, and verifies under the `public_key` it
+  registers, which is what the Declaration §3.1 requires the registrant
+  to serve makes falsifiable.
+- `observer_checkpoint`: `head`, the ID of the Observer's newest Audit
+  Record or `coverage_attestation` for this Log (§3.1); `subject` the
+  `observer_id`, signed by its registered key. REQUIRED, because a
+  checkpoint that named no head covers nothing.
+- `canary_commitment`: `root`, the `sha256:`-prefixed Merkle root over
+  the leaves (§5.1), and `leaves`, their count as an integer from 1 to
+  `canary_leaves_max`; `subject` the planter's domain, signed by its Key
+  Set. Both REQUIRED: a commitment without a root commits to nothing, and
+  one without a count leaves the tree size, which every inclusion proof
+  reads, to the reveal's choice.
+- `canary_reveal`: `commitment`, the Registry Update ID of the
+  `canary_commitment` revealed, and `leaves`, a non-empty array of
+  objects each carrying `index` (an integer), `delta_id` and `path` (the
+  sibling hashes of the leaf's Inclusion Proof, WIST-3 §4, as
+  `sha256:`-prefixed strings, leaf level first); `subject` the canary
+  domain, signed by its Key Set (§5.1). All REQUIRED, because a reveal
+  that named no commitment, no Delta or no proof binds nothing the Log
+  could check.
 - `aggregator_key_remove`, `auditor_remove`: `key_id`. An
   `auditor_remove`'s `evidence` (top-level), where present, MUST name at
   least one ID: its presence is what makes the removal for cause (§4),
@@ -2446,12 +2852,32 @@ publication for that Log or `null`.
 §4 and §7 govern the rest of their content in prose, not the schema.
 The same is true of any action a future major revision adds.
 
+**Self-signed acts reach the Log by pull.** A domain serves the Registry
+Updates it signs for itself — `observer_register`, `observer_checkpoint`,
+`canary_commitment` and `canary_reveal` — as a JSON array of Envelopes at
+`https://<domain>/.well-known/wist/registry.json` (WIST-2 §3), and
+removes each once it is sealed. An Aggregator MUST fetch that file
+whenever it pulls the domain's Feed (WIST-2 §5) — on a Ping and at the
+baseline interval alike — and, for an Observer an epoch budgets, at the
+cadence §3.1 fixes; it MUST seal, within `record_seal_blocks` Blocks of
+the fetch, every item that verifies and that no sealed Entry already
+carries by Registry Update ID (§7). A domain with nothing to publish but
+a registration holds a Declaration all the same and MAY ping (WIST-2 §4).
+An `appeal` keeps the path §7 gives it and a `coverage_attestation` the
+records path §4 gives it: both are pulled on their own clocks.
+
 No `details` object, constrained or not, may carry a bare digest of
 Payload content. A content-derived value anywhere in this suite is
 committed under the Payload salt (§5, WIST-1 §3.6) or it is not carried at
 all (WIST-3 §6.2). An unconstrained `details` is unconstrained in shape, not
 licensed to reintroduce the confirmability the salt exists to destroy, and
 a party replaying the Log MUST reject a Registry Update that carries one.
+A canary leaf (§5.1) is not a bare digest of content: it is computed over
+served bytes that carry a fresh nonce no Payload carries, so it is a keyed
+commitment under that nonce — unreproducible by anyone holding the page's
+text alone, exactly as a commitment is by anyone holding the text without
+the salt — and a `canary_commitment`'s `root` and a `canary_reveal`'s
+`path` are carried on that ground.
 
 **No `details` object, constrained or not, and no `evidence` element, may
 carry personal data.** The rule is written over the position rather than
@@ -2487,12 +2913,13 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
 | WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the `sealed_at` of the Block its duty is anchored to — the audited Block for a VRF selection, *B₁* for an extension (§4) — or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored there; in every other case there was no duty to discharge — a key never admitted at that Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing, whatever else is also true of it. |
-| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral. Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
+| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
 | WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
-| WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data. Ignored as WIST4-E03. |
+| WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, or whose `subject` has none and carries one (§3.1). Ignored as WIST4-E03. |
 | WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; or an `auditor_remove` naming a key its `subject` does not hold. Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
+| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` under a key not registered at its Block or naming no Audit Record or `coverage_attestation` (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
+| WIST4-E08 | Canary act rejected (§5.1): a `canary_commitment` past its planter suffix's epoch ration or with `leaves` outside 1 … `canary_leaves_max`; a `canary_reveal` naming no sealed or an already-revealed commitment, an index out of range or repeated, a Delta that is not the canary domain's or was sealed inside the lead, a Delta bound to two leaves, an inclusion proof that fails, or a reveal sealed before the reveal minimum or after the lifetime. Ignored during replay; the commitment stays unrevealed, and nothing scores under it. |
 
 ## 11. Security Considerations
 
@@ -2651,7 +3078,9 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   obtain it outside this protocol — by admitting Auditors it did not
   choose, or by operating no Auditor keys at all — because nothing inside
   the protocol distinguishes an Aggregator's second Auditor from a
-  stranger's.
+  stranger's. §3.1 puts evidence behind that judgement without removing
+  it: what an admission weighs is a track record nobody can fabricate,
+  and the bullets below name what the record still cannot show.
 - **The independence test is also a suppression lever.** It cuts both ways,
   and the second edge is the quieter one. Because confirmation requires two
   Auditors that share no two-label suffix, an Aggregator that admits eight
@@ -2696,6 +3125,64 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   bounded undetected fraud rather than none: small-scale alteration by a
   high-reputation domain can go unaudited, sustained alteration cannot, and
   N is what sets where the boundary falls.
+- **Camouflage is an arms race.** A fabricator fails only the canaries
+  it cannot identify without fetching. Canary domains must be
+  statistically unremarkable on Log-visible metadata; the defense is
+  imperfect, and its value is that even partial camouflage moves
+  fabrication cost from zero to "fetch everything that might be one".
+  The watermark class moves the equilibrium — prevalence can climb toward
+  the whole byte-stable stratum at near-zero planting cost — but only
+  that stratum: a creditable leaf is fixed per Delta, so a page serving
+  per-request bytes cannot carry one, and byte instability is a durable
+  signature a fabricator classifies cheaply. The cost side erodes too:
+  after one full fetch of a byte-stable page, later unchanged Deltas
+  differ from the cache only at the nonce, and a range request can
+  retrieve it for kilobytes. Planters SHOULD refuse range requests or
+  scatter several nonces; even the probe is per-Delta contact with the
+  real domain, and what the arms race prices is the cost of credit, not
+  its possibility.
+- **Fraud canaries still burn, and hard hits reach only where they are.**
+  The watermark class removes the recurring burn from evidence supply;
+  what still burns is the fraud canary, and it remains the only detector
+  of a party that fetches and then lies. Its volume is a planter's choice,
+  and a stratum fraud canaries never visit is one where rubber-stamping is
+  caught by nothing: a contradiction attaches only to a summoning
+  `inconsistent` (§4), and an always-`consistent` stamper never files one.
+- **Planter diversity is a security parameter.** A scoreboard is only as
+  honest as the fraction of encountered canaries the candidate's colluders
+  did not plant. A ring inflating a credit rate must supply a large share
+  of the Log's canary volume in the relevant tier — Log-visible in
+  aggregate even when unattributable per planter — and the epoch ration on
+  commitments prices the flood per suffix, not per party. The judgement
+  absorbs the residue: an Aggregator weighing a scoreboard is entitled to
+  weigh who fed it, which no formula could without the attribution the
+  next bullet concedes is absent.
+- **Fetch-work is provable only at ring granularity.** The signer-bound
+  credit commitment stops a party from crediting another's published
+  value; nothing stops N identities from sharing one fetching backend,
+  each sealing an honest, distinct commitment over bytes one fetch
+  obtained. The evidence certifies that a signer held the served bytes in
+  time, so fetch cost scales with rings, not identities.
+- **The miss column is a smear channel, and it rides to removal stakes.**
+  A planter that cloaks its canaries for one party's fetches fills that
+  party's encountered set with canaries no honest act can credit: the
+  cloaked fetch commits to Payload-matching bytes, exactly what a
+  fabricator commits to, so no definition of "encountered" filters the
+  frame without also letting fabricators discard their misses. Because
+  admission and removal are judgements rather than formulas, the smear
+  denies nothing mechanically — but it degrades the evidence §3.1 exists
+  to create, an admitted Auditor's collapsed rate can be manufactured the
+  same way, and the ration bounding the attack is only as enforceable as
+  planting is attributable. Long windows and planter diversity thin the
+  frame; the judgement is what has to tell the framed from the lazy.
+- **The bootstrap majority persists until it is loosened in public.**
+  Admission is discretionary, so decentralization of the roster is a
+  practice, never a mechanism, and it never completes on its own. What
+  §3.1 adds is legibility, not compulsion: a strong scoreboard left
+  unadmitted is a fact anyone can compute and weigh against the operator.
+  The Aggregator retains the admission lever entire — it can starve
+  nothing, since the checkpoint budget is derivable, and still decline to
+  admit anyone, forever — and the remedy is the one §8 invariant 4 names.
 
 ## 12. Privacy Considerations
 
@@ -2762,6 +3249,16 @@ violation with a named holder rather than a structural inevitability,
 which is the most a specification can do about a copy in someone else's
 hands.
 
+A revealed canary's served bytes are page content held off-Log by the
+domain that served them, for the scoring window and no longer (§5.1). The
+Log carries only leaves and the paths above them: each a digest over
+bytes carrying a fresh nonce, unreproducible without it, on the same
+footing as a commitment whose salt has lapsed. A `credit_commitment` is
+keyed by the Reference Payload's salt like the Record's other three, and
+dies with it. An Observer's Records are the same object as an Auditor's,
+carry the same residue, and are served rather than sealed; an Observer is
+bound by WIST-3 §6.2's destroy obligation exactly as an Auditor is.
+
 ## 13. Conformance Checklist
 
 **Auditor:**
@@ -2826,11 +3323,40 @@ hands.
       entering any domain's reputation (§3, §4)
 - [ ] Commits the response, its own extraction and its WARC capture under
       the Reference Payload's salt — never as bare digests (§5)
+- [ ] Seals `credit_commitment` on every measured Record: the same salt
+      over the served bytes with its own `auditor_id` appended (§5.2)
 - [ ] Preserves the WARC capture behind every `inconsistent` and
       `link_inconsistent` Record for `warc_retention_days`, extended and
       served at the §5 evidence path while a notice naming the Record is
       pending, and destroys any capture, the Reference Payload and the
       salt on withdrawal (§5, WIST-3 §6.2)
+
+**Observer:**
+
+- [ ] Registers by a self-signed `observer_register` under a Declaration
+      it serves at its own `observer_id`, independent of the Log's
+      `log_id`, and rotates by registering again (§3.1)
+- [ ] Audits its VRF selection and every Delta the extension rule names
+      for it exactly as an Auditor does, serves the Records at the §4
+      records path for `payload_window_days`, and chains `prev_record`
+      per Log (§3.1, §4)
+- [ ] Serves an `observer_checkpoint` naming its chain head at its
+      submissions path, so that a Record is fixed before the reveal it
+      may credit against (§3.1, §9.1)
+
+**Planter and Canary Domain:**
+
+- [ ] Seals a `canary_commitment` at least `canary_lead_blocks` before
+      the first Delta it covers, within its suffix's epoch ration, over
+      leaves each embedding a fresh nonce of at least 16 octets (§5.1)
+- [ ] Holds a leaf's served bytes fixed throughout its Delta's tenure,
+      and embeds a watermark where WIST-2 §12's extraction discards it
+      (§5.1)
+- [ ] Reveals by a `canary_reveal` signed by the canary domain, inside
+      the reveal minimum and the lifetime, and serves each revealed leaf's
+      bytes and Reference Payload for the scoring window (§5.1)
+- [ ] Eats every sanction, penalty and rung a fraud canary earns: a
+      reveal voids none of them (§5.1, §7)
 
 **Aggregator (governance side):**
 
@@ -2838,6 +3364,13 @@ hands.
       verifying the Declaration at the Auditor's own domain, and never
       under a hostname that fails §3's independence test against its own
       `log_id` (§3)
+- [ ] Verifies an Observer's Declaration before sealing its
+      `observer_register`, and cites `track_record` — newest checkpoint
+      and per-tier scoreboard — on every `auditor_admit` of a `subject`
+      with an Observer history (§3.1, §9.1)
+- [ ] Fetches every domain's submissions path whenever it pulls its
+      Feed, fetches every budgeted Observer's once per epoch, and seals
+      what verifies within `record_seal_blocks` (§3.1, §9.1)
 - [ ] Excludes unauditable URLs from materialization for as long as §5's
       predicate holds — two independent `robots_excluded` Records inside
       the horizon, cleared only by a successful audit from an Auditor
@@ -2933,6 +3466,13 @@ hands.
 - [ ] Keeps that derivation to the sanction's state and never lets an
       appeal, a lift or a lapsed deadline touch `penalty_n`, which §6.1
       derives from the evidence alone (§6.1, §7)
+- [ ] Derives the Observer registry and each epoch's budget from the
+      Log, rejects the acts `WIST4-E07` and `WIST4-E08` name, and checks a
+      reveal's inclusion proofs, Delta bindings and timing from the Log
+      alone (§3.1, §5.1, §10)
+- [ ] Recomputes a cited scoreboard while the reveals it reads are live,
+      and never derives a roster from one: a scoreboard is evidence for
+      a judgement, not an input to replay (§3.1, §5.2)
 
 ## Appendix A. Worked Sampling Example
 

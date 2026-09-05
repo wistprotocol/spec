@@ -664,7 +664,8 @@ def _state_tuple_encoding():
                    for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
     expected = {"aggregator_key", "auditor", "declaration", "parameter",
                 "sanction_state", "recovery_window", "exclusion",
-                "coverage_failure", "escalation", "reputation_inputs", "record"}
+                "coverage_failure", "escalation", "reputation_inputs", "record",
+                "observer", "canary_commitment"}
     assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
     state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
     digest = "sha256:" + hashlib.sha256(
@@ -748,7 +749,7 @@ def _wist4_error_registry():
     assert "## 13. Conformance Checklist" in w4
     assert "## 10. Security Considerations" not in w4
     codes = re.findall(r"WIST4-E(\d{2})", w4)
-    assert sorted(set(codes)) == ["01", "02", "03", "04", "05", "06", "07"], sorted(set(codes))
+    assert sorted(set(codes)) == ["01", "02", "03", "04", "05", "06", "07", "08"], sorted(set(codes))
     assert "never invalidates the containing Block" in re.sub(r"\s+", " ", w4)
 
 check("spec:wist4-error-registry", _wist4_error_registry)
@@ -763,7 +764,8 @@ def _governance_acts_count():
                 (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     action_enum = schema["properties"]["update"]["properties"]["action"]["enum"]
-    words = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen"}
+    words = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen",
+             15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen"}
     assert f"the {words[len(action_enum)]} governance acts" in w4, \
         f"prose count does not match the {len(action_enum)}-action enum"
     fields = w4.split("## 5. Verdicts")[1][:2400]
@@ -1032,7 +1034,7 @@ def _schema_node_at(schema_file, path):
 # Only a check listed in COVERAGE_ASSERTED may be named, because only those
 # make that assertion. Paths are ROOT-relative: `examples/block.json` and
 # `vectors/wist3/block.json` are different locations and are declared separately.
-COVERAGE_ASSERTED = {"payload:commitment", "audit:commitments"}
+COVERAGE_ASSERTED = {"payload:commitment", "audit:commitments", "vectors:wist4-canary"}
 
 SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
     ("delta.schema.json",
@@ -1043,6 +1045,8 @@ SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
      "properties/record/properties/ref_extract_commitment"): "audit:commitments",
     ("audit-record.schema.json",
      "properties/record/properties/evidence_commitment"): "audit:commitments",
+    ("audit-record.schema.json",
+     "properties/record/properties/credit_commitment"): "audit:commitments",
 }
 
 SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
@@ -1055,7 +1059,10 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("examples/audit-record.json", "response_commitment"): "audit:commitments",
     ("examples/audit-record.json", "ref_extract_commitment"): "audit:commitments",
     ("examples/audit-record.json", "evidence_commitment"): "audit:commitments",
+    ("examples/audit-record.json", "credit_commitment"): "audit:commitments",
     ("vectors/wist4/audit-commitments.json", "value"): "audit:commitments",
+    ("vectors/wist4/canary.json", "credit_commitment"): "vectors:wist4-canary",
+    ("vectors/wist4/canary.json", "response_commitment"): "vectors:wist4-canary",
 }
 
 def _declared_values_for(check_name):
@@ -2492,6 +2499,343 @@ def _dc4_ladder_reversals_twin():
         "recomputation is blind to the three-severity-3 branch"
 check("negative:wist4-ladder-reversals", _dc4_ladder_reversals_twin)
 
+def _canary_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "canary.json").read_text())
+
+def _canary_credit(key, body, auditor_id, append_signer=True):
+    msg = body + (auditor_id.encode() if append_signer else b"")
+    return "hmac-sha256:" + hmac.new(key, msg, hashlib.sha256).hexdigest()
+
+def _canary_root_from_path(leaf, index, size, path):
+    """WIST-3 §4's fn/sn walk over a canary leaf's Inclusion Proof — the
+    verifier's algorithm, not the generator's PATH construction."""
+    h = leaf
+    fn, sn, k = index, size - 1, 0
+    while sn > 0:
+        if fn % 2 == 1:
+            h = hashlib.sha256(b"\x01" + path[k] + h).digest(); k += 1
+        elif fn < sn:
+            h = hashlib.sha256(b"\x01" + h + path[k]).digest(); k += 1
+        fn //= 2; sn //= 2
+    assert k == len(path), "path elements left unconsumed"
+    return h
+
+def _canary_band(v, similarity):
+    p = v["parameters"]
+    if similarity >= p["similarity_consistent"]:
+        return "consistent"
+    if similarity >= p["similarity_variance_floor"]:
+        return "dynamic_variance"
+    return "inconsistent"
+
+def _canary_hard_hit(v, reproduces, verdict, derived, bands_apart=2):
+    p = v["parameters"]
+    if not reproduces:
+        return False
+    if bands_apart == 2:
+        return ((verdict == "consistent" and derived < p["similarity_variance_floor"])
+                or (verdict == "inconsistent" and derived >= p["similarity_consistent"]))
+    return verdict != _canary_band(v, derived) and verdict in ("consistent", "inconsistent")
+
+def _canary_timing(v, case):
+    p = v["parameters"]
+    rotation = (-(-case["suffixes_registered"] // p["observer_checkpoint_budget"]) - 1) * p["epoch_blocks"]
+    earliest = max(case["delta_heights"]) + p["canary_reveal_min_blocks"] + rotation
+    latest = case["commitment_height"] + p["canary_lifetime_blocks"]
+    lead_ok = all(h >= case["commitment_height"] + p["canary_lead_blocks"] for h in case["delta_heights"])
+    return earliest, latest, lead_ok, lead_ok and earliest <= case["reveal_height"] <= latest
+
+def _dc4_canary():
+    import link_extraction
+    """WIST-4 §5.1, §5.2: leaves hash to the committed root under their
+    nonces, credit is byte possession bound to the signer, the hard hit is a
+    verdict two bands from the bytes, the reveal timing composes with the
+    checkpoint budget, and the scoreboard counts per tier."""
+    v = _canary_vector()
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    salt = b64u_decode(payload["salt"])
+    assert v["reference_extract"] == payload["content"]["extract"], "the leaves are not measured against the example Payload"
+    size = v["commitment"]["leaves"]
+    root = bytes.fromhex(v["commitment"]["root"].split(":")[1])
+    bodies, nonces = {}, set()
+    for leaf in v["leaves"]:
+        body = bytes.fromhex(leaf["served_bytes_hex"])
+        bodies[leaf["index"]] = body
+        nonce = bytes.fromhex(leaf["nonce_hex"])
+        assert len(nonce) >= 16 and nonce not in nonces and nonce.hex().encode() in body, \
+            f"leaf {leaf['index']}: nonce absent, short or reused"
+        nonces.add(nonce)
+        lh = hashlib.sha256(b"\x00" + body).digest()
+        assert "sha256:" + lh.hex() == leaf["leaf_hash"], f"leaf {leaf['index']}: leaf hash"
+        if not leaf["revealed"]:
+            assert "path" not in leaf and "delta_id" not in leaf
+            continue
+        path = [bytes.fromhex(p.split(":")[1]) for p in leaf["path"]]
+        assert _canary_root_from_path(lh, leaf["index"], size, path) == root, \
+            f"leaf {leaf['index']}: inclusion proof does not reach the root"
+        observed = link_extraction.extract_text(body)
+        sim = link_extraction.similarity(v["reference_extract"], observed,
+                                         v["parameters"]["min_observed_words"])
+        assert sim == leaf["derived_similarity"], f"leaf {leaf['index']}: recomputed similarity {sim}"
+        assert _canary_band(v, sim) == leaf["derived_verdict"]
+        if leaf["class"] == "watermark":
+            assert sim == 1_000_000 and link_extraction.extract_text(body) == \
+                link_extraction.extract_text(bytes.fromhex(v["payload_page_hex"])), \
+                "a watermark must leave the extracted text untouched"
+        tier = ("provisional" if leaf["domain_provisional"] else
+                "mature" if leaf["domain_reputation_u"] >= v["parameters"]["latency_threshold_u"]
+                else "standing")
+        assert tier == leaf["tier"], f"leaf {leaf['index']}: tier"
+    assert {l["class"] for l in v["leaves"]} == {"watermark", "fraud", "dynamic", "unrevealed"}
+    bound = [l["delta_id"] for l in v["leaves"] if l["revealed"]]
+    assert len(bound) == len(set(bound)), "a Delta is bound to two leaves"
+    recomputed, labels = set(), set()
+    other_salt = bytes(b ^ 0x01 for b in salt)
+    for case in v["credit_cases"]:
+        labels.add(case["label"])
+        leaf = next(l for l in v["leaves"] if l["index"] == case["leaf_index"])
+        held = {"leaf": bodies[case["leaf_index"]],
+                "payload_page": bytes.fromhex(v["payload_page_hex"])}.get(case["held"])
+        key = salt if case["salt"] == "reference" else other_salt
+        if case["held"] == "other_nonce":
+            # Bytes the vector does not carry: the sealed value must simply
+            # fail to reproduce over the leaf and must not equal any leaf value.
+            assert case["credit_commitment"] != _canary_credit(salt, bodies[case["leaf_index"]], case["auditor_id"])
+            assert case["reproduces"] is False and case["hard_hit"] is False
+            continue
+        signer = case["copied_from"] or case["auditor_id"]
+        sealed = _canary_credit(key, held, signer)
+        assert sealed == case["credit_commitment"], f"{case['label']}: sealed credit"
+        assert "hmac-sha256:" + hmac.new(key, held, hashlib.sha256).hexdigest() == case["response_commitment"]
+        recomputed.update({sealed, case["response_commitment"]})
+        reproduces = sealed == _canary_credit(salt, bodies[case["leaf_index"]], case["auditor_id"])
+        assert reproduces == case["reproduces"], f"{case['label']}: reproduces"
+        assert _canary_hard_hit(v, reproduces, case["verdict"], leaf["derived_similarity"]) == case["hard_hit"], \
+            f"{case['label']}: hard hit"
+    for needed in ("fetcher credits the watermark", "payload bytes earn no credit",
+                   "a copied credit value is worthless", "consistent on the fraud leaf is a hard hit",
+                   "inconsistent on the fraud leaf credits", "inconsistent on the watermark is a hard hit",
+                   "consistent in the buffer band is no hit", "inconsistent in the buffer band is no hit",
+                   "a cloaked fetch misses", "the wrong salt reproduces nothing"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    for case in v["timing_cases"]:
+        got = _canary_timing(v, case)
+        want = (case["earliest_reveal_height"], case["latest_reveal_height"],
+                case["lead_respected"], case["valid"])
+        assert got == want, f"{case['label']}: recomputed {got}, vector says {want}"
+    assert any(c["suffixes_registered"] > v["parameters"]["observer_checkpoint_budget"] and c["valid"]
+               for c in v["timing_cases"]), "no case shows the rotation term absorbed"
+    for record in v["scoreboard_records"]:
+        held = {"leaf": bodies[record["leaf_index"]], "payload_page": bytes.fromhex(v["payload_page_hex"])}[record["held"]]
+        sealed = _canary_credit(salt, held, record["auditor_id"])
+        assert sealed == record["credit_commitment"]
+        recomputed.add(sealed)
+    for auditor_id, board in v["scoreboards"].items():
+        mine = {t: [0, 0, 0] for t in ("provisional", "standing", "mature")}
+        for record in v["scoreboard_records"]:
+            if record["auditor_id"] != auditor_id or not record["fixed_before_reveal"]:
+                continue
+            leaf = next(l for l in v["leaves"] if l["index"] == record["leaf_index"])
+            row = mine[leaf["tier"]]
+            reproduces = record["credit_commitment"] == _canary_credit(salt, bodies[leaf["index"]], auditor_id)
+            row[0] += 1; row[1] += reproduces
+            row[2] += _canary_hard_hit(v, reproduces, record["verdict"], leaf["derived_similarity"])
+        assert mine == board, f"{auditor_id}: recomputed scoreboard {mine}, vector says {board}"
+    # The example Record's credit commitment is the same construction.
+    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
+    ac = json.loads((ROOT / "vectors" / "wist4" / "audit-commitments.json").read_text())["commitments"]
+    body = bytes.fromhex(ac["response_commitment"]["message_hex"])
+    assert rec["credit_commitment"] == _canary_credit(salt, body, rec["auditor_id"]), \
+        "the example Record's credit_commitment is not salt over body || auditor_id"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("message = <raw response body> ‖ <auditor_id as UTF-8>",
+                   "a hard hit is a verdict two bands from the bytes its signer proved it held",
+                   "`leaf = SHA-256(0x00 ‖ served bytes)`",
+                   "https://<domain>/.well-known/wist/canary/<commitment-id-hex>/<index>"):
+        assert marker in prose, f"§5.1/§5.2 does not state: {marker!r}"
+    covered_values = _locate_values(lambda x: x in recomputed)
+    _assert_coverage("vectors:wist4-canary", covered_values, _locate_schema_fields("vectors:wist4-canary"))
+check("vectors:wist4-canary", _dc4_canary)
+
+def _dc4_canary_twin():
+    """The check above must notice a credit that omits the signer, a hard hit
+    read one band away, and a proof under the wrong index."""
+    v = _canary_vector()
+    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
+    salt = b64u_decode(payload["salt"])
+    copier = next(c for c in v["credit_cases"] if c["label"] == "a copied credit value is worthless")
+    body = bytes.fromhex(v["leaves"][copier["leaf_index"]]["served_bytes_hex"])
+    assert _canary_credit(salt, body, copier["copied_from"], append_signer=False) == \
+        _canary_credit(salt, body, copier["auditor_id"], append_signer=False), \
+        "without the signer in the message, the twin cannot show the copier being caught"
+    assert copier["reproduces"] is False
+    buffer = next(c for c in v["credit_cases"] if c["label"] == "consistent in the buffer band is no hit")
+    leaf = v["leaves"][buffer["leaf_index"]]
+    assert _canary_hard_hit(v, True, buffer["verdict"], leaf["derived_similarity"], bands_apart=1) is True \
+        and buffer["hard_hit"] is False, "recomputation is blind to the buffer band"
+    size = v["commitment"]["leaves"]
+    root = bytes.fromhex(v["commitment"]["root"].split(":")[1])
+    revealed = [l for l in v["leaves"] if l["revealed"]]
+    a, b = revealed[0], revealed[1]
+    lh = bytes.fromhex(a["leaf_hash"].split(":")[1])
+    path = [bytes.fromhex(p.split(":")[1]) for p in a["path"]]
+    assert _canary_root_from_path(lh, b["index"], size, path) != root, \
+        "recomputation is blind to the leaf's index"
+    early = next(c for c in v["timing_cases"] if c["label"] == "reveal one block early")
+    assert _canary_timing(v, dict(early, reveal_height=early["reveal_height"] + 1))[3] is True
+check("negative:wist4-canary", _dc4_canary_twin)
+
+def _observer_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "observer-checkpoints.json").read_text())
+
+def _epoch_priority(epoch, name):
+    return hashlib.sha256(epoch.to_bytes(8, "big") + name.encode()).hexdigest()
+
+def _epoch_budget(observers, epoch, budget, hashed=True):
+    groups = {}
+    for o in observers:
+        groups.setdefault(".".join(o.split(".")[-2:]), []).append(o)
+    if hashed:
+        order = sorted(groups, key=lambda s: _epoch_priority(epoch, s))
+        pick = lambda sfx: min(groups[sfx], key=lambda o: _epoch_priority(epoch, o))
+    else:
+        order = list(groups)
+        pick = lambda sfx: groups[sfx][0]
+    return order, [pick(sfx) for sfx in order[:budget]]
+
+def _epoch_of_block(v, block, per_first_block=True):
+    changes = v["epoch_changes"]
+    def in_force(t_s):
+        live = [c for c in changes if c["effective_at_s"] <= t_s]
+        return max(live, key=lambda c: c["effective_at_s"])["value"] if live else v["epoch_blocks_default"]
+    if not per_first_block:
+        length = in_force(block * 3600)
+        return block // length
+    start, index = 0, 0
+    while True:
+        length = in_force(start * 3600)
+        if block < start + length:
+            return index
+        start += length
+        index += 1
+
+def _covered_before(v, item, reveal_height):
+    for cp in v["checkpoints"]:
+        if cp["height"] >= reveal_height:
+            continue
+        cursor = cp["head"]
+        while cursor is not None:
+            if cursor == item:
+                return True
+            cursor = v["prev_record"][cursor]
+    return False
+
+def _dc4_observer_checkpoints():
+    """WIST-4 §3.1: the epoch budget's derivable allocation, the epoch a Block
+    belongs to, and what a sealed checkpoint fixes before a reveal."""
+    v = _observer_vector()
+    labels = set()
+    for case in v["budget_cases"]:
+        labels.add(case["label"])
+        for e in case["epochs"]:
+            order, chosen = _epoch_budget(case["registered"], e["epoch"], case["budget"])
+            assert order == e["suffix_order"], f"{case['label']} epoch {e['epoch']}: suffix order"
+            assert chosen == e["budgeted"], f"{case['label']} epoch {e['epoch']}: recomputed {chosen}"
+            assert len(chosen) == min(case["budget"], len(order))
+    for needed in ("under budget every suffix budgeted", "over budget rotates across epochs",
+                   "a crowd under one suffix shares one slot"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    for case in v["epoch_cases"]:
+        got = _epoch_of_block(v, case["block"])
+        assert got == case["epoch"], f"block {case['block']}: recomputed epoch {got}"
+        assert case["epoch_first_block"] <= case["block"] < case["epoch_first_block"] + case["epoch_length"]
+    for case in v["coverage_cases"]:
+        for item, fixed in case["fixed_before_reveal"].items():
+            assert _covered_before(v, item, case["reveal_height"]) == fixed, \
+                f"{case['label']}: {item}"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("`SHA-256(be64(epoch number) ‖ suffix)`",
+                   "spans the `epoch_blocks` (Parameter Registry; default 24) in force at its first Block's `sealed_at`",
+                   "only if a checkpoint covering it was sealed in a Block below the reveal's"):
+        assert marker in prose, f"§3.1 does not state: {marker!r}"
+check("vectors:wist4-observer-checkpoints", _dc4_observer_checkpoints)
+
+def _dc4_observer_checkpoints_twin():
+    """The check above must notice a static queue and an epoch read from the
+    value in force at the Block rather than at the epoch's first Block."""
+    v = _observer_vector()
+    rotating = next(c for c in v["budget_cases"] if c["label"] == "over budget rotates across epochs")
+    static = {tuple(_epoch_budget(rotating["registered"], e["epoch"], rotating["budget"], hashed=False)[1])
+              for e in rotating["epochs"]}
+    assert len(static) == 1 and len({tuple(e["budgeted"]) for e in rotating["epochs"]}) > 1, \
+        "a static order would starve the same suffixes every epoch, and the twin cannot see it"
+    assert any(_epoch_of_block(v, c["block"], per_first_block=False) != c["epoch"] for c in v["epoch_cases"]), \
+        "recomputation is blind to which Block's value governs an epoch"
+    at_height = next(c for c in v["coverage_cases"] if c["label"] == "reveal at the first checkpoints height")
+    assert not any(at_height["fixed_before_reveal"].values()), \
+        "a checkpoint sealed at the reveal's own height must fix nothing"
+check("negative:wist4-observer-checkpoints", _dc4_observer_checkpoints_twin)
+
+def _dc4_observer_and_canary_acts():
+    """WIST-4 §3.1, §5.1, §9.1: the four self-signed acts and the admission
+    track record validate with their REQUIRED members and fail without them."""
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    actions = schema["properties"]["update"]["properties"]["action"]["enum"]
+    for a in ("observer_register", "observer_checkpoint", "canary_commitment", "canary_reveal"):
+        assert a in actions, f"action enum lacks {a}"
+    sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
+    canary = _canary_vector()
+    leaf = next(l for l in canary["leaves"] if l["revealed"])
+    pub = json.loads((ROOT / "examples" / "registry-update.json").read_text())["update"]["details"]["public_key"]
+    acts = {
+        "observer_register": ("watch.sample.net", {"key_id": "test-obs-k1", "alg": "Ed25519", "public_key": pub}),
+        "observer_checkpoint": ("watch.sample.net", {"head": "sha256:" + "0" * 64}),
+        "canary_commitment": (canary["planter"], {"root": canary["commitment"]["root"],
+                                                  "leaves": canary["commitment"]["leaves"]}),
+        "canary_reveal": (canary["canary_domain"], {"commitment": "sha256:" + "1" * 64,
+                                                    "leaves": [{"index": leaf["index"], "delta_id": leaf["delta_id"],
+                                                                "path": leaf["path"]}]}),
+    }
+    for action, (subject, details) in acts.items():
+        doc = {"update": {"wist_version": "1.0.0", "action": action, "subject": subject,
+                          "details": details, "effective_at": "2026-08-02T16:00:00Z"}, "sig": sig}
+        validator.validate(doc)
+        for missing in details:
+            bad = copy.deepcopy(doc)
+            del bad["update"]["details"][missing]
+            assert list(validator.iter_errors(bad)), f"{action} without {missing} validated"
+        bad = copy.deepcopy(doc)
+        bad["update"]["subject"] = "not a hostname"
+        assert list(validator.iter_errors(bad)), f"{action} under a non-hostname subject validated"
+    bad = copy.deepcopy(acts["canary_reveal"][1]); bad["leaves"] = []
+    doc = {"update": {"wist_version": "1.0.0", "action": "canary_reveal", "subject": canary["canary_domain"],
+                      "details": bad, "effective_at": "2026-08-02T16:00:00Z"}, "sig": sig}
+    assert list(validator.iter_errors(doc)), "a reveal of no leaves validated"
+    admit = json.loads((ROOT / "examples" / "registry-update.json").read_text())
+    validator.validate(admit)
+    with_record = copy.deepcopy(admit)
+    with_record["update"]["details"]["track_record"] = {
+        "checkpoint": "sha256:" + "2" * 64,
+        "scoreboard": {"provisional": [1, 1, 0], "standing": [1, 1, 1], "mature": [1, 1, 0]}}
+    validator.validate(with_record)
+    for mutate in (lambda d: d["scoreboard"].pop("mature"),
+                   lambda d: d["scoreboard"]["mature"].append(0),
+                   lambda d: d.pop("checkpoint"),
+                   lambda d: d["scoreboard"].update({"provisional": [1, -1, 0]})):
+        bad = copy.deepcopy(with_record)
+        mutate(bad["update"]["details"]["track_record"])
+        assert list(validator.iter_errors(bad)), "a malformed track_record validated"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "https://<domain>/.well-known/wist/registry.json" in prose, "§9.1 fixes no submissions path"
+    w2 = (ROOT / "specs" / "WIST-2-site-publication.md").read_text()
+    assert "/.well-known/wist/registry.json" in w2 and "/.well-known/wist/canary/<c>/<i>" in w2, \
+        "WIST-2 §3's layout omits the new paths"
+check("schema:wist4-observer-and-canary-acts", _dc4_observer_and_canary_acts)
+
 def _dc4_audit_commitments():
     """Every content-derived value in an Audit Record is salted (WIST-4 §5).
 
@@ -2655,6 +2999,30 @@ check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
 # be an `hmac-sha256:` commitment under the Payload salt, or it fails. Adding a
 # field here is the deliberate act of asserting it carries no content.
 NON_CONTENT_DIGESTS = {
+    ("registry-update.schema.json",
+     "allOf[13]/then/properties/update/properties/details/properties/head"):
+        "an Audit Record or coverage_attestation ID — the Observer's chain head (WIST-4 §3.1); objects that carry only commitments",
+    ("registry-update.schema.json",
+     "allOf[14]/then/properties/update/properties/details/properties/root"):
+        "a Merkle root over canary leaves, each SHA-256 over served bytes carrying a fresh nonce no Payload carries — a keyed commitment under the nonce (WIST-4 §5.1, §9.1)",
+    ("registry-update.schema.json",
+     "allOf[15]/then/properties/update/properties/details/properties/commitment"):
+        "a Registry Update ID: SHA-256 over a canary_commitment's inner object, which carries a root and a count (WIST-4 §5.1)",
+    ("registry-update.schema.json",
+     "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/delta_id"):
+        "a Delta ID",
+    ("registry-update.schema.json",
+     "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/path/items"):
+        "Merkle siblings over canary leaves, each keyed by its leaf's nonce (WIST-4 §5.1, §9.1)",
+    ("registry-update.schema.json",
+     "allOf[16]/then/properties/update/properties/details/properties/track_record/properties/checkpoint"):
+        "a Registry Update ID: SHA-256 over an observer_checkpoint's inner object, which carries a chain-head ID (WIST-4 §3.1)",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[12]/prefixItems[1]"):
+        "a Registry Update ID (a live canary_commitment's, WIST-3 §7)",
+    ("snapshot-state.schema.json",
+     "properties/state/properties/entries/items/oneOf[12]/prefixItems[3]"):
+        "the canary_commitment's Merkle root over nonce-keyed leaves (WIST-4 §5.1)",
     ("delta.schema.json", "properties/delta/properties/prev"):
         "a Delta ID: SHA-256 of Canonical Bytes, which carry the salted commitment and no content",
     ("publisher.schema.json", "properties/publisher/properties/prev_declaration"):
@@ -2740,6 +3108,11 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/canary.json", "root"): "a Merkle root over nonce-keyed canary leaves (WIST-4 §5.1)",
+    ("vectors/wist4/canary.json", "leaf_hash"): "SHA-256 over served bytes carrying a fresh nonce (WIST-4 §5.1)",
+    ("vectors/wist4/canary.json", "path"): "Merkle siblings over nonce-keyed canary leaves (WIST-4 §5.1)",
+    ("vectors/wist4/canary.json", "delta_id"): "a Delta ID",
+    ("vectors/wist4/canary.json", "nonce_hex"): "the nonce: from a CSPRNG in production, the unguessable part of a leaf's served bytes (WIST-4 §5.1)",
     ("examples/audit-record.json", "audited_delta"): "a Delta ID",
     ("examples/audit-record.json", "reference_delta"): "a Delta ID",
         ("examples/audit-record.json", "value"): "an Ed25519 signature",

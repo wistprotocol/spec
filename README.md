@@ -44,7 +44,7 @@ vectors/     deterministic test vectors (WIST-1 signature and Declaration
              sequencing, WIST-2 link extraction, WIST-3 Merkle and snapshot
              records, WIST-4 sampling, reputation, decay table, audit
              commitments, link agreement, replay derivations, the audit
-             reference Delta)
+             reference Delta, canary scoring, observer checkpoints)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```

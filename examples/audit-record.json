@@ -6,6 +6,7 @@
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": "hmac-sha256:07ef725032b51ef3fc4bfeb59324ad160f52363df4f165ff63e9473952bf637a",
+    "credit_commitment": "hmac-sha256:2118a5bb3a9af4b44388aea3e0c76f3f47f3b35c444e68546a541a37a7e1ea97",
     "ref_extract_commitment": "hmac-sha256:de14592527c52b7349508992a040e2327611fd82be20a4a4b314bac2f99d5f3d",
     "similarity": 940000,
     "link_agreement": 1000000,
@@ -17,6 +18,6 @@
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "MkoPYoBheynD3wu316HLu9pWPNXlDrgMgInGB2WXLzlExPVI35-ZixiZT9Pvqr4gsIFqlWZde6vdWL6z-YMtDA"
+    "value": "-5yy48s2F1vh5yu4D_VCmX_vtP0ABCZltD9Pf0rI0ezOZh-dzBox5YZfMZw1cv0bqiqG1YPTlV7v2pF0I9E0Dw"
   }
 }

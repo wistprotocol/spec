@@ -12,7 +12,7 @@
       "additionalProperties": false,
       "properties": {
         "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal", "pull_attestation"]},
+        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal", "pull_attestation", "observer_register", "observer_checkpoint", "canary_commitment", "canary_reveal"]},
         "subject": {"type": "string", "maxLength": 256},
         "details": {"type": "object"},
         "evidence": {"type": "array", "items": {"type": "string", "maxLength": 256}},
@@ -182,7 +182,10 @@
                     "ingest_budget_bytes_day", "min_observed_words",
                     "extension_triggers_max",
                     "audit_fetch_cap_bytes", "audit_domain_budget_bytes_day",
-                    "audit_redirect_max", "audit_fetch_timeout_seconds"
+                    "audit_redirect_max", "audit_fetch_timeout_seconds",
+                    "epoch_blocks", "observer_checkpoint_budget", "canary_lead_blocks",
+                    "canary_leaves_max", "canary_commitments_max",
+                    "canary_reveal_min_blocks", "canary_lifetime_blocks"
                   ]},
                   "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying WIST-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
                 },
@@ -346,6 +349,34 @@
                   {
                     "if": {"properties": {"parameter": {"const": "link_variance_floor"}}},
                     "then": {"properties": {"value": {"minimum": 1, "maximum": 999999}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "epoch_blocks"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "observer_checkpoint_budget"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "canary_lead_blocks"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "canary_leaves_max"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "canary_commitments_max"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "canary_reveal_min_blocks"}}},
+                    "then": {"properties": {"value": {"minimum": 1}}}
+                  },
+                  {
+                    "if": {"properties": {"parameter": {"const": "canary_lifetime_blocks"}}},
+                    "then": {"properties": {"value": {"minimum": 2}}}
                   }
                 ]
               }
@@ -461,6 +492,141 @@
           "update": {
             "properties": {
               "evidence": {"type": "array", "minItems": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "WIST-4 §3.1, §9.1: an Observer registers itself under a domain-anchored identity, and the act is self-signed — sig.key_id is the key_id the details register. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "observer_register"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "details": {
+                "type": "object",
+                "required": ["key_id", "alg", "public_key"],
+                "properties": {
+                  "key_id": {"type": "string", "maxLength": 64},
+                  "alg": {"const": "Ed25519"},
+                  "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "WIST-4 §3.1: an observer_checkpoint seals the Observer's chain head, so that every Record behind it is fixed before the reveals it may credit against. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "observer_checkpoint"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "details": {
+                "type": "object",
+                "required": ["head"],
+                "properties": {
+                  "head": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The ID of the Observer's newest Audit Record or coverage_attestation for this Log — the head of its prev_record chain (WIST-4 §3.1); an object that carries only commitments."}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "WIST-4 §5.1: a canary_commitment fixes a planter's future served bytes as a Merkle root before any of them is served; its subject is the planter, never the canary domain. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "canary_commitment"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "details": {
+                "type": "object",
+                "required": ["root", "leaves"],
+                "properties": {
+                  "root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "WIST-3 §4's Merkle root over the leaves, each SHA-256(0x00 || served bytes) where the served bytes carry a fresh nonce of at least 16 octets (WIST-4 §5.1): a keyed commitment under that nonce, not a bare digest of content."},
+                  "leaves": {"type": "integer", "minimum": 1, "description": "The leaf count, the tree size every inclusion proof in the reveal reads; bounded above by canary_leaves_max in prose (WIST-4 §5.1)."}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "WIST-4 §5.1: a canary_reveal binds a commitment's leaves to the canary domain's Deltas and is signed by that domain, so only a domain's own keys can declare it a canary. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "canary_reveal"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "required": ["details"],
+            "properties": {
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "details": {
+                "type": "object",
+                "required": ["commitment", "leaves"],
+                "properties": {
+                  "commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (WIST-4 §7) of the canary_commitment revealed — an object carrying a root and a count, no content."},
+                  "leaves": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["index", "delta_id", "path"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "index": {"type": "integer", "minimum": 0},
+                        "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                        "path": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "description": "The leaf's Inclusion Proof siblings (WIST-3 §4), leaf level first: nodes over canary leaves, each keyed by its leaf's nonce (WIST-4 §5.1)."}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "comment": "WIST-4 §3.1, §9.1: an auditor_admit whose subject has an Observer history cites the record it weighed — the newest sealed checkpoint and the per-tier scoreboard; the obligation itself is prose, since whether the subject was an Observer is a fact of the Log the schema cannot see. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_admit"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "properties": {
+              "details": {
+                "properties": {
+                  "track_record": {
+                    "type": "object",
+                    "required": ["checkpoint", "scoreboard"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "checkpoint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID of the newest sealed observer_checkpoint for the subject (WIST-4 §3.1)."},
+                      "scoreboard": {
+                        "type": "object",
+                        "required": ["provisional", "standing", "mature"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "provisional": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}], "items": false, "minItems": 3},
+                          "standing": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}], "items": false, "minItems": 3},
+                          "mature": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}], "items": false, "minItems": 3}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }

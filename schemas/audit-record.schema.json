@@ -18,6 +18,7 @@
         "auditor_id": {"type": "string", "format": "hostname", "maxLength": 253, "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The hostname the Auditor was admitted under: WIST-4 §3 requires it to be byte-identical to the `subject` of the `auditor_admit` covering `sig.key_id`, and the pattern is the one that `subject` carries, so a Record cannot claim a shape no admission could have."},
         "fetched_at": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at`. WIST-4 §3 has every validator recomputing reputation reject a Record whose `fetched_at` falls outside the closed interval between two Block `sealed_at` values, so the field is compared against Block timestamps by every replaying party and is written in the one form they carry."},
         "response_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
+        "credit_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$", "description": "HMAC under the same Reference Payload salt over the raw response body with the Auditor's own auditor_id appended (WIST-4 §5.2): the signer-bound proof of fetch-work a revealed canary scores, distinct per signer so that a published value credits nobody else."},
         "ref_extract_commitment": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
         "similarity": {"type": "integer", "minimum": 0, "maximum": 1000000},
         "verdict": {"enum": ["consistent", "inconsistent", "unreachable", "dynamic_variance", "not_auditable", "link_variance", "link_inconsistent"]},
@@ -47,7 +48,7 @@
       },
       "then": {
         "comment": "similarity is required for every change type alike, `delete` included: what the change type adjusts is the reading (WIST-4 §5's effective similarity), never the presence of the field, which is what keeps §7's severity derivable for every Confirmed Inconsistency. link_variance and link_inconsistent both obtained a representation and a measured extract similarity (WIST-4 §5: only a consistent-band extract can yield a link verdict), so they carry the same commitments.",
-        "properties": {"record": {"required": ["response_commitment", "ref_extract_commitment", "similarity", "evidence_commitment"]}}
+        "properties": {"record": {"required": ["response_commitment", "credit_commitment", "ref_extract_commitment", "similarity", "evidence_commitment"]}}
       }
     },
     {
@@ -60,6 +61,7 @@
           "record": {
             "allOf": [
               {"not": {"required": ["response_commitment"]}},
+              {"not": {"required": ["credit_commitment"]}},
               {"not": {"required": ["ref_extract_commitment"]}},
               {"not": {"required": ["similarity"]}},
               {"not": {"required": ["evidence_commitment"]}},
