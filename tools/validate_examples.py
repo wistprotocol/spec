@@ -2869,17 +2869,31 @@ def _observer_vector():
 def _epoch_priority(epoch, name):
     return hashlib.sha256(epoch.to_bytes(8, "big") + name.encode()).hexdigest()
 
-def _epoch_budget(observers, epoch, budget, hashed=True):
+def _suffix_groups(observers):
     groups = {}
     for o in observers:
         groups.setdefault(".".join(o.split(".")[-2:]), []).append(o)
-    if hashed:
-        order = sorted(groups, key=lambda s: _epoch_priority(epoch, s))
-        pick = lambda sfx: min(groups[sfx], key=lambda o: _epoch_priority(epoch, o))
-    else:
-        order = list(groups)
-        pick = lambda sfx: groups[sfx][0]
-    return order, [pick(sfx) for sfx in order[:budget]]
+    return groups
+
+def _epoch_budget(observers, epoch, budget, walk=True):
+    """WIST-4 §3.1: suffixes in a fixed order by SHA-256(suffix); the epoch's
+    window of one budget starts at position epoch × budget mod S; within a
+    suffix, the Observer least by SHA-256(be64(epoch) ‖ observer_id).
+    `walk=False` is a static queue that never advances, the starving
+    reading the section rules out."""
+    groups = _suffix_groups(observers)
+    order = sorted(groups, key=lambda s: hashlib.sha256(s.encode()).hexdigest())
+    size = len(order)
+    start = (epoch * budget) % size if (walk and size) else 0
+    positions = [(start + k) % size for k in range(min(budget, size))] if size else []
+    pick = lambda sfx: min(groups[sfx], key=lambda o: _epoch_priority(epoch, o))
+    return order, positions, [pick(order[p]) for p in positions]
+
+def _epoch_budget_rehashed(observers, epoch, budget):
+    """The ruled-out reading: an order drawn afresh each epoch."""
+    groups = _suffix_groups(observers)
+    order = sorted(groups, key=lambda s: _epoch_priority(epoch, s))
+    return [min(groups[sfx], key=lambda o: _epoch_priority(epoch, o)) for sfx in order[:budget]]
 
 def _epoch_of_block(v, block, per_first_block=True):
     changes = v["epoch_changes"]
@@ -2915,13 +2929,29 @@ def _dc4_observer_checkpoints():
     labels = set()
     for case in v["budget_cases"]:
         labels.add(case["label"])
+        suffixes = len(_suffix_groups(case["registered"]))
+        assert case["suffixes"] == suffixes
+        bound = -(-suffixes // case["budget"]) if suffixes else 0
+        assert case["bound_epochs"] == bound, f"{case['label']}: bound"
         for e in case["epochs"]:
-            order, chosen = _epoch_budget(case["registered"], e["epoch"], case["budget"])
+            order, positions, chosen = _epoch_budget(case["registered"], e["epoch"], case["budget"])
             assert order == e["suffix_order"], f"{case['label']} epoch {e['epoch']}: suffix order"
+            assert positions == e["positions"], f"{case['label']} epoch {e['epoch']}: positions"
             assert chosen == e["budgeted"], f"{case['label']} epoch {e['epoch']}: recomputed {chosen}"
             assert len(chosen) == min(case["budget"], len(order))
+            if "budgeted_under_per_epoch_rehash" in e:
+                assert _epoch_budget_rehashed(case["registered"], e["epoch"], case["budget"]) == \
+                    e["budgeted_under_per_epoch_rehash"], f"{case['label']} epoch {e['epoch']}: rehash reading"
+        # The bound: every suffix inside any bound_epochs consecutive epochs.
+        first = case["epochs"][0]["epoch"]
+        for start in range(first, first + bound):
+            seen = set()
+            for e in range(start, start + bound):
+                seen.update(".".join(o.split(".")[-2:])
+                            for o in _epoch_budget(case["registered"], e, case["budget"])[2])
+            assert len(seen) == suffixes, f"{case['label']}: a suffix waits past the bound from epoch {start}"
     for needed in ("under budget every suffix budgeted", "over budget rotates across epochs",
-                   "a crowd under one suffix shares one slot"):
+                   "a crowd under one suffix shares one slot", "two suffixes and one slot alternate"):
         assert needed in labels, f"vector lacks the {needed} case"
     for case in v["epoch_cases"]:
         got = _epoch_of_block(v, case["block"])
@@ -2933,7 +2963,10 @@ def _dc4_observer_checkpoints():
                 f"{case['label']}: {item}"
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("`SHA-256(be64(epoch number) ‖ suffix)`",
+    for marker in ("order the S suffixes by ascending octet order of `SHA-256(suffix)`",
+                   "`(epoch number × observer_checkpoint_budget + k) mod S`",
+                   "across any `⌈S / observer_checkpoint_budget⌉` consecutive epochs at whose first Blocks "
+                   "the same S suffixes are registered, every one of them is budgeted at least once",
                    "spans the `epoch_blocks` (Parameter Registry; default 24) in force at its first Block's `sealed_at`",
                    "only if a checkpoint covering it was sealed in a Block below the reveal's"):
         assert marker in prose, f"§3.1 does not state: {marker!r}"
@@ -2944,10 +2977,16 @@ def _dc4_observer_checkpoints_twin():
     value in force at the Block rather than at the epoch's first Block."""
     v = _observer_vector()
     rotating = next(c for c in v["budget_cases"] if c["label"] == "over budget rotates across epochs")
-    static = {tuple(_epoch_budget(rotating["registered"], e["epoch"], rotating["budget"], hashed=False)[1])
+    suffixes_of = lambda chosen: tuple(".".join(o.split(".")[-2:]) for o in chosen)
+    static = {suffixes_of(_epoch_budget(rotating["registered"], e["epoch"], rotating["budget"], walk=False)[2])
               for e in rotating["epochs"]}
-    assert len(static) == 1 and len({tuple(e["budgeted"]) for e in rotating["epochs"]}) > 1, \
+    assert len(static) == 1 and len({suffixes_of(e["budgeted"]) for e in rotating["epochs"]}) > 1, \
         "a static order would starve the same suffixes every epoch, and the twin cannot see it"
+    alternate = next(c for c in v["budget_cases"] if c["label"] == "two suffixes and one slot alternate")
+    rehashed = [e["budgeted_under_per_epoch_rehash"] for e in alternate["epochs"]]
+    walked = [e["budgeted"] for e in alternate["epochs"]]
+    assert rehashed != walked and len({tuple(r) for r in rehashed[:3]}) == 1, \
+        "the ruled-out fresh draw must repeat a winner where the walk alternates"
     assert any(_epoch_of_block(v, c["block"], per_first_block=False) != c["epoch"] for c in v["epoch_cases"]), \
         "recomputation is blind to which Block's value governs an epoch"
     at_height = next(c for c in v["coverage_cases"] if c["label"] == "reveal at the first checkpoints height")

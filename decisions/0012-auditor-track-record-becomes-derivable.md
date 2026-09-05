@@ -555,3 +555,12 @@ instant the frozen text never named, and the extension pull that lets a
 summoned Record seal inside that window at all was found missing by the
 same audit and added beside it.
 
+
+**Checkpoint order (2026-09-05).** The allocation stays suffix-keyed and
+epoch-rotating, but the rotation is a walk rather than a fresh draw:
+suffixes sit in a fixed order by `SHA-256(suffix)` and each epoch budgets
+the window of one budget starting at position epoch × budget mod S. The
+order drawn afresh per epoch that the revision first shipped bounded
+nothing — two suffixes under a budget of one could see the same winner
+three epochs running — while §5.1's reveal minimum relies on the
+`⌈S / observer_checkpoint_budget⌉` bound the walk actually delivers.

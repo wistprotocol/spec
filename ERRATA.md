@@ -2677,3 +2677,45 @@ Nothing computed changes.
 itself is exercised by `vectors/wist4/derivation.json`, whose cases
 carry `consistent` Records with `attest` and `delete` references that
 count nothing.
+
+## 2026-09-05 — WIST-4 §3.1: the checkpoint budget walks a fixed order (revision, not errata)
+
+Rewrites the allocation sentences of §3.1's *Checkpoints fix the record*
+paragraph and regenerates `vectors/wist4/observer-checkpoints.json`'s
+`budget_cases`.
+
+**What it states.** Suffixes registered at an epoch's first Block sit in
+a fixed order by `SHA-256(suffix)`, and the epoch budgets the window of
+one `observer_checkpoint_budget` starting at position
+`epoch number × observer_checkpoint_budget mod S`; within a budgeted
+suffix the Observer least by `SHA-256(be64(epoch) ‖ observer_id)` is the
+one fetched, as before. Across any `⌈S / observer_checkpoint_budget⌉`
+consecutive epochs at whose first Blocks the same suffixes are
+registered, every suffix is budgeted at least once; a roster change
+moves the positions after it, and a moved suffix is budgeted within one
+such span of the change.
+
+**Why it is a revision.** It fails the first condition: an Aggregator
+fetching the suffixes the former order named — drawn afresh each epoch
+over `SHA-256(be64(epoch) ‖ suffix)` — now leaves budgeted checkpoints
+unsealed, which §3.1 forbids. The former order was a defect rather than
+a choice: the section claimed it turned permanent starvation into a
+bounded delay of `⌈S / observer_checkpoint_budget⌉` epochs, and §5.1's
+reveal minimum and §9's combination rule both spend that bound, but a
+fresh draw bounds nothing. With two registered suffixes and a budget of
+one, the hashed order names the same suffix at epochs 5, 6 and 7, so
+the other waits three epochs against a claimed bound of two, and the
+honest Records its checkpoint would have fixed become misses at a
+reveal the minimum permits. The walk keeps every property the section
+argued for — no fixed queue, a slot per suffix, derivation from the
+registered set and the epoch number alone — and delivers the bound.
+
+**Status.** Exercised. `observer-checkpoints.json`'s budget cases carry
+the fixed order, the positions and the budgeted Observers per epoch
+under budget, over budget, for a crowd under one suffix, and for two
+suffixes under one slot across epochs 5–8, the last beside the ruled-out
+fresh draw's repeated winner; `vectors:wist4-observer-checkpoints`
+recomputes each, checks every suffix inside every window of
+`bound_epochs` consecutive epochs, and requires §3.1 to state the order,
+the window and the bound. Its twin fails a static queue and the fresh
+draw alike.

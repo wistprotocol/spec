@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73.1: which Observers an epoch budgets (suffix slots ordered by SHA-256 over the big-endian epoch number and the suffix, one Observer per suffix by the same hash over the observer_id), which epoch a Block belongs to under a mid-Log change of epoch_blocks (each epoch spans the value in force at its first Block), and which chain items a sealed checkpoint fixes before a reveal.",
+  "note": "WIST-4 \u00a73.1: which Observers an epoch budgets (suffixes in a fixed order by SHA-256 over the suffix, the epoch's window of one budget starting at position epoch \u00d7 budget mod S, one Observer per suffix by SHA-256 over the big-endian epoch number and the observer_id; every suffix budgeted at least once in any bound_epochs consecutive epochs, and budgeted_under_per_epoch_rehash the ruled-out fresh draw that repeats a winner), which epoch a Block belongs to under a mid-Log change of epoch_blocks (each epoch spans the value in force at its first Block), and which chain items a sealed checkpoint fixes before a reveal.",
   "epoch_blocks_default": 24,
   "budget_cases": [
     {
@@ -12,34 +12,48 @@
         "e.other.io"
       ],
       "budget": 5,
+      "suffixes": 4,
+      "bound_epochs": 1,
       "epochs": [
         {
           "epoch": 0,
           "suffix_order": [
-            "other.io",
             "sample.net",
             "example.net",
+            "other.io",
             "example.org"
           ],
+          "positions": [
+            0,
+            1,
+            2,
+            3
+          ],
           "budgeted": [
-            "e.other.io",
             "d.sample.net",
             "b.example.net",
+            "e.other.io",
             "c.example.org"
           ]
         },
         {
           "epoch": 1,
           "suffix_order": [
-            "example.org",
+            "sample.net",
             "example.net",
             "other.io",
-            "sample.net"
+            "example.org"
+          ],
+          "positions": [
+            1,
+            2,
+            3,
+            0
           ],
           "budgeted": [
-            "c.example.org",
             "b.example.net",
             "e.other.io",
+            "c.example.org",
             "d.sample.net"
           ]
         }
@@ -55,57 +69,75 @@
         "e.other.io"
       ],
       "budget": 2,
+      "suffixes": 4,
+      "bound_epochs": 2,
       "epochs": [
         {
           "epoch": 0,
           "suffix_order": [
-            "other.io",
             "sample.net",
             "example.net",
+            "other.io",
             "example.org"
           ],
+          "positions": [
+            0,
+            1
+          ],
           "budgeted": [
-            "e.other.io",
-            "d.sample.net"
+            "d.sample.net",
+            "b.example.net"
           ]
         },
         {
           "epoch": 1,
           "suffix_order": [
-            "example.org",
+            "sample.net",
             "example.net",
             "other.io",
-            "sample.net"
+            "example.org"
+          ],
+          "positions": [
+            2,
+            3
           ],
           "budgeted": [
-            "c.example.org",
-            "b.example.net"
+            "e.other.io",
+            "c.example.org"
           ]
         },
         {
           "epoch": 2,
           "suffix_order": [
             "sample.net",
+            "example.net",
             "other.io",
-            "example.org",
-            "example.net"
+            "example.org"
+          ],
+          "positions": [
+            0,
+            1
           ],
           "budgeted": [
             "d.sample.net",
-            "e.other.io"
+            "a.example.net"
           ]
         },
         {
           "epoch": 3,
           "suffix_order": [
-            "example.org",
+            "sample.net",
             "example.net",
             "other.io",
-            "sample.net"
+            "example.org"
+          ],
+          "positions": [
+            2,
+            3
           ],
           "budgeted": [
-            "c.example.org",
-            "b.example.net"
+            "e.other.io",
+            "c.example.org"
           ]
         }
       ]
@@ -119,15 +151,20 @@
         "g.other.io"
       ],
       "budget": 1,
+      "suffixes": 2,
+      "bound_epochs": 2,
       "epochs": [
         {
           "epoch": 0,
           "suffix_order": [
-            "other.io",
-            "example.net"
+            "example.net",
+            "other.io"
+          ],
+          "positions": [
+            0
           ],
           "budgeted": [
-            "g.other.io"
+            "b.example.net"
           ]
         },
         {
@@ -136,18 +173,24 @@
             "example.net",
             "other.io"
           ],
+          "positions": [
+            1
+          ],
           "budgeted": [
-            "f.example.net"
+            "g.other.io"
           ]
         },
         {
           "epoch": 2,
           "suffix_order": [
-            "other.io",
-            "example.net"
+            "example.net",
+            "other.io"
+          ],
+          "positions": [
+            0
           ],
           "budgeted": [
-            "g.other.io"
+            "a.example.net"
           ]
         },
         {
@@ -156,8 +199,87 @@
             "example.net",
             "other.io"
           ],
+          "positions": [
+            1
+          ],
           "budgeted": [
-            "b.example.net"
+            "g.other.io"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "two suffixes and one slot alternate",
+      "registered": [
+        "a.example.net",
+        "b.sample.net"
+      ],
+      "budget": 1,
+      "suffixes": 2,
+      "bound_epochs": 2,
+      "epochs": [
+        {
+          "epoch": 5,
+          "suffix_order": [
+            "sample.net",
+            "example.net"
+          ],
+          "positions": [
+            1
+          ],
+          "budgeted": [
+            "a.example.net"
+          ],
+          "budgeted_under_per_epoch_rehash": [
+            "a.example.net"
+          ]
+        },
+        {
+          "epoch": 6,
+          "suffix_order": [
+            "sample.net",
+            "example.net"
+          ],
+          "positions": [
+            0
+          ],
+          "budgeted": [
+            "b.sample.net"
+          ],
+          "budgeted_under_per_epoch_rehash": [
+            "a.example.net"
+          ]
+        },
+        {
+          "epoch": 7,
+          "suffix_order": [
+            "sample.net",
+            "example.net"
+          ],
+          "positions": [
+            1
+          ],
+          "budgeted": [
+            "a.example.net"
+          ],
+          "budgeted_under_per_epoch_rehash": [
+            "a.example.net"
+          ]
+        },
+        {
+          "epoch": 8,
+          "suffix_order": [
+            "sample.net",
+            "example.net"
+          ],
+          "positions": [
+            0
+          ],
+          "budgeted": [
+            "b.sample.net"
+          ],
+          "budgeted_under_per_epoch_rehash": [
+            "b.sample.net"
           ]
         }
       ]
