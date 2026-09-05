@@ -439,5 +439,172 @@
       "n_s": 100,
       "in_force": false
     }
+  ],
+  "ladder_cases": [
+    {
+      "label": "void leaves level two",
+      "met_times_s": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        []
+      ],
+      "clear_times_s": [
+        [],
+        [],
+        [
+          1814400
+        ],
+        []
+      ],
+      "n_s": 2592000,
+      "level": 2
+    },
+    {
+      "label": "void leaves level one when two was never met",
+      "met_times_s": [
+        [
+          0
+        ],
+        [],
+        [
+          0
+        ],
+        []
+      ],
+      "clear_times_s": [
+        [],
+        [],
+        [
+          1814400
+        ],
+        []
+      ],
+      "n_s": 2592000,
+      "level": 1
+    },
+    {
+      "label": "void of level four leaves level two",
+      "met_times_s": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "clear_times_s": [
+        [],
+        [],
+        [
+          1814400
+        ],
+        [
+          1814400
+        ]
+      ],
+      "n_s": 2592000,
+      "level": 2
+    },
+    {
+      "label": "before the void the level stands",
+      "met_times_s": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        []
+      ],
+      "clear_times_s": [
+        [],
+        [],
+        [
+          1814400
+        ],
+        []
+      ],
+      "n_s": 1728000,
+      "level": 3
+    },
+    {
+      "label": "lift clears every rung",
+      "met_times_s": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        []
+      ],
+      "clear_times_s": [
+        [
+          1814400
+        ],
+        [
+          1814400
+        ],
+        [
+          1814400
+        ],
+        [
+          1814400
+        ]
+      ],
+      "n_s": 2592000,
+      "level": 0
+    },
+    {
+      "label": "a criterion met after a lift is in force again",
+      "met_times_s": [
+        [
+          0,
+          2160000
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        []
+      ],
+      "clear_times_s": [
+        [
+          1814400
+        ],
+        [
+          1814400
+        ],
+        [
+          1814400
+        ],
+        [
+          1814400
+        ]
+      ],
+      "n_s": 2592000,
+      "level": 1
+    }
   ]
 }

@@ -2689,6 +2689,15 @@ def in_force(met, clear, n_s):
     return last_met is not None and (last_clear is None or last_clear < last_met)
 
 
+def ladder_level(levels, n_s):
+    """WIST-4 §7: the highest rung in force at N, rungs given low to high."""
+    for i in range(len(levels) - 1, -1, -1):
+        met, clear = levels[i]
+        if in_force(met, clear, n_s):
+            return i + 1
+    return 0
+
+
 def finding(day, severity):
     return {"sealed_at_s": day * DAY_S, "severity": severity}
 
@@ -2771,6 +2780,34 @@ sanction_in_force_cases = [
     for label, met, clear, n in sanction_in_force_scenarios
 ]
 
+# §7: the three reversals that hang on a `notice` reach the level-3 and
+# level-4 states and nothing below them, so a void leaves whichever lower
+# rung its own criterion still puts in force. A `sanction_lift` reaches
+# every rung at its height, and the criteria keep running past it.
+VOID_AT_S = 21 * DAY_S
+LIFT_AT_S = 21 * DAY_S
+sanction_ladder_scenarios = [
+    ("void-leaves-level-two",
+     [[0], [0], [0], []], [[], [], [VOID_AT_S], []], 30 * DAY_S),
+    ("void-leaves-level-one-when-two-was-never-met",
+     [[0], [], [0], []], [[], [], [VOID_AT_S], []], 30 * DAY_S),
+    ("void-of-level-four-leaves-level-two",
+     [[0], [0], [0], [0]], [[], [], [VOID_AT_S], [VOID_AT_S]], 30 * DAY_S),
+    ("before-the-void-the-level-stands",
+     [[0], [0], [0], []], [[], [], [VOID_AT_S], []], 20 * DAY_S),
+    ("lift-clears-every-rung",
+     [[0], [0], [0], []], [[LIFT_AT_S], [LIFT_AT_S], [LIFT_AT_S], [LIFT_AT_S]],
+     30 * DAY_S),
+    ("a-criterion-met-after-a-lift-is-in-force-again",
+     [[0, 25 * DAY_S], [0], [0], []],
+     [[LIFT_AT_S], [LIFT_AT_S], [LIFT_AT_S], [LIFT_AT_S]], 30 * DAY_S),
+]
+sanction_ladder_cases = [
+    {"label": label, "met_times_s": met, "clear_times_s": clear, "n_s": n,
+     "level": ladder_level([(met[i], clear[i]) for i in range(4)], n)}
+    for label, met, clear, n in sanction_ladder_scenarios
+]
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -2784,6 +2821,7 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "accrual_cases": sanction_accrual_cases,
     "void_cases": sanction_void_cases,
     "in_force_cases": sanction_in_force_cases,
+    "ladder_cases": sanction_ladder_cases,
 }))
 
 # ------------------------------------- WIST-4 §5: the reference Delta
@@ -2927,10 +2965,11 @@ write_json(WIST4 / "superseded-audit.json", {
 })
 print("wist4 reference-delta vector: %d cases" % len(reference_cases))
 
-print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%d+%d+%d extension=%d+%d+%d+%d sanctions=%d+%d+%d+%d cases" % (
+print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%d+%d+%d extension=%d+%d+%d+%d sanctions=%d+%d+%d+%d+%d cases" % (
     len(confirmation_cases), len(derivation_scenarios),
     len(coverage_pair_cases), len(coverage_counting_cases), len(coverage_state_cases),
     len(extension_trigger_cases), len(extension_ration_cases),
     len(extension_summons_cases), len(divergence_cases),
     len(sanction_criterion_cases), len(sanction_accrual_cases),
-    len(sanction_void_cases), len(sanction_in_force_cases)))
+    len(sanction_void_cases), len(sanction_in_force_cases),
+    len(sanction_ladder_cases)))

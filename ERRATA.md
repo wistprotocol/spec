@@ -1777,6 +1777,39 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-4 §7: what each reversal reaches (revision, not errata)
+
+Adds the bullet *What each reversal reaches* to §7, and a `ladder_cases`
+block to `vectors/wist4/sanctions.json`.
+
+**What it states.** §7 listed four reversals in one sentence and gave
+none of them a scope. The three that hang on a `notice` — an
+`"overturned"` ruling, a lapsed ruling deadline, a lapsed appeal-sealing
+deadline — reverse only the state the notice was required for: the
+level-3 ingestion rejection or the level-4 exclusion. The rungs below
+stand, because no notice put them in force. A `sanction_lift` reaches
+every rung in force at its own height, which is why it needs neither an
+appeal nor a notice; it erases no evidence and grants no immunity, since
+the criteria keep running and a rung met again after the lift is in
+force again from the height it is met.
+
+**Why it is a revision.** It fails the first condition twice over, and
+in opposite directions. A party that read the void rules as clearing the
+whole ladder now leaves a level-3 domain at level 2 or 1 and ingests its
+Deltas again at that rung; a party that read a `sanction_lift` as
+reaching only the level-3 and level-4 states now clears the rungs below
+it too. Both readings were available, so resolving one necessarily
+breaks whoever guessed the other. The asymmetry is not arbitrary: it
+follows from what each reversal is a fact about — a lapsed deadline is a
+fact about the process the notice opened, and a lift is the
+Aggregator's statement about the domain.
+
+**Status.** Exercised. `vectors:wist4-sanctions` recomputes the new
+`ladder_cases`: a void leaves level 2 where the level-2 criterion is
+met and level 1 where only that one is, a level-4 void leaves level 2,
+a lift clears every rung, and a criterion met after a lift is in force
+again.
+
 ## 2026-09-04 — WIST-2 §3.2, §5, §7: a Feed fetched but unusable (revision, not errata)
 
 Rewrites the `WIST2-E01` row of §7, the first sentence of §5 step 1, and
