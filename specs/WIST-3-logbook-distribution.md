@@ -373,7 +373,16 @@ The Aggregator publishes a signed Checkpoint (schema:
 the fixed URL `/log/checkpoint.json` after sealing each Block: the
 `block_number`, that Block's `block_hash`, and its `sealed_at`. It MUST
 NOT publish the Checkpoint for Block N before Block N, and every lower
-Block, is durably stored and retrievable at its §6 path. A Checkpoint is
+Block, is durably stored and retrievable at its §6 path. A Checkpoint
+for Block N MUST be signed by a `key_id` valid at height N in the sense
+§3.4 gives that phrase, and a Consumer verifies it against that same key
+set: the Checkpoint is a statement about one Block, so the keys that
+could have sealed the Block are exactly the keys that can speak for it.
+The Consumer's order follows from that — the key set valid at N is what
+the Blocks up to N establish, so a Checkpoint's signature is checked
+after those Blocks are walked and verified, not before. Nothing rests on
+the earlier check: each Block authenticates itself under §3.4, and the
+Checkpoint's `block_hash` binds it to the one at N. A Checkpoint is
 a permanent signed commitment to one Block Hash: published ahead of a
 Block the Aggregator can still lose, it is honored only by re-sealing
 byte-identical bytes — the same header over the same Entries — and is
