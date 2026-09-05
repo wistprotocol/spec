@@ -3095,3 +3095,15 @@ closed confirming-set fixtures: mixed optional findings, reversed evidence
 order, wrong severity or subject, a non-confirming selector, a missing
 quorum member and a missing selector. The harness derives severity from
 the supplied effective similarities and checks the primary quorum.
+
+## 2026-09-05 — WIST-4 §3.1, §9.1: admission evidence vectors
+
+**What changed.** Add complete signed admission, registration, Record and
+checkpoint envelopes exercising the existing evidence contract. Protocol
+behavior and schemas are unchanged.
+
+**Exercised.** `roster.json` now distinguishes required and forbidden
+`track_record`, absence of an existing checkpoint, citation of an older
+checkpoint, a zero scoreboard and a disagreeing scoreboard. The harness
+checks signatures and IDs and derives the admitted key without treating
+the scoreboard as a promotion predicate.

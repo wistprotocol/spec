@@ -1077,5 +1077,680 @@
         }
       }
     }
-  ]
+  ],
+  "admission": {
+    "note": "Prior registration and checkpoint Entries are valid. The supplied Record is the checkpoint head. No canary reveals are live, so every recomputed scoreboard is zero; admission remains discretionary even with that score. These cases isolate the evidence contract, with roster conflicts absent.",
+    "keys": [
+      {
+        "key_id": "observer-k1",
+        "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+      },
+      {
+        "key_id": "test-agg-k1",
+        "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      }
+    ],
+    "record_envelope": {
+      "record": {
+        "wist_version": "1.0.0",
+        "audited_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+        "reference_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+        "auditor_id": "watch.sample.net",
+        "fetched_at": "2026-08-02T14:00:00Z",
+        "response_commitment": "hmac-sha256:07ef725032b51ef3fc4bfeb59324ad160f52363df4f165ff63e9473952bf637a",
+        "credit_commitment": "hmac-sha256:54ed3ee41205afec9c995d7aa83912e4440f25d3efa5d62f0227828b7e417f9f",
+        "ref_extract_commitment": "hmac-sha256:de14592527c52b7349508992a040e2327611fd82be20a4a4b314bac2f99d5f3d",
+        "similarity": 940000,
+        "link_agreement": 1000000,
+        "verdict": "consistent",
+        "evidence_commitment": "hmac-sha256:79922c24d14b5aa634d2a29a440d577c12cba0860700b8f93b11fe2ad9812638",
+        "vrf_proof": "6b427739a25714c7d1646b4fc85ea816684fc47f17457660836e86a5be91268f7fa2c378dd38d3ded6534b9198ca3d25684d17cf07b869218d8fad5b54ec1164de9962f02d05e42101bfe1fc526c090a",
+        "prev_record": null
+      },
+      "sig": {
+        "key_id": "observer-k1",
+        "alg": "Ed25519",
+        "value": "klkYKuLIHGOCabzSTcYySqhMoVQr3p20ZqMzzlQh-Mn3D5ymjIKyBk8uVOpUWnfamSUIPB3IzCDHkvHdqaFqCQ"
+      }
+    },
+    "cases": [
+      {
+        "label": "new Auditor without Observer history",
+        "history": [],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U"
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "puh5ODizyJGMdAxOlTTWmv26mMw_hbV2ncfier14SxqClRkX_lea3_qNhP9WrdURn2NapY8FWi_h9467HgD9Cw"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": null,
+        "admitted_key": "admitted-k1"
+      },
+      {
+        "label": "former Observer needs track record",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U"
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "puh5ODizyJGMdAxOlTTWmv26mMw_hbV2ncfier14SxqClRkX_lea3_qNhP9WrdURn2NapY8FWi_h9467HgD9Cw"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": "WIST4-E04",
+        "admitted_key": null
+      },
+      {
+        "label": "new Auditor cannot cite track record",
+        "history": [],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": "WIST4-E04",
+        "admitted_key": null
+      },
+      {
+        "label": "Observer cites latest checkpoint",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          },
+          {
+            "height": 3,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-04T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "zDov83LbqHDXAzgdGgSMkzuGPFzOyy2AJkmfy_pzH4uEfA5wcbjw3EeCM9LCYSQDsyJtWhHESIbiVdBVX__MAA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": null,
+        "admitted_key": "admitted-k1"
+      },
+      {
+        "label": "no checkpoint to cite",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": "WIST4-E04",
+        "admitted_key": null
+      },
+      {
+        "label": "older checkpoint is not latest",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          },
+          {
+            "height": 3,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-04T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": "WIST4-E04",
+        "admitted_key": null
+      },
+      {
+        "label": "scoreboard disagreement preserves admission",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          },
+          {
+            "height": 3,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-04T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    100,
+                    100,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "SvLgNcHdrDmsAjMGHapn16pmqp_lePIfJOTastNR8Ho_bdrKcDUfTnJXYynkf7SdCZE8vz-1TTjGtR2dW6AVAw"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": null,
+        "admitted_key": "admitted-k1"
+      }
+    ]
+  }
 }

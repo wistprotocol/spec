@@ -1053,6 +1053,10 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
     ("vectors/multilog/dedup.json", "commitment"): "payload:commitment",
+    ("vectors/wist4/roster.json", "response_commitment"): "audit:commitments",
+    ("vectors/wist4/roster.json", "credit_commitment"): "audit:commitments",
+    ("vectors/wist4/roster.json", "ref_extract_commitment"): "audit:commitments",
+    ("vectors/wist4/roster.json", "evidence_commitment"): "audit:commitments",
     ("examples/audit-record.json", "response_commitment"): "audit:commitments",
     ("examples/audit-record.json", "ref_extract_commitment"): "audit:commitments",
     ("examples/audit-record.json", "evidence_commitment"): "audit:commitments",
@@ -1907,6 +1911,40 @@ def _dc4_extension_proof_twin():
     assert _proof_standing(v, steady)[1] == "extension", \
         "recomputation is blind to which key the Auditor held at B₁"
 check("negative:wist4-extension-proof", _dc4_extension_proof_twin)
+
+def _dc4_admission_evidence():
+    v = json.loads((ROOT / "vectors/wist4/roster.json").read_text())["admission"]
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    keys = {e["key_id"]: Ed25519PublicKey.from_public_bytes(b64u_decode(e["public_key"])) for e in v["keys"]}
+    record = v["record_envelope"]
+    keys[record["sig"]["key_id"]].verify(b64u_decode(record["sig"]["value"]), rfc8785.dumps(record["record"]))
+    head = "sha256:" + hashlib.sha256(rfc8785.dumps(record["record"])).hexdigest()
+    for case in v["cases"]:
+        docs = [e["envelope"] for e in case["history"]] + [case["envelope"]]
+        for doc in docs:
+            validator.validate(doc)
+            keys[doc["sig"]["key_id"]].verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+        subject = case["envelope"]["update"]["subject"]
+        history = [e for e in case["history"] if e["height"] <= case["admission_height"] and e["envelope"]["update"]["subject"] == subject]
+        was_observer = any(e["envelope"]["update"]["action"] == "observer_register" for e in history)
+        checkpoints = [e for e in history if e["envelope"]["update"]["action"] == "observer_checkpoint"]
+        for e in checkpoints:
+            assert e["envelope"]["update"]["details"]["head"] == head
+        details = case["envelope"]["update"]["details"]
+        track = details.get("track_record")
+        valid = track is None
+        if was_observer:
+            valid = False
+            if track is not None and checkpoints:
+                newest = max(checkpoints, key=lambda e:e["height"])["envelope"]["update"]
+                ident = "sha256:" + hashlib.sha256(rfc8785.dumps(newest)).hexdigest()
+                valid = track["checkpoint"] == ident
+        assert (None if valid else "WIST4-E04") == case["error"], case["label"]
+        assert (details["key_id"] if valid else None) == case["admitted_key"]
+    disagreement = next(c for c in v["cases"] if c["label"] == "scoreboard disagreement preserves admission")
+    assert disagreement["envelope"]["update"]["details"]["track_record"]["scoreboard"] != disagreement["recomputed_scoreboard"]
+    assert disagreement["admitted_key"] is not None
+check("vectors:wist4-admission-evidence", _dc4_admission_evidence)
 
 def _roster_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "roster.json").read_text())
@@ -3767,6 +3805,11 @@ def _dc4_audit_commitments():
     # Coverage, proved in this direction rather than assumed: every location
     # declaring this check must be one whose value was just recomputed above.
     recomputed = {e["value"] for e in v["commitments"].values()}
+    observer = _roster_vector()["admission"]["record_envelope"]["record"]
+    observer_body = bytes.fromhex(v["commitments"]["response_commitment"]["message_hex"])
+    observer_credit = "hmac-sha256:" + hmac.new(salt, observer_body + observer["auditor_id"].encode(), hashlib.sha256).hexdigest()
+    assert observer["credit_commitment"] == observer_credit
+    recomputed.add(observer_credit)
     covered_values = set()
     for rel, key in _declared_values_for("audit:commitments"):
         values = _values_at(rel, key)
@@ -4012,6 +4055,12 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/roster.json", "public_key"): "an Ed25519 public key when opaque",
+    ("vectors/wist4/roster.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/roster.json", "head"): "an Audit Record ID",
+    ("vectors/wist4/roster.json", "checkpoint"): "a Registry Update ID",
+    ("vectors/wist4/roster.json", "audited_delta"): "a Delta ID",
+    ("vectors/wist4/roster.json", "reference_delta"): "a Delta ID",
     ("vectors/wist4/sanctions.json", "finding"): "a first confirming Audit Record ID",
     ("vectors/wist4/sanctions.json", "confirming_record"): "a first confirming Audit Record ID",
     ("vectors/wist4/sanctions.json", "id"): "an Audit Record ID",
