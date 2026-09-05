@@ -1,6 +1,6 @@
 # ADR-0018: Canary reveals seal the proof starting hash
 
-**Status:** accepted · **Date:** 2026-09-05
+**Status:** accepted; amended by ADR-0030 (2026-09-05: Log-wide canary Delta uniqueness and score deduplication) · **Date:** 2026-09-05
 **Amends:** ADR-0012
 
 ## Context

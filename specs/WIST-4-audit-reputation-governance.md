@@ -1794,7 +1794,8 @@ A reveal is rejected on replay (`WIST4-E08`) where the commitment it
 names is not a sealed `canary_commitment` or has been revealed already;
 where a leaf's `index` is outside 0 … `leaves` − 1 or repeated; where a
 `delta_id` is not a Delta of the canary domain sealed at least
-`canary_lead_blocks` Blocks after the commitment, is bound to two leaves,
+`canary_lead_blocks` Blocks after the commitment, repeats a Delta binding
+under the Log-wide rule below,
 or has its inclusion proof fail; or where the reveal is sealed **too
 early or too late**. Too early is fewer than `canary_reveal_min_blocks`
 Blocks (default 168) plus one rotation of the checkpoint budget —
@@ -1815,6 +1816,23 @@ WIST-3 §4 requires for that index and tree size. A missing or malformed
 `leaf_hash`, or a short or surplus path, is `WIST4-E08`. Whether the
 served bytes hash to the leaf is checked by whoever computes a score,
 the same off-Log verification a Record's own commitments receive (§5).
+
+**One Delta, one revealed leaf per Log.** An accepted reveal reserves
+each of its Delta IDs permanently in that Log, across all commitments and
+after its scoring window lapses. A later reveal reusing one is wholly
+`WIST4-E08`; a rejected reveal reserves nothing. Within one reveal, no two
+leaves may bind the same Delta.
+
+Resolve simultaneous reveals as a batch. Deduplicate identical Registry
+Update IDs, retaining only the first sealing; a repeated Entry is not a
+new reveal or a new score. First reject each distinct candidate that fails
+any other §5.1 requirement against the prefix below its Block, including
+an already-revealed commitment or reserved Delta. Among the remaining
+candidates, reject every candidate sharing a commitment or Delta ID with
+another candidate in that Block, as `WIST4-E08`. Apply the survivors
+together. Do not retry a conflicting candidate after removing another;
+a candidate already invalid for another reason blocks nobody. This rule
+reads no Entry-position tie.
 
 ### 5.2. Credit and the Hard Hit
 
@@ -1890,7 +1908,11 @@ two such Records from independent Auditors make the URL unauditable
 **The scoreboard.** For any identity and any height N, its scoreboard
 is computed over every reveal sealed at or below N whose scoring window
 is open at N, per **tier** of the audited domain, and is three integers
-per tier: Records encountered, Records credited, hard hits. The tier is
+per tier: Records encountered, Records credited, hard hits. Count each
+Audit Record ID once: repeated Entries, repeated served copies or several
+checkpoints covering one Record do not multiply it. A Record can encounter
+only one accepted leaf because Delta bindings are Log-wide unique.
+The tier is
 `domain(d)`'s at height *B* − 1 of the leaf's Delta's Block *B*, read as
 §4 reads reputation there: `provisional` where the domain is Provisional
 (§6.2), `mature` where its `reputation_u` is at least

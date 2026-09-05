@@ -3064,3 +3064,18 @@ large values and negative caps.
 the first values outside them, a negative/zero Provisional cap, and an
 in-range cadence accepted by the schema but rejected by combination rules.
 Signatures are checked where the test input has a canonical integer.
+
+## 2026-09-05 — WIST-4 §5.1–§5.2: unique canary Delta bindings (revision, not errata)
+
+**What changed.** Delta bindings are permanent and Log-wide. Repeated
+Registry Update IDs are deduplicated, simultaneous otherwise-valid
+conflicts reject together, and scoreboards count each Audit Record ID once.
+ADR-0030 amends ADR-0012 and ADR-0018.
+
+**Why a revision.** Reveal-local uniqueness permitted multiple commitments
+to score the same Delta. Permanent reservation excludes that reading.
+
+**Exercised.** `canary.json` supplies signed commitments and reveals for
+later and simultaneous collisions, disjoint bindings, exact repeats,
+invalid contenders and successful reuse after rejection. Record occurrence
+aliases exercise score deduplication independently of checkpoint count.

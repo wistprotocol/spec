@@ -4130,6 +4130,57 @@ for label, mutation, expected in (
                                     "membership_valid": expected,
                                     "error": None if expected else "WIST4-E08"})
 
+binding_commitments = [canary_commitment_envelope]
+other_commitment = json.loads(json.dumps(canary_commitment_envelope["update"]))
+other_commitment["effective_at"] = "2026-08-02T13:00:00Z"
+binding_commitments.append(sign_envelope("update", other_commitment, "test-canary-k1"))
+binding_ids = ["sha256:" + sha256_hex(rfc8785.dumps(e["update"])) for e in binding_commitments]
+
+
+def binding_reveal(commitment_index, leaf_index, bad=False, variant=0):
+    leaf = canary_leaves[leaf_index]
+    inner = {"wist_version": "1.0.0", "action": "canary_reveal", "subject": CANARY_DOMAIN,
+        "effective_at": "2026-08-26T04:00:" + f"{variant:02d}" + "Z",
+        "details": {"commitment": binding_ids[commitment_index], "leaves": [
+            {k: leaf[k] for k in ("index", "delta_id", "leaf_hash", "path")}]}}
+    if bad:
+        inner["details"]["leaves"][0]["path"] = []
+    return sign_envelope("update", inner, "test-canary-k1")
+
+binding_cases = []
+for label, rows, expected in (
+    ("later commitment reuses Delta", [(400,0,0,False,0), (401,1,0,False,0)], [0]),
+    ("simultaneous Delta collision", [(400,0,0,False,0), (400,1,0,False,0)], []),
+    ("disjoint commitments", [(400,0,0,False,0), (400,1,1,False,0)], [0,1]),
+    ("same commitment simultaneous partial reveals", [(400,0,0,False,0), (400,0,1,False,1)], []),
+    ("identical replay counts once", [(400,0,0,False,0), (400,0,0,False,0), (401,0,0,False,0)], [0]),
+    ("invalid membership blocks nobody", [(400,0,0,True,0), (400,1,0,False,0)], [1]),
+    ("rejected collision reserves nothing", [(400,0,0,False,0), (400,1,0,False,0), (401,0,0,False,1)], [2]),
+):
+    events = [{"height": h, "envelope": binding_reveal(c,l,b,v), "other_requirements_valid": not b}
+        for h,c,l,b,v in rows]
+    seen, used_commits, used_deltas, accepted = set(), set(), set(), []
+    for height in sorted({e["height"] for e in events}):
+        candidates = []
+        for i,e in enumerate(events):
+            if e["height"] != height:
+                continue
+            inner = e["envelope"]["update"]
+            ident = sha256_hex(rfc8785.dumps(inner))
+            if ident in seen:
+                continue
+            seen.add(ident)
+            details = inner["details"]
+            ds = {leaf["delta_id"] for leaf in details["leaves"]}
+            if e["other_requirements_valid"] and details["commitment"] not in used_commits and not ds & used_deltas:
+                candidates.append((i,details["commitment"],ds))
+        survivors = [a for a in candidates if not any(a[0] != b[0] and (a[1] == b[1] or a[2] & b[2]) for b in candidates)]
+        for i,c,ds in survivors:
+            accepted.append(i); used_commits.add(c); used_deltas.update(ds)
+    assert accepted == expected, label
+    binding_cases.append({"label": label, "events": events, "accepted_indices": accepted})
+
+score_occurrences = [0, 0, 1, 2, 2, 3, 4, 5, 6]
 write_json(WIST4 / "canary.json", spaced_labels({
     "note": ("WIST-4 §5.1, §5.2: a canary commitment over five leaves of served bytes "
              "(four revealed, one not), each carrying a nonce, one of them below the "
@@ -4154,6 +4205,9 @@ write_json(WIST4 / "canary.json", spaced_labels({
     "payload_page_hex": PAYLOAD_PAGE.hex(),
     "leaves": canary_leaves,
     "credit_cases": canary_credit_cases,
+    "binding": {"note": "All timing, domain and authorization prerequisites are satisfied; the events isolate membership and binding replay. An occurrence index denotes the same fixed Record in scoreboard_records, regardless of how many Entries or checkpoints carry it.",
+        "commitment_envelopes": binding_commitments, "cases": binding_cases,
+        "record_occurrences": score_occurrences, "scoreboards": canary_scoreboards},
     "timing_cases": canary_timing_cases,
     "scoring_window_cases": canary_scoring_window_cases,
     "scoreboard_records": canary_scoreboard_records,
