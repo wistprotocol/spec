@@ -1677,7 +1677,9 @@ no fraud canary visits leaves uncaught.
 so that only a domain's own keys can declare it a canary — naming in
 `details.commitment` the Registry Update ID (§7) of the commitment and
 in `details.leaves` the leaves it reveals: for each, its `index`, the
-`delta_id` it is bound to, and the Inclusion Proof `path` (WIST-3 §4) of
+`delta_id` it is bound to, its `leaf_hash` (`sha256:` followed by the
+lowercase hex of `SHA-256(0x00 ‖ served bytes)`), and the Inclusion Proof
+`path` (WIST-3 §4) of
 the leaf under `root`, with `index` as the position and `leaves` as the
 tree size. A commitment is revealed once, wholly or in part, and an
 unrevealed leaf scores nothing. From the reveal's Block the canary domain
@@ -1722,7 +1724,10 @@ misses. Too late is more than `canary_lifetime_blocks` Blocks (default
 1440) after the commitment's Block, which bounds how long a planter may
 hold a commitment open. A rejected reveal reveals nothing, and bytes
 served under it score nothing. The inclusion proof and the Delta binding
-are checked by every replaying party from the Log alone; whether the
+are checked by every replaying party from the Log alone, starting the
+proof walk at the sealed `leaf_hash` and consuming exactly the siblings
+WIST-3 §4 requires for that index and tree size. A missing or malformed
+`leaf_hash`, or a short or surplus path, is `WIST4-E08`. Whether the
 served bytes hash to the leaf is checked by whoever computes a score,
 the same off-Log verification a Record's own commitments receive (§5).
 
@@ -2868,11 +2873,12 @@ mirroring §7 and §3:
   reads, to the reveal's choice.
 - `canary_reveal`: `commitment`, the Registry Update ID of the
   `canary_commitment` revealed, and `leaves`, a non-empty array of
-  objects each carrying `index` (an integer), `delta_id` and `path` (the
+  objects each carrying `index` (an integer), `delta_id`, `leaf_hash`
+(the `sha256:`-prefixed leaf digest defined in §5.1), and `path` (the
   sibling hashes of the leaf's Inclusion Proof, WIST-3 §4, as
   `sha256:`-prefixed strings, leaf level first); `subject` the canary
   domain, signed by its Key Set (§5.1). All REQUIRED, because a reveal
-  that named no commitment, no Delta or no proof binds nothing the Log
+  that named no commitment, no Delta, no leaf hash or no proof binds nothing the Log
   could check.
 - `aggregator_key_remove`, `auditor_remove`: `key_id`. An
   `auditor_remove`'s `evidence` (top-level), where present, MUST name at
@@ -2962,7 +2968,7 @@ served bytes that carry a fresh nonce no Payload carries, so it is a keyed
 commitment under that nonce — unreproducible by anyone holding the page's
 text alone, exactly as a commitment is by anyone holding the text without
 the salt — and a `canary_commitment`'s `root` and a `canary_reveal`'s
-`path` are carried on that ground.
+`leaf_hash` and `path` are carried on that ground.
 
 **No `details` object, constrained or not, and no `evidence` element, may
 carry personal data.** The rule is written over the position rather than

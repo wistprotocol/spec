@@ -2794,6 +2794,58 @@ def _canary_root_from_path(leaf, index, size, path):
     assert k == len(path), "path elements left unconsumed"
     return h
 
+def _canary_membership(commitment, envelope):
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    if list(Draft202012Validator(schema).iter_errors(envelope)):
+        return False
+    details = envelope["update"]["details"]
+    expected_id = "sha256:" + hashlib.sha256(rfc8785.dumps(commitment["update"])).hexdigest()
+    if details["commitment"] != expected_id:
+        return False
+    tree = commitment["update"]["details"]
+    seen = set()
+    for leaf in details["leaves"]:
+        index = leaf["index"]
+        if not 0 <= index < tree["leaves"] or index in seen:
+            return False
+        seen.add(index)
+        try:
+            root = _canary_root_from_path(bytes.fromhex(leaf["leaf_hash"][7:]),
+                                         index, tree["leaves"],
+                                         [bytes.fromhex(h[7:]) for h in leaf["path"]])
+        except (AssertionError, IndexError):
+            return False
+        if "sha256:" + root.hex() != tree["root"]:
+            return False
+    return True
+
+def _dc4_canary_membership():
+    v = _canary_vector()["membership"]
+    pub = Ed25519PublicKey.from_public_bytes(b64u_decode(v["public_key"]))
+    commitment = v["commitment_envelope"]
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    Draft202012Validator(schema).validate(commitment)
+    for envelope in [commitment] + [c["envelope"] for c in v["cases"]]:
+        pub.verify(b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(envelope["update"]))
+    for case in v["cases"]:
+        valid = _canary_membership(commitment, case["envelope"])
+        assert valid == case["membership_valid"], case["label"]
+        assert case["error"] == (None if valid else "WIST4-E08"), case["label"]
+check("vectors:wist4-canary-membership", _dc4_canary_membership)
+
+def _dc4_canary_membership_twin():
+    v = _canary_vector()["membership"]
+    good = next(c["envelope"] for c in v["cases"] if c["membership_valid"])
+    bad = copy.deepcopy(good)
+    for leaf in bad["update"]["details"]["leaves"]:
+        leaf["leaf_hash"] = v["commitment_envelope"]["update"]["details"]["root"]
+    assert not _canary_membership(v["commitment_envelope"], bad)
+    assert any(not c["membership_valid"] and
+               not list(Draft202012Validator(json.loads((ROOT / "schemas" /
+                   "registry-update.schema.json").read_text())).iter_errors(c["envelope"]))
+               for c in v["cases"])
+check("negative:wist4-canary-membership", _dc4_canary_membership_twin)
+
 def _canary_band(v, similarity):
     p = v["parameters"]
     if similarity >= p["similarity_consistent"]:
@@ -3176,7 +3228,7 @@ def _dc4_observer_and_canary_acts():
                                                   "leaves": canary["commitment"]["leaves"]}),
         "canary_reveal": (canary["canary_domain"], {"commitment": "sha256:" + "1" * 64,
                                                     "leaves": [{"index": leaf["index"], "delta_id": leaf["delta_id"],
-                                                                "path": leaf["path"]}]}),
+                                                                "leaf_hash": leaf["leaf_hash"], "path": leaf["path"]}]}),
     }
     for action, (subject, details) in acts.items():
         doc = {"update": {"wist_version": "1.0.0", "action": action, "subject": subject,
@@ -3379,6 +3431,9 @@ check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
 # field here is the deliberate act of asserting it carries no content.
 NON_CONTENT_DIGESTS = {
     ("registry-update.schema.json",
+     "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/leaf_hash"):
+        "SHA-256 over served bytes carrying a fresh secret nonce (WIST-4 §5.1)",
+    ("registry-update.schema.json",
      "allOf[13]/then/properties/update/properties/details/properties/head"):
         "an Audit Record or coverage_attestation ID — the Observer's chain head (WIST-4 §3.1); objects that carry only commitments",
     ("registry-update.schema.json",
@@ -3487,6 +3542,9 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/canary.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist4/canary.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/canary.json", "commitment"): "a Registry Update ID over a root and leaf count",
     ("vectors/wist4/canary.json", "root"): "a Merkle root over nonce-keyed canary leaves (WIST-4 §5.1)",
     ("vectors/wist4/canary.json", "leaf_hash"): "SHA-256 over served bytes carrying a fresh nonce (WIST-4 §5.1)",
     ("vectors/wist4/canary.json", "path"): "Merkle siblings over nonce-keyed canary leaves (WIST-4 §5.1)",
