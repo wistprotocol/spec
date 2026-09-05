@@ -1755,6 +1755,20 @@ neither: a lying `consistent` had to carry a fabricated in-band
 `similarity` to pass §3's malformed-evidence rejection, and a lying
 `inconsistent` had to seal a similarity the bytes it held refute.
 
+Where §5 derives no band over the revealed bytes — an observed text
+below `min_observed_words` — there is no hard hit on any verdict. The
+hit is defined over the derived band and nothing else, and the other
+rule that sends an audit to `not_auditable` on the observed side reads
+the response's media type (WIST-2 §11), a header the leaf does not
+commit to; a hit resting on either would rest on evidence the reveal
+does not carry, and a party recomputing the scoreboard MUST NOT infer
+one. Credit still reads byte possession there. The honest Record on
+such a leaf is `not_auditable`, carries no `credit_commitment` (§5) and
+sits on the scoreboard as an encounter without credit, so a planter
+that commits a leaf no party can measure spends it on nothing — and
+two such Records from independent Auditors make the URL unauditable
+(§5), at the planter's own cost.
+
 **The scoreboard.** For any identity and any height N, its scoreboard
 is computed over every reveal sealed at or below N whose scoring window
 is open at N, per **tier** of the audited domain, and is three integers
