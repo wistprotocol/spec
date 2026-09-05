@@ -3244,6 +3244,47 @@ def _dc4_canary_membership_twin():
                for c in v["cases"])
 check("negative:wist4-canary-membership", _dc4_canary_membership_twin)
 
+def _dc4_canary_bindings():
+    v = _canary_vector()
+    public = Ed25519PublicKey.from_public_bytes(b64u_decode(v["membership"]["public_key"]))
+    commitments = {"sha256:" + hashlib.sha256(rfc8785.dumps(e["update"])).hexdigest(): e
+        for e in v["binding"]["commitment_envelopes"]}
+    for e in commitments.values():
+        public.verify(b64u_decode(e["sig"]["value"]), rfc8785.dumps(e["update"]))
+    for case in v["binding"]["cases"]:
+        seen, reservations, revealed, accepted = set(), {}, set(), []
+        batches = collections.defaultdict(list)
+        for i,e in enumerate(case["events"]):
+            doc = e["envelope"]
+            public.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+            batches[e["height"]].append((i,doc))
+        for height, batch in sorted(batches.items()):
+            pending, owners = {}, collections.defaultdict(set)
+            for i,doc in batch:
+                ident = hashlib.sha256(rfc8785.dumps(doc["update"])).digest()
+                if ident in seen:
+                    continue
+                seen.add(ident)
+                d = doc["update"]["details"]
+                deltas = {l["delta_id"] for l in d["leaves"]}
+                if d["commitment"] in revealed or any(x in reservations for x in deltas):
+                    continue
+                if not _canary_membership(commitments[d["commitment"]], doc):
+                    continue
+                pending[i] = d
+                for token in [d["commitment"]] + list(deltas):
+                    owners[token].add(i)
+            rejected = set().union(*(ids for ids in owners.values() if len(ids) > 1)) if owners else set()
+            for i,d in pending.items():
+                if i in rejected:
+                    continue
+                accepted.append(i)
+                revealed.add(d["commitment"])
+                reservations.update({l["delta_id"]: height for l in d["leaves"]})
+        assert accepted == case["accepted_indices"], case["label"]
+    assert len(v["binding"]["record_occurrences"]) > len(set(v["binding"]["record_occurrences"]))
+check("vectors:wist4-canary-bindings", _dc4_canary_bindings)
+
 def _canary_band(v, similarity):
     p = v["parameters"]
     if similarity >= p["similarity_consistent"]:
@@ -3405,7 +3446,8 @@ def _dc4_canary():
         recomputed.add(sealed)
     for auditor_id, board in v["scoreboards"].items():
         mine = {t: [0, 0, 0] for t in ("provisional", "standing", "mature")}
-        for record in v["scoreboard_records"]:
+        for record_index in dict.fromkeys(v["binding"]["record_occurrences"]):
+            record = v["scoreboard_records"][record_index]
             if record["auditor_id"] != auditor_id or not record["fixed_before_reveal"]:
                 continue
             leaf = next(l for l in v["leaves"] if l["index"] == record["leaf_index"])
@@ -3414,7 +3456,9 @@ def _dc4_canary():
                 record["credit_commitment"] == _canary_credit(salt, bodies[leaf["index"]], auditor_id)
             row[0] += 1; row[1] += reproduces
             row[2] += _canary_hard_hit(v, reproduces, record["verdict"], leaf["derived_similarity"])
-        assert mine == board, f"{auditor_id}: recomputed scoreboard {mine}, vector says {board}"
+        assert mine == board == v["binding"]["scoreboards"][auditor_id], f"{auditor_id}: recomputed scoreboard {mine}, vector says {board}"
+    occurrences = [v["scoreboard_records"][i] for i in v["binding"]["record_occurrences"]]
+    assert sum(r["fixed_before_reveal"] for r in occurrences) > sum(row[0] for board in v["scoreboards"].values() for row in board.values())
     # The example Record's credit commitment is the same construction.
     rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
     ac = json.loads((ROOT / "vectors" / "wist4" / "audit-commitments.json").read_text())["commitments"]

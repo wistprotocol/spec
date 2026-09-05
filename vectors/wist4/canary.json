@@ -779,6 +779,655 @@
       "hard_hit": false
     }
   ],
+  "binding": {
+    "note": "All timing, domain and authorization prerequisites are satisfied; the events isolate membership and binding replay. An occurrence index denotes the same fixed Record in scoreboard_records, regardless of how many Entries or checkpoints carry it.",
+    "commitment_envelopes": [
+      {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "canary_commitment",
+          "subject": "planter.example.io",
+          "effective_at": "2026-08-02T12:00:00Z",
+          "details": {
+            "root": "sha256:65b85ec65d6fbd0f5eb068933ad1830dd5746d25eb495c4b95c13668de84b25f",
+            "leaves": 5
+          }
+        },
+        "sig": {
+          "key_id": "test-canary-k1",
+          "alg": "Ed25519",
+          "value": "QUYXtZkOcKjTuRpctx5iNVIZgK53K_i4s0W-GPtjinsFb6l6POh7eguPIGQjM25yQ18Id_5uqAvMCHk2k8VxBQ"
+        }
+      },
+      {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "canary_commitment",
+          "subject": "planter.example.io",
+          "effective_at": "2026-08-02T13:00:00Z",
+          "details": {
+            "root": "sha256:65b85ec65d6fbd0f5eb068933ad1830dd5746d25eb495c4b95c13668de84b25f",
+            "leaves": 5
+          }
+        },
+        "sig": {
+          "key_id": "test-canary-k1",
+          "alg": "Ed25519",
+          "value": "iIwz7V5KMqdMdr_NmvwGZE1Q4dL8eOMrM-Ks8ZdknMibKyPGyzEeA7O1XM2Tq3cfPZiJIAuW8jE-3cUOpu0zCw"
+        }
+      }
+    ],
+    "cases": [
+      {
+        "label": "later commitment reuses Delta",
+        "events": [
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 401,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:cc99a518e60451f5573cfe9bc041ab8fe0996b0a454ded94db937eb864cc7c3d",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+              }
+            },
+            "other_requirements_valid": true
+          }
+        ],
+        "accepted_indices": [
+          0
+        ]
+      },
+      {
+        "label": "simultaneous Delta collision",
+        "events": [
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:cc99a518e60451f5573cfe9bc041ab8fe0996b0a454ded94db937eb864cc7c3d",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+              }
+            },
+            "other_requirements_valid": true
+          }
+        ],
+        "accepted_indices": []
+      },
+      {
+        "label": "disjoint commitments",
+        "events": [
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:cc99a518e60451f5573cfe9bc041ab8fe0996b0a454ded94db937eb864cc7c3d",
+                  "leaves": [
+                    {
+                      "index": 1,
+                      "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                      "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                      "path": [
+                        "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "mdDwERQf4OoSwWuD5eKGJPEoEGX51AwFP1xJcciWCYsOEBu3uWO6XKXg8K26fQ7_YKvodSy_1ecXIP-tt5aWDQ"
+              }
+            },
+            "other_requirements_valid": true
+          }
+        ],
+        "accepted_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "label": "same commitment simultaneous partial reveals",
+        "events": [
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:01Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 1,
+                      "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                      "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                      "path": [
+                        "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "zb1fLNRmPXSauG2ikdq8SPdCE_tdF-Xsxpn_wIFiI-AoPAsaQ-HA_688MMMadW_jV1APMMohWtsqanWy2DMmDg"
+              }
+            },
+            "other_requirements_valid": true
+          }
+        ],
+        "accepted_indices": []
+      },
+      {
+        "label": "identical replay counts once",
+        "events": [
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 401,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          }
+        ],
+        "accepted_indices": [
+          0
+        ]
+      },
+      {
+        "label": "invalid membership blocks nobody",
+        "events": [
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": []
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "qReqz1Rv6ETeAFAiYgBy4AVdV-99eYiCK4ZO7dVJ4uKfcVsLLd5RVo_SCoYEtGy4CA3TeL_524-O9pFBgy7dAg"
+              }
+            },
+            "other_requirements_valid": false
+          },
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:cc99a518e60451f5573cfe9bc041ab8fe0996b0a454ded94db937eb864cc7c3d",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+              }
+            },
+            "other_requirements_valid": true
+          }
+        ],
+        "accepted_indices": [
+          1
+        ]
+      },
+      {
+        "label": "rejected collision reserves nothing",
+        "events": [
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 400,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:00Z",
+                "details": {
+                  "commitment": "sha256:cc99a518e60451f5573cfe9bc041ab8fe0996b0a454ded94db937eb864cc7c3d",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+              }
+            },
+            "other_requirements_valid": true
+          },
+          {
+            "height": 401,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "canary_reveal",
+                "subject": "example.com",
+                "effective_at": "2026-08-26T04:00:01Z",
+                "details": {
+                  "commitment": "sha256:a35b2a39261e4e7c1d18526ef8f408a2fd8b42f79ef4e0490761493af8c2d289",
+                  "leaves": [
+                    {
+                      "index": 0,
+                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+                      "path": [
+                        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+                        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+                        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "sig": {
+                "key_id": "test-canary-k1",
+                "alg": "Ed25519",
+                "value": "hP_SUrrO30IU-PF0PLPlOmHZS0YDwsywL8bu0NQ92MMVyA8v6ghEsW1suwLmR-szsO1x2GT3SnuTlFmyL3y_Dg"
+              }
+            },
+            "other_requirements_valid": true
+          }
+        ],
+        "accepted_indices": [
+          2
+        ]
+      }
+    ],
+    "record_occurrences": [
+      0,
+      0,
+      1,
+      2,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "scoreboards": {
+      "audit.example.net": {
+        "provisional": [
+          1,
+          1,
+          0
+        ],
+        "standing": [
+          2,
+          2,
+          1
+        ],
+        "mature": [
+          1,
+          1,
+          0
+        ]
+      },
+      "checker.example.org": {
+        "provisional": [
+          0,
+          0,
+          0
+        ],
+        "standing": [
+          1,
+          0,
+          0
+        ],
+        "mature": [
+          1,
+          0,
+          0
+        ]
+      }
+    }
+  },
   "timing_cases": [
     {
       "label": "reveal at the minimum",

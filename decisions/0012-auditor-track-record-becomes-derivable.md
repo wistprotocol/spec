@@ -611,3 +611,23 @@ Failed rotations preserve the incumbent Observer key. Simultaneous
 collisions choose no winner by Entry position. An independently invalid
 candidate cannot veto a valid one through a shared key; a candidate
 rejected for an earlier conflict cannot be rescued by a later rejection.
+
+## Canary Delta bindings are unique within a Log
+
+### Context
+
+A ban on a Delta being bound to two leaves did not state its scope.
+Repeating a Delta across commitments could multiply the same encounter.
+
+### Decision
+
+An accepted reveal permanently reserves its Delta IDs within that Log.
+Reject a later reuse. Deduplicate identical Update IDs, then reject all
+otherwise-valid simultaneous candidates sharing a commitment or Delta.
+Rejected candidates reserve nothing. Score each Audit Record ID once.
+
+### Consequences
+
+Expired scoring windows cannot be revived by recommitting a Delta.
+Entry order does not choose a winner in a simultaneous collision.
+Multiple checkpoints authenticate one Record without multiplying its score.
