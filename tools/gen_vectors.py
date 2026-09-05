@@ -1777,7 +1777,6 @@ INCONSISTENT_EFFECTIVE_BELOW = 300_000
 SEVERITY_MINOR_FLOOR = 150_000
 SEVERITY_MISLEADING_FLOOR = 50_000
 EXTENSION_TRIGGERS_MAX = 3
-CONTRADICTIONS_MAX = 2
 RATION_WINDOW_DAYS = 30
 COVERAGE_FAILURES_MAX = 24
 ESCALATIONS = {"l2": (3, 90, 0), "l3_count": (10, 90, 0), "l4_sev3": (3, 180, 3)}
@@ -2263,9 +2262,37 @@ def summoned(roster, already_sealed, publisher_domain):
             and all(independent(candidate, filer) for filer in already_sealed)]
 
 
-def in_divergence(times_s, n_s, contradictions_max):
-    return sum(1 for t in times_s
-               if within_days_ending_at(t, n_s, RATION_WINDOW_DAYS)) > contradictions_max
+def closes_at(blocks, b1_s, window_hours):
+    """WIST-4 §4: the extension closes at the first Block sealed more than
+    confirm_window_hours after B₁ — from then on nothing can pair with the
+    triggering Record, so what the window holds is settled."""
+    window_s = window_hours * HOUR_S
+    return next((b["height"] for b in blocks if b["sealed_at_s"] > b1_s + window_s), None)
+
+
+def contradiction(trigger, records, blocks, summoned, window_hours):
+    """WIST-4 §4: a summoning Record is contradicted when its extension
+    closes with no confirmation and an independent consistent pair sealed
+    inside the window (endpoint included). Records are those for the same
+    Delta sealed at or after B₁, in Log order."""
+    window_s = window_hours * HOUR_S
+    b1_s = trigger["sealed_at_s"]
+    inside = [r for r in records if b1_s <= r["sealed_at_s"] <= b1_s + window_s]
+    confirmed = any(r["verdict"] == trigger["verdict"]
+                    and independent(r["auditor"], trigger["auditor"]) for r in inside)
+    consistent = [r for r in inside if r["verdict"] == "consistent"]
+    pair = any(independent(a["auditor"], b["auditor"])
+               for i, a in enumerate(consistent) for b in consistent[i + 1:])
+    closes = closes_at(blocks, b1_s, window_hours)
+    contradicted = summoned and not confirmed and pair and closes is not None
+    return {"closes_at_height": closes, "confirmed": confirmed,
+            "independent_consistent_pair": pair, "contradicted": contradicted,
+            "establishing_height": closes if contradicted else None}
+
+
+def escalation_in_force(establishing, n_height, n_s):
+    return (establishing is not None and establishing["height"] <= n_height
+            and within_days_ending_at(establishing["sealed_at_s"], n_s, RATION_WINDOW_DAYS))
 
 
 extension_trigger_scenarios = [
@@ -2311,23 +2338,75 @@ extension_summons_cases = [
      "summoned_indices": summoned([AUD_C, AUD_A2],
                                   [AUD_A, "eye.sample.net"], "www.publisher.example")},
 ]
-divergence_scenarios = [
-    ("at-the-maximum", [99 * DAY_S, 98 * DAY_S], 100 * DAY_S),
-    ("past-the-maximum", [99 * DAY_S, 98 * DAY_S, 97 * DAY_S], 100 * DAY_S),
-    ("aged-out", [60 * DAY_S, 98 * DAY_S, 97 * DAY_S], 100 * DAY_S),
+AUD_B2 = "eye.example.org"
+B1 = hourly_block(1000)
+CONTRADICTION_GRID = [hourly_block(h) for h in range(1000, 1081)]
+
+
+def ext_rec(auditor, verdict, hours_after_b1):
+    return {"auditor": auditor, "verdict": verdict,
+            "height": B1["height"] + hours_after_b1,
+            "sealed_at_s": B1["sealed_at_s"] + hours_after_b1 * HOUR_S}
+
+
+CONTRADICTION_TRIGGER = ext_rec(AUD_A, "inconsistent", 0)
+contradiction_scenarios = [
+    ("two-independent-consistent-inside-the-window", True,
+     [ext_rec(AUD_B, "consistent", 40), ext_rec(AUD_C, "consistent", 60)]),
+    ("confirmed-inside-the-window", True,
+     [ext_rec(AUD_B, "inconsistent", 50), ext_rec(AUD_C, "consistent", 60),
+      ext_rec(AUD_A2, "consistent", 61)]),
+    ("consistent-pair-not-independent", True,
+     [ext_rec(AUD_B, "consistent", 40), ext_rec(AUD_B2, "consistent", 60)]),
+    ("second-consistent-after-the-window", True,
+     [ext_rec(AUD_B, "consistent", 60), ext_rec(AUD_C, "consistent", 73)]),
+    ("consistent-exactly-at-the-window-end", True,
+     [ext_rec(AUD_B, "consistent", 40), ext_rec(AUD_C, "consistent", 72)]),
+    ("confirming-record-exactly-at-the-window-end", True,
+     [ext_rec(AUD_B, "consistent", 40), ext_rec(AUD_C, "consistent", 60),
+      ext_rec(AUD_B2, "inconsistent", 72)]),
+    ("confirming-record-one-block-past-the-window", True,
+     [ext_rec(AUD_B, "consistent", 40), ext_rec(AUD_C, "consistent", 60),
+      ext_rec(AUD_B2, "inconsistent", 73)]),
+    ("rationed-out-trigger-cannot-be-contradicted", False,
+     [ext_rec(AUD_B, "consistent", 40), ext_rec(AUD_C, "consistent", 60)]),
+    ("consistent-sealed-in-b1-counts", True,
+     [ext_rec(AUD_B, "consistent", 0), ext_rec(AUD_C, "consistent", 60)]),
 ]
-divergence_cases = [
-    {"label": label, "contradiction_times_s": times, "n_sealed_at_s": n_s,
-     "in_divergence": in_divergence(times, n_s, CONTRADICTIONS_MAX)}
-    for label, times, n_s in divergence_scenarios
-]
+contradiction_cases = []
+for label, summoned, records in contradiction_scenarios:
+    outcome = contradiction(CONTRADICTION_TRIGGER, records, CONTRADICTION_GRID,
+                            summoned, CONFIRM_WINDOW_HOURS)
+    establishing = (hourly_block(outcome["establishing_height"])
+                    if outcome["establishing_height"] is not None else None)
+    probes = [B1["height"] + 72, B1["height"] + 73,
+              B1["height"] + 73 + 30 * 24 - 1, B1["height"] + 73 + 30 * 24]
+    contradiction_cases.append({
+        "label": label, "trigger": CONTRADICTION_TRIGGER, "summoned": summoned,
+        "records": records, **outcome,
+        "escalation_at": [
+            {"height": h, "sealed_at_s": h * HOUR_S,
+             "in_force": escalation_in_force(establishing, h, h * HOUR_S)}
+            for h in probes],
+    })
+assert [c["contradicted"] for c in contradiction_cases] == \
+    [True, False, False, False, True, False, True, False, True], "contradiction cases drifted"
+assert all(c["closes_at_height"] == B1["height"] + 73 for c in contradiction_cases)
+assert [p["in_force"] for p in contradiction_cases[0]["escalation_at"]] == \
+    [False, True, True, False], "escalation window drifted"
 
 write_json(WIST4 / "extension.json", spaced_labels({
-    "note": "WIST-4 §4 extension rule: trigger, ration, summoned set and divergence.",
+    "note": ("WIST-4 §4 extension rule: trigger, ration, summoned set, and the "
+             "contradiction that escalates the audited domain's sampling. A "
+             "contradiction case lists the Records for the Delta sealed at or after "
+             "B₁ in Log order, the Block at which the extension closes, whether the "
+             "trigger was confirmed, whether an independent consistent pair sealed "
+             "inside the window, and the heights at which escalated sampling is and "
+             "is not in force for the domain."),
     "confirm_window_hours": CONFIRM_WINDOW_HOURS,
     "extension_triggers_max": EXTENSION_TRIGGERS_MAX,
-    "contradictions_max": CONTRADICTIONS_MAX,
     "ration_window_days": RATION_WINDOW_DAYS,
+    "escalation_window_days": RATION_WINDOW_DAYS,
     "deadline_cases": [
         {"b1_sealed_at_s": 1000, "confirm_window_hours": 72,
          "deadline_s": extension_deadline_s(1000, 72)},
@@ -2337,7 +2416,8 @@ write_json(WIST4 / "extension.json", spaced_labels({
     "trigger_cases": extension_trigger_cases,
     "ration_cases": extension_ration_cases,
     "summons_cases": extension_summons_cases,
-    "divergence_cases": divergence_cases,
+    "contradiction_blocks": CONTRADICTION_GRID,
+    "contradiction_cases": contradiction_cases,
 }))
 
 # ------------------------------------ WIST-4 §4: the extension Record's proof
@@ -2517,10 +2597,57 @@ countability_cases = [
     countability_case("a-deadline-between-two-blocks", 5000, 2, 493, "record_seal_blocks"),
 ]
 
+
+
+# §4's extension pull happens once the extension deadline passes and before
+# the next Block, and seals within record_seal_blocks Blocks of the pull, the
+# next Block being the first — so a Record published at the deadline seals no
+# later than record_seal_blocks cadences after it. The §9 sum bounds that
+# against the confirmation window; the simulation is the latest seal on a
+# fully sealed grid.
+def extension_window_rule(cadence_s, window_hours, seal_blocks):
+    return (window_hours // 2) * 3600 + seal_blocks * cadence_s <= window_hours * 3600
+
+
+def latest_extension_seal(cadence_s, window_hours, seal_blocks):
+    deadline_s = (window_hours // 2) * 3600
+    next_block_s = (deadline_s // cadence_s + 1) * cadence_s
+    return next_block_s + (seal_blocks - 1) * cadence_s
+
+
+def extension_window_case(label, cadence_s, window_hours, seal_blocks, changed):
+    latest = latest_extension_seal(cadence_s, window_hours, seal_blocks)
+    return {
+        "label": label,
+        "changed": changed,
+        "block_cadence_seconds": cadence_s,
+        "confirm_window_hours": window_hours,
+        "record_seal_blocks": seal_blocks,
+        "extension_deadline_s": (window_hours // 2) * 3600,
+        "sum_s": (window_hours // 2) * 3600 + seal_blocks * cadence_s,
+        "window_s": window_hours * 3600,
+        "rule_holds": extension_window_rule(cadence_s, window_hours, seal_blocks),
+        "latest_seal_s": latest,
+        "seals_inside_window": latest <= window_hours * 3600,
+    }
+
+
+extension_window_cases = [
+    extension_window_case("registry-defaults", 3600, 72, 24, "block_cadence_seconds"),
+    extension_window_case("cadence-at-the-tables-maximum", 86400, 72, 24, "block_cadence_seconds"),
+    extension_window_case("the-last-seal-deadline-the-rule-admits", 3600, 72, 36, "record_seal_blocks"),
+    extension_window_case("one-block-past-it", 3600, 72, 37, "record_seal_blocks"),
+    extension_window_case("a-deadline-between-two-blocks", 5000, 73, 26, "block_cadence_seconds"),
+]
+assert [c["rule_holds"] for c in extension_window_cases] == [True, False, True, False, True]
+assert all(c["rule_holds"] == c["seals_inside_window"] for c in extension_window_cases
+           if c["extension_deadline_s"] % c["block_cadence_seconds"] == 0)
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
-    "note": "WIST-4 §9 coverage-countability combination rule. Each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block. The rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks.",
+    "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
     "cases": countability_cases,
+    "extension_window_cases": extension_window_cases,
 }))
 print("wist4 parameter-combinations vector written")
 
@@ -3036,6 +3163,46 @@ sanction_ladder_cases = [
     for label, met, clear, n in sanction_ladder_scenarios
 ]
 
+
+# §7: a lift clears rungs, never findings, so the count criteria keep reading
+# every finding sealed before it; and level 4's three-severity-3 branch is the
+# first to fire only where the level-3 state was cleared between the findings.
+def ladder_from_findings(findings, lifts):
+    l1 = criterion_times(findings, 1, None, 0)
+    l2 = criterion_times(findings, *ESCALATIONS["l2"])
+    l3 = sorted(set(criterion_times(findings, *ESCALATIONS["l3_count"])
+                    + criterion_times(findings, 1, None, 3)))
+    l4_count = criterion_times(findings, *ESCALATIONS["l4_sev3"])
+    l4_accrual = l4_accrual_times(findings, l3, lifts)
+    l4 = sorted(set(l4_count + l4_accrual))
+    return [l1, l2, l3, l4], l4_count, l4_accrual
+
+
+sanction_reversal_scenarios = [
+    ("three-severity-3-across-two-lifts-reach-level-4-by-the-count-branch",
+     [finding(0, 3), finding(30, 3), finding(50, 3)], [21 * DAY_S, 40 * DAY_S],
+     [20, 25, 30, 45, 50]),
+    ("without-the-lifts-the-second-finding-reaches-level-4-by-accrual",
+     [finding(0, 3), finding(30, 3), finding(50, 3)], [], [20, 30, 50]),
+    ("a-lift-clears-rungs-not-findings",
+     [finding(0, 1), finding(10, 1), finding(20, 1)], [15 * DAY_S], [12, 20]),
+]
+sanction_reversal_cases = []
+for label, findings, lifts, probe_days in sanction_reversal_scenarios:
+    levels, l4_count, l4_accrual = ladder_from_findings(findings, lifts)
+    sanction_reversal_cases.append({
+        "label": label, "findings": findings, "lift_times_s": lifts,
+        "met_times_s": levels, "l4_count_branch_times_s": l4_count,
+        "l4_accrual_branch_times_s": l4_accrual,
+        "probes": [{"n_s": d * DAY_S,
+                    "level": ladder_level([(m, lifts) for m in levels], d * DAY_S)}
+                   for d in probe_days],
+    })
+assert [[p["level"] for p in c["probes"]] for c in sanction_reversal_cases] == \
+    [[3, 0, 3, 0, 4], [3, 4, 4], [1, 2]], "reversal cases drifted"
+assert sanction_reversal_cases[0]["l4_accrual_branch_times_s"] == [] and \
+    sanction_reversal_cases[0]["l4_count_branch_times_s"] == [50 * DAY_S]
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -3050,6 +3217,7 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "void_cases": sanction_void_cases,
     "in_force_cases": sanction_in_force_cases,
     "ladder_cases": sanction_ladder_cases,
+    "reversal_cases": sanction_reversal_cases,
 }))
 
 # ------------------------------------- WIST-4 §5: the reference Delta
@@ -3198,7 +3366,7 @@ print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%
     len(coverage_pair_cases), len(coverage_counting_cases), len(coverage_state_cases),
     len(coverage_establishing_cases), len(coverage_chain_scope_cases),
     len(extension_trigger_cases), len(extension_ration_cases),
-    len(extension_summons_cases), len(divergence_cases),
+    len(extension_summons_cases), len(contradiction_cases),
     len(sanction_criterion_cases), len(sanction_accrual_cases),
     len(sanction_void_cases), len(sanction_in_force_cases),
     len(sanction_ladder_cases)))

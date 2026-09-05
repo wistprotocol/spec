@@ -325,9 +325,10 @@ of the Publisher whose key signed *d*; and `reputation_u` is that domain's
 §6 reputation, in micro-units, at height *B* − 1 — the state of the log
 immediately before *B* was sealed, which for Block 0 is the empty log —
 evaluated with the §9 constants in force at *B*'s `sealed_at`. If a
-level-1 sanction (§7) is in force against `domain(d)` at that same height,
-`p_1e7` is 5 000 000 instead of the clamp above; that is the only thing
-that displaces the formula.
+level-1 sanction (§7) or an escalation (below) is in force against
+`domain(d)` at that same height, `p_1e7` is `sampling_ceiling`,
+5 000 000, instead of the clamp above; those two states are the only
+things that displace the formula, and each displaces it identically.
 
 `p_1e7` is the sampling rate scaled by 10^7, and that scale is exact
 rather than approximate: `reputation_u` carries six decimal digits and the
@@ -500,7 +501,7 @@ door the retirement was meant to close. Every test reads strings the
 Log carries, so every party derives the same roster. Whether it also bars the *`auditor_id`* is
 decided by the removal's own `evidence`. A removal carrying evidence —
 an `evidence` member naming at least one ID: failed Blocks, void
-Records, systematic divergence — is for cause, and an
+Records, contradicted Records — is for cause, and an
 `auditor_admit` whose `subject` is that `auditor_id` MUST thereafter be
 rejected by any party replaying the Log: without this, "removal is
 permanent" would be permanent for a key that costs nothing to replace and
@@ -575,32 +576,52 @@ triggers on the fraud, not on one member's say-so, and a genuine wave
 of fraud reaches the roster through many Auditors' VRF draws rather
 than one Auditor's filings.
 
-**Contradiction is derived, and it costs the filer.** An `inconsistent`
-or `link_inconsistent` Record is **contradicted** when the extension it
-triggered closes with no Confirmed Inconsistency and at least two
-independent Auditors sealed `consistent` for the same Delta inside the
-window. Only a Record that triggered an extension can be contradicted,
-and the ration above admits at most `extension_triggers_max` triggers
-into any 30-day window, so the ration is also the ceiling on
-contradictions in that window — which is why `contradictions_max` MUST
-be below `extension_triggers_max` (§9). An Auditor whose Records were
-contradicted more than `contradictions_max` times (Parameter Registry;
-default 2) in the 30 whole days ending at height N is in **divergence**
-from that height — counted, like a coverage failure, only from the height
-at which the Log establishes each contradiction, never from the height of
-the Record contradicted — and for as long as it holds: a validator recomputing
-reputation rejects
-every Record it signs, exactly as for coverage failure (§4), and the
-Aggregator MUST remove it by `auditor_remove` naming the contradicted
-Records — recording the consequence, never creating it. The state
-tracks the predicate rather than outliving it, and the derivation is
-what matters: §11 claimed systematic divergence was "grounds for
-`auditor_remove`", which left the suite's answer to a lying Auditor
-resting on the one party the design refuses to trust to file. The cost
-of the extension rule is therefore one fetch per admitted Auditor per
-*rationed* triggering Record: fraud pays it, and a lying Auditor pays
-it three times before its own removal is derivable from the Log by
-anyone.
+**Contradiction is derived, and it escalates the domain, not the
+filer.** An `inconsistent` or `link_inconsistent` Record that summoned
+peers is **contradicted** when the extension it triggered **closes**
+with no Confirmed Inconsistency (§5) or Confirmed Link Inconsistency
+(§7) for *d* in which it is the earlier Record, and at least two Auditors
+independent of one another (§3) sealed `consistent` for *d* inside the
+`confirm_window_hours` after *B₁*'s `sealed_at`, the endpoint included.
+The extension closes at the first Block whose `sealed_at` is more than
+`confirm_window_hours` after *B₁*'s: the confirmation window §5 measures
+is pairwise and ends at the confirming Record's Block, so from that
+instant no Record can pair with the triggering one, what the window
+holds is settled, and that Block's height is the contradiction's
+**establishing height** — the height at which a replaying party first
+derives it and, by the dating rule above, the only height it is dated
+to. Only a Record that summoned can be contradicted, so the ration
+above is also the ceiling on contradictions: at most
+`extension_triggers_max` per Auditor in any 30-day window.
+
+The consequence falls on the audited claim and on nobody's standing.
+From the establishing height, and for as long as that height lies
+inside the 30 whole days ending at the height read, `domain(d)` is under
+**escalated sampling**: `p_1e7` for every Delta of that domain is
+`sampling_ceiling`, exactly as under a level-1 sanction, which is the
+other input the selection test above reads beside the formula. Nothing
+else follows — no penalty, no ladder rung, no `notice`, no appeal, and
+no mark on the filer — because the Log cannot tell the two cases apart:
+an Auditor that lied, and an honest Auditor that fetched a page which
+differed at its vantage or its moment — a cloak served to one Auditor,
+an edge cache behind the update, a defacement reverted, or a truthful
+`update` the Publisher sealed between the first fetch and the summoned
+ones (§5). Both are answered by more looks rather than by a verdict on
+either party: a Publisher serving different pages to different Auditors
+meets more of them at more vantages, and an honest Publisher pays audit
+fetches and nothing else — the pressure without penalty that level 1
+already applies. Escalation is a derived state like every other in this
+section, read at height *B* − 1 beside the sanction, and carried by the
+state artifact (WIST-3 §7).
+
+What a lying filer costs the roster is bounded by the ration — one
+fetch per independent peer per rationed triggering Record — and what it
+earns is a public contradiction and nothing else: a run of contradicted
+filings is evidence for `auditor_remove`, weighed by the same judgement
+that admitted the Auditor (§3, §11), never a derived removal, because a
+derived removal would land on the cloaked honest filer exactly as often
+as on the liar. The cost of the extension rule is therefore one fetch
+per admitted Auditor per rationed triggering Record, whoever pays it.
 
 **How Records reach the Log.** Every duty above is discharged by a
 Record or attestation *sealed* in the Log, and this paragraph is the
@@ -636,7 +657,19 @@ and MUST seal everything it finds within `record_seal_blocks` Blocks
 (Parameter Registry; default 24) of the fetch, and MUST seal alongside
 it a `pull_attestation` Registry Update — `subject` the `auditor_id`,
 details naming the audited Block and the IDs found, empty where the
-fetch found nothing to seal. A coverage failure for an (Auditor, Block)
+fetch found nothing to seal. Where the Block is a *B₁* that names a
+Delta for the Auditor under the extension rule, the Aggregator MUST
+also fetch that path once the extension deadline passes and before it
+seals its next Block, and MUST seal everything it finds within
+`record_seal_blocks` Blocks of that fetch — the Block sealed next after
+the fetch being the first of them — with no attestation: the
+coverage-deadline pull, `coverage_deadline_hours` after *B₁*, comes
+after the confirmation window the extension exists to serve has closed
+(§5), so a Record it seals confirms nothing and contradicts nothing,
+and §9's combination rule bounds the pair so that a Record published
+at the extension deadline seals inside the window. The attestation and
+the failure count read the coverage-deadline pull alone, which is the
+one that sees the path complete. A coverage failure for an (Auditor, Block)
 pair enters the §4 failure count **only** when the Log carries the
 Aggregator's `pull_attestation` for that pair showing the duty unmet
 and no later-sealed item contradicts it by chain, and it enters that
@@ -1881,7 +1914,17 @@ Process requirements:
   force again from the height it is met. A lift is therefore an
   Aggregator's discretionary statement about a domain's standing up to
   now, recorded as one, and never a way to spend one Entry on a permanent
-  exemption from §7.
+  exemption from §7. A lift clears rungs, never findings: every Confirmed
+  Inconsistency sealed before it stays inside the windows the criteria
+  read, so a count criterion is met again at the first finding after the
+  lift that completes its count, with the earlier findings inside it. That
+  is also the whole reason level 4's three-severity-3 branch exists. With
+  any severity-3 finding reaching level 3 and a level-3 domain's next
+  finding reaching level 4, a third severity-3 finding is the first to
+  meet that branch only where the level-3 state was cleared in between —
+  by a lift, or by one of the voids above — and the branch is what keeps
+  three fabrications inside 180 days a delisting whatever the process
+  between them did.
 
   The limit is worth naming rather than glossing. The appeal window is
   anchored to a `notice`'s Block, so where the criteria are met
@@ -2115,7 +2158,6 @@ existing rather than a recommended setting.
 | `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
 | `min_observed_words` | ≥ 1 | at zero the mass guard admits the empty observed text, and §5's quotient is read against a page that said nothing (§5) |
 | `extension_triggers_max` | ≥ 1 | at zero no `inconsistent` Record ever extends a selection set, and §4's extension rule — the only path to confirmation that does not wait on coincidence — is disabled entirely (§4, §5) |
-| `contradictions_max` | ≥ 1 | at zero a single contradicted Record carries the whole divergence consequence — removal and 30 days of voided Records — though a transiently wrong page (a defacement reverted, an edge cache out of sync) can contradict an honest filer, which is why a threshold exists at all; a predicate firing on the first contradiction measures an event rather than the systematic divergence §4 derives, and makes filing `inconsistent` the risk the extension rule exists to remove (§4, §5) |
 | `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
 | `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (WIST-3 §3.1) |
 | `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
@@ -2167,12 +2209,21 @@ MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 below it a page whose first link is long declares an empty prefix the
 budget rule then makes mandatory. `link_variance_floor` MUST be below
 `link_agreement_consistent`, or the two link bands overlap and one audit
-fits two verdicts. `contradictions_max` MUST be below
-`extension_triggers_max`: only an extension-triggering Record can be
-contradicted and the ration admits at most `extension_triggers_max` of
-them into any 30-day window (§4), so at or above it the divergence
-predicate is one no history can satisfy and §4's answer to a lying
-Auditor stops existing. `audit_domain_budget_bytes_day` MUST NOT be below
+fits two verdicts. `confirm_window_hours / 2` × 3600 +
+`record_seal_blocks` × `block_cadence_seconds` MUST NOT exceed
+`confirm_window_hours` × 3600: §4 has the Aggregator pull *B₁*'s path
+once the extension deadline passes and before its next Block, and seal
+what it finds within `record_seal_blocks` Blocks of the pull, the next
+Block being the first of them, so a Record published at the deadline
+seals no later than `record_seal_blocks` cadences after it — and a
+confirmation window that closes before then is one the extension rule
+serves in no Log, since neither a confirming `inconsistent` nor the
+`consistent` pair a contradiction needs can seal inside it. At the
+defaults the sum is 60 hours against 72; at the cadence ceiling the
+table permits, the same defaults put it 23 days past the window, which
+is why the rule is a combination and not a bound. A party replaying the
+Log MUST reject a `parameter_change` that leaves it otherwise, exactly
+as for the cases above. `audit_domain_budget_bytes_day` MUST NOT be below
 `audit_fetch_cap_bytes` + `extract_cap_bytes` + `links_cap_bytes` +
 `summary_cap_bytes` + 32 — the audited URL under its own cap plus the
 largest Payload WIST-1 §3.6 permits, which are the two fetches one audit
@@ -2300,7 +2351,6 @@ table publishes and gives the unattested path 51 days to fit into 30.
 | Shingle size | `shingle_size` | 8 — the shingle length, in words or in grapheme clusters on §5's short-text branch, and the word count at which §5 takes the word branch | §5 |
 | Observed-text mass guard | `min_observed_words` | 40 words | §5 |
 | Extension ration (per Auditor per 30 days) | `extension_triggers_max` | 3 | §4 |
-| Divergence threshold (per Auditor per 30 days) | `contradictions_max` | 2 | §4 |
 | Unauditable horizon | `unauditable_horizon_days` | 30 days | §5 |
 | Confirmation: auditors / window | `confirm_auditors` / `confirm_window_hours` | 2 / 72 hours | §5 |
 | Age normalization | `age_norm_days` | 730 days | §6 |
@@ -2467,8 +2517,11 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   every independent Auditor to the first `inconsistent` Record, so a
   fraudulent Delta's chance of escaping confirmation is the chance of
   escaping the whole roster, not of escaping a second simultaneous VRF
-  draw; systematic divergence by one Auditor remains grounds for
-  `auditor_remove`, in the log with evidence like any sanction.
+  draw; a run of contradicted filings by one Auditor is evidence for
+  `auditor_remove`, weighed by the judgement that admitted it (§3) and
+  never a derived state, because §4 answers a contradiction by escalating
+  the audited domain's sampling — the Log cannot tell a lying filer from
+  a cloaked one, and more looks resolve both.
 - **Shirking is detectable from the Log alone, whole or partial.** For every
   Block sealed in an Auditor's admitted window the Log must hold that
   Auditor's `vrf_proof` — inside an Audit Record for each selected Delta,
@@ -2804,6 +2857,10 @@ hands.
       after its deadline, seals what it finds within
       `record_seal_blocks`, and seals a `pull_attestation` for every
       pull — including the empty ones (§4)
+- [ ] Pulls that path once more for a Block that named a Delta under the
+      extension rule — after the extension deadline and before its next
+      Block — so the Record seals inside the confirmation window it
+      serves (§4, §9)
 - [ ] Seals an accepted Delta within `max_inclusion_blocks` of its
       eligibility Block — the first Block with room for it under the
       per-domain capacity, in acceptance order (§6.4, WIST-3 §3.2)
@@ -2835,6 +2892,11 @@ hands.
 - [ ] Counts only admitted-Auditor Records (§3) and only Confirmed
       Inconsistencies and Confirmed Link Inconsistencies, confirmed by
       independent Auditors inside the `sealed_at` window (§3, §5, §7)
+- [ ] Derives escalated sampling for a domain from a contradiction's
+      establishing height — the first Block sealed more than
+      `confirm_window_hours` after *B₁* — reads `sampling_ceiling` for
+      its Deltas while that height is inside the 30-day window, and
+      attaches no consequence to the contradicted filer (§4)
 - [ ] Stops counting the Records of an Auditor in coverage failure at
       their own Block's `sealed_at`, whether or not an `auditor_remove`
       was ever sealed, counts a failed duty only from its establishing

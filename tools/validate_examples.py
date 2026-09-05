@@ -664,7 +664,7 @@ def _state_tuple_encoding():
                    for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
     expected = {"aggregator_key", "auditor", "declaration", "parameter",
                 "sanction_state", "recovery_window", "exclusion",
-                "coverage_failure", "reputation_inputs", "record"}
+                "coverage_failure", "escalation", "reputation_inputs", "record"}
     assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
     state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
     digest = "sha256:" + hashlib.sha256(
@@ -2234,6 +2234,263 @@ def _dc4_unauditable_twin():
     assert _unauditable_at(v, case) is False, \
         "recomputation is blind to the horizon's start"
 check("negative:wist4-unauditable", _dc4_unauditable_twin)
+
+def _extension_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
+
+def _contradiction_outcome(v, case, endpoint_inclusive=True):
+    """WIST-4 §4: a summoning Record is contradicted when its extension closes
+    — the first Block sealed more than confirm_window_hours after B₁ — with
+    no confirmation and an independent consistent pair sealed inside the
+    window, the endpoint included."""
+    window_s = v["confirm_window_hours"] * 3600
+    trigger = case["trigger"]
+    b1_s = trigger["sealed_at_s"]
+    def inside(t):
+        return b1_s <= t <= b1_s + window_s if endpoint_inclusive else b1_s <= t < b1_s + window_s
+    held = [r for r in case["records"] if inside(r["sealed_at_s"])]
+    confirmed = any(r["verdict"] == trigger["verdict"]
+                    and _roster_independent(r["auditor"], trigger["auditor"]) for r in held)
+    consistent = [r for r in held if r["verdict"] == "consistent"]
+    pair = any(_roster_independent(a["auditor"], b["auditor"])
+               for i, a in enumerate(consistent) for b in consistent[i + 1:])
+    closes = next((b["height"] for b in v["contradiction_blocks"]
+                   if b["sealed_at_s"] > b1_s + window_s), None)
+    contradicted = case["summoned"] and not confirmed and pair and closes is not None
+    return closes, confirmed, pair, contradicted
+
+def _dc4_contradiction():
+    """WIST-4 §4: the instant an extension closes, the contradiction it
+    settles, and the escalated sampling that follows for the domain."""
+    v = _extension_vector()
+    assert "contradictions_max" not in v, "the vector still carries the retired divergence threshold"
+    window_s = v["escalation_window_days"] * 86400
+    labels = set()
+    for case in v["contradiction_cases"]:
+        labels.add(case["label"])
+        got = _contradiction_outcome(v, case)
+        want = (case["closes_at_height"], case["confirmed"],
+                case["independent_consistent_pair"], case["contradicted"])
+        assert got == want, f"{case['label']}: recomputed {got}, vector says {want}"
+        establishing = case["establishing_height"]
+        assert establishing == (case["closes_at_height"] if case["contradicted"] else None), \
+            f"{case['label']}: a contradiction is dated where the extension closes"
+        est_s = None if establishing is None else next(
+            b["sealed_at_s"] for b in v["contradiction_blocks"] if b["height"] == establishing)
+        for probe in case["escalation_at"]:
+            expect = (establishing is not None and establishing <= probe["height"]
+                      and probe["sealed_at_s"] - est_s < window_s)
+            assert expect == probe["in_force"], \
+                f"{case['label']} at {probe['height']}: recomputed {expect}, vector says {probe['in_force']}"
+    for needed in ("two independent consistent inside the window", "confirmed inside the window",
+                   "consistent pair not independent", "second consistent after the window",
+                   "consistent exactly at the window end",
+                   "confirming record exactly at the window end",
+                   "confirming record one block past the window",
+                   "rationed out trigger cannot be contradicted", "consistent sealed in b1 counts"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    contradicted = [c for c in v["contradiction_cases"] if c["contradicted"]]
+    assert contradicted and any(p["in_force"] for c in contradicted for p in c["escalation_at"]) \
+        and any(not p["in_force"] for c in contradicted for p in c["escalation_at"]), \
+        "no case shows escalation both in force and aged out"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("The extension closes at the first Block whose `sealed_at` is more than "
+                   "`confirm_window_hours` after *B₁*'s",
+                   "`domain(d)` is under **escalated sampling**",
+                   "no mark on the filer"):
+        assert marker in prose, f"§4 does not state: {marker!r}"
+    assert "contradictions_max" not in prose, "§4 or §9 still names the retired divergence threshold"
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    assert "contradictions_max" not in json.dumps(schema), "the schema still lists contradictions_max"
+check("vectors:wist4-contradiction", _dc4_contradiction)
+
+def _dc4_contradiction_twin():
+    """The check above must notice a window read endpoint-exclusive, in both
+    directions: a consistent Record at the endpoint stops counting, and a
+    confirming Record at the endpoint stops confirming."""
+    v = _extension_vector()
+    at_end = next(c for c in v["contradiction_cases"]
+                  if c["label"] == "consistent exactly at the window end")
+    assert _contradiction_outcome(v, at_end, endpoint_inclusive=False)[3] is False \
+        and at_end["contradicted"] is True, "recomputation is blind to the window's endpoint"
+    confirming = next(c for c in v["contradiction_cases"]
+                      if c["label"] == "confirming record exactly at the window end")
+    assert _contradiction_outcome(v, confirming, endpoint_inclusive=False)[3] is True \
+        and confirming["contradicted"] is False, "recomputation is blind to a confirmation at the endpoint"
+    rationed = next(c for c in v["contradiction_cases"]
+                    if c["label"] == "rationed out trigger cannot be contradicted")
+    assert _contradiction_outcome(v, dict(rationed, summoned=True))[3] is True, \
+        "recomputation is blind to whether the trigger summoned"
+check("negative:wist4-contradiction", _dc4_contradiction_twin)
+
+def _extension_window_sum(case):
+    return ((case["confirm_window_hours"] // 2) * 3600
+            + case["record_seal_blocks"] * case["block_cadence_seconds"])
+
+def _latest_extension_seal(case):
+    """The fact the §9 sum stands for: on a fully sealed grid, the Record
+    published at the extension deadline seals at the record_seal_blocks-th
+    Block after the pull, the next Block being the first."""
+    cadence = case["block_cadence_seconds"]
+    deadline = (case["confirm_window_hours"] // 2) * 3600
+    return (deadline // cadence + 1) * cadence + (case["record_seal_blocks"] - 1) * cadence
+
+def _dc4_extension_window():
+    """WIST-4 §9: the sum that keeps an extension Record sealable inside the
+    confirmation window it serves."""
+    v = _countability_vector()
+    labels = set()
+    for case in v["extension_window_cases"]:
+        labels.add(case["label"])
+        total = _extension_window_sum(case)
+        assert total == case["sum_s"], f"{case['label']}: recomputed sum {total}"
+        assert case["window_s"] == case["confirm_window_hours"] * 3600
+        assert (total <= case["window_s"]) == case["rule_holds"], \
+            f"{case['label']}: the rule's verdict disagrees with the vector"
+        latest = _latest_extension_seal(case)
+        assert latest == case["latest_seal_s"], f"{case['label']}: recomputed latest seal {latest}"
+        assert (latest <= case["window_s"]) == case["seals_inside_window"]
+        if case["extension_deadline_s"] % case["block_cadence_seconds"] == 0:
+            assert case["rule_holds"] == case["seals_inside_window"], \
+                f"{case['label']}: the rule and the seal part on the grid"
+        else:
+            assert not case["rule_holds"] or case["seals_inside_window"], \
+                f"{case['label']}: the rule admits a Record that seals late"
+    for needed in ("registry defaults", "cadence at the tables maximum",
+                   "the last seal deadline the rule admits", "one block past it",
+                   "a deadline between two blocks"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    maxed = next(c for c in v["extension_window_cases"]
+                 if c["block_cadence_seconds"] == _cadence_upper_bound())
+    assert not maxed["rule_holds"] and not maxed["seals_inside_window"], \
+        "the vector no longer shows the cadence ceiling defeating the extension rule"
+    prose = re.sub(r"\s+", " ", _wist4_section9())
+    for marker in ("`confirm_window_hours / 2` × 3600 + `record_seal_blocks` × "
+                   "`block_cadence_seconds` MUST NOT exceed `confirm_window_hours` × 3600",):
+        assert marker in prose, f"§9 does not state: {marker!r}"
+    w4 = re.sub(r"\s+", " ",
+                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "MUST also fetch that path once the extension deadline passes and before it seals its next Block" in w4, \
+        "§4 does not require the extension pull"
+check("vectors:wist4-extension-window", _dc4_extension_window)
+
+def _dc4_extension_window_twin():
+    """The check above must notice a bound written strictly instead of at
+    the endpoint, and one that leaves record_seal_blocks out."""
+    v = _countability_vector()
+    boundary = next(c for c in v["extension_window_cases"] if c["sum_s"] == c["window_s"])
+    assert boundary["rule_holds"] and boundary["seals_inside_window"], \
+        "the boundary case no longer sits where the two readings part"
+    assert (boundary["sum_s"] < boundary["window_s"]) != boundary["rule_holds"], \
+        "a strict bound rejects a parameter set under which the Record seals in time"
+    late = next(c for c in v["extension_window_cases"] if c["label"] == "one block past it")
+    assert (late["confirm_window_hours"] // 2) * 3600 <= late["window_s"] and not late["rule_holds"], \
+        "the twin's missing term no longer changes the verdict"
+check("negative:wist4-extension-window", _dc4_extension_window_twin)
+
+def _sanctions_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "sanctions.json").read_text())
+
+def _ladder_levels_from_findings(v, findings, lifts, lift_erases_findings=False):
+    """WIST-4 §7 rung derivation from findings and lifts, recomputed
+    independently of the generator: count criteria over whole-day windows
+    ending at each finding, level 3 on any severity 3, level 4 by the
+    three-severity-3 count or by accrual on a level-3 domain, and a lift
+    clearing every rung at its instant while leaving every finding counted."""
+    esc = v["escalation"]
+    def met(count, span_days, min_sev):
+        out = []
+        for k, f in enumerate(findings):
+            if f["severity"] < min_sev:
+                continue
+            earlier = [g for g in findings[:k + 1] if g["severity"] >= min_sev
+                       and (span_days is None
+                            or (f["sealed_at_s"] - g["sealed_at_s"]) // 86400 < span_days)]
+            if lift_erases_findings:
+                last_lift = max((l for l in lifts if l <= f["sealed_at_s"]), default=None)
+                if last_lift is not None:
+                    earlier = [g for g in earlier if g["sealed_at_s"] > last_lift]
+            if len(earlier) >= count:
+                out.append(f["sealed_at_s"])
+        return out
+    def in_force_before(times, t):
+        last_met = max((m for m in times if m < t), default=None)
+        last_clear = max((c for c in lifts if c < t), default=None)
+        return last_met is not None and (last_clear is None or last_clear < last_met)
+    l1 = met(1, None, 0)
+    l2 = met(esc["l2"]["count"], esc["l2"]["days"], 0)
+    l3 = sorted(set(met(esc["l3_count"]["count"], esc["l3_count"]["days"], 0)
+                    + met(1, None, esc["l3_severity"])))
+    l4_count = met(esc["l4_sev3"]["count"], esc["l4_sev3"]["days"], esc["l3_severity"])
+    l4_accrual = [f["sealed_at_s"] for f in findings if in_force_before(l3, f["sealed_at_s"])]
+    levels = [l1, l2, l3, sorted(set(l4_count + l4_accrual))]
+    def level_at(n_s):
+        for i in range(3, -1, -1):
+            last_met = max((m for m in levels[i] if m <= n_s), default=None)
+            last_clear = max((c for c in lifts if c <= n_s), default=None)
+            if last_met is not None and (last_clear is None or last_clear < last_met):
+                return i + 1
+        return 0
+    return levels, l4_count, l4_accrual, level_at
+
+def _dc4_ladder_reversals():
+    """WIST-4 §7: a lift clears rungs and never findings, and level 4's
+    three-severity-3 branch is first to fire only across reversals."""
+    v = _sanctions_vector()
+    labels = set()
+    for case in v["reversal_cases"]:
+        labels.add(case["label"])
+        levels, l4_count, l4_accrual, level_at = _ladder_levels_from_findings(
+            v, case["findings"], case["lift_times_s"])
+        assert levels == case["met_times_s"], f"{case['label']}: recomputed met times {levels}"
+        assert l4_count == case["l4_count_branch_times_s"]
+        assert l4_accrual == case["l4_accrual_branch_times_s"]
+        for probe in case["probes"]:
+            got = level_at(probe["n_s"])
+            assert got == probe["level"], \
+                f"{case['label']} at {probe['n_s']}: recomputed level {got}, vector says {probe['level']}"
+    for needed in ("three severity 3 across two lifts reach level 4 by the count branch",
+                   "without the lifts the second finding reaches level 4 by accrual",
+                   "a lift clears rungs not findings"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    across = next(c for c in v["reversal_cases"] if "across two lifts" in c["label"])
+    assert across["l4_accrual_branch_times_s"] == [] and across["l4_count_branch_times_s"], \
+        "the count branch is no longer the only path to level 4 in the reversal case"
+    assert any(p["level"] == 4 for p in across["probes"])
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("A lift clears rungs, never findings",
+                   "a third severity-3 finding is the first to meet that branch only where "
+                   "the level-3 state was cleared in between"):
+        assert marker in prose, f"§7 does not state: {marker!r}"
+check("vectors:wist4-ladder-reversals", _dc4_ladder_reversals)
+
+def _dc4_ladder_reversals_twin():
+    """The check above must notice a lift read as erasing the findings
+    before it, and a ladder without the count branch."""
+    v = _sanctions_vector()
+    case = next(c for c in v["reversal_cases"] if c["label"] == "a lift clears rungs not findings")
+    _, _, _, level_at = _ladder_levels_from_findings(
+        v, case["findings"], case["lift_times_s"], lift_erases_findings=True)
+    last = case["probes"][-1]
+    assert level_at(last["n_s"]) != last["level"], \
+        "recomputation is blind to whether a lift erases findings"
+    across = next(c for c in v["reversal_cases"] if "across two lifts" in c["label"])
+    levels, _, l4_accrual, _ = _ladder_levels_from_findings(
+        v, across["findings"], across["lift_times_s"])
+    without_count = [levels[0], levels[1], levels[2], sorted(l4_accrual)]
+    def level_without_count(n_s):
+        for i in range(3, -1, -1):
+            last_met = max((m for m in without_count[i] if m <= n_s), default=None)
+            last_clear = max((c for c in across["lift_times_s"] if c <= n_s), default=None)
+            if last_met is not None and (last_clear is None or last_clear < last_met):
+                return i + 1
+        return 0
+    final = across["probes"][-1]
+    assert level_without_count(final["n_s"]) != final["level"], \
+        "recomputation is blind to the three-severity-3 branch"
+check("negative:wist4-ladder-reversals", _dc4_ladder_reversals_twin)
 
 def _dc4_audit_commitments():
     """Every content-derived value in an Audit Record is salted (WIST-4 §5).

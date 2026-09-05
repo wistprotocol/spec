@@ -180,7 +180,7 @@
                     "link_variance_floor", "warc_retention_days", "record_seal_blocks",
                     "domain_block_entries_max", "max_inclusion_blocks",
                     "ingest_budget_bytes_day", "min_observed_words",
-                    "extension_triggers_max", "contradictions_max",
+                    "extension_triggers_max",
                     "audit_fetch_cap_bytes", "audit_domain_budget_bytes_day",
                     "audit_redirect_max", "audit_fetch_timeout_seconds"
                   ]},
@@ -221,10 +221,6 @@
                   },
                   {
                     "if": {"properties": {"parameter": {"const": "extension_triggers_max"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "contradictions_max"}}},
                     "then": {"properties": {"value": {"minimum": 1}}}
                   },
                   {
