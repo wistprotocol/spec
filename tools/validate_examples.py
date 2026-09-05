@@ -2065,6 +2065,113 @@ def _dc4_parameter_in_force_twin():
         "recomputation is blind to which of an equal pair sealed later"
 check("negative:wist4-parameter-in-force", _dc4_parameter_in_force_twin)
 
+def _countability_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "parameter-combinations.json").read_text())
+
+def _wist4_section9():
+    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
+    return spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+
+def _coverage_failures_max_default():
+    """The row carries no identifier, so `_registry_table_defaults()` skips
+    it; the rule below needs the published number all the same."""
+    for line in _wist4_section9().splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == 4 and "`coverage_failures_max`" in cells[0]:
+            return int(re.match(r"(\d+)", cells[2]).group(1))
+    raise AssertionError("§9 publishes no coverage_failures_max default")
+
+def _cadence_upper_bound():
+    for line in _wist4_section9().splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == 3 and cells[0] == "`block_cadence_seconds`":
+            return int(re.search(r"\u2264 ([\d ]+)", cells[1]).group(1).replace(" ", ""))
+    raise AssertionError("§9 publishes no block_cadence_seconds ceiling")
+
+def _counts_at_some_height(cadence_s, lag_s, failures_max, window_days=30):
+    """The fact the §9 sum stands for: an Auditor failing every Block on a
+    fully sealed grid, counted at every height, ever passing the tolerance."""
+    window_s = window_days * 86400
+    best = 0
+    for n in range(lag_s // cadence_s + window_s // cadence_s + 3):
+        heights = {h for h in range(n + 1)
+                   if h * cadence_s + lag_s <= n * cadence_s
+                   and (n - h) * cadence_s < window_s}
+        best = max(best, len(heights))
+    return best, best > failures_max
+
+def _countability_sum(case, participants=("record_seal_blocks", "coverage_failures_max")):
+    return (case["coverage_deadline_hours"] * 3600
+            + sum(case[p] for p in participants) * case["block_cadence_seconds"])
+
+def _dc4_coverage_countability():
+    """WIST-4 §9: the sum that keeps a coverage failure countable."""
+    v = _countability_vector()
+    window_s = v["window_days"] * 86400
+    published = _coverage_failures_max_default()
+    labels = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        assert case["coverage_failures_max"] == published, \
+            f"{case['label']}: coverage_failures_max is not §9's published default"
+        total = _countability_sum(case)
+        assert total == case["sum_s"], \
+            f"{case['label']}: recomputed sum {total}, vector says {case['sum_s']}"
+        assert (total < window_s) == case["rule_holds"], \
+            f"{case['label']}: the rule's verdict disagrees with the vector"
+        on_grid = (case["coverage_deadline_hours"] * 3600) % case["block_cadence_seconds"] == 0
+        assert on_grid == case["deadline_on_grid"], f"{case['label']}: grid flag wrong"
+        for side, seal_blocks in (("unattested", case["record_seal_blocks"]),
+                                  ("attested_next_block", 1)):
+            lag = ((case["coverage_deadline_hours"] * 3600) // case["block_cadence_seconds"]
+                   + seal_blocks) * case["block_cadence_seconds"]
+            assert lag == case[side]["establishing_lag_s"], \
+                f"{case['label']} {side}: recomputed lag {lag}"
+            reached, fires = _counts_at_some_height(case["block_cadence_seconds"], lag,
+                                                    case["coverage_failures_max"],
+                                                    v["window_days"])
+            assert reached == case[side]["max_counted_at_any_height"], \
+                f"{case['label']} {side}: recomputed {reached} counted, vector says {case[side]['max_counted_at_any_height']}"
+            assert fires == case[side]["predicate_reachable"], \
+                f"{case['label']} {side}: reachability disagrees with the count"
+        if case["deadline_on_grid"]:
+            assert case["rule_holds"] == case["unattested"]["predicate_reachable"], \
+                f"{case['label']}: the rule and the predicate part on the grid"
+        else:
+            assert not case["rule_holds"] or case["unattested"]["predicate_reachable"], \
+                f"{case['label']}: the rule admits an unreachable predicate"
+    maxed = next(c for c in v["cases"]
+                 if c["block_cadence_seconds"] == _cadence_upper_bound()
+                 and c["record_seal_blocks"] == 24 and c["coverage_deadline_hours"] == 72)
+    assert not maxed["rule_holds"] and not maxed["unattested"]["predicate_reachable"] \
+        and maxed["attested_next_block"]["predicate_reachable"], \
+        "the vector no longer shows the ceiling the per-parameter table permits"
+    for needed in ("registry defaults", "one block past it", "a deadline between two blocks"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ", _wist4_section9())
+    for marker in ("`coverage_deadline_hours` \u00d7 3600 + (`record_seal_blocks` + "
+                   "`coverage_failures_max`) \u00d7 `block_cadence_seconds` MUST be shorter "
+                   "than 30 whole days (2 592 000 seconds)",
+                   "a party replaying the Log MUST reject a `parameter_change` that leaves it otherwise"):
+        assert marker in prose, f"§9 does not state: {marker!r}"
+check("vectors:wist4-coverage-countability", _dc4_coverage_countability)
+
+def _dc4_coverage_countability_twin():
+    """The check above must notice a sum bounded at the endpoint instead of
+    below it, and one that leaves `coverage_failures_max` out."""
+    v = _countability_vector()
+    window_s = v["window_days"] * 86400
+    boundary = next(c for c in v["cases"] if c["sum_s"] == window_s)
+    assert not boundary["unattested"]["predicate_reachable"], \
+        "the boundary case no longer sits where the two readings part"
+    assert (boundary["sum_s"] <= window_s) != boundary["rule_holds"], \
+        "an endpoint-inclusive bound admits a parameter set no history satisfies"
+    dead = next(c for c in v["cases"] if not c["unattested"]["predicate_reachable"]
+                and c["block_cadence_seconds"] == _cadence_upper_bound())
+    assert _countability_sum(dead, ("record_seal_blocks",)) < window_s, \
+        "the twin's failure span no longer changes the verdict"
+check("negative:wist4-coverage-countability", _dc4_coverage_countability_twin)
+
 def _unauditable_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "unauditable.json").read_text())
 

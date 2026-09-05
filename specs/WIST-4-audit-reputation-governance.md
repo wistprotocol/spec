@@ -2160,7 +2160,8 @@ NOT be longer than `coverage_deadline_hours`, or an Auditor's path for
 *B₁* is pulled before the extension duty *B₁* carries falls due;
 `block_decompressed_cap_bytes` MUST NOT be below the size of the largest
 Block the Aggregator seals, since only the pair decides whether any Block
-is applicable; and the `mirror_retention_days` sum below. `links_cap_bytes`
+is applicable; and the `mirror_retention_days` and coverage-countability
+sums below. `links_cap_bytes`
 MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 `JCS({"total":1,"urls":[…]})` around a single maximum-length URL literal —
 below it a page whose first link is long declares an empty prefix the
@@ -2237,6 +2238,34 @@ constant but not the combination. A `parameter_change` raising
 leave `mirror_retention_days` below their sum, and a party replaying the Log
 MUST reject one that does directly against this sentence, exactly as for the
 combination cases above.
+
+`coverage_failures_max` carries no identifier and no bound of its own,
+and needs one in combination for the reason this section opens with: it
+counts Blocks, so the cadence decides what it tolerates in wall-clock
+terms, and §4 spends the same 30 days twice. A failed duty counts only
+from its establishing height and only while the audited Block lies inside
+the 30 whole days ending at the height the count is read at, so the lag
+before the evidence seals and the span the failures occupy share one
+window. An Auditor failing every Block establishes the last of
+`coverage_failures_max` + 1 consecutive failures at the unattested rule's
+height — `coverage_deadline_hours` after that Block sealed, then
+`record_seal_blocks` Blocks, the height no Aggregator's silence can push
+back — and the first of them must still be inside the window read there.
+So `coverage_deadline_hours` × 3600 + (`record_seal_blocks` +
+`coverage_failures_max`) × `block_cadence_seconds` MUST be shorter than 30
+whole days (2 592 000 seconds), and a party replaying the Log MUST reject
+a `parameter_change` that leaves it otherwise, exactly as for the cases
+above. At or past that sum no height carries more than
+`coverage_failures_max` failures however completely an Auditor shirks, no
+history satisfies the predicate, and *The gate is not an amnesty* (§4)
+inverts into a permanent amnesty granted by the parameter set rather than
+by an Aggregator's silence. The sum reads each deadline as though it fell
+on the Block grid, which is the latest the `record_seal_blocks`-th Block
+after it can seal; a deadline landing between two Blocks only brings that
+height forward, so the rule errs toward keeping the mechanism reachable.
+Nothing in the per-parameter table catches this: `block_cadence_seconds`
+= 86 400 with every other value at its default is inside every bound the
+table publishes and gives the unattested path 51 days to fit into 30.
 
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|

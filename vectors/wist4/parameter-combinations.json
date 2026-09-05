@@ -1,0 +1,111 @@
+{
+  "note": "WIST-4 \u00a79 coverage-countability combination rule. Each case gives the four participants, the sum the rule bounds, and \u2014 from a simulation of an Auditor that fails every Block on a fully sealed grid \u2014 the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block. The rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks.",
+  "window_days": 30,
+  "cases": [
+    {
+      "label": "registry defaults",
+      "changed": "block_cadence_seconds",
+      "block_cadence_seconds": 3600,
+      "coverage_deadline_hours": 72,
+      "record_seal_blocks": 24,
+      "coverage_failures_max": 24,
+      "sum_s": 432000,
+      "rule_holds": true,
+      "deadline_on_grid": true,
+      "unattested": {
+        "establishing_lag_s": 345600,
+        "max_counted_at_any_height": 624,
+        "predicate_reachable": true
+      },
+      "attested_next_block": {
+        "establishing_lag_s": 262800,
+        "max_counted_at_any_height": 647,
+        "predicate_reachable": true
+      }
+    },
+    {
+      "label": "cadence at the tables maximum",
+      "changed": "block_cadence_seconds",
+      "block_cadence_seconds": 86400,
+      "coverage_deadline_hours": 72,
+      "record_seal_blocks": 24,
+      "coverage_failures_max": 24,
+      "sum_s": 4406400,
+      "rule_holds": false,
+      "deadline_on_grid": true,
+      "unattested": {
+        "establishing_lag_s": 2332800,
+        "max_counted_at_any_height": 3,
+        "predicate_reachable": false
+      },
+      "attested_next_block": {
+        "establishing_lag_s": 345600,
+        "max_counted_at_any_height": 26,
+        "predicate_reachable": true
+      }
+    },
+    {
+      "label": "the last seal deadline the rule admits",
+      "changed": "record_seal_blocks",
+      "block_cadence_seconds": 3600,
+      "coverage_deadline_hours": 72,
+      "record_seal_blocks": 623,
+      "coverage_failures_max": 24,
+      "sum_s": 2588400,
+      "rule_holds": true,
+      "deadline_on_grid": true,
+      "unattested": {
+        "establishing_lag_s": 2502000,
+        "max_counted_at_any_height": 25,
+        "predicate_reachable": true
+      },
+      "attested_next_block": {
+        "establishing_lag_s": 262800,
+        "max_counted_at_any_height": 647,
+        "predicate_reachable": true
+      }
+    },
+    {
+      "label": "one block past it",
+      "changed": "record_seal_blocks",
+      "block_cadence_seconds": 3600,
+      "coverage_deadline_hours": 72,
+      "record_seal_blocks": 624,
+      "coverage_failures_max": 24,
+      "sum_s": 2592000,
+      "rule_holds": false,
+      "deadline_on_grid": true,
+      "unattested": {
+        "establishing_lag_s": 2505600,
+        "max_counted_at_any_height": 24,
+        "predicate_reachable": false
+      },
+      "attested_next_block": {
+        "establishing_lag_s": 262800,
+        "max_counted_at_any_height": 647,
+        "predicate_reachable": true
+      }
+    },
+    {
+      "label": "a deadline between two blocks",
+      "changed": "record_seal_blocks",
+      "block_cadence_seconds": 5000,
+      "coverage_deadline_hours": 2,
+      "record_seal_blocks": 493,
+      "coverage_failures_max": 24,
+      "sum_s": 2592200,
+      "rule_holds": false,
+      "deadline_on_grid": false,
+      "unattested": {
+        "establishing_lag_s": 2470000,
+        "max_counted_at_any_height": 25,
+        "predicate_reachable": true
+      },
+      "attested_next_block": {
+        "establishing_lag_s": 10000,
+        "max_counted_at_any_height": 517,
+        "predicate_reachable": true
+      }
+    }
+  ]
+}
