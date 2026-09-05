@@ -3337,6 +3337,43 @@ for label, observers, auditors, acts, rejected in (
     roster_batch_cases.append({"label": label, "initial_after_removals": initial,
                                "acts": acts, "expected": result})
 
+ADMISSION_SUBJECT = "watch.sample.net"
+admission_registration = sign_envelope_with(priv2, "update", {"wist_version": "1.0.0",
+    "action": "observer_register", "subject": ADMISSION_SUBJECT, "effective_at": "2026-08-02T12:00:00Z",
+    "details": {"key_id": "observer-k1", "alg": "Ed25519", "public_key": b64u(pub2_raw)}}, "observer-k1")
+admission_record = dict(audit_record, auditor_id=ADMISSION_SUBJECT,
+    credit_commitment=audit_commit(RESPONSE_BODY + ADMISSION_SUBJECT.encode()),
+    vrf_proof=ecvrf.prove(SEED2, alpha).hex())
+admission_record_envelope = sign_envelope_with(priv2, "record", admission_record, "observer-k1")
+admission_head = "sha256:" + sha256_hex(rfc8785.dumps(admission_record))
+admission_checkpoints = [sign_envelope_with(priv2, "update", {"wist_version": "1.0.0",
+    "action": "observer_checkpoint", "subject": ADMISSION_SUBJECT,
+    "effective_at": f"2026-08-0{day}T12:00:00Z", "details": {"head": admission_head}}, "observer-k1") for day in (3,4)]
+admission_checkpoint_ids = ["sha256:" + sha256_hex(rfc8785.dumps(e["update"])) for e in admission_checkpoints]
+admission_board = {t: [0,0,0] for t in ("provisional", "standing", "mature")}
+admission_cases = []
+for label, registered, checkpoint_indices, selected_checkpoint, declared_board, error in (
+    ("new Auditor without Observer history", False, [], None, None, None),
+    ("former Observer needs track record", True, [0], None, None, "WIST4-E04"),
+    ("new Auditor cannot cite track record", False, [], 0, admission_board, "WIST4-E04"),
+    ("Observer cites latest checkpoint", True, [0,1], 1, admission_board, None),
+    ("no checkpoint to cite", True, [], 0, admission_board, "WIST4-E04"),
+    ("older checkpoint is not latest", True, [0,1], 0, admission_board, "WIST4-E04"),
+    ("scoreboard disagreement preserves admission", True, [0,1], 1, dict(admission_board, mature=[100,100,0]), None),
+):
+    details = {"key_id": "admitted-k1", "alg": "Ed25519", "public_key": b64u(pub4_raw)}
+    if selected_checkpoint is not None:
+        details["track_record"] = {"checkpoint": admission_checkpoint_ids[selected_checkpoint], "scoreboard": declared_board}
+    envelope = sign_envelope("update", {"wist_version": "1.0.0", "action": "auditor_admit",
+        "subject": ADMISSION_SUBJECT, "effective_at": "2026-08-05T12:00:00Z", "details": details}, "test-agg-k1")
+    history = ([{"height": 1, "envelope": admission_registration}] if registered else []) + [
+        {"height": 2+i, "envelope": admission_checkpoints[i]} for i in checkpoint_indices]
+    valid = (selected_checkpoint is None if not registered else bool(checkpoint_indices) and selected_checkpoint == max(checkpoint_indices))
+    assert valid == (error is None), label
+    admission_cases.append({"label": label, "history": history, "admission_height": 4, "envelope": envelope,
+        "recomputed_scoreboard": admission_board, "error": error,
+        "admitted_key": "admitted-k1" if valid else None})
+
 write_json(WIST4 / "roster.json", spaced_labels({
     "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
              "acts in Log order, the indices a replayer rejects (WIST4-E07), and "
@@ -3351,6 +3388,9 @@ write_json(WIST4 / "roster.json", spaced_labels({
              "exercise key and subject conflicts, not admission merits."),
     "cases": roster_cases,
     "batch_cases": roster_batch_cases,
+    "admission": {"note": "Prior registration and checkpoint Entries are valid. The supplied Record is the checkpoint head. No canary reveals are live, so every recomputed scoreboard is zero; admission remains discretionary even with that score. These cases isolate the evidence contract, with roster conflicts absent.",
+        "keys": [{"key_id": "observer-k1", "public_key": b64u(pub2_raw)}, {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}],
+        "record_envelope": admission_record_envelope, "cases": admission_cases},
 }))
 print("wist4 roster vector: %d cases" % len(roster_cases))
 
