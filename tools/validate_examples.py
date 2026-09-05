@@ -403,11 +403,24 @@ def _text_extraction_vector():
     for case in vec["extraction"]:
         got = link_extraction.extract_text(bytes.fromhex(case["html_hex"]))
         assert got == case["expected"], f"{case['label']}: {got!r} != {case['expected']!r}"
+    default_shingle = _registry_table_defaults()["shingle_size"]
     for case in vec["similarity"]:
         got = link_extraction.similarity(
-            case["reference"], case["observed"], vec["min_observed_words"])
+            case["reference"], case["observed"], vec["min_observed_words"],
+            case["shingle_size"])
         assert got == case["similarity"], \
             f"{case['label']}: {got!r} != {case['similarity']!r}"
+    # §5: one parameter governs the shingle length and the branch
+    # threshold, so an amended value must be able to move a pair across
+    # the branch and change its score.
+    amended = [c for c in vec["similarity"] if c["shingle_size"] != default_shingle]
+    assert amended, "no case amends shingle_size"
+    for case in amended:
+        at_default = link_extraction.similarity(
+            case["reference"], case["observed"], vec["min_observed_words"],
+            default_shingle)
+        assert at_default != case["similarity"], \
+            f"{case['label']}: the amendment changes nothing"
     # The guard and the branch structure, pinned by shape rather than trust:
     # one null (mass guard), one short-reference case, one non-trivial
     # containment strictly between the bands' endpoints.
@@ -504,7 +517,7 @@ def _text_extraction_twin():
     full = next(c for c in vec["similarity"] if c["label"] == "containment-full")
     sunk = link_extraction.similarity(
         full["reference"], full["observed"].replace(full["reference"], ""),
-        vec["min_observed_words"])
+        vec["min_observed_words"], full["shingle_size"])
     assert sunk == 0, f"removing the committed text left similarity {sunk!r}"
 
 check("negative:wist2-text-extraction", _text_extraction_twin)

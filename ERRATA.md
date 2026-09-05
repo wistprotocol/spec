@@ -1777,6 +1777,40 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-4 §5, §9: `shingle_size` governs the branch threshold too (revision, not errata)
+
+Rewrites §5's *Shingles* paragraph and the `shingle_size` row of §9's
+Parameter Registry, and adds two cases to
+`vectors/wist2/text-extraction.json`.
+
+**What it states.** §5 wrote the literal 8 twice — once as the word
+count at which the word branch is taken, once as the shingle length —
+while §9 registered one amendable `shingle_size` and never said whether
+it moved both. It moves both. The threshold is not an independent
+choice but the length's own precondition: a text of fewer than
+`shingle_size` words has no shingle of that length to contribute.
+Reading the threshold as a fixed 8 while honouring an amended
+`shingle_size` would put a 6-word text on the word branch with a 6-word
+shingle set the rule never defines, or leave a 9-word text on the
+grapheme branch under a `shingle_size` of 10 — either way the two sides
+of the quotient are built by different rules.
+
+**Why it is a revision.** It fails the first condition. An Auditor that
+read the two 8s as one parameter and one that read the threshold as a
+constant both conformed to the words, and under an amended
+`shingle_size` they compute different `similarity` for the same pair,
+which is a different verdict and a different Confirmed Inconsistency.
+Under the Registry default nothing changes, which is why the divergence
+could sit unnoticed until the first amendment.
+
+**Status.** Exercised. `vectors:wist2-text-extraction` carries a
+`shingle_size` per case and two amended ones over the pair the default
+scores at 500 000: at 10 the reference's 9 words fall below the
+threshold and the grapheme branch scores it 885 714, at 4 the word
+branch with a shorter shingle scores it 833 333. The check also proves
+each amendment changes the score, so a reader that ignored the
+parameter would fail it.
+
 ## 2026-09-04 — WIST-4 §7: a notice may share its sanction's Block (revision, not errata)
 
 Adds the bullet *"Preceded by" bounds the Aggregator's conduct, not the

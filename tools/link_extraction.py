@@ -416,15 +416,17 @@ def _shingles(units, n):
     return {tuple(units[k:k + n]) for k in range(len(units) - n + 1)}
 
 
-def similarity(reference: str, observed: str, min_observed_words: int = 40):
+def similarity(reference: str, observed: str, min_observed_words: int = 40,
+               shingle_size: int = 8):
     """WIST-4 §5: reference-containment similarity, integer micro-units.
 
     Returns None where the mass guard rules the audit `not_auditable`:
     an observed text below `min_observed_words` is a page that says
     almost nothing, and absence is not contradiction. Otherwise
-    floor(|A ∩ B| × 1e6 / |A|) over 8-word shingles, falling to
-    grapheme shingles of length min(8, g_A, g_B) when either text has
-    fewer than 8 words.
+    floor(|A ∩ B| × 1e6 / |A|) over `shingle_size`-word shingles, falling
+    to grapheme shingles of length min(shingle_size, g_A, g_B) when
+    either text has fewer than `shingle_size` words. One parameter
+    governs both the length and the branch threshold (§5).
 
     Test-suite scope: normalization here is NFC + str.casefold(), and
     word segmentation is whitespace splitting; fixtures are restricted
@@ -438,11 +440,11 @@ def similarity(reference: str, observed: str, min_observed_words: int = 40):
     ref_words, obs_words = ref.split(), obs.split()
     if len(obs_words) < min_observed_words:
         return None
-    if len(ref_words) >= 8 and len(obs_words) >= 8:
-        a = _shingles(ref_words, 8)
-        b = _shingles(obs_words, 8)
+    if len(ref_words) >= shingle_size and len(obs_words) >= shingle_size:
+        a = _shingles(ref_words, shingle_size)
+        b = _shingles(obs_words, shingle_size)
     else:
-        n = min(8, len(ref), len(obs))
+        n = min(shingle_size, len(ref), len(obs))
         a = _shingles(list(ref), n)
         b = _shingles(list(obs), n)
     assert a, "empty reference reaches similarity(); WIST-4 §5 rules it not_auditable earlier"
