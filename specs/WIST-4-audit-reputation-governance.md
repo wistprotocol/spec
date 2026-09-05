@@ -415,10 +415,11 @@ nothing: hashed over the epoch number, two suffixes and a budget of one
 can name the same suffix three epochs running. Walking turns permanent
 zero into a bounded delay: across any `⌈S / observer_checkpoint_budget⌉`
 consecutive epochs at whose first Blocks the same S suffixes are
-registered, every one of them is budgeted at least once, which §5.1's
-reveal minimum absorbs. A registration or admission between two epochs
-moves the positions after it, and a suffix so moved is budgeted within
-one such span of the change.
+registered and the same budget applies, every one of them is budgeted at least once, which §5.1's
+reveal minimum absorbs. A registration, admission or budget amendment may move subsequent
+positions. The bound requires the same suffix set and budget throughout
+its span; repeated changes carry no fixed-delay guarantee. §5.1 therefore
+also checks the actual opportunities before a reveal.
 An Aggregator MAY seal checkpoints beyond the budget; what it MUST NOT do
 is leave a budgeted one it fetched unsealed. A checkpoint under a key
 not registered at its Block, or whose `head` is not an Audit Record or
@@ -1802,6 +1803,35 @@ WIST-3 §4 requires for that index and tree size. A missing or malformed
 `leaf_hash`, or a short or surplus path, is `WIST4-E08`. Whether the
 served bytes hash to the leaf is checked by whoever computes a score,
 the same off-Log verification a Record's own commitments receive (§5).
+
+**A reveal must leave actual sealing opportunities.** The numeric
+minimum above is necessary but not sufficient under roster, epoch, budget
+or cadence changes. For each bound Delta's Block B, derive its ordinary
+coverage deadline using B's anchored parameters (§9), and let K(B) be the
+`record_seal_blocks`-th actual Block sealed after that deadline, with the
+count also anchored at B. A reveal MUST be above every K(B); if any has
+not yet sealed, the reveal is `WIST4-E08`.
+
+Let D be the latest of those coverage deadlines. Take the suffixes
+registered at the newest bound Delta's Block that are still represented
+by a registered Observer at the reveal's Block. For each such suffix,
+there MUST be a budgeting epoch E whose last Block's `sealed_at` is at or
+after D, which budgets that suffix under §3.1's actual roster and parameters,
+and whose following epoch has ended early enough that
+
+    reveal height ≥ last height of epoch E+1 + record_seal_blocks at E's first Block.
+
+The fetch occurs strictly before E+1's last Block; that Block is the first
+of the latest possible sealing allowance, so the inequality leaves the
+last permitted checkpoint strictly below the reveal. The endpoint is
+included. A suffix no longer represented at the reveal needs no future
+Observer checkpoint; a newly registered suffix absent at the newest Delta
+does not add a duty to this test. Check the available Log prefix only.
+An early checkpoint does not waive these guaranteed opportunities.
+Roster churn or amendments may leave no valid reveal before the pinned
+commitment lifetime; such a commitment expires without scoring. These
+requirements neither extend its lifetime nor promise that every open
+commitment will be revealable.
 
 **One Delta, one revealed leaf per Log.** An accepted reveal reserves
 each of its Delta IDs permanently in that Log, across all commitments and

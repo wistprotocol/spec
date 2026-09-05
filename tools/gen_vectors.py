@@ -4501,6 +4501,70 @@ observer_coverage_cases = [
 assert [list(c["fixed_before_reveal"].values()) for c in observer_coverage_cases] == \
     [[True, True, True, False, False], [True] * 5, [False] * 5], "coverage cases drifted"
 
+OPPORTUNITY_OBSERVERS = ["watch." + suffix for suffix in ("a.example", "b.example", "c.example", "d.example", "e.example", "f.example", "g.example", "h.example")]
+OPPORTUNITY_OBSERVERS.sort(key=lambda host: hashlib.sha256(two_label_suffix(host).encode()).digest())
+
+
+def opportunity_epochs(initial, changes, initial_budget, initial_length=24):
+    rows, start, number = [], 0, 0
+    while start <= 620:
+        roster, budget, length = list(initial), initial_budget, initial_length
+        for c in changes:
+            if c["height"] <= start:
+                roster = c.get("registered", roster)
+                budget = c.get("observer_checkpoint_budget", budget)
+                length = c.get("epoch_blocks", length)
+        budgeted = epoch_budget(roster, number, budget)[2] if roster else []
+        rows.append({"number": number, "first": start, "last": start + length - 1,
+            "registered": roster, "budget": budget, "seal_blocks": 24,
+            "budgeted_suffixes": sorted(two_label_suffix(o) for o in budgeted)})
+        start += length; number += 1
+    return rows
+
+
+opportunity_cases = []
+for label, initial, budget, changes, expected in (
+    ("roster growth delays original suffix", OPPORTUNITY_OBSERVERS[:1], 1,
+        [{"height":24, "registered":OPPORTUNITY_OBSERVERS}], 263),
+    ("budget reduction delays original suffixes", OPPORTUNITY_OBSERVERS, 8,
+        [{"height":216, "amendment_sealed_height":48, "observer_checkpoint_budget":1}], 503),
+    ("longer epochs delay checkpoint sealing", OPPORTUNITY_OBSERVERS[:1], 1,
+        [{"height":216, "amendment_sealed_height":48, "epoch_blocks":48, "canary_reveal_min_blocks":216}], 383),
+    ("faster cadence needs more Blocks before checkpoint", OPPORTUNITY_OBSERVERS[:1], 1,
+        [{"height":216, "amendment_sealed_height":48, "block_cadence_seconds":1800, "canary_reveal_min_blocks":216}], 383),
+    ("removed original suffix needs no checkpoint", OPPORTUNITY_OBSERVERS[:1], 1,
+        [{"height":24, "registered":[]}], 168),
+):
+    newest = 192 if any("amendment_sealed_height" in c for c in changes) else 0
+    deadline_s = (newest + 72) * 3600
+    numeric_minimum = newest + 168
+    block_times = [0]
+    for h in range(1,720):
+        cadence = 3600
+        for c in changes:
+            if c["height"] <= h-1:
+                cadence = c.get("block_cadence_seconds", cadence)
+        block_times.append((block_times[-1] // cadence + 1) * cadence)
+    epochs = opportunity_epochs(initial, changes, budget)
+    original = {two_label_suffix(o) for o in initial}
+    current = set(original)
+    for c in changes:
+        if "registered" in c:
+            current = {two_label_suffix(o) for o in c["registered"]}
+    waits = []
+    for suffix in original & current:
+        waits.append(min(epochs[i+1]["last"] + e["seal_blocks"] for i,e in enumerate(epochs[:-1])
+            if block_times[e["last"]] >= deadline_s and suffix in e["budgeted_suffixes"]))
+    coverage_last = [h for h,t in enumerate(block_times) if t > deadline_s][23]
+    earliest = max([numeric_minimum, coverage_last + 1] + waits)
+    assert earliest == expected, (label, earliest)
+    probes = sorted({newest+96,newest+97,numeric_minimum-1,numeric_minimum,earliest-1,earliest})
+    opportunity_cases.append({"label": label, "newest_delta_height":newest, "coverage_deadline_s":deadline_s,
+        "record_seal_blocks":24, "numeric_minimum":numeric_minimum, "initial_registered":initial,
+        "initial_budget":budget, "changes":changes, "block_times_s":block_times,
+        "epochs":epochs, "earliest_reveal_height":earliest,
+        "probes":[{"height":h, "valid":h>=earliest} for h in probes]})
+
 write_json(WIST4 / "observer-checkpoints.json", spaced_labels({
     "note": ("WIST-4 §3.1: which Observers an epoch budgets (suffixes in a fixed order by "
              "SHA-256 over the suffix, the epoch's window of one budget starting at "
@@ -4511,6 +4575,7 @@ write_json(WIST4 / "observer-checkpoints.json", spaced_labels({
              "to under a mid-Log change of epoch_blocks (each epoch spans the value in "
              "force at its first Block), and which chain items a sealed checkpoint fixes "
              "before a reveal."),
+    "opportunity_cases": opportunity_cases,
     "epoch_blocks_default": OBS_EPOCH_DEFAULT,
     "budget_cases": observer_budget_cases,
     "epoch_changes": [{"effective_at_s": t, "value": v} for t, v in EPOCH_CHANGES],

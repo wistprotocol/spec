@@ -3150,3 +3150,19 @@ a fabricated chain gap. Removing that exclusion changes failure counts.
 fabricated predecessor, a matching signed receipt and an unrelated receipt.
 Counting vectors now retain unattested failures despite chain gaps. The
 harness verifies signatures, the successor's VRF proof and receipt matching.
+
+## 2026-09-05 — WIST-4 §3.1, §5.1: actual canary sealing opportunities (revision, not errata)
+
+**What changed.** Reveal validity requires completed coverage seal
+allowances and an actual post-duty checkpoint budget opportunity for every
+original suffix still represented. The unchanged-roster bound no longer
+claims to survive arbitrary churn. ADR-0034 amends ADR-0012 and ADR-0027.
+
+**Why a revision.** A reveal at the former numeric minimum could precede
+the service turn it was supposed to leave. Such reveals now reject.
+
+**Exercised.** `observer-checkpoints.json` includes growth from one suffix
+to eight, a budget reduction, a longer epoch, a faster cadence and the
+disappearance of an
+original suffix. Prefix probes distinguish the numeric minimum, the last
+permitted checkpoint height and the first permitted reveal height.
