@@ -897,9 +897,10 @@ URL's content from all subsequent Snapshots. A `payload_withdrawal` (§6.2)
 likewise excludes that Delta's content from every Snapshot produced at or
 above its sealing height, in both tiers, including any declared link
 derived from it. A URL that is **unauditable** at the
-Snapshot's `log_position` (WIST-4 §5) — one that two independent Auditors
-have been forbidden to fetch by `robots.txt` inside the unauditable
-horizon, with no successful audit by an Auditor independent of both
+Snapshot's `log_position` (WIST-4 §5) — one for which two independent Auditors
+have sealed blocking Records inside the unauditable horizon, a
+`robots.txt` prohibition or a page that could not be measured, with no
+successful audit by an Auditor independent of both
 since — is excluded for as long as that holds, and returns to
 materialization at the first Snapshot built at or above the height of
 such an audit. The log itself

@@ -2704,8 +2704,28 @@ CLEARING_VERDICTS = ("consistent", "inconsistent", "dynamic_variance",
                      "link_variance", "link_inconsistent")
 
 
+def record_blocks(record):
+    """§5: a blocking Record is a robots_excluded Record or a not_auditable
+    Record whose `unmeasured` side is the observed one; a reference-side
+    not_auditable Record blocks nothing."""
+    if record["verdict"] == "unreachable":
+        return bool(record.get("robots_excluded"))
+    return record["verdict"] == "not_auditable" and record.get("unmeasured") == "observed"
+
+
+def robots(auditor, sealed_at_s):
+    return {"auditor": auditor, "sealed_at_s": sealed_at_s, "verdict": "unreachable",
+            "robots_excluded": True, "unmeasured": None}
+
+
+def unmeasured(auditor, sealed_at_s, side):
+    return {"auditor": auditor, "sealed_at_s": sealed_at_s, "verdict": "not_auditable",
+            "robots_excluded": False, "unmeasured": side}
+
+
 def unauditable_at(blocking, others, n_s, horizon_days):
-    live = [b for b in blocking if within_days_ending_at(b["sealed_at_s"], n_s, horizon_days)]
+    live = [b for b in blocking if record_blocks(b)
+            and within_days_ending_at(b["sealed_at_s"], n_s, horizon_days)]
     for i, b1 in enumerate(live):
         for b2 in live[i + 1:]:
             if not independent(b1["auditor"], b2["auditor"]):
@@ -2722,6 +2742,7 @@ def unauditable_at(blocking, others, n_s, horizon_days):
 
 
 def unauditable_case(label, blocking, others, n_s):
+    blocking = [dict(b, blocks=record_blocks(b)) for b in blocking]
     return {"label": label, "blocking": blocking, "other_records": others,
             "n_sealed_at_s": n_s,
             "unauditable": unauditable_at(blocking, others, n_s, UNAUDITABLE_HORIZON_DAYS)}
@@ -2732,61 +2753,78 @@ A1, A2, A3, A2_KIN = "audit.example.org", "checker.example.net", "verify.example
 A3_KIN, A4 = "mirror.example.com", "probe.sample.org"
 unauditable_cases = [
     unauditable_case("two-independent-blocking-inside-the-horizon",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)], [], N_S),
     unauditable_case("second-blocking-exactly-thirty-days-before-n",
-                     [{"auditor": A1, "sealed_at_s": N_S - 30 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+                     [robots(A1, N_S - 30 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)], [], N_S),
     unauditable_case("second-blocking-one-second-inside-the-horizon",
-                     [{"auditor": A1, "sealed_at_s": N_S - 30 * DAY_S + 1},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+                     [robots(A1, N_S - 30 * DAY_S + 1),
+                      robots(A2, N_S - 10 * DAY_S)], [], N_S),
     unauditable_case("blocking-pair-not-independent",
-                     [{"auditor": A2, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2_KIN, "sealed_at_s": N_S - 10 * DAY_S}], [], N_S),
+                     [robots(A2, N_S - 20 * DAY_S),
+                      robots(A2_KIN, N_S - 10 * DAY_S)], [], N_S),
     unauditable_case("cleared-by-a-third-independent-auditor",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)],
                      [{"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S, "verdict": "consistent"}], N_S),
     unauditable_case("clearing-auditor-dependent-on-a-blocker",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)],
                      [{"auditor": A2_KIN, "sealed_at_s": N_S - 5 * DAY_S, "verdict": "consistent"}], N_S),
     unauditable_case("clearing-record-before-the-later-blocking",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)],
                      [{"auditor": A3, "sealed_at_s": N_S - 15 * DAY_S, "verdict": "consistent"}], N_S),
     unauditable_case("unreachable-does-not-clear",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)],
                      [{"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S, "verdict": "unreachable"}], N_S),
     unauditable_case("clearing-record-above-n",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)],
                      [{"auditor": A3, "sealed_at_s": N_S + DAY_S, "verdict": "consistent"}], N_S),
     unauditable_case("clearing-record-at-the-later-blocking-instant",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)],
                      [{"auditor": A3, "sealed_at_s": N_S - 10 * DAY_S, "verdict": "consistent"}], N_S),
     unauditable_case("clearing-record-exactly-at-n",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S)],
                      [{"auditor": A3, "sealed_at_s": N_S, "verdict": "consistent"}], N_S),
     unauditable_case("three-blockers-one-pair-uncleared",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S},
-                      {"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S),
+                      robots(A3, N_S - 5 * DAY_S)],
                      [{"auditor": A3_KIN, "sealed_at_s": N_S - 2 * DAY_S, "verdict": "consistent"}], N_S),
     unauditable_case("three-blockers-every-pair-cleared",
-                     [{"auditor": A1, "sealed_at_s": N_S - 20 * DAY_S},
-                      {"auditor": A2, "sealed_at_s": N_S - 10 * DAY_S},
-                      {"auditor": A3, "sealed_at_s": N_S - 5 * DAY_S}],
+                     [robots(A1, N_S - 20 * DAY_S),
+                      robots(A2, N_S - 10 * DAY_S),
+                      robots(A3, N_S - 5 * DAY_S)],
                      [{"auditor": A4, "sealed_at_s": N_S - 2 * DAY_S, "verdict": "consistent"}], N_S),
 ]
 assert [c["unauditable"] for c in unauditable_cases[-4:]] == [True, False, True, False], \
     "unauditable boundary cases drifted"
 
+unauditable_cases += [
+    unauditable_case("two-reference-side-not-auditable-records-block-nothing",
+                     [unmeasured(A1, N_S - 20 * DAY_S, "reference"),
+                      unmeasured(A2, N_S - 10 * DAY_S, "reference")], [], N_S),
+    unauditable_case("an-observed-side-not-auditable-record-beside-a-robots-exclusion-blocks",
+                     [robots(A1, N_S - 20 * DAY_S),
+                      unmeasured(A2, N_S - 10 * DAY_S, "observed")], [], N_S),
+    unauditable_case("a-reference-side-record-beside-a-robots-exclusion-blocks-nothing",
+                     [robots(A1, N_S - 20 * DAY_S),
+                      unmeasured(A2, N_S - 10 * DAY_S, "reference")], [], N_S),
+    unauditable_case("two-observed-side-not-auditable-records-block",
+                     [unmeasured(A1, N_S - 20 * DAY_S, "observed"),
+                      unmeasured(A2, N_S - 10 * DAY_S, "observed")], [], N_S),
+]
+assert [c["unauditable"] for c in unauditable_cases[-4:]] == [False, True, False, True], \
+    "blocking-cause cases drifted"
+
 write_json(WIST4 / "unauditable.json", spaced_labels({
-    "note": "WIST-4 §5 unauditable predicate at Block N. blocking are the URL's blocking Records, other_records its Records of any other verdict, both as (auditor, sealing instant).",
+    "note": "WIST-4 §5 unauditable predicate at Block N. blocking are the URL's Records that may block — robots_excluded Records and not_auditable Records with their `unmeasured` side, `blocks` saying whether each does — other_records its Records of any other verdict, both as (auditor, sealing instant).",
     "unauditable_horizon_days": UNAUDITABLE_HORIZON_DAYS,
     "clearing_verdicts": list(CLEARING_VERDICTS),
     "cases": unauditable_cases,

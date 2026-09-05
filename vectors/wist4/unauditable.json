@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75 unauditable predicate at Block N. blocking are the URL's blocking Records, other_records its Records of any other verdict, both as (auditor, sealing instant).",
+  "note": "WIST-4 \u00a75 unauditable predicate at Block N. blocking are the URL's Records that may block \u2014 robots_excluded Records and not_auditable Records with their `unmeasured` side, `blocks` saying whether each does \u2014 other_records its Records of any other verdict, both as (auditor, sealing instant).",
   "unauditable_horizon_days": 30,
   "clearing_verdicts": [
     "consistent",
@@ -14,11 +14,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [],
@@ -30,11 +38,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6048000
+          "sealed_at_s": 6048000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [],
@@ -46,11 +62,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6048001
+          "sealed_at_s": 6048001,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [],
@@ -62,11 +86,19 @@
       "blocking": [
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "other.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [],
@@ -78,11 +110,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -100,11 +140,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -122,11 +170,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -144,11 +200,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -166,11 +230,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -188,11 +260,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -210,11 +290,19 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -232,15 +320,27 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "verify.example.com",
-          "sealed_at_s": 8208000
+          "sealed_at_s": 8208000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -258,15 +358,27 @@
       "blocking": [
         {
           "auditor": "audit.example.org",
-          "sealed_at_s": 6912000
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "checker.example.net",
-          "sealed_at_s": 7776000
+          "sealed_at_s": 7776000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         },
         {
           "auditor": "verify.example.com",
-          "sealed_at_s": 8208000
+          "sealed_at_s": 8208000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
         }
       ],
       "other_records": [
@@ -278,6 +390,102 @@
       ],
       "n_sealed_at_s": 8640000,
       "unauditable": false
+    },
+    {
+      "label": "two reference side not auditable records block nothing",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000,
+          "verdict": "not_auditable",
+          "robots_excluded": false,
+          "unmeasured": "reference",
+          "blocks": false
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000,
+          "verdict": "not_auditable",
+          "robots_excluded": false,
+          "unmeasured": "reference",
+          "blocks": false
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": false
+    },
+    {
+      "label": "an observed side not auditable record beside a robots exclusion blocks",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000,
+          "verdict": "not_auditable",
+          "robots_excluded": false,
+          "unmeasured": "observed",
+          "blocks": true
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
+    },
+    {
+      "label": "a reference side record beside a robots exclusion blocks nothing",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000,
+          "verdict": "unreachable",
+          "robots_excluded": true,
+          "unmeasured": null,
+          "blocks": true
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000,
+          "verdict": "not_auditable",
+          "robots_excluded": false,
+          "unmeasured": "reference",
+          "blocks": false
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": false
+    },
+    {
+      "label": "two observed side not auditable records block",
+      "blocking": [
+        {
+          "auditor": "audit.example.org",
+          "sealed_at_s": 6912000,
+          "verdict": "not_auditable",
+          "robots_excluded": false,
+          "unmeasured": "observed",
+          "blocks": true
+        },
+        {
+          "auditor": "checker.example.net",
+          "sealed_at_s": 7776000,
+          "verdict": "not_auditable",
+          "robots_excluded": false,
+          "unmeasured": "observed",
+          "blocks": true
+        }
+      ],
+      "other_records": [],
+      "n_sealed_at_s": 8640000,
+      "unauditable": true
     }
   ]
 }

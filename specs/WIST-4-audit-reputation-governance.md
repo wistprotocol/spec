@@ -1010,7 +1010,8 @@ ordinary WARC tooling rather than with the Auditor's.
 `evidence_commitment` and `similarity` are REQUIRED when the verdict is
 `consistent`, `inconsistent`, `dynamic_variance`, `link_variance`, or
 `link_inconsistent`, and MUST be omitted when it is `unreachable` or
-`not_auditable`. Those two verdicts
+`not_auditable`; a `not_auditable` Record carries `unmeasured` instead,
+naming the side that left nothing to measure (below). Those two verdicts
 are exactly the cases with nothing to commit to and no key to commit
 under: `unreachable` records that no representation of the page was
 obtained to compare against, whether the fetch failed outright, returned
@@ -1514,7 +1515,17 @@ side: the mass guard, the non-HTML rule below, or the fetch bounds above.
 It is not a
 `not_auditable` Record produced by a missing or empty **reference**,
 which says the Publisher committed to nothing an audit could measure and
-is the Publisher's own claim to have made no claim. The distinction is
+is the Publisher's own claim to have made no claim. Which side produced
+it is sealed in the Record: every `not_auditable` Record carries
+`unmeasured`, `"observed"` where the page could not be measured and
+`"reference"` where there was no reference to measure against, and a
+`not_auditable` Record without it — or any other Record with it — is
+malformed evidence (`WIST4-E02`), discharging its duty like every
+malformed Record and blocking nothing. The field exists because the two
+cases are indistinguishable otherwise: a Reference Payload no source
+served and a page below the mass guard both leave a Record with no
+commitment and no similarity, and a predicate every party must derive
+identically cannot rest on which the Auditor meant. The distinction is
 what the predicate turns on: a URL whose *page* cannot be measured is a
 URL whose declared `extract` no Auditor can ever confirm, and carrying
 an unconfirmable extract in the tiers indefinitely is exactly the
@@ -2980,7 +2991,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
 | WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the `sealed_at` of the Block its duty is anchored to — the audited Block for a VRF selection, *B₁* for an extension (§4) — or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored there; in every other case there was no duty to discharge — a key never admitted at that Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing, whatever else is also true of it. |
-| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
+| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2); a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
 | WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, or whose `subject` has none and carries one (§3.1). Ignored as WIST4-E03. |
 | WIST4-E05 | Governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
@@ -3369,7 +3380,9 @@ bound by WIST-3 §6.2's destroy obligation exactly as an Auditor is.
       observed text below the mass guard (outside the `delete` mirror's
       ruled-on `404`/`410`), for a non-HTML representation, and for a page
       the fetch bounds stopped before a representation was read — each
-      discharging the coverage duty (§4, §5)
+      discharging the coverage duty — and seals `unmeasured` on every such
+      Record, `"reference"` for the first three causes and `"observed"`
+      for the rest (§4, §5)
 - [ ] Bounds its own fetches: reads no more than `audit_fetch_cap_bytes`
       of response body per audited URL, fetches no more than
       `audit_domain_budget_bytes_day` for one domain per UTC day, follows
@@ -3441,8 +3454,9 @@ bound by WIST-3 §6.2's destroy obligation exactly as an Auditor is.
       Feed, fetches every budgeted Observer's once per epoch, and seals
       what verifies within `record_seal_blocks` (§3.1, §9.1)
 - [ ] Excludes unauditable URLs from materialization for as long as §5's
-      predicate holds — two independent `robots_excluded` Records inside
-      the horizon, cleared only by a successful audit from an Auditor
+      predicate holds — two independent blocking Records inside the
+      horizon, `robots_excluded` or `not_auditable` with `unmeasured`
+      `"observed"`, cleared only by a successful audit from an Auditor
       independent of both, or by their ageing out (§5, WIST-3 §7)
 - [ ] Removes an Auditor past `coverage_failures_max` by `auditor_remove`
       naming the failed Blocks — recording an exclusion that §4 already
