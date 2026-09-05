@@ -326,6 +326,58 @@
       "discharges": false
     }
   ],
+  "signature_cases": [
+    {
+      "label": "steady key signs and proves",
+      "duty_block_key": "k0",
+      "record_block_key": "k0",
+      "signed_under": "k0",
+      "proof_under": "k0",
+      "void": null,
+      "counts": true,
+      "discharges": true
+    },
+    {
+      "label": "rotated record signed under the new key with the old proof",
+      "duty_block_key": "k0",
+      "record_block_key": "k1",
+      "signed_under": "k1",
+      "proof_under": "k0",
+      "void": null,
+      "counts": true,
+      "discharges": true
+    },
+    {
+      "label": "rotated record signed under the removed duty key",
+      "duty_block_key": "k0",
+      "record_block_key": "k1",
+      "signed_under": "k0",
+      "proof_under": "k0",
+      "void": "removed after anchor block",
+      "counts": false,
+      "discharges": true
+    },
+    {
+      "label": "exited auditor signs under the removed duty key",
+      "duty_block_key": "k0",
+      "record_block_key": null,
+      "signed_under": "k0",
+      "proof_under": "k0",
+      "void": "removed after anchor block",
+      "counts": false,
+      "discharges": true
+    },
+    {
+      "label": "signed under a key never admitted",
+      "duty_block_key": "k0",
+      "record_block_key": "k1",
+      "signed_under": "k2",
+      "proof_under": "k0",
+      "void": "never admitted at anchor block",
+      "counts": false,
+      "discharges": false
+    }
+  ],
   "establishing_cases": [
     {
       "label": "attested unmet establishes at the attestation",

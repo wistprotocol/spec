@@ -575,8 +575,15 @@ judge, never the Publisher's fault, and never counts toward a sanction.
 
 The duty is anchored to the Block's `sealed_at`: it exists only if the
 Auditor was admitted at that instant, and the Record or attestation
-discharging it MUST verify against the key admitted then, even if the
-Auditor has since been removed. Removal therefore ends an Auditor's future
+discharging it carries its `vrf_proof` under the key admitted then — the
+proof is over that Block, and that key is the one whose draw the Block
+fixed — even if the Auditor has since been removed. The signature is
+§3's: under the key the Auditor holds at the Record's own Block, which
+across a rotation is the new key beside a proof under the old one. A
+Record signed under the duty Block's key after that key was removed is
+void for standing and, by §3's carve-out, still discharges the duty —
+which is how an Auditor removed with no successor key discharges the
+duties it had incurred. Removal therefore ends an Auditor's future
 duties; it does not retroactively excuse the ones already incurred, and it
 does not strip the Auditor of the ability to discharge them.
 
