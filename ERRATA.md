@@ -3048,3 +3048,19 @@ changes the contract.
 **Exercised.** `sanctions.json` supplies signed amendment envelopes for
 all three retired names and ensuing finding sequences. The harness checks
 signatures, schema rejection and the unchanged count/severity transitions.
+
+## 2026-09-05 — WIST-1 §4, WIST-4 §9 and Registry Update schema: parameter integer range (revision, not errata)
+
+**What changed.** Suite integers have the explicit inclusive wire range
+±(2^53−1); the parameter schema enforces it and a zero floor on
+`provisional_cap_u`. Intermediate arithmetic is exact without that width
+limit. ADR-0029 amends ADR-0012.
+
+**Why a revision.** The previous per-field-bound claim left Registry
+values unconstrained. The new constraints reject previously schema-valid
+large values and negative caps.
+
+**Exercised.** `parameter-combinations.json` probes both wire endpoints,
+the first values outside them, a negative/zero Provisional cap, and an
+in-range cadence accepted by the schema but rejected by combination rules.
+Signatures are checked where the test input has a canonical integer.
