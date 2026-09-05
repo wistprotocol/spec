@@ -3456,7 +3456,7 @@ assert [c["open"] for c in canary_scoring_window_cases] == [True, True, True, Fa
 
 
 def canary_timing(commitment_height, delta_heights, reveal_height, suffixes, p=CANARY_PARAMS):
-    rotation = (-(-suffixes // p["observer_checkpoint_budget"]) - 1) * p["epoch_blocks"]
+    rotation = (max(-(-suffixes // p["observer_checkpoint_budget"]), 1) - 1) * p["epoch_blocks"]
     earliest = max(delta_heights) + p["canary_reveal_min_blocks"] + rotation
     latest = commitment_height + p["canary_lifetime_blocks"]
     lead_ok = all(h >= commitment_height + p["canary_lead_blocks"] for h in delta_heights)
@@ -3473,14 +3473,18 @@ canary_timing_scenarios = [
     ("a-delta-inside-the-lead", 100, [123, 200], 400, 1),
     ("an-over-budget-roster-delays-the-minimum", 100, [124, 200], 400, 2049),
     ("the-delayed-minimum-met", 100, [124, 200], 416, 2049),
+    ("no-observer-registered-reveal-at-the-minimum", 100, [124, 200], 368, 0),
+    ("no-observer-registered-reveal-one-block-early", 100, [124, 200], 367, 0),
 ]
 canary_timing_cases = [
     {"label": label, "commitment_height": c, "delta_heights": ds, "reveal_height": r,
      "suffixes_registered": sfx, **canary_timing(c, ds, r, sfx)}
     for label, c, ds, r, sfx in canary_timing_scenarios
 ]
-assert [c["valid"] for c in canary_timing_cases] == [True, False, True, False, False, False, True], \
-    "canary timing cases drifted"
+assert [c["valid"] for c in canary_timing_cases] == \
+    [True, False, True, False, False, False, True, True, False], "canary timing cases drifted"
+assert canary_timing_cases[7]["earliest_reveal_height"] == canary_timing_cases[0]["earliest_reveal_height"], \
+    "an empty Observer roster must add no rotation and subtract none"
 
 # The scoreboard: per identity, per tier of the audited domain, encountered /
 # credited / hard hits over the Records fixed before the reveal.

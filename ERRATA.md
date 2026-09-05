@@ -2719,3 +2719,32 @@ recomputes each, checks every suffix inside every window of
 `bound_epochs` consecutive epochs, and requires §3.1 to state the order,
 the window and the bound. Its twin fails a static queue and the fresh
 draw alike.
+
+## 2026-09-05 — WIST-4 §5.1: no Observer registered adds no rotation and subtracts none (revision, not errata)
+
+Rewrites the rotation term of §5.1's reveal minimum and adds two timing
+cases to `vectors/wist4/canary.json`.
+
+**What it states.** The reveal minimum is `canary_reveal_min_blocks`
+plus one rotation of the checkpoint budget less an epoch —
+`(max(⌈S / observer_checkpoint_budget⌉, 1) − 1) × epoch_blocks` Blocks,
+S the suffixes registered at the newest bound Delta's Block. With no
+Observer registered the term is zero and the minimum is the base
+parameter.
+
+**Why it is a revision.** It fails the first condition for one input.
+The literal `(⌈S / observer_checkpoint_budget⌉ − 1) × epoch_blocks` gives
+−`epoch_blocks` at S = 0, so a reveal 144 Blocks after its last leaf's
+Delta was valid on a Log with no Observer and is `WIST4-E08` now. The
+former value was an artifact of the arithmetic rather than a choice: the
+minimum exists so that the last leaf's Auditor Records can seal before
+the reveal, and §9's combination rule sizes the base parameter for
+exactly that with no Observer in the sum, so the rotation term can add
+to it but has nothing to subtract. S = 0 is reachable — every Log begins
+there — and the reading is now written rather than computed.
+
+**Status.** Exercised. `canary.json`'s timing cases reveal at the
+minimum and one Block early with no Observer registered, and require the
+empty roster to leave the minimum where a single suffix leaves it;
+`vectors:wist4-canary` recomputes them and its twin fails the literal
+subtraction.

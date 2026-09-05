@@ -2659,9 +2659,10 @@ def _canary_hard_hit(v, reproduces, verdict, derived, bands_apart=2):
                 or (verdict == "inconsistent" and derived >= p["similarity_consistent"]))
     return verdict != _canary_band(v, derived) and verdict in ("consistent", "inconsistent")
 
-def _canary_timing(v, case):
+def _canary_timing(v, case, literal_rotation=False):
     p = v["parameters"]
-    rotation = (-(-case["suffixes_registered"] // p["observer_checkpoint_budget"]) - 1) * p["epoch_blocks"]
+    turns = -(-case["suffixes_registered"] // p["observer_checkpoint_budget"])
+    rotation = ((turns if literal_rotation else max(turns, 1)) - 1) * p["epoch_blocks"]
     earliest = max(case["delta_heights"]) + p["canary_reveal_min_blocks"] + rotation
     latest = case["commitment_height"] + p["canary_lifetime_blocks"]
     lead_ok = all(h >= case["commitment_height"] + p["canary_lead_blocks"] for h in case["delta_heights"])
@@ -2786,6 +2787,12 @@ def _dc4_canary():
         assert got == want, f"{case['label']}: recomputed {got}, vector says {want}"
     assert any(c["suffixes_registered"] > v["parameters"]["observer_checkpoint_budget"] and c["valid"]
                for c in v["timing_cases"]), "no case shows the rotation term absorbed"
+    none = [c for c in v["timing_cases"] if c["suffixes_registered"] == 0]
+    one = next(c for c in v["timing_cases"] if c["suffixes_registered"] == 1)
+    assert none and all(c["earliest_reveal_height"] == one["earliest_reveal_height"] for c in none), \
+        "an empty Observer roster must leave the minimum where one suffix leaves it"
+    assert "`(max(⌈S / observer_checkpoint_budget⌉, 1) − 1) × epoch_blocks`" in prose, \
+        "§5.1 does not clamp the rotation term at no registered suffix"
     for record in v["scoreboard_records"]:
         if record["held"] is None:
             assert record["credit_commitment"] is None and record["verdict"] in ("unreachable", "not_auditable")
@@ -2856,6 +2863,10 @@ def _dc4_canary_twin():
     assert _canary_window_open(lapsed, end_inclusive_start_exclusive=False) is True \
         and _canary_window_open(lapsed) is False, \
         "recomputation is blind to the window's closing endpoint"
+    empty = next(c for c in v["timing_cases"]
+                 if c["label"] == "no observer registered reveal one block early")
+    assert _canary_timing(v, empty, literal_rotation=True)[3] is True and _canary_timing(v, empty)[3] is False, \
+        "recomputation is blind to the literal minus-one-rotation at no suffix"
     thin = next(l for l in v["leaves"] if l["class"] == "thin")
     assert thin["derived_similarity"] is None and \
         _canary_hard_hit(v, True, "consistent", 0) is True and \
