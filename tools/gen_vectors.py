@@ -2349,6 +2349,27 @@ assert all(l["chain_gap_under_global_publication_order"]
            for l in coverage_chain_scope_cases[0]["logs"]), \
     "the global-order reading must show the gap the per-Log rule rules out"
 
+late_discharge_cases = []
+for label, selected_deltas, records, coverage_height, pull_height in (
+    ("unmet pull then late complete Record", ["delta a"], [(100, "delta a", [])], None, 80),
+    ("fallback then late complete Record", ["delta a"], [(100, "delta a", [])], None, None),
+    ("partial completion remains failed", ["delta a", "delta b"], [(100, "delta a", []), (103, "delta b", [])], None, 80),
+    ("invalid Record cannot discharge", ["delta a"], [(100, "delta a", ["bad_vrf_proof"])], None, 80),
+    ("empty selection late coverage attestation", [], [], 100, 80),
+):
+    entries = [{"sealed_height": h, "delta": d, "void": voids} for h, d, voids in records]
+    establishing = min(96, pull_height) if pull_height is not None else 96
+    probes = []
+    for n in (79, 80, 95, 96, 99, 100, 102, 103):
+        held = {e["delta"] for e in entries if e["sealed_height"] <= n and void_record_discharges(e["void"])}
+        complete = set(selected_deltas) <= held if selected_deltas else coverage_height is not None and coverage_height <= n
+        probes.append({"height": n, "complete": complete,
+                       "counts": establishing <= n and not complete})
+    late_discharge_cases.append({"label": label, "audited_height": 0,
+        "deadline_height": 72, "record_seal_blocks": 24, "pull_height": pull_height,
+        "selected": selected_deltas, "records": entries, "coverage_attestation_height": coverage_height,
+        "probes": probes})
+
 write_json(WIST4 / "coverage.json", spaced_labels({
     "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count — the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it — and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
     "coverage_deadline_hours": 72,
@@ -2363,6 +2384,7 @@ write_json(WIST4 / "coverage.json", spaced_labels({
     "signature_cases": coverage_signature_cases,
     "establishing_cases": coverage_establishing_cases,
     "chain_scope_cases": coverage_chain_scope_cases,
+    "late_discharge_cases": late_discharge_cases,
 }))
 
 

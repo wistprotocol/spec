@@ -647,6 +647,24 @@ Block's own `sealed_at` counts at no height at all — from the height its
 evidence arrives at, the duty it records has already aged out of the
 window read there.
 
+**Late-sealed discharge reads the current prefix.** At height N, a pair
+whose complete duty is discharged by Records or a coverage attestation
+sealed at or below N does not count as a coverage failure, even if an
+earlier `pull_attestation` showed it unmet or the unattested fallback
+already established a failure. Discharge follows the standing and void
+carve-outs above; an invalid Record outside those carve-outs supplies no
+discharge. Partial completion leaves the pair unmet until the remaining
+duties are discharged. No suppression proof is required for completion.
+For an empty selection set, the required coverage attestation is the
+completion; silence still discharges nothing.
+
+Completion removes the pair from the count from its completion Block
+onward. It changes neither the earlier prefixes nor an `auditor_remove`
+already sealed. This does not certify timely publication: publication
+remains due at the deadline, while the Log records sealing and permits
+asynchronous sealing. Treating a later sealing as proof of late
+publication would assign fault from an instant the Log does not carry.
+
 The derived exclusion tracks the predicate rather than outliving it: as
 failures age out of the 30-day window with none replacing them, the Auditor
 is no longer in coverage failure and its later Records count again. A

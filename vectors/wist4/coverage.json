@@ -915,5 +915,307 @@
         }
       ]
     }
+  ],
+  "late_discharge_cases": [
+    {
+      "label": "unmet pull then late complete Record",
+      "audited_height": 0,
+      "deadline_height": 72,
+      "record_seal_blocks": 24,
+      "pull_height": 80,
+      "selected": [
+        "delta a"
+      ],
+      "records": [
+        {
+          "sealed_height": 100,
+          "delta": "delta a",
+          "void": []
+        }
+      ],
+      "coverage_attestation_height": null,
+      "probes": [
+        {
+          "height": 79,
+          "complete": false,
+          "counts": false
+        },
+        {
+          "height": 80,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 95,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 96,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 99,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 100,
+          "complete": true,
+          "counts": false
+        },
+        {
+          "height": 102,
+          "complete": true,
+          "counts": false
+        },
+        {
+          "height": 103,
+          "complete": true,
+          "counts": false
+        }
+      ]
+    },
+    {
+      "label": "fallback then late complete Record",
+      "audited_height": 0,
+      "deadline_height": 72,
+      "record_seal_blocks": 24,
+      "pull_height": null,
+      "selected": [
+        "delta a"
+      ],
+      "records": [
+        {
+          "sealed_height": 100,
+          "delta": "delta a",
+          "void": []
+        }
+      ],
+      "coverage_attestation_height": null,
+      "probes": [
+        {
+          "height": 79,
+          "complete": false,
+          "counts": false
+        },
+        {
+          "height": 80,
+          "complete": false,
+          "counts": false
+        },
+        {
+          "height": 95,
+          "complete": false,
+          "counts": false
+        },
+        {
+          "height": 96,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 99,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 100,
+          "complete": true,
+          "counts": false
+        },
+        {
+          "height": 102,
+          "complete": true,
+          "counts": false
+        },
+        {
+          "height": 103,
+          "complete": true,
+          "counts": false
+        }
+      ]
+    },
+    {
+      "label": "partial completion remains failed",
+      "audited_height": 0,
+      "deadline_height": 72,
+      "record_seal_blocks": 24,
+      "pull_height": 80,
+      "selected": [
+        "delta a",
+        "delta b"
+      ],
+      "records": [
+        {
+          "sealed_height": 100,
+          "delta": "delta a",
+          "void": []
+        },
+        {
+          "sealed_height": 103,
+          "delta": "delta b",
+          "void": []
+        }
+      ],
+      "coverage_attestation_height": null,
+      "probes": [
+        {
+          "height": 79,
+          "complete": false,
+          "counts": false
+        },
+        {
+          "height": 80,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 95,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 96,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 99,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 100,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 102,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 103,
+          "complete": true,
+          "counts": false
+        }
+      ]
+    },
+    {
+      "label": "invalid Record cannot discharge",
+      "audited_height": 0,
+      "deadline_height": 72,
+      "record_seal_blocks": 24,
+      "pull_height": 80,
+      "selected": [
+        "delta a"
+      ],
+      "records": [
+        {
+          "sealed_height": 100,
+          "delta": "delta a",
+          "void": [
+            "bad_vrf_proof"
+          ]
+        }
+      ],
+      "coverage_attestation_height": null,
+      "probes": [
+        {
+          "height": 79,
+          "complete": false,
+          "counts": false
+        },
+        {
+          "height": 80,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 95,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 96,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 99,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 100,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 102,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 103,
+          "complete": false,
+          "counts": true
+        }
+      ]
+    },
+    {
+      "label": "empty selection late coverage attestation",
+      "audited_height": 0,
+      "deadline_height": 72,
+      "record_seal_blocks": 24,
+      "pull_height": 80,
+      "selected": [],
+      "records": [],
+      "coverage_attestation_height": 100,
+      "probes": [
+        {
+          "height": 79,
+          "complete": false,
+          "counts": false
+        },
+        {
+          "height": 80,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 95,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 96,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 99,
+          "complete": false,
+          "counts": true
+        },
+        {
+          "height": 100,
+          "complete": true,
+          "counts": false
+        },
+        {
+          "height": 102,
+          "complete": true,
+          "counts": false
+        },
+        {
+          "height": 103,
+          "complete": true,
+          "counts": false
+        }
+      ]
+    }
   ]
 }

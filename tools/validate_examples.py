@@ -2500,6 +2500,28 @@ def _dc4_confirmation_quorums_twin():
     assert len(pair["records"]) == 2 and not pair["contradicted"]
 check("negative:wist4-confirmation-quorums", _dc4_confirmation_quorums_twin)
 
+def _dc4_late_discharge():
+    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
+    for case in v["late_discharge_cases"]:
+        for probe in case["probes"]:
+            n = probe["height"]
+            covered = [r["delta"] for r in case["records"] if r["sealed_height"] <= n and not r["void"]]
+            attested = case["coverage_attestation_height"]
+            complete = all(d in covered for d in case["selected"]) if case["selected"] else attested is not None and attested <= n
+            established = n >= case["deadline_height"] + case["record_seal_blocks"] or case["pull_height"] is not None and case["pull_height"] <= n
+            assert complete == probe["complete"], case["label"]
+            assert (established and not complete) == probe["counts"], case["label"]
+check("vectors:wist4-late-discharge", _dc4_late_discharge)
+
+def _dc4_late_discharge_twin():
+    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
+    case = v["late_discharge_cases"][0]
+    before = next(p for p in case["probes"] if p["height"] == 99)
+    after = next(p for p in case["probes"] if p["height"] == 100)
+    assert before["counts"] and not after["counts"]
+    assert case["pull_height"] < after["height"] and after["complete"]
+check("negative:wist4-late-discharge", _dc4_late_discharge_twin)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 
