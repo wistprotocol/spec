@@ -1777,6 +1777,61 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-1 §4: a JSON number is parsed with correct rounding
+
+Adds the first half of the paragraph *A number is the double it denotes*
+to §4.
+
+**What it states.** RFC 8785 §3.2.2.3 canonicalizes a number by
+serializing the IEEE-754 double the literal denotes, so the scheme is
+well defined only where every party recovers the same double from the
+same octets. ECMA-262 already specifies that conversion as correctly
+rounded — the nearest double, ties to even — and §4 now requires it. A
+parser off by one unit in the last place derives different Canonical
+Bytes from an unaltered document, and with them a different Delta ID and
+a signature that verifies for nobody else.
+
+**Why it qualifies.** It states what RFC 8785 already rests on. A
+validator whose conversion was correctly rounded conformed before and
+conforms now; one whose conversion was not could never interoperate,
+because the Delta IDs it computed were nobody else's. Nothing that
+verified under the previous text fails under this one.
+
+**Status.** Unexercised. No vector carries a number whose correctly
+rounded double differs from a naive conversion's; the requirement is
+verified by reading ECMA-262 rather than by execution. A vector belongs
+with the first suite of canonicalization edge cases.
+
+## 2026-09-04 — WIST-1 §4, §7: identity is the double's, not the literal's (revision, not errata)
+
+Adds the second half of the paragraph *A number is the double it denotes*
+to §4 and rewrites the `WIST1-E05` row of §7.
+
+**What it states.** Distinct literals can denote one double, so identity
+in this suite is identity of the double: a producer MUST NOT rely on
+integer precision beyond ±(2^53 − 1) to distinguish two objects, and
+every integer member the suite defines already sits inside that range by
+its own bounds. `WIST1-E05` now names what it covers for a number: a
+value that denotes no double at all — a magnitude beyond the finite
+range, or a form outside JSON's grammar. A finite double is always
+canonicalizable, and a validator MUST NOT reject one for carrying a
+fractional part.
+
+**Why it is a revision.** It fails the first condition. `WIST1-E05`
+previously read "object not valid JCS input, e.g. non-JSON-safe
+numbers", and "JSON-safe" was undefined; a validator that read it as the
+I-JSON integer range and rejected every fractional number conformed to
+those words. It now MUST accept one. The change is forced: §9.1 leaves
+the `details` of `sanction_lift`, `coverage_attestation` and `appeal`
+unconstrained, so under the previous reading a single fractional member
+anywhere in a sealed Registry Update made the whole Block unverifiable
+for every party — a defect no Aggregator could detect before sealing and
+no Consumer could repair after.
+
+**Status.** Unexercised. No vector carries a fractional number in a
+sealed object, nor a magnitude outside the double range. Both cases
+belong with the canonicalization edge-case vectors named above.
+
 ## 2026-09-04 — WIST-4 §3, §4, §5: vectors for resolutions the suite left unexercised
 
 No document text changes. Adds cases to `vectors/wist4/extension-proof.json`

@@ -371,6 +371,36 @@ JSON Canonicalization Scheme (JCS) [RFC 8785]:
    base64url without padding. A signature that does not verify against
    Canonical Bytes under the key `sig.key_id` names is `WIST1-E01`.
 
+**A number is the double it denotes.** RFC 8785 §3.2.2.3 serializes a JSON
+number by the ECMA-262 `Number::toString` algorithm over the IEEE-754
+double the literal denotes, so canonicalization is defined on that double
+and on nothing else. Two consequences are stated here rather than left to
+be discovered, because each is a way for two parties to disagree about the
+identity of the same octets.
+
+The first is on the parse side. Canonicalization is only well defined if
+every party recovers the *same* double from the same octets, which requires
+the correctly-rounded conversion ECMA-262 already specifies: the double
+nearest the literal's exact value, ties to even. A parser off by one unit
+in the last place produces a different double, hence different Canonical
+Bytes, hence a different Delta ID for a document neither party has altered.
+A validator MUST convert with correct rounding, and a validator that cannot
+MUST NOT seal what it read.
+
+The second is on the identity side. Distinct literals can denote one
+double — `9007199254740993` and `9007199254740992` are the same double —
+so identity in this suite is identity of the double, not of the literal a
+producer typed. A producer therefore MUST NOT rely on integer precision
+beyond ±(2^53 − 1) to distinguish two objects, and every integer member the
+suite defines sits inside that range by its own bounds; a number outside
+it is a producer's error, not a second identity. What has no double at all
+— a magnitude beyond the finite range, or a form outside JSON's grammar —
+has no canonicalization either, and is `WIST1-E05`. A finite double,
+integral or not, always has one: a validator MUST NOT reject a number
+merely for carrying a fractional part, since §9.1 leaves the `details` of
+several Registry Update actions unconstrained and one such member would
+otherwise make an entire Block unverifiable.
+
 **What verification means, exactly.** RFC 8032 §5.1.7 leaves choices open
 that a Log cannot leave open: two verifiers resolving them differently
 disagree about whether a sealed Entry is valid, and that disagreement is a
@@ -699,7 +729,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E02 | Unknown key (`sig.key_id` not in the current Key Set at ingest, or, at sealing, not in the Key Set §5.2 resolves at the Delta's sealing height — a Delta a Declaration accepted since the pull has stranded, never sealed) |
 | WIST1-E03 | URL out of scope, not normalized, or not normalizable (host not covered by domain/`subdomain_scope`; `url` not byte-identical to its own Normalized URL; or `url` has no normalization at all — §2) |
 | WIST1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
-| WIST1-E05 | Invalid canonicalization (object not valid JCS input, e.g. non-JSON-safe numbers) |
+| WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
 | WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces; or the same `key_id` or `public_key` named in both `keys` and `recovery_keys`) |
