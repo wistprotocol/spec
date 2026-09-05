@@ -2748,3 +2748,38 @@ minimum and one Block early with no Observer registered, and require the
 empty roster to leave the minimum where a single suffix leaves it;
 `vectors:wist4-canary` recomputes them and its twin fails the literal
 subtraction.
+
+## 2026-09-05 — WIST-4 §7: appeal timeliness reads the Block, never the service (revision, not errata)
+
+Adds *Recomputation reads the Block, never the service* to the appeal
+sealing bullet, rewrites the late-appeal bullet, and adds two cases to
+`vectors/wist4/sanctions.json`'s `void_cases`.
+
+**What it states.** An `appeal` sealed in a Block whose `sealed_at` is
+at or before T discharges T and starts the ruling deadline from that
+Block, whatever instant the Publisher served it at; one sealed after T
+does neither. The appeal window binds the Aggregator's conduct — an
+appeal served inside it MUST be sealed by T — and the Block binds the
+derivation. A late-served appeal the Aggregator chooses to seal by T is
+read as a timely one, the Aggregator having accepted it and set itself a
+ruling deadline it can meet; sealed after T it is recorded and changes
+nothing, which is the case the window exists to close.
+
+**Why it is a revision.** It fails the first condition on paper: the
+former text said only an appeal "served inside the window" discharges T,
+so a late-served appeal sealed by T discharged nothing, and the same
+appeal now does. No implementation could have conformed to the former
+text, because the instant of service is not a Log event — WIST-2 §3.3
+has the Aggregator fetch the path, not record when the file appeared,
+and neither `appeal`'s `details` nor its schema carries the instant — so
+two sealed Logs identical up to T could imply different sanction states,
+against the section's own rule that every reversal is a fact of the Log.
+Reading the Block is the only rule both replayers can apply, and it is
+the one the vectors already applied.
+
+**Status.** Exercised. `sanctions.json`'s void cases add an appeal
+sealed exactly at T and one sealed after the window closed but by T,
+beside the existing one sealed after T; `vectors:wist4-sanction-voids`
+recomputes every void instant from Block values and requires §7 to state
+the rule, and its twin fails a discharge conditioned on the service
+instant.

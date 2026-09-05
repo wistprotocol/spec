@@ -2382,22 +2382,33 @@ Process requirements:
   that the window closed with none. If the Log holds neither at T, the
   sanction's *state* — the level 3 ingestion rejection or the level 4
   exclusion from materialization — is void on recomputation from T,
-  exactly as a lapsed ruling deadline voids it below.
+  exactly as a lapsed ruling deadline voids it below. **Recomputation
+  reads the Block, never the service.** An `appeal` sealed in a Block
+  whose `sealed_at` is at or before T discharges T and starts the ruling
+  deadline below from that Block, whatever instant the Publisher served
+  it at; one sealed after T does neither. The instant of service is not
+  a Log event — WIST-2 §3.3 obliges the Aggregator to fetch the path,
+  not to record when the file appeared — and two Logs identical up to a
+  height MUST derive one state at it, so the window binds the
+  Aggregator's conduct and the Block binds the derivation.
 - **A late appeal is recorded and changes nothing.** An `appeal` served
   after the appeal window has closed MAY be sealed, and an Aggregator that
   obtains one SHOULD seal it: it is a signed statement by the Publisher,
   and a rule that let the Aggregator drop it without trace is the silent
   suppression §4's `pull_attestation` exists to end elsewhere. What it does
-  not do is reopen the process. It does not discharge **T**, because the
-  window it belongs to already closed and only an `appeal` served inside
-  the window or an `"unappealed"` ruling discharges it; it starts no ruling
-  deadline; and it does not by itself alter the sanction's state. The
-  Aggregator may still act on what it reads — `sanction_lift` is always
-  available and needs no appeal to justify it — but that is a discretionary
-  act recorded as one, not a deadline the Publisher restarted by filing
-  late. Otherwise the appeal window would be advisory: a filing weeks
-  overdue would reopen a closed process and void a state on a deadline the
-  Aggregator could no longer meet.
+  not do is reopen the process. Sealed after T, it does not discharge
+  **T**, it starts no ruling deadline, and it does not by itself alter
+  the sanction's state; the Aggregator may still act on what it reads —
+  `sanction_lift` is always available and needs no appeal to justify it —
+  but that is a discretionary act recorded as one, not a deadline the
+  Publisher restarted by filing late. Sealed at or before T — which only
+  the Aggregator's own choice to seal it there brings about, since the
+  window has closed and nothing obliges the seal — it is read exactly as
+  a timely appeal is: the Aggregator that sealed it accepted it, and the
+  ruling deadline it thereby set runs from its own Block, a deadline it
+  can meet. What the window forbids is therefore the case that mattered:
+  a filing weeks overdue cannot reopen a closed process, because by then
+  T has passed and no seal can reach it.
 - **An `"unappealed"` ruling cannot precede what it reports.** Such a
   ruling discharges T only when the Block sealing it has a `sealed_at` at
   or after the close of the appeal window — the notice's Block `sealed_at`

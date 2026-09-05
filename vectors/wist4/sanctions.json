@@ -377,6 +377,20 @@
       "appeal_sealed_at_s": 1900800,
       "ruling": null,
       "void_at_s": 1814400
+    },
+    {
+      "label": "appeal sealed at t discharges",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": 1814400,
+      "ruling": null,
+      "void_at_s": 4406400
+    },
+    {
+      "label": "appeal sealed after the window by t discharges",
+      "notice_sealed_at_s": 0,
+      "appeal_sealed_at_s": 1382400,
+      "ruling": null,
+      "void_at_s": 3974400
     }
   ],
   "in_force_cases": [

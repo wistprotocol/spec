@@ -2521,6 +2521,64 @@ check("negative:wist4-extension-window", _dc4_extension_window_twin)
 def _sanctions_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "sanctions.json").read_text())
 
+def _sanction_void_at(v, case, service_inside_window=None):
+    """WIST-4 §7: when a level-3/4 state voids on recomputation — nothing by
+    T, a ruling deadline lapsing, an overturned ruling — read from Block
+    sealed_at values alone. `service_inside_window` is the ruled-out
+    reading under which an appeal sealed by T discharges it only if the
+    file was served inside the window, an instant no Log carries."""
+    day = 86400
+    notice = case["notice_sealed_at_s"]
+    if notice is None:
+        return None
+    window_close = notice + v["appeal_window_days"] * day
+    t = window_close + v["appeal_seal_days"] * day
+    appeal = case["appeal_sealed_at_s"]
+    appeal_by_t = appeal if appeal is not None and appeal <= t else None
+    if service_inside_window is not None and appeal_by_t is not None and not service_inside_window:
+        appeal_by_t = None
+    ruling = case["ruling"]
+    valid_unappealed = ruling is not None and ruling[0] == "unappealed" and window_close <= ruling[1] <= t
+    if appeal_by_t is None and not valid_unappealed:
+        return t
+    if appeal_by_t is None:
+        return None
+    due = appeal_by_t + v["ruling_deadline_days"] * day
+    if ruling is not None and ruling[1] <= due:
+        if ruling[0] == "overturned":
+            return ruling[1]
+        if ruling[0] == "upheld":
+            return None
+    return due
+
+def _dc4_sanction_voids():
+    """WIST-4 §7: the void instants of a level-3/4 state, recomputed from the
+    notice, the appeal's Block and the ruling."""
+    v = _sanctions_vector()
+    labels = set()
+    for case in v["void_cases"]:
+        labels.add(case["label"])
+        assert _sanction_void_at(v, case) == case["void_at_s"], f"{case['label']}: void instant"
+    for needed in ("appeal sealed at t discharges", "appeal sealed after the window by t discharges",
+                   "appeal after t does not discharge", "early unappealed is absent"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("**Recomputation reads the Block, never the service.**",
+                   "An `appeal` sealed in a Block whose `sealed_at` is at or before T discharges T"):
+        assert marker in prose, f"§7 does not state: {marker!r}"
+check("vectors:wist4-sanction-voids", _dc4_sanction_voids)
+
+def _dc4_sanction_voids_twin():
+    """The check above must notice a discharge conditioned on the service
+    instant, which the Log does not carry."""
+    v = _sanctions_vector()
+    late = next(c for c in v["void_cases"] if c["label"] == "appeal sealed after the window by t discharges")
+    day = 86400
+    t = late["notice_sealed_at_s"] + (v["appeal_window_days"] + v["appeal_seal_days"]) * day
+    assert _sanction_void_at(v, late, service_inside_window=False) == t != late["void_at_s"], \
+        "recomputation is blind to a service-time condition"
+check("negative:wist4-sanction-voids", _dc4_sanction_voids_twin)
+
 def _ladder_levels_from_findings(v, findings, lifts, lift_erases_findings=False):
     """WIST-4 §7 rung derivation from findings and lifts, recomputed
     independently of the generator: count criteria over whole-day windows
