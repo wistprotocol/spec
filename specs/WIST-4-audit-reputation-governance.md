@@ -37,13 +37,11 @@ shown here.
   carried in every Audit Record as `vrf_proof`. It lets anyone recompute
   that Auditor's selection set for that Block, and only that Auditor
   produce it (§4).
-- **Confirmed Inconsistency**: ≥ 2 Auditors, independent in the sense §3
-  defines, returning `inconsistent` for the same Delta within 72 hours
-  measured on Block `sealed_at` (§5).
-- **Confirmed Link Inconsistency**: ≥ 2 Auditors, independent in the sense
-  §3 defines, returning `link_inconsistent` for the same Delta, the
-  confirming Record sealed within `confirm_window_hours` of an earlier
-  such Record, measured on Block `sealed_at` (§5, §7).
+- **Confirmed Inconsistency**: `confirm_auditors` pairwise independent
+  Auditors returning `inconsistent` for the same Delta inside one
+  `confirm_window_hours` window on Block `sealed_at` (§5).
+- **Confirmed Link Inconsistency**: the same quorum and window applied
+  to `link_inconsistent` Records (§5, §7).
 - **Registry Update**: the signed governance object this document defines,
   sealed as a `registry_update` Entry (WIST-3 §3.3). Its `action` selects one
   of the seventeen governance acts of §3, §3.1, §4, §5.1, §7 and §9.1; `subject` names
@@ -117,7 +115,7 @@ them. Two unrelated operators under one two-label suffix (`a.com.br`,
 `b.com.br`) therefore cannot confirm each other's `inconsistent` verdicts;
 both may still audit everything, and what a confirmation needs is a third
 Auditor elsewhere, not an exception here. A Confirmed Inconsistency (§5)
-requires two Auditors independent in exactly this sense, not merely two
+requires a quorum of Auditors independent in exactly this sense, not merely distinct
 keys.
 
 **The identity a Record claims is the admitted one.** A Record's
@@ -755,14 +753,15 @@ than one Auditor's filings.
 **Contradiction is derived, and it escalates the domain, not the
 filer.** An `inconsistent` or `link_inconsistent` Record that summoned
 peers is **contradicted** when the extension it triggered **closes**
-with no Confirmed Inconsistency (§5) or Confirmed Link Inconsistency
-(§7) for *d* in which it is the earlier Record, and at least two Auditors
-independent of one another (§3) sealed `consistent` for *d* inside the
+with no complete quorum of its verdict for *d* that includes the
+triggering Record, and at least `confirm_auditors` Auditors pairwise
+independent under §3 sealed `consistent` for *d* inside the
 `confirm_window_hours` after *B₁*'s `sealed_at`, the endpoint included.
 The extension closes at the first Block whose `sealed_at` is more than
 `confirm_window_hours` after *B₁*'s: the confirmation window §5 measures
-is pairwise and ends at the confirming Record's Block, so from that
-instant no Record can pair with the triggering one, what the window
+ends at the confirming Record's Block with every quorum member inside
+it, so from that instant no new quorum can include the triggering one.
+What the window
 holds is settled, and that Block's height is the contradiction's
 **establishing height** — the height at which a replaying party first
 derives it and, by the dating rule above, the only height it is dated
@@ -1310,7 +1309,7 @@ whose text exists only after execution, a bot interstitial served to
 every Auditor at once, and a genuinely blanked page all produce a
 near-empty extraction, the first two from perfectly honest Publishers —
 and correlated across Auditors, since every Auditor meets the same
-interstitial, so the two `inconsistent` Records a confirmation needs
+interstitial, so the quorum of `inconsistent` Records a confirmation needs
 would not be independent evidence but the same failure observed twice,
 one correlated artifact from a severity-3 band. Above the guard the
 ambiguity inverts: forty words is no longer a page that says nothing
@@ -1578,19 +1577,23 @@ Audit Records in Log order.
 
 **No single audit punishes.** An `inconsistent` verdict triggers re-audit
 by additional Auditors — §4's extension rule is the mechanism, and it is
-a duty, not an invitation. A **Confirmed Inconsistency** exists only when ≥ 2
-Auditors, independent of one another in the sense §3 defines, return
-`inconsistent` for the same Delta, with the `sealed_at` of the Block
-sealing the confirming Record no more than 72 hours after the `sealed_at`
-of the Block sealing an earlier such Record from an Auditor independent
-of the confirmer. The window is pairwise and ends at the confirming
-Record's Block — the same window §4's extension rule reads as "ending at
-*B₁*" — so a lone early Record that goes stale unconfirmed does not bar a
-later independent pair from confirming, and the extension a later lone
-Record triggers can still seal a confirmation inside the window it
-serves. The window is measured on
-Blocks and not on `fetched_at` for the reason §3 gives: `fetched_at` is
-Auditor-supplied, and a confirmation nobody can recompute is not evidence.
+a duty, not an invitation. A **Confirmed Inconsistency** exists when at
+least `confirm_auditors` (default 2) Auditors, pairwise independent under
+§3, return `inconsistent` for the same Delta in one closed window of
+`confirm_window_hours` (default 72). At each candidate Record in Log
+order, consider that verdict's Records through the candidate whose
+Blocks were sealed no earlier than the candidate Block's `sealed_at`
+minus the window. Confirmation occurs at the first candidate for which
+this set contains the required number of pairwise independent Auditors.
+Every member of the quorum must lie inside that window: a stale member
+plus a fresh pair does not meet a quorum of three. Multiple Records from
+one Auditor or dependent Auditors never add independent members. A lone
+stale Record does not prevent a later complete quorum from confirming.
+At the default quorum this is the pairwise rule. The window is measured
+on Blocks, not `fetched_at`, because a confirmation nobody can recompute
+is not evidence. The closed confirming-Record set used for severity
+remains the full prefix §7 defines, including stale Records; choosing a
+quorum witness does not choose which severities count.
 Only Confirmed Inconsistencies and Confirmed Link Inconsistencies enter the
 reputation formula and sanction ladder. Independence absorbs what differs by
 vantage or by moment — A/B tests, geo-variation, a transient defacement — and
@@ -2202,11 +2205,11 @@ exactly one row, whatever its reference Delta's change type.
 | 50 000 ≤ `sim` < 150 000 | 2 (misleading extract) |
 | `sim` < 50 000 | 3 (fabricated content) |
 
-**Confirmed Link Inconsistency.** Two `link_inconsistent` Records for
-the same Delta from Auditors independent under §3, the confirming Record
-sealed within `confirm_window_hours` of the earlier — the same pairwise
-window §5 defines — are a Confirmed Link
-Inconsistency. For §6.1's `penalty_n` and every escalation count this
+**Confirmed Link Inconsistency.** Apply §5's quorum and closed-window
+predicate to `link_inconsistent` Records for the same Delta, using the
+same `confirm_auditors` and `confirm_window_hours`. Extract and link
+verdicts form separate quorums; neither contributes members to the other.
+The resulting finding is a Confirmed Link Inconsistency. For §6.1's `penalty_n` and every escalation count this
 section defines, a Confirmed Link Inconsistency **counts as a Confirmed
 Inconsistency with severity 1 fixed** — never derived from
 `link_agreement`'s magnitude, unlike the severity table above — and it
@@ -2886,8 +2889,8 @@ mirroring §7 and §3:
   and an empty array would be a removal that is neither for cause nor an
   exit.
 - `sanction`: `level` (1–4) and `severity` (1–3, §7); `evidence`
-  (top-level, not `details`) MUST carry at least the two Audit Record IDs
-  (§5) of the concurring, independent Auditors' Records that establish
+  (top-level, not `details`) MUST carry the Audit Record IDs (§5) of a
+  complete quorum of concurring, independent Auditors that establish
   the Confirmed Inconsistency (§5's own minimum).
 - `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
   additionally requires `reason`, `appeal_deadline`, and a top-level

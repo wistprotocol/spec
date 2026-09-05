@@ -277,5 +277,751 @@
       "confirming_index": 1,
       "severity": 2
     }
+  ],
+  "quorum_cases": [
+    {
+      "label": "three inside window inconsistent",
+      "verdict": "inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 108000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 259200,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": 2,
+      "severity": 3
+    },
+    {
+      "label": "three inside window link inconsistent",
+      "verdict": "link_inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 108000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 259200,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": 2,
+      "severity": 1
+    },
+    {
+      "label": "stale member beside fresh pair inconsistent",
+      "verdict": "inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 360000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 396000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "stale member beside fresh pair link inconsistent",
+      "verdict": "link_inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 360000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 396000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "later complete quorum inconsistent",
+      "verdict": "inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 360000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 396000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 4,
+          "entry_index": 3,
+          "sealed_at_s": 432000,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": 3,
+      "severity": 3
+    },
+    {
+      "label": "later complete quorum link inconsistent",
+      "verdict": "link_inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 360000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 396000,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 4,
+          "entry_index": 3,
+          "sealed_at_s": 432000,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": 3,
+      "severity": 1
+    },
+    {
+      "label": "third member one second late inconsistent",
+      "verdict": "inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 108000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 259201,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "third member one second late link inconsistent",
+      "verdict": "link_inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 108000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 259201,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "dependent member inconsistent",
+      "verdict": "inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 108000,
+          "auditor": "peer.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 216000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "dependent member link inconsistent",
+      "verdict": "link_inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 2,
+          "entry_index": 1,
+          "sealed_at_s": 108000,
+          "auditor": "peer.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 3,
+          "entry_index": 2,
+          "sealed_at_s": 216000,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": null,
+      "severity": null
+    },
+    {
+      "label": "same Block quorum inconsistent",
+      "verdict": "inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 1,
+          "entry_index": 1,
+          "sealed_at_s": 0,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 1,
+          "entry_index": 2,
+          "sealed_at_s": 0,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": 2,
+      "severity": 3
+    },
+    {
+      "label": "same Block quorum link inconsistent",
+      "verdict": "link_inconsistent",
+      "confirm_auditors": 3,
+      "records": [
+        {
+          "block_height": 1,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "auditor": "audit.example.net",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 1,
+          "entry_index": 1,
+          "sealed_at_s": 0,
+          "auditor": "checker.example.org",
+          "effective_similarity": 0
+        },
+        {
+          "block_height": 1,
+          "entry_index": 2,
+          "sealed_at_s": 0,
+          "auditor": "watch.sample.net",
+          "effective_similarity": 0
+        }
+      ],
+      "confirming_index": 2,
+      "severity": 1
+    }
+  ],
+  "quorum_contradiction_cases": [
+    {
+      "label": "consistent pair is insufficient inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": false
+    },
+    {
+      "label": "consistent pair is insufficient link inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "link_inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": false
+    },
+    {
+      "label": "consistent quorum at endpoint inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 259200
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": true
+    },
+    {
+      "label": "consistent quorum at endpoint link inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "link_inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 259200
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": true
+    },
+    {
+      "label": "consistent quorum member too late inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 262800
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": false
+    },
+    {
+      "label": "consistent quorum member too late link inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "link_inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 262800
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": false
+    },
+    {
+      "label": "confirming pair is insufficient inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "inconsistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 108000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 144000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": true
+    },
+    {
+      "label": "confirming pair is insufficient link inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "link_inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "link_inconsistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 108000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 144000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": true
+    },
+    {
+      "label": "confirming quorum contains trigger inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "inconsistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "inconsistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 108000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 144000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 180000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": true,
+      "contradicted": false
+    },
+    {
+      "label": "confirming quorum contains trigger link inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "link_inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "link_inconsistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "link_inconsistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 108000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 144000
+        },
+        {
+          "auditor": "watch.third.org",
+          "verdict": "consistent",
+          "sealed_at_s": 180000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": true,
+      "contradicted": false
+    },
+    {
+      "label": "dependent consistent member inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "peer.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 108000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": false
+    },
+    {
+      "label": "dependent consistent member link inconsistent",
+      "confirm_auditors": 3,
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "link_inconsistent",
+        "sealed_at_s": 0
+      },
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 36000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "sealed_at_s": 72000
+        },
+        {
+          "auditor": "peer.example.org",
+          "verdict": "consistent",
+          "sealed_at_s": 108000
+        }
+      ],
+      "closing_sealed_at_s": 262800,
+      "confirmed": false,
+      "contradicted": false
+    }
   ]
 }

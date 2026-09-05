@@ -2458,6 +2458,48 @@ def _dc4_coverage_establishing_twin():
         "recomputation is blind to an attestation read from above N"
 check("negative:wist4-coverage-establishing", _dc4_coverage_establishing_twin)
 
+def _confirmation_quorum_index(records, window_hours, quorum):
+    for i, candidate in enumerate(records):
+        suffixes = {tuple(r["auditor"].split(".")[-2:]) for r in records[:i + 1]
+                    if 0 <= candidate["sealed_at_s"] - r["sealed_at_s"] <= window_hours * 3600}
+        if len(suffixes) >= quorum:
+            return i
+    return None
+
+def _dc4_confirmation_quorums():
+    v = json.loads((ROOT / "vectors" / "wist4" / "confirmation.json").read_text())
+    for case in v["cases"] + v["quorum_cases"]:
+        got = _confirmation_quorum_index(case["records"], v["confirm_window_hours"],
+                                         case.get("confirm_auditors", 2))
+        assert got == case["confirming_index"], case["label"]
+        severity = None
+        if got is not None:
+            sim = max(r["effective_similarity"] for r in case["records"][:got + 1])
+            severity = 1 if case.get("verdict") == "link_inconsistent" or sim >= 150_000 else 2 if sim >= 50_000 else 3
+        assert severity == case["severity"], case["label"]
+    for case in v["quorum_contradiction_cases"]:
+        trigger = case["trigger"]
+        held = [r for r in case["records"] if trigger["sealed_at_s"] <= r["sealed_at_s"] <=
+                trigger["sealed_at_s"] + v["confirm_window_hours"] * 3600]
+        agreeing = [trigger] + [r for r in held if r["verdict"] == trigger["verdict"]]
+        confirmed = len({tuple(r["auditor"].split(".")[-2:]) for r in agreeing}) >= case["confirm_auditors"]
+        consistent = len({tuple(r["auditor"].split(".")[-2:]) for r in held
+                          if r["verdict"] == "consistent"}) >= case["confirm_auditors"]
+        closed = case["closing_sealed_at_s"] > trigger["sealed_at_s"] + v["confirm_window_hours"] * 3600
+        assert confirmed == case["confirmed"], case["label"]
+        assert (closed and not confirmed and consistent) == case["contradicted"], case["label"]
+check("vectors:wist4-confirmation-quorums", _dc4_confirmation_quorums)
+
+def _dc4_confirmation_quorums_twin():
+    v = json.loads((ROOT / "vectors" / "wist4" / "confirmation.json").read_text())
+    stale = next(c for c in v["quorum_cases"] if c["label"] == "stale member beside fresh pair inconsistent")
+    assert _confirmation_quorum_index(stale["records"], 72, 2) is not None
+    assert stale["confirming_index"] is None
+    assert len({r["auditor"] for r in stale["records"]}) == stale["confirm_auditors"]
+    pair = next(c for c in v["quorum_contradiction_cases"] if c["label"] == "consistent pair is insufficient inconsistent")
+    assert len(pair["records"]) == 2 and not pair["contradicted"]
+check("negative:wist4-confirmation-quorums", _dc4_confirmation_quorums_twin)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 
