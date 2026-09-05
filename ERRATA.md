@@ -2827,3 +2827,38 @@ blocking and every predicate, and its twin fails a reading under which
 every `not_auditable` Record blocks; `schema:wist4-unmeasured` validates
 both sides on a `not_auditable` Record and fails the field's absence
 there and its presence on any other verdict.
+
+## 2026-09-05 — WIST-4 §4: a rotated Record's signature reads its own Block, its proof the duty's (revision, not errata)
+
+Rewrites the duty-anchoring sentences of §4's *Coverage duty* and adds
+`signature_cases` to `vectors/wist4/coverage.json`.
+
+**What it states.** A coverage duty exists only if the Auditor was
+admitted at the duty Block's `sealed_at`, and the Record or attestation
+discharging it carries its `vrf_proof` under the key admitted then, the
+key whose draw that Block fixed. Its signature is §3's: under the key the
+Auditor holds at the Record's own Block, which across a rotation is the
+new key beside a proof under the old one. A Record signed under the duty
+Block's key after that key was removed is void for standing and, by §3's
+carve-out, still discharges the duty, which is how an Auditor removed
+with no successor discharges what it had incurred.
+
+**Why it is a revision.** It fails the first condition on paper: §4 said
+the discharging Record "MUST verify against the key admitted then", the
+duty Block's key, and a Record signed under a rotated-in key did not.
+That sentence contradicted §3, which has every Record's signature read
+the key held at the Record's own Block and describes the rotated Record
+— signed under the new key, proof under the old — as the expected shape;
+§3's carve-out already let a removed key's Record discharge the duty,
+and the extension-proof vectors already read the proof against the
+duty Block's key. No implementation could satisfy both sentences for a
+rotated Auditor; the text now says which key each of the two checks
+reads, and the answer is the one every other passage assumed.
+
+**Status.** Exercised. `coverage.json`'s signature cases cover a steady
+key, a rotated Record signed under the new key with the old proof, one
+signed under the removed duty key, an exited Auditor signing under its
+removed key, and a key never admitted, each with its void reason and
+whether it counts and discharges; `vectors:wist4-coverage-signature`
+recomputes them and requires §4 to name both keys, and its twin fails a
+signature read against the duty key.

@@ -2399,6 +2399,50 @@ def _dc4_coverage_establishing():
         "§4 does not say which evidence establishes where the Log carries both"
 check("vectors:wist4-coverage-establishing", _dc4_coverage_establishing)
 
+def _signature_void(case, duty_key_governs=False):
+    """WIST-4 §3, §4: the signature reads the key held at the Record's own
+    Block, the proof the key admitted at the duty's Block. `duty_key_governs`
+    is the ruled-out reading under which the signature too must verify
+    against the duty Block's key."""
+    signed, at_record, duty = case["signed_under"], case["record_block_key"], case["duty_block_key"]
+    if duty_key_governs:
+        return None if signed == duty else "never admitted at anchor block"
+    if signed == at_record:
+        return None
+    return "removed after anchor block" if signed == duty else "never admitted at anchor block"
+
+def _dc4_coverage_signature():
+    """WIST-4 §3, §4: which key a rotated Record signs under, which its proof
+    is under, and what each mismatch does to standing and discharge."""
+    v = _coverage_vector()
+    labels = set()
+    discharging = {"removed after anchor block", "coverage failure at sealing", "malformed as evidence"}
+    for case in v["signature_cases"]:
+        labels.add(case["label"])
+        void = _signature_void(case)
+        assert void == case["void"], f"{case['label']}: void"
+        assert case["proof_under"] == case["duty_block_key"], f"{case['label']}: the proof reads the duty key"
+        assert case["counts"] == (void is None), f"{case['label']}: counts"
+        assert case["discharges"] == (void is None or void in discharging), f"{case['label']}: discharges"
+    for needed in ("rotated record signed under the new key with the old proof",
+                   "rotated record signed under the removed duty key",
+                   "exited auditor signs under the removed duty key"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("carries its `vrf_proof` under the key admitted then",
+                   "The signature is §3's: under the key the Auditor holds at the Record's own Block"):
+        assert marker in prose, f"§4 does not state: {marker!r}"
+check("vectors:wist4-coverage-signature", _dc4_coverage_signature)
+
+def _dc4_coverage_signature_twin():
+    """The check above must notice a signature read against the duty key."""
+    v = _coverage_vector()
+    rotated = next(c for c in v["signature_cases"]
+                   if c["label"] == "rotated record signed under the new key with the old proof")
+    assert _signature_void(rotated, duty_key_governs=True) is not None and rotated["void"] is None, \
+        "recomputation is blind to which Block's key the signature reads"
+check("negative:wist4-coverage-signature", _dc4_coverage_signature_twin)
+
 def _dc4_coverage_establishing_twin():
     """The check above must notice a future attestation read as suppressing
     the unattested failure it arrives after."""

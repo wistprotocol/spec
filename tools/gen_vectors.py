@@ -2138,6 +2138,41 @@ assert [c["discharges"] for c in coverage_anchor_cases] == [True, False, True, F
     "anchor cases drifted"
 
 
+def signature_void(signed_under, record_block_key, duty_block_key):
+    """§3, §4: a Record's signature reads the key held at its own Block; its
+    proof reads the key admitted at the duty's Block. Signed under the key
+    held at its Block it stands; signed under the duty Block's key after
+    that key was removed it is void by the carve-out and still discharges;
+    signed under a key never admitted at the duty Block it discharges
+    nothing."""
+    if signed_under == record_block_key:
+        return None
+    if signed_under == duty_block_key:
+        return "removed after anchor block"
+    return "never admitted at anchor block"
+
+
+coverage_signature_cases = [
+    {"label": label, "duty_block_key": duty, "record_block_key": at_record,
+     "signed_under": signed, "proof_under": duty,
+     "void": signature_void(signed, at_record, duty),
+     "counts": signature_void(signed, at_record, duty) is None,
+     "discharges": void_record_discharges(
+         [] if signature_void(signed, at_record, duty) is None
+         else [signature_void(signed, at_record, duty)])}
+    for label, duty, at_record, signed in [
+        ("steady-key-signs-and-proves", "k0", "k0", "k0"),
+        ("rotated-record-signed-under-the-new-key-with-the-old-proof", "k0", "k1", "k1"),
+        ("rotated-record-signed-under-the-removed-duty-key", "k0", "k1", "k0"),
+        ("exited-auditor-signs-under-the-removed-duty-key", "k0", None, "k0"),
+        ("signed-under-a-key-never-admitted", "k0", "k1", "k2"),
+    ]
+]
+assert [(c["counts"], c["discharges"]) for c in coverage_signature_cases] == \
+    [(True, True), (True, True), (False, True), (False, True), (False, False)], \
+    "signature cases drifted"
+
+
 # The establishing height: the height from which a failed duty enters the §4
 # count — the attestation's Block, or the record_seal_blocks-th Block sealed
 # after the coverage deadline. The vector runs a one-hour cadence and its own
@@ -2275,6 +2310,7 @@ write_json(WIST4 / "coverage.json", spaced_labels({
     "state_cases": coverage_state_cases,
     "discharge_cases": coverage_discharge_cases,
     "anchor_cases": coverage_anchor_cases,
+    "signature_cases": coverage_signature_cases,
     "establishing_cases": coverage_establishing_cases,
     "chain_scope_cases": coverage_chain_scope_cases,
 }))
