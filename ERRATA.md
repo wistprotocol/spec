@@ -3034,3 +3034,17 @@ exclude that behavior.
 across duty, checkpoint, canary and appeal anchors, equality at activation,
 quorum increases and confirmation-window decreases. The harness derives
 deadlines and the earliest confirming candidate from the supplied timeline.
+
+## 2026-09-05 — WIST-4 §9 and Registry Update schema: fixed escalation predicates (revision, not errata)
+
+**What changed.** The three compound escalation rules no longer have
+integer amendment identifiers. Such amendments are `WIST4-E03` and leave
+the ladder unchanged. ADR-0028 amends ADR-0012.
+
+**Why a revision.** The schema previously accepted these names despite
+there being no integer-to-predicate mapping. Removing that acceptance
+changes the contract.
+
+**Exercised.** `sanctions.json` supplies signed amendment envelopes for
+all three retired names and ensuing finding sequences. The harness checks
+signatures, schema rejection and the unchanged count/severity transitions.

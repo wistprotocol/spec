@@ -128,10 +128,7 @@ def _registry_table_defaults():
     `link_variance_floor`): the Default cell then reads with the same
     "/"-separated shape, one leading integer per identifier, in the same
     order. A row is skipped rather than guessed at when that shape does
-    not hold — the Escalation row names three identifiers
-    (`escalation_l2/_l3/_l4`) over a Default cell of compound criteria,
-    each part a description rather than a value, and no leading integer
-    sliced out of prose is what `details.value` would mean for it.
+    not hold. Compound rules without identifiers are not numeric defaults.
     """
     spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
@@ -3065,6 +3062,22 @@ def _dc4_sanction_transitions():
         assert active == case["active_rungs"], case["label"]
         assert [max(a, default=0) for a in active] == case["levels"], case["label"]
 check("vectors:wist4-sanction-transitions", _dc4_sanction_transitions)
+
+def _dc4_retired_escalations():
+    v = _sanctions_vector()
+    schema = json.loads((ROOT / "schemas/registry-update.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["process"]["public_key"]))
+    for case in v["retired_escalation_cases"]:
+        doc = case["envelope"]
+        key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+        assert list(validator.iter_errors(doc)) and case["error"] == "WIST4-E03"
+        assert _transition_rungs(case) == case["active_rungs"], case["label"]
+        valid = copy.deepcopy(doc)
+        valid["update"]["details"] = {"parameter": "confirm_auditors", "value": 2}
+        validator.validate(valid)
+    assert v["retired_escalation_cases"][0]["levels"] == [1, 1, 2]
+check("vectors:wist4-retired-escalations", _dc4_retired_escalations)
 
 def _dc4_sanction_transitions_twin():
     cases = _sanctions_vector()["transition_cases"]
