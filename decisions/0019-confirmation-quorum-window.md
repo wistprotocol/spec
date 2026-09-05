@@ -1,6 +1,6 @@
 # ADR-0019: A confirmation quorum shares one window
 
-**Status:** accepted · **Date:** 2026-09-05
+**Status:** accepted; amended by ADR-0027 (2026-09-05: anchor parameter reads for in-flight windows) · **Date:** 2026-09-05
 **Amends:** ADR-0012
 
 ## Context

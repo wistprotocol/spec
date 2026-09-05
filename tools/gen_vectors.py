@@ -2899,6 +2899,54 @@ for label, rows, rejected in (
     prospective_cases.append({"label": label, "changes": changes, "rejected_indices": got,
         "maps": [{"at_s": t, "values": prospective_map(accepted, t)} for t in instants]})
 
+CLOCK_DEFAULTS = {"confirm_auditors": 2, "confirm_window_hours": 72,
+    "coverage_deadline_hours": 72, "record_seal_blocks": 24,
+    "appeal_window_days": 14, "appeal_seal_days": 7, "ruling_deadline_days": 30,
+    "canary_lead_blocks": 24, "canary_lifetime_blocks": 1440,
+    "canary_reveal_min_blocks": 168, "payload_window_days": 180}
+
+
+def clock_value(parameter, at_s, changes):
+    eligible = [c for c in changes if c["parameter"] == parameter and c["effective_at_s"] <= at_s]
+    return max(eligible, key=lambda c: c["effective_at_s"])["value"] if eligible else CLOCK_DEFAULTS[parameter]
+
+
+clock_cases = []
+for label, parameter, anchor, changed, value, factor, start in (
+    ("coverage retains deadline", "coverage_deadline_hours", 10, 11, 96, 3600, 10),
+    ("coverage retains seal count", "record_seal_blocks", 10, 11, 48, 1, 200),
+    ("extension retains close", "confirm_window_hours", 10, 11, 96, 3600, 10),
+    ("checkpoint retains seal count", "record_seal_blocks", 10, 11, 48, 1, 200),
+    ("commitment retains lead", "canary_lead_blocks", 10, 11, 48, 1, 200),
+    ("commitment retains lifetime", "canary_lifetime_blocks", 10, 11, 2880, 1, 200),
+    ("newest Delta fixes reveal minimum", "canary_reveal_min_blocks", 10, 11, 336, 1, 200),
+    ("reveal retains scoring span", "payload_window_days", 10, 11, 360, 86400, 10),
+    ("notice retains appeal span", "appeal_window_days", 10, 11, 28, 86400, 10),
+    ("notice retains seal span", "appeal_seal_days", 10, 11, 14, 86400, 10 + 14 * 86400),
+    ("accepted appeal fixes ruling span", "ruling_deadline_days", 12, 11, 60, 86400, 12),
+    ("effective at anchor is included", "coverage_deadline_hours", 11, 11, 96, 3600, 11),
+):
+    changes = [{"parameter": parameter, "effective_at_s": changed, "value": value}]
+    selected_value = clock_value(parameter, anchor, changes)
+    clock_cases.append({"label": label, "parameter": parameter, "anchor_s": anchor,
+        "changes": changes, "query_s": 20, "unit_scale": factor, "start": start,
+        "selected_value": selected_value, "endpoint": start + selected_value * factor})
+
+confirmation_clock_cases = []
+for label, parameter, effective_h, value, hours, expected in (
+    ("quorum increase before second Record", "confirm_auditors", 24, 3, [0, 48, 49], 2),
+    ("shorter window excludes stale member", "confirm_window_hours", 48, 24, [0, 49, 50], 2),
+    ("established confirmation survives amendment", "confirm_auditors", 48, 3, [0, 24, 49], 1),
+    ("quorum activation equality", "confirm_auditors", 24, 3, [0, 24, 25], 2),
+):
+    changes = [{"parameter": parameter, "effective_at_s": effective_h * 3600, "value": value}]
+    times = [h * 3600 for h in hours]
+    first = next((i for i,t in enumerate(times) if sum(t - u <= clock_value("confirm_window_hours", t, changes) * 3600
+        for u in times[:i+1]) >= clock_value("confirm_auditors", t, changes)), None)
+    assert first == expected
+    confirmation_clock_cases.append({"label": label, "changes": changes,
+        "record_times_s": times, "confirming_index": first})
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
@@ -2906,6 +2954,9 @@ write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "extension_window_cases": extension_window_cases,
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_cases": prospective_cases,
+    "clock_defaults": CLOCK_DEFAULTS,
+    "clock_cases": clock_cases,
+    "confirmation_clock_cases": confirmation_clock_cases,
 }))
 print("wist4 parameter-combinations vector written")
 

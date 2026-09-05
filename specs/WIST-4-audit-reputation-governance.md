@@ -818,12 +818,14 @@ with no complete quorum of its verdict for *d* that includes the
 triggering Record, and at least `confirm_auditors` Auditors pairwise
 independent under §3 sealed `consistent` for *d* inside the
 `confirm_window_hours` after *B₁*'s `sealed_at`, the endpoint included.
-The extension closes at the first Block whose `sealed_at` is more than
-`confirm_window_hours` after *B₁*'s: the confirmation window §5 measures
-ends at the confirming Record's Block with every quorum member inside
-it, so from that instant no new quorum can include the triggering one.
-What the window
-holds is settled, and that Block's height is the contradiction's
+Both quorums in this contradiction test use the quorum size and window
+in force at *B₁*, and only Records sealed through the end of that fixed
+window. A trigger-containing quorum may include earlier Records within
+that window's width of its latest member. The extension closes at the
+first Block whose `sealed_at` is more than its fixed window after *B₁*.
+Later Records or amendments cannot change this closed test, even if a
+later, longer §5 confirmation window establishes a finding for *d*.
+That closing Block's height is the contradiction's
 **establishing height** — the height at which a replaying party first
 derives it and, by the dating rule above, the only height it is dated
 to. Only a Record that summoned can be contradicted, so the ration
@@ -1659,7 +1661,11 @@ least `confirm_auditors` (default 2) Auditors, pairwise independent under
 `confirm_window_hours` (default 72). At each candidate Record in Log
 order, consider that verdict's Records through the candidate whose
 Blocks were sealed no earlier than the candidate Block's `sealed_at`
-minus the window. Confirmation occurs at the first candidate for which
+minus the window. Both the window and quorum size are the values in force
+at the candidate Block, even if earlier Records used different values.
+An established finding retains its original confirming Record; later
+amendments do not re-evaluate earlier candidates with new parameters.
+Confirmation occurs at the first candidate for which
 this set contains the required number of pairwise independent Auditors.
 Every member of the quorum must lie inside that window: a stale member
 plus a fresh pair does not meet a quorum of three. Multiple Records from
@@ -2709,6 +2715,32 @@ Thus "current value" in a combination check means the value in each
 prospective map being tested, not merely the default or the value in
 force when the candidate was sealed. Two amendments individually safe
 against today's values cannot jointly schedule an invalid future state.
+
+**Parameter reads for work already begun.** An anchor below means the
+parameter map in force at that Block's `sealed_at`. Once read, these
+values remain attached to that duty or process; recomputing at a later
+height does not move its endpoints or change its quorum. An amendment
+whose `effective_at` equals the anchor instant is included.
+
+| Use | Parameter anchor |
+|---|---|
+| §5 candidate confirmation quorum and window | Candidate Record's Block; retain the earliest historical confirmation |
+| §4 extension trigger lookback, quorum for contradiction, publication/closing clocks, ordinary coverage pull and seal allowance for its pair | *B₁*, including `confirm_auditors`, `confirm_window_hours`, `coverage_deadline_hours`, `record_seal_blocks` and `extension_triggers_max` |
+| §4 ordinary selection coverage deadline and pull seal allowance | Audited Block |
+| §3.1 checkpoint seal allowance and budget | Budgeting epoch's first Block, like its `epoch_blocks` |
+| §5.1 commitment lead, leaf limit and lifetime | Commitment Block; the per-epoch commitment ration reads the epoch's first Block |
+| §5.1 reveal minimum and budget-rotation parameters | Newest bound Delta's Block; S is read there too |
+| §5.1 scoring and associated serving window | Reveal Block |
+| §7 appeal window and appeal seal allowance | Notice Block |
+| §7 ruling deadline | Accepted appeal's Block |
+
+The Observer's own §3.1 publication-serving span reads
+`payload_window_days` at publication; this is a conduct obligation, not
+a replay input. This table does not replace explicit reads elsewhere,
+including sampling at the selection Block, epoch length at epoch start,
+reputation at N and materialization at its stated height. Fixed block
+counts count actual successor Blocks; pinning a count does not pin the
+cadence of those Blocks.
 
 **Every value the registry carries is an integer** in the unit its row
 states, and `details.value` is typed `integer` for that reason (§9.1).

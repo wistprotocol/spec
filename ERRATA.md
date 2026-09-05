@@ -3017,3 +3017,20 @@ that failed together later. Prospective validation rejects that reading.
 activation orders, same-time replacement, same-Block precedence,
 invalid intermediate states and a rejected amendment that later changes
 would make feasible. The harness independently reconstructs every map.
+
+## 2026-09-05 — WIST-4 §4, §5, §9: in-flight parameter anchors (revision, not errata)
+
+**What changed.** Duration and quorum reads have explicit anchors.
+Confirmation reads each candidate's profile and preserves its earliest
+success; extensions close under their triggering profile. Duty, checkpoint,
+canary and appeal clocks retain their opening values. ADR-0027 amends
+ADR-0012, ADR-0019 and ADR-0022.
+
+**Why a revision.** Reading the latest map at every recomputation would
+move existing deadlines and undo findings; the previous text did not
+exclude that behavior.
+
+**Exercised.** `parameter-combinations.json` includes parameter changes
+across duty, checkpoint, canary and appeal anchors, equality at activation,
+quorum increases and confirmation-window decreases. The harness derives
+deadlines and the earliest confirming candidate from the supplied timeline.
