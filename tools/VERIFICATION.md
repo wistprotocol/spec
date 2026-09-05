@@ -64,7 +64,7 @@ cannot enter the vector unnoticed.
 | wist4 `canary.json` | HMAC and SHA-256 from the standard library; the leaf's Merkle inclusion checked from signed reveal envelopes without served bytes, and re-walked by the verifier's fn/sn algorithm (WIST-3 §4) rather than the generator's PATH construction; the similarity beneath the hard hit segments by `tools/segmentation.py` (`unicode:uax29-conformance`); credit, hard hit, reveal timing and the scoreboard are harness-recomputed only | third-party-lib (hash) + external-KAT (segmentation) | partial |
 | wist4 `observer-checkpoints.json` | prose-traced budget allocation, epoch boundaries and checkpoint coverage | self-consistency | self-consistency-only |
 | wist4 `decay-table.json`, `reputation.json` | recomputed and checked against the WIST-4 appendix figures | prose-figures | self-consistency-only |
-| wist4 `confirmation.json`, `derivation.json`, `coverage.json`, `extension.json`, `sanctions.json`, `superseded-audit.json`, `roster.json`, `selection-domain.json`, `link-agreement.json` | replay semantics recomputed by the generator's own logic | self-consistency | self-consistency-only |
+| wist4 `confirmation.json`, `derivation.json`, `coverage.json`, `extension.json`, `sanctions.json`, `superseded-audit.json`, `roster.json`, `selection-domain.json`, `link-agreement.json` | replay semantics recomputed by the generator's own logic; confirmation quorum windows also checked by the harness through distinct two-label suffix counts | self-consistency | self-consistency-only |
 
 ## Reading the table
 

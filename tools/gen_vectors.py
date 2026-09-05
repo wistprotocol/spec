@@ -4,7 +4,7 @@
 Never uses wall-clock or randomness: fixed seed, fixed timestamps.
 Re-running always produces byte-identical output.
 """
-import base64, calendar, hashlib, hmac, json, pathlib, time
+import base64, calendar, hashlib, hmac, itertools, json, pathlib, time
 from decimal import Decimal, localcontext
 
 import rfc8785
@@ -1823,19 +1823,19 @@ def independent(a: str, b: str) -> bool:
     return sa != sb
 
 
-def confirming_index(records, window_hours):
-    """WIST-4 §5/§7: earliest Record, in Log order, sealed within the pairwise
-    window of an earlier Record from an independent Auditor."""
+def confirming_index(records, window_hours, quorum=2):
     for prev, nxt in zip(records, records[1:]):
         assert (nxt["block_height"], nxt["entry_index"]) > \
                (prev["block_height"], prev["entry_index"]), "not in Log order"
         assert nxt["sealed_at_s"] >= prev["sealed_at_s"], "sealed_at decreased"
     window_s = window_hours * HOUR_S
     for i, record in enumerate(records):
-        for earlier in records[:i]:
-            if independent(earlier["auditor"], record["auditor"]) and \
-               record["sealed_at_s"] - earlier["sealed_at_s"] <= window_s:
-                return i
+        held = [r for r in records[:i + 1]
+                if record["sealed_at_s"] - r["sealed_at_s"] <= window_s]
+        if any(all(independent(a["auditor"], b["auditor"])
+                   for a, b in itertools.combinations(group, 2))
+               for group in itertools.combinations(held, quorum)):
+            return i
     return None
 
 
@@ -1901,6 +1901,54 @@ for label, records in confirmation_scenarios:
         "severity": None if idx is None else ci_severity(records, idx),
     })
 
+quorum_cases = []
+for label, data, expected in (
+    ("three inside window", [(0, AUD_A), (30, AUD_B), (72, AUD_C)], 2),
+    ("stale member beside fresh pair", [(0, AUD_A), (100, AUD_B), (110, AUD_C)], None),
+    ("later complete quorum", [(0, AUD_A), (100, AUD_B), (110, AUD_C), (120, AUD_A)], 3),
+    ("third member one second late", [(0, AUD_A), (30, AUD_B), (72, AUD_C)], None),
+    ("dependent member", [(0, AUD_A), (30, AUD_A2), (60, AUD_B)], None),
+    ("same Block quorum", [(0, AUD_A), (0, AUD_B), (0, AUD_C)], 2),
+):
+    records = [rec(1 if label == "same Block quorum" else i + 1, i, t * HOUR_S, auditor)
+               for i, (t, auditor) in enumerate(data)]
+    if label == "third member one second late":
+        records[-1]["sealed_at_s"] += 1
+    got = confirming_index(records, 72, 3)
+    assert got == expected
+    for verdict in ("inconsistent", "link_inconsistent"):
+        quorum_cases.append({"label": label + " " + verdict.replace("_", " "),
+                             "verdict": verdict, "confirm_auditors": 3,
+                             "records": records, "confirming_index": got,
+                             "severity": None if got is None else
+                                 1 if verdict == "link_inconsistent" else ci_severity(records, got)})
+
+quorum_contradiction_cases = []
+for label, agreeing, consistent, expected_confirmed, expected_contradicted in (
+    ("consistent pair is insufficient", [], [(10, AUD_B), (20, AUD_C)], False, False),
+    ("consistent quorum at endpoint", [], [(10, AUD_B), (20, AUD_C), (72, "watch.third.org")], False, True),
+    ("consistent quorum member too late", [], [(10, AUD_B), (20, AUD_C), (73, "watch.third.org")], False, False),
+    ("confirming pair is insufficient", [(10, AUD_B)], [(20, AUD_B), (30, AUD_C), (40, "watch.third.org")], False, True),
+    ("confirming quorum contains trigger", [(10, AUD_B), (20, AUD_C)], [(30, AUD_B), (40, AUD_C), (50, "watch.third.org")], True, False),
+    ("dependent consistent member", [], [(10, AUD_B), (20, AUD_C), (30, "peer.example.org")], False, False),
+):
+    agreeing_ids = [AUD_A] + [a for t, a in agreeing if 0 <= t <= 72]
+    consistent_ids = [a for t, a in consistent if 0 <= t <= 72]
+    def complete_quorum(ids):
+        return any(all(independent(a, b) for a, b in itertools.combinations(group, 2))
+                   for group in itertools.combinations(ids, 3))
+    confirmed = complete_quorum(agreeing_ids)
+    contradicted = not confirmed and complete_quorum(consistent_ids)
+    assert (confirmed, contradicted) == (expected_confirmed, expected_contradicted)
+    for verdict in ("inconsistent", "link_inconsistent"):
+        quorum_contradiction_cases.append({"label": label + " " + verdict.replace("_", " "),
+            "confirm_auditors": 3, "trigger": {"auditor": AUD_A, "verdict": verdict, "sealed_at_s": 0},
+            "records": sorted([{"auditor": auditor, "verdict": kind, "sealed_at_s": t * HOUR_S}
+                        for kind, data in ((verdict, agreeing), ("consistent", consistent))
+                        for t, auditor in data], key=lambda r: r["sealed_at_s"]),
+            "closing_sealed_at_s": 73 * HOUR_S,
+            "confirmed": confirmed, "contradicted": contradicted})
+
 write_json(WIST4 / "confirmation.json", spaced_labels({
     "note": "WIST-4 §5/§7 confirming-block selection and severity over one Delta's inconsistent Records in Log order.",
     "confirm_window_hours": CONFIRM_WINDOW_HOURS,
@@ -1909,6 +1957,8 @@ write_json(WIST4 / "confirmation.json", spaced_labels({
                        "inconsistent_below": INCONSISTENT_EFFECTIVE_BELOW},
     "independence": independence_cases,
     "cases": confirmation_cases,
+    "quorum_cases": quorum_cases,
+    "quorum_contradiction_cases": quorum_contradiction_cases,
 }))
 
 

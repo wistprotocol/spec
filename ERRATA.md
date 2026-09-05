@@ -2880,3 +2880,20 @@ reveal envelopes with valid and invalid multi-leaf membership witnesses.
 The harness verifies membership from those envelopes alone, validates
 required fields and signatures, and rejects corrupted, missing, short
 and surplus proof inputs.
+
+## 2026-09-05 — WIST-4 §4, §5, §7, §9.1: amended confirmation quorums (revision, not errata)
+
+**What changed.** All members of `confirm_auditors` must fit inside the
+closed confirmation window, for extract and link findings separately.
+Contradiction requires the same number of independent consistent
+Auditors and no complete confirming quorum containing its trigger.
+The severity prefix is unchanged. ADR-0019 amends ADR-0012.
+
+**Why a revision.** The old pair predicate did not determine larger
+quorums and literally accepted two link or contradiction witnesses.
+Selecting a complete-window quorum changes those readings.
+
+**Exercised.** `vectors/wist4/confirmation.json` includes quorum-three
+extract, link and contradiction cases, a stale member beside a fresh
+pair, inclusive endpoints, dependent members, and a later full quorum.
+The harness recomputes these and discriminates the fresh-pair reading.
