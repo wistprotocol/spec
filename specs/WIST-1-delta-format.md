@@ -84,7 +84,16 @@ shown here.
   above gives: a context-sensitive full lowercase maps a word-final Σ to ς
   and a UTS #46 mapping maps it to σ, so the extra step changes the input
   of the algorithm at the very character this definition cites, and it can
-  only ever disagree with the mapping it precedes.
+  only ever disagree with the mapping it precedes. The **Unicode version**
+  is pinned with the flags, at **Unicode 16.0**: UTS #46's mapping table
+  is derived from the Unicode Character Database, which gains entries at
+  every release, so the same host maps to different A-labels under two
+  releases and the flag profile alone does not close the gap the profile
+  exists to close. Every Unicode property this suite reads comes from that
+  one version (§9 of WIST-4 states the same pin for the properties its
+  similarity metric reads), and moving it is a change to this document —
+  after a deployment exists, a new major version — because it changes
+  identities the Log has already sealed.
 - **Normalized URL**: an `https` URL after RFC 3986 §6.2.2 syntax-based
   normalization — percent-encoding hex digits uppercased and
   percent-encoded octets that correspond to unreserved characters decoded,
@@ -1022,4 +1031,6 @@ links, nor the summary appears anywhere in it.
   A-label encoding
 - [UTS #46] Unicode Technical Standard #46, Unicode IDNA Compatibility
   Processing — the normative processing algorithm §2's Canonical Host is
-  computed by
+  computed by, at the Unicode version §2 pins
+- [UNICODE] The Unicode Standard, Version 16.0 — the one release every
+  Unicode property in this suite is read from (§2)

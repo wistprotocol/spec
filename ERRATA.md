@@ -1777,6 +1777,42 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-1 §2, §13; WIST-4 §5, §13: one pinned Unicode version (revision, not errata)
+
+Adds the Unicode version pin to WIST-1 §2's Canonical Host and WIST-4
+§5's normalization, names the release in both reference lists, and
+records the decision as ADR-0017, which amends ADR-0014.
+
+**What it states.** Every Unicode property the suite reads comes from
+Unicode 16.0: NFC, default full case-folding, UAX #29 word boundaries
+and extended grapheme clusters, General Category, and the UTS #46
+mapping and validity tables. Moving the version is a change to the
+documents — after a deployment exists, a new major version — because it
+changes identities and verdicts already sealed. An implementation whose
+platform offers only a later release is not conforming for these
+sections.
+
+**Why it is a revision.** It fails the first condition. An implementation
+reading its platform's current Unicode release conformed to the previous
+text, which named the algorithms and not the release, and a platform
+already past 16.0 now has to pin. The defect it closes is one both
+sections claim not to have: §5 states that no two conforming Auditors can
+disagree about a boundary case and that selection is recomputable rather
+than reproducible-in-practice, and ADR-0014 pinned the UTS #46 flags to
+stop two implementations deriving different A-labels for one host. The
+Character Database reaches both. A character unassigned in one release is
+General Category `Cn`, so §5's step 4 discards the segment holding it
+while the release that assigns it keeps the segment — a different word
+sequence, a different `similarity`, a different verdict — and UTS #46's
+mapping table, being derived from the same database, sends one host to
+two A-labels across two releases.
+
+**Status.** Unexercised at the point that matters. The vector suite's
+text fixtures are ASCII, where every release agrees, so nothing in the
+harness would notice a party reading a different one. The discriminating
+cases belong with the normalization vectors recorded in the entry that
+follows this one.
+
 ## 2026-09-04 — WIST-4 §5, §9: `shingle_size` governs the branch threshold too (revision, not errata)
 
 Rewrites §5's *Shingles* paragraph and the `shingle_size` row of §9's

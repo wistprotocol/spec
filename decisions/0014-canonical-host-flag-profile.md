@@ -1,6 +1,6 @@
 # ADR-0014: The Canonical Host flag profile, and no lowercasing before it
 
-**Status:** accepted · **Date:** 2026-08-16
+**Status:** accepted · amended by ADR-0017 (2026-09-04: the Unicode version is pinned alongside the flags) · **Date:** 2026-08-16
 
 ## Context
 
