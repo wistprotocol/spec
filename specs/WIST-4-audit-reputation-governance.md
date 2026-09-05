@@ -966,6 +966,22 @@ bytes and the sealed integer is an implementation's choice.
    sequence**; its **normalized form** is those words joined by a single
    U+0020. A text whose word sequence is empty is itself **empty**.
 
+All four steps read the Unicode Character Database, and every release
+changes it: a character unassigned in one release is General Category
+`Cn` and its segment is discarded at step 4, while the release that
+assigns it as a letter keeps the same segment; word-boundary and
+grapheme-cluster properties gain entries the same way, and so does the
+case-folding table. Two Auditors on two releases would then derive
+different word sequences from identical octets, which is the disagreement
+this section's arithmetic is built to make impossible. The **Unicode
+version is therefore pinned at Unicode 16.0**, the same release WIST-1 §2
+pins for the Canonical Host, and all four properties MUST be read from
+it. An Auditor whose platform offers only a later release does not
+approximate: it is not conforming for §5, because the character its
+platform assigned is exactly where the two of them will differ. Moving
+the version is a change to this document — after a deployment exists, a
+new major version — because it changes verdicts already sealed.
+
 **Shingles.** Let *s* be `shingle_size` (Parameter Registry; default 8),
 *w* a text's word count and *g* the count of extended grapheme clusters
 ([UAX #29]) in its normalized form. With *A* the shingle set of the
@@ -2909,9 +2925,13 @@ from end to end.
   (§5.5); the normative source for §4's `prove`, `proof_to_hash` and `verify`
 - [UAX #29] Unicode Standard Annex #29, Unicode Text Segmentation — the
   default word-boundary and extended grapheme cluster rules §5's similarity
-  metric segments by, used without tailoring
+  metric segments by, used without tailoring, at the Unicode version §5
+  pins
 - [UAX #44] Unicode Standard Annex #44, Unicode Character Database — General
-  Category values (L\*, N\*) and the default full case-folding §5 applies
+  Category values (L\*, N\*) and the default full case-folding §5 applies,
+  at the Unicode version §5 pins
+- [UNICODE] The Unicode Standard, Version 16.0 — the one release every
+  Unicode property in this suite is read from (§5, WIST-1 §2)
 - [ISO 28500] ISO 28500, WARC file format — the format of the capture §5's
   `evidence_commitment` covers and §7's appellant fetches
 - WIST-1: Delta Format & Identity — key rotation, scope rule, §6 absence
