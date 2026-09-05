@@ -2525,6 +2525,34 @@ assert all(c["closes_at_height"] == B1["height"] + 73 for c in contradiction_cas
 assert [p["in_force"] for p in contradiction_cases[0]["escalation_at"]] == \
     [False, True, True, False], "escalation window drifted"
 
+extension_order_cases = []
+for label, rows in (
+    ("two Deltas one remaining slot", [(0, "delta a", AUD_A, "inconsistent"), (1, "delta b", AUD_A, "inconsistent")]),
+    ("mixed kinds share ration", [(0, "delta a", AUD_A, "link_inconsistent"), (1, "delta b", AUD_A, "inconsistent")]),
+    ("mixed kinds share Delta trigger sequence", [(0, "delta a", AUD_A, "inconsistent"), (1, "delta a", AUD_B, "link_inconsistent")]),
+    ("later peer does not cancel summons", [(0, "delta a", AUD_A, "inconsistent"), (1, "delta a", AUD_B, "inconsistent")]),
+):
+    records = [{"block_height": 10, "entry_index": entry, "sealed_at_s": 36000,
+                "delta": delta, "auditor": auditor, "verdict": verdict}
+               for entry, delta, auditor, verdict in rows]
+    prior_triggers = [(AUD_A, 0), (AUD_A, 3600)]
+    candidates, outcomes, peers = [], [], []
+    for i, r in enumerate(records):
+        earlier = [e for e in records[:i] if e["delta"] == r["delta"]]
+        eligible = not earlier
+        candidates.append(eligible)
+        attempt = prior_triggers + [(r["auditor"], r["sealed_at_s"])]
+        fires = eligible and rationed_summons(attempt, 30, 3)[-1]
+        outcomes.append(fires)
+        if fires:
+            prior_triggers.append(attempt[-1])
+        peers.append([a for a in (AUD_A, AUD_B, AUD_C)
+                      if fires and independent(a, r["auditor"])])
+    extension_order_cases.append({"label": label, "records": records,
+        "prior_triggers": [[AUD_A, 0], [AUD_A, 3600]],
+        "roster": [AUD_A, AUD_B, AUD_C], "publisher_domain": "page.publisher.test",
+        "eligible": candidates, "summons": outcomes, "summoned_auditors": peers})
+
 write_json(WIST4 / "extension.json", spaced_labels({
     "note": ("WIST-4 §4 extension rule: trigger, ration, summoned set, and the "
              "contradiction that escalates the audited domain's sampling. A "
@@ -2545,6 +2573,7 @@ write_json(WIST4 / "extension.json", spaced_labels({
     ],
     "trigger_cases": extension_trigger_cases,
     "ration_cases": extension_ration_cases,
+    "order_cases": extension_order_cases,
     "summons_cases": extension_summons_cases,
     "contradiction_blocks": CONTRADICTION_GRID,
     "contradiction_cases": contradiction_cases,

@@ -2503,6 +2503,40 @@ check("negative:wist4-confirmation-quorums", _dc4_confirmation_quorums_twin)
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 
+def _extension_order(case, reverse=False):
+    records = sorted(case["records"], key=lambda r: (r["block_height"], r["entry_index"]), reverse=reverse)
+    history = list(case["prior_triggers"])
+    seen, eligible, summons, peers = {}, [], [], []
+    for r in records:
+        prior = seen.get(r["delta"], [])
+        candidate = not any(0 <= r["sealed_at_s"] - e["sealed_at_s"] <= 72 * 3600 for e in prior)
+        used = sum(a == r["auditor"] and 0 <= r["sealed_at_s"] - t < 30 * 86400 for a, t in history)
+        fires = candidate and used < 3
+        eligible.append(candidate)
+        summons.append(fires)
+        peers.append([a for a in case["roster"] if fires
+                      and _roster_independent(a, case["publisher_domain"])
+                      and all(_roster_independent(a, e["auditor"]) for e in prior + [r])])
+        if fires:
+            history.append((r["auditor"], r["sealed_at_s"]))
+        seen.setdefault(r["delta"], []).append(r)
+    return eligible, summons, peers
+
+def _dc4_extension_order():
+    for case in _extension_vector()["order_cases"]:
+        assert _extension_order(case) == (case["eligible"], case["summons"], case["summoned_auditors"]), case["label"]
+check("vectors:wist4-extension-order", _dc4_extension_order)
+
+def _dc4_extension_order_twin():
+    cases = _extension_vector()["order_cases"]
+    first = cases[0]
+    reversed_result = _extension_order(first, reverse=True)
+    assert list(reversed(reversed_result[1])) != first["summons"]
+    peer = next(c for c in cases if c["label"] == "later peer does not cancel summons")
+    assert peer["records"][1]["auditor"] in peer["summoned_auditors"][0]
+    assert peer["eligible"] == [True, False]
+check("negative:wist4-extension-order", _dc4_extension_order_twin)
+
 def _contradiction_outcome(v, case, endpoint_inclusive=True):
     """WIST-4 §4: a summoning Record is contradicted when its extension closes
     — the first Block sealed more than confirm_window_hours after B₁ — with
