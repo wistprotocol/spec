@@ -2651,3 +2651,29 @@ without credit, and both appear on the scoreboards.
 `vectors:wist4-canary` recomputes the missing band and every case, and
 its twin fails a reading that treats a missing band as the
 `inconsistent` band.
+
+## 2026-09-05 — WIST-4 §6.1: why an `attest` audit never counts toward `C`
+
+Adds three sentences to §6.1's `C` bullet.
+
+**What it states.** A URL whose page never changes offers `C` exactly
+one chance: the roster's draws over the Block sealing its content-bearing
+Delta. Under a small roster a static site can therefore sit below
+`provisional_audits` however often it attests, because a `consistent`
+Record whose reference is an `attest` never counts. The bullet now says
+this is a cost the exclusion carries on purpose: counting `attest`
+audits would let a Publisher schedule its own draws, an `attest` costing
+it nothing but a Ping and each one being a fresh Block to be drawn in,
+while the remedy the suite intends is the roster and real content
+change.
+
+**Why it qualifies.** The rule is unchanged and the alternative was
+considered and declined; the sentences record that the stall is known
+and why it is accepted, so that no reader takes the exclusion for an
+oversight or an implementation for a reading that happens to match.
+Nothing computed changes.
+
+**Status.** Unexercised; there is nothing to exercise. The exclusion
+itself is exercised by `vectors/wist4/derivation.json`, whose cases
+carry `consistent` Records with `attest` and `delete` references that
+count nothing.
