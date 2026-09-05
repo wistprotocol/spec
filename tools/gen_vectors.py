@@ -2108,8 +2108,121 @@ coverage_anchor_cases = [
 assert [c["discharges"] for c in coverage_anchor_cases] == [True, False, True, False, False], \
     "anchor cases drifted"
 
+
+# The establishing height: the height from which a failed duty enters the §4
+# count — the attestation's Block, or the record_seal_blocks-th Block sealed
+# after the coverage deadline. The vector runs a one-hour cadence and its own
+# record_seal_blocks so the Block list stays readable.
+COVERAGE_DEADLINE_HOURS = 72
+VECTOR_RECORD_SEAL_BLOCKS = 4
+
+
+def establishing_height(blocks, deadline_s, attestation_height, record_seal_blocks):
+    if attestation_height is not None:
+        return attestation_height
+    after = [b for b in blocks if b["sealed_at_s"] > deadline_s]
+    if len(after) < record_seal_blocks:
+        return None
+    return after[record_seal_blocks - 1]["height"]
+
+
+def failure_counts_at(establishing, audited_sealed_at_s, n_height, n_sealed_at_s):
+    return (establishing is not None and establishing <= n_height
+            and within_days_ending_at(audited_sealed_at_s, n_sealed_at_s, RATION_WINDOW_DAYS))
+
+
+def hourly_block(height):
+    return {"height": height, "sealed_at_s": height * HOUR_S}
+
+
+AUDITED = hourly_block(100)
+DEADLINE_S = AUDITED["sealed_at_s"] + COVERAGE_DEADLINE_HOURS * HOUR_S
+coverage_establishing_scenarios = [
+    ("attested-unmet-establishes-at-the-attestation",
+     [hourly_block(h) for h in range(170, 185)], 180, [175, 179, 180, 181]),
+    ("unattested-establishes-record-seal-blocks-after-the-deadline",
+     [hourly_block(h) for h in range(170, 185)], None, [172, 175, 176, 177]),
+    ("deadline-not-yet-passed-by-record-seal-blocks",
+     [hourly_block(h) for h in range(170, 176)], None, [174, 175]),
+    ("evidence-outside-the-window-counts-at-no-height",
+     [hourly_block(h) for h in range(815, 825)], 820, [819, 820, 824]),
+]
+coverage_establishing_cases = []
+for label, blocks, attestation_height, probes in coverage_establishing_scenarios:
+    establishing = establishing_height(
+        blocks, DEADLINE_S, attestation_height, VECTOR_RECORD_SEAL_BLOCKS)
+    coverage_establishing_cases.append({
+        "label": label,
+        "audited_block": AUDITED,
+        "coverage_deadline_hours": COVERAGE_DEADLINE_HOURS,
+        "coverage_deadline_s": DEADLINE_S,
+        "record_seal_blocks": VECTOR_RECORD_SEAL_BLOCKS,
+        "blocks": blocks,
+        "attestation_height": attestation_height,
+        "establishing_height": establishing,
+        "counts_at": [
+            {"height": h, "sealed_at_s": h * HOUR_S,
+             "counts": failure_counts_at(establishing, AUDITED["sealed_at_s"], h, h * HOUR_S)}
+            for h in probes
+        ],
+    })
+assert [c["establishing_height"] for c in coverage_establishing_cases] == [180, 176, None, 820], \
+    "establishing heights drifted"
+assert not any(p["counts"] for p in coverage_establishing_cases[3]["counts_at"]), \
+    "evidence past the window must count at no height"
+
+
+# prev_record is per (Auditor, Log): one Auditor publishing into two Logs
+# chains each Log's items to each other, so neither Log sees a gap it cannot
+# attribute. Under the ruled-out global-publication-order reading both Logs
+# see a permanent gap, which the amnesty rule turns into a permanent amnesty.
+def chain_gap(sealed, prev_of):
+    ids = {item for item in sealed}
+    return any(prev_of[item] is not None and prev_of[item] not in ids for item in sealed)
+
+
+chain_publications = [
+    {"id": "sha256:p1", "log": "log-a"},
+    {"id": "sha256:p2", "log": "log-b"},
+    {"id": "sha256:p3", "log": "log-a"},
+    {"id": "sha256:p4", "log": "log-b"},
+    {"id": "sha256:p5", "log": "log-a"},
+]
+per_log_prev, global_prev, last_per_log, last_global = {}, {}, {}, None
+for item in chain_publications:
+    per_log_prev[item["id"]] = last_per_log.get(item["log"])
+    global_prev[item["id"]] = last_global
+    last_per_log[item["log"]] = item["id"]
+    last_global = item["id"]
+
+coverage_chain_scope_cases = []
+for label, suppressed in [("nothing-suppressed", []), ("log-a-suppresses-one-item", ["sha256:p3"])]:
+    logs = []
+    for log_id in ("log-a", "log-b"):
+        sealed = [item["id"] for item in chain_publications
+                  if item["log"] == log_id and item["id"] not in suppressed]
+        logs.append({
+            "log": log_id,
+            "sealed": sealed,
+            "chain_gap": chain_gap(sealed, per_log_prev),
+            "chain_gap_under_global_publication_order": chain_gap(sealed, global_prev),
+        })
+    coverage_chain_scope_cases.append({
+        "label": label,
+        "publications": chain_publications,
+        "suppressed": suppressed,
+        "prev_record": per_log_prev,
+        "prev_record_under_global_publication_order": global_prev,
+        "logs": logs,
+    })
+assert [l["chain_gap"] for c in coverage_chain_scope_cases for l in c["logs"]] \
+    == [False, False, True, False], "chain scope cases drifted"
+assert all(l["chain_gap_under_global_publication_order"]
+           for l in coverage_chain_scope_cases[0]["logs"]), \
+    "the global-order reading must show the gap the per-Log rule rules out"
+
 write_json(WIST4 / "coverage.json", spaced_labels({
-    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — and, per anchor case, the Block a removal is read against: the audited Block for a draw, B₁ for a Delta the extension rule names.",
+    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count, and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
     "coverage_deadline_hours": 72,
     "coverage_failures_max": COVERAGE_FAILURES_MAX,
     "record_seal_blocks": 24,
@@ -2119,6 +2232,8 @@ write_json(WIST4 / "coverage.json", spaced_labels({
     "state_cases": coverage_state_cases,
     "discharge_cases": coverage_discharge_cases,
     "anchor_cases": coverage_anchor_cases,
+    "establishing_cases": coverage_establishing_cases,
+    "chain_scope_cases": coverage_chain_scope_cases,
 }))
 
 
@@ -3009,9 +3124,10 @@ write_json(WIST4 / "superseded-audit.json", {
 })
 print("wist4 reference-delta vector: %d cases" % len(reference_cases))
 
-print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%d+%d+%d extension=%d+%d+%d+%d sanctions=%d+%d+%d+%d+%d cases" % (
+print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%d+%d+%d+%d+%d extension=%d+%d+%d+%d sanctions=%d+%d+%d+%d+%d cases" % (
     len(confirmation_cases), len(derivation_scenarios),
     len(coverage_pair_cases), len(coverage_counting_cases), len(coverage_state_cases),
+    len(coverage_establishing_cases), len(coverage_chain_scope_cases),
     len(extension_trigger_cases), len(extension_ration_cases),
     len(extension_summons_cases), len(divergence_cases),
     len(sanction_criterion_cases), len(sanction_accrual_cases),
