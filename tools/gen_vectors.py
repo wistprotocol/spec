@@ -3293,9 +3293,12 @@ def canary_page(text: str, nonce: bytes | None) -> bytes:
             % (comment, text, CANARY_FILLER)).encode()
 
 
-def canary_derived(body: bytes) -> tuple[int, str]:
+def canary_derived(body: bytes) -> tuple[int | None, str]:
+    """§5 over the served bytes: the band, or not_auditable below the mass
+    guard, where §5.2 derives no band and so no hard hit."""
     sim = link_extraction.similarity(EXTRACT, link_extraction.extract_text(body))
-    assert sim is not None, "a canary leaf must clear the mass guard"
+    if sim is None:
+        return None, "not_auditable"
     verdict = ("consistent" if sim >= 600_000 else
                "dynamic_variance" if sim >= 300_000 else "inconsistent")
     return sim, verdict
@@ -3305,7 +3308,9 @@ def credit_commit(key: bytes, body: bytes, auditor_id: str) -> str:
     return "hmac-sha256:" + hmac.new(key, body + auditor_id.encode(), hashlib.sha256).hexdigest()
 
 
-def hard_hit(reproduces: bool, verdict: str, derived: int) -> bool:
+def hard_hit(reproduces: bool, verdict: str, derived: int | None) -> bool:
+    if derived is None:
+        return False
     return reproduces and ((verdict == "consistent" and derived < 300_000)
                            or (verdict == "inconsistent" and derived >= 600_000))
 
@@ -3319,6 +3324,16 @@ def canary_attest(prev_id: str, observed_at: str) -> str:
 CANARY_D1 = delta_id
 CANARY_D2 = canary_attest(CANARY_D1, "2026-08-03T12:00:00Z")
 CANARY_D3 = canary_attest(CANARY_D2, "2026-08-04T12:00:00Z")
+CANARY_D4 = canary_attest(CANARY_D3, "2026-08-05T12:00:00Z")
+
+
+def canary_thin_page(nonce: bytes) -> bytes:
+    """A leaf whose observed text falls below the mass guard: §5 derives no
+    band over it, so §5.2 derives no hard hit on it."""
+    return ("<!doctype html><html><body><!-- wist-canary: %s --><p>Too few words to measure.</p></body></html>"
+            % nonce.hex()).encode()
+
+
 CANARY_LEAF_SPECS = [
     ("watermark", canary_page(EXTRACT, canary_nonce(0)), CANARY_D1, 124, 900_000, False),
     ("fraud", canary_page("Nothing served here resembles the committed text at all.",
@@ -3326,6 +3341,7 @@ CANARY_LEAF_SPECS = [
     ("dynamic", canary_page("WIST is an open, verifiable, push-based web",
                             canary_nonce(2)), CANARY_D3, 300, 100_000, True),
     ("unrevealed", canary_page("unrevealed", canary_nonce(3)), None, None, None, None),
+    ("thin", canary_thin_page(canary_nonce(4)), CANARY_D4, 400, 400_000, False),
 ]
 canary_leaf_hashes = [leaf_hash(body) for _, body, *_ in CANARY_LEAF_SPECS]
 canary_root = "sha256:" + merkle_tree_root(canary_leaf_hashes).hex()
@@ -3346,8 +3362,9 @@ for index, (cls, body, did, height, rep_u, provisional) in enumerate(CANARY_LEAF
                       "tier": tier})
     canary_leaves.append(entry)
 assert [l.get("derived_verdict") for l in canary_leaves] == \
-    ["consistent", "inconsistent", "dynamic_variance", None], "canary leaf verdicts drifted"
+    ["consistent", "inconsistent", "dynamic_variance", None, "not_auditable"], "canary leaf verdicts drifted"
 assert canary_leaves[2]["derived_similarity"] == 333_333, "the dynamic leaf must sit in the buffer band"
+assert canary_leaves[4]["derived_similarity"] is None, "the thin leaf must fall below the mass guard"
 
 PAYLOAD_PAGE = canary_page(EXTRACT, None)
 OTHER_SALT = bytes(b ^ 0x01 for b in salt)
@@ -3355,13 +3372,20 @@ OTHER_SALT = bytes(b ^ 0x01 for b in salt)
 
 def canary_credit_case(label, auditor_id, index, held, verdict, key=None, copied_from=None):
     leaf_body = CANARY_LEAF_SPECS[index][1]
+    derived = canary_leaves[index]["derived_similarity"]
+    key = salt if key is None else key
+    if held is None:
+        # §5: an unreachable or not_auditable Record carries no commitment,
+        # so it can credit nothing and hit nothing — an encounter without credit.
+        return {"label": label, "auditor_id": auditor_id, "leaf_index": index, "held": None,
+                "salt": "reference", "copied_from": None, "verdict": verdict,
+                "response_commitment": None, "credit_commitment": None,
+                "reproduces": False, "hard_hit": False}
     body = {"leaf": leaf_body, "payload_page": PAYLOAD_PAGE,
             "other_nonce": canary_page(EXTRACT, canary_nonce(99))}[held]
-    key = salt if key is None else key
     signer = copied_from or auditor_id
     sealed = credit_commit(key, body, signer)
     reproduces = sealed == credit_commit(salt, leaf_body, auditor_id)
-    derived = canary_leaves[index]["derived_similarity"]
     return {"label": label, "auditor_id": auditor_id, "leaf_index": index, "held": held,
             "salt": "reference" if key == salt else "other",
             "copied_from": copied_from, "verdict": verdict,
@@ -3383,11 +3407,15 @@ canary_credit_cases = [
     canary_credit_case("a-cloaked-fetch-misses", CANARY_AUD_C, 2, "other_nonce", "consistent"),
     canary_credit_case("the-wrong-salt-reproduces-nothing", CANARY_AUD_B, 0, "leaf", "consistent",
                        key=OTHER_SALT),
+    canary_credit_case("a-measured-verdict-on-a-thin-leaf-credits-and-is-no-hit", CANARY_AUD_A, 4, "leaf",
+                       "consistent"),
+    canary_credit_case("the-honest-record-on-a-thin-leaf-is-not-auditable-without-credit", CANARY_AUD_B, 4,
+                       None, "not_auditable"),
 ]
 assert [c["reproduces"] for c in canary_credit_cases] == \
-    [True, False, False, True, True, True, True, True, False, False], "credit cases drifted"
+    [True, False, False, True, True, True, True, True, False, False, True, False], "credit cases drifted"
 assert [c["hard_hit"] for c in canary_credit_cases] == \
-    [False, False, False, True, False, True, False, False, False, False], "hard-hit cases drifted"
+    [False, False, False, True, False, True, False, False, False, False, False, False], "hard-hit cases drifted"
 assert canary_credit_cases[2]["credit_commitment"] == canary_credit_cases[0]["credit_commitment"], \
     "the copier must seal the very value it copied"
 
@@ -3462,10 +3490,13 @@ canary_scoreboard_records = [
     {"auditor_id": CANARY_AUD_A, "leaf_index": 2, "verdict": "inconsistent", "held": "leaf", "fixed_before_reveal": True},
     {"auditor_id": CANARY_AUD_B, "leaf_index": 0, "verdict": "consistent", "held": "payload_page", "fixed_before_reveal": True},
     {"auditor_id": CANARY_AUD_B, "leaf_index": 1, "verdict": "inconsistent", "held": "leaf", "fixed_before_reveal": False},
+    {"auditor_id": CANARY_AUD_A, "leaf_index": 4, "verdict": "consistent", "held": "leaf", "fixed_before_reveal": True},
+    {"auditor_id": CANARY_AUD_B, "leaf_index": 4, "verdict": "not_auditable", "held": None, "fixed_before_reveal": True},
 ]
 for r in canary_scoreboard_records:
-    body = {"leaf": CANARY_LEAF_SPECS[r["leaf_index"]][1], "payload_page": PAYLOAD_PAGE}[r["held"]]
-    r["credit_commitment"] = credit_commit(salt, body, r["auditor_id"])
+    body = {"leaf": CANARY_LEAF_SPECS[r["leaf_index"]][1], "payload_page": PAYLOAD_PAGE,
+            None: None}[r["held"]]
+    r["credit_commitment"] = None if body is None else credit_commit(salt, body, r["auditor_id"])
 
 
 def scoreboard(records, auditor_id):
@@ -3476,7 +3507,7 @@ def scoreboard(records, auditor_id):
         leaf = canary_leaves[r["leaf_index"]]
         row = board[leaf["tier"]]
         row[0] += 1
-        reproduces = r["credit_commitment"] == credit_commit(
+        reproduces = r["credit_commitment"] is not None and r["credit_commitment"] == credit_commit(
             salt, CANARY_LEAF_SPECS[r["leaf_index"]][1], auditor_id)
         row[1] += reproduces
         row[2] += hard_hit(reproduces, r["verdict"], leaf["derived_similarity"])
@@ -3484,14 +3515,15 @@ def scoreboard(records, auditor_id):
 
 
 canary_scoreboards = {a: scoreboard(canary_scoreboard_records, a) for a in (CANARY_AUD_A, CANARY_AUD_B)}
-assert canary_scoreboards[CANARY_AUD_A] == {"provisional": [1, 1, 0], "standing": [1, 1, 1], "mature": [1, 1, 0]}
-assert canary_scoreboards[CANARY_AUD_B] == {"provisional": [0, 0, 0], "standing": [0, 0, 0], "mature": [1, 0, 0]}
+assert canary_scoreboards[CANARY_AUD_A] == {"provisional": [1, 1, 0], "standing": [2, 2, 1], "mature": [1, 1, 0]}
+assert canary_scoreboards[CANARY_AUD_B] == {"provisional": [0, 0, 0], "standing": [1, 0, 0], "mature": [1, 0, 0]}
 
 write_json(WIST4 / "canary.json", spaced_labels({
-    "note": ("WIST-4 §5.1, §5.2: a canary commitment over four leaves of served bytes "
-             "(three revealed, one not), each carrying a nonce; the credit_commitment "
-             "check per signer; the hard hit over both canary classes with the "
-             "dynamic_variance buffer between; reveal timing against the lead, the "
+    "note": ("WIST-4 §5.1, §5.2: a canary commitment over five leaves of served bytes "
+             "(four revealed, one not), each carrying a nonce, one of them below the "
+             "mass guard; the credit_commitment check per signer; the hard hit over "
+             "both canary classes with the dynamic_variance buffer between, and no "
+             "hit where §5 derives no band; reveal timing against the lead, the "
              "minimum with the checkpoint-budget rotation, and the lifetime; the "
              "scoring window's endpoints on the Block grid; and the "
              "per-tier scoreboard. Every revealed leaf's Reference Payload is "

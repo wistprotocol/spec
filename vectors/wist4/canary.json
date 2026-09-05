@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75.1, \u00a75.2: a canary commitment over four leaves of served bytes (three revealed, one not), each carrying a nonce; the credit_commitment check per signer; the hard hit over both canary classes with the dynamic_variance buffer between; reveal timing against the lead, the minimum with the checkpoint-budget rotation, and the lifetime; the scoring window's endpoints on the Block grid; and the per-tier scoreboard. Every revealed leaf's Reference Payload is examples/payload.json, whose salt keys every commitment here. Nonces are derived from a fixed string for reproducibility; a planter draws them from a CSPRNG.",
+  "note": "WIST-4 \u00a75.1, \u00a75.2: a canary commitment over five leaves of served bytes (four revealed, one not), each carrying a nonce, one of them below the mass guard; the credit_commitment check per signer; the hard hit over both canary classes with the dynamic_variance buffer between, and no hit where \u00a75 derives no band; reveal timing against the lead, the minimum with the checkpoint-budget rotation, and the lifetime; the scoring window's endpoints on the Block grid; and the per-tier scoreboard. Every revealed leaf's Reference Payload is examples/payload.json, whose salt keys every commitment here. Nonces are derived from a fixed string for reproducibility; a planter draws them from a CSPRNG.",
   "parameters": {
     "canary_lead_blocks": 24,
     "canary_reveal_min_blocks": 168,
@@ -19,8 +19,8 @@
   "planter": "planter.example.io",
   "canary_domain": "example.com",
   "commitment": {
-    "root": "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7",
-    "leaves": 4,
+    "root": "sha256:65b85ec65d6fbd0f5eb068933ad1830dd5746d25eb495c4b95c13668de84b25f",
+    "leaves": 5,
     "height": 100
   },
   "payload_page_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c703e5749535420697320616e206f70656e2c2076657269666961626c652c20707573682d62617365642077656220696e6465782070726f746f636f6c2e3c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
@@ -36,7 +36,8 @@
       "delta_height": 124,
       "path": [
         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
-        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593"
+        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
       ],
       "derived_similarity": 1000000,
       "derived_verdict": "consistent",
@@ -55,7 +56,8 @@
       "delta_height": 200,
       "path": [
         "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
-        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593"
+        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
+        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
       ],
       "derived_similarity": 0,
       "derived_verdict": "inconsistent",
@@ -74,7 +76,8 @@
       "delta_height": 300,
       "path": [
         "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
-        "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789"
+        "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789",
+        "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13"
       ],
       "derived_similarity": 333333,
       "derived_verdict": "dynamic_variance",
@@ -89,6 +92,24 @@
       "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203239613634633534356131663630353463633035343630323961663565303731202d2d3e3c703e756e72657665616c65643c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
       "leaf_hash": "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
       "revealed": false
+    },
+    {
+      "index": 4,
+      "class": "thin",
+      "nonce_hex": "4823fc165ac5974dc1f24256df6d4c17",
+      "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203438323366633136356163353937346463316632343235366466366434633137202d2d3e3c703e546f6f2066657720776f72647320746f206d6561737572652e3c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
+      "revealed": true,
+      "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+      "delta_height": 400,
+      "path": [
+        "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
+      ],
+      "derived_similarity": null,
+      "derived_verdict": "not_auditable",
+      "domain_reputation_u": 400000,
+      "domain_provisional": false,
+      "tier": "standing"
     }
   ],
   "credit_cases": [
@@ -219,6 +240,32 @@
       "verdict": "consistent",
       "response_commitment": "hmac-sha256:40b47c716e30230dbf24b8aaff70e4821ab98eb83d2a9705c6fb099ce5b75a57",
       "credit_commitment": "hmac-sha256:6fed7a1b12d667423c9235598930d2b1bf64b3a345ad386da02ddf560d66988e",
+      "reproduces": false,
+      "hard_hit": false
+    },
+    {
+      "label": "a measured verdict on a thin leaf credits and is no hit",
+      "auditor_id": "audit.example.net",
+      "leaf_index": 4,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:6a927754ceb48ba221867ac8c3163bc425a828c3eb0882160a4f4090c051da89",
+      "credit_commitment": "hmac-sha256:d8c2ce66be11fb7fe5818d7ecd03d75df598da81da63befffd57e3602f54377f",
+      "reproduces": true,
+      "hard_hit": false
+    },
+    {
+      "label": "the honest record on a thin leaf is not auditable without credit",
+      "auditor_id": "checker.example.org",
+      "leaf_index": 4,
+      "held": null,
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "not_auditable",
+      "response_commitment": null,
+      "credit_commitment": null,
       "reproduces": false,
       "hard_hit": false
     }
@@ -415,6 +462,22 @@
       "held": "leaf",
       "fixed_before_reveal": false,
       "credit_commitment": "hmac-sha256:eb6d636eb516bf26a9ad7a3d430dc45226650cf27e7a91c298501b8a032b4a87"
+    },
+    {
+      "auditor_id": "audit.example.net",
+      "leaf_index": 4,
+      "verdict": "consistent",
+      "held": "leaf",
+      "fixed_before_reveal": true,
+      "credit_commitment": "hmac-sha256:d8c2ce66be11fb7fe5818d7ecd03d75df598da81da63befffd57e3602f54377f"
+    },
+    {
+      "auditor_id": "checker.example.org",
+      "leaf_index": 4,
+      "verdict": "not_auditable",
+      "held": null,
+      "fixed_before_reveal": true,
+      "credit_commitment": null
     }
   ],
   "scoreboards": {
@@ -425,8 +488,8 @@
         0
       ],
       "standing": [
-        1,
-        1,
+        2,
+        2,
         1
       ],
       "mature": [
@@ -442,7 +505,7 @@
         0
       ],
       "standing": [
-        0,
+        1,
         0,
         0
       ],

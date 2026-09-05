@@ -2618,3 +2618,36 @@ reveal's own Block, a Block inside the window, the last Block inside it,
 the first Block a whole window later and one after; `vectors:wist4-canary`
 recomputes each and requires §5.1 to state the rule, and its twin fails an
 end-inclusive reading of the closing endpoint.
+
+## 2026-09-05 — WIST-4 §5.2: no band, no hard hit
+
+Adds a paragraph to §5.2's *The hard hit*, a fifth leaf to
+`vectors/wist4/canary.json` and the credit and scoreboard cases over it.
+
+**What it states.** The hard hit is a verdict two bands from the derived
+band over the revealed bytes. Where §5 derives no band — an observed
+text below `min_observed_words` — there is none, on any verdict. The
+other observed-side route to `not_auditable` reads the response's media
+type, a header the leaf does not commit to, so a hit resting on either
+would rest on evidence the reveal does not carry, and a party
+recomputing the scoreboard MUST NOT infer one. Credit still reads byte
+possession. The honest Record on such a leaf is `not_auditable`, carries
+no `credit_commitment` and is an encounter without credit; the planter
+spends the leaf on nothing, and two such Records from independent
+Auditors make the URL unauditable at the planter's own cost.
+
+**Why it qualifies.** The hit was defined over the derived band and over
+nothing else, so where no band exists none can fire: the paragraph
+states the consequence rather than adding a rule. The alternative —
+reading a measured verdict on unmeasurable bytes as itself a hit — was
+considered and closed, because the media-type rule cannot be recomputed
+from the leaf, and a demerit only some recomputations could reach would
+not be the derivable one §5.2 promises.
+
+**Status.** Exercised. `canary.json`'s fifth leaf falls below the mass
+guard; a `consistent` Record over its bytes credits and is no hit, the
+honest `not_auditable` Record carries no commitment and is an encounter
+without credit, and both appear on the scoreboards.
+`vectors:wist4-canary` recomputes the missing band and every case, and
+its twin fails a reading that treats a missing band as the
+`inconsistent` band.

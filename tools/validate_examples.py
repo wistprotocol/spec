@@ -2652,7 +2652,7 @@ def _canary_band(v, similarity):
 
 def _canary_hard_hit(v, reproduces, verdict, derived, bands_apart=2):
     p = v["parameters"]
-    if not reproduces:
+    if not reproduces or derived is None:
         return False
     if bands_apart == 2:
         return ((verdict == "consistent" and derived < p["similarity_variance_floor"])
@@ -2709,7 +2709,10 @@ def _dc4_canary():
         sim = link_extraction.similarity(v["reference_extract"], observed,
                                          v["parameters"]["min_observed_words"])
         assert sim == leaf["derived_similarity"], f"leaf {leaf['index']}: recomputed similarity {sim}"
-        assert _canary_band(v, sim) == leaf["derived_verdict"]
+        if sim is None:
+            assert leaf["derived_verdict"] == "not_auditable", f"leaf {leaf['index']}: no band, no verdict but not_auditable"
+        else:
+            assert _canary_band(v, sim) == leaf["derived_verdict"]
         if leaf["class"] == "watermark":
             assert sim == 1_000_000 and link_extraction.extract_text(body) == \
                 link_extraction.extract_text(bytes.fromhex(v["payload_page_hex"])), \
@@ -2718,7 +2721,7 @@ def _dc4_canary():
                 "mature" if leaf["domain_reputation_u"] >= v["parameters"]["latency_threshold_u"]
                 else "standing")
         assert tier == leaf["tier"], f"leaf {leaf['index']}: tier"
-    assert {l["class"] for l in v["leaves"]} == {"watermark", "fraud", "dynamic", "unrevealed"}
+    assert {l["class"] for l in v["leaves"]} == {"watermark", "fraud", "dynamic", "unrevealed", "thin"}
     bound = [l["delta_id"] for l in v["leaves"] if l["revealed"]]
     assert len(bound) == len(set(bound)), "a Delta is bound to two leaves"
     recomputed, labels = set(), set()
@@ -2729,6 +2732,14 @@ def _dc4_canary():
         held = {"leaf": bodies[case["leaf_index"]],
                 "payload_page": bytes.fromhex(v["payload_page_hex"])}.get(case["held"])
         key = salt if case["salt"] == "reference" else other_salt
+        if case["held"] is None:
+            # §5: a not_auditable Record carries no commitment — an encounter
+            # without credit, and nothing for a hit to read.
+            assert case["verdict"] == "not_auditable" and case["credit_commitment"] is None \
+                and case["response_commitment"] is None, f"{case['label']}: a neutral Record commits to nothing"
+            assert case["reproduces"] is False and case["hard_hit"] is False
+            assert leaf["derived_similarity"] is None, f"{case['label']}: the honest verdict below the guard"
+            continue
         if case["held"] == "other_nonce":
             # Bytes the vector does not carry: the sealed value must simply
             # fail to reproduce over the leaf and must not equal any leaf value.
@@ -2748,8 +2759,13 @@ def _dc4_canary():
                    "a copied credit value is worthless", "consistent on the fraud leaf is a hard hit",
                    "inconsistent on the fraud leaf credits", "inconsistent on the watermark is a hard hit",
                    "consistent in the buffer band is no hit", "inconsistent in the buffer band is no hit",
-                   "a cloaked fetch misses", "the wrong salt reproduces nothing"):
+                   "a cloaked fetch misses", "the wrong salt reproduces nothing",
+                   "a measured verdict on a thin leaf credits and is no hit",
+                   "the honest record on a thin leaf is not auditable without credit"):
         assert needed in labels, f"vector lacks the {needed} case"
+    thin = next(c for c in v["credit_cases"] if c["label"] == "a measured verdict on a thin leaf credits and is no hit")
+    assert thin["reproduces"] and not thin["hard_hit"] and thin["verdict"] == "consistent", \
+        "the thin leaf's measured verdict must credit and never hit"
     for case in v["scoring_window_cases"]:
         labels.add(case["label"])
         whole = (case["n_sealed_at_s"] - case["reveal_sealed_at_s"]) // 86400
@@ -2771,6 +2787,9 @@ def _dc4_canary():
     assert any(c["suffixes_registered"] > v["parameters"]["observer_checkpoint_budget"] and c["valid"]
                for c in v["timing_cases"]), "no case shows the rotation term absorbed"
     for record in v["scoreboard_records"]:
+        if record["held"] is None:
+            assert record["credit_commitment"] is None and record["verdict"] in ("unreachable", "not_auditable")
+            continue
         held = {"leaf": bodies[record["leaf_index"]], "payload_page": bytes.fromhex(v["payload_page_hex"])}[record["held"]]
         sealed = _canary_credit(salt, held, record["auditor_id"])
         assert sealed == record["credit_commitment"]
@@ -2782,7 +2801,8 @@ def _dc4_canary():
                 continue
             leaf = next(l for l in v["leaves"] if l["index"] == record["leaf_index"])
             row = mine[leaf["tier"]]
-            reproduces = record["credit_commitment"] == _canary_credit(salt, bodies[leaf["index"]], auditor_id)
+            reproduces = record["credit_commitment"] is not None and \
+                record["credit_commitment"] == _canary_credit(salt, bodies[leaf["index"]], auditor_id)
             row[0] += 1; row[1] += reproduces
             row[2] += _canary_hard_hit(v, reproduces, record["verdict"], leaf["derived_similarity"])
         assert mine == board, f"{auditor_id}: recomputed scoreboard {mine}, vector says {board}"
@@ -2796,6 +2816,8 @@ def _dc4_canary():
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
     for marker in ("message = <raw response body> ‖ <auditor_id as UTF-8>",
                    "a hard hit is a verdict two bands from the bytes its signer proved it held",
+                   "there is no hard hit on any verdict",
+                   "a party recomputing the scoreboard MUST NOT infer one",
                    "`leaf = SHA-256(0x00 ‖ served bytes)`",
                    "https://<domain>/.well-known/wist/canary/<commitment-id-hex>/<index>"):
         assert marker in prose, f"§5.1/§5.2 does not state: {marker!r}"
@@ -2834,6 +2856,11 @@ def _dc4_canary_twin():
     assert _canary_window_open(lapsed, end_inclusive_start_exclusive=False) is True \
         and _canary_window_open(lapsed) is False, \
         "recomputation is blind to the window's closing endpoint"
+    thin = next(l for l in v["leaves"] if l["class"] == "thin")
+    assert thin["derived_similarity"] is None and \
+        _canary_hard_hit(v, True, "consistent", 0) is True and \
+        _canary_hard_hit(v, True, "consistent", thin["derived_similarity"]) is False, \
+        "recomputation reads a missing band as the inconsistent band"
 check("negative:wist4-canary", _dc4_canary_twin)
 
 def _observer_vector():
