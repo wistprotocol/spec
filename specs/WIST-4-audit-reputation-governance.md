@@ -1877,6 +1877,16 @@ has no such lower bound, and everything from height 0 counts.
   `attest` or a `delete` never contributes, whatever Delta it audited.
   Counting distinct URLs rather than Records, and capping the count,
   prevents a high-volume Publisher from diluting penalties toward zero.
+  The `attest` exclusion has a cost, and it is deliberate: a URL whose
+  page never changes offers `C` one chance — the draws over its
+  content-bearing Delta's Block — and a small roster may leave a static
+  site below `provisional_audits` however often it attests. Counting an
+  `attest` audit would repair that by letting the Publisher schedule its
+  own draws, since an `attest` costs it nothing but a Ping and each one
+  is a fresh Block to be drawn in; the remedy is the roster instead —
+  more Auditors, or a higher `sampling_floor`, both of which the
+  Provisional rate already pulls toward — and content the domain
+  actually changes.
 - **Confirmed Inconsistencies and Confirmed Link Inconsistencies.** Only
   those whose confirming Audit Record is sealed at a height ≤ N and whose
   Delta — the `audited_delta` its confirming Records share (§5) — is
