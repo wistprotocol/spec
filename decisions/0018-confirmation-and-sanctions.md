@@ -131,3 +131,27 @@ A notice-scoped reversal reaches only a still-matching activation.
 An old process cannot clear a new activation. Same-Block findings may
 support notices without making notice validation change rung derivation.
 Recovery notices remain outside sanction process.
+
+## Retain cited Blocks through the actual sanction process
+
+### Context
+
+Notice and appeal clocks can read different parameter maps. The sum in a
+single current map therefore need not cover an older notice's proceeding.
+Cited evidence may also be old before the notice opens an appeal window.
+
+### Decision
+
+A Mirror serving an accepted sanction notice must serve the notice and
+its cited Audit Record Blocks through the process's actual closing
+instant. It acquires missing evidence before serving the notice Block.
+No accepted appeal means closure at T, even with an earlier unappealed
+statement. An accepted appeal means closure at its ruling deadline or an
+earlier accepted merits ruling. Preserve prefix causality and include the
+closing endpoint. Ordinary Block retention reads its value at first service.
+
+### Consequences
+
+Parameter changes cannot make a Mirror discard sealed evidence during an
+open proceeding. Multiple processes impose overlapping duties. The rule
+protects Blocks; Payload availability and withdrawal keep their own rules.

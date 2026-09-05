@@ -535,12 +535,25 @@ on whoever happened to have kept the superseded copy.
 
 A Mirror that serves a Block MUST retain it for at least the Mirror
 retention floor (Parameter Registry: `mirror_retention_days`; default 90
-days), so that an evidence bundle can be assembled after the fact rather
+days), measured from its first service of that Block with the value in
+force at that instant. Later amendments do not shorten that obligation.
+This lets an evidence bundle be assembled after the fact rather
 than only while an operator finds it convenient. §5's obligation on
 Checkpoints is stricter and this floor does not relax it: a Mirror retains
 every Checkpoint it has ever served, without expiry, because Checkpoints
 are the equivocation evidence itself and are small enough that no retention
 argument applies to them.
+
+**Evidence for an open sanction process.** Before serving a Block that
+contains an accepted sanction notice (WIST-4 §7), a Mirror MUST obtain and
+make retrievable the Blocks containing that notice and every Audit Record
+it cites as evidence. It MUST keep serving those Blocks through the
+process's closing instant defined there, even if their ordinary retention
+floor has elapsed. This can require reacquiring an older evidence Block.
+Several notices referencing a Block impose overlapping obligations; the
+Block remains required while any of them remains open. Only accepted
+notices create this duty. Payload availability and withdrawal remain
+governed by §6.1 and §6.2.
 
 **Sizing.** The Log has a permanent volume floor that does not depend on
 how much anyone publishes. An admitted Auditor whose VRF selects nothing in
