@@ -25,3 +25,26 @@ An invalid intermediate future state cannot hide behind a later valid
 one. Superseding a same-time amendment is permitted only after the new
 candidate passes. Same-Block validation uses the already canonical Entry
 order, adding no ordering freedom to the Aggregator.
+
+## Anchor parameters for in-flight windows
+
+### Context
+
+Changing a duration while a duty is outstanding could move its deadline
+on replay. Confirmation also lacked a parameter read instant when Records
+straddled a quorum or window amendment.
+
+### Decision
+
+WIST-4 §9 lists each clock's anchor. Duties retain their opening profile;
+confirmation evaluates each candidate under its own Block's profile and
+preserves its first historical success. An extension's contradiction test
+retains its triggering profile and closes once. A later confirmation does
+not rewrite that closed test. Appeal and seal clocks read the notice;
+the ruling clock reads the accepted appeal.
+
+### Consequences
+
+Recomputation preserves established deadlines and findings. Epoch,
+selection, reputation and materialization reads keep their explicit
+anchors. A fixed count of Blocks still follows the actual cadence.

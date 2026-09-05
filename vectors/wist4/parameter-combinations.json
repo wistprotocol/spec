@@ -518,5 +518,290 @@
         }
       ]
     }
+  ],
+  "clock_defaults": {
+    "confirm_auditors": 2,
+    "confirm_window_hours": 72,
+    "coverage_deadline_hours": 72,
+    "record_seal_blocks": 24,
+    "appeal_window_days": 14,
+    "appeal_seal_days": 7,
+    "ruling_deadline_days": 30,
+    "canary_lead_blocks": 24,
+    "canary_lifetime_blocks": 1440,
+    "canary_reveal_min_blocks": 168,
+    "payload_window_days": 180
+  },
+  "clock_cases": [
+    {
+      "label": "coverage retains deadline",
+      "parameter": "coverage_deadline_hours",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "coverage_deadline_hours",
+          "effective_at_s": 11,
+          "value": 96
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 3600,
+      "start": 10,
+      "selected_value": 72,
+      "endpoint": 259210
+    },
+    {
+      "label": "coverage retains seal count",
+      "parameter": "record_seal_blocks",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "record_seal_blocks",
+          "effective_at_s": 11,
+          "value": 48
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 1,
+      "start": 200,
+      "selected_value": 24,
+      "endpoint": 224
+    },
+    {
+      "label": "extension retains close",
+      "parameter": "confirm_window_hours",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "confirm_window_hours",
+          "effective_at_s": 11,
+          "value": 96
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 3600,
+      "start": 10,
+      "selected_value": 72,
+      "endpoint": 259210
+    },
+    {
+      "label": "checkpoint retains seal count",
+      "parameter": "record_seal_blocks",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "record_seal_blocks",
+          "effective_at_s": 11,
+          "value": 48
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 1,
+      "start": 200,
+      "selected_value": 24,
+      "endpoint": 224
+    },
+    {
+      "label": "commitment retains lead",
+      "parameter": "canary_lead_blocks",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "canary_lead_blocks",
+          "effective_at_s": 11,
+          "value": 48
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 1,
+      "start": 200,
+      "selected_value": 24,
+      "endpoint": 224
+    },
+    {
+      "label": "commitment retains lifetime",
+      "parameter": "canary_lifetime_blocks",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "canary_lifetime_blocks",
+          "effective_at_s": 11,
+          "value": 2880
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 1,
+      "start": 200,
+      "selected_value": 1440,
+      "endpoint": 1640
+    },
+    {
+      "label": "newest Delta fixes reveal minimum",
+      "parameter": "canary_reveal_min_blocks",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "canary_reveal_min_blocks",
+          "effective_at_s": 11,
+          "value": 336
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 1,
+      "start": 200,
+      "selected_value": 168,
+      "endpoint": 368
+    },
+    {
+      "label": "reveal retains scoring span",
+      "parameter": "payload_window_days",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "payload_window_days",
+          "effective_at_s": 11,
+          "value": 360
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 86400,
+      "start": 10,
+      "selected_value": 180,
+      "endpoint": 15552010
+    },
+    {
+      "label": "notice retains appeal span",
+      "parameter": "appeal_window_days",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "appeal_window_days",
+          "effective_at_s": 11,
+          "value": 28
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 86400,
+      "start": 10,
+      "selected_value": 14,
+      "endpoint": 1209610
+    },
+    {
+      "label": "notice retains seal span",
+      "parameter": "appeal_seal_days",
+      "anchor_s": 10,
+      "changes": [
+        {
+          "parameter": "appeal_seal_days",
+          "effective_at_s": 11,
+          "value": 14
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 86400,
+      "start": 1209610,
+      "selected_value": 7,
+      "endpoint": 1814410
+    },
+    {
+      "label": "accepted appeal fixes ruling span",
+      "parameter": "ruling_deadline_days",
+      "anchor_s": 12,
+      "changes": [
+        {
+          "parameter": "ruling_deadline_days",
+          "effective_at_s": 11,
+          "value": 60
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 86400,
+      "start": 12,
+      "selected_value": 60,
+      "endpoint": 5184012
+    },
+    {
+      "label": "effective at anchor is included",
+      "parameter": "coverage_deadline_hours",
+      "anchor_s": 11,
+      "changes": [
+        {
+          "parameter": "coverage_deadline_hours",
+          "effective_at_s": 11,
+          "value": 96
+        }
+      ],
+      "query_s": 20,
+      "unit_scale": 3600,
+      "start": 11,
+      "selected_value": 96,
+      "endpoint": 345611
+    }
+  ],
+  "confirmation_clock_cases": [
+    {
+      "label": "quorum increase before second Record",
+      "changes": [
+        {
+          "parameter": "confirm_auditors",
+          "effective_at_s": 86400,
+          "value": 3
+        }
+      ],
+      "record_times_s": [
+        0,
+        172800,
+        176400
+      ],
+      "confirming_index": 2
+    },
+    {
+      "label": "shorter window excludes stale member",
+      "changes": [
+        {
+          "parameter": "confirm_window_hours",
+          "effective_at_s": 172800,
+          "value": 24
+        }
+      ],
+      "record_times_s": [
+        0,
+        176400,
+        180000
+      ],
+      "confirming_index": 2
+    },
+    {
+      "label": "established confirmation survives amendment",
+      "changes": [
+        {
+          "parameter": "confirm_auditors",
+          "effective_at_s": 172800,
+          "value": 3
+        }
+      ],
+      "record_times_s": [
+        0,
+        86400,
+        176400
+      ],
+      "confirming_index": 1
+    },
+    {
+      "label": "quorum activation equality",
+      "changes": [
+        {
+          "parameter": "confirm_auditors",
+          "effective_at_s": 86400,
+          "value": 3
+        }
+      ],
+      "record_times_s": [
+        0,
+        86400,
+        90000
+      ],
+      "confirming_index": 2
+    }
   ]
 }

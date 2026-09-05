@@ -2628,6 +2628,33 @@ def _dc4_prospective_parameters_twin():
     assert future["sampling_floor"] > future["sampling_ceiling"]
 check("negative:wist4-prospective-parameters", _dc4_prospective_parameters_twin)
 
+def _dc4_parameter_clocks():
+    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    def at(parameter, instant, changes):
+        value = v["clock_defaults"][parameter]
+        for change in sorted(changes, key=lambda c: c["effective_at_s"]):
+            if change["effective_at_s"] <= instant and change["parameter"] == parameter:
+                value = change["value"]
+        return value
+    for case in v["clock_cases"]:
+        value = at(case["parameter"], case["anchor_s"], case["changes"])
+        assert value == case["selected_value"], case["label"]
+        assert case["start"] + value * case["unit_scale"] == case["endpoint"], case["label"]
+    for case in v["confirmation_clock_cases"]:
+        successes = []
+        for i, t in enumerate(case["record_times_s"]):
+            window = at("confirm_window_hours", t, case["changes"]) * 3600
+            quorum = at("confirm_auditors", t, case["changes"])
+            members = [u for u in case["record_times_s"][:i + 1] if u >= t - window]
+            if len(members) >= quorum:
+                successes.append(i)
+        assert (min(successes) if successes else None) == case["confirming_index"], case["label"]
+    fixed = next(c for c in v["clock_cases"] if c["label"] == "coverage retains deadline")
+    assert at(fixed["parameter"], fixed["query_s"], fixed["changes"]) != fixed["selected_value"]
+    raised = v["confirmation_clock_cases"][0]
+    assert raised["confirming_index"] == 2 and v["clock_defaults"]["confirm_auditors"] == 2
+check("vectors:wist4-parameter-clocks", _dc4_parameter_clocks)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 
@@ -2723,7 +2750,7 @@ def _dc4_contradiction():
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
     for marker in ("The extension closes at the first Block whose `sealed_at` is more than "
-                   "`confirm_window_hours` after *B₁*'s",
+                   "its fixed window after *B₁*.",
                    "`domain(d)` is under **escalated sampling**",
                    "no mark on the filer"):
         assert marker in prose, f"§4 does not state: {marker!r}"
@@ -3874,6 +3901,7 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/parameter-combinations.json", "parameter"): "a Parameter Registry identifier",
     ("vectors/wist4/sanctions.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist4/sanctions.json", "value"): "an Ed25519 signature",
     ("vectors/wist4/sanctions.json", "notice"): "a Registry Update ID",
