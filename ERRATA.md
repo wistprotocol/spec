@@ -2950,3 +2950,20 @@ covering successive and simultaneous conflicting rulings, simultaneous
 appeals, duplicate IDs, an appeal overriding an unappealed statement,
 and ruling eligibility and expiry. The harness derives slot selection
 and void times and checks same-Block permutation invariance.
+
+## 2026-09-05 — WIST-4 §4: late-sealed duty discharge (revision, not errata)
+
+**What changed.** Complete sealed discharge removes a pair from the
+current coverage-failure count at the completion Block, even after an
+unmet pull or unattested fallback. Partial or non-discharging Records
+do not. No earlier prefix or sealed removal changes. ADR-0023 amends
+ADR-0012.
+
+**Why a revision.** The text allowed later sealing without determining
+whether an established failure survived it. The completion reading
+changes the persistent-failure alternative and is not errata.
+
+**Exercised.** `vectors/wist4/coverage.json` probes before and after late
+Records and an empty-selection attestation, with partial completion and
+a non-discharging Record. The harness reads only sealed prefix inputs
+and discriminates a failure latched at its first unmet pull.
