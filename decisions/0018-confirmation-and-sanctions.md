@@ -109,3 +109,25 @@ All cited Records must be available at the sanction's Block.
 
 Optional corroboration cannot change a sanction's primary severity.
 The derived ladder continues to count every qualifying finding.
+
+## A sanction notice names one rung activation
+
+### Context
+
+A notice carried no level or activation identity, although a notice-scoped
+reversal must leave later rearmings untouched. Repeated notices also left
+room for competing clocks over one activation.
+
+### Decision
+
+Require level 3 or 4 and the confirming Record ID that armed it. Accept
+one notice per subject, level and activation: the first eligible Block's
+unique candidate, with simultaneous conflicts rejected together. Targets
+must be active or newly armed in that Block. Later notices restart nothing.
+A notice-scoped reversal reaches only a still-matching activation.
+
+### Consequences
+
+An old process cannot clear a new activation. Same-Block findings may
+support notices without making notice validation change rung derivation.
+Recovery notices remain outside sanction process.

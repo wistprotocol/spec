@@ -3766,7 +3766,7 @@ def process_result(notice, acts, n_s):
 process_notice = sign_envelope("update", {
     "wist_version": "1.0.0", "action": "notice", "subject": "page.publisher.test",
     "effective_at": "2026-08-02T00:00:00Z",
-    "details": {"kind": "sanction", "reason": "confirmed evidence",
+    "details": {"kind": "sanction", "level": 3, "activation": "sha256:" + "1" * 64, "reason": "confirmed evidence",
                 "appeal_deadline": "2026-08-16T00:00:00Z"},
     "evidence": ["sha256:" + "0" * 64],
 }, "test-process-k1")
@@ -3878,6 +3878,56 @@ for label, primary, evidence, severity, subject, error in (
     assert valid == (error is None), label
     primary_cases.append({"label": label, "envelope": envelope, "error": error})
 
+NOTICE_ACTIVATION_A = "sha256:" + sha256_hex(b"notice activation A")
+NOTICE_ACTIVATION_B = "sha256:" + sha256_hex(b"notice activation B")
+notice_target_cases = []
+for label, rows, accepted_expected, remaining in (
+    ("one process survives later notice", [(1,3,NOTICE_ACTIVATION_A,0), (2,3,NOTICE_ACTIVATION_A,1)], [0], None),
+    ("simultaneous notices conflict", [(1,3,NOTICE_ACTIVATION_A,0), (1,3,NOTICE_ACTIVATION_A,1)], [], NOTICE_ACTIVATION_A),
+    ("conflict allows later notice", [(1,3,NOTICE_ACTIVATION_A,0), (1,3,NOTICE_ACTIVATION_A,1), (2,3,NOTICE_ACTIVATION_A,2)], [2], None),
+    ("duplicate notice is one process", [(1,3,NOTICE_ACTIVATION_A,0), (1,3,NOTICE_ACTIVATION_A,0), (2,3,NOTICE_ACTIVATION_A,0)], [0], None),
+    ("wrong level blocks nobody", [(1,4,NOTICE_ACTIVATION_A,0), (1,3,NOTICE_ACTIVATION_A,1)], [1], None),
+    ("unknown activation", [(1,3,NOTICE_ACTIVATION_B,0)], [], NOTICE_ACTIVATION_A),
+    ("same Block activation", [(0,3,NOTICE_ACTIVATION_A,0)], [0], None),
+    ("missing activation", [(1,3,None,0)], [], NOTICE_ACTIVATION_A),
+    ("foreign subject activation", [(1,3,NOTICE_ACTIVATION_A,0)], [], NOTICE_ACTIVATION_A),
+    ("notice cannot target cleared activation", [(3,3,NOTICE_ACTIVATION_A,0)], [], NOTICE_ACTIVATION_B),
+    ("old reversal leaves rearmed rung", [(1,3,NOTICE_ACTIVATION_A,0)], [0], NOTICE_ACTIVATION_B),
+):
+    notices = []
+    for height,level,activation,variant in rows:
+        details = {"kind": "sanction", "level": level, "reason": "confirmed finding " + str(variant),
+            "appeal_deadline": "2026-08-16T00:00:00Z"}
+        if activation is not None:
+            details["activation"] = activation
+        envelope = sign_envelope("update", {"wist_version": "1.0.0", "action": "notice",
+            "subject": "other.sample.net" if label == "foreign subject activation" else "site.sample.net", "effective_at": "2026-08-02T00:00:00Z", "details": details,
+            "evidence": [NOTICE_ACTIVATION_A, "sha256:" + "2" * 64]}, "test-process-k1")
+        notices.append({"height": height, "envelope": envelope})
+    seen, accepted = set(), []
+    for height in sorted({n["height"] for n in notices}):
+        eligible = []
+        for i,n in enumerate(notices):
+            if n["height"] != height:
+                continue
+            u = n["envelope"]["update"]; ident = sha256_hex(rfc8785.dumps(u))
+            if ident in seen:
+                continue
+            seen.add(ident)
+            if (u["details"].get("activation") == NOTICE_ACTIVATION_A and u["details"]["level"] == 3 and not accepted
+                    and u["subject"] == "site.sample.net" and label != "notice cannot target cleared activation"):
+                eligible.append(i)
+        if len(eligible) == 1:
+            accepted.extend(eligible)
+    assert accepted == accepted_expected, label
+    current = NOTICE_ACTIVATION_B if label in ("old reversal leaves rearmed rung", "notice cannot target cleared activation") else NOTICE_ACTIVATION_A
+    after = None if accepted and current == NOTICE_ACTIVATION_A else current
+    assert after == remaining
+    notice_target_cases.append({"label": label, "activation": {"subject": "site.sample.net", "level": 3,
+        "record_id": NOTICE_ACTIVATION_A, "height": 0, "cleared_height": 2 if label == "notice cannot target cleared activation" else None}, "notices": notices,
+        "accepted_indices": accepted, "current_activation_at_reversal": current,
+        "activation_after_reversal": after})
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -3894,6 +3944,7 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "ladder_cases": sanction_ladder_cases,
     "reversal_cases": sanction_reversal_cases,
     "transition_cases": sanction_transition_cases,
+    "notice_target_cases": notice_target_cases,
     "retired_escalation_cases": retired_escalation_cases,
     "primary": {"note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records. Notice and level eligibility are satisfied independently; these cases isolate the primary finding/evidence contract.",
         "findings": primary_findings, "cases": primary_cases},

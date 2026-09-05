@@ -2365,6 +2365,29 @@ required fields are `WIST4-E04`; a well-shaped claim failing this evidence
 contract is `WIST4-E05`. The ladder still derives from all findings, not
 only the primary one a sanction selects.
 
+**A sanction notice targets one activation.** Its `details.level` is 3
+or 4 and `details.activation` is the Audit Record ID of the confirming
+Record that first armed that level for its `subject`. The named activation
+must be active at the notice's Block, or be newly armed by a finding later
+in that same Block. Validate this reference after deriving that Block's
+findings; sealing a notice changes no rung in its own Block. A notice for
+a nonexistent activation, another subject, a different level or an already
+cleared activation is `WIST4-E05`. Missing or malformed target fields are
+`WIST4-E04`. Evidence MUST include the activation Record and the Audit
+Records establishing the criterion that armed it.
+
+One accepted notice opens the process for each (subject, level,
+activation) tuple. Deduplicate identical Update IDs by first sealing.
+After independently rejecting invalid candidates, accept the first Block
+with exactly one distinct eligible notice for the tuple. If several
+eligible notices share that first Block, reject all of them as
+`WIST4-E05`; a later Block may supply one. After acceptance, later distinct
+notices for that tuple are `WIST4-E05` and restart no clock. A level-3 or
+level-4 sanction's notice prerequisite refers to this accepted notice for
+the activation it records. A reversal from that notice clears the rung
+only if its current activation still equals the notice's target. Recovery
+notices never target sanction activations or open this process.
+
 Process requirements:
 
 - Levels 1–2 follow automatically from the escalation criteria; levels 3
@@ -3129,7 +3152,8 @@ mirroring §7 and §3:
   the primary finding at that Record (§5's own minimum), including
   `finding` itself. Additional Audit Record evidence is permitted under §7.
 - `notice`: `kind` (`"sanction"` or `"recovery"`); a `"sanction"` notice
-  additionally requires `reason`, `appeal_deadline`, and a top-level
+  additionally requires `level` (3 or 4), `activation` (the confirming Audit
+  Record ID that armed it), `reason`, `appeal_deadline`, and a top-level
   `evidence` naming what the notice is about; a `"recovery"` notice
   requires nothing further (WIST-1 §5.2). `appeal_deadline` restates the
   instant §7 derives — the `sealed_at` of the Block sealing this notice
