@@ -1432,6 +1432,263 @@
       ]
     }
   ],
+  "primary": {
+    "note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records. Notice and level eligibility are satisfied independently; these cases isolate the primary finding/evidence contract.",
+    "findings": [
+      {
+        "subject": "site.sample.net",
+        "confirming_record": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+        "records": [
+          {
+            "id": "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+            "effective_similarity": 0
+          },
+          {
+            "id": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+            "effective_similarity": 0
+          }
+        ]
+      },
+      {
+        "subject": "site.sample.net",
+        "confirming_record": "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf",
+        "records": [
+          {
+            "id": "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+            "effective_similarity": 200000
+          },
+          {
+            "id": "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf",
+            "effective_similarity": 250000
+          }
+        ]
+      }
+    ],
+    "cases": [
+      {
+        "label": "mixed optional findings",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3,
+              "finding": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8"
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "giL8JQ6u2Xw6pDNYS44_5eNnhGS19K7prFU1T6qb_AKNmFYczsz69zxY2hBwokwF1lYtRj_2IyrQNCx0wb1QAQ"
+          }
+        },
+        "error": null
+      },
+      {
+        "label": "reversed mixed evidence",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3,
+              "finding": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8"
+            },
+            "evidence": [
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "vBCJowx6yhR0DINjKAUmFe6xOJYIzdrHi0qI9FrzgRK_DHbyabl1cfI52TfEc1Mf2Fc1EHuJT59XgtZkbX_AAA"
+          }
+        },
+        "error": null
+      },
+      {
+        "label": "minor primary with severe optional finding",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 1,
+              "finding": "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "FLa0HiOQplOUGl91PaXtgsMW8vru330t0q6HJEmYgsoZEBkvipF2wH0_i4R_NMpGkBIT_KL2EXESL-8FqoZOCA"
+          }
+        },
+        "error": null
+      },
+      {
+        "label": "severity from optional finding is wrong",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 1,
+              "finding": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8"
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "ySB-ktq1dlC84neSwxvUrxAMlSjfoNMG6ItRecG3ZoCIj9JrUaJphROqhR3esD5ykSbSIH0HThBFpV4TUbDzDA"
+          }
+        },
+        "error": "WIST4-E05"
+      },
+      {
+        "label": "first quorum member is not confirming Record",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3,
+              "finding": "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5"
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "h8RK6jkJX6avmdWOR7X23Edj_33lfe5WgZtZTRYd2bf6JWO6DGZ0f8LKXS-dGjAgCC_PzRpnxpdEKc_wcd5GBQ"
+          }
+        },
+        "error": "WIST4-E05"
+      },
+      {
+        "label": "primary quorum incomplete",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3,
+              "finding": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8"
+            },
+            "evidence": [
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "rOMkH02Fc1uh8vBqEG0je97a_BM8UUQwPANCVa_X9L-ItHVnVt5EgSfpqOnps-ezq9Bf9RkDUJDlIMVcFIo9DQ"
+          }
+        },
+        "error": "WIST4-E05"
+      },
+      {
+        "label": "finding belongs to another subject",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "other.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3,
+              "finding": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8"
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "jf4EIE76FLp3lDM169eZIxZtnINepOB0zTK-ihf_lSA2DWnJleXNHu0PEcsX0WCausXmELLpVRCc35Ci3xNWCw"
+          }
+        },
+        "error": "WIST4-E05"
+      },
+      {
+        "label": "missing primary selector",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "GA1_CtXlaKeDNQg5xYwPHpVn9L85gjXsUxVb3esXvZ8WbglQACNiBxzfgOFtaqOxNrVZ5j_y71r-sGd3Z7k1Dw"
+          }
+        },
+        "error": "WIST4-E04"
+      }
+    ]
+  },
   "process": {
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "notice_sealed_at_s": 0,

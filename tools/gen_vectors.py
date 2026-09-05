@@ -3807,6 +3807,37 @@ for parameter, value, severities, expected in (
         "sealed_at": "2026-08-01T00:00:00Z", "error": "WIST4-E03", "blocks": blocks,
         "active_rungs": active, "levels": expected})
 
+primary_findings = []
+for n, similarities in enumerate(([0, 0], [200000, 250000])):
+    ids = ["sha256:" + sha256_hex(("primary finding " + str(n) + " record " + str(i)).encode()) for i in range(2)]
+    primary_findings.append({"subject": "site.sample.net", "confirming_record": ids[-1],
+        "records": [{"id": ident, "effective_similarity": similarity} for ident,similarity in zip(ids,similarities)]})
+primary_cases = []
+all_primary_ids = [r["id"] for f in primary_findings for r in f["records"]]
+for label, primary, evidence, severity, subject, error in (
+    ("mixed optional findings", primary_findings[0]["confirming_record"], all_primary_ids, 3, "site.sample.net", None),
+    ("reversed mixed evidence", primary_findings[0]["confirming_record"], list(reversed(all_primary_ids)), 3, "site.sample.net", None),
+    ("minor primary with severe optional finding", primary_findings[1]["confirming_record"], all_primary_ids, 1, "site.sample.net", None),
+    ("severity from optional finding is wrong", primary_findings[0]["confirming_record"], all_primary_ids, 1, "site.sample.net", "WIST4-E05"),
+    ("first quorum member is not confirming Record", all_primary_ids[0], all_primary_ids, 3, "site.sample.net", "WIST4-E05"),
+    ("primary quorum incomplete", primary_findings[0]["confirming_record"], all_primary_ids[1:], 3, "site.sample.net", "WIST4-E05"),
+    ("finding belongs to another subject", primary_findings[0]["confirming_record"], all_primary_ids, 3, "other.sample.net", "WIST4-E05"),
+    ("missing primary selector", None, all_primary_ids, 3, "site.sample.net", "WIST4-E04"),
+):
+    details = {"level": 3, "severity": severity}
+    if primary is not None:
+        details["finding"] = primary
+    envelope = sign_envelope("update", {"wist_version": "1.0.0", "action": "sanction",
+        "subject": subject, "effective_at": "2026-08-12T00:00:00Z", "details": details,
+        "evidence": evidence}, "test-process-k1")
+    f = next((f for f in primary_findings if f["confirming_record"] == primary), None)
+    valid = f is not None and subject == f["subject"] and all(r["id"] in evidence for r in f["records"])
+    if valid:
+        sim = max(r["effective_similarity"] for r in f["records"])
+        valid = severity == (1 if sim >= 150000 else 2 if sim >= 50000 else 3)
+    assert valid == (error is None), label
+    primary_cases.append({"label": label, "envelope": envelope, "error": error})
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -3824,6 +3855,8 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "reversal_cases": sanction_reversal_cases,
     "transition_cases": sanction_transition_cases,
     "retired_escalation_cases": retired_escalation_cases,
+    "primary": {"note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records. Notice and level eligibility are satisfied independently; these cases isolate the primary finding/evidence contract.",
+        "findings": primary_findings, "cases": primary_cases},
     "process": {"public_key": b64u(pub_raw), "notice_sealed_at_s": 0,
                 "notice": process_notice, "cases": process_cases},
 }))
