@@ -3734,11 +3734,55 @@ def _dc4_observer_checkpoints():
     for marker in ("order the S suffixes by ascending octet order of `SHA-256(suffix)`",
                    "`(epoch number × observer_checkpoint_budget + k) mod S`",
                    "across any `⌈S / observer_checkpoint_budget⌉` consecutive epochs at whose first Blocks "
-                   "the same S suffixes are registered, every one of them is budgeted at least once",
+                   "the same S suffixes are registered and the same budget applies, every one of them is budgeted at least once",
                    "spans the `epoch_blocks` (Parameter Registry; default 24) in force at its first Block's `sealed_at`",
                    "only if a checkpoint covering it was sealed in a Block below the reveal's"):
         assert marker in prose, f"§3.1 does not state: {marker!r}"
 check("vectors:wist4-observer-checkpoints", _dc4_observer_checkpoints)
+
+def _dc4_canary_opportunities():
+    for case in _observer_vector()["opportunity_cases"]:
+        times = case["block_times_s"]
+        for h in range(1, len(times)):
+            cadence = 3600
+            for c in case["changes"]:
+                if c["height"] < h:
+                    cadence = c.get("block_cadence_seconds", cadence)
+            assert times[h] == (times[h-1] // cadence + 1) * cadence
+        for c in case["changes"]:
+            if "amendment_sealed_height" in c:
+                assert times[c["height"]] - times[c["amendment_sealed_height"]] >= 7 * 86400
+        original = {".".join(o.split(".")[-2:]) for o in case["initial_registered"]}
+        epochs = case["epochs"]
+        for i,e in enumerate(epochs):
+            roster, budget, length = case["initial_registered"], case["initial_budget"], 24
+            for c in case["changes"]:
+                if c["height"] <= e["first"]:
+                    roster = c.get("registered", roster); budget = c.get("observer_checkpoint_budget", budget)
+                    length = c.get("epoch_blocks", length)
+            assert e["first"] == (0 if i == 0 else epochs[i-1]["last"]+1)
+            assert e["last"] == e["first"]+length-1 and e["number"] == i
+            suffixes = sorted({".".join(o.split(".")[-2:]) for o in roster}, key=lambda x:hashlib.sha256(x.encode()).digest())
+            chosen = {suffixes[(i*budget+k)%len(suffixes)] for k in range(min(budget,len(suffixes)))}
+            assert chosen == set(e["budgeted_suffixes"])
+        after = [h for h,t in enumerate(times) if t > case["coverage_deadline_s"]]
+        coverage_end = after[case["record_seal_blocks"]-1]
+        for probe in case["probes"]:
+            n = probe["height"]; roster = case["initial_registered"]
+            for c in case["changes"]:
+                if c["height"] <= n:
+                    roster = c.get("registered", roster)
+            needed = original & {".".join(o.split(".")[-2:]) for o in roster}
+            satisfied = set()
+            for e,nxt in zip(epochs,epochs[1:]):
+                if nxt["last"] < n and nxt["last"] + e["seal_blocks"] <= n and times[e["last"]] >= case["coverage_deadline_s"]:
+                    satisfied.update(e["budgeted_suffixes"])
+            valid = n >= case["numeric_minimum"] and n > coverage_end and needed <= satisfied
+            assert valid == probe["valid"], (case["label"], n)
+        assert case["probes"][-1]["height"] == case["earliest_reveal_height"] and case["probes"][-1]["valid"]
+    growth = _observer_vector()["opportunity_cases"][0]
+    assert next(p for p in growth["probes"] if p["height"] == growth["numeric_minimum"])["valid"] is False
+check("vectors:wist4-canary-opportunities", _dc4_canary_opportunities)
 
 def _dc4_observer_checkpoints_twin():
     """The check above must notice a static queue and an epoch read from the
