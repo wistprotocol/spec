@@ -2003,8 +2003,11 @@ Key Set, which is exactly what a fresh identity does not hold — and
 WIST-2's "Provisional domains MUST NOT receive 403" would contradict
 level 3's required `403` for the same domain at the same instant. And
 the lift is not the escape §6.3 forbids: what a reset sanctioned party
-buys is Provisional's cap, the sampling ceiling §4 applies at that
-reputation, zero `A`, zero `C` — level 3's practical effect (nothing it
+buys is Provisional's cap, the rate §4's formula gives at that
+reputation — `p_1e7` 2 900 000 at the cap, below the `sampling_ceiling`
+a level-1 rung imposed but far above the floor, so the lift trades the
+ceiling for the formula's near-maximum and never for the rate an
+established domain earns — zero `A`, zero `C` — level 3's practical effect (nothing it
 publishes is materialized with standing) reconstituted from the other
 end, plus the permanent Log record tying the old identity's evidence
 to the domain name for any consumer that cares to look. Replayers MUST

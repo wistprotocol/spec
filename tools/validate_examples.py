@@ -1750,7 +1750,36 @@ def _dc4_sampling():
     # A proof for a different Block MUST NOT verify against this alpha: this is
     # what stops an Auditor reusing one draw across Blocks.
     assert not ecvrf.verify(pk, bytes(32), pi), "proof verified against wrong alpha"
+    # §4 displaces the formula to sampling_ceiling under a level-1 rung or an
+    # escalation and under nothing else; §6.3's account of what a reset buys
+    # names the formula's value at the Provisional cap, not the ceiling.
+    labels = set()
+    for c in v["rate_cases"]:
+        labels.add(c["label"])
+        formula = min(max(par["floor_1e7"] + par["slope_per_micro"] * (1_000_000 - c["reputation_u"]),
+                          par["floor_1e7"]), par["ceiling_1e7"])
+        expect = par["ceiling_1e7"] if c["level1_or_escalation"] else formula
+        assert c["p_1e7"] == expect, f"{c['label']}: p_1e7"
+        assert c["is_ceiling"] == (c["p_1e7"] == par["ceiling_1e7"]), f"{c['label']}: is_ceiling"
+    assert "provisional cap under no rung" in labels, "vector lacks the Provisional-cap rate"
+    cap = next(c for c in v["rate_cases"] if c["label"] == "provisional cap under no rung")
+    assert not cap["is_ceiling"], "the Provisional cap's rate is the formula's, not the ceiling"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "`p_1e7` 2 900 000 at the cap, below the `sampling_ceiling`" in prose, \
+        "§6.3 does not name the formula's value at the Provisional cap"
 check("vectors:wist4-sampling", _dc4_sampling)
+
+def _dc4_sampling_rate_twin():
+    """A harness reading the ceiling at the Provisional cap — the sentence
+    §6.3 used to carry — must disagree with the vector."""
+    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
+    cap = next(c for c in v["rate_cases"] if c["label"] == "provisional cap under no rung")
+    assert v["parameters"]["ceiling_1e7"] != cap["p_1e7"], \
+        "the vector cannot tell the ceiling from the formula at the cap"
+    displaced = next(c for c in v["rate_cases"] if c["label"] == "provisional cap under a level 1 rung")
+    assert displaced["p_1e7"] == v["parameters"]["ceiling_1e7"] and displaced["reputation_u"] == cap["reputation_u"], \
+        "the same reputation under a rung must read the ceiling"
+check("negative:wist4-sampling-rate", _dc4_sampling_rate_twin)
 
 def _dc4_audit_record_proof():
     """The published Record's vrf_proof must verify for the Block it audits."""
