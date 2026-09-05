@@ -1777,6 +1777,34 @@ case: an accepted Delta at `R` starts `A`, its `consistent` audit
 counts one URL, and the Confirmed Inconsistency on it enters
 `penalty_inputs` while the one on a Delta at `R` − 1 does not.
 
+## 2026-09-04 — WIST-4 §7: a notice may share its sanction's Block (revision, not errata)
+
+Adds the bullet *"Preceded by" bounds the Aggregator's conduct, not the
+Block* to §7.
+
+**What it states.** The `notice` for a level-3 or level-4 `sanction` is
+sealed in that `sanction`'s Block or a lower one, and the same Block is
+permitted. What the Aggregator MUST NOT do is act before the notice is
+sealed: no `403` on that domain's Pings or Feed pulls, and no
+withholding of its Deltas from materialization, at any height below the
+notice's Block.
+
+**Why it is a revision.** It fails the first condition. "MUST be
+preceded by a `notice`" reads naturally as a strictly lower Block, and
+an Aggregator that sealed the two together conformed only under the
+looser reading. Permitting the same Block costs the Publisher nothing
+that was ever available: §7's own derivation puts the level-3 and
+level-4 states in force from the height their criteria are met, whatever
+the Aggregator has sealed, so a Block of filing delay delays the state
+by nothing and only delays the Publisher learning of it. What the
+ordering rule secures is what the derivation cannot — that the appeal
+window opens no later than the enforcement, leaving no height at which a
+Publisher is acted on with no way to answer.
+
+**Status.** Unexercised. No vector seals a notice and its sanction at
+all; the ordering rests on reading. It belongs with the first governance
+Block fixtures.
+
 ## 2026-09-04 — WIST-4 §7: what each reversal reaches (revision, not errata)
 
 Adds the bullet *What each reversal reaches* to §7, and a `ladder_cases`

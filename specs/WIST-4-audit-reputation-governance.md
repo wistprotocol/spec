@@ -1735,6 +1735,20 @@ Process requirements:
   window opens at the `sealed_at` of the Block sealing the recovery
   Declaration itself, so it opens whether or not the notice is ever sealed
   — and is not subject to the appeal process below.
+- **"Preceded by" bounds the Aggregator's conduct, not the Block.** The
+  `notice` for a level-3 or level-4 `sanction` MUST be sealed in that
+  `sanction`'s Block or a lower one; the same Block is permitted. What
+  the Aggregator MUST NOT do is act before the notice is sealed: it MUST
+  NOT reject that domain's Pings or Feed pulls (`403`, WIST-2 §4), and
+  MUST NOT withhold its Deltas from materialization, at any height below
+  the notice's Block. Requiring a strictly lower Block would buy the
+  Publisher nothing, because the derived state is already in force from
+  the height its criteria were met, whatever the Aggregator has sealed —
+  a Block of delay in filing does not delay the state, it only delays
+  the Publisher learning of it. What the ordering does buy is the one
+  thing the derivation cannot: the window opens no later than the
+  enforcement does, so there is no height at which a Publisher is being
+  acted on with no way to answer.
 - Escalation criteria: level 1 at a single Confirmed Inconsistency; level
   2 at 3 within 90 days; level 3 at 10 within 90 days, or any severity-3;
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
