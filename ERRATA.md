@@ -2783,3 +2783,47 @@ beside the existing one sealed after T; `vectors:wist4-sanction-voids`
 recomputes every void instant from Block values and requires §7 to state
 the rule, and its twin fails a discharge conditioned on the service
 instant.
+
+## 2026-09-05 — WIST-4 §5, §10, §13; WIST-3 §7; audit-record schema: a `not_auditable` Record names the side it could not measure (revision, not errata)
+
+Adds `unmeasured` to the Audit Record — REQUIRED on a `not_auditable`
+Record, forbidden elsewhere — with the sentences in §5 that define it, a
+clause in the `WIST4-E02` row, two checklist lines, WIST-3 §7's gloss of
+the unauditable rule, and four cases in `vectors/wist4/unauditable.json`.
+
+**What it states.** Every `not_auditable` Record carries `unmeasured`:
+`"observed"` where the page could not be measured — the mass guard, a
+non-HTML representation, the fetch bounds — and `"reference"` where
+there was no reference to measure against — a withdrawn, unobtainable
+or empty-extract Reference Payload. A blocking Record is a
+`robots_excluded` Record or a `not_auditable` Record whose side is the
+observed one; a `not_auditable` Record without the field, or any other
+Record carrying it, is malformed evidence, discharging its duty like
+every malformed Record and blocking nothing. WIST-3 §7's gloss, which
+still described the rule in its `robots.txt`-only form, names both
+blocking kinds.
+
+**Why it is a revision.** It fails the first condition: a
+`not_auditable` Record with no such field validated before and is
+`WIST4-E02` now. The field is the only repair available. §5 made the
+unauditable predicate turn on which side produced the Record, and said
+every party recomputes it identically from Log order, but a Record left
+by a Reference Payload no source served and one left by a page below the
+mass guard are byte-for-byte indistinguishable — no commitment, no
+similarity, no reason — and the schema forbade any field that could tell
+them apart. Two replayers holding the same Log could therefore exclude
+different URLs from materialization, against WIST-3 §7's requirement
+that they materialize the same record set. The verdict order §5 already
+fixes decides the side, so the field records a fact the Auditor already
+determined rather than a new judgement.
+
+**Status.** Exercised. `unauditable.json`'s blocking entries carry the
+verdict, `robots_excluded`, the side and whether the entry blocks; four
+new cases hold two reference-side Records that block nothing, an
+observed-side Record beside a `robots.txt` exclusion that blocks, a
+reference-side Record beside one that does not, and two observed-side
+Records that do. `vectors:wist4-unauditable` recomputes each entry's
+blocking and every predicate, and its twin fails a reading under which
+every `not_auditable` Record blocks; `schema:wist4-unmeasured` validates
+both sides on a `not_auditable` Record and fails the field's absence
+there and its presence on any other verdict.

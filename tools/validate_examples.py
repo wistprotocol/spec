@@ -2249,6 +2249,16 @@ check("negative:wist4-coverage-countability", _dc4_coverage_countability_twin)
 def _unauditable_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "unauditable.json").read_text())
 
+def _record_blocks(record, every_not_auditable=False):
+    """WIST-4 §5: a robots_excluded Record, or a not_auditable Record whose
+    `unmeasured` side is the observed one. `every_not_auditable` is the
+    ruled-out reading that lets a missing reference block."""
+    if record["verdict"] == "unreachable":
+        return bool(record.get("robots_excluded"))
+    if record["verdict"] != "not_auditable":
+        return False
+    return True if every_not_auditable else record.get("unmeasured") == "observed"
+
 def _unauditable_at(v, case, end_inclusive_start_exclusive=True):
     """WIST-4 §5: two independent blocking Records inside the horizon
     ending at N, uncleared by an independent third Record sealed after the
@@ -2259,7 +2269,7 @@ def _unauditable_at(v, case, end_inclusive_start_exclusive=True):
         if end_inclusive_start_exclusive:
             return t <= n_s and n_s - t < horizon_s
         return t <= n_s and n_s - t <= horizon_s
-    live = [b for b in case["blocking"] if in_window(b["sealed_at_s"])]
+    live = [b for b in case["blocking"] if _record_blocks(b) and in_window(b["sealed_at_s"])]
     for i, b1 in enumerate(live):
         for b2 in live[i + 1:]:
             if not _roster_independent(b1["auditor"], b2["auditor"]):
@@ -2280,10 +2290,16 @@ def _dc4_unauditable():
     labels = set()
     for case in v["cases"]:
         labels.add(case["label"])
+        for b in case["blocking"]:
+            assert _record_blocks(b) == b["blocks"], f"{case['label']}: blocks"
         got = _unauditable_at(v, case)
         assert got == case["unauditable"], \
             f"{case['label']}: recomputed {got}, vector says {case['unauditable']}"
-    for needed in ("second blocking exactly thirty days before n",
+    for needed in ("two reference side not auditable records block nothing",
+                   "an observed side not auditable record beside a robots exclusion blocks",
+                   "a reference side record beside a robots exclusion blocks nothing",
+                   "two observed side not auditable records block",
+                   "second blocking exactly thirty days before n",
                    "second blocking one second inside the horizon",
                    "cleared by a third independent auditor",
                    "clearing auditor dependent on a blocker",
@@ -2307,7 +2323,41 @@ def _dc4_unauditable_twin():
         "the twin's closed horizon did not admit the thirtieth-day Record"
     assert _unauditable_at(v, case) is False, \
         "recomputation is blind to the horizon's start"
+    reference = next(c for c in v["cases"]
+                     if c["label"] == "two reference side not auditable records block nothing")
+    assert all(_record_blocks(b, every_not_auditable=True) for b in reference["blocking"]) \
+        and not any(_record_blocks(b) for b in reference["blocking"]), \
+        "recomputation is blind to which side left nothing to measure"
 check("negative:wist4-unauditable", _dc4_unauditable_twin)
+
+def _dc4_unmeasured_field():
+    """WIST-4 §5, audit-record schema: a not_auditable Record names the side
+    that left nothing to measure, and no other verdict carries the field."""
+    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    example = json.loads((ROOT / "examples" / "audit-record.json").read_text())
+    neutral = copy.deepcopy(example)
+    neutral["record"]["verdict"] = "not_auditable"
+    for field in ("response_commitment", "credit_commitment", "ref_extract_commitment",
+                  "similarity", "evidence_commitment", "link_agreement"):
+        neutral["record"].pop(field, None)
+    assert list(validator.iter_errors(neutral)), "a not_auditable Record without unmeasured validated"
+    for side in ("observed", "reference"):
+        sided = copy.deepcopy(neutral)
+        sided["record"]["unmeasured"] = side
+        validator.validate(sided)
+    bad = copy.deepcopy(neutral); bad["record"]["unmeasured"] = "mirror"
+    assert list(validator.iter_errors(bad)), "an unknown side validated"
+    measured = copy.deepcopy(example); measured["record"]["unmeasured"] = "observed"
+    assert list(validator.iter_errors(measured)), "a measured Record carrying unmeasured validated"
+    unreachable = copy.deepcopy(neutral); unreachable["record"]["verdict"] = "unreachable"
+    unreachable["record"]["unmeasured"] = "observed"
+    assert list(validator.iter_errors(unreachable)), "an unreachable Record carrying unmeasured validated"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("every `not_auditable` Record carries `unmeasured`",
+                   "a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5)"):
+        assert marker in prose, f"WIST-4 does not state: {marker!r}"
+check("schema:wist4-unmeasured", _dc4_unmeasured_field)
 
 def _coverage_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
