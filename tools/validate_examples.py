@@ -2591,6 +2591,43 @@ def _dc4_suppression_attribution_twin():
     assert related["successor"] == unrelated["successor"] and related["chain_contradicts"]
 check("negative:wist4-suppression-attribution", _dc4_suppression_attribution_twin)
 
+def _prospective_values(defaults, changes, at_s):
+    values = dict(defaults)
+    for c in sorted(changes, key=lambda c: (c["effective_at_s"], c["block_height"], c["entry_index"])):
+        if c["effective_at_s"] <= at_s:
+            values[c["parameter"]] = c["value"]
+    return values
+
+def _dc4_prospective_parameters():
+    v = json.loads((ROOT / "vectors" / "wist4" / "parameter-combinations.json").read_text())
+    for case in v["prospective_cases"]:
+        accepted, rejected = [], []
+        order = sorted(range(len(case["changes"])), key=lambda i: (case["changes"][i]["block_height"], case["changes"][i]["entry_index"]))
+        for i in order:
+            c = case["changes"][i]
+            candidate = accepted + [c]
+            instants = sorted({c["sealed_at_s"]} | {a["effective_at_s"] for a in candidate if a["effective_at_s"] >= c["sealed_at_s"]})
+            maps = [_prospective_values(v["prospective_defaults"], candidate, t) for t in instants]
+            if (c["value"] < 1 or c["effective_at_s"] - c["sealed_at_s"] < 7 * 86400
+                    or any(m["sampling_floor"] > m["sampling_ceiling"] for m in maps)):
+                rejected.append(i)
+            else:
+                accepted.append(c)
+        assert sorted(rejected) == case["rejected_indices"], case["label"]
+        for probe in case["maps"]:
+            assert _prospective_values(v["prospective_defaults"], accepted, probe["at_s"]) == probe["values"], case["label"]
+check("vectors:wist4-prospective-parameters", _dc4_prospective_parameters)
+
+def _dc4_prospective_parameters_twin():
+    v = json.loads((ROOT / "vectors" / "wist4" / "parameter-combinations.json").read_text())
+    case = next(c for c in v["prospective_cases"] if c["label"] == "pending floor then incompatible ceiling")
+    now = _prospective_values(v["prospective_defaults"], case["changes"], case["changes"][-1]["sealed_at_s"])
+    assert now["sampling_floor"] <= now["sampling_ceiling"]
+    assert case["rejected_indices"] == [1]
+    future = _prospective_values(v["prospective_defaults"], case["changes"], 11 * 86400)
+    assert future["sampling_floor"] > future["sampling_ceiling"]
+check("negative:wist4-prospective-parameters", _dc4_prospective_parameters_twin)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 

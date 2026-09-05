@@ -2677,7 +2677,7 @@ amendment exists; where two amendments share that `effective_at`, the
 one later in Log order (WIST-3 §3.3: ascending Block height, then Entry
 index) prevails, being the Aggregator's later statement, and the other
 is superseded from the moment the later one seals and is never in
-force. Log order decides nothing else: two pending amendments for one
+force. Log order also fixes amendment validation below; two pending amendments for one
 identifier take effect each at its own instant (WIST-3 §7), so the one
 with the later `effective_at` prevails once that instant arrives even
 when it was sealed first. The endpoint is inclusive because the grace
@@ -2687,6 +2687,28 @@ cadence "in force at the previous Block's `sealed_at`": a change
 effective at that instant governs the next Block, rather than leaving
 the Block sealed at `effective_at` under a value two readings could
 place on either side.
+
+**Validate the prospective schedule at sealing.** Process
+`parameter_change` candidates in ascending Block height and canonical
+Entry index. First apply their individual bounds, identifier and grace
+requirements. For a remaining candidate, tentatively add it to the
+accepted prefix, including amendments not yet effective. At the sealing
+instant and at every `effective_at` at or after that instant in this
+tentative prefix, derive the complete parameter map by the in-force rule
+above and check every combination rule below. Between those instants
+the map is constant; after the final one it remains that final map.
+If any checked map violates a combination, reject this candidate as
+`WIST4-E03` and retain the previously accepted schedule unchanged.
+Otherwise accept it. Rejected amendments are never reconsidered merely
+because a later candidate would make them feasible. No future Entry
+participates in this validation, and no accepted earlier amendment is
+retroactively rejected. A same-effective-time replacement must pass
+these checks before it can supersede the prior value.
+
+Thus "current value" in a combination check means the value in each
+prospective map being tested, not merely the default or the value in
+force when the candidate was sealed. Two amendments individually safe
+against today's values cannot jointly schedule an invalid future state.
 
 **Every value the registry carries is an integer** in the unit its row
 states, and `details.value` is typed `integer` for that reason (§9.1).
@@ -3137,7 +3159,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 |---------|--------------------------------------------------------------|
 | WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the `sealed_at` of the Block its duty is anchored to — the audited Block for a VRF selection, *B₁* for an extension (§4) — or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored there; in every other case there was no duty to discharge — a key never admitted at that Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing, whatever else is also true of it. |
 | WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2); a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
-| WIST4-E03 | Registry Update rejected under §9: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
+| WIST4-E03 | Registry Update rejected under §9, including a prospective schedule that fails a combination rule: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, or whose `subject` has none and carries one (§3.1). Ignored as WIST4-E03. |
 | WIST4-E05 | An appeal or ruling violating §7's process identity, eligibility or multiplicity rules; or a governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |

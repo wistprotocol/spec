@@ -174,5 +174,349 @@
       "latest_seal_s": 255000,
       "seals_inside_window": true
     }
+  ],
+  "prospective_defaults": {
+    "sampling_floor": 200000,
+    "sampling_ceiling": 5000000
+  },
+  "prospective_cases": [
+    {
+      "label": "pending floor then incompatible ceiling",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 4000000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "sampling_ceiling",
+          "value": 3000000,
+          "effective_at_s": 950400
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 4000000,
+            "sampling_ceiling": 5000000
+          }
+        },
+        {
+          "at_s": 950400,
+          "values": {
+            "sampling_floor": 4000000,
+            "sampling_ceiling": 5000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "later activation sealed first",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_ceiling",
+          "value": 3000000,
+          "effective_at_s": 1728000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "sampling_floor",
+          "value": 4000000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 200000,
+            "sampling_ceiling": 5000000
+          }
+        },
+        {
+          "at_s": 1728000,
+          "values": {
+            "sampling_floor": 200000,
+            "sampling_ceiling": 3000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "invalid future after earlier activation",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 4000000,
+          "effective_at_s": 1728000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "sampling_ceiling",
+          "value": 3000000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 200000,
+            "sampling_ceiling": 5000000
+          }
+        },
+        {
+          "at_s": 1728000,
+          "values": {
+            "sampling_floor": 4000000,
+            "sampling_ceiling": 5000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "intermediate replacement makes schedule valid",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 4000000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "sampling_floor",
+          "value": 2000000,
+          "effective_at_s": 950400
+        },
+        {
+          "block_height": 48,
+          "entry_index": 0,
+          "sealed_at_s": 172800,
+          "parameter": "sampling_ceiling",
+          "value": 3000000,
+          "effective_at_s": 1036800
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 4000000,
+            "sampling_ceiling": 5000000
+          }
+        },
+        {
+          "at_s": 950400,
+          "values": {
+            "sampling_floor": 2000000,
+            "sampling_ceiling": 5000000
+          }
+        },
+        {
+          "at_s": 1036800,
+          "values": {
+            "sampling_floor": 2000000,
+            "sampling_ceiling": 3000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "same effective time conflicts",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 4000000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "sampling_ceiling",
+          "value": 3000000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 4000000,
+            "sampling_ceiling": 5000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "rejected candidate is not retried",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 4000000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "sampling_ceiling",
+          "value": 3000000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 48,
+          "entry_index": 0,
+          "sealed_at_s": 172800,
+          "parameter": "sampling_floor",
+          "value": 2000000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 2000000,
+            "sampling_ceiling": 5000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "canonical same Block order",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 1,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 4000000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_ceiling",
+          "value": 3000000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 200000,
+            "sampling_ceiling": 3000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "invalid bound cannot hide behind replacement",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 0,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "sampling_floor",
+          "value": 200000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "sampling_floor": 200000,
+            "sampling_ceiling": 5000000
+          }
+        }
+      ]
+    },
+    {
+      "label": "grace period required",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "sampling_floor",
+          "value": 400000,
+          "effective_at_s": 518400
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 518400,
+          "values": {
+            "sampling_floor": 200000,
+            "sampling_ceiling": 5000000
+          }
+        }
+      ]
+    }
   ]
 }

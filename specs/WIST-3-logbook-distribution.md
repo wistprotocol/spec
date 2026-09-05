@@ -186,7 +186,9 @@ Storage order and application order are therefore decoupled, and
 WIST-1 §5.2's resolution rule is height-based, so intra-Block position
 never decides between them), then `registry_update` Entries (admission
 and removal read at Block granularity — "admitted at this Block's
-`sealed_at`" — so position within the Block carries no meaning), then
+`sealed_at`" — under WIST-4 §3.1's batch rules; `parameter_change`
+validation and equal-effective-time precedence read canonical Entry
+index under WIST-4 §9), then
 `publisher_delta` Entries **in chain order**: a Delta whose `prev` names
 a Delta in the same Block applies after it, which is well-defined because
 chains are trees rooted outside the Block and cycles are impossible

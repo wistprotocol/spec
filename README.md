@@ -93,6 +93,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0017](decisions/0017-one-pinned-unicode-version.md) — One pinned Unicode version for the whole suite
 - [ADR-0018](decisions/0018-confirmation-and-sanctions.md) — Sanction rungs latch until reversed
 - [ADR-0019](decisions/0019-audit-duty-accounting.md) — Late-sealed discharge clears the current coverage count
+- [ADR-0020](decisions/0020-parameter-schedules.md) — Parameter combinations validate the prospective schedule
 
 ## Licenses
 

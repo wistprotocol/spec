@@ -2848,11 +2848,64 @@ assert [c["rule_holds"] for c in extension_window_cases] == [True, False, True, 
 assert all(c["rule_holds"] == c["seals_inside_window"] for c in extension_window_cases
            if c["extension_deadline_s"] % c["block_cadence_seconds"] == 0)
 
+PROSPECTIVE_DEFAULTS = {"sampling_floor": 200_000, "sampling_ceiling": 5_000_000}
+
+
+def prospective_map(changes, at_s):
+    result = dict(PROSPECTIVE_DEFAULTS)
+    for parameter in result:
+        eligible = [c for c in changes if c["parameter"] == parameter and c["effective_at_s"] <= at_s]
+        if eligible:
+            chosen = max(eligible, key=lambda c: (c["effective_at_s"], c["block_height"], c["entry_index"]))
+            result[parameter] = chosen["value"]
+    return result
+
+
+def prospective_acceptance(changes):
+    accepted, rejected = [], []
+    for i, candidate in sorted(enumerate(changes), key=lambda pair: (pair[1]["block_height"], pair[1]["entry_index"])):
+        tentative = accepted + [candidate]
+        instants = {candidate["sealed_at_s"]} | {c["effective_at_s"] for c in tentative
+                                                 if c["effective_at_s"] >= candidate["sealed_at_s"]}
+        valid = candidate["value"] >= 1 and candidate["effective_at_s"] >= candidate["sealed_at_s"] + 7 * DAY_S
+        for instant in instants:
+            values = prospective_map(tentative, instant)
+            valid = valid and values["sampling_floor"] <= values["sampling_ceiling"]
+        if valid:
+            accepted.append(candidate)
+        else:
+            rejected.append(i)
+    return sorted(rejected), accepted
+
+
+prospective_cases = []
+for label, rows, rejected in (
+    ("pending floor then incompatible ceiling", [(0, 0, "sampling_floor", 4_000_000, 10), (1, 0, "sampling_ceiling", 3_000_000, 11)], [1]),
+    ("later activation sealed first", [(0, 0, "sampling_ceiling", 3_000_000, 20), (1, 0, "sampling_floor", 4_000_000, 10)], [1]),
+    ("invalid future after earlier activation", [(0, 0, "sampling_floor", 4_000_000, 20), (1, 0, "sampling_ceiling", 3_000_000, 10)], [1]),
+    ("intermediate replacement makes schedule valid", [(0, 0, "sampling_floor", 4_000_000, 10), (1, 0, "sampling_floor", 2_000_000, 11), (2, 0, "sampling_ceiling", 3_000_000, 12)], []),
+    ("same effective time conflicts", [(0, 0, "sampling_floor", 4_000_000, 10), (1, 0, "sampling_ceiling", 3_000_000, 10)], [1]),
+    ("rejected candidate is not retried", [(0, 0, "sampling_floor", 4_000_000, 10), (1, 0, "sampling_ceiling", 3_000_000, 10), (2, 0, "sampling_floor", 2_000_000, 10)], [1]),
+    ("canonical same Block order", [(0, 1, "sampling_floor", 4_000_000, 10), (0, 0, "sampling_ceiling", 3_000_000, 10)], [0]),
+    ("invalid bound cannot hide behind replacement", [(0, 0, "sampling_floor", 0, 10), (1, 0, "sampling_floor", 200_000, 10)], [0]),
+    ("grace period required", [(0, 0, "sampling_floor", 400_000, 6)], [0]),
+):
+    changes = [{"block_height": day * 24, "entry_index": index, "sealed_at_s": day * DAY_S,
+                "parameter": parameter, "value": value, "effective_at_s": effective * DAY_S}
+               for day, index, parameter, value, effective in rows]
+    got, accepted = prospective_acceptance(changes)
+    assert got == rejected, label
+    instants = sorted({c["effective_at_s"] for c in changes})
+    prospective_cases.append({"label": label, "changes": changes, "rejected_indices": got,
+        "maps": [{"at_s": t, "values": prospective_map(accepted, t)} for t in instants]})
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
     "cases": countability_cases,
     "extension_window_cases": extension_window_cases,
+    "prospective_defaults": PROSPECTIVE_DEFAULTS,
+    "prospective_cases": prospective_cases,
 }))
 print("wist4 parameter-combinations vector written")
 
