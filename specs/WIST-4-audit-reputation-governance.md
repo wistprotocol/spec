@@ -469,8 +469,10 @@ sealed in between — which §8 invariant 3 forbids, and which WIST-3 §7's
 `coverage_failure` state kind, written at a Snapshot's `log_position`
 alone, could not carry. The 30 whole days are anchored to the audited
 Blocks and not to their evidence: the window measures the duty, so a
-Block whose establishing height falls outside the 30 whole days ending at
-its own `sealed_at` counts at no height at all.
+Block whose establishing height seals 30 whole days or more after that
+Block's own `sealed_at` counts at no height at all — from the height its
+evidence arrives at, the duty it records has already aged out of the
+window read there.
 
 The derived exclusion tracks the predicate rather than outliving it: as
 failures age out of the 30-day window with none replacing them, the Auditor

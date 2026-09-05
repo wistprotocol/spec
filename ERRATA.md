@@ -2196,3 +2196,32 @@ item withheld by one of them — and carry, beside the per-Log chain and
 each Log's gap verdict, the chain and verdicts the ruled-out cross-Log
 order produces, so a party checking the vector proves the two readings
 disagree rather than assuming it.
+
+## 2026-09-04 — WIST-4 §4: which window an establishing height must fall in
+
+Rewrites the closing sentence of §4's *The state is dated where it
+becomes derivable* paragraph.
+
+**What it states.** The operative rule is unchanged: a Block counts
+toward the coverage-failure count at a height N when its establishing
+height is at or below N and the Block itself is inside the 30 whole days
+ending at N's `sealed_at`. Their consequence, which the paragraph
+glossed, is that a Block whose evidence seals 30 whole days or more after
+the Block itself counts at no height at all — from the height that
+evidence arrives at, the duty it records has already aged out of the
+window read there. The gloss named the wrong window, "the 30 whole days
+ending at its own `sealed_at`", one that closes before any establishing
+height can fall inside it.
+
+**Why it qualifies.** It corrects a sentence no implementation could have
+conformed to, and changes nothing computed. Read with the audited Block
+as the antecedent, the gloss excluded every Block, since evidence always
+seals after the duty it records; read with the establishing height as the
+antecedent, it excluded none, since a height is inside any window ending
+at itself. Neither is the count the surrounding text defines, and the
+count is what implementations recompute.
+
+**Status.** Exercised. `vectors/wist4/coverage.json`'s establishing case
+for evidence arriving 30 whole days after the audited Block already
+carries the heights at which that failure does not count, the boundary
+the corrected sentence describes.
