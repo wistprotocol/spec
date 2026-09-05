@@ -2455,6 +2455,75 @@ write_json(WIST4 / "parameter-in-force.json", spaced_labels({
 }))
 print("wist4 parameter-in-force vector written")
 
+# --------------------------- WIST-4 §9: the coverage-countability combination
+# §4 counts a failed duty from its establishing height and only while the
+# audited Block is inside the 30 whole days ending at the height read, so
+# the evidence lag and the span the failures occupy share one window. The
+# §9 sum bounds the pair; the simulation below is the fact it stands for —
+# an Auditor failing every Block, every grid point sealed, counted at every
+# height — so the vector carries the reachability and not only the arithmetic.
+COUNT_WINDOW_S = 30 * DAY_S
+
+
+def countability_rule(cadence_s, deadline_hours, seal_blocks, failures_max):
+    return deadline_hours * 3600 + (seal_blocks + failures_max) * cadence_s < COUNT_WINDOW_S
+
+
+def establishing_lag(cadence_s, deadline_hours, seal_blocks):
+    """The §4 height a duty establishes at: the seal_blocks-th Block sealed
+    after the deadline, on a grid where every point is sealed."""
+    return ((deadline_hours * 3600) // cadence_s + seal_blocks) * cadence_s
+
+
+def max_counted(cadence_s, lag_s):
+    lag_blocks = lag_s // cadence_s
+    window_blocks = COUNT_WINDOW_S // cadence_s
+    best = 0
+    for n in range(lag_blocks + window_blocks + 3):
+        counted = [h for h in range(max(0, n - window_blocks - 1), n - lag_blocks + 1)
+                   if h >= 0 and (n - h) * cadence_s < COUNT_WINDOW_S]
+        best = max(best, len(counted))
+    return best
+
+
+def countability_case(label, cadence_s, deadline_hours, seal_blocks, changed,
+                      failures_max=24):
+    unattested = establishing_lag(cadence_s, deadline_hours, seal_blocks)
+    attested = establishing_lag(cadence_s, deadline_hours, 1)
+    def side(lag):
+        reached = max_counted(cadence_s, lag)
+        return {"establishing_lag_s": lag, "max_counted_at_any_height": reached,
+                "predicate_reachable": reached > failures_max}
+    return {
+        "label": label,
+        "changed": changed,
+        "block_cadence_seconds": cadence_s,
+        "coverage_deadline_hours": deadline_hours,
+        "record_seal_blocks": seal_blocks,
+        "coverage_failures_max": failures_max,
+        "sum_s": deadline_hours * 3600 + (seal_blocks + failures_max) * cadence_s,
+        "rule_holds": countability_rule(cadence_s, deadline_hours, seal_blocks, failures_max),
+        "deadline_on_grid": (deadline_hours * 3600) % cadence_s == 0,
+        "unattested": side(unattested),
+        "attested_next_block": side(attested),
+    }
+
+
+countability_cases = [
+    countability_case("registry-defaults", 3600, 72, 24, "block_cadence_seconds"),
+    countability_case("cadence-at-the-tables-maximum", 86400, 72, 24, "block_cadence_seconds"),
+    countability_case("the-last-seal-deadline-the-rule-admits", 3600, 72, 623, "record_seal_blocks"),
+    countability_case("one-block-past-it", 3600, 72, 624, "record_seal_blocks"),
+    countability_case("a-deadline-between-two-blocks", 5000, 2, 493, "record_seal_blocks"),
+]
+
+write_json(WIST4 / "parameter-combinations.json", spaced_labels({
+    "note": "WIST-4 §9 coverage-countability combination rule. Each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block. The rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks.",
+    "window_days": 30,
+    "cases": countability_cases,
+}))
+print("wist4 parameter-combinations vector written")
+
 # ---------------------------------------- WIST-4 §5: the unauditable predicate
 # Two blocking Records from independent Auditors inside the horizon ending
 # at N, with no clearing Record from an Auditor independent of both sealed

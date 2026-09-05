@@ -2225,3 +2225,43 @@ count is what implementations recompute.
 for evidence arriving 30 whole days after the audited Block already
 carries the heights at which that failure does not count, the boundary
 the corrected sentence describes.
+## 2026-09-04 — WIST-4 §4, §9: the parameters must leave a coverage failure countable (revision, not errata)
+
+Adds a combination rule to §9, a cross-reference to it from §4's
+establishing-height sentence, `vectors/wist4/parameter-combinations.json`
+and the harness checks over it.
+
+**What it states.** `coverage_deadline_hours` × 3600 +
+(`record_seal_blocks` + `coverage_failures_max`) ×
+`block_cadence_seconds` MUST be shorter than 30 whole days, and a party
+replaying the Log MUST reject a `parameter_change` that leaves it
+otherwise. §4 counts a failed duty from its establishing height and only
+while the audited Block is inside the 30 whole days ending at the height
+read, so the lag before the evidence seals and the span that
+`coverage_failures_max` + 1 consecutive failures occupy come out of one
+window. At or past the sum, no height carries more than the tolerance
+however completely an Auditor shirks.
+
+**Why it is a revision.** It fails the first condition: parameter sets
+the previous text permitted MUST now be rejected. One of them is not
+hypothetical. `block_cadence_seconds` = 86 400, the ceiling §9's own
+bounds table publishes, with every other value at its default gives the
+unattested path 51 days to fit into 30 — a tolerance of 24 Blocks is 24
+days of them, and their evidence seals 27 days after the Blocks it speaks
+to. An Aggregator that stopped attesting under those parameters would
+hand the whole roster the permanent amnesty *The gate is not an amnesty*
+(§4) exists to close, and no per-parameter bound catches it: the coupling
+§9's opening paragraph states between `coverage_failures_max` and the
+cadence had no form a replayer could check.
+
+**Status.** Exercised. `vectors/wist4/parameter-combinations.json`
+carries five parameter sets with, for each, the sum the rule bounds and —
+from a simulation of an Auditor that fails every Block on a fully sealed
+grid — the greatest number of failures any single height carries, under
+the unattested establishing height and under an attestation sealed in the
+next Block. The registry defaults reach 624 against a tolerance of 24;
+the published cadence ceiling reaches 3 unattested and 26 attested, which
+is the amnesty; and `record_seal_blocks` 623 and 624 reach 25 and 24, so
+the boundary decides the rule's strict inequality rather than leaving it
+to reading. The harness recomputes the count rather than the rule, and
+its twin fails a bound written at the endpoint instead of below it.
