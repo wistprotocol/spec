@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 import ecvrf
 import link_extraction
 from merkle import audit_path, leaf_hash, node_hash
+from merkle import merkle_root as merkle_tree_root
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 WIST1 = ROOT / "vectors" / "wist1"
@@ -1372,6 +1373,9 @@ audit_record = {
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": audit_commit(RESPONSE_BODY),
+    # WIST-4 §5.2: the same salt over the same body with the signer appended,
+    # so that no other signer can credit this value.
+    "credit_commitment": audit_commit(RESPONSE_BODY + b"audit.example.net"),
     "ref_extract_commitment": audit_commit(REF_EXTRACTION),
     "similarity": 940000,
     # The vector page's observed links reproduce the declared ones exactly
@@ -1408,6 +1412,9 @@ write_json(WIST4 / "audit-commitments.json", {
         "response_commitment": {
             "message_hex": RESPONSE_BODY.hex(),
             "value": audit_record["response_commitment"]},
+        "credit_commitment": {
+            "message_hex": (RESPONSE_BODY + b"audit.example.net").hex(),
+            "value": audit_record["credit_commitment"]},
         "ref_extract_commitment": {
             "message_hex": REF_EXTRACTION.hex(),
             "value": audit_record["ref_extract_commitment"]},
@@ -3219,6 +3226,341 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "ladder_cases": sanction_ladder_cases,
     "reversal_cases": sanction_reversal_cases,
 }))
+
+
+# ------------------------ WIST-4 §5.1, §5.2: canary domains, credit, hard hit
+# A planter commits to future served bytes as a Merkle root, the canary
+# domain later binds leaves to its Deltas, and every measured Record's
+# credit_commitment — the Payload salt over the served bytes with the signer
+# appended — is scored against the revealed bytes. The three revealed leaves
+# below are one URL's chain: the example Delta and two attests of it, so
+# every leaf's Reference Payload is examples/payload.json and its salt.
+CANARY_PLANTER = "planter.example.io"
+CANARY_DOMAIN = "example.com"
+CANARY_AUD_A, CANARY_AUD_B, CANARY_AUD_C = AUD_A, AUD_B, AUD_C
+
+
+def canary_nonce(i: int) -> bytes:
+    """A production nonce is 16+ CSPRNG octets, fresh per leaf; this
+    generator derives one from a fixed string so the vector stays
+    byte-reproducible."""
+    return hashlib.sha256(b"wist-test-canary-nonce|" + str(i).encode()).digest()[:16]
+
+
+CANARY_FILLER = " ".join("filler%d" % k for k in range(40))
+
+
+def canary_page(text: str, nonce: bytes | None) -> bytes:
+    comment = "" if nonce is None else "<!-- wist-canary: %s -->" % nonce.hex()
+    return ("<!doctype html><html><body>%s<p>%s</p><p>%s</p></body></html>"
+            % (comment, text, CANARY_FILLER)).encode()
+
+
+def canary_derived(body: bytes) -> tuple[int, str]:
+    sim = link_extraction.similarity(EXTRACT, link_extraction.extract_text(body))
+    assert sim is not None, "a canary leaf must clear the mass guard"
+    verdict = ("consistent" if sim >= 600_000 else
+               "dynamic_variance" if sim >= 300_000 else "inconsistent")
+    return sim, verdict
+
+
+def credit_commit(key: bytes, body: bytes, auditor_id: str) -> str:
+    return "hmac-sha256:" + hmac.new(key, body + auditor_id.encode(), hashlib.sha256).hexdigest()
+
+
+def hard_hit(reproduces: bool, verdict: str, derived: int) -> bool:
+    return reproduces and ((verdict == "consistent" and derived < 300_000)
+                           or (verdict == "inconsistent" and derived >= 600_000))
+
+
+def canary_attest(prev_id: str, observed_at: str) -> str:
+    inner = {"wist_version": "1.0.0", "url": DELTA_URL, "change_type": "attest",
+             "observed_at": observed_at, "prev": prev_id, "meta": {"lang": "en"}}
+    return "sha256:" + sha256_hex(rfc8785.dumps(inner))
+
+
+CANARY_D1 = delta_id
+CANARY_D2 = canary_attest(CANARY_D1, "2026-08-03T12:00:00Z")
+CANARY_D3 = canary_attest(CANARY_D2, "2026-08-04T12:00:00Z")
+CANARY_LEAF_SPECS = [
+    ("watermark", canary_page(EXTRACT, canary_nonce(0)), CANARY_D1, 124, 900_000, False),
+    ("fraud", canary_page("Nothing served here resembles the committed text at all.",
+                          canary_nonce(1)), CANARY_D2, 200, 300_000, False),
+    ("dynamic", canary_page("WIST is an open, verifiable, push-based web",
+                            canary_nonce(2)), CANARY_D3, 300, 100_000, True),
+    ("unrevealed", canary_page("unrevealed", canary_nonce(3)), None, None, None, None),
+]
+canary_leaf_hashes = [leaf_hash(body) for _, body, *_ in CANARY_LEAF_SPECS]
+canary_root = "sha256:" + merkle_tree_root(canary_leaf_hashes).hex()
+canary_leaves = []
+for index, (cls, body, did, height, rep_u, provisional) in enumerate(CANARY_LEAF_SPECS):
+    entry = {"index": index, "class": cls, "nonce_hex": canary_nonce(index).hex(),
+             "served_bytes_hex": body.hex(),
+             "leaf_hash": "sha256:" + canary_leaf_hashes[index].hex(),
+             "revealed": did is not None}
+    if did is not None:
+        sim, verdict = canary_derived(body)
+        tier = ("provisional" if provisional else
+                "mature" if rep_u >= 500_000 else "standing")
+        entry.update({"delta_id": did, "delta_height": height,
+                      "path": ["sha256:" + h.hex() for h in audit_path(index, canary_leaf_hashes)],
+                      "derived_similarity": sim, "derived_verdict": verdict,
+                      "domain_reputation_u": rep_u, "domain_provisional": provisional,
+                      "tier": tier})
+    canary_leaves.append(entry)
+assert [l.get("derived_verdict") for l in canary_leaves] == \
+    ["consistent", "inconsistent", "dynamic_variance", None], "canary leaf verdicts drifted"
+assert canary_leaves[2]["derived_similarity"] == 333_333, "the dynamic leaf must sit in the buffer band"
+
+PAYLOAD_PAGE = canary_page(EXTRACT, None)
+OTHER_SALT = bytes(b ^ 0x01 for b in salt)
+
+
+def canary_credit_case(label, auditor_id, index, held, verdict, key=None, copied_from=None):
+    leaf_body = CANARY_LEAF_SPECS[index][1]
+    body = {"leaf": leaf_body, "payload_page": PAYLOAD_PAGE,
+            "other_nonce": canary_page(EXTRACT, canary_nonce(99))}[held]
+    key = salt if key is None else key
+    signer = copied_from or auditor_id
+    sealed = credit_commit(key, body, signer)
+    reproduces = sealed == credit_commit(salt, leaf_body, auditor_id)
+    derived = canary_leaves[index]["derived_similarity"]
+    return {"label": label, "auditor_id": auditor_id, "leaf_index": index, "held": held,
+            "salt": "reference" if key == salt else "other",
+            "copied_from": copied_from, "verdict": verdict,
+            "response_commitment": "hmac-sha256:" + hmac.new(key, body, hashlib.sha256).hexdigest(),
+            "credit_commitment": sealed, "reproduces": reproduces,
+            "hard_hit": hard_hit(reproduces, verdict, derived)}
+
+
+canary_credit_cases = [
+    canary_credit_case("fetcher-credits-the-watermark", CANARY_AUD_A, 0, "leaf", "consistent"),
+    canary_credit_case("payload-bytes-earn-no-credit", CANARY_AUD_B, 0, "payload_page", "consistent"),
+    canary_credit_case("a-copied-credit-value-is-worthless", CANARY_AUD_C, 0, "leaf", "consistent",
+                       copied_from=CANARY_AUD_A),
+    canary_credit_case("consistent-on-the-fraud-leaf-is-a-hard-hit", CANARY_AUD_A, 1, "leaf", "consistent"),
+    canary_credit_case("inconsistent-on-the-fraud-leaf-credits", CANARY_AUD_B, 1, "leaf", "inconsistent"),
+    canary_credit_case("inconsistent-on-the-watermark-is-a-hard-hit", CANARY_AUD_C, 0, "leaf", "inconsistent"),
+    canary_credit_case("consistent-in-the-buffer-band-is-no-hit", CANARY_AUD_A, 2, "leaf", "consistent"),
+    canary_credit_case("inconsistent-in-the-buffer-band-is-no-hit", CANARY_AUD_B, 2, "leaf", "inconsistent"),
+    canary_credit_case("a-cloaked-fetch-misses", CANARY_AUD_C, 2, "other_nonce", "consistent"),
+    canary_credit_case("the-wrong-salt-reproduces-nothing", CANARY_AUD_B, 0, "leaf", "consistent",
+                       key=OTHER_SALT),
+]
+assert [c["reproduces"] for c in canary_credit_cases] == \
+    [True, False, False, True, True, True, True, True, False, False], "credit cases drifted"
+assert [c["hard_hit"] for c in canary_credit_cases] == \
+    [False, False, False, True, False, True, False, False, False, False], "hard-hit cases drifted"
+assert canary_credit_cases[2]["credit_commitment"] == canary_credit_cases[0]["credit_commitment"], \
+    "the copier must seal the very value it copied"
+
+CANARY_PARAMS = {"canary_lead_blocks": 24, "canary_reveal_min_blocks": 168,
+                 "canary_lifetime_blocks": 1440, "epoch_blocks": 24,
+                 "observer_checkpoint_budget": 1024, "canary_leaves_max": 1024,
+                 "canary_commitments_max": 8, "similarity_consistent": 600_000,
+                 "similarity_variance_floor": 300_000, "min_observed_words": 40,
+                 "latency_threshold_u": 500_000}
+
+
+def canary_timing(commitment_height, delta_heights, reveal_height, suffixes, p=CANARY_PARAMS):
+    rotation = (-(-suffixes // p["observer_checkpoint_budget"]) - 1) * p["epoch_blocks"]
+    earliest = max(delta_heights) + p["canary_reveal_min_blocks"] + rotation
+    latest = commitment_height + p["canary_lifetime_blocks"]
+    lead_ok = all(h >= commitment_height + p["canary_lead_blocks"] for h in delta_heights)
+    return {"earliest_reveal_height": earliest, "latest_reveal_height": latest,
+            "lead_respected": lead_ok,
+            "valid": lead_ok and earliest <= reveal_height <= latest}
+
+
+canary_timing_scenarios = [
+    ("reveal-at-the-minimum", 100, [124, 200], 368, 1),
+    ("reveal-one-block-early", 100, [124, 200], 367, 1),
+    ("reveal-at-the-lifetime", 100, [124, 200], 1540, 1),
+    ("reveal-one-block-late", 100, [124, 200], 1541, 1),
+    ("a-delta-inside-the-lead", 100, [123, 200], 400, 1),
+    ("an-over-budget-roster-delays-the-minimum", 100, [124, 200], 400, 2049),
+    ("the-delayed-minimum-met", 100, [124, 200], 416, 2049),
+]
+canary_timing_cases = [
+    {"label": label, "commitment_height": c, "delta_heights": ds, "reveal_height": r,
+     "suffixes_registered": sfx, **canary_timing(c, ds, r, sfx)}
+    for label, c, ds, r, sfx in canary_timing_scenarios
+]
+assert [c["valid"] for c in canary_timing_cases] == [True, False, True, False, False, False, True], \
+    "canary timing cases drifted"
+
+# The scoreboard: per identity, per tier of the audited domain, encountered /
+# credited / hard hits over the Records fixed before the reveal.
+canary_scoreboard_records = [
+    {"auditor_id": CANARY_AUD_A, "leaf_index": 0, "verdict": "consistent", "held": "leaf", "fixed_before_reveal": True},
+    {"auditor_id": CANARY_AUD_A, "leaf_index": 1, "verdict": "consistent", "held": "leaf", "fixed_before_reveal": True},
+    {"auditor_id": CANARY_AUD_A, "leaf_index": 2, "verdict": "inconsistent", "held": "leaf", "fixed_before_reveal": True},
+    {"auditor_id": CANARY_AUD_B, "leaf_index": 0, "verdict": "consistent", "held": "payload_page", "fixed_before_reveal": True},
+    {"auditor_id": CANARY_AUD_B, "leaf_index": 1, "verdict": "inconsistent", "held": "leaf", "fixed_before_reveal": False},
+]
+for r in canary_scoreboard_records:
+    body = {"leaf": CANARY_LEAF_SPECS[r["leaf_index"]][1], "payload_page": PAYLOAD_PAGE}[r["held"]]
+    r["credit_commitment"] = credit_commit(salt, body, r["auditor_id"])
+
+
+def scoreboard(records, auditor_id):
+    board = {t: [0, 0, 0] for t in ("provisional", "standing", "mature")}
+    for r in records:
+        if r["auditor_id"] != auditor_id or not r["fixed_before_reveal"]:
+            continue
+        leaf = canary_leaves[r["leaf_index"]]
+        row = board[leaf["tier"]]
+        row[0] += 1
+        reproduces = r["credit_commitment"] == credit_commit(
+            salt, CANARY_LEAF_SPECS[r["leaf_index"]][1], auditor_id)
+        row[1] += reproduces
+        row[2] += hard_hit(reproduces, r["verdict"], leaf["derived_similarity"])
+    return board
+
+
+canary_scoreboards = {a: scoreboard(canary_scoreboard_records, a) for a in (CANARY_AUD_A, CANARY_AUD_B)}
+assert canary_scoreboards[CANARY_AUD_A] == {"provisional": [1, 1, 0], "standing": [1, 1, 1], "mature": [1, 1, 0]}
+assert canary_scoreboards[CANARY_AUD_B] == {"provisional": [0, 0, 0], "standing": [0, 0, 0], "mature": [1, 0, 0]}
+
+write_json(WIST4 / "canary.json", spaced_labels({
+    "note": ("WIST-4 §5.1, §5.2: a canary commitment over four leaves of served bytes "
+             "(three revealed, one not), each carrying a nonce; the credit_commitment "
+             "check per signer; the hard hit over both canary classes with the "
+             "dynamic_variance buffer between; reveal timing against the lead, the "
+             "minimum with the checkpoint-budget rotation, and the lifetime; and the "
+             "per-tier scoreboard. Every revealed leaf's Reference Payload is "
+             "examples/payload.json, whose salt keys every commitment here. Nonces are "
+             "derived from a fixed string for reproducibility; a planter draws them "
+             "from a CSPRNG."),
+    "parameters": CANARY_PARAMS,
+    "salt_source": "examples/payload.json",
+    "reference_extract": EXTRACT,
+    "planter": CANARY_PLANTER,
+    "canary_domain": CANARY_DOMAIN,
+    "commitment": {"root": canary_root, "leaves": len(CANARY_LEAF_SPECS), "height": 100},
+    "payload_page_hex": PAYLOAD_PAGE.hex(),
+    "leaves": canary_leaves,
+    "credit_cases": canary_credit_cases,
+    "timing_cases": canary_timing_cases,
+    "scoreboard_records": canary_scoreboard_records,
+    "scoreboards": canary_scoreboards,
+}))
+print("wist4 canary vector written; root", canary_root)
+
+# ------------------------------ WIST-4 §3.1: epochs and the checkpoint budget
+# Epochs are counted from Block 0, each spanning the epoch_blocks in force at
+# its first Block; an epoch budgets suffixes by a hash over the epoch number,
+# one Observer per suffix by the same hash.
+OBS_EPOCH_DEFAULT = 24
+
+
+def epoch_priority(epoch: int, name: str) -> str:
+    return hashlib.sha256(epoch.to_bytes(8, "big") + name.encode()).hexdigest()
+
+
+def two_label_suffix(host: str) -> str:
+    return ".".join(host.split(".")[-2:])
+
+
+def epoch_budget(observers, epoch, budget):
+    groups = {}
+    for o in observers:
+        groups.setdefault(two_label_suffix(o), []).append(o)
+    order = sorted(groups, key=lambda sfx: epoch_priority(epoch, sfx))
+    chosen = [min(groups[sfx], key=lambda o: epoch_priority(epoch, o)) for sfx in order[:budget]]
+    return order, chosen
+
+
+OBSERVERS = ["a.example.net", "b.example.net", "c.example.org", "d.sample.net", "e.other.io"]
+observer_budget_cases = []
+for label, observers, budget, epochs in [
+    ("under-budget-every-suffix-budgeted", OBSERVERS, 5, [0, 1]),
+    ("over-budget-rotates-across-epochs", OBSERVERS, 2, [0, 1, 2, 3]),
+    ("a-crowd-under-one-suffix-shares-one-slot", OBSERVERS[:2] + ["f.example.net", "g.other.io"], 1,
+     [0, 1, 2, 3]),
+]:
+    per_epoch = []
+    for e in epochs:
+        order, chosen = epoch_budget(observers, e, budget)
+        per_epoch.append({"epoch": e, "suffix_order": order, "budgeted": chosen})
+    observer_budget_cases.append({"label": label, "registered": observers, "budget": budget,
+                                  "epochs": per_epoch})
+rotating = observer_budget_cases[1]["epochs"]
+assert len({tuple(e["budgeted"]) for e in rotating}) > 1, "the over-budget case must rotate"
+assert all(len(e["budgeted"]) == 1 for e in observer_budget_cases[2]["epochs"]) and \
+    len({e["budgeted"][0] for e in observer_budget_cases[2]["epochs"]}) > 1, \
+    "the crowd case must share one slot and rotate inside it"
+
+
+def epoch_of_block(block, changes, default=OBS_EPOCH_DEFAULT):
+    """changes: [(effective_at_s, value)]; a Block's sealed_at is block * HOUR_S."""
+    start, index = 0, 0
+    while True:
+        length = value_in_force(default, [{"effective_at_s": t, "value": v, "block_number": 0,
+                                           "entry_index": 0} for t, v in changes],
+                                start * HOUR_S)[0]
+        if block < start + length:
+            return index, start, length
+        start += length
+        index += 1
+
+
+EPOCH_CHANGES = [(100 * HOUR_S, 48)]
+observer_epoch_probes = [23, 24, 47, 96, 99, 100, 119, 120, 167, 168]
+observer_epoch_cases = [
+    {"block": b, "sealed_at_s": b * HOUR_S,
+     **dict(zip(("epoch", "epoch_first_block", "epoch_length"),
+                epoch_of_block(b, EPOCH_CHANGES)))}
+    for b in observer_epoch_probes
+]
+assert [c["epoch"] for c in observer_epoch_cases] == [0, 1, 1, 4, 4, 4, 4, 5, 5, 6], "epoch cases drifted"
+
+# A checkpoint covers its head and everything behind it through prev_record;
+# a Record credits only under a checkpoint sealed below the reveal's Block.
+OBS_CHAIN = ["sha256:c1", "sha256:c2", "sha256:c3", "sha256:c4", "sha256:c5"]
+OBS_PREV = {item: (OBS_CHAIN[i - 1] if i else None) for i, item in enumerate(OBS_CHAIN)}
+OBS_CHECKPOINTS = [{"head": "sha256:c3", "height": 50}, {"head": "sha256:c5", "height": 65}]
+
+
+def covered_before(item, checkpoints, reveal_height):
+    for cp in checkpoints:
+        if cp["height"] >= reveal_height:
+            continue
+        cursor = cp["head"]
+        while cursor is not None:
+            if cursor == item:
+                return True
+            cursor = OBS_PREV[cursor]
+    return False
+
+
+observer_coverage_cases = [
+    {"label": label, "reveal_height": reveal,
+     "fixed_before_reveal": {item: covered_before(item, OBS_CHECKPOINTS, reveal) for item in OBS_CHAIN}}
+    for label, reveal in [("reveal-between-the-checkpoints", 60),
+                          ("reveal-after-both", 70),
+                          ("reveal-at-the-first-checkpoints-height", 50)]
+]
+assert [list(c["fixed_before_reveal"].values()) for c in observer_coverage_cases] == \
+    [[True, True, True, False, False], [True] * 5, [False] * 5], "coverage cases drifted"
+
+write_json(WIST4 / "observer-checkpoints.json", spaced_labels({
+    "note": ("WIST-4 §3.1: which Observers an epoch budgets (suffix slots ordered by "
+             "SHA-256 over the big-endian epoch number and the suffix, one Observer per "
+             "suffix by the same hash over the observer_id), which epoch a Block belongs "
+             "to under a mid-Log change of epoch_blocks (each epoch spans the value in "
+             "force at its first Block), and which chain items a sealed checkpoint fixes "
+             "before a reveal."),
+    "epoch_blocks_default": OBS_EPOCH_DEFAULT,
+    "budget_cases": observer_budget_cases,
+    "epoch_changes": [{"effective_at_s": t, "value": v} for t, v in EPOCH_CHANGES],
+    "epoch_cases": observer_epoch_cases,
+    "chain": OBS_CHAIN,
+    "prev_record": OBS_PREV,
+    "checkpoints": OBS_CHECKPOINTS,
+    "coverage_cases": observer_coverage_cases,
+}))
+print("wist4 observer-checkpoints vector written")
 
 # ------------------------------------- WIST-4 §5: the reference Delta
 # A Record names `reference_delta`: the newest Delta of the audited Delta's

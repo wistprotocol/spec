@@ -1089,6 +1089,8 @@ value fields are:
 | `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
 | `coverage_failure` | `auditor_id`, block number | — | WIST-4 §4 |
 | `escalation` | domain | establishing `sealed_at` | WIST-4 §4 |
+| `observer` | `observer_id`, `key_id` | `public_key`, registered height, ended height or `null` | WIST-4 §3.1 |
+| `canary_commitment` | Registry Update ID | planter domain, `root`, `leaves`, sealing height | WIST-4 §5.1 |
 | `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted-URL digest set (below), penalties as (confirming `sealed_at`, severity) pairs | WIST-4 §6 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
@@ -1180,8 +1182,13 @@ declares `shards`, the state file MAY be split on the same
 Publisher-domain rule, one part per shard for the domain-keyed kinds
 (`declaration`, `sanction_state`, `recovery_window`, `exclusion`,
 `escalation`, `reputation_inputs`, `record`), with the Log-wide kinds
-(`aggregator_key`, `auditor`, `parameter`, `coverage_failure`) carried
-in every part, since no Consumer can validate an Entry without them.
+(`aggregator_key`, `auditor`, `parameter`, `coverage_failure`,
+`observer`, `canary_commitment`) carried in every part, since no Consumer
+can validate an Entry without them. A `canary_commitment` tuple exists
+while the commitment is live — unrevealed and inside its lifetime
+(WIST-4 §5.1) — and an `observer` tuple while the registration holds, so
+that a resuming Consumer rejects the same reveals and checkpoints a
+replaying one does.
 The tuple set is a set: a Log-wide tuple appears exactly once in the
 digest preimage, however many parts carry a copy.
 `state_digest` remains the digest over the whole tuple set: a partial

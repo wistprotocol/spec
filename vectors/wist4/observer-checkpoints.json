@@ -1,0 +1,303 @@
+{
+  "note": "WIST-4 \u00a73.1: which Observers an epoch budgets (suffix slots ordered by SHA-256 over the big-endian epoch number and the suffix, one Observer per suffix by the same hash over the observer_id), which epoch a Block belongs to under a mid-Log change of epoch_blocks (each epoch spans the value in force at its first Block), and which chain items a sealed checkpoint fixes before a reveal.",
+  "epoch_blocks_default": 24,
+  "budget_cases": [
+    {
+      "label": "under budget every suffix budgeted",
+      "registered": [
+        "a.example.net",
+        "b.example.net",
+        "c.example.org",
+        "d.sample.net",
+        "e.other.io"
+      ],
+      "budget": 5,
+      "epochs": [
+        {
+          "epoch": 0,
+          "suffix_order": [
+            "other.io",
+            "sample.net",
+            "example.net",
+            "example.org"
+          ],
+          "budgeted": [
+            "e.other.io",
+            "d.sample.net",
+            "b.example.net",
+            "c.example.org"
+          ]
+        },
+        {
+          "epoch": 1,
+          "suffix_order": [
+            "example.org",
+            "example.net",
+            "other.io",
+            "sample.net"
+          ],
+          "budgeted": [
+            "c.example.org",
+            "b.example.net",
+            "e.other.io",
+            "d.sample.net"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "over budget rotates across epochs",
+      "registered": [
+        "a.example.net",
+        "b.example.net",
+        "c.example.org",
+        "d.sample.net",
+        "e.other.io"
+      ],
+      "budget": 2,
+      "epochs": [
+        {
+          "epoch": 0,
+          "suffix_order": [
+            "other.io",
+            "sample.net",
+            "example.net",
+            "example.org"
+          ],
+          "budgeted": [
+            "e.other.io",
+            "d.sample.net"
+          ]
+        },
+        {
+          "epoch": 1,
+          "suffix_order": [
+            "example.org",
+            "example.net",
+            "other.io",
+            "sample.net"
+          ],
+          "budgeted": [
+            "c.example.org",
+            "b.example.net"
+          ]
+        },
+        {
+          "epoch": 2,
+          "suffix_order": [
+            "sample.net",
+            "other.io",
+            "example.org",
+            "example.net"
+          ],
+          "budgeted": [
+            "d.sample.net",
+            "e.other.io"
+          ]
+        },
+        {
+          "epoch": 3,
+          "suffix_order": [
+            "example.org",
+            "example.net",
+            "other.io",
+            "sample.net"
+          ],
+          "budgeted": [
+            "c.example.org",
+            "b.example.net"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "a crowd under one suffix shares one slot",
+      "registered": [
+        "a.example.net",
+        "b.example.net",
+        "f.example.net",
+        "g.other.io"
+      ],
+      "budget": 1,
+      "epochs": [
+        {
+          "epoch": 0,
+          "suffix_order": [
+            "other.io",
+            "example.net"
+          ],
+          "budgeted": [
+            "g.other.io"
+          ]
+        },
+        {
+          "epoch": 1,
+          "suffix_order": [
+            "example.net",
+            "other.io"
+          ],
+          "budgeted": [
+            "f.example.net"
+          ]
+        },
+        {
+          "epoch": 2,
+          "suffix_order": [
+            "other.io",
+            "example.net"
+          ],
+          "budgeted": [
+            "g.other.io"
+          ]
+        },
+        {
+          "epoch": 3,
+          "suffix_order": [
+            "example.net",
+            "other.io"
+          ],
+          "budgeted": [
+            "b.example.net"
+          ]
+        }
+      ]
+    }
+  ],
+  "epoch_changes": [
+    {
+      "effective_at_s": 360000,
+      "value": 48
+    }
+  ],
+  "epoch_cases": [
+    {
+      "block": 23,
+      "sealed_at_s": 82800,
+      "epoch": 0,
+      "epoch_first_block": 0,
+      "epoch_length": 24
+    },
+    {
+      "block": 24,
+      "sealed_at_s": 86400,
+      "epoch": 1,
+      "epoch_first_block": 24,
+      "epoch_length": 24
+    },
+    {
+      "block": 47,
+      "sealed_at_s": 169200,
+      "epoch": 1,
+      "epoch_first_block": 24,
+      "epoch_length": 24
+    },
+    {
+      "block": 96,
+      "sealed_at_s": 345600,
+      "epoch": 4,
+      "epoch_first_block": 96,
+      "epoch_length": 24
+    },
+    {
+      "block": 99,
+      "sealed_at_s": 356400,
+      "epoch": 4,
+      "epoch_first_block": 96,
+      "epoch_length": 24
+    },
+    {
+      "block": 100,
+      "sealed_at_s": 360000,
+      "epoch": 4,
+      "epoch_first_block": 96,
+      "epoch_length": 24
+    },
+    {
+      "block": 119,
+      "sealed_at_s": 428400,
+      "epoch": 4,
+      "epoch_first_block": 96,
+      "epoch_length": 24
+    },
+    {
+      "block": 120,
+      "sealed_at_s": 432000,
+      "epoch": 5,
+      "epoch_first_block": 120,
+      "epoch_length": 48
+    },
+    {
+      "block": 167,
+      "sealed_at_s": 601200,
+      "epoch": 5,
+      "epoch_first_block": 120,
+      "epoch_length": 48
+    },
+    {
+      "block": 168,
+      "sealed_at_s": 604800,
+      "epoch": 6,
+      "epoch_first_block": 168,
+      "epoch_length": 48
+    }
+  ],
+  "chain": [
+    "sha256:c1",
+    "sha256:c2",
+    "sha256:c3",
+    "sha256:c4",
+    "sha256:c5"
+  ],
+  "prev_record": {
+    "sha256:c1": null,
+    "sha256:c2": "sha256:c1",
+    "sha256:c3": "sha256:c2",
+    "sha256:c4": "sha256:c3",
+    "sha256:c5": "sha256:c4"
+  },
+  "checkpoints": [
+    {
+      "head": "sha256:c3",
+      "height": 50
+    },
+    {
+      "head": "sha256:c5",
+      "height": 65
+    }
+  ],
+  "coverage_cases": [
+    {
+      "label": "reveal between the checkpoints",
+      "reveal_height": 60,
+      "fixed_before_reveal": {
+        "sha256:c1": true,
+        "sha256:c2": true,
+        "sha256:c3": true,
+        "sha256:c4": false,
+        "sha256:c5": false
+      }
+    },
+    {
+      "label": "reveal after both",
+      "reveal_height": 70,
+      "fixed_before_reveal": {
+        "sha256:c1": true,
+        "sha256:c2": true,
+        "sha256:c3": true,
+        "sha256:c4": true,
+        "sha256:c5": true
+      }
+    },
+    {
+      "label": "reveal at the first checkpoints height",
+      "reveal_height": 50,
+      "fixed_before_reveal": {
+        "sha256:c1": false,
+        "sha256:c2": false,
+        "sha256:c3": false,
+        "sha256:c4": false,
+        "sha256:c5": false
+      }
+    }
+  ]
+}

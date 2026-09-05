@@ -1,11 +1,13 @@
 # ADR-0012: Auditor track record becomes derivable
 
-**Status:** proposed · **Date:** 2026-08-13
+**Status:** accepted (revision landed 2026-09-05; parameters and readings in the addendum below) · **Amends:** ADR-0016 · **Date:** 2026-08-13
 
-> The suite is frozen (ERRATA.md, 2026-08-05). This ADR records the
+> The suite was frozen on 2026-08-05 (ERRATA.md). This ADR records the
 > decision; the WIST-4 changes it entails are neither errata nor a
-> defect-scoped revision and land as a revision only after the freeze
-> exits (two independent implementations passing the vector suite).
+> defect-scoped revision, and landed as the revision ERRATA.md records
+> under 2026-09-05, before the first tag rather than after the freeze's
+> stated exit, so that the version tagged carries the text an
+> implementation of the Auditor is built against.
 
 ## Context
 
@@ -448,3 +450,108 @@ scheme that counts a permissionless verdict must first show a deployed
 precedent or this Log's own Observer data, then answer the control
 loop; a cheaper proof of fetch-work must first answer the frame and
 the collusion bounds above.
+
+## Addendum (2026-09-05) — what the revision pinned
+
+The decision above left parameters open and encodings to the revision.
+This records what WIST-4 now says, and where the revision read the
+decision in one of several possible ways, so that the choice is a fact of
+record rather than of code.
+
+**Parameters.** K, the pre-commitment lead, is `canary_lead_blocks` = 24:
+one day at the default cadence, the smallest span the suite already
+treats as a unit, so that a commitment sealed the Block before its Delta
+cannot pass for premeditation at cadence granularity. The epoch is
+`epoch_blocks` = 24, the same day; the checkpoint budget is
+`observer_checkpoint_budget` = 1024 suffixes per epoch — a thousand tiny
+Entries a day costs an Aggregator nothing, and a registrant must buy
+apex domains, not subdomains, to consume slots. The reveal minimum is
+`canary_reveal_min_blocks` = 168 after the newest bound Delta, plus one
+rotation of the checkpoint budget derived from the suffixes registered
+at that Delta's Block — the composition §9 states, 144 hours at the
+defaults against the 168 the minimum gives — and the lifetime
+`canary_lifetime_blocks` = 1440 from the commitment. Leaves per
+commitment are `canary_leaves_max` = 1024. The reveal's scoring window is
+`payload_window_days`, reused rather than added: the served bytes lapse
+as a Reference Payload does, and the planter serves the leaves' Reference
+Payloads itself for the same span, which is what pins the window inside
+salt availability without touching WIST-3 §6.1's duties.
+
+**Canary volume.** The decision asked for canary volume bounds sized
+against the roster's ration capacity, because every fraud-canary
+detection consumes its first filer's summons. No such bound is
+enforceable: a commitment does not say which class it is, and a fraud
+canary is indistinguishable from fraud until its reveal. What §5.1
+rations is what the Log can see — `canary_commitments_max` = 8
+commitments per planter suffix per epoch — which bounds Log growth from
+planters that never reveal. The ration-drain a fraud-canary flood could
+cause is the ration-drain any fraud flood causes, and §4's per-triggerer
+ration is the answer to both; §11 states it.
+
+**Encodings.** The credit commitment is HMAC-SHA256 under the Reference
+Payload's salt over the raw response body with the signer's `auditor_id`
+appended as UTF-8 — the reference Delta's salt, per ADR-0016, so that the
+check and the Record's other commitments share one lifecycle. A leaf is
+`SHA-256(0x00 ‖ served bytes)` in WIST-3 §4's tree, the nonce embedded in
+the bytes rather than keyed separately: one secret plays both roles, the
+unguessability a fetcher must prove and the hiding that keeps a leaf from
+being a bare digest of content, and §9.1 says so where it forbids bare
+digests. The leaf-to-Delta binding is declared at the reveal and checked
+against the Log then — inclusion under the committed root, the canary
+domain's own Delta, sealed past the lead — rather than committed, because
+a commitment cannot name Deltas that do not yet exist; a false binding
+can only cost the planter's own canary its credits, since every credit
+check keys by the Record's own Reference Payload.
+
+**Who signs what.** A `canary_commitment` is signed by the planter, a
+domain holding a Declaration, and names it as `subject`: attributable to
+a planter, never to a canary domain. A `canary_reveal` is signed by the
+canary domain's Key Set and names it as `subject`: only a domain's own
+keys can declare it a canary, which is what stops a third party from
+"revealing" a byte-stable public page it merely fetched and crediting
+itself against it. The decision's "attributable to no domain until its
+reveal" is met for the canary domain and deliberately not for the
+planter; what a ring can do with many planter identities is priced per
+suffix and conceded in §11.
+
+**The hard hit reads both classes.** The decision named the hard hit as
+`consistent` on a fraud canary with possession proved. The revision
+defines it symmetrically: possession proved and a verdict two bands from
+the bytes — `consistent` where the bytes derive below
+`similarity_variance_floor`, or `inconsistent` where they derive at or
+above `similarity_consistent`. The mirror catches a party that fetches a
+watermark and files `inconsistent`, which is the false-`inconsistent`
+griefer the retired divergence predicate used to police; the
+`dynamic_variance` band between the two keeps a boundary computation
+from ever being a demerit. An honest party structurally produces
+neither, for the reason the decision gives for the first form.
+
+**Transport.** Self-signed acts — `observer_register`,
+`observer_checkpoint`, `canary_commitment`, `canary_reveal` — are served
+at `/.well-known/wist/registry.json` and pulled with the Feed, at the
+baseline interval, and per epoch for a budgeted Observer; the Aggregator
+seals what verifies within `record_seal_blocks`. The decision expected
+WIST-1 through WIST-3 untouched; WIST-2 §3's layout gained the path and
+the leaf-serving path, and WIST-3 §7's state artifact gained the
+`observer` and `canary_commitment` kinds (and, with the divergence
+rework, `escalation`), because a resuming Consumer must reject the same
+acts a replaying one does. Nothing else in those documents changed.
+
+**Admission evidence.** `track_record` on an `auditor_admit` carries the
+newest sealed checkpoint's ID and a three-tier scoreboard — tiers read
+from the Provisional gate and `latency_threshold_u`, adding no
+parameter. Its presence is a replay condition (`WIST4-E04` either way);
+its content is not, because two replayers at different heights hold
+different reveals and must not derive different rosters. It is the
+Declaration pattern the decision named: falsifiable when made, trusted
+on replay.
+
+**Divergence.** The contradiction consequence landed as decided, as its
+own revision: contradiction escalates the audited domain's sampling for
+30 days from the Block at which the extension closes, and feeds no
+removal; `contradictions_max` is retired. The closing instant — the
+first Block sealed more than `confirm_window_hours` after *B₁* — is the
+instant the frozen text never named, and the extension pull that lets a
+summoned Record seal inside that window at all was found missing by the
+same audit and added beside it.
+

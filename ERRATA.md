@@ -2376,3 +2376,66 @@ findings without the lifts reach it at the second by accrual, and three
 severity-1 findings around a lift reach level 2 at the third. The harness
 recomputes the rungs from the findings and its twin fails a lift read as
 erasing the findings before it, and a ladder without the count branch.
+
+## 2026-09-05 — WIST-4 §2, §3.1, §4, §5, §5.1, §5.2, §9, §9.1, §10, §11, §12, §13; WIST-2 §3; WIST-3 §7; registry-update, audit-record and snapshot-state schemas: Observers, canary domains and the credit commitment (revision, not errata)
+
+Adds §3.1 *Observers*, §5.1 *Canary Domains* and §5.2 *Credit and the
+Hard Hit*; the actions `observer_register`, `observer_checkpoint`,
+`canary_commitment` and `canary_reveal` with their §9.1 contracts and the
+submissions path they reach the Log by; `credit_commitment` on every
+measured Audit Record; `track_record` on an `auditor_admit` of a former
+Observer; seven parameters with bounds and two combination rules in §9;
+`WIST4-E08` and additions to `WIST4-E02`, `E04` and `E07`; six §11
+exposure bullets; a §12 paragraph; §13 lines for Observers, planters,
+Aggregators and replayers; two paths in WIST-2 §3's layout; the
+`observer` and `canary_commitment` kinds in WIST-3 §7's state artifact;
+`vectors/wist4/canary.json` and `vectors/wist4/observer-checkpoints.json`;
+and the `credit_commitment` entry in `vectors/wist4/audit-commitments.json`.
+This is the revision ADR-0012 records, whose addendum states what was
+pinned and where a reading was chosen.
+
+**What it states.** Anyone may register as an Observer under a
+domain-anchored identity and perform an Auditor's duties voluntarily —
+same selection, same Records, same chain — with nothing it publishes
+counting anywhere; it serves an `observer_checkpoint` naming its chain
+head, which the Aggregator seals under a derivable per-epoch budget
+allocated per two-label suffix by a hash over the epoch number, and a
+Record credits only under a checkpoint sealed below the reveal that
+scores it. A planter commits to future served bytes as a Merkle root over
+leaves each carrying a fresh nonce, at least `canary_lead_blocks` before
+the Deltas they cover; the canary domain reveals the binding inside a
+window bounded below by `canary_reveal_min_blocks` plus one rotation of
+the checkpoint budget and above by `canary_lifetime_blocks`, then serves
+the bytes and their Reference Payloads for `payload_window_days`. Every
+measured Record carries `credit_commitment`, the Reference Payload's salt
+over the served bytes with the signer's `auditor_id` appended: credit is
+byte possession before the reveal, a miss is no demerit, and the hard hit
+— possession proved and a verdict two bands from the bytes — is the one
+derivable demerit, reaching removal only through the judgement. An
+`auditor_admit` of a former Observer cites the newest checkpoint and a
+three-tier scoreboard; a reveal voids no sanction.
+
+**Why it is a revision.** It fails the first condition throughout. A
+measured Record without `credit_commitment` validated before and is
+`WIST4-E02` now; the action enum grows; an Aggregator gains pull and
+sealing duties; the state artifact gains kinds a resuming Consumer must
+carry; WIST-2's layout gains paths. The reason is the one ADR-0012 gives:
+admission stays a judgement, and everything the judgement weighs becomes
+a fact anyone can recompute, against evidence — served bytes unknowable
+before a fetch — that no party can fabricate after the outcome is known.
+
+**Status.** Exercised. `canary.json` carries a four-leaf commitment (three
+revealed) whose leaves the harness re-hashes and re-walks to the root by
+the verifier's algorithm; ten credit cases — the fetcher, the Payload-bytes
+guesser, the copier of another's value, both hard-hit forms, both
+buffer-band verdicts, the cloaked fetch, the wrong salt — recomputed from
+the served bytes and the example Payload's salt; seven reveal-timing cases
+on either side of the minimum, the lifetime, the lead, and the
+over-budget rotation; and two per-tier scoreboards. Its twin fails a
+credit without the signer, a hard hit read one band away, and a proof
+under the wrong index. `observer-checkpoints.json` carries the budget
+allocation under three rosters across epochs, epoch boundaries across a
+mid-Log change of `epoch_blocks`, and what a checkpoint fixes before a
+reveal; its twin fails a static queue and an epoch read from the Block's
+own value. The four acts and `track_record` are validated as schema
+instances with each REQUIRED member removed in turn.

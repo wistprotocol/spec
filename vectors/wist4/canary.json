@@ -1,0 +1,403 @@
+{
+  "note": "WIST-4 \u00a75.1, \u00a75.2: a canary commitment over four leaves of served bytes (three revealed, one not), each carrying a nonce; the credit_commitment check per signer; the hard hit over both canary classes with the dynamic_variance buffer between; reveal timing against the lead, the minimum with the checkpoint-budget rotation, and the lifetime; and the per-tier scoreboard. Every revealed leaf's Reference Payload is examples/payload.json, whose salt keys every commitment here. Nonces are derived from a fixed string for reproducibility; a planter draws them from a CSPRNG.",
+  "parameters": {
+    "canary_lead_blocks": 24,
+    "canary_reveal_min_blocks": 168,
+    "canary_lifetime_blocks": 1440,
+    "epoch_blocks": 24,
+    "observer_checkpoint_budget": 1024,
+    "canary_leaves_max": 1024,
+    "canary_commitments_max": 8,
+    "similarity_consistent": 600000,
+    "similarity_variance_floor": 300000,
+    "min_observed_words": 40,
+    "latency_threshold_u": 500000
+  },
+  "salt_source": "examples/payload.json",
+  "reference_extract": "WIST is an open, verifiable, push-based web index protocol.",
+  "planter": "planter.example.io",
+  "canary_domain": "example.com",
+  "commitment": {
+    "root": "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7",
+    "leaves": 4,
+    "height": 100
+  },
+  "payload_page_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c703e5749535420697320616e206f70656e2c2076657269666961626c652c20707573682d62617365642077656220696e6465782070726f746f636f6c2e3c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
+  "leaves": [
+    {
+      "index": 0,
+      "class": "watermark",
+      "nonce_hex": "9f4200e7676c7adcd8bf5fd35e8ac01c",
+      "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203966343230306537363736633761646364386266356664333565386163303163202d2d3e3c703e5749535420697320616e206f70656e2c2076657269666961626c652c20707573682d62617365642077656220696e6465782070726f746f636f6c2e3c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+      "revealed": true,
+      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+      "delta_height": 124,
+      "path": [
+        "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593"
+      ],
+      "derived_similarity": 1000000,
+      "derived_verdict": "consistent",
+      "domain_reputation_u": 900000,
+      "domain_provisional": false,
+      "tier": "mature"
+    },
+    {
+      "index": 1,
+      "class": "fraud",
+      "nonce_hex": "bb2d04fe856765abb31137588a8fc105",
+      "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a206262326430346665383536373635616262333131333735383861386663313035202d2d3e3c703e4e6f7468696e6720736572766564206865726520726573656d626c65732074686520636f6d6d6974746564207465787420617420616c6c2e3c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
+      "revealed": true,
+      "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+      "delta_height": 200,
+      "path": [
+        "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
+        "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593"
+      ],
+      "derived_similarity": 0,
+      "derived_verdict": "inconsistent",
+      "domain_reputation_u": 300000,
+      "domain_provisional": false,
+      "tier": "standing"
+    },
+    {
+      "index": 2,
+      "class": "dynamic",
+      "nonce_hex": "37f008b87956a0d04daa842f33753247",
+      "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203337663030386238373935366130643034646161383432663333373533323437202d2d3e3c703e5749535420697320616e206f70656e2c2076657269666961626c652c20707573682d6261736564207765623c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
+      "revealed": true,
+      "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+      "delta_height": 300,
+      "path": [
+        "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+        "sha256:b0bd9cc5fd70b78e09ed939e3eb5158acc4b5ded52a17875d67d6452d8e5e789"
+      ],
+      "derived_similarity": 333333,
+      "derived_verdict": "dynamic_variance",
+      "domain_reputation_u": 100000,
+      "domain_provisional": true,
+      "tier": "provisional"
+    },
+    {
+      "index": 3,
+      "class": "unrevealed",
+      "nonce_hex": "29a64c545a1f6054cc0546029af5e071",
+      "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203239613634633534356131663630353463633035343630323961663565303731202d2d3e3c703e756e72657665616c65643c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
+      "leaf_hash": "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
+      "revealed": false
+    }
+  ],
+  "credit_cases": [
+    {
+      "label": "fetcher credits the watermark",
+      "auditor_id": "audit.example.net",
+      "leaf_index": 0,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:d15f4a3d64cf34c039ecf71aa0ea7c214ced5fe2bef022b15e8cb2392eab5258",
+      "credit_commitment": "hmac-sha256:5477c34836858b4b74fe5ed07d3847918ed9e6bbcdb8ef28d08fe7cad7ab2a15",
+      "reproduces": true,
+      "hard_hit": false
+    },
+    {
+      "label": "payload bytes earn no credit",
+      "auditor_id": "checker.example.org",
+      "leaf_index": 0,
+      "held": "payload_page",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:a924cb00f74e3f6026aea20ff9a5d9b77e89f3a9bacdab6df4b4e17468563859",
+      "credit_commitment": "hmac-sha256:6e60c6c1ef9d4ee783caa36e335bed2761b709e58f3459be11aa9f8405385c22",
+      "reproduces": false,
+      "hard_hit": false
+    },
+    {
+      "label": "a copied credit value is worthless",
+      "auditor_id": "watch.sample.net",
+      "leaf_index": 0,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": "audit.example.net",
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:d15f4a3d64cf34c039ecf71aa0ea7c214ced5fe2bef022b15e8cb2392eab5258",
+      "credit_commitment": "hmac-sha256:5477c34836858b4b74fe5ed07d3847918ed9e6bbcdb8ef28d08fe7cad7ab2a15",
+      "reproduces": false,
+      "hard_hit": false
+    },
+    {
+      "label": "consistent on the fraud leaf is a hard hit",
+      "auditor_id": "audit.example.net",
+      "leaf_index": 1,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:32ab2653480839784c20f88b0e4f850a92e755370b82644a4bdcdc34449466ef",
+      "credit_commitment": "hmac-sha256:b3d7801668c402e035c5a648c2bcd7739db06a0c28e6cb18bd68fd60ef74acc6",
+      "reproduces": true,
+      "hard_hit": true
+    },
+    {
+      "label": "inconsistent on the fraud leaf credits",
+      "auditor_id": "checker.example.org",
+      "leaf_index": 1,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "inconsistent",
+      "response_commitment": "hmac-sha256:32ab2653480839784c20f88b0e4f850a92e755370b82644a4bdcdc34449466ef",
+      "credit_commitment": "hmac-sha256:eb6d636eb516bf26a9ad7a3d430dc45226650cf27e7a91c298501b8a032b4a87",
+      "reproduces": true,
+      "hard_hit": false
+    },
+    {
+      "label": "inconsistent on the watermark is a hard hit",
+      "auditor_id": "watch.sample.net",
+      "leaf_index": 0,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "inconsistent",
+      "response_commitment": "hmac-sha256:d15f4a3d64cf34c039ecf71aa0ea7c214ced5fe2bef022b15e8cb2392eab5258",
+      "credit_commitment": "hmac-sha256:2955783103b597cb774dca086d740e6e222b9065d8e1456136ee1c9ce50428dd",
+      "reproduces": true,
+      "hard_hit": true
+    },
+    {
+      "label": "consistent in the buffer band is no hit",
+      "auditor_id": "audit.example.net",
+      "leaf_index": 2,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:7471d4062b06010b0fc179e42cbd418156018c80249ab6e9a81e37d39e78dcd3",
+      "credit_commitment": "hmac-sha256:ae04c3de7a827e5983229f490f31223ba28d99855b00b8d59d122e4ca898e9ff",
+      "reproduces": true,
+      "hard_hit": false
+    },
+    {
+      "label": "inconsistent in the buffer band is no hit",
+      "auditor_id": "checker.example.org",
+      "leaf_index": 2,
+      "held": "leaf",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "inconsistent",
+      "response_commitment": "hmac-sha256:7471d4062b06010b0fc179e42cbd418156018c80249ab6e9a81e37d39e78dcd3",
+      "credit_commitment": "hmac-sha256:a9bce4ec04cc2ebaf5cfafa7cf0f15ccc428732f111951c58a51644edb748ed6",
+      "reproduces": true,
+      "hard_hit": false
+    },
+    {
+      "label": "a cloaked fetch misses",
+      "auditor_id": "watch.sample.net",
+      "leaf_index": 2,
+      "held": "other_nonce",
+      "salt": "reference",
+      "copied_from": null,
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:5df5c2598bfc126220d3e4f35976cccb754cb073b66c75488c31a13a19da8929",
+      "credit_commitment": "hmac-sha256:aed00df3c748ad8047fd46aa5fb8c257d5c74120a33fe907f3f5e41ddef7544d",
+      "reproduces": false,
+      "hard_hit": false
+    },
+    {
+      "label": "the wrong salt reproduces nothing",
+      "auditor_id": "checker.example.org",
+      "leaf_index": 0,
+      "held": "leaf",
+      "salt": "other",
+      "copied_from": null,
+      "verdict": "consistent",
+      "response_commitment": "hmac-sha256:40b47c716e30230dbf24b8aaff70e4821ab98eb83d2a9705c6fb099ce5b75a57",
+      "credit_commitment": "hmac-sha256:6fed7a1b12d667423c9235598930d2b1bf64b3a345ad386da02ddf560d66988e",
+      "reproduces": false,
+      "hard_hit": false
+    }
+  ],
+  "timing_cases": [
+    {
+      "label": "reveal at the minimum",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 368,
+      "suffixes_registered": 1,
+      "earliest_reveal_height": 368,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": true
+    },
+    {
+      "label": "reveal one block early",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 367,
+      "suffixes_registered": 1,
+      "earliest_reveal_height": 368,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": false
+    },
+    {
+      "label": "reveal at the lifetime",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 1540,
+      "suffixes_registered": 1,
+      "earliest_reveal_height": 368,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": true
+    },
+    {
+      "label": "reveal one block late",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 1541,
+      "suffixes_registered": 1,
+      "earliest_reveal_height": 368,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": false
+    },
+    {
+      "label": "a delta inside the lead",
+      "commitment_height": 100,
+      "delta_heights": [
+        123,
+        200
+      ],
+      "reveal_height": 400,
+      "suffixes_registered": 1,
+      "earliest_reveal_height": 368,
+      "latest_reveal_height": 1540,
+      "lead_respected": false,
+      "valid": false
+    },
+    {
+      "label": "an over budget roster delays the minimum",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 400,
+      "suffixes_registered": 2049,
+      "earliest_reveal_height": 416,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": false
+    },
+    {
+      "label": "the delayed minimum met",
+      "commitment_height": 100,
+      "delta_heights": [
+        124,
+        200
+      ],
+      "reveal_height": 416,
+      "suffixes_registered": 2049,
+      "earliest_reveal_height": 416,
+      "latest_reveal_height": 1540,
+      "lead_respected": true,
+      "valid": true
+    }
+  ],
+  "scoreboard_records": [
+    {
+      "auditor_id": "audit.example.net",
+      "leaf_index": 0,
+      "verdict": "consistent",
+      "held": "leaf",
+      "fixed_before_reveal": true,
+      "credit_commitment": "hmac-sha256:5477c34836858b4b74fe5ed07d3847918ed9e6bbcdb8ef28d08fe7cad7ab2a15"
+    },
+    {
+      "auditor_id": "audit.example.net",
+      "leaf_index": 1,
+      "verdict": "consistent",
+      "held": "leaf",
+      "fixed_before_reveal": true,
+      "credit_commitment": "hmac-sha256:b3d7801668c402e035c5a648c2bcd7739db06a0c28e6cb18bd68fd60ef74acc6"
+    },
+    {
+      "auditor_id": "audit.example.net",
+      "leaf_index": 2,
+      "verdict": "inconsistent",
+      "held": "leaf",
+      "fixed_before_reveal": true,
+      "credit_commitment": "hmac-sha256:ae04c3de7a827e5983229f490f31223ba28d99855b00b8d59d122e4ca898e9ff"
+    },
+    {
+      "auditor_id": "checker.example.org",
+      "leaf_index": 0,
+      "verdict": "consistent",
+      "held": "payload_page",
+      "fixed_before_reveal": true,
+      "credit_commitment": "hmac-sha256:6e60c6c1ef9d4ee783caa36e335bed2761b709e58f3459be11aa9f8405385c22"
+    },
+    {
+      "auditor_id": "checker.example.org",
+      "leaf_index": 1,
+      "verdict": "inconsistent",
+      "held": "leaf",
+      "fixed_before_reveal": false,
+      "credit_commitment": "hmac-sha256:eb6d636eb516bf26a9ad7a3d430dc45226650cf27e7a91c298501b8a032b4a87"
+    }
+  ],
+  "scoreboards": {
+    "audit.example.net": {
+      "provisional": [
+        1,
+        1,
+        0
+      ],
+      "standing": [
+        1,
+        1,
+        1
+      ],
+      "mature": [
+        1,
+        1,
+        0
+      ]
+    },
+    "checker.example.org": {
+      "provisional": [
+        0,
+        0,
+        0
+      ],
+      "standing": [
+        0,
+        0,
+        0
+      ],
+      "mature": [
+        1,
+        0,
+        0
+      ]
+    }
+  }
+}

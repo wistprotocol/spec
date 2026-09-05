@@ -49,6 +49,8 @@ A conforming Publisher serves, over HTTPS only:
 /.well-known/wist/feed.json          (the Feed)
 /.well-known/wist/feed/<n>.json      (sealed Feed Pages — §3.2)
 /.well-known/wist/appeals/<id>.json  (one file per appeal — §3.3)
+/.well-known/wist/registry.json      (self-signed Registry Updates awaiting sealing — WIST-4 §9.1)
+/.well-known/wist/canary/<c>/<i>     (a revealed canary leaf's served bytes — WIST-4 §5.1)
 ```
 
 ### 3.1. Delta and Payload Files
@@ -92,7 +94,7 @@ attesting to the withdrawn anchor it re-anchors the chain as above.
 Withdrawal reaching the Aggregator and the Mirrors but not the site that
 first published the content would leave the salt on the open web at a
 well-known path, and with it every commitment the salt keys: the Delta's
-own and the three an Audit Record seals (WIST-1 §3.6, WIST-4 §5). One serving
+own and the four an Audit Record seals (WIST-1 §3.6, WIST-4 §5). One serving
 path left open is the whole of the guarantee gone, which is why WIST-3 §6.2
 binds all three.
 
