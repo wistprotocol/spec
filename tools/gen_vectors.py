@@ -2146,13 +2146,23 @@ COVERAGE_DEADLINE_HOURS = 72
 VECTOR_RECORD_SEAL_BLOCKS = 4
 
 
-def establishing_height(blocks, deadline_s, attestation_height, record_seal_blocks):
-    if attestation_height is not None:
-        return attestation_height
+def unattested_height(blocks, deadline_s, record_seal_blocks):
     after = [b for b in blocks if b["sealed_at_s"] > deadline_s]
     if len(after) < record_seal_blocks:
         return None
     return after[record_seal_blocks - 1]["height"]
+
+
+def establishing_height(blocks, deadline_s, attestation_height, record_seal_blocks):
+    """§4: the earlier of the two evidence heights the Log carries — the
+    attestation's Block, or the record_seal_blocks-th Block after the
+    deadline. A party reading the Log between the two carries only the
+    unattested rule's evidence, and an attestation sealed later confirms
+    a failure already counted from that height."""
+    evidence = [h for h in (attestation_height,
+                            unattested_height(blocks, deadline_s, record_seal_blocks))
+                if h is not None]
+    return min(evidence) if evidence else None
 
 
 def failure_counts_at(establishing, audited_sealed_at_s, n_height, n_sealed_at_s):
@@ -2168,13 +2178,15 @@ AUDITED = hourly_block(100)
 DEADLINE_S = AUDITED["sealed_at_s"] + COVERAGE_DEADLINE_HOURS * HOUR_S
 coverage_establishing_scenarios = [
     ("attested-unmet-establishes-at-the-attestation",
-     [hourly_block(h) for h in range(170, 185)], 180, [175, 179, 180, 181]),
+     [hourly_block(h) for h in range(170, 185)], 174, [173, 174, 175, 176, 177]),
+    ("a-later-attestation-confirms-the-unattested-failure-and-moves-nothing",
+     [hourly_block(h) for h in range(170, 185)], 180, [175, 176, 179, 180, 181]),
     ("unattested-establishes-record-seal-blocks-after-the-deadline",
      [hourly_block(h) for h in range(170, 185)], None, [172, 175, 176, 177]),
     ("deadline-not-yet-passed-by-record-seal-blocks",
      [hourly_block(h) for h in range(170, 176)], None, [174, 175]),
     ("evidence-outside-the-window-counts-at-no-height",
-     [hourly_block(h) for h in range(815, 825)], 820, [819, 820, 824]),
+     [hourly_block(h) for h in range(817, 825)], 820, [819, 820, 824]),
 ]
 coverage_establishing_cases = []
 for label, blocks, attestation_height, probes in coverage_establishing_scenarios:
@@ -2195,9 +2207,11 @@ for label, blocks, attestation_height, probes in coverage_establishing_scenarios
             for h in probes
         ],
     })
-assert [c["establishing_height"] for c in coverage_establishing_cases] == [180, 176, None, 820], \
+assert [c["establishing_height"] for c in coverage_establishing_cases] == [174, 176, 176, None, 820], \
     "establishing heights drifted"
-assert not any(p["counts"] for p in coverage_establishing_cases[3]["counts_at"]), \
+assert [p["counts"] for p in coverage_establishing_cases[1]["counts_at"]] == \
+    [False, True, True, True, True], "a later attestation must move nothing"
+assert not any(p["counts"] for p in coverage_establishing_cases[4]["counts_at"]), \
     "evidence past the window must count at no height"
 
 
@@ -2251,7 +2265,7 @@ assert all(l["chain_gap_under_global_publication_order"]
     "the global-order reading must show the gap the per-Log rule rules out"
 
 write_json(WIST4 / "coverage.json", spaced_labels({
-    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count, and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
+    "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count — the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it — and the per-(Auditor, Log) `prev_record` chain the gap discriminator reads. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
     "coverage_deadline_hours": 72,
     "coverage_failures_max": COVERAGE_FAILURES_MAX,
     "record_seal_blocks": 24,

@@ -607,10 +607,16 @@ and nowhere else. A Block enters the count above only from the
 duty was failed — the height of the Block sealing the `pull_attestation`
 for the pair, or, for an unattested pair, the height of the
 `record_seal_blocks`-th Block sealed after that Auditor's coverage
-deadline for it, both fixed by the transport below — so every state this
+deadline for it, both fixed by the transport below, and whichever of the
+two the Log carries first where it carries both — so every state this
 section derives is a function of the Log up to the height it is read at,
 and none is ever dated to a height at which its own evidence was not yet
-sealed. The alternative reading is closed rather than merely
+sealed. A party reading the Log at a height between the unattested
+rule's Block and a `pull_attestation` sealed later carries no
+attestation, derives the unattested failure and counts it from that
+Block; the attestation, when it seals, confirms a failure already
+counted and moves nothing, because nothing sealed above a height can
+change what the Log shows at it. The alternative reading is closed rather than merely
 unattractive: the evidence for a Block's duty lands
 `coverage_deadline_hours` and `record_seal_blocks` after the Block it
 speaks to, `reputation_u` sets `p_1e7`, quotas and ingestion suspension

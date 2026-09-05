@@ -2309,6 +2309,61 @@ def _dc4_unauditable_twin():
         "recomputation is blind to the horizon's start"
 check("negative:wist4-unauditable", _dc4_unauditable_twin)
 
+def _coverage_vector():
+    return json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
+
+def _establishing_height(case, attestation_overrides=False):
+    """WIST-4 §4: the earlier of the two evidence heights the Log carries —
+    the attestation's Block, or the record_seal_blocks-th Block sealed after
+    the deadline; `attestation_overrides` is the ruled-out reading under
+    which an attestation sealed later moves the height it establishes at."""
+    after = [b["height"] for b in case["blocks"] if b["sealed_at_s"] > case["coverage_deadline_s"]]
+    unattested = after[case["record_seal_blocks"] - 1] if len(after) >= case["record_seal_blocks"] else None
+    attested = case["attestation_height"]
+    if attestation_overrides and attested is not None:
+        return attested
+    evidence = [h for h in (attested, unattested) if h is not None]
+    return min(evidence) if evidence else None
+
+def _dc4_coverage_establishing():
+    """WIST-4 §4: a failed duty enters the count from its establishing height,
+    read from the Log up to N, and counts only while the audited Block is
+    inside the 30 whole days ending at N."""
+    v = _coverage_vector()
+    window_s = v["window_days"] * 86400
+    labels = set()
+    for case in v["establishing_cases"]:
+        labels.add(case["label"])
+        establishing = _establishing_height(case)
+        assert establishing == case["establishing_height"], f"{case['label']}: establishing height"
+        audited_s = case["audited_block"]["sealed_at_s"]
+        for probe in case["counts_at"]:
+            expect = (establishing is not None and establishing <= probe["height"]
+                      and audited_s <= probe["sealed_at_s"] < audited_s + window_s)
+            assert probe["counts"] == expect, f"{case['label']} at {probe['height']}"
+    for needed in ("a later attestation confirms the unattested failure and moves nothing",
+                   "evidence outside the window counts at no height"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "whichever of the two the Log carries first where it carries both" in prose, \
+        "§4 does not say which evidence establishes where the Log carries both"
+check("vectors:wist4-coverage-establishing", _dc4_coverage_establishing)
+
+def _dc4_coverage_establishing_twin():
+    """The check above must notice a future attestation read as suppressing
+    the unattested failure it arrives after."""
+    v = _coverage_vector()
+    case = next(c for c in v["establishing_cases"]
+                if c["label"] == "a later attestation confirms the unattested failure and moves nothing")
+    overriding = _establishing_height(case, attestation_overrides=True)
+    assert overriding == case["attestation_height"] and overriding > case["establishing_height"], \
+        "the twin's reading did not move the establishing height"
+    between = next(p for p in case["counts_at"]
+                   if case["establishing_height"] <= p["height"] < case["attestation_height"])
+    assert between["counts"] and not (overriding <= between["height"]), \
+        "recomputation is blind to an attestation read from above N"
+check("negative:wist4-coverage-establishing", _dc4_coverage_establishing_twin)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 
