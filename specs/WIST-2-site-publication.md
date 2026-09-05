@@ -475,7 +475,16 @@ the Publisher's debugging surface, not an artifact other parties verify.
   target is `https` and its Canonical Host equals the Canonical Host of
   the request, or is listed in the Publisher's `subdomain_scope`.
   Apex-to-`www` redirects are therefore conforming when `www` is in
-  scope.
+  scope. The target rule bounds *where* a chain can go and not how long
+  it runs, and two in-scope hosts pointing at each other satisfy it for
+  ever, so two bounds close the chain: an Aggregator MUST NOT follow a
+  redirect to a URL already fetched in the same chain, and MUST NOT
+  follow more than five in one. A resource whose chain exceeds either is
+  not retrieved, which is `WIST2-E01` for a Feed like any other failure
+  to fetch. Five is chosen rather than derived: it is the same allowance
+  WIST-4 §9's `audit_redirect_max` gives an Auditor, and a
+  publication path needing a sixth hop to reach its own well-known file
+  is misconfigured rather than unlucky.
 
 ## 9. Privacy Considerations
 
