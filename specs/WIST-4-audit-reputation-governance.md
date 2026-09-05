@@ -312,6 +312,37 @@ identity is an Auditor and its registration has ended. A registration
 ends at nothing else: an Observer that stops publishing has a chain that
 stops, and nothing more.
 
+**Simultaneous roster acts are a batch.** Apply admitted-key removals
+first (§4). Resolve the Block's admissions and Observer registrations
+against that resulting incumbent map, in these stages:
+
+1. Reject every `auditor_admit` in a same-subject admission group of
+   size greater than one, and every `observer_register` in a
+   same-subject registration group of size greater than one (`WIST4-E07`).
+   A rejected rotation leaves the Observer's prior key registered.
+2. Check remaining candidates against the existing independence,
+   retirement, subject-standing, key-holding and evidence rules using
+   that incumbent map. A key held by another subject there is unavailable
+   throughout this batch, even if that subject also rotates or becomes
+   admitted in this Block. Own-subject Observer-to-Auditor admission
+   retains the exception above. Invalid candidates take no further part.
+3. If an admission and registration for the same subject both remain,
+   reject the registration (`WIST4-E07`). That rejection stands even if
+   a cross-subject key conflict subsequently rejects the admission.
+4. Among the remaining candidates, reject **every** candidate that
+   shares a `key_id` or `public_key` with a candidate for a different
+   subject (`WIST4-E07`), across admissions and registrations alike.
+   Compute these conflicts simultaneously; do not retry candidates
+   removed at any earlier stage or let one rejection rescue another.
+5. Apply the survivors together. Observer rotation ends the prior
+   registered tenure and admission ends that subject's registration as
+   above. Keys released solely by these surviving acts become available
+   to other subjects in a later Block, never by same-Block Entry order.
+
+These stages choose no winner from stored Entry position, including
+where a conflict connects more than two candidates through different
+key identifiers and public keys.
+
 **Duties, performed identically and weighed nowhere.** An Observer
 computes its selection set for every Block exactly as §4 has an Auditor
 compute one — its own VRF over the Block Hash under its registered key,
@@ -3110,7 +3141,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, or whose `subject` has none and carries one (§3.1). Ignored as WIST4-E03. |
 | WIST4-E05 | An appeal or ruling violating §7's process identity, eligibility or multiplicity rules; or a governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E07 | Roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` under a key not registered at its Block or naming no Audit Record or `coverage_attestation` (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
+| WIST4-E07 | A roster act rejected by §3.1's simultaneous-batch rules; or a roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` under a key not registered at its Block or naming no Audit Record or `coverage_attestation` (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
 | WIST4-E08 | Canary act rejected (§5.1): a `canary_commitment` past its planter suffix's epoch ration or with `leaves` outside 1 … `canary_leaves_max`; a `canary_reveal` naming no sealed or an already-revealed commitment, an index out of range or repeated, a Delta that is not the canary domain's or was sealed inside the lead, a Delta bound to two leaves, an inclusion proof that fails, or a reveal sealed before the reveal minimum or after the lifetime. Ignored during replay; the commitment stays unrevealed, and nothing scores under it. |
 
 ## 11. Security Considerations

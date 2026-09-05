@@ -2984,3 +2984,20 @@ matching signed receipt changes broader possible exemptions.
 unrelated predecessor gaps, empty receipts, another Auditor or Log,
 same-Block successors and arrival of the missing item. The harness
 recomputes attribution and discriminates a global-gap exemption.
+
+## 2026-09-05 — WIST-4 §3.1, §10: simultaneous roster claims (revision, not errata)
+
+**What changed.** Observer registrations and admissions use staged batch
+validation after removals. Same-subject duplicates and cross-subject key
+collisions reject together, prior Observer keys survive failed rotations,
+and rotation cannot release another subject's key inside the same batch.
+ADR-0025 amends ADR-0012.
+
+**Why a revision.** The former "later registration" and key-holding bars
+did not determine same-Block outcomes. Staging those checks selects among
+previously possible final rosters.
+
+**Exercised.** `vectors/wist4/roster.json` covers simultaneous rotations,
+key-ID and public-key collisions across both roles, connected conflicts,
+incumbent retention, admission precedence and invalid contenders. The
+harness compares the final state under every permutation of each batch.

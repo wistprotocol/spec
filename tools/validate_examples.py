@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
-import base64, calendar, collections, copy, hashlib, hmac, json, pathlib, re, sys, time
+import base64, calendar, collections, copy, hashlib, hmac, itertools, json, pathlib, re, sys, time
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -1953,6 +1953,55 @@ def _roster_replay(log_id, entries):
                 continue
             holding[e["auditor_id"]] = (e["key_id"], t, e["public_key"])
     return sorted(rejected)
+
+def _observer_batch(case, log_id):
+    initial, acts = case["initial_after_removals"], case["acts"]
+    groups = collections.defaultdict(list)
+    for i, a in enumerate(acts):
+        groups[a["action"], a["subject"]].append(i)
+    live = set(range(len(acts))) - {i for g in groups.values() if len(g) > 1 for i in g}
+    for i in list(live):
+        a = acts[i]
+        occupied = any(subject != a["subject"] and any(key[field] == a[field] for field in ("key_id", "public_key"))
+                       for mapping in (initial["auditors"], initial["observers"]) for subject, key in mapping.items())
+        if (occupied or a["subject"] in initial["auditors"]
+                or not _roster_independent(a["subject"], log_id)
+                or a["action"] == "auditor_admit" and a["subject"] in initial["barred"]
+                or a["key_id"] in initial["retired_key_ids"] or a["public_key"] in initial["retired_public_keys"]):
+            live.remove(i)
+    admits = {acts[i]["subject"] for i in live if acts[i]["action"] == "auditor_admit"}
+    live -= {i for i in live if acts[i]["action"] == "observer_register" and acts[i]["subject"] in admits}
+    by_key = collections.defaultdict(list)
+    for i in live:
+        for field in ("key_id", "public_key"):
+            by_key[field, acts[i][field]].append(i)
+    conflicts = {i for group in by_key.values() if len({acts[j]["subject"] for j in group}) > 1 for i in group}
+    live -= conflicts
+    state = {role: copy.deepcopy(initial[role]) for role in ("auditors", "observers")}
+    for i in live:
+        a = acts[i]
+        role = "auditors" if a["action"] == "auditor_admit" else "observers"
+        state[role][a["subject"]] = {k: a[k] for k in ("key_id", "public_key")}
+        if role == "auditors":
+            state["observers"].pop(a["subject"], None)
+    return state | {"rejected_indices": sorted(set(range(len(acts))) - live)}
+
+def _dc4_observer_batches():
+    v = _roster_vector()
+    for case in v["batch_cases"]:
+        assert _observer_batch(case, "log.example.org") == case["expected"], case["label"]
+check("vectors:wist4-observer-batches", _dc4_observer_batches)
+
+def _dc4_observer_batches_twin():
+    for case in _roster_vector()["batch_cases"]:
+        for permutation in itertools.permutations(range(len(case["acts"]))):
+            shuffled = case | {"acts": [case["acts"][i] for i in permutation]}
+            result = _observer_batch(shuffled, "log.example.org")
+            result["rejected_indices"] = sorted(permutation[i] for i in result["rejected_indices"])
+            assert result == case["expected"], case["label"]
+    collision = next(c for c in _roster_vector()["batch_cases"] if c["label"] == "registrations share key id")
+    assert collision["expected"]["rejected_indices"] == [0, 1]
+check("negative:wist4-observer-batches", _dc4_observer_batches_twin)
 
 def _roster_admitted_at(log_id, entries, auditor_id, t):
     rejected = set(_roster_replay(log_id, entries))
