@@ -3154,6 +3154,64 @@ roster_cases = [
 ]
 assert [c["rejected_indices"] for c in roster_cases] == \
     [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2], [1], [1], [2], [1], [2], [2, 3]], "roster rejections drifted"
+def roster_batch(initial, acts):
+    rejected = {i for i, a in enumerate(acts)
+                if sum(b["action"] == a["action"] and b["subject"] == a["subject"] for b in acts) > 1}
+    held = dict(initial["observers"]) | initial["auditors"]
+    for i, a in enumerate(acts):
+        if (not independent(a["subject"], ROSTER_LOG_ID)
+                or a["subject"] in initial["auditors"]
+                or a["action"] == "auditor_admit" and a["subject"] in initial["barred"]
+                or a["key_id"] in initial["retired_key_ids"]
+                or a["public_key"] in initial["retired_public_keys"]
+                or any(subject != a["subject"] and (key["key_id"] == a["key_id"] or key["public_key"] == a["public_key"])
+                       for subject, key in held.items())):
+            rejected.add(i)
+    admitting = {a["subject"] for i, a in enumerate(acts) if i not in rejected and a["action"] == "auditor_admit"}
+    rejected |= {i for i, a in enumerate(acts) if a["action"] == "observer_register" and a["subject"] in admitting}
+    candidates = [(i, a) for i, a in enumerate(acts) if i not in rejected]
+    for (i, a), (j, b) in itertools.combinations(candidates, 2):
+        if a["subject"] != b["subject"] and (a["key_id"] == b["key_id"] or a["public_key"] == b["public_key"]):
+            rejected.update((i, j))
+    auditors, observers = dict(initial["auditors"]), dict(initial["observers"])
+    for i, a in enumerate(acts):
+        if i in rejected:
+            continue
+        key = {k: a[k] for k in ("key_id", "public_key")}
+        if a["action"] == "auditor_admit":
+            auditors[a["subject"]] = key
+            observers.pop(a["subject"], None)
+        else:
+            observers[a["subject"]] = key
+    return {"rejected_indices": sorted(rejected), "auditors": auditors, "observers": observers}
+
+
+def roster_candidate(action, subject, key, public=None):
+    return {"action": action, "subject": subject, "key_id": key, "public_key": public or "pk " + key}
+
+RA, RB, RC = "watch.alpha.test", "watch.beta.test", "watch.gamma.test"
+REG, ADM = "observer_register", "auditor_admit"
+old_observer = {RA: {"key_id": "old", "public_key": "pk old"}}
+roster_batch_cases = []
+for label, observers, auditors, acts, rejected in (
+    ("two rotations preserve incumbent", old_observer, {}, [roster_candidate(REG, RA, "new a"), roster_candidate(REG, RA, "new b")], [0, 1]),
+    ("registrations share key id", {}, {}, [roster_candidate(REG, RA, "same", "pk a"), roster_candidate(REG, RB, "same", "pk b")], [0, 1]),
+    ("registrations share public key", {}, {}, [roster_candidate(REG, RA, "a", "pk same"), roster_candidate(REG, RB, "b", "pk same")], [0, 1]),
+    ("admission and registration share key", {}, {}, [roster_candidate(ADM, RA, "same"), roster_candidate(REG, RB, "same")], [0, 1]),
+    ("admissions share public key", {}, {}, [roster_candidate(ADM, RA, "a", "pk same"), roster_candidate(ADM, RB, "b", "pk same")], [0, 1]),
+    ("connected key conflicts all rejected", {}, {}, [roster_candidate(REG, RA, "a", "pk a"), roster_candidate(ADM, RB, "a", "pk b"), roster_candidate(REG, RC, "c", "pk b")], [0, 1, 2]),
+    ("rotation cannot release key in same Block", old_observer, {}, [roster_candidate(REG, RA, "new"), roster_candidate(REG, RB, "old")], [1]),
+    ("same subject admission precedes registration", old_observer, {}, [roster_candidate(REG, RA, "new"), roster_candidate(ADM, RA, "old")], [0]),
+    ("invalid contender does not veto", {}, {RA: {"key_id": "held", "public_key": "pk held"}}, [roster_candidate(REG, RB, "shared", "pk held"), roster_candidate(REG, RC, "shared", "pk free")], [0]),
+    ("rejected admission does not retry registration", old_observer, {}, [roster_candidate(REG, RA, "new"), roster_candidate(ADM, RA, "shared"), roster_candidate(REG, RB, "shared")], [0, 1, 2]),
+):
+    initial = {"observers": observers, "auditors": auditors, "barred": [],
+               "retired_key_ids": [], "retired_public_keys": []}
+    result = roster_batch(initial, acts)
+    assert result["rejected_indices"] == rejected, label
+    roster_batch_cases.append({"label": label, "initial_after_removals": initial,
+                               "acts": acts, "expected": result})
+
 write_json(WIST4 / "roster.json", spaced_labels({
     "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
              "acts in Log order, the indices a replayer rejects (WIST4-E07), and "
@@ -3163,8 +3221,11 @@ write_json(WIST4 / "roster.json", spaced_labels({
              "public_key is an abstract label for the key octets. An auditor_remove "
              "carries `evidence` exactly as the Registry Update does: present and "
              "naming at least one ID when the removal is for cause, absent for an "
-             "exit or a rotation."),
+             "exit or a rotation. Batch cases start after removals with signatures and "
+             "the non-roster details contracts already validated; their inputs "
+             "exercise key and subject conflicts, not admission merits."),
     "cases": roster_cases,
+    "batch_cases": roster_batch_cases,
 }))
 print("wist4 roster vector: %d cases" % len(roster_cases))
 

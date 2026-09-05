@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73, \u00a74 roster derivation: per case a Log prefix of roster acts in Log order, the indices a replayer rejects (WIST4-E07), and the key an auditor_id holds at queried instants; a removal retires the key_id and the public_key admitted under it, and an admit naming either a retired one or one another admission holds is rejected. public_key is an abstract label for the key octets. An auditor_remove carries `evidence` exactly as the Registry Update does: present and naming at least one ID when the removal is for cause, absent for an exit or a rotation.",
+  "note": "WIST-4 \u00a73, \u00a74 roster derivation: per case a Log prefix of roster acts in Log order, the indices a replayer rejects (WIST4-E07), and the key an auditor_id holds at queried instants; a removal retires the key_id and the public_key admitted under it, and an admit naming either a retired one or one another admission holds is rejected. public_key is an abstract label for the key octets. An auditor_remove carries `evidence` exactly as the Registry Update does: present and naming at least one ID when the removal is for cause, absent for an exit or a rotation. Batch cases start after removals with signatures and the non-roster details contracts already validated; their inputs exercise key and subject conflicts, not admission merits.",
   "cases": [
     {
       "label": "rotation in one block",
@@ -688,6 +688,394 @@
           "key_id": "k4"
         }
       ]
+    }
+  ],
+  "batch_cases": [
+    {
+      "label": "two rotations preserve incumbent",
+      "initial_after_removals": {
+        "observers": {
+          "watch.alpha.test": {
+            "key_id": "old",
+            "public_key": "pk old"
+          }
+        },
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "new a",
+          "public_key": "pk new a"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "new b",
+          "public_key": "pk new b"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0,
+          1
+        ],
+        "auditors": {},
+        "observers": {
+          "watch.alpha.test": {
+            "key_id": "old",
+            "public_key": "pk old"
+          }
+        }
+      }
+    },
+    {
+      "label": "registrations share key id",
+      "initial_after_removals": {
+        "observers": {},
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "same",
+          "public_key": "pk a"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.beta.test",
+          "key_id": "same",
+          "public_key": "pk b"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0,
+          1
+        ],
+        "auditors": {},
+        "observers": {}
+      }
+    },
+    {
+      "label": "registrations share public key",
+      "initial_after_removals": {
+        "observers": {},
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "a",
+          "public_key": "pk same"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.beta.test",
+          "key_id": "b",
+          "public_key": "pk same"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0,
+          1
+        ],
+        "auditors": {},
+        "observers": {}
+      }
+    },
+    {
+      "label": "admission and registration share key",
+      "initial_after_removals": {
+        "observers": {},
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "auditor_admit",
+          "subject": "watch.alpha.test",
+          "key_id": "same",
+          "public_key": "pk same"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.beta.test",
+          "key_id": "same",
+          "public_key": "pk same"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0,
+          1
+        ],
+        "auditors": {},
+        "observers": {}
+      }
+    },
+    {
+      "label": "admissions share public key",
+      "initial_after_removals": {
+        "observers": {},
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "auditor_admit",
+          "subject": "watch.alpha.test",
+          "key_id": "a",
+          "public_key": "pk same"
+        },
+        {
+          "action": "auditor_admit",
+          "subject": "watch.beta.test",
+          "key_id": "b",
+          "public_key": "pk same"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0,
+          1
+        ],
+        "auditors": {},
+        "observers": {}
+      }
+    },
+    {
+      "label": "connected key conflicts all rejected",
+      "initial_after_removals": {
+        "observers": {},
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "a",
+          "public_key": "pk a"
+        },
+        {
+          "action": "auditor_admit",
+          "subject": "watch.beta.test",
+          "key_id": "a",
+          "public_key": "pk b"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.gamma.test",
+          "key_id": "c",
+          "public_key": "pk b"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0,
+          1,
+          2
+        ],
+        "auditors": {},
+        "observers": {}
+      }
+    },
+    {
+      "label": "rotation cannot release key in same Block",
+      "initial_after_removals": {
+        "observers": {
+          "watch.alpha.test": {
+            "key_id": "old",
+            "public_key": "pk old"
+          }
+        },
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "new",
+          "public_key": "pk new"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.beta.test",
+          "key_id": "old",
+          "public_key": "pk old"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          1
+        ],
+        "auditors": {},
+        "observers": {
+          "watch.alpha.test": {
+            "key_id": "new",
+            "public_key": "pk new"
+          }
+        }
+      }
+    },
+    {
+      "label": "same subject admission precedes registration",
+      "initial_after_removals": {
+        "observers": {
+          "watch.alpha.test": {
+            "key_id": "old",
+            "public_key": "pk old"
+          }
+        },
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "new",
+          "public_key": "pk new"
+        },
+        {
+          "action": "auditor_admit",
+          "subject": "watch.alpha.test",
+          "key_id": "old",
+          "public_key": "pk old"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0
+        ],
+        "auditors": {
+          "watch.alpha.test": {
+            "key_id": "old",
+            "public_key": "pk old"
+          }
+        },
+        "observers": {}
+      }
+    },
+    {
+      "label": "invalid contender does not veto",
+      "initial_after_removals": {
+        "observers": {},
+        "auditors": {
+          "watch.alpha.test": {
+            "key_id": "held",
+            "public_key": "pk held"
+          }
+        },
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.beta.test",
+          "key_id": "shared",
+          "public_key": "pk held"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.gamma.test",
+          "key_id": "shared",
+          "public_key": "pk free"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0
+        ],
+        "auditors": {
+          "watch.alpha.test": {
+            "key_id": "held",
+            "public_key": "pk held"
+          }
+        },
+        "observers": {
+          "watch.gamma.test": {
+            "key_id": "shared",
+            "public_key": "pk free"
+          }
+        }
+      }
+    },
+    {
+      "label": "rejected admission does not retry registration",
+      "initial_after_removals": {
+        "observers": {
+          "watch.alpha.test": {
+            "key_id": "old",
+            "public_key": "pk old"
+          }
+        },
+        "auditors": {},
+        "barred": [],
+        "retired_key_ids": [],
+        "retired_public_keys": []
+      },
+      "acts": [
+        {
+          "action": "observer_register",
+          "subject": "watch.alpha.test",
+          "key_id": "new",
+          "public_key": "pk new"
+        },
+        {
+          "action": "auditor_admit",
+          "subject": "watch.alpha.test",
+          "key_id": "shared",
+          "public_key": "pk shared"
+        },
+        {
+          "action": "observer_register",
+          "subject": "watch.beta.test",
+          "key_id": "shared",
+          "public_key": "pk shared"
+        }
+      ],
+      "expected": {
+        "rejected_indices": [
+          0,
+          1,
+          2
+        ],
+        "auditors": {},
+        "observers": {
+          "watch.alpha.test": {
+            "key_id": "old",
+            "public_key": "pk old"
+          }
+        }
+      }
     }
   ]
 }
