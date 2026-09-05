@@ -773,35 +773,45 @@ for label, html in (
 
 PAD = "pad " * 40                     # 40 words: exactly at the default guard
 REF9 = "one two three four five six seven eight nine"
+HALF_OBS = PAD + "one two three four five six seven eight ten"
 SIM_FIXTURES = []
-for label, ref, obs in (
+for label, ref, obs, shingle in (
     # Whole-document containment: the committed text embedded in template
     # furniture scores full marks — the case the quotient exists for.
-    ("containment-full", REF9, "home about " + REF9 + " contact " + PAD),
+    ("containment-full", REF9, "home about " + REF9 + " contact " + PAD, 8),
     # 9 words -> two 8-word shingles; the observed drops the last word, so
     # exactly one shingle survives: 500000, exercising the denominator |A|.
-    ("containment-half", REF9,
-     PAD + "one two three four five six seven eight ten"),
+    ("containment-half", REF9, HALF_OBS, 8),
     # Below the guard: a bot-interstitial-sized page is not_auditable,
     # never similarity 0.
-    ("mass-guard", REF9, "please enable javascript to view this site"),
+    ("mass-guard", REF9, "please enable javascript to view this site", 8),
     # Short reference (2 words): the grapheme branch, contained verbatim.
-    ("short-reference-graphemes", "hello world", PAD + "hello world"),
+    ("short-reference-graphemes", "hello world", PAD + "hello world", 8),
+    # §5: `shingle_size` governs the branch threshold as well as the
+    # length, so the same pair that takes the word branch at 8 takes the
+    # grapheme branch at 10 — the reference has 9 words — and the two
+    # branches score it differently.
+    ("amended-shingle-size-takes-the-grapheme-branch", REF9, HALF_OBS, 10),
+    # And a shorter amendment leaves both texts on the word branch with a
+    # shorter shingle, which the same pair scores differently again.
+    ("amended-shingle-size-shortens-the-word-shingle", REF9, HALF_OBS, 4),
 ):
-    sim = link_extraction.similarity(ref, obs)
+    sim = link_extraction.similarity(ref, obs, shingle_size=shingle)
     SIM_FIXTURES.append({"label": label, "reference": ref, "observed": obs,
-                         "similarity": sim,
+                         "shingle_size": shingle, "similarity": sim,
                          "verdict_input": "not_auditable" if sim is None else sim})
 assert [f["verdict_input"] for f in SIM_FIXTURES] == \
-    [1_000_000, 500_000, "not_auditable", 1_000_000], "similarity fixtures drifted"
+    [1_000_000, 500_000, "not_auditable", 1_000_000, 885_714, 833_333], \
+    "similarity fixtures drifted"
 
 write_json(WIST2V / "text-extraction.json", {
     "note": ("WIST-2 §12's whole-document text extraction over raw HTML "
              "octets, and WIST-4 §5's reference-containment similarity over "
              "its output. html_hex decodes to the exact input; expected is "
              "the observed text a conforming Auditor produces. similarity "
-             "cases carry min_observed_words = 40 (the Registry default); "
-             "a null similarity is the mass guard ruling not_auditable."),
+             "cases carry min_observed_words = 40 (the Registry default) "
+             "and their own shingle_size; a null similarity is the mass "
+             "guard ruling not_auditable."),
     "min_observed_words": 40,
     "extraction": TEXT_FIXTURES,
     "similarity": SIM_FIXTURES,

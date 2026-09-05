@@ -966,15 +966,25 @@ bytes and the sealed integer is an implementation's choice.
    sequence**; its **normalized form** is those words joined by a single
    U+0020. A text whose word sequence is empty is itself **empty**.
 
-**Shingles.** Let *w* be a text's word count and *g* the count of extended
-grapheme clusters ([UAX #29]) in its normalized form. With *A* the shingle
-set of the reference text and *B* that of the observed text:
+**Shingles.** Let *s* be `shingle_size` (Parameter Registry; default 8),
+*w* a text's word count and *g* the count of extended grapheme clusters
+([UAX #29]) in its normalized form. With *A* the shingle set of the
+reference text and *B* that of the observed text:
 
-- If both texts have *w* ≥ 8, the unit is the word and the shingle length
-  is 8: each set is that text's contiguous 8-word sequences.
+- If both texts have *w* ≥ *s*, the unit is the word and the shingle
+  length is *s*: each set is that text's contiguous *s*-word sequences.
 - Otherwise the unit is the extended grapheme cluster of the normalized
-  form and the shingle length is `n = min(8, g_A, g_B)`: each set is that
+  form and the shingle length is `n = min(s, g_A, g_B)`: each set is that
   text's contiguous *n*-cluster sequences.
+
+One parameter governs both numbers, and it must: the threshold is not an
+independent choice but the length's own precondition, since a text of
+fewer than *s* words has no *s*-word shingle to contribute. Reading the
+threshold as a fixed 8 while honouring an amended `shingle_size` for the
+length would put a text of 6 words on the word branch with a 6-word
+shingle set the rule never defines, or leave a 9-word text on the
+grapheme branch under a `shingle_size` of 10 — in either case the two
+sides of the quotient would be built by different rules.
 
 Then
 
@@ -1013,8 +1023,8 @@ mirror below is unaffected — effective similarity `1 000 000 −
 similarity` reads "the committed text is still being served", which is
 exactly what refutes a `delete`.
 
-The second branch is normative, not a convenience. Eight-word shingles do
-not exist in a text of fewer than eight words, and a rule that let the
+The second branch is normative, not a convenience. An *s*-word shingle
+does not exist in a text of fewer than *s* words, and a rule that let the
 reference set come out empty would leave the quotient undefined exactly
 where a Publisher's extract is a headline. Falling to grapheme clusters
 keeps a short text comparable at the granularity it actually has, and
@@ -2205,7 +2215,7 @@ combination cases above.
 | `coverage_failures_max` | — | 24 Blocks per 30 days | §4 |
 | Similarity thresholds (consistent / variance floor) | `similarity_consistent` / `similarity_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
 | Link agreement thresholds (consistent / variance floor) | `link_agreement_consistent` / `link_variance_floor` | 600 000 / 300 000 micro-units (reads as 0.60 / 0.30) | §5 |
-| Shingle size | `shingle_size` | 8 (words, or grapheme clusters on §5's short-text branch) | §5 |
+| Shingle size | `shingle_size` | 8 — the shingle length, in words or in grapheme clusters on §5's short-text branch, and the word count at which §5 takes the word branch | §5 |
 | Observed-text mass guard | `min_observed_words` | 40 words | §5 |
 | Extension ration (per Auditor per 30 days) | `extension_triggers_max` | 3 | §4 |
 | Divergence threshold (per Auditor per 30 days) | `contradictions_max` | 2 | §4 |
