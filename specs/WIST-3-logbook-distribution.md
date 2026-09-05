@@ -1088,6 +1088,7 @@ value fields are:
 | `recovery_window` | domain | recovery Declaration height, window end | WIST-1 §5.2 |
 | `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
 | `coverage_failure` | `auditor_id`, block number | — | WIST-4 §4 |
+| `escalation` | domain | establishing `sealed_at` | WIST-4 §4 |
 | `reputation_inputs` | domain | first-accepted-Delta `sealed_at`, reset height or `null`, `C`, the counted-URL digest set (below), penalties as (confirming `sealed_at`, severity) pairs | WIST-4 §6 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
@@ -1130,7 +1131,8 @@ fields…, value fields…]` with the members in exactly the order the table
 gives, none omitted and none added. Heights and block numbers are JSON
 integers; a "removed height or `null`" member is an integer or JSON
 `null`; instants (a window end, a deadline, a first-accepted
-`sealed_at`, a penalty's confirming `sealed_at`, a parameter's
+`sealed_at`, a penalty's confirming `sealed_at`, an escalation's
+establishing `sealed_at`, a parameter's
 `effective_at`) are the whole-second literal-`Z` RFC 3339 strings the
 sealing Blocks and the Entries they seal carry (WIST-4 §2, §9.1);
 domains, URLs, `key_id`s, `auditor_id`s and parameter identifiers are
@@ -1177,7 +1179,7 @@ Sharding applies to this artifact as to the tiers: when the manifest
 declares `shards`, the state file MAY be split on the same
 Publisher-domain rule, one part per shard for the domain-keyed kinds
 (`declaration`, `sanction_state`, `recovery_window`, `exclusion`,
-`reputation_inputs`, `record`), with the Log-wide kinds
+`escalation`, `reputation_inputs`, `record`), with the Log-wide kinds
 (`aggregator_key`, `auditor`, `parameter`, `coverage_failure`) carried
 in every part, since no Consumer can validate an Entry without them.
 The tuple set is a set: a Log-wide tuple appears exactly once in the

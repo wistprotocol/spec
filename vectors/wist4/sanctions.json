@@ -606,5 +606,174 @@
       "n_s": 2592000,
       "level": 1
     }
+  ],
+  "reversal_cases": [
+    {
+      "label": "three severity 3 across two lifts reach level 4 by the count branch",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 2592000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 4320000,
+          "severity": 3
+        }
+      ],
+      "lift_times_s": [
+        1814400,
+        3456000
+      ],
+      "met_times_s": [
+        [
+          0,
+          2592000,
+          4320000
+        ],
+        [
+          4320000
+        ],
+        [
+          0,
+          2592000,
+          4320000
+        ],
+        [
+          4320000
+        ]
+      ],
+      "l4_count_branch_times_s": [
+        4320000
+      ],
+      "l4_accrual_branch_times_s": [],
+      "probes": [
+        {
+          "n_s": 1728000,
+          "level": 3
+        },
+        {
+          "n_s": 2160000,
+          "level": 0
+        },
+        {
+          "n_s": 2592000,
+          "level": 3
+        },
+        {
+          "n_s": 3888000,
+          "level": 0
+        },
+        {
+          "n_s": 4320000,
+          "level": 4
+        }
+      ]
+    },
+    {
+      "label": "without the lifts the second finding reaches level 4 by accrual",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 2592000,
+          "severity": 3
+        },
+        {
+          "sealed_at_s": 4320000,
+          "severity": 3
+        }
+      ],
+      "lift_times_s": [],
+      "met_times_s": [
+        [
+          0,
+          2592000,
+          4320000
+        ],
+        [
+          4320000
+        ],
+        [
+          0,
+          2592000,
+          4320000
+        ],
+        [
+          2592000,
+          4320000
+        ]
+      ],
+      "l4_count_branch_times_s": [
+        4320000
+      ],
+      "l4_accrual_branch_times_s": [
+        2592000,
+        4320000
+      ],
+      "probes": [
+        {
+          "n_s": 1728000,
+          "level": 3
+        },
+        {
+          "n_s": 2592000,
+          "level": 4
+        },
+        {
+          "n_s": 4320000,
+          "level": 4
+        }
+      ]
+    },
+    {
+      "label": "a lift clears rungs not findings",
+      "findings": [
+        {
+          "sealed_at_s": 0,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 864000,
+          "severity": 1
+        },
+        {
+          "sealed_at_s": 1728000,
+          "severity": 1
+        }
+      ],
+      "lift_times_s": [
+        1296000
+      ],
+      "met_times_s": [
+        [
+          0,
+          864000,
+          1728000
+        ],
+        [
+          1728000
+        ],
+        [],
+        []
+      ],
+      "l4_count_branch_times_s": [],
+      "l4_accrual_branch_times_s": [],
+      "probes": [
+        {
+          "n_s": 1036800,
+          "level": 1
+        },
+        {
+          "n_s": 1728000,
+          "level": 2
+        }
+      ]
+    }
   ]
 }

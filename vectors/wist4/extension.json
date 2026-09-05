@@ -1,9 +1,9 @@
 {
-  "note": "WIST-4 \u00a74 extension rule: trigger, ration, summoned set and divergence.",
+  "note": "WIST-4 \u00a74 extension rule: trigger, ration, summoned set, and the contradiction that escalates the audited domain's sampling. A contradiction case lists the Records for the Delta sealed at or after B\u2081 in Log order, the Block at which the extension closes, whether the trigger was confirmed, whether an independent consistent pair sealed inside the window, and the heights at which escalated sampling is and is not in force for the domain.",
   "confirm_window_hours": 72,
   "extension_triggers_max": 3,
-  "contradictions_max": 2,
   "ration_window_days": 30,
+  "escalation_window_days": 30,
   "deadline_cases": [
     {
       "b1_sealed_at_s": 1000,
@@ -253,35 +253,809 @@
       "summoned_indices": []
     }
   ],
-  "divergence_cases": [
+  "contradiction_blocks": [
     {
-      "label": "at the maximum",
-      "contradiction_times_s": [
-        8553600,
-        8467200
-      ],
-      "n_sealed_at_s": 8640000,
-      "in_divergence": false
+      "height": 1000,
+      "sealed_at_s": 3600000
     },
     {
-      "label": "past the maximum",
-      "contradiction_times_s": [
-        8553600,
-        8467200,
-        8380800
-      ],
-      "n_sealed_at_s": 8640000,
-      "in_divergence": true
+      "height": 1001,
+      "sealed_at_s": 3603600
     },
     {
-      "label": "aged out",
-      "contradiction_times_s": [
-        5184000,
-        8467200,
-        8380800
+      "height": 1002,
+      "sealed_at_s": 3607200
+    },
+    {
+      "height": 1003,
+      "sealed_at_s": 3610800
+    },
+    {
+      "height": 1004,
+      "sealed_at_s": 3614400
+    },
+    {
+      "height": 1005,
+      "sealed_at_s": 3618000
+    },
+    {
+      "height": 1006,
+      "sealed_at_s": 3621600
+    },
+    {
+      "height": 1007,
+      "sealed_at_s": 3625200
+    },
+    {
+      "height": 1008,
+      "sealed_at_s": 3628800
+    },
+    {
+      "height": 1009,
+      "sealed_at_s": 3632400
+    },
+    {
+      "height": 1010,
+      "sealed_at_s": 3636000
+    },
+    {
+      "height": 1011,
+      "sealed_at_s": 3639600
+    },
+    {
+      "height": 1012,
+      "sealed_at_s": 3643200
+    },
+    {
+      "height": 1013,
+      "sealed_at_s": 3646800
+    },
+    {
+      "height": 1014,
+      "sealed_at_s": 3650400
+    },
+    {
+      "height": 1015,
+      "sealed_at_s": 3654000
+    },
+    {
+      "height": 1016,
+      "sealed_at_s": 3657600
+    },
+    {
+      "height": 1017,
+      "sealed_at_s": 3661200
+    },
+    {
+      "height": 1018,
+      "sealed_at_s": 3664800
+    },
+    {
+      "height": 1019,
+      "sealed_at_s": 3668400
+    },
+    {
+      "height": 1020,
+      "sealed_at_s": 3672000
+    },
+    {
+      "height": 1021,
+      "sealed_at_s": 3675600
+    },
+    {
+      "height": 1022,
+      "sealed_at_s": 3679200
+    },
+    {
+      "height": 1023,
+      "sealed_at_s": 3682800
+    },
+    {
+      "height": 1024,
+      "sealed_at_s": 3686400
+    },
+    {
+      "height": 1025,
+      "sealed_at_s": 3690000
+    },
+    {
+      "height": 1026,
+      "sealed_at_s": 3693600
+    },
+    {
+      "height": 1027,
+      "sealed_at_s": 3697200
+    },
+    {
+      "height": 1028,
+      "sealed_at_s": 3700800
+    },
+    {
+      "height": 1029,
+      "sealed_at_s": 3704400
+    },
+    {
+      "height": 1030,
+      "sealed_at_s": 3708000
+    },
+    {
+      "height": 1031,
+      "sealed_at_s": 3711600
+    },
+    {
+      "height": 1032,
+      "sealed_at_s": 3715200
+    },
+    {
+      "height": 1033,
+      "sealed_at_s": 3718800
+    },
+    {
+      "height": 1034,
+      "sealed_at_s": 3722400
+    },
+    {
+      "height": 1035,
+      "sealed_at_s": 3726000
+    },
+    {
+      "height": 1036,
+      "sealed_at_s": 3729600
+    },
+    {
+      "height": 1037,
+      "sealed_at_s": 3733200
+    },
+    {
+      "height": 1038,
+      "sealed_at_s": 3736800
+    },
+    {
+      "height": 1039,
+      "sealed_at_s": 3740400
+    },
+    {
+      "height": 1040,
+      "sealed_at_s": 3744000
+    },
+    {
+      "height": 1041,
+      "sealed_at_s": 3747600
+    },
+    {
+      "height": 1042,
+      "sealed_at_s": 3751200
+    },
+    {
+      "height": 1043,
+      "sealed_at_s": 3754800
+    },
+    {
+      "height": 1044,
+      "sealed_at_s": 3758400
+    },
+    {
+      "height": 1045,
+      "sealed_at_s": 3762000
+    },
+    {
+      "height": 1046,
+      "sealed_at_s": 3765600
+    },
+    {
+      "height": 1047,
+      "sealed_at_s": 3769200
+    },
+    {
+      "height": 1048,
+      "sealed_at_s": 3772800
+    },
+    {
+      "height": 1049,
+      "sealed_at_s": 3776400
+    },
+    {
+      "height": 1050,
+      "sealed_at_s": 3780000
+    },
+    {
+      "height": 1051,
+      "sealed_at_s": 3783600
+    },
+    {
+      "height": 1052,
+      "sealed_at_s": 3787200
+    },
+    {
+      "height": 1053,
+      "sealed_at_s": 3790800
+    },
+    {
+      "height": 1054,
+      "sealed_at_s": 3794400
+    },
+    {
+      "height": 1055,
+      "sealed_at_s": 3798000
+    },
+    {
+      "height": 1056,
+      "sealed_at_s": 3801600
+    },
+    {
+      "height": 1057,
+      "sealed_at_s": 3805200
+    },
+    {
+      "height": 1058,
+      "sealed_at_s": 3808800
+    },
+    {
+      "height": 1059,
+      "sealed_at_s": 3812400
+    },
+    {
+      "height": 1060,
+      "sealed_at_s": 3816000
+    },
+    {
+      "height": 1061,
+      "sealed_at_s": 3819600
+    },
+    {
+      "height": 1062,
+      "sealed_at_s": 3823200
+    },
+    {
+      "height": 1063,
+      "sealed_at_s": 3826800
+    },
+    {
+      "height": 1064,
+      "sealed_at_s": 3830400
+    },
+    {
+      "height": 1065,
+      "sealed_at_s": 3834000
+    },
+    {
+      "height": 1066,
+      "sealed_at_s": 3837600
+    },
+    {
+      "height": 1067,
+      "sealed_at_s": 3841200
+    },
+    {
+      "height": 1068,
+      "sealed_at_s": 3844800
+    },
+    {
+      "height": 1069,
+      "sealed_at_s": 3848400
+    },
+    {
+      "height": 1070,
+      "sealed_at_s": 3852000
+    },
+    {
+      "height": 1071,
+      "sealed_at_s": 3855600
+    },
+    {
+      "height": 1072,
+      "sealed_at_s": 3859200
+    },
+    {
+      "height": 1073,
+      "sealed_at_s": 3862800
+    },
+    {
+      "height": 1074,
+      "sealed_at_s": 3866400
+    },
+    {
+      "height": 1075,
+      "sealed_at_s": 3870000
+    },
+    {
+      "height": 1076,
+      "sealed_at_s": 3873600
+    },
+    {
+      "height": 1077,
+      "sealed_at_s": 3877200
+    },
+    {
+      "height": 1078,
+      "sealed_at_s": 3880800
+    },
+    {
+      "height": 1079,
+      "sealed_at_s": 3884400
+    },
+    {
+      "height": 1080,
+      "sealed_at_s": 3888000
+    }
+  ],
+  "contradiction_cases": [
+    {
+      "label": "two independent consistent inside the window",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1040,
+          "sealed_at_s": 3744000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        }
       ],
-      "n_sealed_at_s": 8640000,
-      "in_divergence": false
+      "closes_at_height": 1073,
+      "confirmed": false,
+      "independent_consistent_pair": true,
+      "contradicted": true,
+      "establishing_height": 1073,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": true
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": true
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "confirmed inside the window",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "inconsistent",
+          "height": 1050,
+          "sealed_at_s": 3780000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        },
+        {
+          "auditor": "peer.example.net",
+          "verdict": "consistent",
+          "height": 1061,
+          "sealed_at_s": 3819600
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": true,
+      "independent_consistent_pair": true,
+      "contradicted": false,
+      "establishing_height": null,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": false
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": false
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "consistent pair not independent",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1040,
+          "sealed_at_s": 3744000
+        },
+        {
+          "auditor": "eye.example.org",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": false,
+      "independent_consistent_pair": false,
+      "contradicted": false,
+      "establishing_height": null,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": false
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": false
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "second consistent after the window",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1073,
+          "sealed_at_s": 3862800
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": false,
+      "independent_consistent_pair": false,
+      "contradicted": false,
+      "establishing_height": null,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": false
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": false
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "consistent exactly at the window end",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1040,
+          "sealed_at_s": 3744000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1072,
+          "sealed_at_s": 3859200
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": false,
+      "independent_consistent_pair": true,
+      "contradicted": true,
+      "establishing_height": 1073,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": true
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": true
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "confirming record exactly at the window end",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1040,
+          "sealed_at_s": 3744000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        },
+        {
+          "auditor": "eye.example.org",
+          "verdict": "inconsistent",
+          "height": 1072,
+          "sealed_at_s": 3859200
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": true,
+      "independent_consistent_pair": true,
+      "contradicted": false,
+      "establishing_height": null,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": false
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": false
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "confirming record one block past the window",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1040,
+          "sealed_at_s": 3744000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        },
+        {
+          "auditor": "eye.example.org",
+          "verdict": "inconsistent",
+          "height": 1073,
+          "sealed_at_s": 3862800
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": false,
+      "independent_consistent_pair": true,
+      "contradicted": true,
+      "establishing_height": 1073,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": true
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": true
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "rationed out trigger cannot be contradicted",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": false,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1040,
+          "sealed_at_s": 3744000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": false,
+      "independent_consistent_pair": true,
+      "contradicted": false,
+      "establishing_height": null,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": false
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": false
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
+    },
+    {
+      "label": "consistent sealed in b1 counts",
+      "trigger": {
+        "auditor": "audit.example.net",
+        "verdict": "inconsistent",
+        "height": 1000,
+        "sealed_at_s": 3600000
+      },
+      "summoned": true,
+      "records": [
+        {
+          "auditor": "checker.example.org",
+          "verdict": "consistent",
+          "height": 1000,
+          "sealed_at_s": 3600000
+        },
+        {
+          "auditor": "watch.sample.net",
+          "verdict": "consistent",
+          "height": 1060,
+          "sealed_at_s": 3816000
+        }
+      ],
+      "closes_at_height": 1073,
+      "confirmed": false,
+      "independent_consistent_pair": true,
+      "contradicted": true,
+      "establishing_height": 1073,
+      "escalation_at": [
+        {
+          "height": 1072,
+          "sealed_at_s": 3859200,
+          "in_force": false
+        },
+        {
+          "height": 1073,
+          "sealed_at_s": 3862800,
+          "in_force": true
+        },
+        {
+          "height": 1792,
+          "sealed_at_s": 6451200,
+          "in_force": true
+        },
+        {
+          "height": 1793,
+          "sealed_at_s": 6454800,
+          "in_force": false
+        }
+      ]
     }
   ]
 }

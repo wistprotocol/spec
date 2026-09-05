@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a79 coverage-countability combination rule. Each case gives the four participants, the sum the rule bounds, and \u2014 from a simulation of an Auditor that fails every Block on a fully sealed grid \u2014 the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block. The rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks.",
+  "note": "WIST-4 \u00a79 combination rules. `cases`: the coverage-countability rule \u2014 each case gives the four participants, the sum the rule bounds, and \u2014 from a simulation of an Auditor that fails every Block on a fully sealed grid \u2014 the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window \u2014 each case gives the three participants, the sum, and the latest instant after B\u2081 at which a Record published at the extension deadline seals on a fully sealed grid.",
   "window_days": 30,
   "cases": [
     {
@@ -106,6 +106,73 @@
         "max_counted_at_any_height": 517,
         "predicate_reachable": true
       }
+    }
+  ],
+  "extension_window_cases": [
+    {
+      "label": "registry defaults",
+      "changed": "block_cadence_seconds",
+      "block_cadence_seconds": 3600,
+      "confirm_window_hours": 72,
+      "record_seal_blocks": 24,
+      "extension_deadline_s": 129600,
+      "sum_s": 216000,
+      "window_s": 259200,
+      "rule_holds": true,
+      "latest_seal_s": 216000,
+      "seals_inside_window": true
+    },
+    {
+      "label": "cadence at the tables maximum",
+      "changed": "block_cadence_seconds",
+      "block_cadence_seconds": 86400,
+      "confirm_window_hours": 72,
+      "record_seal_blocks": 24,
+      "extension_deadline_s": 129600,
+      "sum_s": 2203200,
+      "window_s": 259200,
+      "rule_holds": false,
+      "latest_seal_s": 2160000,
+      "seals_inside_window": false
+    },
+    {
+      "label": "the last seal deadline the rule admits",
+      "changed": "record_seal_blocks",
+      "block_cadence_seconds": 3600,
+      "confirm_window_hours": 72,
+      "record_seal_blocks": 36,
+      "extension_deadline_s": 129600,
+      "sum_s": 259200,
+      "window_s": 259200,
+      "rule_holds": true,
+      "latest_seal_s": 259200,
+      "seals_inside_window": true
+    },
+    {
+      "label": "one block past it",
+      "changed": "record_seal_blocks",
+      "block_cadence_seconds": 3600,
+      "confirm_window_hours": 72,
+      "record_seal_blocks": 37,
+      "extension_deadline_s": 129600,
+      "sum_s": 262800,
+      "window_s": 259200,
+      "rule_holds": false,
+      "latest_seal_s": 262800,
+      "seals_inside_window": false
+    },
+    {
+      "label": "a deadline between two blocks",
+      "changed": "block_cadence_seconds",
+      "block_cadence_seconds": 5000,
+      "confirm_window_hours": 73,
+      "record_seal_blocks": 26,
+      "extension_deadline_s": 129600,
+      "sum_s": 259600,
+      "window_s": 262800,
+      "rule_holds": true,
+      "latest_seal_s": 255000,
+      "seals_inside_window": true
     }
   ]
 }

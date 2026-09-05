@@ -2265,3 +2265,114 @@ is the amnesty; and `record_seal_blocks` 623 and 624 reach 25 and 24, so
 the boundary decides the rule's strict inequality rather than leaving it
 to reading. The harness recomputes the count rather than the rule, and
 its twin fails a bound written at the endpoint instead of below it.
+
+## 2026-09-05 — WIST-4 §4, §9, §11, §13; WIST-3 §7; registry-update and snapshot-state schemas: a contradiction escalates the audited domain, not the filer (revision, not errata)
+
+Rewrites §4's contradiction paragraph, amends its selection-test and
+removal-evidence sentences, removes `contradictions_max` from §9's bounds
+table, combination rules, registry table and the schema's identifier
+enum, rewrites the §11 sentence on divergence, adds one replayer line to
+§13, adds the `escalation` kind to WIST-3 §7's state artifact and the
+schema, and replaces `vectors/wist4/extension.json`'s divergence cases
+with contradiction cases.
+
+**What it states.** A summoning `inconsistent` or `link_inconsistent`
+Record is contradicted when its extension **closes** — at the first Block
+sealed more than `confirm_window_hours` after *B₁* — with no confirmation
+pairing it and an independent `consistent` pair sealed inside the
+window, endpoint included; the closing Block is the contradiction's
+establishing height. Its only consequence is **escalated sampling** for
+`domain(d)`: `p_1e7` is `sampling_ceiling`, as under a level-1 sanction,
+for the 30 whole days from that height. Nothing attaches to the filer:
+no derived removal, no voided Records. Divergence, and the
+`contradictions_max` that measured it, are gone; a run of contradicted
+filings is evidence for `auditor_remove` read by the admission judgement.
+
+**Why it is a revision.** It fails the first condition twice. A replayer
+that voided the Records of an Auditor past `contradictions_max` conformed
+before and MUST NOT now, and a `parameter_change` naming
+`contradictions_max` validated before and is `WIST4-E03` now; sampling
+rates change for every escalated domain. The change is ADR-0012's
+divergence decision. The Log cannot tell a lying filer from an honest one
+at a cloaked vantage, and ADR-0016 already named a conforming case the
+predicate would have punished: a Publisher answering a sealed
+`inconsistent` with a truthful `update` before the summoned Auditors
+fetch has them file `consistent`, contradicting a filer that did
+everything right. A derived removal landed on that filer exactly as often
+as on a liar. The old text was also non-computable as written: "closes"
+named no instant, so the height a contradiction was dated to — and with
+it the whole divergence count — was one no two replayers could agree on.
+
+**Status.** Exercised. `vectors/wist4/extension.json` carries nine
+contradiction cases over one hourly grid: the closing Block, a
+confirmation inside the window, a dependent `consistent` pair, a second
+`consistent` past the window, a `consistent` and a confirming
+`inconsistent` each exactly at the window's end, a confirmation one Block
+past it, a rationed-out trigger, and a `consistent` sealed in *B₁*
+itself — each with the heights at which escalation is in force and aged
+out. The harness recomputes every case and its twin fails an
+endpoint-exclusive window in both directions.
+
+## 2026-09-05 — WIST-4 §4, §9, §13: an extension Record seals inside the window it serves (revision, not errata)
+
+Adds the extension pull to §4's transport paragraph, a combination rule
+to §9, one Aggregator line to §13, and `extension_window_cases` to
+`vectors/wist4/parameter-combinations.json`.
+
+**What it states.** For a *B₁* that names a Delta for an Auditor under
+the extension rule, the Aggregator MUST also fetch that Auditor's path
+once the extension deadline passes and before it seals its next Block,
+and MUST seal what it finds within `record_seal_blocks` Blocks of that
+fetch, with no attestation; the coverage-deadline pull and its
+attestation are unchanged. `confirm_window_hours / 2` × 3600 +
+`record_seal_blocks` × `block_cadence_seconds` MUST NOT exceed
+`confirm_window_hours` × 3600, and a replayer MUST reject a
+`parameter_change` that leaves it otherwise.
+
+**Why it is a revision.** It adds a duty and rejects parameter sets the
+previous text permitted, and the defect it closes is not hypothetical.
+The only pull the previous text required came after the coverage
+deadline — `coverage_deadline_hours` after *B₁*, which §9's own rule puts
+at or after the extension deadline — so at the registry defaults the
+earliest an extension Record could seal through the mandated transport
+was 73 hours after *B₁*, one Block past the 72-hour window §5 confirms
+inside. The extension rule, "the only path to confirmation that does not
+wait on coincidence", could confirm nothing and contradict nothing unless
+an Aggregator volunteered a pull no sentence required. Found by checking
+whether the section's windows compose.
+
+**Status.** Exercised. The five cases give, per parameter set, the sum
+and the latest instant after *B₁* at which a Record published at the
+extension deadline seals on a fully sealed grid: the defaults seal at 60
+hours against 72, the cadence ceiling 23 days past the window,
+`record_seal_blocks` 36 and 37 on either side of the endpoint, and a
+deadline between two Blocks earlier than the sum reads. The harness
+recomputes the seal rather than the rule, and its twin fails a strict
+bound and one that leaves `record_seal_blocks` out.
+
+## 2026-09-05 — WIST-4 §7: a lift clears rungs, never findings
+
+Adds four sentences to §7's *What each reversal reaches* bullet and
+`reversal_cases` to `vectors/wist4/sanctions.json`.
+
+**What it states.** Every Confirmed Inconsistency sealed before a
+`sanction_lift` stays inside the windows the escalation criteria read,
+so a count criterion is met again at the first finding after the lift
+that completes its count. Level 4's three-severity-3 branch is the first
+to fire only where the level-3 state was cleared between the findings, by
+a lift or a void, and it is kept for exactly that: three fabrications
+inside 180 days delist whatever the process between them did.
+
+**Why it qualifies.** The bullet already said a lift "is not an erasure
+of the evidence" and that "the escalation criteria keep running from that
+height", and the ladder vectors already counted every finding; what was
+unstated was which findings a criterion reads after a lift, and why a
+branch that never fires first on an unreversed ladder is in the table at
+all. Nothing computed changes.
+
+**Status.** Exercised. Three cases: three severity-3 findings across two
+lifts reach level 4 at the third by the count branch alone, the same
+findings without the lifts reach it at the second by accrual, and three
+severity-1 findings around a lift reach level 2 at the third. The harness
+recomputes the rungs from the findings and its twin fails a lift read as
+erasing the findings before it, and a ladder without the count branch.

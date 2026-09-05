@@ -1,6 +1,6 @@
 # ADR-0016: The audit reference is the chain tip at fetch
 
-**Status:** accepted · **Date:** 2026-08-21
+**Status:** accepted · amended by ADR-0012 (2026-09-05: a contradiction escalates the audited domain's sampling and counts toward no Auditor removal threshold; `contradictions_max` is retired) · **Date:** 2026-08-21
 
 ## Context
 
