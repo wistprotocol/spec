@@ -187,9 +187,10 @@
                     "canary_leaves_max", "canary_commitments_max",
                     "canary_reveal_min_blocks", "canary_lifetime_blocks"
                   ]},
-                  "value": {"type": "integer", "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying WIST-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
+                  "value": {"type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991, "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying WIST-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
                 },
                 "allOf": [
+                  {"if": {"properties": {"parameter": {"const": "provisional_cap_u"}}}, "then": {"properties": {"value": {"minimum": 0}}}},
                   {
                     "if": {"properties": {"parameter": {"const": "block_cadence_seconds"}}},
                     "then": {"properties": {"value": {"minimum": 1, "maximum": 86400}}}

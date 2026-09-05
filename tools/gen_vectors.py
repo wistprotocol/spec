@@ -2947,6 +2947,25 @@ for label, parameter, effective_h, value, hours, expected in (
     confirmation_clock_cases.append({"label": label, "changes": changes,
         "record_times_s": times, "confirming_index": first})
 
+parameter_wire_cases = []
+for parameter, value, schema_valid, combinations_hold in (
+    ("quota_base", 9007199254740991, True, True),
+    ("quota_base", -9007199254740991, True, True),
+    ("quota_base", 9007199254740992, False, True),
+    ("quota_base", -9007199254740992, False, True),
+    ("provisional_cap_u", -1, False, True),
+    ("provisional_cap_u", 0, True, True),
+    ("block_cadence_seconds", 86400, True, False),
+):
+    canonical = abs(value) <= 9007199254740991
+    inner = {"wist_version": "1.0.0", "action": "parameter_change", "subject": "log.sample.net",
+        "effective_at": "2026-08-12T00:00:00Z", "details": {"parameter": parameter, "value": value if canonical else 0}}
+    envelope = sign_envelope("update", inner, "test-process-k1")
+    envelope["update"]["details"]["value"] = value
+    parameter_wire_cases.append({"label": parameter + " value " + str(value), "envelope": envelope,
+        "canonical_integer": canonical, "schema_valid": schema_valid,
+        "combinations_hold_at_defaults": combinations_hold})
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
@@ -2954,6 +2973,8 @@ write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "extension_window_cases": extension_window_cases,
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_cases": prospective_cases,
+    "wire_public_key": b64u(pub_raw),
+    "wire_cases": parameter_wire_cases,
     "clock_defaults": CLOCK_DEFAULTS,
     "clock_cases": clock_cases,
     "confirmation_clock_cases": confirmation_clock_cases,

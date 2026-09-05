@@ -2749,7 +2749,14 @@ counts count actual successor Blocks; pinning a count does not pin the
 cadence of those Blocks.
 
 **Every value the registry carries is an integer** in the unit its row
-states, and `details.value` is typed `integer` for that reason (§9.1).
+states, inside −9 007 199 254 740 991 … 9 007 199 254 740 991 inclusive
+(WIST-1 §4), in addition to all parameter-specific bounds below.
+`details.value` is typed `integer` with those limits (§9.1). These are
+wire limits, not limits on exact intermediate arithmetic: implementations
+MUST NOT round or overflow an intermediate product to fit the wire range.
+A schema-valid value still requires §9's identifier, grace, combination
+and guarantee-preservation checks; schema acceptance alone is not a valid
+amendment.
 The suite computes reputation, sampling and similarity in integers end to
 end (§4, §5, §6); a rational reaching `penalty_weight` would land in
 §6.2's denominator and a rational reaching `sampling_slope` in §4's clamp,
@@ -2787,6 +2794,7 @@ existing rather than a recommended setting.
 | `shingle_size` | ≥ 1 | a shingle length of zero leaves both shingle sets empty and §5's quotient undefined |
 | `min_observed_words` | ≥ 1 | at zero the mass guard admits the empty observed text, and §5's quotient is read against a page that said nothing (§5) |
 | `extension_triggers_max` | ≥ 1 | at zero no `inconsistent` Record ever extends a selection set, and §4's extension rule — the only path to confirmation that does not wait on coincidence — is disabled entirely (§4, §5) |
+| `provisional_cap_u` | ≥ 0 | a negative cap makes §6.2 return a negative reputation, outside its micro-unit range |
 | `confirm_auditors` | ≥ 2 | one Auditor confirming itself is the whole of what §5's confirmation rule exists to prevent |
 | `confirm_window_hours` | ≥ 1 | at zero a confirming Record must share its Block with the first, since `sealed_at` is strictly increasing (WIST-3 §3.1) |
 | `coverage_deadline_hours` | ≥ 1 | at zero the duty is discharged only by a Record sealed in the audited Block itself, so every Auditor fails every Block (§4) |
@@ -2882,15 +2890,17 @@ replaying the Log MUST reject a `parameter_change` that leaves either
 otherwise. At the defaults the reveal sum is 144 hours against a minimum
 of 168, and the lifetime 1440 Blocks against 192.
 
-Every remaining identifier carries no bound because none reduces to one,
+Every remaining identifier carries no additional parameter-specific bound,
 and each is named here so that "exactly those bounds" above is a claim a
 reader can check rather than take. `clock_skew_seconds`, `keyset_cache_ttl_seconds` and `baseline_poll_seconds`
 set tolerances rather than mechanisms: at zero each is the strict reading
 of the rule it relaxes, and nothing ceases to exist. `sampling_slope` at
 zero stops the audit rate varying with reputation, while selection,
 confirmation, penalties and the level-1 rate all still run.
-`provisional_age_days`, `provisional_audits` and `provisional_cap_u` loosen
-or tighten a gate on reputation rather than removing one — unlike `c_cap`,
+`provisional_age_days` and `provisional_audits` loosen
+or tighten a gate on reputation rather than removing one. A nonnegative
+`provisional_cap_u` does the same; its floor preserves the output range,
+without requiring Provisional reputation to be positive — unlike `c_cap`,
 whose zero leaves that gate unsatisfiable for every domain for ever.
 `quota_base` and `quota_slope` at zero silence the Ping path, which WIST-2
 §5's baseline polling exists to survive. And `latency_threshold_u` at

@@ -519,6 +519,170 @@
       ]
     }
   ],
+  "wire_public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "wire_cases": [
+    {
+      "label": "quota_base value 9007199254740991",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "quota_base",
+            "value": 9007199254740991
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "S64X8hB9I3cBExAuwwMc1OSjRiY76nTB9u3JAmftbtWqrM9hUqhrQFwrm0msI9T9Te2Ot5nTUE11_fQO2XthAQ"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": true
+    },
+    {
+      "label": "quota_base value  9007199254740991",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "quota_base",
+            "value": -9007199254740991
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "0so5S8fZlrp41shm6YrztRXlPXjYolg2y9IB7xe-tnCsbWsqQ3BlPjEDoI1pyfrK8LSlalEyUOQCdRxgiqJYAw"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": true
+    },
+    {
+      "label": "quota_base value 9007199254740992",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "quota_base",
+            "value": 9007199254740992
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "oiJJrHLV1AJjoLBKZ3y6kX9y7ugFWR6R-tQzaN4GGFc7YzFCO6IihadKp6rZvg1fHRu49Ozpj_gMa5MXAxsoBQ"
+        }
+      },
+      "canonical_integer": false,
+      "schema_valid": false,
+      "combinations_hold_at_defaults": true
+    },
+    {
+      "label": "quota_base value  9007199254740992",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "quota_base",
+            "value": -9007199254740992
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "oiJJrHLV1AJjoLBKZ3y6kX9y7ugFWR6R-tQzaN4GGFc7YzFCO6IihadKp6rZvg1fHRu49Ozpj_gMa5MXAxsoBQ"
+        }
+      },
+      "canonical_integer": false,
+      "schema_valid": false,
+      "combinations_hold_at_defaults": true
+    },
+    {
+      "label": "provisional_cap_u value  1",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "provisional_cap_u",
+            "value": -1
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "oQBWjNS78OLjwM-GKUKglqxZYlbeMbCmpazCIwfDAujd578I68JJyjZ5qWKFjZxvhsvashtfmD1P8YTZCaexDg"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": false,
+      "combinations_hold_at_defaults": true
+    },
+    {
+      "label": "provisional_cap_u value 0",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "provisional_cap_u",
+            "value": 0
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "r4TDz34erIpr73okEAKBiHw3WBBp2YS0sjefQnfSuG6q2dYvGHVec3EucmfVZ1DsYgdvXye0eKDWCpMRvBxWBg"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": true
+    },
+    {
+      "label": "block_cadence_seconds value 86400",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "block_cadence_seconds",
+            "value": 86400
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "z16jsdTZnEaEwkMIrrlNVlpiE1KTdHGqRZ1AD431lihuBe0GNmFUEJkMd2pjEPVDjEpt79ffnuSze_NGZRF4Cg"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": false
+    }
+  ],
   "clock_defaults": {
     "confirm_auditors": 2,
     "confirm_window_hours": 72,

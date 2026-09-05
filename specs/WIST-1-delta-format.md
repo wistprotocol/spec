@@ -401,7 +401,8 @@ double — `9007199254740993` and `9007199254740992` are the same double —
 so identity in this suite is identity of the double, not of the literal a
 producer typed. A producer therefore MUST NOT rely on integer precision
 beyond ±(2^53 − 1) to distinguish two objects, and every integer member the
-suite defines sits inside that range by its own bounds; a number outside
+suite defines MUST lie inside that range, in addition to its field-specific
+bounds; a number outside
 it is a producer's error, not a second identity. What has no double at all
 — a magnitude beyond the finite range, or a form outside JSON's grammar —
 has no canonicalization either, and is `WIST1-E05`. A finite double,

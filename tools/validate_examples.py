@@ -2652,6 +2652,32 @@ def _dc4_parameter_clocks():
     assert raised["confirming_index"] == 2 and v["clock_defaults"]["confirm_auditors"] == 2
 check("vectors:wist4-parameter-clocks", _dc4_parameter_clocks)
 
+def _dc4_parameter_wire_range():
+    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["wire_public_key"]))
+    for case in v["wire_cases"]:
+        doc = case["envelope"]
+        assert validator.is_valid(doc) == case["schema_valid"], case["label"]
+        if case["canonical_integer"]:
+            key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+        else:
+            try:
+                rfc8785.dumps(doc["update"])
+            except rfc8785.IntegerDomainError:
+                pass
+            else:
+                raise AssertionError(case["label"])
+        d = doc["update"]["details"]
+        cadence = d["value"] if d["parameter"] == "block_cadence_seconds" else 3600
+        holds = (36 * 3600 + 24 * cadence <= 72 * 3600
+            and 168 * cadence >= 72 * 3600 + 72 * cadence
+            and 72 * 3600 + 48 * cadence < 30 * 86400)
+        assert holds == case["combinations_hold_at_defaults"], case["label"]
+    cap = next(c for c in v["wire_cases"] if c["envelope"]["update"]["details"] == {"parameter": "provisional_cap_u", "value": -1})
+    assert min(100000, cap["envelope"]["update"]["details"]["value"]) < 0 and not cap["schema_valid"]
+check("vectors:wist4-parameter-wire-range", _dc4_parameter_wire_range)
+
 def _extension_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
 
@@ -3914,6 +3940,8 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/parameter-combinations.json", "wire_public_key"): "an Ed25519 public key",
+    ("vectors/wist4/parameter-combinations.json", "value"): "an Ed25519 signature when opaque",
     ("vectors/wist4/parameter-combinations.json", "parameter"): "a Parameter Registry identifier",
     ("vectors/wist4/sanctions.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist4/sanctions.json", "value"): "an Ed25519 signature",
