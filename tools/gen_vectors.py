@@ -4465,6 +4465,36 @@ for label, rows, expected in (
     assert accepted == expected, label
     binding_cases.append({"label": label, "events": events, "accepted_indices": accepted})
 
+scoring_profile_defaults = {"shingle_size": 8, "min_observed_words": 40,
+    "similarity_consistent": 600000, "similarity_variance_floor": 300000}
+scoring_profile_cases = []
+profile_words = ["word" + str(i) for i in range(47)]
+for parameter, value, matched, verdict, old_sim, new_sim, old_hit, new_hit in (
+    ("similarity_consistent", 500000, 29, "inconsistent", 550000, 550000, False, True),
+    ("similarity_variance_floor", 150001, 15, "consistent", 200000, 200000, True, False),
+    ("shingle_size", 1, 29, "inconsistent", 550000, 617021, False, True),
+    ("min_observed_words", 60, 47, "inconsistent", 1000000, None, True, False),
+):
+    reference = " ".join(profile_words)
+    observed = " ".join(profile_words[:matched] + ["extra" + str(i) for i in range(50-matched)])
+    body = ('<html><body data-nonce="' + canary_nonce(121).hex() + '"><p>' + observed + '</p></body></html>').encode()
+    for after in (False, True):
+        profile = dict(scoring_profile_defaults)
+        if after:
+            profile[parameter] = value
+        sim = link_extraction.similarity(reference, link_extraction.extract_text(body),
+            profile["min_observed_words"], profile["shingle_size"])
+        expected_sim, expected_hit = (new_sim, new_hit) if after else (old_sim, old_hit)
+        assert sim == expected_sim
+        scoring_profile_cases.append({"label": parameter + (" at amendment" if after else " before amendment"),
+            "audited_delta_sealed_at_s": 7*DAY_S if after else 6*DAY_S,
+            "record_fixed_at_s": 7*DAY_S if after else 6*DAY_S+3600,
+            "reveal_sealed_at_s": 15*DAY_S, "queries_s": [15*DAY_S, 16*DAY_S],
+            "change": {"parameter": parameter, "value": value, "effective_at_s": 7*DAY_S},
+            "reference_extract": reference, "served_bytes_hex": body.hex(),
+            "verdict": verdict, "credit_reproduces": True,
+            "expected": {"profile": profile, "derived_similarity": expected_sim, "hard_hit": expected_hit}})
+
 score_occurrences = [0, 0, 1, 2, 2, 3, 4, 5, 6]
 write_json(WIST4 / "canary.json", spaced_labels({
     "note": ("WIST-4 §5.1, §5.2: a canary commitment over five leaves of served bytes "
@@ -4497,6 +4527,8 @@ write_json(WIST4 / "canary.json", spaced_labels({
         "record_occurrences": score_occurrences, "scoreboards": canary_scoreboards},
     "timing_cases": canary_timing_cases,
     "scoring_window_cases": canary_scoring_window_cases,
+    "scoring_profile": {"note": "Otherwise-valid Records and reveals with matching credit commitments and live scoring windows are premises. The accepted amendment was scheduled at least seven days before effectiveness. These cases isolate the extraction/band profile, recomputed from exact served bytes and reference extracts; amendment validation, signatures, membership and credit are exercised separately.",
+        "defaults": scoring_profile_defaults, "cases": scoring_profile_cases},
     "scoreboard_records": canary_scoreboard_records,
     "scoreboards": canary_scoreboards,
 }))

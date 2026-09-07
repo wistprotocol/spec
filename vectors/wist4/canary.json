@@ -1612,6 +1612,249 @@
       "open": false
     }
   ],
+  "scoring_profile": {
+    "note": "Otherwise-valid Records and reveals with matching credit commitments and live scoring windows are premises. The accepted amendment was scheduled at least seven days before effectiveness. These cases isolate the extraction/band profile, recomputed from exact served bytes and reference extracts; amendment validation, signatures, membership and credit are exercised separately.",
+    "defaults": {
+      "shingle_size": 8,
+      "min_observed_words": 40,
+      "similarity_consistent": 600000,
+      "similarity_variance_floor": 300000
+    },
+    "cases": [
+      {
+        "label": "similarity_consistent before amendment",
+        "audited_delta_sealed_at_s": 518400,
+        "record_fixed_at_s": 522000,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "similarity_consistent",
+          "value": 500000,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f7264313420776f7264313520776f7264313620776f7264313720776f7264313820776f7264313920776f7264323020776f7264323120776f7264323220776f7264323320776f7264323420776f7264323520776f7264323620776f7264323720776f7264323820657874726130206578747261312065787472613220657874726133206578747261342065787472613520657874726136206578747261372065787472613820657874726139206578747261313020657874726131312065787472613132206578747261313320657874726131342065787472613135206578747261313620657874726131372065787472613138206578747261313920657874726132303c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "inconsistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 8,
+            "min_observed_words": 40,
+            "similarity_consistent": 600000,
+            "similarity_variance_floor": 300000
+          },
+          "derived_similarity": 550000,
+          "hard_hit": false
+        }
+      },
+      {
+        "label": "similarity_consistent at amendment",
+        "audited_delta_sealed_at_s": 604800,
+        "record_fixed_at_s": 604800,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "similarity_consistent",
+          "value": 500000,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f7264313420776f7264313520776f7264313620776f7264313720776f7264313820776f7264313920776f7264323020776f7264323120776f7264323220776f7264323320776f7264323420776f7264323520776f7264323620776f7264323720776f7264323820657874726130206578747261312065787472613220657874726133206578747261342065787472613520657874726136206578747261372065787472613820657874726139206578747261313020657874726131312065787472613132206578747261313320657874726131342065787472613135206578747261313620657874726131372065787472613138206578747261313920657874726132303c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "inconsistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 8,
+            "min_observed_words": 40,
+            "similarity_consistent": 500000,
+            "similarity_variance_floor": 300000
+          },
+          "derived_similarity": 550000,
+          "hard_hit": true
+        }
+      },
+      {
+        "label": "similarity_variance_floor before amendment",
+        "audited_delta_sealed_at_s": 518400,
+        "record_fixed_at_s": 522000,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "similarity_variance_floor",
+          "value": 150001,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f726431342065787472613020657874726131206578747261322065787472613320657874726134206578747261352065787472613620657874726137206578747261382065787472613920657874726131302065787472613131206578747261313220657874726131332065787472613134206578747261313520657874726131362065787472613137206578747261313820657874726131392065787472613230206578747261323120657874726132322065787472613233206578747261323420657874726132352065787472613236206578747261323720657874726132382065787472613239206578747261333020657874726133312065787472613332206578747261333320657874726133343c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "consistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 8,
+            "min_observed_words": 40,
+            "similarity_consistent": 600000,
+            "similarity_variance_floor": 300000
+          },
+          "derived_similarity": 200000,
+          "hard_hit": true
+        }
+      },
+      {
+        "label": "similarity_variance_floor at amendment",
+        "audited_delta_sealed_at_s": 604800,
+        "record_fixed_at_s": 604800,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "similarity_variance_floor",
+          "value": 150001,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f726431342065787472613020657874726131206578747261322065787472613320657874726134206578747261352065787472613620657874726137206578747261382065787472613920657874726131302065787472613131206578747261313220657874726131332065787472613134206578747261313520657874726131362065787472613137206578747261313820657874726131392065787472613230206578747261323120657874726132322065787472613233206578747261323420657874726132352065787472613236206578747261323720657874726132382065787472613239206578747261333020657874726133312065787472613332206578747261333320657874726133343c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "consistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 8,
+            "min_observed_words": 40,
+            "similarity_consistent": 600000,
+            "similarity_variance_floor": 150001
+          },
+          "derived_similarity": 200000,
+          "hard_hit": false
+        }
+      },
+      {
+        "label": "shingle_size before amendment",
+        "audited_delta_sealed_at_s": 518400,
+        "record_fixed_at_s": 522000,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "shingle_size",
+          "value": 1,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f7264313420776f7264313520776f7264313620776f7264313720776f7264313820776f7264313920776f7264323020776f7264323120776f7264323220776f7264323320776f7264323420776f7264323520776f7264323620776f7264323720776f7264323820657874726130206578747261312065787472613220657874726133206578747261342065787472613520657874726136206578747261372065787472613820657874726139206578747261313020657874726131312065787472613132206578747261313320657874726131342065787472613135206578747261313620657874726131372065787472613138206578747261313920657874726132303c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "inconsistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 8,
+            "min_observed_words": 40,
+            "similarity_consistent": 600000,
+            "similarity_variance_floor": 300000
+          },
+          "derived_similarity": 550000,
+          "hard_hit": false
+        }
+      },
+      {
+        "label": "shingle_size at amendment",
+        "audited_delta_sealed_at_s": 604800,
+        "record_fixed_at_s": 604800,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "shingle_size",
+          "value": 1,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f7264313420776f7264313520776f7264313620776f7264313720776f7264313820776f7264313920776f7264323020776f7264323120776f7264323220776f7264323320776f7264323420776f7264323520776f7264323620776f7264323720776f7264323820657874726130206578747261312065787472613220657874726133206578747261342065787472613520657874726136206578747261372065787472613820657874726139206578747261313020657874726131312065787472613132206578747261313320657874726131342065787472613135206578747261313620657874726131372065787472613138206578747261313920657874726132303c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "inconsistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 1,
+            "min_observed_words": 40,
+            "similarity_consistent": 600000,
+            "similarity_variance_floor": 300000
+          },
+          "derived_similarity": 617021,
+          "hard_hit": true
+        }
+      },
+      {
+        "label": "min_observed_words before amendment",
+        "audited_delta_sealed_at_s": 518400,
+        "record_fixed_at_s": 522000,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "min_observed_words",
+          "value": 60,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f7264313420776f7264313520776f7264313620776f7264313720776f7264313820776f7264313920776f7264323020776f7264323120776f7264323220776f7264323320776f7264323420776f7264323520776f7264323620776f7264323720776f7264323820776f7264323920776f7264333020776f7264333120776f7264333220776f7264333320776f7264333420776f7264333520776f7264333620776f7264333720776f7264333820776f7264333920776f7264343020776f7264343120776f7264343220776f7264343320776f7264343420776f7264343520776f726434362065787472613020657874726131206578747261323c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "inconsistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 8,
+            "min_observed_words": 40,
+            "similarity_consistent": 600000,
+            "similarity_variance_floor": 300000
+          },
+          "derived_similarity": 1000000,
+          "hard_hit": true
+        }
+      },
+      {
+        "label": "min_observed_words at amendment",
+        "audited_delta_sealed_at_s": 604800,
+        "record_fixed_at_s": 604800,
+        "reveal_sealed_at_s": 1296000,
+        "queries_s": [
+          1296000,
+          1382400
+        ],
+        "change": {
+          "parameter": "min_observed_words",
+          "value": 60,
+          "effective_at_s": 604800
+        },
+        "reference_extract": "word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46",
+        "served_bytes_hex": "3c68746d6c3e3c626f647920646174612d6e6f6e63653d223037356365646133396333616662303831303864633961393337383966633433223e3c703e776f72643020776f72643120776f72643220776f72643320776f72643420776f72643520776f72643620776f72643720776f72643820776f72643920776f7264313020776f7264313120776f7264313220776f7264313320776f7264313420776f7264313520776f7264313620776f7264313720776f7264313820776f7264313920776f7264323020776f7264323120776f7264323220776f7264323320776f7264323420776f7264323520776f7264323620776f7264323720776f7264323820776f7264323920776f7264333020776f7264333120776f7264333220776f7264333320776f7264333420776f7264333520776f7264333620776f7264333720776f7264333820776f7264333920776f7264343020776f7264343120776f7264343220776f7264343320776f7264343420776f7264343520776f726434362065787472613020657874726131206578747261323c2f703e3c2f626f64793e3c2f68746d6c3e",
+        "verdict": "inconsistent",
+        "credit_reproduces": true,
+        "expected": {
+          "profile": {
+            "shingle_size": 8,
+            "min_observed_words": 60,
+            "similarity_consistent": 600000,
+            "similarity_variance_floor": 300000
+          },
+          "derived_similarity": null,
+          "hard_hit": false
+        }
+      }
+    ]
+  },
   "scoreboard_records": [
     {
       "auditor_id": "audit.example.net",

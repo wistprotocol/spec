@@ -119,3 +119,27 @@ shift the same race later by a constant, protect only the Publishers
 whose propagation happens to fit inside it, and add a Registry parameter
 to §3's fetch interval for that. The incentive as it stands already
 points the eager Auditor at a later fetch, and no section is changed.
+
+## Extraction and hard-hit profiles follow the audited Delta
+
+### Context
+
+A Record fixed before a threshold amendment can acquire a hard hit when
+scored afterward under the amended value. Pinning the scoring window at
+reveal does not determine the extraction or verdict-band profile. Observer
+Records need not have individual sealing Blocks to supply an anchor.
+
+### Decision
+
+Read shingle size, observed-word mass guard and both similarity thresholds
+at the audited Delta's Block, for Record production and hard-hit
+recomputation alike. This applies to ordinary and extension audits and
+admitted Auditors and Observers. The reference Delta and later publication, checkpoint,
+reveal and query instants do not move the profile.
+
+### Consequences
+
+An unchanged Record keeps the same extract-band interpretation across
+amendments. The Log supplies the anchor even for unsealed Observer Records.
+The reveal still anchors its serving and scoring-window duration; the
+Unicode version and delete mirror remain the document's fixed rules.

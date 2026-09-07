@@ -1309,6 +1309,16 @@ platform assigned is exactly where the two of them will differ. Moving
 the version is a change to this document — after a deployment exists, a
 new major version — because it changes verdicts already sealed.
 
+**The extraction and band profile is fixed per audited Delta.** Read
+`shingle_size`, `min_observed_words`, `similarity_consistent` and
+`similarity_variance_floor` at the `sealed_at` of the audited Delta's
+Block (§9). Use that profile both when producing a Record and when
+recomputing its extract similarity or hard hit (§5.2), for ordinary and
+extension audits, admitted Auditors and Observers alike. Neither the
+reference Delta, fetch instant, Record sealing, covering checkpoint,
+reveal nor later scoring-query Block moves this anchor. The pinned Unicode
+version and the `delete` mirror still apply as stated here.
+
 **Shingles.** Let *s* be `shingle_size` (Parameter Registry; default 8),
 *w* a text's word count and *g* the count of extended grapheme clusters
 ([UAX #29]) in its normalized form. With *A* the shingle set of the
@@ -2854,6 +2864,7 @@ whose `effective_at` equals the anchor instant is included.
 | §5.1 commitment lead, leaf limit and lifetime | Commitment Block; the per-epoch commitment ration reads the epoch's first Block |
 | §5.1 reveal minimum and budget-rotation parameters | Newest bound Delta's Block; S is read there too |
 | §5.1 scoring and associated serving window | Reveal Block |
+| §5 extraction and similarity-band profile, including §5.2 hard hits | Audited Delta's Block: `shingle_size`, `min_observed_words`, `similarity_consistent`, `similarity_variance_floor` |
 | §7 appeal window and appeal seal allowance | Notice Block |
 | §7 ruling deadline | Accepted appeal's Block |
 

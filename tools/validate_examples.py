@@ -3495,6 +3495,31 @@ def _dc4_canary_bindings():
     assert len(v["binding"]["record_occurrences"]) > len(set(v["binding"]["record_occurrences"]))
 check("vectors:wist4-canary-bindings", _dc4_canary_bindings)
 
+def _scoring_profile_result(v, case, anchor):
+    import link_extraction
+    profile = dict(v["defaults"])
+    change = case["change"]
+    if change["effective_at_s"] <= anchor:
+        profile[change["parameter"]] = change["value"]
+    observed = link_extraction.extract_text(bytes.fromhex(case["served_bytes_hex"]))
+    sim = link_extraction.similarity(case["reference_extract"], observed,
+        min_observed_words=profile["min_observed_words"], shingle_size=profile["shingle_size"])
+    hit = sim is not None and case["credit_reproduces"] and (
+        case["verdict"] == "consistent" and sim < profile["similarity_variance_floor"]
+        or case["verdict"] == "inconsistent" and sim >= profile["similarity_consistent"])
+    return {"profile": profile, "derived_similarity": sim, "hard_hit": hit}
+
+def _dc4_scoring_profile():
+    v = _canary_vector()["scoring_profile"]
+    for case in v["cases"]:
+        for query in case["queries_s"]:
+            assert case["record_fixed_at_s"] < case["reveal_sealed_at_s"] <= query
+            got = _scoring_profile_result(v, case, case["audited_delta_sealed_at_s"])
+            assert got == case["expected"], case["label"]
+            if case["audited_delta_sealed_at_s"] < case["change"]["effective_at_s"]:
+                assert _scoring_profile_result(v, case, query)["hard_hit"] != got["hard_hit"]
+check("vectors:wist4-scoring-profile", _dc4_scoring_profile)
+
 def _canary_band(v, similarity):
     p = v["parameters"]
     if similarity >= p["similarity_consistent"]:
