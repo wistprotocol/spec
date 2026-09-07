@@ -6046,6 +6046,137 @@
       ]
     }
   ],
+  "ordering_boundary": {
+    "note": "Counterfactual sort keys supplied at the ordering boundary for both evaluated epochs, not SHA-256 preimages or a claimed collision. Ordinary budget_cases verify the actual SHA-256 computations separately. These cases exercise secondary ordering and primary digest precedence through the same budget walk.",
+    "cases": [
+      {
+        "label": "equal supplied digests",
+        "registered": [
+          "z.sample.net",
+          "b.example.net",
+          "a.example.net"
+        ],
+        "budget": 1,
+        "sort_keys": {
+          "suffixes": [
+            {
+              "name": "example.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            {
+              "name": "sample.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ],
+          "observers": [
+            {
+              "name": "a.example.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            {
+              "name": "b.example.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            {
+              "name": "z.sample.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        "epochs": [
+          {
+            "epoch": 0,
+            "suffix_order": [
+              "example.net",
+              "sample.net"
+            ],
+            "positions": [
+              0
+            ],
+            "budgeted": [
+              "a.example.net"
+            ]
+          },
+          {
+            "epoch": 1,
+            "suffix_order": [
+              "example.net",
+              "sample.net"
+            ],
+            "positions": [
+              1
+            ],
+            "budgeted": [
+              "z.sample.net"
+            ]
+          }
+        ]
+      },
+      {
+        "label": "digest precedes name",
+        "registered": [
+          "z.sample.net",
+          "b.example.net",
+          "a.example.net"
+        ],
+        "budget": 1,
+        "sort_keys": {
+          "suffixes": [
+            {
+              "name": "example.net",
+              "sort_key_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "name": "sample.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ],
+          "observers": [
+            {
+              "name": "a.example.net",
+              "sort_key_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            {
+              "name": "b.example.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            {
+              "name": "z.sample.net",
+              "sort_key_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        "epochs": [
+          {
+            "epoch": 0,
+            "suffix_order": [
+              "sample.net",
+              "example.net"
+            ],
+            "positions": [
+              0
+            ],
+            "budgeted": [
+              "z.sample.net"
+            ]
+          },
+          {
+            "epoch": 1,
+            "suffix_order": [
+              "sample.net",
+              "example.net"
+            ],
+            "positions": [
+              1
+            ],
+            "budgeted": [
+              "b.example.net"
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "epoch_changes": [
     {
       "effective_at_s": 360000,

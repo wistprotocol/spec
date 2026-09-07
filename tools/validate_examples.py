@@ -3792,19 +3792,31 @@ def _suffix_groups(observers):
         groups.setdefault(".".join(o.split(".")[-2:]), []).append(o)
     return groups
 
-def _epoch_budget(observers, epoch, budget, walk=True):
+def _epoch_budget(observers, epoch, budget, walk=True, sort_keys=None):
     """WIST-4 §3.1: suffixes in a fixed order by SHA-256(suffix); the epoch's
     window of one budget starts at position epoch × budget mod S; within a
     suffix, the Observer least by SHA-256(be64(epoch) ‖ observer_id).
     `walk=False` is a static queue that never advances, the starving
     reading the section rules out."""
     groups = _suffix_groups(observers)
-    order = sorted(groups, key=lambda s: hashlib.sha256(s.encode()).hexdigest())
+    suffix_hashes = {s: hashlib.sha256(s.encode()).hexdigest() for s in groups} if sort_keys is None else sort_keys["suffixes"]
+    observer_hashes = {o: _epoch_priority(epoch, o) for o in observers} if sort_keys is None else sort_keys["observers"]
+    order = sorted(groups, key=lambda s: (suffix_hashes[s], s.encode()))
     size = len(order)
     start = (epoch * budget) % size if (walk and size) else 0
     positions = [(start + k) % size for k in range(min(budget, size))] if size else []
-    pick = lambda sfx: min(groups[sfx], key=lambda o: _epoch_priority(epoch, o))
+    pick = lambda sfx: min(groups[sfx], key=lambda o: (observer_hashes[o], o.encode()))
     return order, positions, [pick(order[p]) for p in positions]
+
+def _dc4_observer_ordering_boundary():
+    for case in _observer_vector()["ordering_boundary"]["cases"]:
+        keys = {kind: {row["name"]: row["sort_key_hex"] for row in rows}
+                for kind, rows in case["sort_keys"].items()}
+        for permutation in itertools.permutations(case["registered"]):
+            for epoch in case["epochs"]:
+                result = _epoch_budget(permutation, epoch["epoch"], case["budget"], sort_keys=keys)
+                assert result == (epoch["suffix_order"], epoch["positions"], epoch["budgeted"]), case["label"]
+check("vectors:wist4-observer-ordering-boundary", _dc4_observer_ordering_boundary)
 
 def _epoch_budget_rehashed(observers, epoch, budget):
     """The ruled-out reading: an order drawn afresh each epoch."""
@@ -4383,6 +4395,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
     ("vectors/wist4/sampling.json", "block_hash"): "SHA-256 of a Block header",
     ("vectors/wist4/sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
+    ("vectors/wist4/observer-checkpoints.json", "sort_key_hex"): "counterfactual non-content sort keys for the digest-equality boundary, not SHA-256 preimages",
     ("vectors/wist4/sampling.json", "beta_hex"): "the VRF output",
         ("vectors/wist4/sampling.json", "delta_id"): "a Delta ID",
     ("vectors/wist4/sampling.json", "auditor_public_key"): "an Ed25519 public key",

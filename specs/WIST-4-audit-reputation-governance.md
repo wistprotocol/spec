@@ -403,13 +403,16 @@ within `record_seal_blocks` Blocks of the fetch. Which Observers an
 epoch budgets is derived. Take every Observer registered at the epoch's
 first Block and group them by the two-label suffix §3's independence
 test reads; order the S suffixes by ascending octet order of
-`SHA-256(suffix)`, `suffix` its UTF-8, at positions 0 … S − 1; the
+`SHA-256(suffix)`, `suffix` its UTF-8, breaking equal digests by ascending
+octet order of the suffix's UTF-8, at positions 0 … S − 1; the
 epoch budgets the suffixes at positions
 `(epoch number × observer_checkpoint_budget + k) mod S` for every k from
 0 below `min(observer_checkpoint_budget, S)` (Parameter Registry;
 default 1024), and within each of them the one Observer whose
 `SHA-256(be64(epoch number) ‖ observer_id)` is least, where `be64` is the
-number as eight big-endian octets. A slot is keyed by the suffix because
+number as eight big-endian octets; equal digests choose the least
+`observer_id` in UTF-8 octet order. These secondary orders apply only
+to digest equality. A slot is keyed by the suffix because
 a subdomain costs a registrant nothing: a crowd of identities under one
 suffix consumes one suffix's slot and shares it by that hash, and the
 bound below is the suffix's. The window walks a fixed order by one budget

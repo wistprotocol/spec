@@ -4580,15 +4580,17 @@ def suffix_groups(observers):
     return groups
 
 
-def epoch_budget(observers, epoch, budget):
+def epoch_budget(observers, epoch, budget, sort_keys=None):
     """§3.1: suffixes in a fixed order by SHA-256(suffix); the epoch budgets
     the window of one budget starting at position epoch × budget mod S, and
     within each suffix the Observer least by the per-epoch hash."""
     groups = suffix_groups(observers)
-    order = sorted(groups, key=lambda sfx: hashlib.sha256(sfx.encode()).hexdigest())
+    suffix_key = lambda sfx: (hashlib.sha256(sfx.encode()).hexdigest() if sort_keys is None else sort_keys["suffixes"][sfx], sfx.encode())
+    observer_key = lambda o: (epoch_priority(epoch, o) if sort_keys is None else sort_keys["observers"][o], o.encode())
+    order = sorted(groups, key=suffix_key)
     size = len(order)
     positions = [(epoch * budget + k) % size for k in range(min(budget, size))] if size else []
-    chosen = [min(groups[order[p]], key=lambda o: epoch_priority(epoch, o)) for p in positions]
+    chosen = [min(groups[order[p]], key=observer_key) for p in positions]
     return order, positions, chosen
 
 
@@ -4759,6 +4761,23 @@ for label, initial, budget, changes, expected in (
         "epochs":epochs, "earliest_reveal_height":earliest,
         "probes":[{"height":h, "valid":h>=earliest} for h in probes]})
 
+observer_ordering_cases = []
+for tied in (True, False):
+    registered = ["z.sample.net", "b.example.net", "a.example.net"]
+    keys = {"suffixes": {"example.net": "00"*32 if tied else "ff"*32, "sample.net": "00"*32},
+        "observers": {"a.example.net": "00"*32 if tied else "ff"*32,
+            "b.example.net": "00"*32, "z.sample.net": "00"*32}}
+    expected = ["a.example.net", "z.sample.net"] if tied else ["z.sample.net", "b.example.net"]
+    epochs = []
+    for epoch in (0, 1):
+        order, positions, chosen = epoch_budget(registered, epoch, 1, keys)
+        assert chosen == [expected[epoch]]
+        epochs.append({"epoch": epoch, "suffix_order": order, "positions": positions, "budgeted": chosen})
+    observer_ordering_cases.append({"label": "equal supplied digests" if tied else "digest precedes name",
+        "registered": registered, "budget": 1,
+        "sort_keys": {kind: [{"name": name, "sort_key_hex": key} for name,key in values.items()]
+            for kind,values in keys.items()}, "epochs": epochs})
+
 write_json(WIST4 / "observer-checkpoints.json", spaced_labels({
     "note": ("WIST-4 §3.1: which Observers an epoch budgets (suffixes in a fixed order by "
              "SHA-256 over the suffix, the epoch's window of one budget starting at "
@@ -4772,6 +4791,8 @@ write_json(WIST4 / "observer-checkpoints.json", spaced_labels({
     "opportunity_cases": opportunity_cases,
     "epoch_blocks_default": OBS_EPOCH_DEFAULT,
     "budget_cases": observer_budget_cases,
+    "ordering_boundary": {"note": "Counterfactual sort keys supplied at the ordering boundary for both evaluated epochs, not SHA-256 preimages or a claimed collision. Ordinary budget_cases verify the actual SHA-256 computations separately. These cases exercise secondary ordering and primary digest precedence through the same budget walk.",
+        "cases": observer_ordering_cases},
     "epoch_changes": [{"effective_at_s": t, "value": v} for t, v in EPOCH_CHANGES],
     "epoch_cases": observer_epoch_cases,
     "chain": OBS_CHAIN,
