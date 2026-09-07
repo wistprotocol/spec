@@ -2823,7 +2823,11 @@ countability_cases = [
     countability_case("the-last-seal-deadline-the-rule-admits", 3600, 72, 623, "record_seal_blocks"),
     countability_case("one-block-past-it", 3600, 72, 624, "record_seal_blocks"),
     countability_case("a-deadline-between-two-blocks", 5000, 2, 493, "record_seal_blocks"),
+    countability_case("conservative rejection with twenty five countable failures", 5000, 4, 492, "record_seal_blocks"),
+    countability_case("one later seal leaves twenty four countable failures", 5000, 4, 493, "record_seal_blocks"),
 ]
+assert [c["unattested"]["max_counted_at_any_height"] for c in countability_cases[-2:]] == [25, 24]
+assert all(not c["rule_holds"] for c in countability_cases[-2:])
 
 
 

@@ -2331,6 +2331,18 @@ def _dc4_coverage_countability():
         assert marker in prose, f"§9 does not state: {marker!r}"
 check("vectors:wist4-coverage-countability", _dc4_coverage_countability)
 
+def _dc4_conservative_countability():
+    cases = _countability_vector()["cases"]
+    reachable = next(c for c in cases if c["label"] == "conservative rejection with twenty five countable failures")
+    unreachable = next(c for c in cases if c["label"] == "one later seal leaves twenty four countable failures")
+    for case, count in ((reachable, 25), (unreachable, 24)):
+        assert case["coverage_failures_max"] == 24
+        assert _countability_sum(case) >= 30 * 86400
+        assert not case["rule_holds"] and not case["deadline_on_grid"]
+        assert case["unattested"]["max_counted_at_any_height"] == count
+        assert case["unattested"]["predicate_reachable"] == (count > 24)
+check("vectors:wist4-conservative-countability", _dc4_conservative_countability)
+
 def _dc4_coverage_countability_twin():
     """The check above must notice a sum bounded at the endpoint instead of
     below it, and one that leaves `coverage_failures_max` out."""

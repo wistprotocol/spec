@@ -3126,14 +3126,17 @@ So `coverage_deadline_hours` × 3600 + (`record_seal_blocks` +
 `coverage_failures_max`) × `block_cadence_seconds` MUST be shorter than 30
 whole days (2 592 000 seconds), and a party replaying the Log MUST reject
 a `parameter_change` that leaves it otherwise, exactly as for the cases
-above. At or past that sum no height carries more than
-`coverage_failures_max` failures however completely an Auditor shirks, no
-history satisfies the predicate, and *The gate is not an amnesty* (§4)
-inverts into a permanent amnesty granted by the parameter set rather than
-by an Aggregator's silence. The sum reads each deadline as though it fell
-on the Block grid, which is the latest the `record_seal_blocks`-th Block
-after it can seal; a deadline landing between two Blocks only brings that
-height forward, so the rule errs toward keeping the mechanism reachable.
+above. On a fixed cadence grid with the deadline on that grid, a sum at
+or above 30 days leaves at most `coverage_failures_max` unattested
+failures countable at any height, even if an Auditor shirks every duty.
+The sum uses the full deadline duration plus the sealing allowance;
+an off-grid deadline establishes sooner than that upper bound. Therefore
+rejection by the conservative sum alone does not prove the predicate
+unreachable in the off-grid case. The explicit MUST inequality remains
+the acceptance rule; exact grid reachability does not waive it. This
+keeps parameter validation conservative while preventing parameter sets
+whose actual establishing lag makes *The gate is not an amnesty* (§4)
+inoperative.
 Nothing in the per-parameter table catches this: `block_cadence_seconds`
 = 86 400 with every other value at its default is inside every bound the
 table publishes and gives the unattested path 51 days to fit into 30.

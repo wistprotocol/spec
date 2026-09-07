@@ -106,6 +106,48 @@
         "max_counted_at_any_height": 517,
         "predicate_reachable": true
       }
+    },
+    {
+      "label": "conservative rejection with twenty five countable failures",
+      "changed": "record_seal_blocks",
+      "block_cadence_seconds": 5000,
+      "coverage_deadline_hours": 4,
+      "record_seal_blocks": 492,
+      "coverage_failures_max": 24,
+      "sum_s": 2594400,
+      "rule_holds": false,
+      "deadline_on_grid": false,
+      "unattested": {
+        "establishing_lag_s": 2470000,
+        "max_counted_at_any_height": 25,
+        "predicate_reachable": true
+      },
+      "attested_next_block": {
+        "establishing_lag_s": 15000,
+        "max_counted_at_any_height": 516,
+        "predicate_reachable": true
+      }
+    },
+    {
+      "label": "one later seal leaves twenty four countable failures",
+      "changed": "record_seal_blocks",
+      "block_cadence_seconds": 5000,
+      "coverage_deadline_hours": 4,
+      "record_seal_blocks": 493,
+      "coverage_failures_max": 24,
+      "sum_s": 2599400,
+      "rule_holds": false,
+      "deadline_on_grid": false,
+      "unattested": {
+        "establishing_lag_s": 2475000,
+        "max_counted_at_any_height": 24,
+        "predicate_reachable": false
+      },
+      "attested_next_block": {
+        "establishing_lag_s": 15000,
+        "max_counted_at_any_height": 516,
+        "predicate_reachable": true
+      }
     }
   ],
   "extension_window_cases": [
