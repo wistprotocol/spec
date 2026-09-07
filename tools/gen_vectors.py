@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 import ecvrf
 import link_extraction
+import notice_evidence
 from merkle import audit_path, leaf_hash, node_hash
 from merkle import merkle_root as merkle_tree_root
 
@@ -4133,6 +4134,7 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "reversal_cases": sanction_reversal_cases,
     "transition_cases": sanction_transition_cases,
     "notice_target_cases": notice_target_cases,
+    "notice_evidence_cases": notice_evidence.cases(),
     "retired_escalation_cases": retired_escalation_cases,
     "primary": {"note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records. Notice and level eligibility are satisfied independently; these cases isolate the primary finding/evidence contract.",
         "findings": primary_findings, "cases": primary_cases},

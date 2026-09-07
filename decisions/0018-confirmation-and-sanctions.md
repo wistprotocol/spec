@@ -1,180 +1,131 @@
-# ADR-0018: Sanction rungs latch until reversed
+# ADR-0018: Confirmation, sanction activations and due process
 
 **Status:** draft · **Date:** 2026-09-05
 
 ## Context
 
-WIST-4 §7 says rungs remain in force from their establishing Block onward,
-but describes a high-rung reversal using lower criteria at the reversal
-height. It does not explicitly settle aging, rearming, or a lift sharing
-a Block with a confirming Record.
+A Consumer must derive the same findings, active sanctions and process
+deadlines from the same Log prefix. Evidence ages, parameters change and
+several findings or conflicting registry acts can share a Block. A sanction
+notice must identify the particular activation it governs, so an old appeal
+cannot reverse a later rearming.
+
+WIST-4 §§4, 5 and 7 define confirmation and sanctions; §9 defines parameter
+anchors. WIST-3 §6 defines evidence availability through proceedings.
 
 ## Decision
 
-Latch each rung independently until its reversal or identity reset.
-Counting windows govern entry, not automatic expiry. A high-rung void
-clears only its activation; lower latched rungs survive aged evidence.
-A lift clears every rung before the Block's confirming Records, following
-WIST-3's application order. A same-Block finding may rearm a rung.
-
-Evaluate each branch on new qualifying findings, in confirming-Record
-order. Retain pre-reversal findings in counting windows. The level-4
-further-finding branch reads level 3 immediately before the new finding,
-so two findings in one Block may reach levels 3 then 4. A single finding
-cannot supply both the initial level 3 and its own further finding.
-
-## Consequences
-
-A weight reduction no longer has an implicit aging expiry. Reversal
-cannot be defeated by immediately rereading unchanged evidence. A new
-qualifying finding can rearm a rung, with old findings still contributing
-to its window. Notice-scoped reversals do not clear later activations.
-
-## A confirmation quorum shares one window
-
-### Context
-
-WIST-4 §9 permits `confirm_auditors` above two, but §§5 and 7 describe
-pairs. A stale Record and a fresh independent pair can therefore either
-confirm or fail an amended quorum of three. The contradiction predicate
-likewise counts two consistent Auditors regardless of the amendment.
-
-### Decision
+### Confirmation and severity
 
 Every quorum member lies inside one closed `confirm_window_hours` window
-ending at the confirming Record's Block. Count pairwise independent
-Auditors, separately for extract and link verdicts. The earliest Record
-completing `confirm_auditors` members establishes the finding. Severity
-still reads the full prefix specified by §7, rather than a selected
-quorum witness.
+ending at the confirming Record's Block. Count pairwise independent Auditors
+separately for extract and link verdicts. The earliest Record completing
+`confirm_auditors` members establishes the finding under that candidate's
+Block profile. Later parameter changes do not move this first success.
+Severity reads the full closed confirming set, not a selected witness.
 
-A triggered extension closes contradicted only when no complete quorum
-of the triggering verdict includes that trigger and a complete quorum
-of independent consistent Auditors sealed inside its closed window.
-Both thresholds read `confirm_auditors`.
+A triggered extension closes contradicted only if no complete quorum of
+the triggering verdict includes that trigger and a complete independent
+consistent quorum sealed inside its closed window. The contradiction test
+uses the triggering profile and closes once. Later confirmation does not
+rewrite it. A roster too small for the quorum supplies no implicit reduction.
 
-### Consequences
+### Rung activation and reversal
 
-Default two-member confirmation is unchanged. An amended quorum no
-longer accepts a stale member merely because two others are fresh, and
-a consistent pair alone cannot contradict under a quorum of three.
-A smaller roster may be unable to meet the amended threshold; no
-implicit reduction of a governance-selected quorum is permitted.
+Latch each rung independently until reversal or identity reset. Counting
+windows govern entry, not automatic expiry. A high-rung void clears only
+its activation; lower latched rungs survive aged evidence. A lift clears
+all rungs before the Block's confirming Records. A same-Block finding may
+then rearm a rung, but merely rereading unchanged evidence cannot.
 
-## Appeal processes have deterministic conflict rules
+Evaluate each branch on new qualifying findings in confirming-Record order.
+Keep pre-reversal findings within their counting windows. Level 4's
+further-finding branch reads level 3 immediately before the new finding:
+two findings in one Block may establish levels 3 and then 4, but one finding
+cannot supply both the initial level 3 and its own further finding.
 
-### Context
+### Notice identity and evidence
 
-WIST-4 §7 gives a notice one appeal and ruling clock but does not choose
-among several sealed appeals or contradictory rulings. WIST-2's immutable
-served appeal path does not prevent conflicting acts in a Log.
+A notice names level 3 or 4 and `details.activation`, the confirming Audit
+Record ID that armed the target. Accept one notice per subject, level and
+activation: the first eligible Block's unique candidate, rejecting distinct
+simultaneous eligible conflicts together. Invalid candidates cannot veto a
+valid notice. The activation must be active or newly armed in that Block.
+Further notices restart no clock; recovery notices are outside this process.
 
-### Decision
+Cite complete quorums at the original confirming Records for the activating
+finding and enough distinct findings to establish an arming branch. Read
+counts at the activation's original window and severity from the full closed
+confirming set even when a notice cites only a quorum. Level 4's further-
+finding branch must also support the actual prior level-3 activation's
+criterion at its own window, including its activating finding's quorum.
+Replay supplies intervening reversals and identity boundaries.
 
-Use one appeal, one merits ruling and one unappealed-statement slot per
-notice. Registry Update IDs deduplicate acts at their first sealing
-Block. The first eligible act fills its slot; distinct competing acts in
-one Block all fail as `WIST4-E05`, leaving that slot open. Later distinct
-acts cannot replace an accepted one. Resolve appeals before rulings in
-a Block, independent of stored Entry order.
+Every optional citation must resolve to an Audit Record available by the
+notice Block. Well-shaped evidence failures are `WIST4-E05`. Extra evidence
+cannot change the primary finding's severity, substitute a cleared
+activation or move the counting window to the notice date.
 
-Merits rulings require the timely appeal and must seal by its ruling
-deadline. Unappealed statements use the existing window-close-to-T
-interval and cannot defeat a timely sealed appeal. Every act names a
-sealed sanction notice for its own subject. Invalid acts fill no slot.
+A `sanction` separately identifies its primary finding through
+`details.finding`. That finding's first confirming Record and a complete
+quorum must appear in its evidence. Its full closed confirming set determines
+`details.severity`; optional findings cannot change that primary severity.
+The ladder still derives from every qualifying finding, independently of
+which finding a sanction selects.
 
-### Consequences
+### Appeals and rulings
 
-A conflicting batch cannot let Entry order select a favorable outcome.
-A later valid act can still fill an unoccupied slot before its deadline.
-Once a merits ruling closes a process, a discretionary change uses
-`sanction_lift`; a second ruling cannot rewrite its outcome.
+Each notice has one accepted appeal, one merits ruling and one unappealed-
+statement slot. Deduplicate Registry Update IDs at their first sealing
+Block. The first eligible act fills its slot; distinct simultaneous eligible
+acts all fail as `WIST4-E05`, leaving the slot open. Later distinct acts
+cannot replace an accepted one. Resolve appeals before rulings regardless
+of stored Entry order, and let invalid acts occupy no slot.
 
-## A sanction identifies its primary finding
+Merits rulings require a timely accepted appeal, must seal by its ruling
+deadline and must follow the target activation's Block. A same-Block notice
+and appeal can therefore be valid while a merits ruling there is invalid.
+This prevents a Registry Update from attempting to reverse a finding that
+the Block's application order has not established yet.
 
-### Context
+Appeal and seal clocks read the notice profile; the ruling clock reads
+the accepted appeal. Unappealed statements use the specified window-close-
+to-T interval and cannot defeat a timely sealed appeal. A notice-scoped
+reversal clears only its still-matching activation. Once a merits ruling
+closes the process, a discretionary change uses `sanction_lift`, not another
+ruling over the same notice.
 
-One sanction severity could not be matched unambiguously to an evidence
-array containing several findings of different severities.
+### Evidence retention
 
-### Decision
+A Mirror serving an accepted notice acquires the cited Audit Record Blocks
+before serving its Block and retains both through the process's actual
+closing instant, including that endpoint. Without an accepted appeal the
+process closes at T, even if an unappealed statement sealed earlier. With
+an accepted appeal it closes at the ruling deadline or an earlier accepted
+merits ruling. Preserve prefix causality and all overlapping process duties.
 
-Require `details.finding`, the first confirming Audit Record ID of one
-finding for the subject. Its closed confirming set determines the scalar
-severity. Evidence includes that Record and a complete quorum establishing
-the finding there; additional Audit Record evidence may differ in severity.
-All cited Records must be available at the sanction's Block.
+Ordinary Block retention reads its value at first service. A later parameter
+reduction cannot discard evidence during an open proceeding. These are
+Block duties; Payload availability and withdrawal keep their own rules.
 
-### Consequences
+## Consequences and alternatives
 
-Optional corroboration cannot change a sanction's primary severity.
-The derived ladder continues to count every qualifying finding.
+Canonical findings and explicit activation identities allow deterministic
+replay across aging, reversals and rearming. Entry order remains relevant
+where findings are sequential, while simultaneous eligible process conflicts
+choose no winner by position.
 
-## A sanction notice names one rung activation
+Automatic expiry would contradict latched sanctions; reversing every future
+activation would let an old process reach a new offense. Accepting partial
+quorums would let citation selection fabricate support or severity. Retention
+computed from only the current parameter map would fail when older notices
+and later appeals use different clocks. Explicit identities, historical
+profiles and actual process lifetimes avoid those failures.
 
-### Context
+## Verification
 
-A notice carried no level or activation identity, although a notice-scoped
-reversal must leave later rearmings untouched. Repeated notices also left
-room for competing clocks over one activation.
-
-### Decision
-
-Require level 3 or 4 and the confirming Record ID that armed it. Accept
-one notice per subject, level and activation: the first eligible Block's
-unique candidate, with simultaneous conflicts rejected together. Targets
-must be active or newly armed in that Block. Later notices restart nothing.
-A notice-scoped reversal reaches only a still-matching activation.
-
-### Consequences
-
-An old process cannot clear a new activation. Same-Block findings may
-support notices without making notice validation change rung derivation.
-Recovery notices remain outside sanction process.
-
-## Retain cited Blocks through the actual sanction process
-
-### Context
-
-Notice and appeal clocks can read different parameter maps. The sum in a
-single current map therefore need not cover an older notice's proceeding.
-Cited evidence may also be old before the notice opens an appeal window.
-
-### Decision
-
-A Mirror serving an accepted sanction notice must serve the notice and
-its cited Audit Record Blocks through the process's actual closing
-instant. It acquires missing evidence before serving the notice Block.
-No accepted appeal means closure at T, even with an earlier unappealed
-statement. An accepted appeal means closure at its ruling deadline or an
-earlier accepted merits ruling. Preserve prefix causality and include the
-closing endpoint. Ordinary Block retention reads its value at first service.
-
-### Consequences
-
-Parameter changes cannot make a Mirror discard sealed evidence during an
-open proceeding. Multiple processes impose overlapping duties. The rule
-protects Blocks; Payload availability and withdrawal keep their own rules.
-
-## Merits rulings follow the target activation's Block
-
-### Context
-
-A notice can name an activation first armed in its own Block, and an
-appeal and merits ruling can otherwise share that Block. Reversals apply
-before confirming findings, when this target does not yet exist.
-
-### Decision
-
-Require a merits ruling to seal strictly above its target activation's
-Block. An earlier or same-Block ruling is ineligible (`WIST4-E05`), fills
-no ruling slot and schedules no deferred reversal. A notice and appeal
-may still seal in the activation's Block. A later distinct ruling follows
-the existing deadline and multiplicity rules.
-
-### Consequences
-
-Registry-before-finding replay remains unchanged. An overturning ruling
-can only clear an activation that already exists at its reversal phase.
-Same-Block appeals remain timely; rejection of an early ruling neither
-restarts the appeal clock nor prevents a subsequent eligible ruling.
+`vectors/wist4/confirmation.json`, `extension.json` and `sanctions.json`
+exercise quorums, activation targets, conflicting acts and citation support.
+`parameter-combinations.json` exercises temporal profiles and retention.
+Live notice publication and acquisition of cited Blocks remain obligations
+of the WIST-3 and WIST-4 role checklists.

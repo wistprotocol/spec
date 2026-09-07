@@ -1893,6 +1893,4898 @@
       "activation_after_reversal": "sha256:97e5550283695bccd634f4aa2efb4ea67669f6652c88373865949d21ca9e10d3"
     }
   ],
+  "notice_evidence_cases": [
+    {
+      "label": "minimal quorum omits a redundant confirming Record",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "complete closed set is also sufficient",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "activation ID alone is insufficient",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "quorum without activation is insufficient",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "unknown optional citation rejects notice",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "future optional citation rejects notice",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 2,
+                  "entry_index": 0,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 2,
+                  "entry_index": 1,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "omitting mild Record cannot fabricate severity three",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "link finding cannot take severity three branch",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": true,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "count branch uses activation window despite late notice",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+                  "block_height": 0,
+                  "entry_index": 27,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b20b587ef399eb85d269e4a9623b5eb4754fd5d9f22c841ee2d5959d06b47120",
+                  "block_height": 0,
+                  "entry_index": 28,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+                  "block_height": 0,
+                  "entry_index": 29,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 200,
+          "sealed_at_s": 17280000,
+          "findings": [],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 200,
+        "level": 3,
+        "activation": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+          "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "count branch needs ten supported findings",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+                  "block_height": 0,
+                  "entry_index": 27,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b20b587ef399eb85d269e4a9623b5eb4754fd5d9f22c841ee2d5959d06b47120",
+                  "block_height": 0,
+                  "entry_index": 28,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+                  "block_height": 0,
+                  "entry_index": 29,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+        "evidence": [
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+          "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "old count cannot replace activating quorum",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+                  "block_height": 0,
+                  "entry_index": 27,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b20b587ef399eb85d269e4a9623b5eb4754fd5d9f22c841ee2d5959d06b47120",
+                  "block_height": 0,
+                  "entry_index": 28,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+                  "block_height": 0,
+                  "entry_index": 29,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 1,
+        "level": 3,
+        "activation": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+          "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+          "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "pre lift findings support rearmed count",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+                  "block_height": 0,
+                  "entry_index": 27,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b20b587ef399eb85d269e4a9623b5eb4754fd5d9f22c841ee2d5959d06b47120",
+                  "block_height": 0,
+                  "entry_index": 28,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+                  "block_height": 0,
+                  "entry_index": 29,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 1,
+        "level": 3,
+        "activation": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+        "evidence": [
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+          "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+          "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+          "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "pre reset findings cannot support fresh identity",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+                  "block_height": 0,
+                  "entry_index": 27,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b20b587ef399eb85d269e4a9623b5eb4754fd5d9f22c841ee2d5959d06b47120",
+                  "block_height": 0,
+                  "entry_index": 28,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+                  "block_height": 0,
+                  "entry_index": 29,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": true
+        }
+      ],
+      "notice": {
+        "height": 1,
+        "level": 3,
+        "activation": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+          "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+          "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+          "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "further finding needs prior level three evidence",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 1,
+        "level": 4,
+        "activation": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+        "evidence": [
+          "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+          "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "further finding with prior level three support",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 1,
+        "level": 4,
+        "activation": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+          "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "cleared level three cannot substitute for current activation",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 2,
+                  "entry_index": 0,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 2,
+                  "entry_index": 1,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 2,
+        "level": 4,
+        "activation": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "current prior activation supports further finding",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 2,
+                  "entry_index": 0,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 2,
+                  "entry_index": 1,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 2,
+        "level": 4,
+        "activation": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+        "evidence": [
+          "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+          "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "three severity three findings survive lifts",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 2,
+                  "entry_index": 0,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 2,
+                  "entry_index": 1,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 2,
+        "level": 4,
+        "activation": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+          "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "new level three is not its own further finding",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 2,
+                  "entry_index": 0,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 2,
+                  "entry_index": 1,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 2,
+        "level": 4,
+        "activation": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+        "evidence": [
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "optional available evidence changes no severity",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 0
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 0,
+        "level": 3,
+        "activation": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "count window at 89 days",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 89,
+          "sealed_at_s": 7689600,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:e569316f22ff1803047634e96b2aaecff47615898f18ece515b8d2d4e2356a79",
+                  "block_height": 89,
+                  "entry_index": 0,
+                  "sealed_at_s": 7689600,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:047750d398c38ee4985b3aa3627651ff4d6716ff7493d64987de41417777d782",
+                  "block_height": 89,
+                  "entry_index": 1,
+                  "sealed_at_s": 7689600,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f368a25220956a126f5f511e84891bfe13db2dd8ac3eae6ac7b80b9068d9bcd9",
+                  "block_height": 89,
+                  "entry_index": 2,
+                  "sealed_at_s": 7689600,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 89,
+        "level": 3,
+        "activation": "sha256:f368a25220956a126f5f511e84891bfe13db2dd8ac3eae6ac7b80b9068d9bcd9",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:e569316f22ff1803047634e96b2aaecff47615898f18ece515b8d2d4e2356a79",
+          "sha256:f368a25220956a126f5f511e84891bfe13db2dd8ac3eae6ac7b80b9068d9bcd9"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "count window at 90 days",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 90,
+          "sealed_at_s": 7776000,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6b7b338333840ac80a7fdf6ad0ae7425ff90377665d4c7643fa59c0f115295b3",
+                  "block_height": 90,
+                  "entry_index": 0,
+                  "sealed_at_s": 7776000,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:d7d564f6a1f6bfde56b34d5de0018154a63d3a364167d0dd2874fafa836ce4fe",
+                  "block_height": 90,
+                  "entry_index": 1,
+                  "sealed_at_s": 7776000,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:ce9d0fec6cc0f16beee916e2c4cbcb806f8f7deb981615ffbf3218962e43a128",
+                  "block_height": 90,
+                  "entry_index": 2,
+                  "sealed_at_s": 7776000,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 90,
+        "level": 3,
+        "activation": "sha256:ce9d0fec6cc0f16beee916e2c4cbcb806f8f7deb981615ffbf3218962e43a128",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:6b7b338333840ac80a7fdf6ad0ae7425ff90377665d4c7643fa59c0f115295b3",
+          "sha256:ce9d0fec6cc0f16beee916e2c4cbcb806f8f7deb981615ffbf3218962e43a128"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "prior level three activating quorum cannot be omitted",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+                  "block_height": 0,
+                  "entry_index": 27,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b20b587ef399eb85d269e4a9623b5eb4754fd5d9f22c841ee2d5959d06b47120",
+                  "block_height": 0,
+                  "entry_index": 28,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+                  "block_height": 0,
+                  "entry_index": 29,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:6cba450af1db9058f675bcca7d77a34a48e90c128786e5983f053edd42c1fc2a",
+                  "block_height": 1,
+                  "entry_index": 0,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:1f74af6edf1830fc6f01fa79107030e6996f400ab30d03f1fcfbe153ca0acf42",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3edaa1e9fb738394e0dd74c9bd82e585b19da71a526c89b15e43a4ff56312e41",
+                  "block_height": 1,
+                  "entry_index": 2,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": true,
+          "reset": false
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 2,
+                  "entry_index": 0,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 2,
+                  "entry_index": 1,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 2,
+        "level": 4,
+        "activation": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+          "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb"
+        ]
+      },
+      "error": "WIST4-E05"
+    },
+    {
+      "label": "further finding retains prior level three count window",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b147c773f03ef179dc894d4e379aa5f5e8feca277c9c62b833e53b795932431",
+                  "block_height": 0,
+                  "entry_index": 1,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+                  "block_height": 0,
+                  "entry_index": 2,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+                  "block_height": 0,
+                  "entry_index": 3,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:2197ee84bb76ec516bf0f0fcf93022dd02ce2e40cb62c963ca611f69f190c06c",
+                  "block_height": 0,
+                  "entry_index": 4,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+                  "block_height": 0,
+                  "entry_index": 5,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+                  "block_height": 0,
+                  "entry_index": 6,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:92e4c90eb2d39ee9756eb7cf4111e59b6b5e0e0537e29675b7654bab9a2f9e09",
+                  "block_height": 0,
+                  "entry_index": 7,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+                  "block_height": 0,
+                  "entry_index": 8,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+                  "block_height": 0,
+                  "entry_index": 9,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f0d8cb7fbc5cb43b339c008a1f525a3ad81dabc4cff5e072bf7d7bf7add9164c",
+                  "block_height": 0,
+                  "entry_index": 10,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+                  "block_height": 0,
+                  "entry_index": 11,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+                  "block_height": 0,
+                  "entry_index": 12,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:35ac63e2d7dfde3ffcb512c333d6494a12e256b76d5d74409a524285a9ca363d",
+                  "block_height": 0,
+                  "entry_index": 13,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+                  "block_height": 0,
+                  "entry_index": 14,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+                  "block_height": 0,
+                  "entry_index": 15,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:3ad87efa14999f4f4a4c71979ccb1fd3d55601b0ac84a0c16692db03db7c5d96",
+                  "block_height": 0,
+                  "entry_index": 16,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+                  "block_height": 0,
+                  "entry_index": 17,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+                  "block_height": 0,
+                  "entry_index": 18,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:c4e655fe40e37ce493e0382874b528eba3c2ff6f8b127b03ce755650b8b8659a",
+                  "block_height": 0,
+                  "entry_index": 19,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+                  "block_height": 0,
+                  "entry_index": 20,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+                  "block_height": 0,
+                  "entry_index": 21,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:8299376f5da017d39cc5c675aad1360a049d29a875df334185bc50062d6c8f09",
+                  "block_height": 0,
+                  "entry_index": 22,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+                  "block_height": 0,
+                  "entry_index": 23,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+                  "block_height": 0,
+                  "entry_index": 24,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:5d86bc4c485273196f12eec87f523a531fd02ebddb28ab9b47d4451677c38bfc",
+                  "block_height": 0,
+                  "entry_index": 25,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+                  "block_height": 0,
+                  "entry_index": 26,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            },
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+                  "block_height": 0,
+                  "entry_index": 27,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:b20b587ef399eb85d269e4a9623b5eb4754fd5d9f22c841ee2d5959d06b47120",
+                  "block_height": 0,
+                  "entry_index": 28,
+                  "sealed_at_s": 0,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+                  "block_height": 0,
+                  "entry_index": 29,
+                  "sealed_at_s": 0,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        },
+        {
+          "height": 200,
+          "sealed_at_s": 17280000,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:b3dcad3fc1d9f2a0d4ce250bafa877cc2281b666516a0136794600fff68e2c3c",
+                  "block_height": 200,
+                  "entry_index": 0,
+                  "sealed_at_s": 17280000,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:deda6a62bda5b2a58ec36ca749a52d81307937a1f02cd68328517477155d4183",
+                  "block_height": 200,
+                  "entry_index": 1,
+                  "sealed_at_s": 17280000,
+                  "auditor_id": "b.example.org",
+                  "effective_similarity": 200000
+                },
+                {
+                  "id": "sha256:60e58efe5a0e23f688d4f6c998405d222d191d3f18dda55624a5473f4e4f7a5f",
+                  "block_height": 200,
+                  "entry_index": 2,
+                  "sealed_at_s": 17280000,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 200000
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 200,
+        "level": 4,
+        "activation": "sha256:60e58efe5a0e23f688d4f6c998405d222d191d3f18dda55624a5473f4e4f7a5f",
+        "evidence": [
+          "sha256:54b54709d08c38144e4fc66bf50820d85c75c8bf90efabb0b991d267e3bcf228",
+          "sha256:4308de2d864c2732049f7de767bc12498014b4caa2efa4835378c9a2451cf950",
+          "sha256:57c3ab1a1e0f5ddeba9dab04aabc11335eeea58620760b653e77b2b2e46be975",
+          "sha256:f1900605d6333d883de9281e4e599dc4e844cac0542553fcd9b73875930b28fd",
+          "sha256:48f4d0dc0911f531496b3196d39b03cd18241bbc2f54beac110c69dd2814eee3",
+          "sha256:c9782af7d680f0128cab32304d1f8dbc0b5f5096c7d3f386b79fd8f34b076cf4",
+          "sha256:a7f72a5ec1f5bacf2f86e5c7963131e01ef0e64cf4c183b647c05c7a6878048e",
+          "sha256:613673d91bd5197c70a1517b7077c923b6ed24aacd48c56a2104aaecd388903c",
+          "sha256:d73c0d684ffcfdebe6bed2586f629e64e377afe61935761dcc59b0713a4d9646",
+          "sha256:f4939071abdb2073d414a94d280635b2da8b35ddc5a0a1f032239087dfedd935",
+          "sha256:02316464f70d48f191b9c8e88ab762d9d18cc8d3f49f86ce6f754cc3060cf621",
+          "sha256:520f40dfa00f896d257c083fedc7d18d020acf8644ffd8f6ae1da47f287db2d3",
+          "sha256:706a3a37b6037b2b9bca9f05e38e77c547498e412bedf860a42294b463f27ed8",
+          "sha256:b3681c8c28b99d1956b9379a4a02ec3f8df93eb08b9d0cdc1c340957c7869ccd",
+          "sha256:76923136cc0ca2a66bfc884bc55d6d9eb65feb19e804fb66834b84d485ef2e04",
+          "sha256:754af959551cbfa43aa3e5a437d0e29114ef2e99347713707841ab2a4ad4b735",
+          "sha256:4e6da96112c8a6b09542f9f1d23f8245d59338d29282f00337cf89f9684e414b",
+          "sha256:906143621f098148ba3d45a8cd390b563ddaa3108f1f6cd1505f6764a567be85",
+          "sha256:3bb20cfc522c7229bd5321933f15e2a3d263c0497fb7504a4f9b7106eff77ee1",
+          "sha256:6b61b2594b7780255e47697f93928d23a2bbc9dd24259a1f912fc3b761a38ffb",
+          "sha256:b3dcad3fc1d9f2a0d4ce250bafa877cc2281b666516a0136794600fff68e2c3c",
+          "sha256:60e58efe5a0e23f688d4f6c998405d222d191d3f18dda55624a5473f4e4f7a5f"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "quorum amendment does not re evaluate earlier candidates",
+      "blocks": [
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 3
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 3
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 2
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 2,
+        "level": 3,
+        "activation": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+        "evidence": [
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+          "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "window amendment does not re evaluate earlier candidates",
+      "blocks": [
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 2,
+                  "confirm_window_hours": 1
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 2,
+                  "confirm_window_hours": 1
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 2,
+                  "entry_index": 2,
+                  "sealed_at_s": 172800,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 2,
+                  "confirm_window_hours": 48
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 2,
+        "level": 3,
+        "activation": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+        "evidence": [
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+          "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb"
+        ]
+      },
+      "error": null
+    },
+    {
+      "label": "old quorum is outside confirming candidates window",
+      "blocks": [
+        {
+          "height": 20,
+          "sealed_at_s": 1728000,
+          "findings": [
+            {
+              "window_hours": 72,
+              "quorum": 2,
+              "link": false,
+              "records": [
+                {
+                  "id": "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+                  "block_height": 0,
+                  "entry_index": 0,
+                  "sealed_at_s": 0,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 3
+                },
+                {
+                  "id": "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+                  "block_height": 1,
+                  "entry_index": 1,
+                  "sealed_at_s": 86400,
+                  "auditor_id": "c.sample.net",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 3
+                },
+                {
+                  "id": "sha256:f926caf2720e20ddbce8bc60f4de181e4d42fdfdfbceeb2b30b8d4ac4059efcb",
+                  "block_height": 20,
+                  "entry_index": 2,
+                  "sealed_at_s": 1728000,
+                  "auditor_id": "a.example.org",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 2
+                },
+                {
+                  "id": "sha256:c53634d30a3a7ca3703b29e6ee17d38a5bdf1c1aa54508e6b9e97ca21cbe4c68",
+                  "block_height": 20,
+                  "entry_index": 3,
+                  "sealed_at_s": 1728000,
+                  "auditor_id": "d.other.io",
+                  "effective_similarity": 0,
+                  "confirm_auditors": 2
+                }
+              ]
+            }
+          ],
+          "lift": false,
+          "reset": false
+        }
+      ],
+      "notice": {
+        "height": 20,
+        "level": 3,
+        "activation": "sha256:c53634d30a3a7ca3703b29e6ee17d38a5bdf1c1aa54508e6b9e97ca21cbe4c68",
+        "evidence": [
+          "sha256:452fc4f229ed4e9f7ddd14c23d7abb81f96fcd37780c3cd5b9bccf470fa87201",
+          "sha256:0ea1ce469f6261b6b8824ad89ec44346509fd4777a05a984b923501c8ae6c8f2",
+          "sha256:c53634d30a3a7ca3703b29e6ee17d38a5bdf1c1aa54508e6b9e97ca21cbe4c68"
+        ]
+      },
+      "error": "WIST4-E05"
+    }
+  ],
   "retired_escalation_cases": [
     {
       "label": "escalation_l2 has no numeric mapping",

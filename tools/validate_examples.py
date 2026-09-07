@@ -3356,6 +3356,13 @@ def _dc4_notice_targets():
     assert stale["accepted_indices"] and stale["activation_after_reversal"] is not None
 check("vectors:wist4-notice-targets", _dc4_notice_targets)
 
+def _dc4_notice_evidence():
+    from notice_evidence import evaluate
+    for case in _sanctions_vector()["notice_evidence_cases"]:
+        assert evaluate(case) == case["error"], case["label"]
+check("vectors:wist4-notice-evidence", _dc4_notice_evidence)
+
+
 def _dc4_sanction_transitions_twin():
     cases = _sanctions_vector()["transition_cases"]
     aging = next(c for c in cases if c["label"] == "level two survives evidence aging")

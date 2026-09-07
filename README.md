@@ -91,7 +91,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0015](decisions/0015-recovery-window-settlement.md) — What a recovery window admits, supersedes and settles
 - [ADR-0016](decisions/0016-audit-reference-follows-the-chain.md) — The audit reference is the chain tip at fetch
 - [ADR-0017](decisions/0017-one-pinned-unicode-version.md) — One pinned Unicode version for the whole suite
-- [ADR-0018](decisions/0018-confirmation-and-sanctions.md) — Sanction rungs latch until reversed
+- [ADR-0018](decisions/0018-confirmation-and-sanctions.md) — Confirmation, sanction activations and due process
 - [ADR-0019](decisions/0019-audit-duty-accounting.md) — Audit duty accounting from authenticated Log prefixes
 - [ADR-0020](decisions/0020-parameter-schedules.md) — Parameter combinations validate the prospective schedule
 
