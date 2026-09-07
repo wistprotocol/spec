@@ -1876,6 +1876,494 @@
         },
         "error": null,
         "admitted_key": "admitted-k1"
+      },
+      {
+        "label": "same head checkpoint citation 0 forward",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-04T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": null,
+        "admitted_key": "admitted-k1"
+      },
+      {
+        "label": "same head checkpoint citation 0 reversed",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-04T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": null,
+        "admitted_key": "admitted-k1"
+      },
+      {
+        "label": "same head checkpoint citation 1 forward",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-04T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "zDov83LbqHDXAzgdGgSMkzuGPFzOyy2AJkmfy_pzH4uEfA5wcbjw3EeCM9LCYSQDsyJtWhHESIbiVdBVX__MAA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": "WIST4-E04",
+        "admitted_key": null
+      },
+      {
+        "label": "same head checkpoint citation 1 reversed",
+        "history": [
+          {
+            "height": 1,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_register",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-02T12:00:00Z",
+                "details": {
+                  "key_id": "observer-k1",
+                  "alg": "Ed25519",
+                  "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "OwfFQGk9SbPToB_9puRYEneugOxp3kkeHjSR_s_MF_VKg7Bn3YmW7NI96AaSTXb-UHLsmyDL9GzSwnmjRQu5BQ"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-04T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+              }
+            }
+          },
+          {
+            "height": 2,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "action": "observer_checkpoint",
+                "subject": "watch.sample.net",
+                "effective_at": "2026-08-03T12:00:00Z",
+                "details": {
+                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                }
+              },
+              "sig": {
+                "key_id": "observer-k1",
+                "alg": "Ed25519",
+                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+              }
+            }
+          }
+        ],
+        "admission_height": 4,
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "auditor_admit",
+            "subject": "watch.sample.net",
+            "effective_at": "2026-08-05T12:00:00Z",
+            "details": {
+              "key_id": "admitted-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "track_record": {
+                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "scoreboard": {
+                  "provisional": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "standing": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "mature": [
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "zDov83LbqHDXAzgdGgSMkzuGPFzOyy2AJkmfy_pzH4uEfA5wcbjw3EeCM9LCYSQDsyJtWhHESIbiVdBVX__MAA"
+          }
+        },
+        "recomputed_scoreboard": {
+          "provisional": [
+            0,
+            0,
+            0
+          ],
+          "standing": [
+            0,
+            0,
+            0
+          ],
+          "mature": [
+            0,
+            0,
+            0
+          ]
+        },
+        "error": "WIST4-E04",
+        "admitted_key": null
       }
     ]
   }

@@ -677,3 +677,24 @@ resulting roster and bars under ADR-0012.
 An exit cannot neutralize simultaneous evidence. Both stored orders reject
 same-Block and later re-admission of a subject removed for cause. A lone
 exit continues to permit rotation under a fresh key.
+
+## Checkpoint citations break same-height ties by ID
+
+### Context
+
+An admission must cite the newest sealed checkpoint for a former Observer.
+Two distinct checkpoints can seal at one height and name the same head.
+Neither sealing time nor chain reachability selects which ID to cite.
+
+### Decision
+
+Choose the highest checkpoint sealing height at or below admission, then
+the greatest Registry Update ID in octet order among otherwise-valid
+checkpoints for that subject at that height. A different citation is
+`WIST4-E04`, as an invalid track-record reference.
+
+### Consequences
+
+Every replay selects the same ID regardless of stored Entry order. The
+tie-break changes neither checkpoint coverage nor the scoreboard's
+evidentiary status and creates no discretionary admission threshold.

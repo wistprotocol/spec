@@ -1936,7 +1936,8 @@ def _dc4_admission_evidence():
         if was_observer:
             valid = False
             if track is not None and checkpoints:
-                newest = max(checkpoints, key=lambda e:e["height"])["envelope"]["update"]
+                newest = max(checkpoints, key=lambda e:(e["height"], hashlib.sha256(
+                    rfc8785.dumps(e["envelope"]["update"])).digest()))["envelope"]["update"]
                 ident = "sha256:" + hashlib.sha256(rfc8785.dumps(newest)).hexdigest()
                 valid = track["checkpoint"] == ident
         assert (None if valid else "WIST4-E04") == case["error"], case["label"]

@@ -3493,6 +3493,21 @@ for label, registered, checkpoint_indices, selected_checkpoint, declared_board, 
         "recomputed_scoreboard": admission_board, "error": error,
         "admitted_key": "admitted-k1" if valid else None})
 
+for selected in (0, 1):
+    for reverse in (False, True):
+        details = {"key_id": "admitted-k1", "alg": "Ed25519", "public_key": b64u(pub4_raw),
+            "track_record": {"checkpoint": admission_checkpoint_ids[selected], "scoreboard": admission_board}}
+        envelope = sign_envelope("update", {"wist_version": "1.0.0", "action": "auditor_admit",
+            "subject": ADMISSION_SUBJECT, "effective_at": "2026-08-05T12:00:00Z", "details": details}, "test-agg-k1")
+        order = (1, 0) if reverse else (0, 1)
+        history = [{"height": 1, "envelope": admission_registration}] + [
+            {"height": 2, "envelope": admission_checkpoints[i]} for i in order]
+        valid = admission_checkpoint_ids[selected] == max(admission_checkpoint_ids)
+        admission_cases.append({"label": "same head checkpoint citation " + str(selected) + (" reversed" if reverse else " forward"),
+            "history": history, "admission_height": 4, "envelope": envelope,
+            "recomputed_scoreboard": admission_board, "error": None if valid else "WIST4-E04",
+            "admitted_key": "admitted-k1" if valid else None})
+
 write_json(WIST4 / "roster.json", spaced_labels({
     "note": ("WIST-4 §3, §4 roster derivation: per case a Log prefix of roster "
              "acts in Log order, the indices a replayer rejects (WIST4-E07), and "

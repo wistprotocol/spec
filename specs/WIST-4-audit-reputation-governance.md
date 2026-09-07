@@ -436,7 +436,13 @@ not registered at its Block, or whose `head` is not an Audit Record or
 has a sealed `observer_register` at or below the admit's Block MUST
 carry `details.track_record` (§9.1): the ID of the newest sealed
 `observer_checkpoint` for that `subject`, and the scoreboard §5.2
-derives for it at the admit's Block, per tier. One without it is
+derives for it at the admit's Block, per tier. Newest means the highest
+sealing height at or below the admit's Block among otherwise-valid
+checkpoints for that subject; if several distinct checkpoint IDs share
+that height, choose the greatest Registry Update ID (§7) in octet order.
+This tie rule also applies when the checkpoints name the same chain head
+and does not read stored Entry position. A citation of any other ID is
+`WIST4-E04`. One without it is
 `WIST4-E04`, and one whose `subject` was never an Observer MUST NOT carry
 it, there being no record for it to cite. The scoreboard is derivable by
 anyone while the reveals it reads are live — §5.1 keeps each live for
