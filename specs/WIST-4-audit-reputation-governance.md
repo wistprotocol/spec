@@ -1233,10 +1233,19 @@ than `audit_domain_budget_bytes_day` (default 1 GiB) of Payloads and
 audited URLs for one domain in one UTC day; it MUST NOT follow more than
 `audit_redirect_max` (default 5) redirects for one fetch, and MUST NOT
 wait longer than `audit_fetch_timeout_seconds` (default 30) for one. A
-fetch stopped by the byte cap or the daily budget yields `not_auditable`,
-and that Record is a **blocking Record** below. One stopped by the
-redirect ceiling or the timeout yields `unreachable`, which is where
-transport failure already lands.
+URL fetch stopped by the byte cap or the daily budget yields
+`not_auditable` with `unmeasured = observed`, a **blocking Record** below,
+when a verified Reference Payload with nonempty normalized extract is
+available. If the daily budget prevents obtaining that Reference Payload,
+the reference-absence rule takes precedence: the Record is `not_auditable`
+with `unmeasured = reference` and is nonblocking, even if the same budget
+also prevents the URL fetch. Exhaustion after a usable reference has
+been obtained, including one already held, does not make that reference
+absent. This rule requires no particular order of the two fetches.
+A URL fetch stopped by the redirect ceiling or timeout yields
+`unreachable`, which is where transport failure on the observed side
+lands. A Reference Payload unavailable from every source because of
+either limit follows the same nonblocking reference-absence rule.
 
 The bounds exist for the reason §4's integers exist. Two honest Auditors
 whose clients differ in what they will read reach different verdicts on the
@@ -2999,10 +3008,10 @@ as for the cases above. `audit_domain_budget_bytes_day` MUST NOT be below
 `audit_fetch_cap_bytes` + `extract_cap_bytes` + `links_cap_bytes` +
 `summary_cap_bytes` + 32 — the audited URL under its own cap plus the
 largest Payload WIST-1 §3.6 permits, which are the two fetches one audit
-makes (§5) — or the day's budget cannot cover a single audit of the domain
-and every Delta it publishes is `not_auditable` on arrival — which the
-blocking-Record rule then reads as a page nobody can measure rather than
-as a budget nobody could meet. `canary_reveal_min_blocks` ×
+makes (§5) — or the day's budget cannot cover a maximally sized audit of
+the domain. Otherwise-permitted response sizes would then force
+`not_auditable` through budget exhaustion, with its blocking side determined
+by §5. `canary_reveal_min_blocks` ×
 `block_cadence_seconds` MUST NOT be less than `coverage_deadline_hours` ×
 3600 + (`record_seal_blocks` + 2 × `epoch_blocks`) ×
 `block_cadence_seconds`: the last leaf's Records are due

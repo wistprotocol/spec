@@ -3217,10 +3217,34 @@ unauditable_cases += [
 assert [c["unauditable"] for c in unauditable_cases[-4:]] == [False, True, False, True], \
     "blocking-cause cases drifted"
 
+fetch_budget_cases = []
+for label, remaining, reference_bytes, observed_bytes, side in (
+    ("budget stops reference", 4096, 4097, 8192, "reference"),
+    ("reference completes exactly at budget", 4096, 4096, 8192, "observed"),
+    ("budget stops URL after reference", 4096, 2048, 8192, "observed"),
+    ("held reference with exhausted budget", 0, 0, 8192, "observed"),
+    ("no reference with exhausted budget", 0, 4096, 8192, "reference"),
+):
+    assert reference_bytes + observed_bytes > remaining
+    assert ("observed" if reference_bytes <= remaining else "reference") == side
+    fetch_budget_cases.append({"label": label, "daily_budget_bytes": 1073741824,
+        "bytes_already_spent": 1073741824 - remaining, "reference_bytes_needed": reference_bytes,
+        "observed_bytes_needed": observed_bytes,
+        "record": {"verdict": "not_auditable", "unmeasured": side},
+        "blocks": side == "observed", "two_independent_records_unauditable": side == "observed"})
+
+fetch_transport_cases = [{"label": side + " " + limit, "stopped_side": side, "limit": limit,
+    "record": {"verdict": "not_auditable", "unmeasured": "reference"} if side == "reference" else {"verdict": "unreachable"},
+    "blocks": False} for side in ("reference", "observed") for limit in ("timeout", "redirect ceiling")]
+
 write_json(WIST4 / "unauditable.json", spaced_labels({
     "note": "WIST-4 §5 unauditable predicate at Block N. blocking are the URL's Records that may block — robots_excluded Records and not_auditable Records with their `unmeasured` side, `blocks` saying whether each does — other_records its Records of any other verdict, both as (auditor, sealing instant).",
     "unauditable_horizon_days": UNAUDITABLE_HORIZON_DAYS,
     "clearing_verdicts": list(CLEARING_VERDICTS),
+    "fetch_budget": {"note": "Concrete reference-first fetch traces; the protocol does not require that order. All completed references verify and have nonempty extracts. Zero reference bytes needed means a usable reference is already held. No timeout, redirect or URL cap intervenes. The daily budget alone stops each trace; two independent same-URL Records are queried at their sealing Block without a clearing Record.",
+        "cases": fetch_budget_cases},
+    "fetch_transport": {"note": "A reference-side interruption leaves the reference unavailable from every source; observed-side cases already hold a verified nonempty reference. No byte limit or robots exclusion intervenes. These cases isolate outcome classification after the stated transport limit has stopped acquisition.",
+        "cases": fetch_transport_cases},
     "cases": unauditable_cases,
 }))
 print("wist4 unauditable vector written")

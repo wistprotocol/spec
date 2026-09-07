@@ -2460,6 +2460,35 @@ def _dc4_unmeasured_field():
         assert marker in prose, f"WIST-4 does not state: {marker!r}"
 check("schema:wist4-unmeasured", _dc4_unmeasured_field)
 
+def _dc4_fetch_budget():
+    v = _unauditable_vector()
+    for case in v["fetch_budget"]["cases"]:
+        remaining = case["daily_budget_bytes"] - case["bytes_already_spent"]
+        delivered_reference = min(remaining, case["reference_bytes_needed"])
+        remaining -= delivered_reference
+        assert remaining < case["observed_bytes_needed"]
+        side = "reference" if delivered_reference < case["reference_bytes_needed"] else "observed"
+        record = {"verdict": "not_auditable", "unmeasured": side}
+        assert record == case["record"], case["label"]
+        assert _record_blocks(record) == case["blocks"]
+        pair = [{"auditor": aid, "sealed_at_s": 0, **record}
+                for aid in ("audit.example.net", "check.sample.org")]
+        probe = {"blocking": pair, "other_records": [], "n_sealed_at_s": 0}
+        assert _unauditable_at(v, probe) == case["two_independent_records_unauditable"]
+        if side == "reference":
+            assert _record_blocks(record, every_not_auditable=True) != case["blocks"]
+check("vectors:wist4-fetch-budget", _dc4_fetch_budget)
+
+def _dc4_fetch_transport():
+    for case in _unauditable_vector()["fetch_transport"]["cases"]:
+        assert case["limit"] in ("timeout", "redirect ceiling")
+        reference_available = case["stopped_side"] != "reference"
+        record = {"verdict": "unreachable"} if reference_available else {
+            "verdict": "not_auditable", "unmeasured": "reference"}
+        assert record == case["record"]
+        assert _record_blocks(record) == case["blocks"]
+check("vectors:wist4-fetch-transport", _dc4_fetch_transport)
+
 def _coverage_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
 

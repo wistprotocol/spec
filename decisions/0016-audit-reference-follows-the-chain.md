@@ -4,142 +4,103 @@
 
 ## Context
 
-WIST-4 §5 fixed an audit's Reference Payload by the audited Delta alone,
-and WIST-3 §6.1 stated that the resolution "carries no liveness
-qualifier" by design, so that a Record audited honestly would keep
-verifying after a later `update` moved the URL's anchor. The Aggregator
-retains superseded Payloads for one availability window after
-supersession precisely so the superseded Delta stays auditable.
+An honest Publisher may rewrite a page and seal its update while a previous
+Delta remains inside its audit window. Comparing every later fetch with
+the old Payload can classify the legitimate rewrite as fabricated content.
+Summoning independent Auditors does not cure that mismatch: they all see
+the same updated page. Historical verification needs a reference fixed
+when a Record is written, rather than a reference permanently tied to the
+Delta that originally triggered selection.
 
-Under that rule an honest Publisher that rewrites a page and seals the
-rewrite while the previous Delta is still inside its audit window is
-measured, by every Auditor fetching after the rewrite, against text it
-has already replaced. A thorough rewrite scores a containment near zero,
-which §7 reads as severity 3 — fabricated content — and a single
-severity-3 Confirmed Inconsistency is level 3 of the sanction ladder.
-The extension rule makes confirmation near-certain: it summons every
-independent Auditor *after* the first `inconsistent`, and every one of
-them sees the same rewrite. For a URL that changes faster than the audit
-window this is not a race but the steady state. The sentence in §5
-claiming that independent confirmation "absorbs … legitimate change
-between push and audit" held only for change that differs by vantage or
-by moment, never for change the Publisher sealed.
-
-The verifiability argument behind the old rule does not require the
-reference to be the audited Delta. It requires that the reference not
-*move* after the Record is written. Naming the reference in the Record
-satisfies that with any Delta in the chain.
+WIST-4 §§3–5 define Record validity, selection and measurement; WIST-1 §3.3
+and WIST-3 §6.1 define Payload anchoring and availability. WIST-4 §9 fixes
+the parameter profile used to interpret the measured text.
 
 ## Decision
 
-Every Audit Record carries `reference_delta`: the newest Delta of the
-audited Delta's per-URL chain sealed in a Block whose `sealed_at` is at
-or before the Record's `fetched_at`. The Reference Payload is the anchor
-as of that Delta — its own Payload where it is content-bearing, the last
-content-bearing Payload at or before it otherwise — and the change type
-read for the `delete` mirror, the link dimension and `C` is the
-reference Delta's. The salt stays the Reference Payload's.
+### Reference identity
 
-A validator recomputing reputation rejects, as malformed evidence, a
-reference outside the audited Delta's chain, before the audited Delta in
-it, or sealed after `fetched_at`. Whether the Auditor named the newest
-qualifying Delta rather than an older one is not decidable from the Log;
-it is a false statement of the same class as a false `similarity` and
-meets the same answer — a second independent Auditor, and contradiction
-for a lone stale filing.
+Each Audit Record names `reference_delta`: the newest Delta of the audited
+Delta's per-URL chain sealed at or before `fetched_at`. The Reference
+Payload is that Delta's anchor: its own Payload if content-bearing, or the
+last content-bearing Payload at or before it otherwise. Its change type
+governs the delete mirror, link dimension and `C`; its salt governs the
+Record's commitments.
 
-Selection, coverage, the extension rule, confirmation, the confirming
-Block, severity and the one-penalty-per-Delta rule stay keyed by
-`audited_delta`. Only what the similarity is read against changes.
+A reference outside the audited chain, before the audited Delta or sealed
+after the fetch is malformed evidence. Whether an Auditor named the newest
+qualifying Delta rather than an older eligible one is a statement subject
+to independent audit and contradiction, like the claimed similarity.
+Selection, coverage, extension triggers, confirmation, severity and the
+one-penalty-per-Delta rule remain keyed by `audited_delta`.
+
+### Extraction and scoring profile
+
+Read shingle size, observed-word mass guard and both similarity thresholds
+at the audited Delta's Block for Record production and hard-hit scoring.
+This applies to ordinary and extension audits by Auditors and Observers.
+The reference Delta and later publication, checkpoint, reveal and query
+instants cannot move the profile. Observer Records need no individual
+sealing Block to supply this anchor.
+
+An unchanged Record therefore retains its extract-band interpretation after
+a parameter change. The reveal separately anchors its availability and
+scoring-window duration. Unicode interpretation and the delete mirror
+remain the document's fixed rules.
+
+### Reference availability and fetch limits
+
+When a daily budget prevents obtaining a verified Reference Payload with
+a nonempty normalized extract, record `not_auditable` with
+`unmeasured = reference`, which is nonblocking. The same applies when all
+reference sources fail under timeout or redirect limits. If a usable
+reference is available and the audited URL fetch exhausts the byte budget,
+use `unmeasured = observed`, blocking. A previously obtained reference
+remains available when the budget expires. No fetch order is prescribed.
+
+The `unreachable` result for transport limits concerns the audited URL
+fetch with a usable reference available. Missing reference evidence must
+not become evidence that the Publisher's page is unmeasurable. The sealed
+side makes the blocking distinction replayable without reconstructing
+the Auditor's network budget.
+
+### Publication timing
+
+There is no minimum delay from the audited Block to fetching. The
+Publisher controls when it sends its Ping and can wait for its content to
+propagate; `observed_at` asserts the page already matches the declaration.
+A stale edge can still produce a false inconsistency. Contradiction then
+escalates the audited domain's sampling without itself removing the
+Auditor, under [ADR-0012](0012-auditor-track-record-becomes-derivable.md).
 
 ## Alternatives considered
 
-**Similarity as the maximum over the audited Delta's Payload and every
-later content-bearing Payload sealed before the Record's Block.** Keeps
-the audited Delta's salt and needs no new member. Rejected because it is
-defeated without detecting the fetch: a Publisher alternating a false
-`update` and a true one hourly has, for every audit of a false Delta, a
-true Delta sealed before the Record's Block — Records seal days after
-the fetch — so the maximum reads `consistent` and the index carries the
-false claim half the time, uncaught.
+**Maximum similarity across the audited Payload and later Payloads.** A
+Publisher could alternate false and true updates and use a later truthful
+Payload to excuse a false claim. Reading the reference at fetch time
+prevents an update after the fetch from repairing that Record's reference.
 
-**A neutral verdict whenever a later Delta exists.** Rejected because a
-Publisher that follows every Delta with an `update` is never measured.
+**A neutral verdict whenever an update follows.** A Publisher could avoid
+measurement simply by continually updating.
 
-**Keying Confirmed Inconsistencies by `reference_delta`.** One penalty
-per declared state that was not served, rather than per audited Delta.
-More principled, and a larger revision: confirmation pairs, the
-extension rule's summons and the confirming-Block selection would all
-regroup by reference. Deferred; a lie served while k Deltas were audited
-can yield up to k penalties under this decision, each for a Delta the
-Publisher sealed under that lie, and the narrower change can return as
-its own decision if that proves wrong in practice.
+**Confirming by `reference_delta` instead of `audited_delta`.** This would
+regroup confirmation, extension summons and penalty identity. The chosen
+design preserves one finding identity per selected Delta; a lie served
+while several Deltas are audited can therefore produce several penalties.
 
-## Consequences
+**A mandatory fetch delay.** A Publisher that already controls propagation
+and its Ping can also time a delayed audit. A fixed delay adds a timing
+rule without making every cache settle or establishing honest delivery.
 
-- The Record schema gains a REQUIRED member. Verdicts change for any
-  audit whose chain advanced before the fetch, so this is a revision.
-- WIST-3 §6.1's serving window after supersession now exists to keep
-  sealed Records verifiable; fresh audits read the current anchor.
-- An Auditor behind on the Log names a stale tip and is contradicted,
-  at a cost bounded by `contradictions_max`.
-- A Publisher that answers a sealed `inconsistent` with a truthful
-  `update` before the summoned Auditors fetch has them resolve the new
-  tip and file `consistent`, which contradicts the honest filer under §4
-  and counts toward its `contradictions_max`. The cost lands on the
-  Auditor, bounded by that parameter, and it is the same cloaked-vantage
-  class §4's contradiction rule already accepts.
-- Change the Publisher seals before the fetch is absorbed; change that
-  propagates to the served page after its Delta seals is not, and is
-  left named rather than solved.
-- Every later construction keyed by "the Reference Payload's salt"
-  reads the reference Delta's.
-- `vectors/wist4/superseded-audit.json` carries the cases that separate
-  this rule from the rejected maximum: a reference sealed after the
-  fetch is rejected, a stale reference is valid and measured.
+## Consequences and verification
 
-## no minimum fetch delay
+Naming the reference keeps a Record verifiable after later updates.
+Superseded Payload retention supports that verification; fresh audits read
+the current anchor. A truthful update after an inconsistent fetch can make
+later Auditors report consistency, which is why contradiction increases
+scrutiny without itself proving misconduct by the original filer.
 
-The Consequences leave change that propagates to the served page after
-its Delta seals named rather than solved, and a minimum fetch delay in
-Blocks — a floor on `fetched_at` some cadences above the audited Block's
-`sealed_at`, so that caches settle before the first fetch — was the
-candidate remedy. It is not adopted.
-
-The Publisher holds both instants the race runs between: it purges its
-caches and it sends the Ping (WIST-2 §4), so it can ping when propagation
-is done, and its Delta's `observed_at` asserts the page already is what
-the Delta describes. An Auditor that fetches at the audited Block's
-`sealed_at` and meets a stale edge files `inconsistent`; the Auditors
-§4's extension rule summons fetch after *B₁* seals, at least one cadence
-later, and file `consistent`; the first filer is contradicted at a cost
-bounded by `contradictions_max` — the class the Consequences already
-accept, landing on the party that fetched early. A fixed delay would
-shift the same race later by a constant, protect only the Publishers
-whose propagation happens to fit inside it, and add a Registry parameter
-to §3's fetch interval for that. The incentive as it stands already
-points the eager Auditor at a later fetch, and no section is changed.
-
-## Extraction and hard-hit profiles follow the audited Delta
-
-### Context
-
-A Record fixed before a threshold amendment can acquire a hard hit when
-scored afterward under the amended value. Pinning the scoring window at
-reveal does not determine the extraction or verdict-band profile. Observer
-Records need not have individual sealing Blocks to supply an anchor.
-
-### Decision
-
-Read shingle size, observed-word mass guard and both similarity thresholds
-at the audited Delta's Block, for Record production and hard-hit
-recomputation alike. This applies to ordinary and extension audits and
-admitted Auditors and Observers. The reference Delta and later publication, checkpoint,
-reveal and query instants do not move the profile.
-
-### Consequences
-
-An unchanged Record keeps the same extract-band interpretation across
-amendments. The Log supplies the anchor even for unsealed Observer Records.
-The reveal still anchors its serving and scoring-window duration; the
-Unicode version and delete mirror remain the document's fixed rules.
+`vectors/wist4/superseded-audit.json` exercises reference eligibility;
+`canary.json` exercises scoring profiles; `unauditable.json` exercises the
+observed/reference distinction. Live retrieval, budget exhaustion and
+evidence capture additionally require the WIST-4 role checks.
