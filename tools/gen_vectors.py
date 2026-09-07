@@ -3254,14 +3254,15 @@ def roster_replay(log_id, entries):
     instants = sorted({e["sealed_at_s"] for e in entries})
     for t in instants:
         at_t = [(i, e) for i, e in enumerate(entries) if e["sealed_at_s"] == t]
+        incumbent = dict(key_of)
         for i, e in at_t:
             if e["action"] != "auditor_remove":
                 continue
-            held = key_of.get(e["auditor_id"])
+            held = incumbent.get(e["auditor_id"])
             if held is None or held[0] != e["key_id"]:
                 rejected.append(i)
                 continue
-            del key_of[e["auditor_id"]]
+            key_of.pop(e["auditor_id"], None)
             retired.update(held)
             if e.get("evidence"):
                 barred.add(e["auditor_id"])
@@ -3376,6 +3377,16 @@ roster_scenarios = [
       roster_entry(7200, "auditor_admit", AUD_R, "k4")],
      [(AUD_R, 3599), (AUD_R, 3600), (AUD_R, 7200)]),
 ]
+for exit_first in (True, False):
+    removals = [roster_entry(3600, "auditor_remove", AUD_R, "k1"),
+                roster_entry(3600, "auditor_remove", AUD_R, "k1", evidence=["sha256:void-record"])]
+    if not exit_first:
+        removals.reverse()
+    roster_scenarios.append(("exit before cause" if exit_first else "cause before exit",
+        [roster_entry(0, "auditor_admit", AUD_R, "k1"), *removals,
+         roster_entry(3600, "auditor_admit", AUD_R, "k2"),
+         roster_entry(7200, "auditor_admit", AUD_R, "k3")],
+        [(AUD_R, 3599), (AUD_R, 3600), (AUD_R, 7200)]))
 roster_cases = [
     {"label": label, "log_id": ROSTER_LOG_ID, "entries": entries,
      "rejected_indices": roster_replay(ROSTER_LOG_ID, entries),
@@ -3386,7 +3397,7 @@ roster_cases = [
     for label, entries, queries in roster_scenarios
 ]
 assert [c["rejected_indices"] for c in roster_cases] == \
-    [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2], [1], [1], [2], [1], [2], [2, 3]], "roster rejections drifted"
+    [[], [1], [2], [2], [], [], [0], [1, 2], [0, 1], [2], [1], [1], [2], [1], [2], [2, 3], [3, 4], [3, 4]], "roster rejections drifted"
 def roster_batch(initial, acts):
     rejected = {i for i, a in enumerate(acts)
                 if sum(b["action"] == a["action"] and b["subject"] == a["subject"] for b in acts) > 1}

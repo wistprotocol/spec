@@ -313,7 +313,14 @@ ends at nothing else: an Observer that stops publishing has a chain that
 stops, and nothing more.
 
 **Simultaneous roster acts are a batch.** Apply admitted-key removals
-first (§4). Resolve the Block's admissions and Observer registrations
+first (§4). Validate every removal against the admitted-key map immediately
+before the Block, before applying any of its roster acts. Distinct valid
+removals of the same held key all take effect: retire that key once, and
+bar its subject if **any** of those removals carries evidence. A removal
+of a key absent from that pre-Block map is `WIST4-E07` and contributes
+neither retirement nor a bar. Thus an exit cannot cancel a simultaneous
+removal for cause by appearing earlier in the Block.
+Resolve the Block's admissions and Observer registrations
 against that resulting incumbent map, in these stages:
 
 1. Reject every `auditor_admit` in a same-subject admission group of

@@ -1966,12 +1966,13 @@ def _roster_replay(log_id, entries):
         by_instant.setdefault(e["sealed_at_s"], []).append((i, e))
     for t in sorted(by_instant):
         acts = by_instant[t]
+        incumbent = dict(holding)
         for i, e in [x for x in acts if x[1]["action"] == "auditor_remove"]:
-            if holding.get(e["auditor_id"], (None,))[0] != e["key_id"]:
+            if incumbent.get(e["auditor_id"], (None,))[0] != e["key_id"]:
                 rejected.append(i)
                 continue
             retired.add(e["key_id"])
-            retired.add(holding[e["auditor_id"]][2])
+            retired.add(incumbent[e["auditor_id"]][2])
             holding[e["auditor_id"]] = (None, t, None)
             if e.get("evidence"):
                 barred.add(e["auditor_id"])
@@ -2102,6 +2103,21 @@ def _dc4_roster_twin():
     assert _roster_replay(case["log_id"], fresh) == [3], \
         "recomputation is blind to the public_key a re-admission names"
 check("negative:wist4-roster", _dc4_roster_twin)
+
+def _dc4_removal_batch():
+    for case in _roster_vector()["cases"]:
+        if case["label"] not in ("exit before cause", "cause before exit"):
+            continue
+        entries = case["entries"]
+        assert _roster_replay(case["log_id"], entries) == [3, 4]
+        without_cause = [e for e in entries if not e.get("evidence")]
+        assert _roster_replay(case["log_id"], without_cause) == [3]
+        for permutation in itertools.permutations(entries[1:4]):
+            shuffled = [entries[0], *permutation, entries[4]]
+            rejected = _roster_replay(case["log_id"], shuffled)
+            assert all((i in rejected) == (e["action"] == "auditor_admit" and i > 0)
+                       for i, e in enumerate(shuffled))
+check("vectors:wist4-removal-batch", _dc4_removal_batch)
 
 def _selection_domain_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "selection-domain.json").read_text())

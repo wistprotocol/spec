@@ -654,3 +654,26 @@ Use actual epochs, rosters and anchored seal counts.
 Roster and parameter changes cannot make a numeric bound stand in for a
 service opportunity that never occurred. Churn can prevent revelation
 before the commitment's unchanged lifetime; expiry then scores nothing.
+
+## Simultaneous removals read the incumbent roster
+
+### Context
+
+Applying removals sequentially lets an exit make a simultaneous removal
+for cause invalid: the second act names a key no longer held. Reversing
+their stored order instead bars the subject permanently, contrary to the
+Block-granular roster rule.
+
+### Decision
+
+Validate every removal against the admitted roster immediately before its
+Block. All valid removals take effect together. Retire each removed key
+once; bar its subject if any valid removal carries evidence. Invalid
+removals contribute nothing. Admissions and registrations then read the
+resulting roster and bars under ADR-0012.
+
+### Consequences
+
+An exit cannot neutralize simultaneous evidence. Both stored orders reject
+same-Block and later re-admission of a subject removed for cause. A lone
+exit continues to permit rotation under a fresh key.
