@@ -2354,6 +2354,7 @@
     ]
   },
   "process": {
+    "note": "Each notice's activation and evidence are supplied valid premises. Unless a case gives activation_sealed_at_s, its target was armed below the notice Block. Explicit activation-Block cases supply the new severity-3 finding and exercise its timing with rung replay.",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "notice_sealed_at_s": 0,
     "notice": {
@@ -4133,6 +4134,315 @@
               "merits_index": null,
               "unappealed_index": null,
               "void_at_s": 1814400
+            }
+          }
+        ]
+      },
+      {
+        "label": "activation Block overturned alone",
+        "notice": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "notice",
+            "subject": "page.publisher.test",
+            "effective_at": "2026-08-02T00:00:00Z",
+            "details": {
+              "kind": "sanction",
+              "level": 3,
+              "activation": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "reason": "confirmed evidence",
+              "appeal_deadline": "2026-08-16T00:00:00Z"
+            },
+            "evidence": [
+              "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "iHRgrrk-BuksS1kDfLnksxt5QdAe9FVTXnWvX1RayJQHa6DtE8-aBEYIn2gfucGjaPifqFfoEviCdr5jY1QXAQ"
+          }
+        },
+        "activation_sealed_at_s": 0,
+        "activation_severity": 3,
+        "acts": [
+          {
+            "sealed_at_s": 0,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "action": "appeal",
+                "details": {
+                  "notice": "sha256:dfc2ba9f102c4b2090bd08d49a68a3ed7a8fcabaeac2ec87d335f29baf1043e4"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "KYSuiFyPsVIIBHcsHBO_VJ9p0DQGV42DDk2T-dfdqk_iLN7xliWzZH_10hz_zePJjKoYgf0ZJERvkRfdSvCjCw"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 0,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "action": "appeal_ruling",
+                "details": {
+                  "notice": "sha256:dfc2ba9f102c4b2090bd08d49a68a3ed7a8fcabaeac2ec87d335f29baf1043e4",
+                  "outcome": "overturned",
+                  "reasoning": "activation ruling 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "ijLuTE_fi2pNjJND620jFtFBbaSzinyuR84cm53oBx-hck8HiADBj2j5SWV4GSckteILEDCO2JB0zhZrw7v6Ag"
+              }
+            }
+          }
+        ],
+        "same_block_ruling_error": "WIST4-E05",
+        "levels": [
+          3,
+          3
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 3600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          }
+        ]
+      },
+      {
+        "label": "activation Block overturned with later ruling",
+        "notice": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "notice",
+            "subject": "page.publisher.test",
+            "effective_at": "2026-08-02T00:00:00Z",
+            "details": {
+              "kind": "sanction",
+              "level": 3,
+              "activation": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "reason": "confirmed evidence",
+              "appeal_deadline": "2026-08-16T00:00:00Z"
+            },
+            "evidence": [
+              "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "iHRgrrk-BuksS1kDfLnksxt5QdAe9FVTXnWvX1RayJQHa6DtE8-aBEYIn2gfucGjaPifqFfoEviCdr5jY1QXAQ"
+          }
+        },
+        "activation_sealed_at_s": 0,
+        "activation_severity": 3,
+        "acts": [
+          {
+            "sealed_at_s": 0,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "action": "appeal",
+                "details": {
+                  "notice": "sha256:dfc2ba9f102c4b2090bd08d49a68a3ed7a8fcabaeac2ec87d335f29baf1043e4"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "KYSuiFyPsVIIBHcsHBO_VJ9p0DQGV42DDk2T-dfdqk_iLN7xliWzZH_10hz_zePJjKoYgf0ZJERvkRfdSvCjCw"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 0,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "action": "appeal_ruling",
+                "details": {
+                  "notice": "sha256:dfc2ba9f102c4b2090bd08d49a68a3ed7a8fcabaeac2ec87d335f29baf1043e4",
+                  "outcome": "overturned",
+                  "reasoning": "activation ruling 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "ijLuTE_fi2pNjJND620jFtFBbaSzinyuR84cm53oBx-hck8HiADBj2j5SWV4GSckteILEDCO2JB0zhZrw7v6Ag"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 3600,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "action": "appeal_ruling",
+                "details": {
+                  "notice": "sha256:dfc2ba9f102c4b2090bd08d49a68a3ed7a8fcabaeac2ec87d335f29baf1043e4",
+                  "outcome": "overturned",
+                  "reasoning": "activation ruling 2"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "bjNoaI3wFULcyfV4OIz2zhtmiBmNMmBk2_oVTCG4-lPcFxmykLBm9l0bhWRWVGmDkoiIcElKM-YyQ9gXBFRzCA"
+              }
+            }
+          }
+        ],
+        "same_block_ruling_error": "WIST4-E05",
+        "levels": [
+          3,
+          1
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 3600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": 2,
+              "unappealed_index": null,
+              "void_at_s": 3600
+            }
+          }
+        ]
+      },
+      {
+        "label": "activation Block upheld alone",
+        "notice": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "notice",
+            "subject": "page.publisher.test",
+            "effective_at": "2026-08-02T00:00:00Z",
+            "details": {
+              "kind": "sanction",
+              "level": 3,
+              "activation": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "reason": "confirmed evidence",
+              "appeal_deadline": "2026-08-16T00:00:00Z"
+            },
+            "evidence": [
+              "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "iHRgrrk-BuksS1kDfLnksxt5QdAe9FVTXnWvX1RayJQHa6DtE8-aBEYIn2gfucGjaPifqFfoEviCdr5jY1QXAQ"
+          }
+        },
+        "activation_sealed_at_s": 0,
+        "activation_severity": 3,
+        "acts": [
+          {
+            "sealed_at_s": 0,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "action": "appeal",
+                "details": {
+                  "notice": "sha256:dfc2ba9f102c4b2090bd08d49a68a3ed7a8fcabaeac2ec87d335f29baf1043e4"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "KYSuiFyPsVIIBHcsHBO_VJ9p0DQGV42DDk2T-dfdqk_iLN7xliWzZH_10hz_zePJjKoYgf0ZJERvkRfdSvCjCw"
+              }
+            }
+          },
+          {
+            "sealed_at_s": 0,
+            "envelope": {
+              "update": {
+                "wist_version": "1.0.0",
+                "subject": "page.publisher.test",
+                "effective_at": "2026-08-02T00:00:00Z",
+                "action": "appeal_ruling",
+                "details": {
+                  "notice": "sha256:dfc2ba9f102c4b2090bd08d49a68a3ed7a8fcabaeac2ec87d335f29baf1043e4",
+                  "outcome": "upheld",
+                  "reasoning": "activation ruling 1"
+                }
+              },
+              "sig": {
+                "key_id": "test-process-k1",
+                "alg": "Ed25519",
+                "value": "qz31EREBEp3M26ZaPa2J6WCXj-eRZMbAThCrcdM3xKd3DaDHsRNvIdGtIxIrcOfRWp3Q0yW9e7SN3xQBeyR0Dw"
+              }
+            }
+          }
+        ],
+        "same_block_ruling_error": "WIST4-E05",
+        "levels": [
+          3,
+          3
+        ],
+        "probes": [
+          {
+            "n_s": 0,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
+            }
+          },
+          {
+            "n_s": 3600,
+            "expected": {
+              "appeal_index": 0,
+              "merits_index": null,
+              "unappealed_index": null,
+              "void_at_s": null
             }
           }
         ]

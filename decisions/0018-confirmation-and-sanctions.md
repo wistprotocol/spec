@@ -155,3 +155,26 @@ closing endpoint. Ordinary Block retention reads its value at first service.
 Parameter changes cannot make a Mirror discard sealed evidence during an
 open proceeding. Multiple processes impose overlapping duties. The rule
 protects Blocks; Payload availability and withdrawal keep their own rules.
+
+## Merits rulings follow the target activation's Block
+
+### Context
+
+A notice can name an activation first armed in its own Block, and an
+appeal and merits ruling can otherwise share that Block. Reversals apply
+before confirming findings, when this target does not yet exist.
+
+### Decision
+
+Require a merits ruling to seal strictly above its target activation's
+Block. An earlier or same-Block ruling is ineligible (`WIST4-E05`), fills
+no ruling slot and schedules no deferred reversal. A notice and appeal
+may still seal in the activation's Block. A later distinct ruling follows
+the existing deadline and multiplicity rules.
+
+### Consequences
+
+Registry-before-finding replay remains unchanged. An overturning ruling
+can only clear an activation that already exists at its reversal phase.
+Same-Block appeals remain timely; rejection of an early ruling neither
+restarts the appeal clock nor prevents a subsequent eligible ruling.

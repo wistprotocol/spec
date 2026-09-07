@@ -3069,6 +3069,7 @@ def _process_prefix(process, case, n_s, reverse=False):
                     continue
                 outcome = inner["details"]["outcome"]
                 eligible = (outcome in ("upheld", "overturned") and timely
+                            and instant > case.get("activation_sealed_at_s", -1)
                             and instant <= appeal[1] + 30 * 86400) if slot == "merits" else (
                             outcome == "unappealed" and start + 14 * 86400 <= instant <= t and not timely)
                 if eligible:
@@ -3222,6 +3223,26 @@ def _dc4_sanction_transitions():
         assert active == case["active_rungs"], case["label"]
         assert [max(a, default=0) for a in active] == case["levels"], case["label"]
 check("vectors:wist4-sanction-transitions", _dc4_sanction_transitions)
+
+def _dc4_activation_block_rulings():
+    process = _sanctions_vector()["process"]
+    for case in process["cases"]:
+        if "activation_sealed_at_s" not in case:
+            continue
+        blocks = []
+        for height, probe in enumerate(case["probes"]):
+            state = _process_prefix(process, case, probe["n_s"])
+            assert _process_prefix(process, case, probe["n_s"], reverse=True) == state
+            blocks.append({"height": height, "sealed_at_s": probe["n_s"], "lift": False,
+                "void_levels": [3] if state["void_at_s"] == probe["n_s"] else [],
+                "findings": [{"entry_index": 0, "severity": case["activation_severity"]}] if height == 0 else []})
+        levels = [max(a, default=0) for a in _transition_rungs({"blocks": blocks})]
+        assert levels == case["levels"], case["label"]
+        assert case["same_block_ruling_error"] == "WIST4-E05"
+        assert _process_prefix(process, case, 0)["merits_index"] is None
+        older = case | {"activation_sealed_at_s": -3600}
+        assert _process_prefix(process, older, 0)["merits_index"] == 1
+check("vectors:wist4-activation-block-rulings", _dc4_activation_block_rulings)
 
 def _dc4_retired_escalations():
     v = _sanctions_vector()

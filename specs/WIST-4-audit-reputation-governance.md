@@ -2531,7 +2531,13 @@ Process requirements:
   Audit Records, as WIST-3 §3.3 requires. A `sanction_lift` clears all
   active rungs before that Block's findings. Notice-scoped reversals,
   including a deadline reached at that Block, also clear their target
-  before its new findings. Process new findings in confirming-Record
+  before its new findings. A merits ruling (`upheld` or `overturned`)
+  MUST seal strictly above the Block that first armed its notice's target;
+  one in that activation's own Block is `WIST4-E05`, fills no ruling slot
+  and causes no later deferred reversal. The notice and appeal may still
+  seal in the activation's Block. A later distinct eligible ruling may
+  fill the slot under the existing deadline and conflict rules.
+  Process new findings in confirming-Record
   order (§6.1). A finding in the lift's own Block can therefore rearm a
   rung; storage position of the lift does not put it after the finding.
 
@@ -2665,7 +2671,8 @@ Process requirements:
   Resolve appeal slots before rulings in the same Block, independent
   of Entry position. An `upheld` or `overturned` ruling is eligible only
   with that notice's timely appeal already sealed, in this Block or a
-  lower one, and at or before its ruling deadline. The first eligible
+  lower one, strictly above the target activation's Block, and at or
+  before its ruling deadline. The first eligible
   merits ruling closes that process. Distinct eligible merits rulings
   competing in one Block are all `WIST4-E05`; subsequent Blocks may
   supply one before the deadline. Once a merits ruling has been

@@ -3836,7 +3836,7 @@ for label, rows, expected in (
     sanction_transition_cases.append({"label": label, "blocks": blocks,
                                      "active_rungs": active, "levels": expected})
 
-def process_result(notice, acts, n_s):
+def process_result(notice, acts, n_s, activation_s=-1):
     if notice["update"]["details"]["kind"] != "sanction":
         return {"appeal_index": None, "merits_index": None, "unappealed_index": None, "void_at_s": None}
     notice_id = "sha256:" + sha256_hex(rfc8785.dumps(notice["update"]))
@@ -3862,6 +3862,7 @@ def process_result(notice, acts, n_s):
     appeal = first_slot([e for e in entries if e[2]["action"] == "appeal"])
     timely = appeal if appeal is not None and appeal[1] <= 21 * DAY_S else None
     merits = first_slot([e for e in entries if e[2]["action"] == "appeal_ruling"
+                        and e[1] > activation_s
                         and e[2]["details"]["outcome"] in ("upheld", "overturned")
                         and timely is not None and timely[1] <= e[1] <= timely[1] + 30 * DAY_S])
     unappealed = first_slot([e for e in entries if e[2]["action"] == "appeal_ruling"
@@ -3928,6 +3929,31 @@ for label, rows, void_day in (
     process_cases.append({"label": label, "acts": acts,
         "probes": [{"n_s": day * DAY_S, "expected": process_result(process_notice, acts, day * DAY_S)}
                    for day in sorted({0, 14, 21, 31, 50, 60} | {d for d, _ in rows})]})
+
+for outcome, later in (("overturned", False), ("overturned", True), ("upheld", False)):
+    inner = json.loads(json.dumps(process_notice["update"]))
+    inner["evidence"].append(inner["details"]["activation"])
+    notice = sign_envelope("update", inner, "test-process-k1")
+    notice_id = "sha256:" + sha256_hex(rfc8785.dumps(inner))
+    acts = []
+    rows = [(0, "appeal"), (0, outcome)] + ([(3600, "overturned")] if later else [])
+    for i, (instant, kind) in enumerate(rows):
+        details = {"notice": notice_id}
+        if kind != "appeal":
+            details.update(outcome=kind, reasoning="activation ruling " + str(i))
+        envelope = sign_envelope("update", {
+            "wist_version": "1.0.0", "subject": inner["subject"],
+            "effective_at": "2026-08-02T00:00:00Z",
+            "action": "appeal" if kind == "appeal" else "appeal_ruling", "details": details,
+        }, "test-process-k1")
+        acts.append({"sealed_at_s": instant, "envelope": envelope})
+    expected_merits = 2 if later else None
+    assert process_result(notice, acts, 3600, 0)["merits_index"] == expected_merits
+    process_cases.append({"label": "activation Block " + outcome + (" with later ruling" if later else " alone"),
+        "notice": notice, "activation_sealed_at_s": 0, "activation_severity": 3,
+        "acts": acts, "same_block_ruling_error": "WIST4-E05",
+        "levels": [3, 1 if later else 3],
+        "probes": [{"n_s": t, "expected": process_result(notice, acts, t, 0)} for t in (0, 3600)]})
 
 for label in ("nonexistent notice", "other subject notice", "recovery notice"):
     notice = json.loads(json.dumps(process_notice))
@@ -4067,7 +4093,8 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "retired_escalation_cases": retired_escalation_cases,
     "primary": {"note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records. Notice and level eligibility are satisfied independently; these cases isolate the primary finding/evidence contract.",
         "findings": primary_findings, "cases": primary_cases},
-    "process": {"public_key": b64u(pub_raw), "notice_sealed_at_s": 0,
+    "process": {"note": "Each notice's activation and evidence are supplied valid premises. Unless a case gives activation_sealed_at_s, its target was armed below the notice Block. Explicit activation-Block cases supply the new severity-3 finding and exercise its timing with rung replay.",
+                "public_key": b64u(pub_raw), "notice_sealed_at_s": 0,
                 "notice": process_notice, "cases": process_cases},
 }))
 
