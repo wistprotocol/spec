@@ -2744,6 +2744,89 @@ def _dc4_prospective_parameters_twin():
     assert future["sampling_floor"] > future["sampling_ceiling"]
 check("negative:wist4-prospective-parameters", _dc4_prospective_parameters_twin)
 
+def _block_size_maps(default, accepted, instant):
+    times = sorted({instant} | {c["effective_at_s"] for c in accepted if c["effective_at_s"] >= instant})
+    return [_prospective_values({"block_decompressed_cap_bytes":default},
+        [dict(c, parameter="block_decompressed_cap_bytes") for c in accepted], t)["block_decompressed_cap_bytes"] for t in times]
+
+
+def _replay_block_size(default, blocks, restart_after=()):
+    state = {"accepted":[], "maximum":0, "at_s":None}
+    probes = []
+    for height, block in enumerate(blocks):
+        before = default if state["at_s"] is None else max(_block_size_maps(default,state["accepted"],state["at_s"]))
+        maximum = max(state["maximum"],block["jcs_bytes"])
+        trial = list(state["accepted"])
+        rejected = []
+        for index, change in enumerate(block["amendments"]):
+            candidate = dict(change,block_height=height,entry_index=index)
+            proposed = trial+[candidate]
+            valid = 1024 <= candidate["value"] <= 9007199254740991 and candidate["effective_at_s"]-block["sealed_at_s"] >= 7*86400
+            if valid and all(cap >= maximum for cap in _block_size_maps(default,proposed,block["sealed_at_s"])):
+                trial = proposed
+            else:
+                rejected.append(index)
+        cap = min(_block_size_maps(default,trial,block["sealed_at_s"]))
+        valid = maximum <= cap
+        if valid:
+            state = {"accepted":trial,"maximum":maximum,"at_s":block["sealed_at_s"]}
+        probes.append({"rejected_indices":rejected,"sealing_cap":cap,"block_valid":valid,
+            "largest_bytes":state["maximum"],"transport_bound_before":before})
+        if height in restart_after:
+            state = json.loads(json.dumps(state))
+        if not valid:
+            break
+    return probes
+
+
+def _dc4_block_sizes():
+    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    assert v["block_cap_default"] == 256*1024*1024
+    for case in v["block_size_cases"]:
+        expected = case["expected"]
+        assert _replay_block_size(v["block_cap_default"],case["blocks"]) == expected, case["label"]
+        assert _replay_block_size(v["block_cap_default"],case["blocks"],case["restart_after"]) == expected, case["label"]
+    for case in v["block_transport_cases"]:
+        bound = v["block_cap_default"] if case["prefix_sealed_at_s"] is None else max(_block_size_maps(v["block_cap_default"],case["accepted_caps"],case["prefix_sealed_at_s"]))
+        if case.get("snapshot_bootstrap"):
+            bound = max([v["block_cap_default"]]+[c["value"] for c in case["accepted_caps"]])
+        assert bound == case["transport_bound"], case["label"]
+        declared = case["declared_bytes"]
+        if declared is None or declared > bound:
+            stage = "frame"
+        else:
+            total = 0
+            for chunk in case["decoded_chunk_bytes"]:
+                if chunk > bound-total:
+                    stage = "stream"
+                    break
+                total += chunk
+            else:
+                stage = "decoded" if total == declared else "length"
+        assert stage == case["result"], case["label"]
+        assert (None if stage == "decoded" else "WIST3-E03") == case["error"], case["label"]
+check("vectors:wist4-block-size-schedule", _dc4_block_sizes)
+
+
+def _dc4_block_sizes_twin():
+    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    cases = {c["label"]:c for c in v["block_size_cases"]}
+    current = cases["reduction includes its complete current Block"]
+    smaller = copy.deepcopy(current["blocks"])
+    smaller[0]["jcs_bytes"] = 2048
+    assert _replay_block_size(v["block_cap_default"],smaller)[0]["rejected_indices"] == []
+    assert current["expected"][0]["rejected_indices"] == [0]
+    later = cases["later maximum never revalidates old acceptance"]
+    final_maximum = max(b["jcs_bytes"] for b in later["blocks"])
+    assert later["blocks"][0]["amendments"][0]["value"] < final_maximum
+    assert later["expected"][0]["rejected_indices"] == []
+    pending = cases["pending reduction constrains an intervening Block"]
+    assert pending["blocks"][-1]["jcs_bytes"] < v["block_cap_default"]
+    assert not pending["expected"][-1]["block_valid"]
+    transport = next(c for c in v["block_transport_cases"] if c["label"] == "future increase enlarges the transport bound")
+    assert transport["declared_bytes"] > v["block_cap_default"] and transport["result"] == "decoded"
+check("negative:wist4-block-size-schedule", _dc4_block_sizes_twin)
+
 def _dc4_parameter_clocks():
     v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
     def at(parameter, instant, changes):

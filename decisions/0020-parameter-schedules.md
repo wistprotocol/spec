@@ -1,114 +1,101 @@
-# ADR-0020: Parameter combinations validate the prospective schedule
+# ADR-0020: Parameter schedules preserve historical obligations
 
 **Status:** draft · **Date:** 2026-09-05
 
 ## Context
 
-A pending sampling floor of 4,000,000 and a pending ceiling of 3,000,000
-can each pass against defaults while jointly scheduling an invalid map.
-WIST-4 §9's reference to another parameter's current value did not define
-which pending changes a combination check must include.
+Parameters that are valid individually can form an invalid future state.
+For example, a pending sampling floor of 4,000,000 and a pending ceiling
+of 3,000,000 can each pass against defaults while failing together.
+Changing duration, cadence or byte caps can also invalidate an obligation
+established before the change. WIST-4 §9 therefore validates the accepted
+schedule and preserves the parameter profiles that opened existing duties.
 
 ## Decision
 
-Validate candidates in canonical Log order. After checking individual
-requirements, tentatively insert the candidate into the accepted schedule.
-Check all combination rules at the sealing instant and every pending
-effective instant, using the existing greatest-effective-time and
-Log-order tie rules. Reject the candidate as `WIST4-E03` if any resulting
-map fails; otherwise retain it. Do not roll back earlier acceptances or
-reconsider rejected candidates after later amendments.
+### Admission and integer bounds
 
-## Consequences
+Validate candidates in canonical Log order. After individual checks,
+tentatively insert the candidate and check every combination rule at
+sealing and every pending effective instant. Use greatest effective time
+and the specified Log-order tie rule. Reject an invalid prospective map
+as `WIST4-E03`; otherwise retain the candidate. Never roll back an earlier
+acceptance or reconsider a rejection because of a later candidate.
 
-An invalid intermediate future state cannot hide behind a later valid
-one. Superseding a same-time amendment is permitted only after the new
-candidate passes. Same-Block validation uses the already canonical Entry
-order, adding no ordering freedom to the Aggregator.
+All wire integer members fit ±(2^53−1), inclusive, in addition to their
+field-specific bounds. `provisional_cap_u` is nonnegative. Intermediate
+arithmetic remains exact and may exceed the wire range. Schema acceptance
+does not replace semantic schedule validation.
 
-## Anchor parameters for in-flight windows
+The compound escalation predicates in WIST-4 §7 have no integer encoding.
+`escalation_l2`, `escalation_l3` and `escalation_l4` are not Registry
+identifiers; attempts to amend them reject as `WIST4-E03`. Changing those
+predicates requires a protocol change with a defined representation.
 
-### Context
+### Temporal profiles
 
-Changing a duration while a duty is outstanding could move its deadline
-on replay. Confirmation also lacked a parameter read instant when Records
-straddled a quorum or window amendment.
+WIST-4 §9 fixes each clock's anchor. Duties retain their opening profile;
+confirmation evaluates each candidate at its own Block and preserves the
+first success. Extension contradiction uses the triggering profile and
+closes once. Appeal and seal clocks read the notice; ruling duration reads
+the accepted appeal. Epochs, selection, reputation and materialization use
+their specified anchors. Block counts still follow actual sealing cadence.
 
-### Decision
+Extraction and hard-hit thresholds read the audited Delta's Block, not a
+later reference, checkpoint, reveal or scoring instant; see
+[ADR-0016](0016-audit-reference-follows-the-chain.md). Actual sanction
+process retention follows [ADR-0018](0018-confirmation-and-sanctions.md).
 
-WIST-4 §9 lists each clock's anchor. Duties retain their opening profile;
-confirmation evaluates each candidate under its own Block's profile and
-preserves its first historical success. An extension's contradiction test
-retains its triggering profile and closes once. A later confirmation does
-not rewrite that closed test. Appeal and seal clocks read the notice;
-the ruling clock reads the accepted appeal.
-
-### Consequences
-
-Recomputation preserves established deadlines and findings. Epoch,
-selection, reputation and materialization reads keep their explicit
-anchors. A fixed count of Blocks still follows the actual cadence.
-
-## Escalation predicates have no numeric amendment
-
-### Context
-
-The Registry admitted integer amendments for three compound ladder rules
-without mapping those integers to counts, windows or severity branches.
-
-### Decision
-
-Remove `escalation_l2`, `escalation_l3` and `escalation_l4` from the
-identifier table and schema. Reject them as `WIST4-E03`; retain §7's
-printed predicates. Amending the ladder requires a protocol revision.
-
-### Consequences
-
-An arbitrary integer cannot silently disable a severity branch or choose
-which component of a compound rule changes. Existing ladder transitions
-remain unchanged after a rejected amendment.
-
-## Parameter wire bounds preserve integer reputation
-
-### Context
-
-WIST-1 §4 claimed every integer's own bounds kept it in the interoperable
-range, but Registry values lacked that bound. A negative Provisional cap
-also made §6.2 return a negative reputation.
-
-### Decision
-
-Require all suite integer members to fit ±(2^53−1), inclusive, in addition
-to field-specific bounds. Apply that range in the parameter schema and
-require `provisional_cap_u` ≥ 0. Intermediate arithmetic stays exact and
-may exceed the wire range. Schema acceptance never replaces semantic
-amendment validation.
-
-### Consequences
-
-A large JSON number cannot silently round to another parameter value.
-Zero Provisional reputation remains possible; negative reputation does not.
-
-## Cadence transitions preserve older extension windows
-
-### Context
-
-A 72-hour extension permits publication at hour 36 and sealing within
-24 Blocks. Changing from hourly to two-hourly Blocks breaks that window,
-even when the incoming profile raises its own window to 96 hours.
-
-### Decision
+### Cadence transitions
 
 For every constant-map interval, retain its extension publication span,
 window and seal count. Bound sealing by the largest cadence that may be
-in force before a window opened in that interval closes. Reject a candidate
-whose tentative schedule breaks the bound. The interval's end plus its
-window is exclusive. The rule deliberately bounds possible anchors without
-using the presence or absence of particular triggers.
+in force before a window opened in that interval closes. The interval's
+end plus its window is exclusive. Reject a tentative schedule that breaks
+this bound, regardless of whether particular triggers have occurred.
 
-### Consequences
+A 72-hour extension allowing publication at hour 36 and sealing within
+24 Blocks cannot safely change from hourly to two-hourly Blocks while
+that profile may still govern a window. Increasing only the incoming
+profile's window to 96 hours does not protect the older duty. Stage the
+larger window early enough for earlier windows to close before slowing
+cadence. Even brief increases participate in the compatibility bound.
+Canary readiness additionally checks actual service opportunities under
+[ADR-0012](0012-auditor-track-record-becomes-derivable.md).
 
-A slower cadence can be staged after a larger window has been in force
-long enough for earlier windows to close. Brief cadence increases still
-participate in the bound. Canary readiness uses its separate actual-prefix
-check, so a faster cadence cannot outrun coverage and checkpoint duties.
+### Block sizes and transport
+
+Every candidate's prospective caps cover the largest complete JCS Block
+through its own height. Every new Block respects the current cap and all
+accepted pending caps, so production cannot invalidate an accepted
+reduction. Historical replay uses the running maximum at each height;
+restoration preserves or reconstructs that maximum and the accepted
+schedule, including pending amendments.
+
+Before decompressing, use the greatest current or future cap in the
+verified prefix, or the Registry default before genesis. Authenticate the
+Block and replay its amendments before enforcing the tighter current and
+prospective size bounds. Missing or false frame sizes and exceeded Block
+bounds reject as `WIST3-E03`; infeasible amendments reject as `WIST4-E03`.
+
+## Consequences and alternatives
+
+No invalid intermediate map can hide behind a later valid one. Replacing
+a same-time amendment requires the replacement to pass; current-state-only
+validation is insufficient. Pinning opening profiles prevents a later edit
+from moving an established deadline, while cadence checks protect the actual
+time available to fulfill it.
+
+A cap reduction cannot make an old Block unreadable. A future increase can
+authorize a larger Block without trusting its unread header to discover
+the decompression bound. Transport may permit more bytes than an individual
+Block may occupy, so authentication and tighter semantic checks are both
+necessary. Pending reductions constrain production immediately.
+
+## Verification
+
+`vectors/wist4/parameter-combinations.json` exercises prospective maps,
+cadence transitions, retention, wire bounds and Block-size guarantees,
+including ordering, exact endpoints, pending increases and restoration.
+Live pacing, durable publication and recovery additionally require the
+WIST-3 and WIST-4 role checks.

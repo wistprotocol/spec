@@ -3011,8 +3011,9 @@ re-audit can never seal inside the window it exists to serve, and MUST
 NOT be longer than `coverage_deadline_hours`, or an Auditor's path for
 *B₁* is pulled before the extension duty *B₁* carries falls due;
 `block_decompressed_cap_bytes` MUST NOT be below the size of the largest
-Block the Aggregator seals, since only the pair decides whether any Block
-is applicable; and the `mirror_retention_days` and coverage-countability
+Block through the candidate's own Block, measured as the octet length of
+`JCS(Block)` including its header, Entries and signature, under the
+Block-size rule below; and the `mirror_retention_days` and coverage-countability
 sums below. `links_cap_bytes`
 MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 `JCS({"total":1,"urls":[…]})` around a single maximum-length URL literal —
@@ -3055,6 +3056,31 @@ covering even one leaf cannot be revealed inside its lifetime. A party
 replaying the Log MUST reject a `parameter_change` that leaves either
 otherwise. At the defaults the reveal sum is 144 hours against a minimum
 of 168, and the lifetime 1440 Blocks against 192.
+
+**Block-size guarantees include the sealed prefix.** For a candidate in
+Block B, let M be the greatest `JCS(Block)` octet length among Blocks 0
+through B, including B's complete contents regardless of which Entries
+are accepted. Every prospective map checked for that candidate MUST have
+`block_decompressed_cap_bytes` ≥ M. Otherwise reject the candidate as
+`WIST4-E03`, preserving the accepted prefix. Later Entries do not change
+B's size input and cannot rescue a rejected candidate. Equality is valid.
+
+After all B's parameter candidates have been processed, every map at
+B's `sealed_at` and every accepted `effective_at` at or after it MUST
+still have a cap ≥ M. An Aggregator MUST constrain the complete Block it
+seals to the smallest of those caps, even before a scheduled reduction
+takes effect. A later Block exceeding this bound is invalid; it does not
+revoke an earlier accepted amendment. A Consumer MUST NOT apply that
+Block (`WIST3-E03`). An increase permits larger Blocks only from its
+`effective_at`, the endpoint included; replacing a pending reduction can
+relax the bound only when the replacement itself passes admission.
+
+Replay uses the actual sizes at each historical height, never the largest
+Block at the eventual query height to reconsider an earlier candidate.
+Restoration MUST preserve or reconstruct both this running maximum and
+the accepted schedule, including pending amendments. A value-only
+Registry snapshot cannot establish the historical size guarantee. The
+pre-decompression bound is specified separately in WIST-3 §6.
 
 **Cadence transitions preserve open extension windows.** Checking each
 map separately is insufficient when an extension retains an older window

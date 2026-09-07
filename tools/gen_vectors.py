@@ -3076,11 +3076,107 @@ for label, rows in (
         "notices":notices, "probes":[{"n_s":t, **retention_at(notices,t)} for t in probes]})
 assert retention_cases[0]["probes"][-2]["must_serve"] and not retention_cases[0]["probes"][-1]["must_serve"]
 
+BLOCK_CAP_DEFAULT = 256 * 1024 * 1024
+
+
+def block_cap_at(changes, at_s):
+    eligible = [c for c in changes if c["effective_at_s"] <= at_s]
+    return max(eligible, key=lambda c: (c["effective_at_s"], c["block_height"], c["entry_index"]))["value"] if eligible else BLOCK_CAP_DEFAULT
+
+
+def block_cap_bounds(changes, at_s):
+    values = [block_cap_at(changes, t) for t in {at_s} | {c["effective_at_s"] for c in changes if c["effective_at_s"] >= at_s}]
+    return min(values), max(values)
+
+
+def block_cap_trace(blocks):
+    accepted, largest, probes = [], 0, []
+    for height, block in enumerate(blocks):
+        tentative_max = max(largest, block["jcs_bytes"])
+        working = list(accepted)
+        rejected = []
+        for index, amendment in enumerate(block["amendments"]):
+            change = dict(amendment, block_height=height, entry_index=index)
+            trial = working + [change]
+            if change["value"] < 1024 or change["effective_at_s"] < block["sealed_at_s"] + 7 * DAY_S or block_cap_bounds(trial, block["sealed_at_s"])[0] < tentative_max:
+                rejected.append(index)
+            else:
+                working = trial
+        cap, _ = block_cap_bounds(working, block["sealed_at_s"])
+        valid = tentative_max <= cap
+        probes.append({"rejected_indices": rejected, "sealing_cap": cap, "block_valid": valid,
+            "largest_bytes": tentative_max if valid else largest,
+            "transport_bound_before": BLOCK_CAP_DEFAULT if not probes else block_cap_bounds(accepted, blocks[height-1]["sealed_at_s"])[1]})
+        if not valid:
+            assert height == len(blocks)-1
+            break
+        accepted, largest = working, tentative_max
+    return probes
+
+
+block_size_cases = []
+for label, rows, rejected, valid in (
+    ("reduction below a historical Block", [(0,8192,[]), (1,2048,[(4096,8)])], [[],[0]], [True,True]),
+    ("reduction includes its complete current Block", [(0,8192,[(4096,7)])], [[0]], [True]),
+    ("reduction equals the current Block size", [(0,4096,[(4096,7)]), (7,4096,[])], [[],[]], [True,True]),
+    ("pending reduction constrains an intervening Block", [(0,2048,[(4096,7)]), (1,4097,[])], [[],[]], [True,False]),
+    ("pending reduction equality before effectiveness", [(0,2048,[(4096,7)]), (1,4096,[])], [[],[]], [True,True]),
+    ("increase is unavailable one second before effectiveness", [(0,2048,[(4096,7),(8192,8)]), (8,4097,[])], [[],[]], [True,False]),
+    ("increase is available exactly at effectiveness", [(0,2048,[(4096,7),(8192,8)]), (8,8192,[])], [[],[]], [True,True]),
+    ("rejected candidate is not rescued by later replacement", [(0,5000,[(4096,7),(8192,7)])], [[0]], [True]),
+    ("same-time replacement relaxes a pending reduction", [(0,2048,[(4096,7),(8192,7)]), (1,8192,[])], [[],[]], [True,True]),
+    ("out-of-range candidate leaves the schedule unchanged", [(0,2048,[(1023,7),(8192,7)])], [[0]], [True]),
+    ("restart retains a pending reduction and maximum", [(0,4096,[(4096,7)]), (1,2048,[]), (2,2048,[(3072,9)])], [[],[],[0]], [True,True,True]),
+    ("later maximum never revalidates old acceptance", [(0,2048,[(4096,7)]), (1,2048,[(8192,7+1)]), (9,8192,[])], [[],[],[]], [True,True,True]),
+    ("verified pending increase permits transport above default", [(0,2048,[(2*BLOCK_CAP_DEFAULT,7)]), (7,BLOCK_CAP_DEFAULT+1,[])], [[],[]], [True,True]),
+    ("a fetched Block cannot raise its own bound", [(0,BLOCK_CAP_DEFAULT+1,[(2*BLOCK_CAP_DEFAULT,7)])], [[0]], [False]),
+):
+    blocks = [{"sealed_at_s":round(day*DAY_S), "jcs_bytes":size,
+        "amendments":[{"value":value,"effective_at_s":effective*DAY_S} for value,effective in amendments]}
+        for day,size,amendments in rows]
+    if label == "increase is unavailable one second before effectiveness":
+        blocks[-1]["sealed_at_s"] -= 1
+    probes = block_cap_trace(blocks)
+    assert [p["rejected_indices"] for p in probes] == rejected, label
+    assert [p["block_valid"] for p in probes] == valid, label
+    block_size_cases.append({"label":label,"blocks":blocks,"expected":probes,
+        "restart_after":list(range(len(blocks)-1))})
+
+block_transport_cases = []
+for label, prefix_s, changes, declared, chunks, stage in (
+    ("genesis rejects above default before decompression", None, [], BLOCK_CAP_DEFAULT+1, [], "frame"),
+    ("missing declared size is rejected", None, [], None, [], "frame"),
+    ("exact transport bound is allowed", 7*DAY_S, [(4096,7)], 4096, [2048,2048], "decoded"),
+    ("declared excess is rejected before decompression", 7*DAY_S, [(4096,7)], 4097, [], "frame"),
+    ("false small declaration cannot overrun the bound", 7*DAY_S, [(4096,7)], 4096, [2048,2049], "stream"),
+    ("false declaration within the bound still fails", 7*DAY_S, [(4096,7)], 3000, [2048,1024], "length"),
+    ("future increase enlarges the transport bound", 0, [(2*BLOCK_CAP_DEFAULT,7)], BLOCK_CAP_DEFAULT+1, [BLOCK_CAP_DEFAULT,1], "decoded"),
+    ("superseded increase cannot enlarge transport", 7*DAY_S, [(8192,7),(4096,7)], 4097, [], "frame"),
+    ("expired larger cap cannot enlarge transport", 8*DAY_S, [(8192,7),(4096,8)], 4097, [], "frame"),
+    ("future smaller cap does not lower transport early", 0, [(4096,7)], 8192, [8192], "decoded"),
+):
+    amendments = [{"value":value,"effective_at_s":day*DAY_S,"block_height":0,"entry_index":i} for i,(value,day) in enumerate(changes)]
+    bound = BLOCK_CAP_DEFAULT if prefix_s is None else block_cap_bounds(amendments,prefix_s)[1]
+    block_transport_cases.append({"label":label,"prefix_sealed_at_s":prefix_s,"accepted_caps":amendments,
+        "declared_bytes":declared,"decoded_chunk_bytes":chunks,"transport_bound":bound,
+        "result":stage,"error":None if stage=="decoded" else "WIST3-E03"})
+
+for values, declared, result in (([], BLOCK_CAP_DEFAULT+1, "frame"), ([2*BLOCK_CAP_DEFAULT], BLOCK_CAP_DEFAULT+1, "decoded"), ([4096], 8192, "decoded")):
+    block_transport_cases.append({"label":"Snapshot bootstrap caps " + str(values),
+        "snapshot_bootstrap":True,"prefix_sealed_at_s":None,
+        "accepted_caps":[{"value":value} for value in values],
+        "declared_bytes":declared,"decoded_chunk_bytes":[declared] if result=="decoded" else [],
+        "transport_bound":max([BLOCK_CAP_DEFAULT]+values),"result":result,
+        "error":None if result=="decoded" else "WIST3-E03"})
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
     "cases": countability_cases,
     "extension_window_cases": extension_window_cases,
+    "block_cap_default": BLOCK_CAP_DEFAULT,
+    "block_size_cases": block_size_cases,
+    "block_transport_cases": block_transport_cases,
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_cases": prospective_cases,
     "retention_profiles": RETENTION_PROFILES,

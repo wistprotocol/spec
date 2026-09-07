@@ -493,11 +493,35 @@ about itself is not a trust root because of where it sits.
 object — `header`, `entries` and `sig` — compressed with zstandard. The
 compression level is unconstrained, but the frame MUST declare its
 decompressed size (zstandard's `Frame_Content_Size`), and that size MUST
-NOT exceed the Block decompressed cap (Parameter Registry; default
-256 MiB). A Consumer MUST reject a frame declaring more than the cap
-without decompressing it, and MUST still abort decompression at the cap if
-the declared size proves to be a lie (§10): a declared size is a claim, not
-a guarantee, and the streaming limit is what makes it safe to read one.
+NOT exceed the applicable Block-size bound in WIST-4 §9 (Registry
+default 256 MiB). Before fetching a Block, a Consumer derives a transport
+bound from its already verified prefix: the greatest
+`block_decompressed_cap_bytes` in the map at that prefix's last
+`sealed_at` and at every accepted future `effective_at`. With no verified
+Block, use the Registry default. Accepted pending amendments participate;
+rejected candidates and the Block being fetched do not. This bound also
+covers historical Block fetches because each accepted cap covers the
+entire sealed prefix (WIST-4 §9). A Consumer restoring from a Snapshot uses
+its authenticated parameter tuples, including pending amendments (§7),
+and the verified Block at `log_position` as its prefix. To fetch that
+Block itself before its timestamp is verified, use the greatest of the
+Registry default and every cap value in those authenticated tuples. This
+bootstrap bound cannot be raised by unauthenticated state. The size
+guarantee itself still requires the reconstruction WIST-4 §9 specifies.
+
+A Consumer MUST reject a frame with no declared size or a declared size
+above that transport bound without decompressing it, and MUST abort
+streaming decompression before emitting bytes beyond the bound (§10).
+The actual decompressed length MUST equal the declared length. These
+failures are `WIST3-E03`. Equality with the bound is permitted. A frame's
+own header timestamp, a Mirror's claim or the local wall clock MUST NOT
+raise the pre-decompression bound.
+
+After decompression and authentication, replay the Block's parameter
+candidates and check its actual JCS size against WIST-4 §9's current and
+prospective bounds before applying it. The transport bound alone does
+not authorize use of a scheduled increase before its effective instant,
+and cannot excuse exceeding an already accepted pending reduction.
 
 Because compression parameters are not constrained, Block *files* are not
 byte-comparable across Mirrors. Integrity is recovered on the far side of
@@ -1325,7 +1349,7 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 |---------|--------------------------------------------------------------|
 | WIST3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
 | WIST3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
-| WIST3-E03 | Corrupted file (hash or signature failure on a Block, or a Payload that does not reproduce its Delta's commitment — WIST-1 §3.6, `WIST1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
+| WIST3-E03 | Invalid Block file (hash or signature failure, missing or false declared frame size, or exceeded transport or accepted-schedule size bound — §6, WIST-4 §9); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
 | WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
@@ -1359,8 +1383,9 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
   is visible as a Delta that no party can audit rather than as a Mirror
   fault; WIST-2 §5 closes the honest path by requiring the Aggregator to
   reject such a Delta instead of sealing it.
-- **Compression bombs.** The 256 MiB decompressed cap MUST be enforced
-  streaming-side, aborting decompression at the limit rather than after.
+- **Compression bombs.** The verified-prefix transport bound (§6; default
+  256 MiB) MUST be enforced while decompressing, before emitting bytes
+  beyond the limit.
 - **Key rotation repudiation.** Without an in-band, height-scoped notion
   of key validity, an Aggregator caught equivocating could retire the
   signing key and claim the proof no longer identifies a currently
