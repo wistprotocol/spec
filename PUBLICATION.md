@@ -52,6 +52,9 @@ new ADR with an `Amends` header naming every affected decision; additive
 clarifications use dated addenda. Annotate each affected decision's status
 with the reference, date and effect of the change.
 
+Publishing a stable edition also activates the immutability and change rules
+under [Deployment boundary](#deployment-boundary) for that edition.
+
 ## Deployment boundary
 
 From the first Log sealing Blocks consumed by a third party, the deployed
