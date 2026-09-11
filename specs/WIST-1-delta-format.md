@@ -134,7 +134,8 @@ idempotence would otherwise waive signature verification. Existing
 object-level rejection rules and transport wrappers remain in force;
 `WIST1-E14` identifies the underlying encoding failure, including beneath
 first-contact `WIST2-E04` or invalid-Block-file `WIST3-E03` handling.
-This establishes no precedence between unrelated failures in other objects.
+Delta diagnostic precedence is specified in §7; this establishes no
+precedence between unrelated failures in other objects.
 
 Key membership and disjointness compare decoded public bytes after encoding
 validation; equality of these bytes is equivalent to equality of their
@@ -684,6 +685,8 @@ with a failed signature plus one future binding with a valid signature is
 regardless of their signature results. The field failures specified in §2
 and §3.4 retain `WIST1-E14` precedence. Other Delta checks and object-specific dispositions,
 including recovery settlement's `WIST1-E13`, remain applicable.
+Across distinct Delta checks, §7 permits any established applicable semantic
+diagnostic; the binding check itself retains the E02/E01 distinction above.
 
 Preserve complete `(key_id, public_key, valid_from)` bindings across the
 authorized sources; neither identifier reuse nor repeated public bytes
@@ -1045,6 +1048,41 @@ matter". Importance is measured at consumption, outside this protocol.
 
 ## 7. Error Registry
 
+**Delta diagnostics.** Invalid JCS input is `WIST1-E05`. For a
+canonicalizable Delta Envelope, validate the base64url fields specified in
+§2 and `observed_at` in §3.4 before selecting a semantic rejection;
+failure of either is `WIST1-E14`. This does not assign E14 to additional
+Delta fields or change other objects' field diagnostics.
+
+After those checks pass, a validator MAY report any applicable semantic
+error whose conditions it has established. No priority is imposed between
+the binding check (`WIST1-E02` or `WIST1-E01`), URL authority/normalization
+(`WIST1-E03`), clock allowance (`WIST1-E06`), predecessor chain
+(`WIST1-E07`), or other Delta semantic checks. Thus an invalid signature
+and excess skew permit either E01 or E06; excess skew and an out-of-scope
+URL permit either E06 or E03. A validator MUST NOT accept a Delta that
+fails any required check. This freedom governs diagnostic selection only,
+not acceptance, source authority or the meaning of an error.
+
+A validator MAY stop after establishing a rejection and need not perform
+unrelated checks solely to choose a different diagnostic. Every prerequisite
+of a check it performs still applies: a failed cached-key signature still
+requires the Declaration re-fetch in §5.1/WIST-2 §5 before counting the
+failure; missing predecessor data still requires the retrieval attempt in
+§3.5 before concluding E07. Lack of a performed check is not evidence of
+its failure. E01 and E02 remain mutually exclusive outcomes of the complete
+binding check in §5.1. Status rejection entries and Ping noise accounting
+retain WIST-2 §7.1 and §4's rules.
+
+Object and stage dispositions remain authoritative: this permission does
+not replace recovery settlement's E13 or sealing's E02 for a Delta stranded
+by a later-accepted Declaration (§5.2), change idempotent acceptance,
+retroactively invalidate a sealed Delta, or bypass transport wrappers.
+In particular, E10 is a Payload diagnostic, not a selectable Delta rejection;
+the Payload cap checks in §3.6 and pull rejection under WIST-2 §5's
+WIST2-E03 remain required. See
+[ADR-0027](../decisions/0027-delta-diagnostic-selection.md).
+
 | Code | Meaning |
 |---------|--------------------------------------------------------------|
 | WIST1-E01 | Invalid signature (for a Delta, no signature verifies under any usable, time-eligible named binding authorized by §5.1/§5.2, although at least one such binding exists) |
@@ -1238,6 +1276,9 @@ copies already served.
       before E02/E01 diagnostics; preserves both frozen recovery-admission
       sources through later Declarations without using that union at sealing
       (§5.1, §5.2)
+- [ ] Applies §7's Delta field precedence and reports only an established
+      applicable semantic error, retaining retrieval/refresh prerequisites
+      and object/stage dispositions
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
       by Block height (§5.2)
 - [ ] Seals a Delta only where it verifies under the Key Set resolved at

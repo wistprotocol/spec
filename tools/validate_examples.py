@@ -1084,6 +1084,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
     ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
     ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/delta-diagnostics.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "response_commitment"): "audit:commitments",
     ("vectors/wist3/timestamps.json", "credit_commitment"): "audit:commitments",
@@ -4651,6 +4652,10 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
     ("vectors/wist1/declaration-fields.json", "prev"): "a Delta predecessor ID; relation cases authenticate the supplied predecessor",
+    ("vectors/wist1/delta-diagnostics.json", "prev"): "SHA-256 of the supplied signed predecessor Delta",
+    ("vectors/wist1/delta-diagnostics.json", "prev_declaration"): "SHA-256 of the authenticated preceding publisher object",
+    ("vectors/wist1/delta-diagnostics.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/delta-diagnostics.json", "value"): "an Ed25519 signature or noncanonical signature encoding probe",
     ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
     ("vectors/wist1/declaration-fields.json", "author_key"): "the fixture author public key",
@@ -8345,5 +8350,93 @@ def _log_timestamp_vectors():
     assert len(list(patterns(snapshot))) == 6, "Snapshot timestamp inventory changed"
 
 check("vectors:wist3-timestamps", _log_timestamp_vectors)
+
+def _delta_diagnostic_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/delta-diagnostics.json").read_text())
+    original = copy.deepcopy(vector)
+    previous_source = vector["previous_declaration"]
+    assert _declaration_binding_result(None, previous_source) == "initial"
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
+    validators = {name: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
+        for name in ("publisher", "delta")}
+    validators["publisher"].validate(previous_source)
+    key = previous_source["publisher"]["keys"][0]
+    public = canonical_b64u_decode(key["public_key"])
+
+    def signed(envelope, inner):
+        return _ed25519_profile_verdict(public, b64u_decode(envelope["sig"]["value"]),
+                                       rfc8785.dumps(envelope[inner]))[0]
+
+    def diagnostics(case):
+        envelope = case["envelope"]
+        rfc8785.dumps(envelope["delta"])
+        try:
+            observed = publisher_instant(envelope["delta"].get("observed_at"))
+            if len(canonical_b64u_decode(envelope["sig"]["value"])) != 64:
+                raise ValueError("signature length")
+        except ValueError:
+            return {"WIST1-E14"}
+        validators["delta"].validate(envelope)
+        source = case["declaration"]["publisher"]
+        bindings = [binding for binding in source["keys"]
+                    if binding["key_id"] == envelope["sig"]["key_id"]
+                    and publisher_instant(binding["valid_from"]) <= observed]
+        errors = set()
+        if not bindings:
+            errors.add("WIST1-E02")
+        elif not signed(envelope, "delta"):
+            errors.add("WIST1-E01")
+        url = envelope["delta"]["url"]
+        assert url == "https://other.example/page"
+        if "other.example" not in [source["domain"], *source.get("subdomain_scope", [])]:
+            errors.add("WIST1-E03")
+        if observed > publisher_instant(case["validator_time"]) + case["clock_skew_seconds"]:
+            errors.add("WIST1-E06")
+        previous = case["predecessor"]["delta"]
+        assert previous["url"] == url
+        assert envelope["delta"]["prev"] == "sha256:" + hashlib.sha256(rfc8785.dumps(previous)).hexdigest()
+        if observed <= publisher_instant(previous["observed_at"]):
+            errors.add("WIST1-E07")
+        return errors
+
+    sets, fields, signatures = set(), set(), set()
+    for case in vector["cases"]:
+        source, predecessor, envelope = case["declaration"], case["predecessor"], case["envelope"]
+        validators["publisher"].validate(source)
+        validators["delta"].validate(predecessor)
+        assert _declaration_binding_result(previous_source, source) == "ordinary_rotation"
+        assert source["publisher"]["keys"][0]["public_key"] == key["public_key"]
+        assert signed(predecessor, "delta")
+        assert predecessor["sig"]["key_id"] == key["key_id"]
+        assert publisher_instant(predecessor["delta"]["observed_at"]) >= publisher_instant(key["valid_from"])
+        assert "other.example" in previous_source["publisher"]["subdomain_scope"]
+        got = diagnostics(case)
+        assert got == set(case["allowed"]), case["name"]
+        sets.add(frozenset(got))
+        fields.add(case["field"])
+        signatures.add(signed(envelope, "delta"))
+        if case["field"] == "signature encoding":
+            decoded = b64u_decode(envelope["sig"]["value"])
+            repaired = copy.deepcopy(case)
+            repaired["envelope"]["sig"]["value"] = base64.urlsafe_b64encode(decoded).rstrip(b"=").decode()
+            assert "WIST1-E14" not in diagnostics(repaired)
+        damaged = copy.deepcopy(predecessor)
+        damaged["delta"]["observed_at"] = "2026-08-01T01:00:00Z"
+        assert not signed(damaged, "delta")
+    expected_sets = {frozenset(subset) for size in range(5)
+                     for subset in itertools.combinations(
+                         ("WIST1-E01", "WIST1-E02", "WIST1-E03", "WIST1-E06", "WIST1-E07"), size)
+                     if not {"WIST1-E01", "WIST1-E02"} <= set(subset)}
+    assert sets == expected_sets | {frozenset({"WIST1-E14"})}
+    assert len(vector["cases"]) == 96
+    assert fields == {"valid", "timestamp", "signature encoding"}
+    assert signatures == {True, False}
+    assert vector == original
+
+
+check("vectors:wist1-delta-diagnostics", _delta_diagnostic_vectors)
 
 sys.exit(1 if failures else 0)

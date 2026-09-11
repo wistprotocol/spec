@@ -6659,3 +6659,82 @@ write_json(ROOT / "vectors/wist3/timestamps.json", {
     "field_reject": "2016-12-31T23:59:60Z",
     "field_reject_non_ascii": "２０１６-12-31T23:59:59Z",
 })
+
+
+def delta_diagnostic_vectors():
+    publisher = {
+        "wist_version": "1.0.0", "domain": "example.com", "seq": 0,
+        "keys": [{"key_id": "test-k1", "alg": "Ed25519",
+                  "public_key": b64u(pub_raw), "valid_from": "2026-08-01T00:00:00Z"}],
+        "subdomain_scope": ["other.example"],
+    }
+    previous_source = sign_envelope("publisher", publisher, "test-k1")
+    cases = []
+    for binding, scope, future, chain in itertools.product(
+            ("valid", "bad signature", "missing", "future"), (True, False),
+            (False, True), (True, False)):
+        source = json.loads(json.dumps(publisher))
+        source["seq"] = 1
+        source["prev_declaration"] = "sha256:" + sha256_hex(rfc8785.dumps(publisher))
+        source["subdomain_scope"] = ["other.example"] if scope else []
+        if binding == "future":
+            source["keys"][0]["valid_from"] = "2026-08-04T11:00:00Z"
+        declaration = sign_envelope("publisher", source, "test-k1")
+        observed = "2026-08-04T10:10:00.00000000000000000001Z" if future else "2026-08-04T07:10:00-03:00"
+        previous = {
+            "wist_version": "1.0.0", "url": "https://other.example/page",
+            "change_type": "new", "observed_at": "2026-08-04T09:00:00Z" if chain else observed,
+            "payload": delta["payload"], "meta": {"lang": "en"},
+        }
+        predecessor = sign_envelope("delta", previous, "test-k1")
+        candidate = {
+            "wist_version": "1.0.0", "url": previous["url"], "change_type": "attest",
+            "observed_at": observed, "prev": "sha256:" + sha256_hex(rfc8785.dumps(previous)),
+            "meta": {"lang": "en"},
+        }
+        envelope = sign_envelope("delta", candidate, "absent" if binding == "missing" else "test-k1")
+        if binding == "bad signature":
+            envelope["sig"]["value"] = b64u(Ed25519PrivateKey.from_private_bytes(bytes([99]) * 32).sign(rfc8785.dumps(candidate)))
+        errors = []
+        if binding != "valid":
+            errors.append("WIST1-E01" if binding == "bad signature" else "WIST1-E02")
+        if not scope:
+            errors.append("WIST1-E03")
+        if future:
+            errors.append("WIST1-E06")
+        if not chain:
+            errors.append("WIST1-E07")
+        name = f"{binding}, scope {scope}, excess skew {future}, increasing time {chain}"
+        for field in ("valid", "timestamp", "signature encoding"):
+            probe = json.loads(json.dumps(envelope))
+            if field == "timestamp":
+                probe["delta"]["observed_at"] = "2026-08-04T10:10:60Z"
+                probe = sign_envelope("delta", probe["delta"], probe["sig"]["key_id"])
+                if binding == "bad signature":
+                    probe["sig"]["value"] = b64u(Ed25519PrivateKey.from_private_bytes(bytes([99]) * 32).sign(rfc8785.dumps(probe["delta"])))
+            elif field == "signature encoding":
+                alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+                value = probe["sig"]["value"]
+                probe["sig"]["value"] = value[:-1] + alphabet[alphabet.index(value[-1]) + 1]
+            cases.append({"name": name + ", field " + field, "field": field,
+                          "declaration": declaration, "predecessor": predecessor,
+                          "envelope": probe, "validator_time": "2026-08-04T10:00:00Z",
+                          "clock_skew_seconds": 600,
+                          "allowed": sorted(errors) if field == "valid" else ["WIST1-E14"]})
+    return {
+        "note": "WIST-1 §7. Each case supplies the already selected Publisher's current Declaration, "
+                "its authenticated previous source and an already accepted predecessor. That predecessor "
+                "was accepted under previous_declaration with an allowance sufficient at its validation "
+                "instant (the present clock/allowance need not equal that context) and is "
+                "the only chain tip. The current source is fresh: no cached-key refresh is pending. "
+                "allowed is the complete set for the exercised checks; [] means these checks pass, not "
+                "complete admission. Field failures suppress semantic diagnostics. Signature encoding "
+                "twins retain signature bytes but set an unused base64url bit. URL fixtures are already "
+                "normalized ASCII; only authority is varied. Payload content is the standard example. "
+                "No Log inclusion, source selection, live clock/refresh/retrieval, Payload validation, "
+                "recovery or ambiguous-author attribution is established.",
+        "previous_declaration": previous_source, "cases": cases,
+    }
+
+
+write_json(WIST1 / "delta-diagnostics.json", delta_diagnostic_vectors())
