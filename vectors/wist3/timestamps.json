@@ -30,6 +30,26 @@
       "epoch_seconds": 1483228800
     },
     {
+      "value": "9999-12-30T21:59:59Z",
+      "epoch_seconds": 253402207199
+    },
+    {
+      "value": "9999-12-30T22:00:00Z",
+      "epoch_seconds": 253402207200
+    },
+    {
+      "value": "9999-12-30T22:00:01Z",
+      "epoch_seconds": 253402207201
+    },
+    {
+      "value": "9999-12-31T00:00:00Z",
+      "epoch_seconds": 253402214400
+    },
+    {
+      "value": "9999-12-31T23:59:59Z",
+      "epoch_seconds": 253402300799
+    },
+    {
       "value": "2016-12-31T23:59:60Z",
       "epoch_seconds": null
     },
@@ -83,6 +103,38 @@
     },
     {
       "value": "2016-12-31T23:59:\uff15\uff19Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "9999-12-31T23:59:60Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "9999-12-31T24:00:00Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "9999-02-29T00:00:00Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "10000-01-01T00:00:00Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "-0001-12-31T23:59:59Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "0000-00-01T00:00:00Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "0000-01-00T00:00:00Z",
+      "epoch_seconds": null
+    },
+    {
+      "value": "0000-04-31T00:00:00Z",
       "epoch_seconds": null
     }
   ],
