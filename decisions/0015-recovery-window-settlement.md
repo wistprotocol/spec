@@ -51,13 +51,33 @@ them in the open rather than at an ingest no replaying party can see.
 **Supersession covers everything outside the recovery chain.** At the
 window's end, every Declaration sealed inside it other than the recovery
 Declaration and the chain legitimately following it is superseded, whatever
-its classification. A Declaration legitimately follows when its signer is
-named in its predecessor's `keys` or `recovery_keys`, the predecessor being
-the recovery Declaration or an earlier link of the same chain.
+its classification. A Declaration legitimately follows when its authenticated
+signing public key belongs to its named predecessor's `keys` or
+`recovery_keys`, that predecessor being the current recovery-chain head.
 
-**A fresh identity inside a window is accepted and superseded.** It is not
-`WIST1-E08`: nothing about it is a sequencing violation, and rejecting it at
-ingest would leave a thief's attempt invisible to a party replaying the Log.
+**Accepted sequence and effective predecessor are distinct state.** Retain
+the highest accepted sequence, even when its Declaration is superseded.
+During a window, a new Declaration may name either the latest accepted
+replacement or the current recovery-chain head. The named predecessor
+supplies signer bindings, classification and recovery-key protection.
+Only an ordinary or recovery rotation naming the chain head extends it;
+fresh identities and descendants of competitors stay outside it. This lets
+the recovering Publisher extend its chain after a competing fresh identity
+without requiring the competitor's cooperation. It does not allow a fork
+from an earlier recovery-chain ancestor.
+
+Settle before applying Declarations in the first Block at or after the
+window end, restoring the chain head as the only eligible predecessor.
+The same boundary governs admission. The sequence floor survives. A
+re-serve of the current canonical `publisher` object is idempotent, including
+the restored lower-sequence head; any other old Declaration rejects. Equal
+`prev_declaration` values alone do not prove identical objects. Idempotence
+changes no accepted state and installs no new signature.
+
+**A fresh identity inside a window is accepted and superseded.** Fresh
+classification alone is not `WIST1-E08`; all sequence, predecessor, signature
+and recovery-key checks still apply. Rejecting an otherwise valid attempt at
+ingest would leave it invisible to a party replaying the Log.
 
 **Settlement revalidates against the chain's newest Declaration** — the
 recovery Declaration's own Key Set unless a legitimate follower was sealed
@@ -68,10 +88,29 @@ re-served later and verifying under the Key Set then in force is sealed like
 any other.
 
 `vectors/wist1/recovery-settlement.json` carries both derivations over five
-cases, and `vectors/wist1/declaration-sequence.json` gains the open-window
-acceptance case.
+abstract cases, whose admission limitations are listed in CONFORMANCE.md.
+`vectors/wist1/recovery-heads.json` carries a signed hourly Block chain,
+Declaration predecessors and independent candidate probes across settlement.
+It distinguishes accepted sequence from restored head, authenticates chain
+extensions past competitors, and rejects stale predecessors and recovery-key
+replacement without authority. No object field or schema constraint changes.
 
 ## Alternatives considered
+
+**Always follow the latest accepted Declaration.** A fresh competitor would
+then force a legitimate follower to authenticate against the competitor's
+keys, severing recovery continuity. Keeping the recovery-chain head eligible
+avoids that obstruction without accepting arbitrary ancestors.
+
+**Roll sequence back to the settled head.** Rejected because supersession
+does not erase accepted signed history. Reusing a competitor's sequence
+would make a previously rejected replay valid after settlement. The retained
+floor preserves monotonicity; an accepted high sequence still obliges every
+later replacement to exceed it.
+
+**Accept any authenticated recovery-chain ancestor.** Rejected because two
+successors of an old head could revive already replaced keys. Requiring the
+current chain head makes legitimate continuation serial.
 
 **Use canonical Entry index to break a same-Block recovery race.** Rejected
 because Declaration predecessors and WIST-3 §3.3 application precedence read
@@ -96,10 +135,11 @@ a Delta signed by a superseded key does not verify, whenever it is served.
 
 ## Consequences
 
-- Queue admission, settlement and recovery ownership have explicit rules.
-  Accepted versus effective predecessor heads and superseded identity-reset
-  effects still require resolution under CONFORMANCE.md before authenticated
-  recovery history replay can be validated.
+- Queue admission, settlement, recovery ownership, predecessor selection and
+  the persistent sequence floor have explicit rules. Superseded identity-reset
+  effects, conflicting batches and sufficient Snapshot recovery state still
+  require resolution under CONFORMANCE.md before complete recovery replay can
+  be validated. The signed head vectors assert no reputation or sanction result.
 - A recovering Publisher may rotate again inside its own window — the
   realistic case, since a recovery is performed with an offline key that the
   operator usually wants to replace immediately afterwards.

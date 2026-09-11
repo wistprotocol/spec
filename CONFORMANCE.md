@@ -28,10 +28,6 @@ Before authenticated recovery and identity-scoped finding replay can be
 validated, resolve these WIST-1 §5.2 and WIST-3 §3.3 ambiguities with signed
 Declaration histories carrying sequence numbers and predecessor hashes:
 
-- WIST-1 requires a sequence above the highest accepted and a predecessor
-  naming the previously accepted Declaration. Settlement can supersede that
-  Declaration. Define the predecessor and sequence floor for a legitimate
-  follower after an accepted competitor, both before and after settlement.
 - WIST-4 §6.3 resets identity and lifts sanctions at a fresh Declaration's
   sealing height; WIST-1 supersedes a fresh Declaration inside recovery and
   preserves reputation. Define whether supersession undoes reset effects
@@ -46,12 +42,31 @@ Declaration histories carrying sequence numbers and predecessor hashes:
 WIST-1 §5.2 and WIST-3 §3.3 select recovery ownership in ascending
 `(Block height, seq)` order. `vectors/wist1/recovery-order.json` exercises
 signed Declarations and predecessor links in authenticated Block chains,
-including reversed leaf-hash order. It does not resolve the remaining
-predecessor or identity-reset questions above.
+including reversed leaf-hash order. WIST-1 §5.2 separately retains the highest
+accepted sequence through settlement and defines eligible predecessor heads.
+`vectors/wist1/recovery-heads.json` authenticates a complete hourly Block chain
+and probes ordinary/recovery followers across competitors, stale predecessor
+rejection, named-predecessor classification, the deadline transition and
+idempotent re-serving of the restored lower-sequence head. Its reference
+validates Declaration authorship separately from Block inclusion. It asserts
+no identity-reset or conflicting-batch result.
 
 `vectors/wist1/recovery-settlement.json` exercises abstract signer membership
 but omits authenticated sequence and predecessor transitions. Passing it
-cannot establish agreement on these unresolved history cases.
+cannot establish agreement on these unresolved history cases. Its two
+abstract thief-rotation cases restore `recovery_keys` from `r2` to `r1`
+without the replaced recovery key's authority, contrary to WIST-1 §5.2.
+Replace these inadmissible projections with signed admissible competitors
+and rejection twins before claiming authenticated settlement conformance.
+
+WIST-3 §7's Snapshot `declaration` tuple carries only the current Envelope
+and sealing height, and `recovery_window` carries only owner height and end.
+These do not supply the retained accepted sequence floor after restoration
+of a lower-sequence head, or both open-window heads. Define sufficient
+Snapshot state or required authenticated history reconstruction, with
+Snapshot-versus-full-history vectors, before Snapshot recovery replay can
+establish conformance. The full-history head vectors do not resolve this
+Snapshot representation question.
 
 ## Validation still required
 
@@ -64,7 +79,7 @@ arithmetic checks do not establish live-service behavior.
 |---|---|
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
-| WIST-1 §5.2 recovery ownership | Replay consumes `recovery-order.json`, authenticating each Declaration against its preceding Declaration before selecting the window owner by `(Block height, seq)`; canonical storage order and a later recovery cannot replace the owner. Settlement and conflicting-candidate disposition require the resolutions listed above. |
+| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json` and `recovery-heads.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Canonical storage order and a later recovery inside the window cannot replace its owner. Identity effects, Snapshot state and conflicting-candidate disposition require the resolutions listed above. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change audit timing without creating a selection duty; redirect termination and authority restrictions under live pulls |

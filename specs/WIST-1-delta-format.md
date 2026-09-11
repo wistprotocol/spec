@@ -535,16 +535,17 @@ Declaration's inner `publisher` object — the Declaration this one
 replaces. A validator MUST reject a Declaration under `WIST1-E08` when:
 `seq` is not greater than the highest it has already accepted for that
 domain; or `seq` > 0 and `prev_declaration` is absent; or
-`prev_declaration` does not equal the hash of the previously accepted
-Declaration's `publisher` object. This makes replay of a superseded
+`prev_declaration` does not equal the hash of an eligible predecessor's
+`publisher` object under the recovery-head rules below. Outside recovery,
+that predecessor is the current Declaration. This makes replay of a superseded
 Declaration (for example from a stale cache) detectable rather than
 silent, the same way `WIST1-E07` treats a missing or mismatched `prev` on
 a Delta.
 
 Re-serving the current Declaration is not that replay: a Declaration
 whose inner `publisher` object is byte-identical under JCS to the one
-already accepted for the domain — equivalently, one with the same
-`prev_declaration` hash — is an idempotent acceptance, not `WIST1-E08`,
+current for the domain — equivalently, one with the same hash of its own
+`publisher` object — is an idempotent acceptance, not `WIST1-E08`,
 exactly as a duplicate Delta is (§7). §5.1 caps a cached Key Set at 24 hours, so a validator MUST
 re-fetch the Declaration of a Publisher whose keys never change, and a
 rule rejecting what that fetch returns would reject every stable
@@ -603,7 +604,8 @@ ambiguous.
 This rule is a semantic constraint beyond the Declaration schema.
 
 **Declaration signer resolution.** For a replacement Declaration, collect
-the entries named by its `sig.key_id` from the previously accepted
+the entries named by its `sig.key_id` from the eligible predecessor named
+by `prev_declaration` (as defined below), using that
 Declaration's `keys` and `recovery_keys` and from the incoming Declaration's
 `keys`. Verify the Envelope against those candidate public keys using §4's
 signature profile. No named candidate is `WIST1-E02`; named candidates but
@@ -619,6 +621,50 @@ a fresh identity, while renaming an existing public key cannot erase
 continuity or acquire a different class of authority. Recovery-key protection
 still applies to the resulting classification. The rule does not authorize
 an incoming recovery key to authenticate its own installation.
+
+**Accepted sequence and recovery heads.** For each domain, retain the
+highest accepted `seq` independently of which Declaration is current.
+Supersession MUST NOT decrease that sequence floor: every new Declaration,
+including a legitimate recovery follower, MUST exceed it. A rejected
+candidate and an idempotent re-serve change neither the floor nor any head.
+For Log replay, acceptance here means acceptance in ascending
+`(Block height, seq)` application order; unsealed submissions are not part
+of the replayed floor.
+
+Without an open recovery window, only the current Declaration is an eligible
+predecessor. Accepting a replacement makes it current. A recovery rotation
+also establishes the **recovery-chain head**, initially that same Declaration.
+While the window is open, a new Declaration MAY name either the current
+Declaration (the latest accepted replacement) or the recovery-chain head.
+No other ancestor is eligible; an ineligible predecessor is `WIST1-E08`.
+The named predecessor supplies every previous signing/recovery set used for
+signature resolution, classification and recovery-key protection above.
+Accepting a replacement always makes it current. It advances the
+recovery-chain head only if it names that head and authenticates as an
+ordinary or recovery rotation against it. A fresh identity, or a replacement
+of a competitor, does not join the recovery chain. A later recovery rotation
+inside the window does not change its owner or deadline.
+
+The window contains Blocks from its opening Block through those whose
+`sealed_at` is strictly earlier than its end. Before applying any Declaration
+in the first Block at or after that end, settle the window: make its
+recovery-chain head current, supersede its accepted non-chain competitors, and close the
+window without changing the sequence floor. Only the restored current head
+is then an eligible predecessor; a superseded competitor is `WIST1-E08`.
+The same transition applies to admission at or after the window's end.
+Re-serving the current Declaration remains idempotent even when its `seq`
+is below the retained floor. Re-serving any other accepted Declaration is
+`WIST1-E08`, including a recovery-chain head that is not current while the
+window is still open. Idempotence installs no new Declaration or signature
+and does not reopen a window.
+
+For example, let recovery R have `seq` 1, and let a fresh competitor F with
+`seq` 2 name R. During the window a legitimate D signed by R's signing or
+recovery key names R, not F, and uses `seq` greater than 2. If settlement
+occurs before D arrives, R becomes current again, but D still needs `seq`
+greater than 2. Naming F after settlement fails even with a valid signature.
+These are Declaration acceptance and key-continuity rules; identity-scoped
+reputation and sanction effects are governed separately by WIST-4 §6.3.
 
 **Compromise recovery.** A Declaration with a higher `seq` is classified
 by what signs it, using the authenticated public key resolved above:
@@ -643,10 +689,10 @@ by what signs it, using the authenticated public key resolved above:
   thief holding only a signing key cannot outrun the holder of the
   recovery key by rotating *or* by generating a new key pair and starting
   over under the same domain. A Declaration legitimately follows when its
-  signer is named in its predecessor's `keys` or `recovery_keys`, the
-  predecessor being the recovery Declaration or an earlier link of the
-  same chain: the recovering Publisher may therefore rotate again inside
-  its own window without forfeiting it. At the window's end the queue is
+  authenticated signing public key belongs to its named predecessor's
+  `keys` or `recovery_keys`, that predecessor being the current
+  recovery-chain head under the rules above: the recovering Publisher may
+  therefore rotate again inside its own window without forfeiting it. At the window's end the queue is
   settled deterministically: each queued Delta is revalidated against the
   Key Set of that chain's newest Declaration — the recovery Declaration's
   own unless a legitimate follower was sealed inside the window — and one
@@ -705,9 +751,10 @@ by what signs it, using the authenticated public key resolved above:
   but `A` and `C` reset to zero and the domain re-enters Provisional
   (WIST-4 §6). Served inside an open recovery window it is accepted like
   any other Declaration and superseded at the window's end by the rule
-  above; it is never a `WIST1-E08`, because nothing about it is a
-  sequencing violation, and rejecting it at ingest would leave the
-  attempt invisible to a party replaying the Log.
+  above; fresh classification alone is never a `WIST1-E08`. The sequence,
+  predecessor and recovery-key checks still apply. Rejecting an otherwise
+  valid fresh identity at ingest would leave the attempt invisible to a party
+  replaying the Log.
 
 A Publisher that loses both its signing keys and its recovery keys
 starts over; that is the honest outcome, because with no cryptographic
@@ -720,9 +767,9 @@ as `publisher_declaration` Entries (WIST-3 §3.3). The Key Set applicable to a
 `publisher_delta` Entry sealed in Block N is normally the one from that
 domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
 that a recovery Declaration which took effect under the Compromise
-recovery rule above prevails over every ordinary rotation sealed during
+recovery rule above prevails over every off-chain Declaration sealed during
 its recovery window, regardless of `seq`. A Consumer replaying the Log
-therefore excludes any such superseded rotation from the "highest `seq`"
+therefore excludes any such superseded Declaration from the "highest `seq`"
 comparison and treats the recovery Declaration (and whatever legitimately
 follows it) as applicable instead, for every height from the recovery
 Declaration's own sealing height onward. Because `seq`, `prev_declaration`,
@@ -776,7 +823,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
@@ -784,7 +831,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and verifying under the Key Set then in force is sealed (§5.2) |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
-whose `publisher` object is byte-identical to the domain's accepted one
+whose `publisher` object is byte-identical to the domain's current one
 (§5.2), are idempotent acceptances, not errors.
 
 `WIST1-E10` rejects the Payload, never the Delta. A sealed Delta stays

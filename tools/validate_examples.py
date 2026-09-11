@@ -4549,6 +4549,14 @@ NON_CONTENT_VALUES = {
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-heads.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-heads.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/recovery-heads.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
+    ("vectors/wist1/recovery-heads.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist1/recovery-heads.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist1/recovery-heads.json", "merkle_root"): "the Merkle root of Declaration Entries",
+    ("vectors/wist1/recovery-heads.json", "current_declaration"): "SHA-256 of the current publisher object",
+    ("vectors/wist1/recovery-heads.json", "recovery_head"): "SHA-256 of the recovery-chain publisher object",
     ("vectors/wist1/recovery-order.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-order.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-order.json", "prev_declaration"):
@@ -5406,6 +5414,130 @@ def _recovery_order_vectors():
 
 
 check("vectors:wist1-recovery-order", _recovery_order_vectors)
+
+def _recovery_heads_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())
+    validators = {name: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{name}.schema.json").read_text()))
+        for name in ("publisher", "block")}
+
+    def digest(envelope):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(envelope["publisher"])).hexdigest()
+
+    def settle(state, instant):
+        if state["end"] is not None and instant >= log_seconds(state["end"]):
+            state["current"] = state["chain"]
+            state["chain"], state["end"] = None, None
+
+    def apply(state, incoming, instant, spelling):
+        validators["publisher"].validate(incoming)
+        settle(state, instant)
+        current = state["current"]
+        if current and rfc8785.dumps(current["publisher"]) == rfc8785.dumps(incoming["publisher"]):
+            return "idempotent"
+        if incoming["publisher"]["seq"] <= state["floor"]:
+            return "WIST1-E08"
+        previous = None
+        if current:
+            assert incoming["publisher"]["domain"] == current["publisher"]["domain"]
+            previous = next((head for head in (current, state["chain"])
+                             if head and digest(head) == incoming["publisher"].get("prev_declaration")), None)
+            if previous is None:
+                return "WIST1-E08"
+        outcome = _declaration_binding_result(previous, incoming)
+        if outcome not in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}:
+            return outcome
+        if state["chain"] is not None:
+            if previous == state["chain"] and outcome in {"ordinary_rotation", "recovery_rotation"}:
+                state["chain"] = incoming
+        elif outcome == "recovery_rotation":
+            state["chain"] = incoming
+            end = datetime.datetime.fromisoformat(spelling.replace("Z", "+00:00")) + datetime.timedelta(
+                days=vector["recovery_window_days"])
+            state["end"] = end.isoformat().replace("+00:00", "Z")
+            state["windows"] += 1
+        state["current"], state["floor"] = incoming, incoming["publisher"]["seq"]
+        return outcome
+
+    def summary(state):
+        return {"current_declaration": digest(state["current"]),
+                "recovery_head": digest(state["chain"]) if state["chain"] else None,
+                "highest_accepted_seq": state["floor"], "window_end": state["end"],
+                "windows_opened": state["windows"]}
+
+    def replay(blocks, pinned):
+        state = {"current": None, "chain": None, "floor": -1, "end": None, "windows": 0}
+        prefix_states = []
+        previous, previous_time = "sha256:genesis", None
+        log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
+        for height, block in enumerate(blocks):
+            validators["block"].validate(block)
+            header, entries = block["header"], block["entries"]
+            instant = log_seconds(header["sealed_at"])
+            assert previous_time is None or instant == previous_time + 3600
+            assert header["block_number"] == height and header["prev_block_hash"] == previous
+            assert block["sig"]["key_id"] == vector["log_key"]["key_id"]
+            log_key.verify(b64u_decode(block["sig"]["value"]), rfc8785.dumps(header))
+            assert header["entry_count"] == len(entries)
+            hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+            assert hashes == sorted(hashes)
+            root = merkle_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
+            assert header["merkle_root"] == "sha256:" + root.hex()
+            settle(state, instant)
+            assert all(entry["type"] == "publisher_declaration" for entry in entries)
+            candidates = [entry["body"] for entry in entries]
+            assert len({env["publisher"]["seq"] for env in candidates}) == len(candidates)
+            for incoming in sorted(candidates, key=lambda env: env["publisher"]["seq"]):
+                assert apply(state, incoming, instant, header["sealed_at"]) in {
+                    "initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
+            prefix_states.append(copy.deepcopy(state))
+            previous = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
+            previous_time = instant
+        assert previous == pinned
+        return prefix_states
+
+    states = replay(vector["blocks"], vector["pinned_head"])
+    for expected in vector["expected_prefix_states"]:
+        assert summary(states[expected["height"]]) == expected["state"], expected["height"]
+    branch_states = [replay(branch["blocks"], branch["pinned_head"]) for branch in vector["branches"]]
+    for branch, derived in zip(vector["branches"], branch_states):
+        assert summary(derived[-1]) == branch["expected_state"]
+    outcomes = set()
+    for probe in vector["probes"]:
+        selected = vector["branches"][probe["branch"]] if "branch" in probe else vector
+        selected_states = branch_states[probe["branch"]] if "branch" in probe else states
+        state = copy.deepcopy(selected_states[probe["prefix_height"]])
+        instant = log_seconds(probe["candidate_sealed_at"])
+        assert instant > log_seconds(selected["blocks"][probe["prefix_height"]]["header"]["sealed_at"])
+        result = apply(state, probe["candidate"], instant, probe["candidate_sealed_at"])
+        assert result == probe["expected_result"], probe["name"]
+        assert summary(state) == probe["expected_state"], probe["name"]
+        outcomes.add(result)
+    assert outcomes == {"ordinary_rotation", "recovery_rotation", "fresh_identity", "idempotent",
+                        "WIST1-E01", "WIST1-E08"}
+    for target in ("author", "header", "predecessor", "head", "omission"):
+        blocks = copy.deepcopy(vector["blocks"])
+        pinned = vector["pinned_head"]
+        if target == "author":
+            blocks[3]["entries"][0]["body"]["sig"]["value"] = blocks[2]["entries"][0]["body"]["sig"]["value"]
+        elif target == "header":
+            blocks[5]["header"]["sealed_at"] = blocks[4]["header"]["sealed_at"]
+        elif target == "predecessor":
+            blocks[3]["entries"][0]["body"]["publisher"]["prev_declaration"] = digest(
+                blocks[2]["entries"][0]["body"])
+        elif target == "head":
+            pinned = "sha256:" + "00" * 32
+        else:
+            del blocks[100]
+        try:
+            replay(blocks, pinned)
+        except Exception:
+            pass
+        else:
+            raise AssertionError(f"recovery history accepted tampered {target}")
+
+
+check("vectors:wist1-recovery-heads", _recovery_heads_vectors)
 
 def _parameter_registry_enum():
     """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.

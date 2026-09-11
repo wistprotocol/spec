@@ -459,8 +459,9 @@ settlement_cases = [
 
 write_json(WIST1 / "recovery-settlement.json", {
     "note": ("WIST-1 §5.2 recovery-window admission and settlement, over "
-             "key_ids alone — no signatures, because both derivations read "
-             "key membership and Log order and nothing else. `served` is in "
+             "key_ids alone. These projections do not establish Declaration "
+             "admissibility: sequence, predecessor, signature and recovery-key "
+             "protection checks require authenticated histories (CONFORMANCE.md). `served` is in "
              "acceptance order; `expected.queued` are the Deltas the union "
              "rule admits, `expected.sealed` those the settlement keeps in "
              "that order, and `expected.rejected` those it drops with "
@@ -539,6 +540,148 @@ write_json(WIST1 / "recovery-order.json", {
         recovery_order_case("ordinary predecessor before two recoveries", True, ordinary_first=True),
     ],
 })
+
+def recovery_heads_vectors():
+    def signed(previous, seq, signer, key_id, **changes):
+        inner = dict(previous["publisher"], seq=seq,
+                     prev_declaration=decl_hash(previous["publisher"]), **changes)
+        return sign_envelope_with(signer, "publisher", inner, key_id)
+
+    initial = sign_envelope("publisher", publisher, "test-k1")
+    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
+    fresh = signed(owner, 10, priv, "test-k1", keys=publisher["keys"])
+    follower = signed(owner, 11, priv3, "test-k2", contact="mailto:owner@example.com")
+    fresh_again = signed(follower, 20, priv, "test-k1", keys=publisher["keys"])
+    recovered = signed(follower, 21, priv4, "test-r2", recovery_keys=publisher["recovery_keys"])
+    competitor = signed(recovered, 30, priv, "test-k1", keys=publisher["keys"])
+    after = signed(recovered, 31, priv3, "test-k2", contact="mailto:after@example.com")
+    events = {0: initial, 1: owner, 2: fresh, 3: follower, 4: fresh_again,
+              5: recovered, 6: competitor, 169: after}
+    blocks, previous = [], "sha256:genesis"
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+    def timestamp(hour):
+        return (start + datetime.timedelta(hours=hour)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for height in range(171):
+        entries = [recovery_order_entry(events[height])] if height in events else []
+        root = (recovery_order_leaf(events[height]) if entries
+                else hashlib.sha256(b"\x00").digest())
+        header = {"wist_version": "1.0.0", "block_number": height,
+                  "prev_block_hash": previous, "sealed_at": timestamp(height),
+                  "merkle_root": "sha256:" + root.hex(), "entry_count": len(entries)}
+        block = sign_envelope_with(priv, "header", header, "test-log-k1")
+        block["entries"] = entries
+        blocks.append(block)
+        previous = decl_hash(header)
+    def state(current, head, floor, opened_at=1, windows=1):
+        return {"current_declaration": decl_hash(current["publisher"]),
+                "recovery_head": decl_hash(head["publisher"]) if head else None,
+                "highest_accepted_seq": floor,
+                "window_end": timestamp(opened_at + 168) if head else None,
+                "windows_opened": windows}
+    traces = [
+        (0, state(initial, None, 0, windows=0)),
+        (1, state(owner, owner, 1)), (2, state(fresh, owner, 10)),
+        (3, state(follower, follower, 11)), (4, state(fresh_again, follower, 20)),
+        (5, state(recovered, recovered, 21)), (6, state(competitor, recovered, 30)),
+        (168, state(competitor, recovered, 30)), (169, state(after, None, 31)),
+        (170, state(after, None, 31)),
+    ]
+    probes = []
+    def probe(name, prefix, hour, envelope, outcome, expected, branch=None):
+        probes.append({"name": name, "prefix_height": prefix,
+                       "candidate_sealed_at": timestamp(hour), "candidate": envelope,
+                       "expected_result": outcome, "expected_state": expected})
+        if branch is not None:
+            probes[-1]["branch"] = branch
+    probe("ordinary follower bypasses fresh competitor", 2, 3, follower,
+          "ordinary_rotation", state(follower, follower, 11))
+    via_fresh = signed(fresh, 11, priv3, "test-k2", keys=[K2])
+    probe("same key naming competitor is fresh", 2, 3, via_fresh,
+          "fresh_identity", state(via_fresh, owner, 11))
+    for seq in (2, 10):
+        candidate = signed(owner, seq, priv3, "test-k2")
+        probe(f"sequence {seq} cannot ignore accepted competitor", 2, 3,
+              candidate, "WIST1-E08", state(fresh, owner, 10))
+    stale = signed(owner, 12, priv3, "test-k2")
+    probe("old recovery ancestor cannot fork advanced chain", 3, 4, stale,
+          "WIST1-E08", state(follower, follower, 11))
+    probe("current Declaration is idempotent", 3, 4, follower,
+          "idempotent", state(follower, follower, 11))
+    sibling = signed(owner, 11, priv3, "test-k2", contact="mailto:sibling@example.com")
+    probe("same predecessor is not identical publisher bytes", 3, 4, sibling,
+          "WIST1-E08", state(follower, follower, 11))
+    probe("recovery follower uses named head recovery protection", 4, 5, recovered,
+          "recovery_rotation", state(recovered, recovered, 21))
+    off_chain = signed(fresh_again, 21, priv4, "test-r2",
+                       recovery_keys=publisher["recovery_keys"])
+    probe("recovery of competitor cannot take window ownership", 4, 5, off_chain,
+          "recovery_rotation", state(off_chain, follower, 21))
+    stolen = signed(owner, 11, priv, "test-k1", keys=publisher["keys"],
+                     recovery_keys=publisher["recovery_keys"])
+    probe("fresh competitor cannot restore old recovery keys", 2, 3, stolen,
+          "WIST1-E08", state(fresh, owner, 10))
+    bad_signature = json.loads(json.dumps(follower))
+    raw = bytearray(base64.urlsafe_b64decode(bad_signature["sig"]["value"] + "=="))
+    raw[0] ^= 1
+    bad_signature["sig"]["value"] = b64u(raw)
+    probe("Block inclusion cannot replace author verification", 2, 3, bad_signature,
+          "WIST1-E01", state(fresh, owner, 10))
+    probe("noncurrent recovery head re serve before settlement rejects", 6, 168,
+          recovered, "WIST1-E08", state(competitor, recovered, 30))
+    probe("current competitor re serve before settlement is idempotent", 6, 168,
+          competitor, "idempotent", state(competitor, recovered, 30))
+    probe("legitimate follower just before settlement", 6, 168, after,
+          "ordinary_rotation", state(after, after, 31))
+    probe("restored lower sequence head re serve at settlement", 168, 169,
+          recovered, "idempotent", state(recovered, None, 30))
+    probe("superseded competitor re serve at settlement rejects", 168, 169,
+          competitor, "WIST1-E08", state(recovered, None, 30))
+    probe("legitimate follower in deadline Block", 168, 169, after,
+          "ordinary_rotation", state(after, None, 31))
+    obsolete = signed(competitor, 31, priv, "test-k1")
+    probe("superseded predecessor in deadline Block rejects", 168, 169, obsolete,
+          "WIST1-E08", state(recovered, None, 30))
+    low_seq = signed(recovered, 22, priv3, "test-k2")
+    probe("settlement retains competing sequence floor", 168, 169, low_seq,
+          "WIST1-E08", state(recovered, None, 30))
+    new_recovery = signed(recovered, 31, priv2, "test-r1")
+    probe("recovery at deadline opens a new window", 168, 169, new_recovery,
+          "recovery_rotation", state(new_recovery, new_recovery, 31, opened_at=169, windows=2))
+    probe("superseded predecessor remains rejected after settlement", 170, 171,
+          signed(competitor, 32, priv, "test-k1"), "WIST1-E08", state(after, None, 31))
+    competitor_recovery = signed(fresh, 11, priv4, "test-r2",
+                                 recovery_keys=publisher["recovery_keys"])
+    branch_header = dict(blocks[3]["header"],
+                         merkle_root="sha256:" + recovery_order_leaf(competitor_recovery).hex())
+    branch_block = sign_envelope_with(priv, "header", branch_header, "test-log-k1")
+    branch_block["entries"] = [recovery_order_entry(competitor_recovery)]
+    branch = {"blocks": blocks[:3] + [branch_block], "pinned_head": decl_hash(branch_header),
+              "expected_state": state(competitor_recovery, owner, 11)}
+    follows_named = signed(owner, 12, priv3, "test-k2")
+    probe("ordinary follower preserves named head recovery set", 3, 4, follows_named,
+          "ordinary_rotation", state(follows_named, follows_named, 12), branch=0)
+    follows_competitor_set = signed(owner, 12, priv3, "test-k2",
+                                    recovery_keys=publisher["recovery_keys"])
+    probe("current competitor recovery set cannot replace named head set", 3, 4,
+          follows_competitor_set, "WIST1-E08", state(competitor_recovery, owner, 11), branch=0)
+    write_json(WIST1 / "recovery-heads.json", {
+        "note": "WIST-1 section 5.2 accepted sequence and recovery heads. The supplied "
+                "Log key and final pinned head authenticate one complete hourly Block chain. "
+                "An optional branch index selects an independently pinned alternate history. "
+                "Queries replay through prefix_height, settle at candidate_sealed_at, then "
+                "evaluate one independent unsealed candidate. Rejection preserves the "
+                "post-settlement state. No invalid candidate is asserted to be a valid "
+                "sealed Entry. No identity, sanction or conflicting-batch result is asserted.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "blocks": blocks, "pinned_head": previous,
+        "branches": [branch],
+        "expected_prefix_states": [{"height": height, "state": expected}
+                                   for height, expected in traces],
+        "probes": probes,
+    })
+
+
+recovery_heads_vectors()
 
 # ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
 # The ordinary resolution rule over key_ids alone: a Delta sealed at height N

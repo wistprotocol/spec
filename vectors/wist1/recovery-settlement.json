@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 \u00a75.2 recovery-window admission and settlement, over key_ids alone \u2014 no signatures, because both derivations read key membership and Log order and nothing else. `served` is in acceptance order; `expected.queued` are the Deltas the union rule admits, `expected.sealed` those the settlement keeps in that order, and `expected.rejected` those it drops with WIST1-E13 (the queued copy only \u2014 the Delta ID is not barred).",
+  "note": "WIST-1 \u00a75.2 recovery-window admission and settlement, over key_ids alone. These projections do not establish Declaration admissibility: sequence, predecessor, signature and recovery-key protection checks require authenticated histories (CONFORMANCE.md). `served` is in acceptance order; `expected.queued` are the Deltas the union rule admits, `expected.sealed` those the settlement keeps in that order, and `expected.rejected` those it drops with WIST1-E13 (the queued copy only \u2014 the Delta ID is not barred).",
   "cases": [
     {
       "name": "no competing declaration",
