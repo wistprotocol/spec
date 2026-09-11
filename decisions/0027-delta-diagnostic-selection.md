@@ -22,10 +22,10 @@ error. Performing a check retains all its prerequisites and side effects.
 Acceptance still requires every applicable validation obligation.
 
 This decision assumes the Publisher authority, key sources and validation
-context have been selected under their own rules. It does not resolve
-ambiguous Publisher attribution, prescribe replay's clock context or define
-new field error codes. Payload rejection, recovery settlement, idempotence,
-transport wrapping and error accounting retain their existing dispositions.
+context have been selected under their own rules. WIST-1 §3.8 and ADR-0029
+supply signed Publisher attribution and its E14 field check. This decision
+does not prescribe replay's clock context or assign diagnostics to other
+fields. Payload rejection, recovery settlement, idempotence, transport wrapping and error accounting retain their existing dispositions.
 
 ## Alternatives and consequences
 
@@ -39,7 +39,7 @@ and would erase the E02/E01 and field-precedence guarantees.
 Permitted diagnostic sets preserve these guarantees while allowing validators
 to order independent semantic checks. Clients must accept any member of the
 applicable set rather than depend on one validator's first reported failure.
-No wire field or schema changes are required.
+The diagnostic-selection mechanism requires no wire field or schema changes.
 
 `vectors/wist1/delta-diagnostics.json` supplies signed Declaration sources,
 signed predecessors and candidate combinations covering binding, scope,

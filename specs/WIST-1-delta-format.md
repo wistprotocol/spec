@@ -156,9 +156,18 @@ The version of this specification the object conforms to, as a semver
 string. This document defines version `1.0.0`. Consumers MUST reject
 objects whose major version they do not implement.
 
-**Extensibility is by major version only.** Within a major version, objects
-MUST NOT carry fields not defined by this specification; new fields are
-introduced only in a new major version. Every schema in the suite therefore
+**Draft revisions and extensibility.** Before stable publication or the first
+Log sealing Blocks consumed by a third party, whichever occurs first,
+incompatible draft revisions MAY retain the unreleased version `1.0.0`,
+including when they add required fields. The rules of the exact specification
+commit being implemented determine acceptance, not the shared version string.
+Older draft objects have no implicit compatibility exemption. See
+[PUBLICATION.md](../PUBLICATION.md) and
+[ADR-0028](../decisions/0028-unreleased-object-version.md).
+
+After that boundary, new fields and other substantive changes require a new
+major version. Within each revision, objects MUST NOT carry fields not defined
+by that revision. Every schema in the suite therefore
 sets `additionalProperties: false` on each object whose full field set a
 document of this suite defines, and a minor version never adds a field. Two
 places are deliberately open, and both delegate rather than extend: a Block
@@ -173,7 +182,7 @@ could safely ignore, which is what makes rejection the safe default.
 ### 3.2. `url`
 
 The URL the Delta describes. It MUST use the `https` scheme. It MUST be
-within the Publisher's authority: the URL's host MUST equal the Publisher's
+within the authority of `delta.publisher` (§3.8): the URL's host MUST equal that Publisher's
 `domain` or one of the hostnames in its `subdomain_scope` (the **scope
 rule**). A validator MUST reject a Delta whose `url` is outside the signing
 Publisher's authority (error `WIST1-E03`). A host inside a parent's
@@ -277,13 +286,16 @@ not redefine descriptive timestamps elsewhere in the suite. See
 
 ### 3.5. `prev`
 
-The Delta ID of this Publisher's most recent prior Delta for the same
-`url`. Together, `prev` links form a **per-URL chain**: an ordered,
+The Delta ID of the most recent prior Delta with the same `publisher` (§3.8)
+and `url`. A predecessor with a different Publisher or URL is `WIST1-E07`,
+even when the same public key authenticates both Deltas. Together, `prev` links form a **per-URL chain**: an ordered,
 verifiable history of everything the Publisher has said about one page.
 The first Delta for a URL MUST omit `prev`; every subsequent Delta for
 that URL MUST include it (error `WIST1-E07` on violation).
 
-The chain for a URL never restarts. A `new` Delta for a URL that has prior
+The chain for a `(publisher, url)` pair never restarts, including after
+ordinary rotation, recovery or a fresh identity reset. Those events change
+authority or standing, not historical Delta authorship or predecessor ownership. A `new` Delta for a URL that has prior
 Deltas (for example, a page recreated after a `delete`) MUST carry `prev`
 pointing at the most recent prior Delta; only the very first Delta a
 Publisher ever emits for a URL omits `prev`.
@@ -431,6 +443,30 @@ page itself publishes — the allowance §9 grants a Payload does not extend
 here, because the basis for that allowance is that a Payload can be
 withdrawn and `meta` cannot. Where a page's subject is a person, that
 belongs in the Payload's `summary`.
+
+### 3.8. `publisher`
+
+The REQUIRED Canonical Host (§2) of the Publisher making this statement.
+It MUST equal its own Canonical Host bytes, using the same host profile as
+Declaration `domain` (§5.1). Missing, non-string or noncanonical values are
+`WIST1-E14`, checked before semantic rejection or idempotent acceptance.
+Validators MUST NOT normalize or insert this field into signed bytes.
+
+Only the Declaration history for this exact domain supplies the authority
+and signing bindings for the Delta (§5). A matching key in another domain's
+Declaration, a URL hostname or ancestor, a Feed location, or materialization
+preference MUST NOT substitute another Publisher. An unavailable authorized
+Key Set is `WIST1-E02` under §5.1, even when another domain has a verifying
+key. The URL must satisfy this named Publisher's literal scope (§3.2),
+including explicitly listed hostnames outside its ancestry.
+
+`publisher` is inside `JCS(delta)`: both signature and Delta ID bind it.
+Changing this field requires signing the changed bytes and produces a different
+ID; changing only `sig.key_id` cannot change the Publisher. Re-signing unchanged
+inner bytes after a rotation still preserves the ID. Public-key sharing and
+copied public bindings do not transfer authorship or invalidate another
+domain's otherwise valid Delta. See
+[ADR-0029](../decisions/0029-signed-delta-publisher.md).
 
 ## 4. Canonicalization and Identity
 
@@ -670,7 +706,8 @@ observation before it counts the failure (WIST-2 §5).
 
 `valid_from` bounds each signing binding's use. After field validation,
 collect every signing entry named by the Delta's `sig.key_id` from the
-source Key Set or sets authorized by §5.2. Exclude unusable public keys
+source Key Set or sets authorized by §5.2 for exactly `delta.publisher`
+(§3.8). No other domain's bindings participate. Exclude unusable public keys
 under §4, then exclude each binding whose `valid_from` is later than the
 Delta's `observed_at`, comparing exact instants under §3.4. If no binding
 remains, reject with `WIST1-E02`. Otherwise verify the signature against
@@ -993,8 +1030,8 @@ anyone buy an aged domain and inherit its reputation.
 
 **Historical verification.** Accepted Declarations are sealed into the Log
 as `publisher_declaration` Entries (WIST-3 §3.3). The Key Set applicable to a
-`publisher_delta` Entry sealed in Block N is normally the one from that
-domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
+`publisher_delta` Entry sealed in Block N is normally the one from its
+signed `delta.publisher` domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
 that a recovery Declaration which took effect under the Compromise
 recovery rule above prevails over every off-chain competitor accepted after
 its owner while the recovery window is open, regardless of `seq`. A Consumer
@@ -1050,8 +1087,8 @@ matter". Importance is measured at consumption, outside this protocol.
 
 **Delta diagnostics.** Invalid JCS input is `WIST1-E05`. For a
 canonicalizable Delta Envelope, validate the base64url fields specified in
-§2 and `observed_at` in §3.4 before selecting a semantic rejection;
-failure of either is `WIST1-E14`. This does not assign E14 to additional
+§2, `observed_at` in §3.4 and `publisher` in §3.8 before selecting a
+semantic rejection; failure of any is `WIST1-E14`. This does not assign E14 to additional
 Delta fields or change other objects' field diagnostics.
 
 After those checks pass, a validator MAY report any applicable semantic
@@ -1091,14 +1128,14 @@ WIST2-E03 remain required. See
 | WIST1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
-| WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
+| WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong Publisher or URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
 | WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and verifying under the Key Set then in force is sealed (§5.2) |
-| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; missing, non-string or malformed Delta `observed_at` (§3.4); or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; missing, non-string or malformed Delta `observed_at` (§3.4) or `publisher` (§3.8); or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's current one
@@ -1201,6 +1238,7 @@ record that the content existed.
 
 What remains in the Log permanently, and cannot be withdrawn, is:
 
+- the `publisher` domain binding the statement to its author;
 - the `url` itself, which is the minimum public identifier a web index
   needs and which may contain a name — the same residue Certificate
   Transparency carries in domain names;
@@ -1236,6 +1274,7 @@ copies already served.
 
 **Publisher:**
 
+- [ ] Includes its Canonical Host in every signed Delta’s `publisher` (§3.8)
 - [ ] Signs `domain` and every `subdomain_scope` member in Canonical Host form (§5.1)
 - [ ] Serves `publisher.json` at the well-known path over HTTPS (§5.1)
 - [ ] Signs every Delta with a key in its current Key Set, over JCS
@@ -1261,6 +1300,8 @@ copies already served.
 
 **Validator (any party checking Deltas):**
 
+- [ ] Enforces the required canonical `publisher` field before semantic checks;
+      uses only that domain’s authority and preserves Publisher/URL chain ownership (§3.5, §3.8)
 - [ ] Recomputes Canonical Bytes with JCS and verifies the Ed25519
       signature against them (§4)
 - [ ] Recomputes a retrieved Payload's commitment and length before using
@@ -1307,7 +1348,7 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 ```
 
 **Payload ([`examples/payload.json`](../examples/payload.json)), served at
-`/payloads/6cac5bdd…5120.json`:**
+`/payloads/37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860.json`:**
 
 ```json
 {
@@ -1325,7 +1366,7 @@ A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 }
 ```
 
-`JCS(content)` is 266 octets and the salt is the 16 octets
+`JCS(content)` is 263 octets and the salt is the 16 octets
 `71a4000d7f1c547b8477b45985451934`. A conforming Publisher draws that salt
 from a CSPRNG; this vector derives it — `SHA-256("wist-test-salt|"
 ‖ url)[0..16]` — because the generator has no random source and must stay
@@ -1336,15 +1377,22 @@ byte-reproducible.
 ```json
 {
   "wist_version": "1.0.0",
-  "url": "https://example.com/blog/post-3",
+  "publisher": "example.com",
+  "url": "https://example.com/blog/post-1",
   "change_type": "new",
   "observed_at": "2026-08-02T12:00:00Z",
   "payload": {
     "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
     "alg": "HMAC-SHA256",
-    "bytes": 266
+    "bytes": 263
   },
-  "meta": {"lang": "en", "topics": ["software"], "license": "CC-BY-4.0"}
+  "meta": {
+    "lang": "en",
+    "topics": [
+      "software"
+    ],
+    "license": "CC-BY-4.0"
+  }
 }
 ```
 
@@ -1352,8 +1400,8 @@ byte-reproducible.
 [`vectors/wist1/delta.canonical`](../vectors/wist1/delta.canonical)):**
 
 ```
-7b226368616e67655f74797065223a226e6577222c2264635f76657273696f6e22
-3a22312e302e30222c226d657461223a7b226c616e67223a22656e222c226c6963
+7b226368616e67655f74797065223a226e6577222c226d657461223a7b226c61
+6e67223a22656e222c226c6963656e7365223a2243432d42592d342e30222c22
 ...
 ```
 
@@ -1363,13 +1411,13 @@ order.
 **Delta ID:**
 
 ```
-sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4
+sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860
 ```
 
 **Signature (base64url):**
 
 ```
-EshjAnghqOe3hJ5oq3_cVmc04RsR02-EifxmlpB9yIOOlQBjmYoF7ul5QXSEf1GmHdNfKSRW1DvkouwAWEsECA
+19vAYmF_OdKuBJwYBRS4BHskqn5zELhnGpds1N7ic0au8aM-Pe4RV9QJxz6N6QuXkgmKiPG1rdQ7j9Ntcx_zDg
 ```
 
 The complete envelope is

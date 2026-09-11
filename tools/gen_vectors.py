@@ -100,6 +100,7 @@ payload = {"wist_version": "1.0.0", "salt": b64u(salt), "content": CONTENT}
 
 delta = {
     "wist_version": "1.0.0",
+    "publisher": "example.com",
     "url": DELTA_URL,
     "change_type": "new",
     "observed_at": "2026-08-02T12:00:00Z",
@@ -2413,6 +2414,7 @@ WIST3.mkdir(parents=True, exist_ok=True)
 def attest_delta(n: int, prev_id: str) -> dict:
     inner = {
         "wist_version": "1.0.0",
+        "publisher": "example.com",
         "url": f"https://example.com/blog/post-{n}",
         "change_type": "attest",
         "observed_at": "2026-08-02T12:00:00Z",
@@ -2425,6 +2427,7 @@ def attest_delta(n: int, prev_id: str) -> dict:
 def synthetic_prior_id(n: int) -> str:
     inner = {
         "wist_version": "1.0.0",
+        "publisher": "example.com",
         "url": f"https://example.com/blog/post-{n}",
         "change_type": "new",
         "observed_at": "2026-08-01T12:00:00Z",
@@ -2524,6 +2527,7 @@ reduced_salt = hashlib.sha256(
     b"wist-test-salt|" + REDUCED_URL.encode()).digest()[:16]
 reduced_delta = {
     "wist_version": "1.0.0",
+    "publisher": "reduced.example.org",
     "url": REDUCED_URL,
     "change_type": "new",
     "observed_at": "2026-08-02T11:30:00Z",
@@ -2677,6 +2681,7 @@ def counted_url_digest(domain: str, url: str) -> str:
 DELETED_URL = "https://example.com/blog/retired"
 retired_new = {
     "wist_version": "1.0.0",
+    "publisher": "example.com",
     "url": DELETED_URL,
     "change_type": "new",
     "observed_at": "2026-08-01T09:00:00Z",
@@ -2691,6 +2696,7 @@ retired_new = {
 retired_new_id = "sha256:" + sha256_hex(rfc8785.dumps(retired_new))
 retired_delete = {
     "wist_version": "1.0.0",
+    "publisher": "example.com",
     "url": DELETED_URL,
     "change_type": "delete",
     "observed_at": "2026-08-02T10:00:00Z",
@@ -5759,7 +5765,7 @@ def hard_hit(reproduces: bool, verdict: str, derived: int | None) -> bool:
 
 
 def canary_attest(prev_id: str, observed_at: str) -> str:
-    inner = {"wist_version": "1.0.0", "url": DELTA_URL, "change_type": "attest",
+    inner = {"wist_version": "1.0.0", "publisher": "example.com", "url": DELTA_URL, "change_type": "attest",
              "observed_at": observed_at, "prev": prev_id, "meta": {"lang": "en"}}
     return "sha256:" + sha256_hex(rfc8785.dumps(inner))
 
@@ -6682,13 +6688,13 @@ def delta_diagnostic_vectors():
         declaration = sign_envelope("publisher", source, "test-k1")
         observed = "2026-08-04T10:10:00.00000000000000000001Z" if future else "2026-08-04T07:10:00-03:00"
         previous = {
-            "wist_version": "1.0.0", "url": "https://other.example/page",
+            "wist_version": "1.0.0", "publisher": "example.com", "url": "https://other.example/page",
             "change_type": "new", "observed_at": "2026-08-04T09:00:00Z" if chain else observed,
             "payload": delta["payload"], "meta": {"lang": "en"},
         }
         predecessor = sign_envelope("delta", previous, "test-k1")
         candidate = {
-            "wist_version": "1.0.0", "url": previous["url"], "change_type": "attest",
+            "wist_version": "1.0.0", "publisher": "example.com", "url": previous["url"], "change_type": "attest",
             "observed_at": observed, "prev": "sha256:" + sha256_hex(rfc8785.dumps(previous)),
             "meta": {"lang": "en"},
         }
@@ -6741,68 +6747,186 @@ write_json(WIST1 / "delta-diagnostics.json", delta_diagnostic_vectors())
 
 
 def delta_attribution_vectors():
-    other = Ed25519PrivateKey.from_private_bytes(bytes([93]) * 32)
-    domains = ["example.com", "child.example.com"]
-    inner = dict(delta, url="https://child.example.com/page")
+    keys = [Ed25519PrivateKey.from_private_bytes(bytes([n]) * 32) for n in range(91, 99)]
+    parent, child, external = "example.com", "child.example.com", "elsewhere.example"
+    url = "https://child.example.com/page"
 
-    def binding(key, identifier):
-        return {"key_id": identifier, "alg": "Ed25519",
-                "public_key": b64u(key.public_key().public_bytes(
-                    serialization.Encoding.Raw, serialization.PublicFormat.Raw)),
-                "valid_from": "2026-08-01T00:00:00Z"}
+    def binding(key, identifier="shared", valid_from="2026-08-01T00:00:00Z"):
+        return {"key_id": identifier, "alg": "Ed25519", "public_key": b64u(raw_public(key)),
+                "valid_from": valid_from}
 
-    def declaration(domain, key, identifier, extra=()):
-        publisher = {"wist_version": "1.0.0", "domain": domain, "seq": 0,
-                     "keys": [binding(key, identifier), *extra]}
-        if domain != "child.example.com":
-            publisher["subdomain_scope"] = ["child.example.com"]
-        return sign_envelope_with(key, "publisher", publisher, identifier)
+    def declaration(domain, key, extra=(), **fields):
+        inner = {"wist_version": "1.0.0", "domain": domain, "seq": 0,
+                 "keys": [binding(key), *extra]}
+        if domain != child:
+            inner["subdomain_scope"] = [child]
+        inner.update(fields)
+        return sign_envelope_with(key, "publisher", inner, "shared")
 
-    shared = [declaration(domain, priv, "shared") for domain in domains]
-    distinct = [declaration(domains[0], priv, "shared"),
-                declaration(domains[1], other, "shared")]
-    namespaced = [declaration(domain, priv, domain + "#key") for domain in domains]
-    cases = [
-        {"name": "one signature matches two Publisher domains", "declarations": shared,
-         "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
-         "matching_domains": [domains]},
-        {"name": "distinct keys sign identical content", "declarations": distinct,
-         "envelopes": [sign_envelope_with(key, "delta", inner, "shared")
-                       for key in (priv, other)], "matching_domains": [[d] for d in domains]},
-        {"name": "unsigned identifier can select another domain", "declarations": namespaced,
-         "envelopes": [sign_envelope_with(priv, "delta", inner, d + "#key") for d in domains],
-         "matching_domains": [[d] for d in domains]},
-        {"name": "copied public binding in independently signed Declaration",
-         "declarations": [shared[0], declaration(domains[1], other, "own", [binding(priv, "shared")])],
-         "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
-         "matching_domains": [domains]},
-        {"name": "explicit scope outside hostname ancestry",
-         "declarations": [declaration("elsewhere.example", priv, "shared"), distinct[1]],
-         "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
-         "matching_domains": [["elsewhere.example"]]},
-    ]
-    for control in ("scope removed", "binding not yet valid"):
-        publisher = json.loads(json.dumps(shared[0]["publisher"]))
-        if control == "scope removed":
-            publisher.pop("subdomain_scope")
-        else:
-            publisher["keys"][0]["valid_from"] = "2026-08-03T00:00:00Z"
-        cases.append({"name": control,
-                      "declarations": [sign_envelope_with(priv, "publisher", publisher, "shared"), shared[1]],
-                      "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
-                      "matching_domains": [["child.example.com"]]})
-    for case in cases:
-        case["delta_ids"] = ["sha256:" + sha256_hex(rfc8785.dumps(env["delta"]))
-                             for env in case["envelopes"]]
-    return {
-        "note": "Unresolved-attribution witnesses under WIST-1 sections 3.2, 4 and 5.2. "
-                "matching_domains reports only literal scope, eligible named binding and strict "
-                "signature checks against supplied initial Declarations. It selects no author or "
-                "admission result. Declaration discovery and Log inclusion are supplied assumptions, "
-                "not exercised; no chain, recovery, reputation or sanction outcome is asserted. "
-                "The Payload commitment is the shared envelope.json fixture commitment.",
-        "cases": cases,
-    }
+    def signed(domain, key, **fields):
+        inner = dict(delta, publisher=domain, url=url)
+        inner.update(fields)
+        return sign_envelope_with(key, "delta", inner, "shared")
+
+    shared = [declaration(domain, keys[0]) for domain in (parent, child)]
+    distinct = [shared[0], declaration(child, keys[1])]
+    copied = [shared[0], declaration(child, keys[1], [binding(keys[0], "copied")])]
+    cases = []
+
+    def add(name, declarations, envelopes, outcomes, **extra):
+        cases.append(dict(name=name, declarations=declarations, envelopes=envelopes,
+                          expected=outcomes, delta_ids=[decl_hash(e["delta"]) for e in envelopes], **extra))
+
+    add("shared keys retain separate authors and IDs", shared,
+        [signed(d, keys[0]) for d in (parent, child)], ["accepted", "accepted"])
+    add("distinct keys and equal content retain separate IDs", distinct,
+        [signed(parent, keys[0]), signed(child, keys[1])], ["accepted", "accepted"])
+    add("copied key does not steal an existing author's Delta", copied,
+        [signed(parent, keys[0])], ["accepted"])
+    changed = signed(parent, keys[0]); changed["delta"]["publisher"] = child
+    add("author tampering requires a new signature even with shared keys", shared, [changed], ["WIST1-E01"])
+    alias = signed(parent, keys[0]); alias["sig"]["key_id"] = "copied"
+    add("unsigned alias cannot borrow another domain's key", copied, [alias], ["WIST1-E02"])
+    add("unknown author cannot borrow a scoped matching key", shared,
+        [signed("unknown.example", keys[0])], ["WIST1-E02"])
+    add("another domain's matching identifier does not suppress author", distinct,
+        [signed(child, keys[1])], ["accepted"])
+    add("explicit nonancestor scope", [declaration(external, keys[0])],
+        [signed(external, keys[0])], ["accepted"])
+    no_scope = declaration(parent, keys[0], subdomain_scope=[])
+    add("another author's scope supplies no authority", [no_scope, shared[1]],
+        [signed(parent, keys[0])], ["WIST1-E03"])
+    future = declaration(parent, keys[0], keys=[binding(keys[0], valid_from="2026-08-03T00:00:00Z")])
+    add("another author's earlier key supplies no bound", [future, shared[1]],
+        [signed(parent, keys[0])], ["WIST1-E02"])
+    excluded = declaration(parent, keys[1], keys=[binding(keys[1], "own"),
+        dict(binding(keys[0]), public_key=b64u(b"\x01" + bytes(31)))])
+    excluded = sign_envelope_with(keys[1], "publisher", excluded["publisher"], "own")
+    add("excluded author binding cannot borrow copied usable key", [excluded, shared[1]],
+        [signed(parent, keys[0])], ["WIST1-E02"])
+    for host in ("a", "xn--bcher-kva.example", "ab--cd.example"):
+        add("canonical host " + host, [declaration(host, keys[0])],
+            [signed(host, keys[0])], ["accepted"])
+    for name, host in [("missing", None), ("null", None), ("number", 1), ("array", []),
+                       ("empty", ""), ("uppercase", "EXAMPLE.com"), ("dot", "example.com."),
+                       ("Unicode", "bücher.example"), ("port", "example.com:443"),
+                       ("bad A label", "xn--.example"), ("oversized", "a" * 64 + ".com")]:
+        env = signed(parent, keys[0])
+        env["delta"]["publisher"] = host
+        if name == "missing":
+            del env["delta"]["publisher"]
+        env = sign_envelope_with(keys[0], "delta", env["delta"], "absent")
+        add("Publisher field " + name, shared, [env], ["WIST1-E14"])
+    valid = signed(parent, keys[0])
+    for feed_domain, seen, redirected, expected in [
+            (parent, False, "www.example.com", "accepted"),
+            (parent, True, "www.example.com", "accepted"),
+            (child, False, child, "WIST2-E03"), (child, True, child, "WIST2-E03")]:
+        add("Feed association " + feed_domain + (" seen" if seen else " new"),
+            [declaration(parent, keys[0], subdomain_scope=[child, "www.example.com"]), shared[1]],
+            [valid], [expected], feed_domain=feed_domain, already_seen=seen,
+            serving_host=redirected)
+    malformed = signed(parent, keys[0]); del malformed["delta"]["publisher"]
+    add("Publisher field precedes Feed association", shared, [malformed], ["WIST1-E14"],
+        feed_domain=child, already_seen=True)
+
+    start = datetime.datetime(2026, 8, 2, 12, tzinfo=datetime.timezone.utc)
+    def timestamp(height):
+        return (start + datetime.timedelta(hours=height)).isoformat().replace("+00:00", "Z")
+    first = declaration(parent, keys[0], recovery_keys=[binding(keys[7], "recovery")])
+    def replacement(previous, key, signer, signer_id="shared", **fields):
+        inner = dict(previous["publisher"], seq=previous["publisher"]["seq"] + 1,
+                     prev_declaration=decl_hash(previous["publisher"]), keys=[binding(key)])
+        inner.update(fields)
+        return sign_envelope_with(signer, "publisher", inner, signer_id)
+    ordinary = replacement(first, keys[2], keys[0])
+    owner = replacement(ordinary, keys[3], keys[7], "recovery")
+    competitor = replacement(owner, keys[4], keys[4])
+    follower = replacement(owner, keys[5], keys[3], seq=4)
+    reset = replacement(follower, keys[6], keys[6], seq=5)
+    declarations_at = {0: [first, declaration(child, keys[0]), declaration(external, keys[2])],
+                       1: [ordinary], 2: [owner], 3: [competitor], 4: [follower], 171: [reset]}
+    authors_at = {0: keys[0], 1: keys[2], 2: keys[3], 3: keys[3], 4: keys[5],
+                  170: keys[5], 171: keys[6], 172: keys[6]}
+    blocks, tips, envelopes, probes = [], {}, {}, []
+    previous = "sha256:genesis"
+    for height in range(173):
+        entries = [{"type": "publisher_declaration", "body": env}
+                   for env in declarations_at.get(height, [])]
+        if height in (0, 1, 170, 171, 172):
+            env = signed(parent, authors_at[height], observed_at=timestamp(height))
+            if parent in tips:
+                env["delta"].pop("payload")
+                env["delta"].update(change_type="attest", prev=tips[parent])
+                env = sign_envelope_with(authors_at[height], "delta", env["delta"], "shared")
+            entries.append({"type": "publisher_delta", "body": env})
+            tips[parent] = decl_hash(env["delta"]); envelopes[height] = env
+        if height == 0:
+            env = signed(child, keys[0], observed_at=timestamp(height))
+            entries.append({"type": "publisher_delta", "body": env})
+            tips[child] = decl_hash(env["delta"])
+        entries.sort(key=lambda e: ((0 if e["type"] == "publisher_declaration" else 2),
+                                     leaf_hash(rfc8785.dumps(e))))
+        header = {"wist_version": "1.0.0", "block_number": height, "prev_block_hash": previous,
+                  "sealed_at": timestamp(height), "entry_count": len(entries),
+                  "merkle_root": "sha256:" + (merkle_tree_root([leaf_hash(rfc8785.dumps(e)) for e in entries]) if entries else leaf_hash(b"" )).hex()}
+        block = dict(sign_envelope_with(priv, "header", header, "log-key"), entries=entries)
+        blocks.append(block); previous = decl_hash(header)
+        if height in (0, 1, 3, 4, 170, 171):
+            def probe(name, domain, key, expected, stage=None, **fields):
+                stage = stage or ("admission" if height in (3, 4) else "sealing")
+                env = signed(domain, key, observed_at=timestamp(height + 1), prev=tips[domain])
+                env["delta"].pop("payload"); env["delta"]["change_type"] = "attest"
+                env["delta"].update(fields)
+                env = sign_envelope_with(key, "delta", env["delta"], "shared")
+                probes.append(dict(name=name, height=height, stage=stage, envelope=env, expected=expected))
+            key = keys[3] if height in (3, 4) else authors_at[height]
+            probe("same author continues at " + str(height), parent, key, "accepted")
+            probe("foreign predecessor at " + str(height), parent, key, "WIST1-E07", prev=tips[child])
+            probe("wrong URL predecessor at " + str(height), parent, key, "WIST1-E07", url="https://child.example.com/other")
+            env = signed(parent, key, observed_at=timestamp(height + 1))
+            probes.append(dict(name="chain cannot restart at " + str(height), height=height,
+                               stage="admission" if height in (3, 4) else "sealing", envelope=env, expected="WIST1-E07"))
+            if height in (3, 4):
+                for candidate, expected in [(keys[2], "accepted"), (keys[3], "accepted"),
+                                            (keys[4], "WIST1-E01"), (keys[5], "WIST1-E01")]:
+                    probe("frozen recovery sources at " + str(height) + " " + str(len(probes)),
+                          parent, candidate, expected, stage="admission")
+                probe("foreign recovery source cannot authorize child " + str(height),
+                      child, keys[2], "WIST1-E01", stage="admission")
+            if height == 170:
+                probe("expired recovery union", parent, keys[2], "WIST1-E01", stage="admission")
+    versions = []
+    for name, version, mutation, expected in [
+            ("current draft", "1.0.0", None, "accepted"),
+            ("same version old draft lacks author", "1.0.0", "missing", "WIST1-E14"),
+            ("unknown fields remain forbidden", "1.0.0", "unknown", "schema rejection"),
+            ("unimplemented major", "2.0.0", None, "unsupported major")]:
+        env = signed(parent, keys[0], wist_version=version)
+        if mutation == "missing": del env["delta"]["publisher"]
+        if mutation == "unknown": env["delta"]["extra"] = True
+        env = sign_envelope_with(keys[0], "delta", env["delta"], "shared")
+        versions.append(dict(name=name, envelope=env, expected=expected))
+    return dict(
+        note="WIST-1 sections 3.1, 3.5 and 3.8, WIST-2 section 5, WIST-3 section 7 and WIST-4 section 6.1. "
+             "Cases test signed author, key, scope and optional logical Feed association, with current initial "
+             "Declarations supplied; accepted means those checks only. No live discovery or transport is exercised. "
+             "The authenticated hourly history uses the default seven-day recovery window and supplies an "
+             "independently pinned head; its Deltas exercise sealing bindings and chain ownership. Probes run "
+             "after the named Block's Declaration stage and accepted Deltas, using that prefix's sources/tips; "
+             "their later observed_at is a supplied test timestamp, not an inclusion claim. Clock, Payload, "
+             "quotas, audit eligibility and actual notice acceptance remain separate. Conditional identity "
+             "projections exercise owner/reset attribution, not cryptographic validation of audit evidence. "
+             "Version cases assume a validator of this exact draft implementing only wire major 1.",
+        cases=cases, log_key=dict(key_id="log-key", public_key=b64u(pub_raw)),
+        recovery_window_days=7, blocks=blocks, pinned_head=previous, probes=probes,
+        projection_cases=[
+            dict(at_height=4, audited_height=0, publisher=parent, expected_current_identity=True),
+            dict(at_height=170, audited_height=0, publisher=parent, expected_current_identity=True),
+            dict(at_height=171, audited_height=0, publisher=parent, expected_current_identity=False),
+            dict(at_height=171, audited_height=171, publisher=parent, expected_current_identity=True),
+            dict(at_height=171, audited_height=0, publisher=child, expected_current_identity=True)],
+        version_cases=versions)
 
 
 write_json(WIST1 / "delta-attribution.json", delta_attribution_vectors())

@@ -101,7 +101,7 @@
         "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
       }
     ],
-    "pulled_block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+    "pulled_block": "sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e",
     "successor": {
       "update": {
         "wist_version": "1.0.0",
@@ -109,15 +109,15 @@
         "subject": "audit.sample.net",
         "effective_at": "2026-08-05T12:00:00Z",
         "details": {
-          "block": "sha256:b62c777f579a1fc9963b1b4f8f1a8cecc02296838135116479af56acf598540e",
+          "block": "sha256:44baf6145711a433ce943cdbe37150e4c88483ceba3a5d45bb9fccab2ade4611",
           "prev_record": "sha256:1814a012b1da70784470e7c55706de4fb2ace471e75bc4cfb1ed9deb124d60ed",
-          "vrf_proof": "0eb7f8b115e74d2159efde4d36cfd9505f494d1ab389e370d0d8700427f0848d28a1c33b6aff151a5356db5c01e2a10c60cfa08ea8b0789f10933a540f3c891f6d7045eff8b6c501d9b86c2a03604304"
+          "vrf_proof": "0c1f05a0508782c73e41d5fed431e9870a0261cf517d39c8d83c7ba374f0026922427bddb9cac4f8dba7aa57992bab5afae769716761084e6d5d6c6633cd6a056001a15028765fae469053be33c4c509"
         }
       },
       "sig": {
         "key_id": "receipt-auditor-k1",
         "alg": "Ed25519",
-        "value": "_hTLg-jf_a5AZKcp1x08lcu3x9okqUA2_0tnpRQcKly7DNbDnxLnj_IvZBrI150k6XJ7MkL35vJBhA6Cso9MDw"
+        "value": "2tNEp_H_sQKN5yGx_INj360KIBR3C5VSYMeTWHY1sGjkpNHrB-Xuul27_FOPgK6XWZE4fxc25KhV99YGUZiKDg"
       }
     },
     "cases": [
@@ -135,7 +135,7 @@
             "subject": "audit.sample.net",
             "effective_at": "2026-08-05T12:00:00Z",
             "details": {
-              "block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+              "block": "sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e",
               "found": [
                 "sha256:1814a012b1da70784470e7c55706de4fb2ace471e75bc4cfb1ed9deb124d60ed"
               ]
@@ -144,7 +144,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "DfurFEiGQdVxQsCrRYMubJizH_JbGBR9qBTWvxpEafjlfz94dVT3g2mS-NA1TZJkEvTB_rtigEB2TrDMsa-EAQ"
+            "value": "QfOXb57qUiCVUS1nvmVvGB0XfpqrjH2R8A-Llb4Hy4tGT0DPR8quXCEnDYuF8FRBqDR8IsnGHuSNLMGVkF58Cw"
           }
         },
         "exempt": true
@@ -158,7 +158,7 @@
             "subject": "audit.sample.net",
             "effective_at": "2026-08-05T12:00:00Z",
             "details": {
-              "block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+              "block": "sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e",
               "found": [
                 "sha256:2222222222222222222222222222222222222222222222222222222222222222"
               ]
@@ -167,7 +167,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "QNbiUt-xQqyS7KZ0Ij16NkjKEUsoIlJY8ShoDncGhmkNRU5l8LlbyzRQSoi6SNNDrAtdQrchdXdkR0jWzUDXBA"
+            "value": "aguTktkuCPd7DZsT6qHt7iwHW8NJHvfuVXqoGbCYtXVI4i9NW3bmKaSshtH4zEVgRVkROUuHMB1_Ig-Xy2OTBQ"
           }
         },
         "exempt": false
@@ -181,14 +181,14 @@
             "subject": "audit.sample.net",
             "effective_at": "2026-08-05T12:00:00Z",
             "details": {
-              "block": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
+              "block": "sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e",
               "found": []
             }
           },
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "-A9wS6ZJwmJWdkVhV2lYqd3X4_9PNzZWY9LWQ_tJkipmjG-zDmlx49SNF3hCSSSz2HOMNdYpW9lOAwf2TKFcAw"
+            "value": "y8jhUOrMotBqu6_mnvxV3inBZQHv0CHTyweuib0u0Po3arOr6cNwpJCCZ52Tt1Ok40ZaGBPyJI0m6ieMXNtRCA"
           }
         },
         "exempt": false

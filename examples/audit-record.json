@@ -1,8 +1,8 @@
 {
   "record": {
     "wist_version": "1.0.0",
-    "audited_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
-    "reference_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+    "audited_delta": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
+    "reference_delta": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
     "auditor_id": "audit.example.net",
     "fetched_at": "2026-08-02T14:00:00Z",
     "response_commitment": "hmac-sha256:07ef725032b51ef3fc4bfeb59324ad160f52363df4f165ff63e9473952bf637a",
@@ -12,12 +12,12 @@
     "link_agreement": 1000000,
     "verdict": "consistent",
     "evidence_commitment": "hmac-sha256:79922c24d14b5aa634d2a29a440d577c12cba0860700b8f93b11fe2ad9812638",
-    "vrf_proof": "defb838b0b6ea0932bbd29a9ac6c5f89ef0d8bac94f76e2cf92dea63bc98f0bc80b9d48617d2aca12c50449654647c3e60f63a8f9b9e1fb5c5232316c6ed6ff184358bb73f251175fb6a4ac8b935ca09",
+    "vrf_proof": "05c6ecc1a397b73133bd160eded515e4833c4bbd5e7a90a0d3231d276b63ad071e30092746899cc13335084bcce9ce695da8a42ac6731662abda8ab2df821372697b648ea4ec66dc4de79018ba7f9c01",
     "prev_record": null
   },
   "sig": {
     "key_id": "test-aud-k1",
     "alg": "Ed25519",
-    "value": "-5yy48s2F1vh5yu4D_VCmX_vtP0ABCZltD9Pf0rI0ezOZh-dzBox5YZfMZw1cv0bqiqG1YPTlV7v2pF0I9E0Dw"
+    "value": "js6fWog79DR4I3UBh57K7FEdXJi9ZZ_7420YH36ApAEdst6WaWm9MmXUDHA8YFP1A7UpfSxuyDdlqXVxOuWfAQ"
   }
 }

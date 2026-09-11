@@ -352,6 +352,16 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
 3. Fetches each new `deltas/<id>.json`; validates each per WIST-1 (§4, §7),
    retrieving and validating first, in chain order, any `prev` it has not
    sealed (WIST-1 §3.5).
+   After WIST-1's mandatory Delta field checks, its signed `publisher` MUST
+   equal the authenticated Feed or Page's `domain`; otherwise reject that
+   Delta with `WIST2-E03`. The same association check applies to fetched
+   predecessors and precedes idempotent acceptance: an ID accepted for
+   another domain is not a seen ID for this domain. Compare the logical
+   Publisher being pulled, not a redirect destination (§8) or Mirror host.
+   This rejection neither attributes the foreign Delta to the Feed's domain
+   nor invalidates it under its actual Publisher; it does not count as Ping
+   noise (§4). Scope failure against the signed Publisher remains WIST1-E03.
+   A malformed `publisher` retains WIST1-E14 instead of this association code.
    For every content-bearing Delta it also fetches the corresponding
    `payloads/<id>.json` in the same pass and verifies it against the
    Delta's commitment and `bytes` (WIST-1 §3.6). A Delta whose Payload is
@@ -433,7 +443,7 @@ convenience. This asymmetry is the adoption incentive for WIST-1/WIST-2.
 |---------|--------------------------------------------------------------|
 | WIST2-E01 | Feed unusable after Ping: unreachable, or fetched and unusable — not well-formed JSON, failing the Feed schema, or naming a `next` outside the Publisher's authority (§3.2, §5). Aggregator retries with exponential backoff at 1 min, 4 min, 16 min, 64 min; a fresh ping cancels a pending backoff and starts a new attempt, subject to quota. The pull is not noise (§4): the backoff, not the quota, is what bounds a domain that keeps serving one. |
 | WIST2-E02 | Ping produced no new feed content. Counts as noise against the domain's Ping quota. |
-| WIST2-E03 | Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (WIST-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
+| WIST2-E03 | Delta whose signed `publisher` differs from the authenticated Feed/Page domain (§5), or a Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (WIST-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
 | WIST2-E04 | First contact or Feed authentication failure. Three cases, one code, each one of the Feed failing to authenticate as this domain's: a Feed whose signature does not verify against the domain's Key Set even after the one Declaration re-fetch §5 step 1 requires; a Feed whose `feed.domain` differs from the host it was fetched from (§4), which authenticates as some other domain's Feed or as none, whatever key signed it; and a first-contact pull (§5 step 0) whose `publisher.json` is missing, unreachable, malformed, or fails WIST-1 §5.1 verification — the last being the case where no Key Set exists to check the first against. The pull is discarded; counts as noise against the quota. The status endpoint (§7.1) MUST distinguish them in its `detail` field, since a Publisher whose Declaration never loaded, one whose Feed signature is wrong, and one serving a misaddressed Feed take entirely different remedies. |
 | WIST2-E05 | Feed `generated_at` regression. The pull is discarded; it does not count against the quota — §4's noise set is closed at `WIST2-E02`/`WIST2-E04`. |
 

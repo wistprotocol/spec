@@ -3,13 +3,13 @@
     "wist_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
-    "anchor_block_hash": "sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487",
-    "content_digest": "sha256:2571c0b9cdcb6aa5bb4c94581fb186c55f07fdcc94c737017e162781052af488",
+    "anchor_block_hash": "sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e",
+    "content_digest": "sha256:b131bd13251ed051a83ead50b51de3199e8d993ef2a085f07730e822208aa2b6",
     "state": {
       "path": "state.json",
-      "sha256": "a4919c9f3612e869ff549c5bbe1a5ea9907b0185cb8769fd1268159f3d6c0676",
+      "sha256": "befd9d3bd0b7e4a215d1d4d196e6d6c6f68fe3e1a6d61a88f203b6e3b526bb02",
       "bytes": 890,
-      "state_digest": "sha256:50ec14d861af95d4fd6cc85177ce4c8dc84ccc572e31f21600fad115c47f37a7"
+      "state_digest": "sha256:6ace438893547a6a824d445064ac8f370662515b3f69b4102aafdf6b3fb7f03b"
     },
     "files": [
       {
@@ -35,6 +35,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "ohfoWq94Dmrb5GW8r5JtkI3H7itH14T0GfW4wZYIsUIjItf0ou_6fb6MsNVY_lLcPI7V6gTqrIS0GHbBIC86Ag"
+    "value": "-pvBjBOa3j1dPcHlANL7q0o5Ox92xGm7aUHN-KFvKPuZPfVmjtpG1tc8CW3eO3tpqjQAZDK_S6GloUrz_QmhCw"
   }
 }

@@ -1219,8 +1219,8 @@
     "record_envelope": {
       "record": {
         "wist_version": "1.0.0",
-        "audited_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
-        "reference_delta": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+        "audited_delta": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
+        "reference_delta": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
         "auditor_id": "watch.sample.net",
         "fetched_at": "2026-08-02T14:00:00Z",
         "response_commitment": "hmac-sha256:07ef725032b51ef3fc4bfeb59324ad160f52363df4f165ff63e9473952bf637a",
@@ -1230,13 +1230,13 @@
         "link_agreement": 1000000,
         "verdict": "consistent",
         "evidence_commitment": "hmac-sha256:79922c24d14b5aa634d2a29a440d577c12cba0860700b8f93b11fe2ad9812638",
-        "vrf_proof": "6b427739a25714c7d1646b4fc85ea816684fc47f17457660836e86a5be91268f7fa2c378dd38d3ded6534b9198ca3d25684d17cf07b869218d8fad5b54ec1164de9962f02d05e42101bfe1fc526c090a",
+        "vrf_proof": "be39d9573508b1af38cc769ebeb32e7ea75278f2bb4d4c421c009281f3d8ec3141101dabaa6dc80778b35d40c60f46183dcbe98d1e3a694a133fb8364c3f9dda0c06ec0ebee857a2e15b8ab9f627f10d",
         "prev_record": null
       },
       "sig": {
         "key_id": "observer-k1",
         "alg": "Ed25519",
-        "value": "klkYKuLIHGOCabzSTcYySqhMoVQr3p20ZqMzzlQh-Mn3D5ymjIKyBk8uVOpUWnfamSUIPB3IzCDHkvHdqaFqCQ"
+        "value": "vjq0Nn3DWQEyBmv1drGYUsDzADhQ-ejMkgszFXwK-8yR3wV5HvD6xUFh9_vqnrraeNbozoDouqyTWjq-_-htCw"
       }
     },
     "cases": [
@@ -1315,13 +1315,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           }
@@ -1380,7 +1380,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "checkpoint": "sha256:545a054d1a67a55beb0c3347ab853bace3d006f4f0d5c488201184fbd8173eff",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -1404,7 +1404,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+            "value": "W3V1zxqjVRqoqYuM8w27xS8roa26o9aWuOaiUBxowGhdUW0KDVjdzyslm5tmDczZwfRt9bI9PQ5CeXUIZ48xCg"
           }
         },
         "recomputed_scoreboard": {
@@ -1460,13 +1460,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           },
@@ -1479,13 +1479,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-04T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+                "value": "uvOLE_2oxzlG8uXxw3dh_qycB1kTRQXmpqSrwozezU0ITTsmTPoogqfk9aahlf6jTJxMVHvYVppTnt5jmhPyCg"
               }
             }
           }
@@ -1502,7 +1502,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "checkpoint": "sha256:43a0134c9cb056892b089fde253ded8676028f2ce2fdeebacce3360d421e3a5c",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -1526,7 +1526,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "zDov83LbqHDXAzgdGgSMkzuGPFzOyy2AJkmfy_pzH4uEfA5wcbjw3EeCM9LCYSQDsyJtWhHESIbiVdBVX__MAA"
+            "value": "zE5fQAKRi0-CfhlbvYIrKrrWmN5gDSp76d4H-UAiw6fiwtmUEtX0uOPDYm43ghFy9U96xq9tNxpg-crIf1zKDw"
           }
         },
         "recomputed_scoreboard": {
@@ -1586,7 +1586,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "checkpoint": "sha256:545a054d1a67a55beb0c3347ab853bace3d006f4f0d5c488201184fbd8173eff",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -1610,7 +1610,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+            "value": "W3V1zxqjVRqoqYuM8w27xS8roa26o9aWuOaiUBxowGhdUW0KDVjdzyslm5tmDczZwfRt9bI9PQ5CeXUIZ48xCg"
           }
         },
         "recomputed_scoreboard": {
@@ -1666,13 +1666,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           },
@@ -1685,13 +1685,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-04T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+                "value": "uvOLE_2oxzlG8uXxw3dh_qycB1kTRQXmpqSrwozezU0ITTsmTPoogqfk9aahlf6jTJxMVHvYVppTnt5jmhPyCg"
               }
             }
           }
@@ -1708,7 +1708,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "checkpoint": "sha256:545a054d1a67a55beb0c3347ab853bace3d006f4f0d5c488201184fbd8173eff",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -1732,7 +1732,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+            "value": "W3V1zxqjVRqoqYuM8w27xS8roa26o9aWuOaiUBxowGhdUW0KDVjdzyslm5tmDczZwfRt9bI9PQ5CeXUIZ48xCg"
           }
         },
         "recomputed_scoreboard": {
@@ -1788,13 +1788,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           },
@@ -1807,13 +1807,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-04T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+                "value": "uvOLE_2oxzlG8uXxw3dh_qycB1kTRQXmpqSrwozezU0ITTsmTPoogqfk9aahlf6jTJxMVHvYVppTnt5jmhPyCg"
               }
             }
           }
@@ -1830,7 +1830,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "checkpoint": "sha256:43a0134c9cb056892b089fde253ded8676028f2ce2fdeebacce3360d421e3a5c",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -1854,7 +1854,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "SvLgNcHdrDmsAjMGHapn16pmqp_lePIfJOTastNR8Ho_bdrKcDUfTnJXYynkf7SdCZE8vz-1TTjGtR2dW6AVAw"
+            "value": "P43133c_klZyN6jPHpgVpIYPpsdwo8Z9w8Tx8Fw7XVK23vPm0FkJlzTh0tSqdO-J68IH2PHcfWikAwpz1uFCAw"
           }
         },
         "recomputed_scoreboard": {
@@ -1910,13 +1910,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           },
@@ -1929,13 +1929,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-04T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+                "value": "uvOLE_2oxzlG8uXxw3dh_qycB1kTRQXmpqSrwozezU0ITTsmTPoogqfk9aahlf6jTJxMVHvYVppTnt5jmhPyCg"
               }
             }
           }
@@ -1952,7 +1952,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "checkpoint": "sha256:545a054d1a67a55beb0c3347ab853bace3d006f4f0d5c488201184fbd8173eff",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -1976,7 +1976,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+            "value": "W3V1zxqjVRqoqYuM8w27xS8roa26o9aWuOaiUBxowGhdUW0KDVjdzyslm5tmDczZwfRt9bI9PQ5CeXUIZ48xCg"
           }
         },
         "recomputed_scoreboard": {
@@ -2032,13 +2032,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-04T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+                "value": "uvOLE_2oxzlG8uXxw3dh_qycB1kTRQXmpqSrwozezU0ITTsmTPoogqfk9aahlf6jTJxMVHvYVppTnt5jmhPyCg"
               }
             }
           },
@@ -2051,13 +2051,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           }
@@ -2074,7 +2074,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:a70fb7836bf3a737ab172ef94b8502a31dc101edf4909afc812d5f34f100f565",
+                "checkpoint": "sha256:545a054d1a67a55beb0c3347ab853bace3d006f4f0d5c488201184fbd8173eff",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -2098,7 +2098,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "0cCJB2fyln5qq2T8oNkunDiohG-tRBZj91gsUz3Q4sOf0UatTPZugBj_1d-Z5VIzzWDS_prADQI7ctBvlSErCA"
+            "value": "W3V1zxqjVRqoqYuM8w27xS8roa26o9aWuOaiUBxowGhdUW0KDVjdzyslm5tmDczZwfRt9bI9PQ5CeXUIZ48xCg"
           }
         },
         "recomputed_scoreboard": {
@@ -2154,13 +2154,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           },
@@ -2173,13 +2173,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-04T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+                "value": "uvOLE_2oxzlG8uXxw3dh_qycB1kTRQXmpqSrwozezU0ITTsmTPoogqfk9aahlf6jTJxMVHvYVppTnt5jmhPyCg"
               }
             }
           }
@@ -2196,7 +2196,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "checkpoint": "sha256:43a0134c9cb056892b089fde253ded8676028f2ce2fdeebacce3360d421e3a5c",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -2220,7 +2220,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "zDov83LbqHDXAzgdGgSMkzuGPFzOyy2AJkmfy_pzH4uEfA5wcbjw3EeCM9LCYSQDsyJtWhHESIbiVdBVX__MAA"
+            "value": "zE5fQAKRi0-CfhlbvYIrKrrWmN5gDSp76d4H-UAiw6fiwtmUEtX0uOPDYm43ghFy9U96xq9tNxpg-crIf1zKDw"
           }
         },
         "recomputed_scoreboard": {
@@ -2276,13 +2276,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-04T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "9k3H1HJp9ei_L77uzg2vMBppcaTe_b-lbESEyRfihBD9wYSB9trW0fGAOF2MZH0e0g0eELxOP9AoH38CEGBdBA"
+                "value": "uvOLE_2oxzlG8uXxw3dh_qycB1kTRQXmpqSrwozezU0ITTsmTPoogqfk9aahlf6jTJxMVHvYVppTnt5jmhPyCg"
               }
             }
           },
@@ -2295,13 +2295,13 @@
                 "subject": "watch.sample.net",
                 "effective_at": "2026-08-03T12:00:00Z",
                 "details": {
-                  "head": "sha256:c13a6716b946b32ed4eb68238927492ed68c34b3c04b0502fbb06322b3f67aaa"
+                  "head": "sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d"
                 }
               },
               "sig": {
                 "key_id": "observer-k1",
                 "alg": "Ed25519",
-                "value": "eOJScPUt-AcOBrrtkig-0UV_KNiDaGfwGbgPBNjqMR4omLFLiTKhPyidPCP1XB1Ct5FddiiOhg77HPLu92GJDw"
+                "value": "vvBiPMUieq0QunZv7gzsGfaK-vt6dUXtpgEmxq6buGWhpb9o7Tsz5maZCDlSC2VfGQ2HVQKMzNz3K1atpfo4Bg"
               }
             }
           }
@@ -2318,7 +2318,7 @@
               "alg": "Ed25519",
               "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
               "track_record": {
-                "checkpoint": "sha256:653987fcaf544419baeefbb2389a0f3f3836371e31ef63c3a53432b71020a2b8",
+                "checkpoint": "sha256:43a0134c9cb056892b089fde253ded8676028f2ce2fdeebacce3360d421e3a5c",
                 "scoreboard": {
                   "provisional": [
                     0,
@@ -2342,7 +2342,7 @@
           "sig": {
             "key_id": "test-agg-k1",
             "alg": "Ed25519",
-            "value": "zDov83LbqHDXAzgdGgSMkzuGPFzOyy2AJkmfy_pzH4uEfA5wcbjw3EeCM9LCYSQDsyJtWhHESIbiVdBVX__MAA"
+            "value": "zE5fQAKRi0-CfhlbvYIrKrrWmN5gDSp76d4H-UAiw6fiwtmUEtX0uOPDYm43ghFy9U96xq9tNxpg-crIf1zKDw"
           }
         },
         "recomputed_scoreboard": {

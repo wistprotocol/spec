@@ -56,7 +56,7 @@
               "leaves": [
                 {
                   "index": 0,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                   "path": [
                     "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -66,7 +66,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -76,7 +76,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -86,7 +86,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -98,7 +98,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "mgct6TKPVcWGAcXPbVVJCHXwsnUdLukdl7DrXHj4xSdOieFA8pXRDClHyTrPtbIu9fsKyKnfRxyO7JqxFxQ3AA"
+            "value": "ZrMuFM5h6Dm-f-agkhtBcZLKbe4b9RtkQpuP8Fh2wsVd8N4cYdftdzuzmIXsSPLzA184lB96BQFaw5EB3Fc7Cg"
           }
         },
         "membership_valid": true,
@@ -117,7 +117,7 @@
               "leaves": [
                 {
                   "index": 0,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -127,7 +127,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -137,7 +137,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -147,7 +147,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -159,7 +159,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "S3ICGnP44xFS7uQq15Y2N1YQ809tvlQTxQhoaenYb9ygV9oKgZFionbP2SM2_DHR0kHgW0bdieNryjOCMYGYAQ"
+            "value": "xjugHmvBrOW3ZA7qGf8ZyelvLumrQyGKeILl6PThy9V5Fyas0TZ2hCT8iPnYsyuUQaQ2R3d_fnDWcgpongQXAg"
           }
         },
         "membership_valid": false,
@@ -178,7 +178,7 @@
               "leaves": [
                 {
                   "index": 0,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "path": [
                     "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                     "sha256:e53781194625f9cf927ad2f439e676e6788e754b3913a6d6b9ed34583608e593",
@@ -187,7 +187,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -197,7 +197,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -207,7 +207,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -219,7 +219,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "C3UXofGiC3EBMXqd6u9qeAayS7tTW6sz2Djpxt7kckVWShcXedWFQSiTuqgq_ZiIdeRmEtyoOZOXoIN2Rn6VCw"
+            "value": "P76y9PE-W0EpmHiJ7QXmCP6IDrGUTOgpBPt1sns9uCw8nwIKvp48bIhkh1UF_c1oLgu2gyxlE0GWnnmT61I9AA"
           }
         },
         "membership_valid": false,
@@ -238,7 +238,7 @@
               "leaves": [
                 {
                   "index": 0,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "leaf_hash": "sha256:00",
                   "path": [
                     "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -248,7 +248,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -258,7 +258,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -268,7 +268,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -280,7 +280,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "8K3HeMPxErjTW138OufqnjILNqOVkjekDcbjEjTKTQ5KWvptRInRZmyolJi4sQK4n9ASZtMsc2cRonKc6ynvDg"
+            "value": "Pi7wiNeyatkWMwA-oGSHAzkSG_7F3qrlFwFdhyUQKp-jemZl_J8qTn1FWMWYU1IPb78t0s1v5tKh1b32xTGGDA"
           }
         },
         "membership_valid": false,
@@ -299,7 +299,7 @@
               "leaves": [
                 {
                   "index": 0,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                   "path": [
                     "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -308,7 +308,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -318,7 +318,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -328,7 +328,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -340,7 +340,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "mmYDkl5SbxP-TTt-hik2WNUYF8jcc0vo3QhqrqHtJin-G6q_2xxctDhJUpdCazZBxxI554LNGlrxTHTMd_YyCQ"
+            "value": "64ygrRn9SDz68HcluciLuu-oSuZoq5atE2AzIWKXL1hWUs0l74Nllzcb7o87WSaeIDGgWwtJ5cfY0XEoYcTrCA"
           }
         },
         "membership_valid": false,
@@ -359,7 +359,7 @@
               "leaves": [
                 {
                   "index": 0,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                   "path": [
                     "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -370,7 +370,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -380,7 +380,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -390,7 +390,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -402,7 +402,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "RKTW1Geee2FRtgApN1__FLAhBG2TpTLliFY7JnqqMHXpHfJLk1sH9trODTVzwuz4Lj82biKox8I8X8zDVdRhBQ"
+            "value": "rYUbhxwbtU3depc6oBTCkSZ80iaQeTO1qpObfXRpg-bXGTZBOwQ5G6Vn2ikB4sav0SyhRfL3kybw8vrBO70nCQ"
           }
         },
         "membership_valid": false,
@@ -421,7 +421,7 @@
               "leaves": [
                 {
                   "index": 0,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                   "path": [
                     "sha256:65b85ec65d6fbd0f5eb068933ad1830dd5746d25eb495c4b95c13668de84b25f",
@@ -431,7 +431,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -441,7 +441,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -451,7 +451,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -463,7 +463,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "fscty0Ahzf_smwawTIi_EbyzEZmMHkMUqZSbiLURtXYsv9X5YL2w3CnvTLAgmA9dOWhvVUhKo1rwk90k_9jVBg"
+            "value": "xjjFWhSuKYzanwz5yoUUBYXOdVqm1yUTr6CQtmHEzHV-FlG0WSkybaoZ6uosREjCwjbPZsGdnjqJTL0VyRy9Dw"
           }
         },
         "membership_valid": false,
@@ -482,7 +482,7 @@
               "leaves": [
                 {
                   "index": 5,
-                  "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                  "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                   "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                   "path": [
                     "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -492,7 +492,7 @@
                 },
                 {
                   "index": 1,
-                  "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                  "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                   "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                   "path": [
                     "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -502,7 +502,7 @@
                 },
                 {
                   "index": 2,
-                  "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+                  "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
                   "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
                   "path": [
                     "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -512,7 +512,7 @@
                 },
                 {
                   "index": 4,
-                  "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+                  "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
                   "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
                   "path": [
                     "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -524,7 +524,7 @@
           "sig": {
             "key_id": "test-canary-k1",
             "alg": "Ed25519",
-            "value": "pX698yYTk_6KUuEknKzELnQelCYUUS6WqFVJrIFY_7-ePjcWrDBhIafLNJN0CMVtuHmovg1HXy02QQuMGFxRDA"
+            "value": "sUhx2FirmCvbdS8PxEYo97pHAS3D24g3sh1CsXPts_Teszs4qXfQYm9flo3sAstFUuShfTpuiaypWvriq_QAAA"
           }
         },
         "membership_valid": false,
@@ -545,7 +545,7 @@
       "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203966343230306537363736633761646364386266356664333565386163303163202d2d3e3c703e5749535420697320616e206f70656e2c2076657269666961626c652c20707573682d62617365642077656220696e6465782070726f746f636f6c2e3c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
       "revealed": true,
-      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
       "delta_height": 124,
       "path": [
         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -565,7 +565,7 @@
       "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a206262326430346665383536373635616262333131333735383861386663313035202d2d3e3c703e4e6f7468696e6720736572766564206865726520726573656d626c65732074686520636f6d6d6974746564207465787420617420616c6c2e3c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
       "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
       "revealed": true,
-      "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+      "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
       "delta_height": 200,
       "path": [
         "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -585,7 +585,7 @@
       "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203337663030386238373935366130643034646161383432663333373533323437202d2d3e3c703e5749535420697320616e206f70656e2c2076657269666961626c652c20707573682d6261736564207765623c2f703e3c703e66696c6c6572302066696c6c6572312066696c6c6572322066696c6c6572332066696c6c6572342066696c6c6572352066696c6c6572362066696c6c6572372066696c6c6572382066696c6c6572392066696c6c657231302066696c6c657231312066696c6c657231322066696c6c657231332066696c6c657231342066696c6c657231352066696c6c657231362066696c6c657231372066696c6c657231382066696c6c657231392066696c6c657232302066696c6c657232312066696c6c657232322066696c6c657232332066696c6c657232342066696c6c657232352066696c6c657232362066696c6c657232372066696c6c657232382066696c6c657232392066696c6c657233302066696c6c657233312066696c6c657233322066696c6c657233332066696c6c657233342066696c6c657233352066696c6c657233362066696c6c657233372066696c6c657233382066696c6c657233393c2f703e3c2f626f64793e3c2f68746d6c3e",
       "leaf_hash": "sha256:f09ebb03cdda0bbb90cae4851cc83b01464ada806a41cfb43c900a1f56aeb7a2",
       "revealed": true,
-      "delta_id": "sha256:bc7f8451d10bcf345304945c93f4ac4626044dd5fcf8895a548ae1f0764e556d",
+      "delta_id": "sha256:ab52cb726f88671a22ecc9b6c44c6d4ade733f425bd9f2b54d16e1f7e7729b61",
       "delta_height": 300,
       "path": [
         "sha256:b9382db55481bf1200d393f181ba1e48fe6bf45e1de60da7efc231e8e928388c",
@@ -613,7 +613,7 @@
       "served_bytes_hex": "3c21646f63747970652068746d6c3e3c68746d6c3e3c626f64793e3c212d2d20776973742d63616e6172793a203438323366633136356163353937346463316632343235366466366434633137202d2d3e3c703e546f6f2066657720776f72647320746f206d6561737572652e3c2f703e3c2f626f64793e3c2f68746d6c3e",
       "leaf_hash": "sha256:d62d3350e87a3817d1a5b509b64af92eefe3e511127e903eee19329aec091a13",
       "revealed": true,
-      "delta_id": "sha256:019e7b11e27fb2e33d347382b3bc04282fb57d5ec5900201957a1ab4f87ad22a",
+      "delta_id": "sha256:43da6ec42c001da20b1a87df4279a3729e8a9ede7a13c8135afdae72a7399477",
       "delta_height": 400,
       "path": [
         "sha256:57c8c05a1076b1112a1fa6256ee4a86ed43e4319bb698f953cd79bab9976d5c7"
@@ -838,7 +838,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -852,7 +852,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -870,7 +870,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -884,7 +884,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+                "value": "kfZ0Hg4_7YySb7WmfgAKEwXyB5DEO7zsxkRCsInJy4LXU48spmJEczBmWVJorq2-eUrcsvF7i9yMT8xqgk_mCA"
               }
             },
             "other_requirements_valid": true
@@ -910,7 +910,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -924,7 +924,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -942,7 +942,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -956,7 +956,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+                "value": "kfZ0Hg4_7YySb7WmfgAKEwXyB5DEO7zsxkRCsInJy4LXU48spmJEczBmWVJorq2-eUrcsvF7i9yMT8xqgk_mCA"
               }
             },
             "other_requirements_valid": true
@@ -980,7 +980,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -994,7 +994,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -1012,7 +1012,7 @@
                   "leaves": [
                     {
                       "index": 1,
-                      "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                      "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                       "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                       "path": [
                         "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -1026,7 +1026,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "mdDwERQf4OoSwWuD5eKGJPEoEGX51AwFP1xJcciWCYsOEBu3uWO6XKXg8K26fQ7_YKvodSy_1ecXIP-tt5aWDQ"
+                "value": "kHts9il6Fn1zGoaH6BGJItAopoWbrLgmQk60AeXUANRmJUUPzTeuiMGoJ0TipyQuJnrqHCBU3YW6Mcfx8ufDCg"
               }
             },
             "other_requirements_valid": true
@@ -1053,7 +1053,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1067,7 +1067,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -1085,7 +1085,7 @@
                   "leaves": [
                     {
                       "index": 1,
-                      "delta_id": "sha256:bcd438286aa695bafc2fa4637b95ad2fefa9089ea3ce38030afc252b9708ee25",
+                      "delta_id": "sha256:d094d8ee4150603f5b02c05b26018f94baad626501f894934200b26cef5fbab5",
                       "leaf_hash": "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
                       "path": [
                         "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
@@ -1099,7 +1099,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "zb1fLNRmPXSauG2ikdq8SPdCE_tdF-Xsxpn_wIFiI-AoPAsaQ-HA_688MMMadW_jV1APMMohWtsqanWy2DMmDg"
+                "value": "CbBT31r01Rn4ZZfNnzjQ7eIbi-N5gXz15F1glYQw5vvAUomWmbgBOMOrEbpegoz0h9hXTGn-UriPH8ah22ByAw"
               }
             },
             "other_requirements_valid": true
@@ -1123,7 +1123,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1137,7 +1137,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -1155,7 +1155,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1169,7 +1169,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -1187,7 +1187,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1201,7 +1201,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -1227,7 +1227,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": []
                     }
@@ -1237,7 +1237,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "qReqz1Rv6ETeAFAiYgBy4AVdV-99eYiCK4ZO7dVJ4uKfcVsLLd5RVo_SCoYEtGy4CA3TeL_524-O9pFBgy7dAg"
+                "value": "pOURAEUOxe7gb98PFbjdcR7B8eH3liqImZRYzi22lKkYq_EQPc63ExTUT47Qp7sUhls2lizNZi7zPvNYNOgoBA"
               }
             },
             "other_requirements_valid": false
@@ -1255,7 +1255,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1269,7 +1269,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+                "value": "kfZ0Hg4_7YySb7WmfgAKEwXyB5DEO7zsxkRCsInJy4LXU48spmJEczBmWVJorq2-eUrcsvF7i9yMT8xqgk_mCA"
               }
             },
             "other_requirements_valid": true
@@ -1295,7 +1295,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1309,7 +1309,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "T5GXIyOAKfJOXQXCNNR8StbkkgiKNh-EBZ4T-7x5l-2ZzhRgLdOP6H_oyZi2JwHvyZPg3qMwuVSt6Huq7rkiCw"
+                "value": "9ONkgXbczgfxzNAiCBbipXIHCvdQvNe9QAY21LexxndpDfIiu_UmLmoUrHKrjEqOCj8Gleeu3Fdp86-RZDy8DQ"
               }
             },
             "other_requirements_valid": true
@@ -1327,7 +1327,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1341,7 +1341,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "CwuNAy-CDGGlZ4XMpLV4m5y82jUwAPskj4G5wp-mCz6NgtSyuXhlXsm0LKauwN3zGdLw9IMz79Eaz51bfbZkCA"
+                "value": "kfZ0Hg4_7YySb7WmfgAKEwXyB5DEO7zsxkRCsInJy4LXU48spmJEczBmWVJorq2-eUrcsvF7i9yMT8xqgk_mCA"
               }
             },
             "other_requirements_valid": true
@@ -1359,7 +1359,7 @@
                   "leaves": [
                     {
                       "index": 0,
-                      "delta_id": "sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4",
+                      "delta_id": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
                       "leaf_hash": "sha256:fe8d723c48b4140702442e5d552750f8731f34415496340319e7547c84b5882a",
                       "path": [
                         "sha256:daeffad37c32e0d26289b6ac5ea5197661162f622f93bbe8a1dd9ef495d8eeda",
@@ -1373,7 +1373,7 @@
               "sig": {
                 "key_id": "test-canary-k1",
                 "alg": "Ed25519",
-                "value": "hP_SUrrO30IU-PF0PLPlOmHZS0YDwsywL8bu0NQ92MMVyA8v6ghEsW1suwLmR-szsO1x2GT3SnuTlFmyL3y_Dg"
+                "value": "8Fbxft3Zim3zI1vR9WIOb213ZaRgla2WmNc1eY5R72N1mz4NwqPzjjP5VKV6pnCcjnuGN2IVy3c6Fk9a4uyHBg"
               }
             },
             "other_requirements_valid": true

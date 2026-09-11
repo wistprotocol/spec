@@ -4366,6 +4366,7 @@ check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
 # field here is the deliberate act of asserting it carries no content.
 NON_CONTENT_DIGESTS = {
     ('feed.schema.json', 'properties/feed/properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('delta.schema.json', 'properties/delta/properties/publisher'): 'the signed Canonical Host of the Publisher, not a content digest',
     ('publisher.schema.json', 'properties/publisher/properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
     ('publisher.schema.json', 'properties/publisher/properties/subdomain_scope/items'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
     ('registry-update.schema.json', 'allOf[17]/then/properties/update/properties/subject'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
@@ -4660,6 +4661,12 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/delta-attribution.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/delta-attribution.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/delta-attribution.json", "delta_ids"): "SHA-256 of each original signed inner Delta",
+    ("vectors/wist1/delta-attribution.json", "prev"): "the authenticated predecessor Delta ID",
+    ("vectors/wist1/delta-attribution.json", "prev_declaration"): "the authenticated predecessor Declaration hash",
+    ("vectors/wist1/delta-attribution.json", "pinned_head"): "the independently trusted Block head",
+    ("vectors/wist1/delta-attribution.json", "prev_block_hash"): "the preceding Block hash",
+    ("vectors/wist1/delta-attribution.json", "merkle_root"): "the Block Entry Merkle root",
+
     ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
     ("vectors/wist1/declaration-fields.json", "author_key"): "the fixture author public key",
@@ -8454,71 +8461,195 @@ def _delta_attribution_vectors():
         (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
         for name in ("publisher", "delta")}
 
-    def matches(envelope, declarations):
-        url = envelope["delta"]["url"]
-        assert url == "https://child.example.com/page"
-        observed = publisher_instant(envelope["delta"]["observed_at"])
-        matched = []
-        for declaration in declarations:
-            publisher = declaration["publisher"]
-            if "child.example.com" not in [publisher["domain"], *publisher.get("subdomain_scope", [])]:
-                continue
-            for key in publisher["keys"]:
-                if key["key_id"] != envelope["sig"]["key_id"]:
+    def digest(inner):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
+
+    def result(env, sources, scopes, feed=None, tips=None, sealed=None, seen=None):
+        inner = env["delta"]
+        try:
+            if not isinstance(inner.get("publisher"), str) or not _declaration_host_format(inner["publisher"]):
+                return "WIST1-E14"
+            observed = publisher_instant(inner.get("observed_at"))
+            signature = canonical_b64u_decode(env["sig"]["value"])
+            if len(signature) != 64:
+                return "WIST1-E14"
+        except (ValueError, TypeError):
+            return "WIST1-E14"
+        validators["delta"].validate(env)
+        domain = inner["publisher"]
+        if feed is not None and domain != feed:
+            return "WIST2-E03"
+        if feed is not None and seen is not None and digest(inner) in seen.get(feed, set()):
+            return "accepted"
+        candidates = []
+        for source in sources.get(domain, []):
+            for key in source["publisher"]["keys"]:
+                if key["key_id"] != env["sig"]["key_id"]:
                     continue
-                if publisher_instant(key["valid_from"]) > observed:
+                public = canonical_b64u_decode(key["public_key"])
+                try:
+                    point = ecvrf.string_to_point(public)
+                except ValueError:
                     continue
-                if _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
-                        canonical_b64u_decode(envelope["sig"]["value"]),
-                        rfc8785.dumps(envelope["delta"]))[0]:
-                    matched.append(publisher["domain"])
-                    break
-        return sorted(matched)
+                if ecvrf._is_identity(ecvrf._mul(8, point)):
+                    continue
+                if publisher_instant(key["valid_from"]) <= observed:
+                    candidates.append(public)
+        if not candidates:
+            return "WIST1-E02"
+        if not any(_ed25519_profile_verdict(public, signature, rfc8785.dumps(inner))[0]
+                   for public in candidates):
+            return "WIST1-E01"
+        host = inner["url"].split("/", 3)[2]
+        if host not in scopes[domain]:
+            return "WIST1-E03"
+        if tips is not None:
+            key = domain, inner["url"]
+            previous = inner.get("prev")
+            if previous != tips.get(key):
+                return "WIST1-E07"
+            if previous is not None:
+                old = sealed[previous]["delta"]
+                if (old["publisher"], old["url"]) != key:
+                    return "WIST1-E07"
+                if observed <= publisher_instant(old["observed_at"]):
+                    return "WIST1-E07"
+        return "accepted"
 
     for case in vector["cases"]:
         declarations = case["declarations"]
-        for declaration in declarations:
-            validators["publisher"].validate(declaration)
-            assert _declaration_binding_result(None, declaration) == "initial"
-            damaged = copy.deepcopy(declaration)
-            damaged["publisher"]["contact"] = "changed"
-            assert _declaration_binding_result(None, damaged) == "WIST1-E01"
-        ids = []
-        for envelope, expected in zip(case["envelopes"], case["matching_domains"], strict=True):
-            validators["delta"].validate(envelope)
-            ids.append("sha256:" + hashlib.sha256(rfc8785.dumps(envelope["delta"])).hexdigest())
-            for order in (declarations, list(reversed(declarations))):
-                assert matches(envelope, order) == sorted(expected), case["name"]
-            damaged = copy.deepcopy(envelope)
-            damaged["delta"]["observed_at"] = "2026-08-02T12:00:01Z"
-            assert matches(damaged, declarations) == []
-            damaged = copy.deepcopy(envelope)
-            damaged["sig"]["key_id"] = "absent"
-            assert matches(damaged, declarations) == []
-        assert ids == case["delta_ids"]
-        assert len(set(ids)) == 1
-    shared, distinct, namespaced, copied, external, unscoped, future = vector["cases"]
-    assert len(vector["cases"]) == 7
-    assert len(shared["matching_domains"][0]) == len(copied["matching_domains"][0]) == 2
-    left, right = distinct["envelopes"]
-    assert left["delta"] == right["delta"] and left["sig"]["value"] != right["sig"]["value"]
-    assert distinct["matching_domains"] == [["example.com"], ["child.example.com"]]
-    assert (distinct["declarations"][0]["publisher"]["keys"][0]["public_key"] !=
-            distinct["declarations"][1]["publisher"]["keys"][0]["public_key"])
-    left, right = namespaced["envelopes"]
-    assert left["sig"]["value"] == right["sig"]["value"]
-    assert left["sig"]["key_id"] != right["sig"]["key_id"]
-    assert namespaced["matching_domains"] == [["example.com"], ["child.example.com"]]
-    assert copied["declarations"][1]["sig"]["key_id"] == "own"
-    assert copied["envelopes"][0]["sig"]["key_id"] == "shared"
-    own_key, copied_key = copied["declarations"][1]["publisher"]["keys"]
-    assert own_key["public_key"] != copied_key["public_key"]
-    assert copied_key == copied["declarations"][0]["publisher"]["keys"][0]
-    assert external["matching_domains"] == [["elsewhere.example"]]
-    assert unscoped["matching_domains"] == future["matching_domains"] == [["child.example.com"]]
+        for env in declarations:
+            validators["publisher"].validate(env)
+            assert _declaration_binding_result(None, env) == "initial", case["name"]
+        assert len(case["envelopes"]) == len(case["expected"]) == len(case["delta_ids"])
+        for order in (declarations, list(reversed(declarations))):
+            sources = {env["publisher"]["domain"]: [env] for env in order}
+            scopes = {domain: [domain, *envs[0]["publisher"].get("subdomain_scope", [])]
+                      for domain, envs in sources.items()}
+            for env, expected, id_ in zip(case["envelopes"], case["expected"], case["delta_ids"]):
+                assert digest(env["delta"]) == id_
+                seen = {env["delta"].get("publisher", "example.com"): {id_}} if case.get("already_seen") else {}
+                if "serving_host" in case:
+                    assert case["serving_host"] in scopes[case["feed_domain"]]
+                assert result(env, sources, scopes, case.get("feed_domain"), seen=seen) == expected, case["name"]
+                if expected == "accepted":
+                    damaged = copy.deepcopy(env)
+                    damaged["delta"]["observed_at"] = "2026-08-02T12:00:01Z"
+                    assert result(damaged, sources, scopes, case.get("feed_domain")) == "WIST1-E01"
+        if len(case["envelopes"]) == 2:
+            left, right = case["envelopes"]
+            assert len(set(case["delta_ids"])) == 2
+            assert {k: v for k, v in left["delta"].items() if k != "publisher"} == {
+                    k: v for k, v in right["delta"].items() if k != "publisher"}
+            assert left["sig"]["value"] != right["sig"]["value"]
+    cases = {case["name"]: case for case in vector["cases"]}
+    assert len(cases) == 30
+    assert cases["author tampering requires a new signature even with shared keys"]["delta_ids"][0] == cases[
+        "shared keys retain separate authors and IDs"]["delta_ids"][1]
+    assert cases["unsigned alias cannot borrow another domain's key"]["delta_ids"][0] == cases[
+        "shared keys retain separate authors and IDs"]["delta_ids"][0]
+    for name in ("Feed association child.example.com seen", "Feed association child.example.com new"):
+        assert cases[name]["expected"] == ["WIST2-E03"]
+
+    authenticated = _declaration_history_blocks(vector, vector["blocks"], vector["pinned_head"],
+                                                 ("publisher_declaration", "publisher_delta"))
+    _, _, _, apply_block = _recovery_history_reference(vector)
+    states, frozen, tips, sealed, snapshots, accepted_at = {}, {}, {}, {}, {}, {}
+    for header, declarations in authenticated:
+        height = header["block_number"]
+        before = copy.deepcopy(states)
+        outcome, states = apply_block(states, header, declarations)
+        assert outcome == "accepted"
+        for domain, state in states.items():
+            if state["chain"] is None:
+                frozen.pop(domain, None)
+            elif domain not in frozen:
+                owner = state["chain"]
+                previous = before[domain]["current"]
+                assert owner["publisher"]["prev_declaration"] == digest(previous["publisher"])
+                frozen[domain] = [previous, owner]
+        current = {domain: [state["chain"] or state["current"]] for domain, state in states.items()}
+        scopes = {domain: [domain, *envs[0]["publisher"].get("subdomain_scope", [])]
+                  for domain, envs in current.items()}
+        for entry in vector["blocks"][height]["entries"]:
+            if entry["type"] != "publisher_delta":
+                continue
+            env = entry["body"]; domain = env["delta"]["publisher"]
+            assert states[domain]["chain"] is None, "open recovery cannot seal Deltas"
+            assert result(env, current, scopes, tips=tips, sealed=sealed) == "accepted", height
+            id_ = digest(env["delta"])
+            assert id_ not in sealed
+            sealed[id_] = env
+            tips[(domain, env["delta"]["url"])] = id_
+            accepted_at[(height, domain)] = env
+        snapshots[height] = copy.deepcopy((states, frozen, tips, sealed, scopes))
+    assert len(sealed) == 6 and len(tips) == 2
+    assert snapshots[170][0]["example.com"]["floor"] == 4
+    assert snapshots[171][0]["example.com"]["reset_height"] == 171
+    assert snapshots[4][0]["example.com"]["reset_height"] is None
+    for probe in vector["probes"]:
+        states, frozen, tips, sealed, scopes = snapshots[probe["height"]]
+        sources = {domain: [state["chain"] or state["current"]] for domain, state in states.items()}
+        if probe["stage"] == "admission":
+            sources.update(frozen)
+        actual = result(probe["envelope"], sources, scopes, tips=tips, sealed=sealed)
+        assert actual == probe["expected"], (probe["name"], actual, probe["expected"])
+    for case in vector["projection_cases"]:
+        states = snapshots[case["at_height"]][0]
+        env = accepted_at[(case["audited_height"], case["publisher"])]
+        domain = env["delta"]["publisher"]
+        assert domain == case["publisher"]
+        reset = states[domain]["reset_height"]
+        counted = reset is None or case["audited_height"] >= reset
+        assert counted == case["expected_current_identity"]
+        eligible_subjects = {subject for subject in states if counted and subject == domain}
+        assert eligible_subjects == ({case["publisher"]} if case["expected_current_identity"] else set())
+        assert ("child.example.com" in eligible_subjects) == (
+            case["publisher"] == "child.example.com" and case["expected_current_identity"])
+    for case in vector["version_cases"]:
+        env = case["envelope"]
+        if env["delta"]["wist_version"].split(".")[0] != "1":
+            actual = "unsupported major"
+        elif "publisher" not in env["delta"]:
+            actual = "WIST1-E14"
+        elif not validators["delta"].is_valid(env):
+            actual = "schema rejection"
+        else:
+            source = vector["cases"][0]["declarations"][0]
+            actual = result(env, {"example.com": [source]},
+                            {"example.com": ["example.com", "child.example.com"]})
+        assert actual == case["expected"]
     assert vector == original
 
 
 check("vectors:wist1-delta-attribution", _delta_attribution_vectors)
+
+def _signed_delta_appendices():
+    envelope = json.loads((ROOT / "vectors/wist1/envelope.json").read_text())
+    canonical = rfc8785.dumps(envelope["delta"])
+    delta_id = "sha256:" + hashlib.sha256(canonical).hexdigest()
+    prose = (ROOT / "specs/WIST-1-delta-format.md").read_text().split("## Appendix A.")[1]
+    inner = prose.split("**Delta (inner object):**")[1].split("```json\n")[1].split("\n```")[0]
+    assert json.loads(inner) == envelope["delta"]
+    payload = prose.split("**Payload (")[1].split("```json\n")[1].split("\n```")[0]
+    assert json.loads(payload) == json.loads((ROOT / "examples/payload.json").read_text())
+    size = len(rfc8785.dumps(json.loads(payload)["content"]))
+    assert size == envelope["delta"]["payload"]["bytes"]
+    assert f"`JCS(content)` is {size} octets" in prose
+    assert delta_id in prose and envelope["sig"]["value"] in prose
+    assert canonical[:32].hex() in prose and canonical[32:64].hex() in prose
+    block = json.loads((ROOT / "vectors/wist3/block.json").read_text())
+    prose = (ROOT / "specs/WIST-3-logbook-distribution.md").read_text().split("## Appendix A.")[1]
+    leaves = [leaf_hash(rfc8785.dumps(entry)) for entry in block["entries"]]
+    for index, value in enumerate(leaves):
+        assert f"leaf{index} = {value.hex()}" in prose
+    assert block["header"]["merkle_root"] in prose
+    assert "sha256:" + hashlib.sha256(rfc8785.dumps(block["header"])).hexdigest() in prose
+    for index in (0, 2):
+        assert hashlib.sha256(b"\x01" + leaves[index] + leaves[index + 1]).hexdigest() in prose
+    assert f"/payloads/{delta_id[7:]}.json" in prose
+
+
+check("spec:signed-delta-appendices", _signed_delta_appendices)
 
 sys.exit(1 if failures else 0)

@@ -100,6 +100,9 @@ family, the independent anchor its verification rests on.
 - [ADR-0025](decisions/0025-canonical-base64url.md) — Canonical base64url at validation
 - [ADR-0026](decisions/0026-publisher-timestamp-profile.md) — Deterministic Publisher timestamps
 
+- [ADR-0028](decisions/0028-unreleased-object-version.md) — One unreleased signed-object version
+- [ADR-0029](decisions/0029-signed-delta-publisher.md) — Publisher identity bound into Delta signatures and IDs
+
 ## Licenses
 
 - Specification text: [CC-BY 4.0](LICENSE)

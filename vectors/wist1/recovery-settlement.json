@@ -2901,11 +2901,12 @@
       "window_declarations": [],
       "served": [
         {
-          "delta_id": "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
+          "delta_id": "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
           "signer": "test-k1",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/0",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -2925,16 +2926,17 @@
             "sig": {
               "key_id": "test-k1",
               "alg": "Ed25519",
-              "value": "552y6EBUjnxiP1eBIjzQ6scc04uEBpP99kP5RYkcD2kC3fABpv8W8ci6S6otmTalSQW-NDOPMOjYsnkXDmqCBw"
+              "value": "bj5guEmiKdBWrOcFyhASzhGevNiUcka6wYnNsQugIPIhVA-jJkxr_cXtTL6wDdBXKueBJ03EwrJptAmAvS-gAA"
             }
           }
         },
         {
-          "delta_id": "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
+          "delta_id": "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/1",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -2954,16 +2956,17 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "7GhkE0cwv7s3Q2DpPgT4z4683jUoF8LClRPfKSYAV_5kpj_HtefdeLLT6TE1qf5ojOTVCp-WmCQUvdqw5KdTAw"
+              "value": "vStwQPBS93pxU83_Y9SDKCNYb5xTvkl0nNflyyWCGMZMkcr5Gr2Mqjsz1DVv9NZmC25yH7Wz8_uFnHpekj38CA"
             }
           }
         },
         {
-          "delta_id": "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
+          "delta_id": "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
           "signer": "test-third",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/2",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -2983,16 +2986,17 @@
             "sig": {
               "key_id": "test-third",
               "alg": "Ed25519",
-              "value": "FVu8aLSjGbn0J5zUdzo1BmWCnuSXC9mc3uB69x00T6kOR64tVrsCEtxJY9NFNq2Bi9kLLB671fJ5T3sZXURWAA"
+              "value": "uiVtHhpuP7g5_ywFs7qvDCDQGU2lHdekWGI1WSFq25uZmF4LlZP6fpJK2E_8HmjPEb6NWB8Z2h76eClS7-5-CQ"
             }
           }
         },
         {
-          "delta_id": "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
+          "delta_id": "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
           "signer": "test-fourth",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/3",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -3012,16 +3016,17 @@
             "sig": {
               "key_id": "test-fourth",
               "alg": "Ed25519",
-              "value": "T4ukHLTAidMISGvt8BQcCWgmhNwUJjI3qT2f5BZun-iJyiW-FvlauU3n8f96pOYKAE_j-6inUqk2sMep6X1IBA"
+              "value": "NwbRq1QcJcY9vrFa5RAc4KCal6rTSd4zsq300q7ycYWy7RjY-2fvAXbfEl6zdSPULCJgjOWD8ZteI9oUv3yIAw"
             }
           }
         },
         {
-          "delta_id": "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc",
+          "delta_id": "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f",
           "signer": "test-alien",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/4",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -3041,16 +3046,17 @@
             "sig": {
               "key_id": "test-alien",
               "alg": "Ed25519",
-              "value": "_2JKomvHVy9sFVStX6T3-G2un8a93to4HtC-cCezNyhGjxCQlP_X1IMMMt84ieW65xAN27GwSiu__p0ThX66BA"
+              "value": "vZGIlRhylcD0c8EUtVm2A_hAxQK75aM9_kr1D08_L_vkZ6D05ZWOqhO7krjRfk--skbwWoMpDU8e3JQm8BhuAg"
             }
           }
         },
         {
-          "delta_id": "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2",
+          "delta_id": "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/5",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -3070,7 +3076,7 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "lQZgA0ogXoWq1Lk9gMnllFY5T-vepluJr5YU7pfLyF7i3_hvQmoCNNx6ibU_wvIq07JG-Lt6UIK5iTSt9IDqCQ"
+              "value": "xseZF9VK7UiKAPotMeEEILXEe62HMuNxxmFihr3omZ6KSuJoyd6rIEGNLJ7KOV_jIgKDiJiGlmPcGAPUMo0jBQ"
             }
           }
         }
@@ -3157,14 +3163,14 @@
       ],
       "expected": {
         "queued": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "not_queued": [
-          "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
-          "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
-          "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc"
+          "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
+          "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
+          "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f"
         ],
         "effective_keys": [
           "test-k2"
@@ -3172,11 +3178,11 @@
         "effective_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed",
         "superseded": [],
         "eligible": [
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "rejected": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066"
         ]
       }
     },
@@ -6242,11 +6248,12 @@
       ],
       "served": [
         {
-          "delta_id": "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
+          "delta_id": "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
           "signer": "test-k1",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/0",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -6266,16 +6273,17 @@
             "sig": {
               "key_id": "test-k1",
               "alg": "Ed25519",
-              "value": "552y6EBUjnxiP1eBIjzQ6scc04uEBpP99kP5RYkcD2kC3fABpv8W8ci6S6otmTalSQW-NDOPMOjYsnkXDmqCBw"
+              "value": "bj5guEmiKdBWrOcFyhASzhGevNiUcka6wYnNsQugIPIhVA-jJkxr_cXtTL6wDdBXKueBJ03EwrJptAmAvS-gAA"
             }
           }
         },
         {
-          "delta_id": "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
+          "delta_id": "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/1",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -6295,16 +6303,17 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "7GhkE0cwv7s3Q2DpPgT4z4683jUoF8LClRPfKSYAV_5kpj_HtefdeLLT6TE1qf5ojOTVCp-WmCQUvdqw5KdTAw"
+              "value": "vStwQPBS93pxU83_Y9SDKCNYb5xTvkl0nNflyyWCGMZMkcr5Gr2Mqjsz1DVv9NZmC25yH7Wz8_uFnHpekj38CA"
             }
           }
         },
         {
-          "delta_id": "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
+          "delta_id": "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
           "signer": "test-third",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/2",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -6324,16 +6333,17 @@
             "sig": {
               "key_id": "test-third",
               "alg": "Ed25519",
-              "value": "FVu8aLSjGbn0J5zUdzo1BmWCnuSXC9mc3uB69x00T6kOR64tVrsCEtxJY9NFNq2Bi9kLLB671fJ5T3sZXURWAA"
+              "value": "uiVtHhpuP7g5_ywFs7qvDCDQGU2lHdekWGI1WSFq25uZmF4LlZP6fpJK2E_8HmjPEb6NWB8Z2h76eClS7-5-CQ"
             }
           }
         },
         {
-          "delta_id": "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
+          "delta_id": "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
           "signer": "test-fourth",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/3",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -6353,16 +6363,17 @@
             "sig": {
               "key_id": "test-fourth",
               "alg": "Ed25519",
-              "value": "T4ukHLTAidMISGvt8BQcCWgmhNwUJjI3qT2f5BZun-iJyiW-FvlauU3n8f96pOYKAE_j-6inUqk2sMep6X1IBA"
+              "value": "NwbRq1QcJcY9vrFa5RAc4KCal6rTSd4zsq300q7ycYWy7RjY-2fvAXbfEl6zdSPULCJgjOWD8ZteI9oUv3yIAw"
             }
           }
         },
         {
-          "delta_id": "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc",
+          "delta_id": "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f",
           "signer": "test-alien",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/4",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -6382,16 +6393,17 @@
             "sig": {
               "key_id": "test-alien",
               "alg": "Ed25519",
-              "value": "_2JKomvHVy9sFVStX6T3-G2un8a93to4HtC-cCezNyhGjxCQlP_X1IMMMt84ieW65xAN27GwSiu__p0ThX66BA"
+              "value": "vZGIlRhylcD0c8EUtVm2A_hAxQK75aM9_kr1D08_L_vkZ6D05ZWOqhO7krjRfk--skbwWoMpDU8e3JQm8BhuAg"
             }
           }
         },
         {
-          "delta_id": "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2",
+          "delta_id": "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/5",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -6411,7 +6423,7 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "lQZgA0ogXoWq1Lk9gMnllFY5T-vepluJr5YU7pfLyF7i3_hvQmoCNNx6ibU_wvIq07JG-Lt6UIK5iTSt9IDqCQ"
+              "value": "xseZF9VK7UiKAPotMeEEILXEe62HMuNxxmFihr3omZ6KSuJoyd6rIEGNLJ7KOV_jIgKDiJiGlmPcGAPUMo0jBQ"
             }
           }
         }
@@ -6576,14 +6588,14 @@
       ],
       "expected": {
         "queued": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "not_queued": [
-          "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
-          "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
-          "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc"
+          "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
+          "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
+          "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f"
         ],
         "effective_keys": [
           "test-k2"
@@ -6594,11 +6606,11 @@
           "sha256:be52c786eae83f868c7c0094e14c8cad5b2a48bccb74cd6df3e4bab736271609"
         ],
         "eligible": [
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "rejected": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066"
         ]
       }
     },
@@ -9581,11 +9593,12 @@
       ],
       "served": [
         {
-          "delta_id": "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
+          "delta_id": "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
           "signer": "test-k1",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/0",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -9605,16 +9618,17 @@
             "sig": {
               "key_id": "test-k1",
               "alg": "Ed25519",
-              "value": "552y6EBUjnxiP1eBIjzQ6scc04uEBpP99kP5RYkcD2kC3fABpv8W8ci6S6otmTalSQW-NDOPMOjYsnkXDmqCBw"
+              "value": "bj5guEmiKdBWrOcFyhASzhGevNiUcka6wYnNsQugIPIhVA-jJkxr_cXtTL6wDdBXKueBJ03EwrJptAmAvS-gAA"
             }
           }
         },
         {
-          "delta_id": "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
+          "delta_id": "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/1",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -9634,16 +9648,17 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "7GhkE0cwv7s3Q2DpPgT4z4683jUoF8LClRPfKSYAV_5kpj_HtefdeLLT6TE1qf5ojOTVCp-WmCQUvdqw5KdTAw"
+              "value": "vStwQPBS93pxU83_Y9SDKCNYb5xTvkl0nNflyyWCGMZMkcr5Gr2Mqjsz1DVv9NZmC25yH7Wz8_uFnHpekj38CA"
             }
           }
         },
         {
-          "delta_id": "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
+          "delta_id": "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
           "signer": "test-third",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/2",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -9663,16 +9678,17 @@
             "sig": {
               "key_id": "test-third",
               "alg": "Ed25519",
-              "value": "FVu8aLSjGbn0J5zUdzo1BmWCnuSXC9mc3uB69x00T6kOR64tVrsCEtxJY9NFNq2Bi9kLLB671fJ5T3sZXURWAA"
+              "value": "uiVtHhpuP7g5_ywFs7qvDCDQGU2lHdekWGI1WSFq25uZmF4LlZP6fpJK2E_8HmjPEb6NWB8Z2h76eClS7-5-CQ"
             }
           }
         },
         {
-          "delta_id": "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
+          "delta_id": "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
           "signer": "test-fourth",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/3",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -9692,16 +9708,17 @@
             "sig": {
               "key_id": "test-fourth",
               "alg": "Ed25519",
-              "value": "T4ukHLTAidMISGvt8BQcCWgmhNwUJjI3qT2f5BZun-iJyiW-FvlauU3n8f96pOYKAE_j-6inUqk2sMep6X1IBA"
+              "value": "NwbRq1QcJcY9vrFa5RAc4KCal6rTSd4zsq300q7ycYWy7RjY-2fvAXbfEl6zdSPULCJgjOWD8ZteI9oUv3yIAw"
             }
           }
         },
         {
-          "delta_id": "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc",
+          "delta_id": "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f",
           "signer": "test-alien",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/4",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -9721,16 +9738,17 @@
             "sig": {
               "key_id": "test-alien",
               "alg": "Ed25519",
-              "value": "_2JKomvHVy9sFVStX6T3-G2un8a93to4HtC-cCezNyhGjxCQlP_X1IMMMt84ieW65xAN27GwSiu__p0ThX66BA"
+              "value": "vZGIlRhylcD0c8EUtVm2A_hAxQK75aM9_kr1D08_L_vkZ6D05ZWOqhO7krjRfk--skbwWoMpDU8e3JQm8BhuAg"
             }
           }
         },
         {
-          "delta_id": "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2",
+          "delta_id": "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/5",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -9750,7 +9768,7 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "lQZgA0ogXoWq1Lk9gMnllFY5T-vepluJr5YU7pfLyF7i3_hvQmoCNNx6ibU_wvIq07JG-Lt6UIK5iTSt9IDqCQ"
+              "value": "xseZF9VK7UiKAPotMeEEILXEe62HMuNxxmFihr3omZ6KSuJoyd6rIEGNLJ7KOV_jIgKDiJiGlmPcGAPUMo0jBQ"
             }
           }
         }
@@ -9876,14 +9894,14 @@
       ],
       "expected": {
         "queued": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "not_queued": [
-          "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
-          "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
-          "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc"
+          "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
+          "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
+          "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f"
         ],
         "effective_keys": [
           "test-k2"
@@ -9893,11 +9911,11 @@
           "sha256:d79d9280bb9582db316505a92b829174401e62b1c045fc768cc304e3fbd28310"
         ],
         "eligible": [
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "rejected": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066"
         ]
       }
     },
@@ -12880,11 +12898,12 @@
       ],
       "served": [
         {
-          "delta_id": "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
+          "delta_id": "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
           "signer": "test-k1",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/0",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -12904,16 +12923,17 @@
             "sig": {
               "key_id": "test-k1",
               "alg": "Ed25519",
-              "value": "552y6EBUjnxiP1eBIjzQ6scc04uEBpP99kP5RYkcD2kC3fABpv8W8ci6S6otmTalSQW-NDOPMOjYsnkXDmqCBw"
+              "value": "bj5guEmiKdBWrOcFyhASzhGevNiUcka6wYnNsQugIPIhVA-jJkxr_cXtTL6wDdBXKueBJ03EwrJptAmAvS-gAA"
             }
           }
         },
         {
-          "delta_id": "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
+          "delta_id": "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/1",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -12933,16 +12953,17 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "7GhkE0cwv7s3Q2DpPgT4z4683jUoF8LClRPfKSYAV_5kpj_HtefdeLLT6TE1qf5ojOTVCp-WmCQUvdqw5KdTAw"
+              "value": "vStwQPBS93pxU83_Y9SDKCNYb5xTvkl0nNflyyWCGMZMkcr5Gr2Mqjsz1DVv9NZmC25yH7Wz8_uFnHpekj38CA"
             }
           }
         },
         {
-          "delta_id": "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
+          "delta_id": "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
           "signer": "test-third",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/2",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -12962,16 +12983,17 @@
             "sig": {
               "key_id": "test-third",
               "alg": "Ed25519",
-              "value": "FVu8aLSjGbn0J5zUdzo1BmWCnuSXC9mc3uB69x00T6kOR64tVrsCEtxJY9NFNq2Bi9kLLB671fJ5T3sZXURWAA"
+              "value": "uiVtHhpuP7g5_ywFs7qvDCDQGU2lHdekWGI1WSFq25uZmF4LlZP6fpJK2E_8HmjPEb6NWB8Z2h76eClS7-5-CQ"
             }
           }
         },
         {
-          "delta_id": "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
+          "delta_id": "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
           "signer": "test-fourth",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/3",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -12991,16 +13013,17 @@
             "sig": {
               "key_id": "test-fourth",
               "alg": "Ed25519",
-              "value": "T4ukHLTAidMISGvt8BQcCWgmhNwUJjI3qT2f5BZun-iJyiW-FvlauU3n8f96pOYKAE_j-6inUqk2sMep6X1IBA"
+              "value": "NwbRq1QcJcY9vrFa5RAc4KCal6rTSd4zsq300q7ycYWy7RjY-2fvAXbfEl6zdSPULCJgjOWD8ZteI9oUv3yIAw"
             }
           }
         },
         {
-          "delta_id": "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc",
+          "delta_id": "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f",
           "signer": "test-alien",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/4",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -13020,16 +13043,17 @@
             "sig": {
               "key_id": "test-alien",
               "alg": "Ed25519",
-              "value": "_2JKomvHVy9sFVStX6T3-G2un8a93to4HtC-cCezNyhGjxCQlP_X1IMMMt84ieW65xAN27GwSiu__p0ThX66BA"
+              "value": "vZGIlRhylcD0c8EUtVm2A_hAxQK75aM9_kr1D08_L_vkZ6D05ZWOqhO7krjRfk--skbwWoMpDU8e3JQm8BhuAg"
             }
           }
         },
         {
-          "delta_id": "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2",
+          "delta_id": "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/5",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -13049,7 +13073,7 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "lQZgA0ogXoWq1Lk9gMnllFY5T-vepluJr5YU7pfLyF7i3_hvQmoCNNx6ibU_wvIq07JG-Lt6UIK5iTSt9IDqCQ"
+              "value": "xseZF9VK7UiKAPotMeEEILXEe62HMuNxxmFihr3omZ6KSuJoyd6rIEGNLJ7KOV_jIgKDiJiGlmPcGAPUMo0jBQ"
             }
           }
         }
@@ -13175,14 +13199,14 @@
       ],
       "expected": {
         "queued": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "not_queued": [
-          "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
-          "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
-          "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc"
+          "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
+          "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
+          "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f"
         ],
         "effective_keys": [
           "test-third"
@@ -13191,9 +13215,9 @@
         "superseded": [],
         "eligible": [],
         "rejected": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ]
       }
     },
@@ -16259,11 +16283,12 @@
       ],
       "served": [
         {
-          "delta_id": "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
+          "delta_id": "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
           "signer": "test-k1",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/0",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -16283,16 +16308,17 @@
             "sig": {
               "key_id": "test-k1",
               "alg": "Ed25519",
-              "value": "552y6EBUjnxiP1eBIjzQ6scc04uEBpP99kP5RYkcD2kC3fABpv8W8ci6S6otmTalSQW-NDOPMOjYsnkXDmqCBw"
+              "value": "bj5guEmiKdBWrOcFyhASzhGevNiUcka6wYnNsQugIPIhVA-jJkxr_cXtTL6wDdBXKueBJ03EwrJptAmAvS-gAA"
             }
           }
         },
         {
-          "delta_id": "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
+          "delta_id": "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/1",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -16312,16 +16338,17 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "7GhkE0cwv7s3Q2DpPgT4z4683jUoF8LClRPfKSYAV_5kpj_HtefdeLLT6TE1qf5ojOTVCp-WmCQUvdqw5KdTAw"
+              "value": "vStwQPBS93pxU83_Y9SDKCNYb5xTvkl0nNflyyWCGMZMkcr5Gr2Mqjsz1DVv9NZmC25yH7Wz8_uFnHpekj38CA"
             }
           }
         },
         {
-          "delta_id": "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
+          "delta_id": "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
           "signer": "test-third",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/2",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -16341,16 +16368,17 @@
             "sig": {
               "key_id": "test-third",
               "alg": "Ed25519",
-              "value": "FVu8aLSjGbn0J5zUdzo1BmWCnuSXC9mc3uB69x00T6kOR64tVrsCEtxJY9NFNq2Bi9kLLB671fJ5T3sZXURWAA"
+              "value": "uiVtHhpuP7g5_ywFs7qvDCDQGU2lHdekWGI1WSFq25uZmF4LlZP6fpJK2E_8HmjPEb6NWB8Z2h76eClS7-5-CQ"
             }
           }
         },
         {
-          "delta_id": "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
+          "delta_id": "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
           "signer": "test-fourth",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/3",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -16370,16 +16398,17 @@
             "sig": {
               "key_id": "test-fourth",
               "alg": "Ed25519",
-              "value": "T4ukHLTAidMISGvt8BQcCWgmhNwUJjI3qT2f5BZun-iJyiW-FvlauU3n8f96pOYKAE_j-6inUqk2sMep6X1IBA"
+              "value": "NwbRq1QcJcY9vrFa5RAc4KCal6rTSd4zsq300q7ycYWy7RjY-2fvAXbfEl6zdSPULCJgjOWD8ZteI9oUv3yIAw"
             }
           }
         },
         {
-          "delta_id": "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc",
+          "delta_id": "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f",
           "signer": "test-alien",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/4",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -16399,16 +16428,17 @@
             "sig": {
               "key_id": "test-alien",
               "alg": "Ed25519",
-              "value": "_2JKomvHVy9sFVStX6T3-G2un8a93to4HtC-cCezNyhGjxCQlP_X1IMMMt84ieW65xAN27GwSiu__p0ThX66BA"
+              "value": "vZGIlRhylcD0c8EUtVm2A_hAxQK75aM9_kr1D08_L_vkZ6D05ZWOqhO7krjRfk--skbwWoMpDU8e3JQm8BhuAg"
             }
           }
         },
         {
-          "delta_id": "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2",
+          "delta_id": "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/5",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -16428,7 +16458,7 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "lQZgA0ogXoWq1Lk9gMnllFY5T-vepluJr5YU7pfLyF7i3_hvQmoCNNx6ibU_wvIq07JG-Lt6UIK5iTSt9IDqCQ"
+              "value": "xseZF9VK7UiKAPotMeEEILXEe62HMuNxxmFihr3omZ6KSuJoyd6rIEGNLJ7KOV_jIgKDiJiGlmPcGAPUMo0jBQ"
             }
           }
         }
@@ -16554,14 +16584,14 @@
       ],
       "expected": {
         "queued": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "not_queued": [
-          "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
-          "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
-          "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc"
+          "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
+          "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
+          "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f"
         ],
         "effective_keys": [
           "test-fourth"
@@ -16572,9 +16602,9 @@
         ],
         "eligible": [],
         "rejected": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ]
       }
     },
@@ -19653,11 +19683,12 @@
       ],
       "served": [
         {
-          "delta_id": "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
+          "delta_id": "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
           "signer": "test-k1",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/0",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -19677,16 +19708,17 @@
             "sig": {
               "key_id": "test-k1",
               "alg": "Ed25519",
-              "value": "552y6EBUjnxiP1eBIjzQ6scc04uEBpP99kP5RYkcD2kC3fABpv8W8ci6S6otmTalSQW-NDOPMOjYsnkXDmqCBw"
+              "value": "bj5guEmiKdBWrOcFyhASzhGevNiUcka6wYnNsQugIPIhVA-jJkxr_cXtTL6wDdBXKueBJ03EwrJptAmAvS-gAA"
             }
           }
         },
         {
-          "delta_id": "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
+          "delta_id": "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/1",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -19706,16 +19738,17 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "7GhkE0cwv7s3Q2DpPgT4z4683jUoF8LClRPfKSYAV_5kpj_HtefdeLLT6TE1qf5ojOTVCp-WmCQUvdqw5KdTAw"
+              "value": "vStwQPBS93pxU83_Y9SDKCNYb5xTvkl0nNflyyWCGMZMkcr5Gr2Mqjsz1DVv9NZmC25yH7Wz8_uFnHpekj38CA"
             }
           }
         },
         {
-          "delta_id": "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
+          "delta_id": "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
           "signer": "test-third",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/2",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -19735,16 +19768,17 @@
             "sig": {
               "key_id": "test-third",
               "alg": "Ed25519",
-              "value": "FVu8aLSjGbn0J5zUdzo1BmWCnuSXC9mc3uB69x00T6kOR64tVrsCEtxJY9NFNq2Bi9kLLB671fJ5T3sZXURWAA"
+              "value": "uiVtHhpuP7g5_ywFs7qvDCDQGU2lHdekWGI1WSFq25uZmF4LlZP6fpJK2E_8HmjPEb6NWB8Z2h76eClS7-5-CQ"
             }
           }
         },
         {
-          "delta_id": "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
+          "delta_id": "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
           "signer": "test-fourth",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/3",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -19764,16 +19798,17 @@
             "sig": {
               "key_id": "test-fourth",
               "alg": "Ed25519",
-              "value": "T4ukHLTAidMISGvt8BQcCWgmhNwUJjI3qT2f5BZun-iJyiW-FvlauU3n8f96pOYKAE_j-6inUqk2sMep6X1IBA"
+              "value": "NwbRq1QcJcY9vrFa5RAc4KCal6rTSd4zsq300q7ycYWy7RjY-2fvAXbfEl6zdSPULCJgjOWD8ZteI9oUv3yIAw"
             }
           }
         },
         {
-          "delta_id": "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc",
+          "delta_id": "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f",
           "signer": "test-alien",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/4",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -19793,16 +19828,17 @@
             "sig": {
               "key_id": "test-alien",
               "alg": "Ed25519",
-              "value": "_2JKomvHVy9sFVStX6T3-G2un8a93to4HtC-cCezNyhGjxCQlP_X1IMMMt84ieW65xAN27GwSiu__p0ThX66BA"
+              "value": "vZGIlRhylcD0c8EUtVm2A_hAxQK75aM9_kr1D08_L_vkZ6D05ZWOqhO7krjRfk--skbwWoMpDU8e3JQm8BhuAg"
             }
           }
         },
         {
-          "delta_id": "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2",
+          "delta_id": "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/5",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -19822,7 +19858,7 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "lQZgA0ogXoWq1Lk9gMnllFY5T-vepluJr5YU7pfLyF7i3_hvQmoCNNx6ibU_wvIq07JG-Lt6UIK5iTSt9IDqCQ"
+              "value": "xseZF9VK7UiKAPotMeEEILXEe62HMuNxxmFihr3omZ6KSuJoyd6rIEGNLJ7KOV_jIgKDiJiGlmPcGAPUMo0jBQ"
             }
           }
         }
@@ -19993,14 +20029,14 @@
       ],
       "expected": {
         "queued": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "not_queued": [
-          "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
-          "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
-          "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc"
+          "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
+          "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
+          "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f"
         ],
         "effective_keys": [
           "test-k2"
@@ -20011,11 +20047,11 @@
           "sha256:daeae910f305310eda97a9fdeb18a9b706d96a589a81abf31788ea12d7e290ad"
         ],
         "eligible": [
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "rejected": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066"
         ]
       }
     },
@@ -23094,11 +23130,12 @@
       ],
       "served": [
         {
-          "delta_id": "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
+          "delta_id": "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
           "signer": "test-k1",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/0",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -23118,16 +23155,17 @@
             "sig": {
               "key_id": "test-k1",
               "alg": "Ed25519",
-              "value": "552y6EBUjnxiP1eBIjzQ6scc04uEBpP99kP5RYkcD2kC3fABpv8W8ci6S6otmTalSQW-NDOPMOjYsnkXDmqCBw"
+              "value": "bj5guEmiKdBWrOcFyhASzhGevNiUcka6wYnNsQugIPIhVA-jJkxr_cXtTL6wDdBXKueBJ03EwrJptAmAvS-gAA"
             }
           }
         },
         {
-          "delta_id": "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
+          "delta_id": "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/1",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -23147,16 +23185,17 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "7GhkE0cwv7s3Q2DpPgT4z4683jUoF8LClRPfKSYAV_5kpj_HtefdeLLT6TE1qf5ojOTVCp-WmCQUvdqw5KdTAw"
+              "value": "vStwQPBS93pxU83_Y9SDKCNYb5xTvkl0nNflyyWCGMZMkcr5Gr2Mqjsz1DVv9NZmC25yH7Wz8_uFnHpekj38CA"
             }
           }
         },
         {
-          "delta_id": "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
+          "delta_id": "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
           "signer": "test-third",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/2",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -23176,16 +23215,17 @@
             "sig": {
               "key_id": "test-third",
               "alg": "Ed25519",
-              "value": "FVu8aLSjGbn0J5zUdzo1BmWCnuSXC9mc3uB69x00T6kOR64tVrsCEtxJY9NFNq2Bi9kLLB671fJ5T3sZXURWAA"
+              "value": "uiVtHhpuP7g5_ywFs7qvDCDQGU2lHdekWGI1WSFq25uZmF4LlZP6fpJK2E_8HmjPEb6NWB8Z2h76eClS7-5-CQ"
             }
           }
         },
         {
-          "delta_id": "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
+          "delta_id": "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
           "signer": "test-fourth",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/3",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -23205,16 +23245,17 @@
             "sig": {
               "key_id": "test-fourth",
               "alg": "Ed25519",
-              "value": "T4ukHLTAidMISGvt8BQcCWgmhNwUJjI3qT2f5BZun-iJyiW-FvlauU3n8f96pOYKAE_j-6inUqk2sMep6X1IBA"
+              "value": "NwbRq1QcJcY9vrFa5RAc4KCal6rTSd4zsq300q7ycYWy7RjY-2fvAXbfEl6zdSPULCJgjOWD8ZteI9oUv3yIAw"
             }
           }
         },
         {
-          "delta_id": "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc",
+          "delta_id": "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f",
           "signer": "test-alien",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/4",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -23234,16 +23275,17 @@
             "sig": {
               "key_id": "test-alien",
               "alg": "Ed25519",
-              "value": "_2JKomvHVy9sFVStX6T3-G2un8a93to4HtC-cCezNyhGjxCQlP_X1IMMMt84ieW65xAN27GwSiu__p0ThX66BA"
+              "value": "vZGIlRhylcD0c8EUtVm2A_hAxQK75aM9_kr1D08_L_vkZ6D05ZWOqhO7krjRfk--skbwWoMpDU8e3JQm8BhuAg"
             }
           }
         },
         {
-          "delta_id": "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2",
+          "delta_id": "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b",
           "signer": "test-k2",
           "envelope": {
             "delta": {
               "wist_version": "1.0.0",
+              "publisher": "example.com",
               "url": "https://example.com/settlement/5",
               "change_type": "new",
               "observed_at": "2026-08-04T10:00:00Z",
@@ -23263,7 +23305,7 @@
             "sig": {
               "key_id": "test-k2",
               "alg": "Ed25519",
-              "value": "lQZgA0ogXoWq1Lk9gMnllFY5T-vepluJr5YU7pfLyF7i3_hvQmoCNNx6ibU_wvIq07JG-Lt6UIK5iTSt9IDqCQ"
+              "value": "xseZF9VK7UiKAPotMeEEILXEe62HMuNxxmFihr3omZ6KSuJoyd6rIEGNLJ7KOV_jIgKDiJiGlmPcGAPUMo0jBQ"
             }
           }
         }
@@ -23434,14 +23476,14 @@
       ],
       "expected": {
         "queued": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ],
         "not_queued": [
-          "sha256:834d243b7d3b2c3d60cfbbf5c283b09f1a24c318876d1bd1391461c7f6596302",
-          "sha256:2761ae5dbe69d1be15e1ea10b3ef1d79b0d7320eb7edbacd50b1415d62a0c95e",
-          "sha256:e9bb7f72117209237c244cef77287a2d42b6b59048f64e61e81716e9a6fdd4bc"
+          "sha256:6480b1ebb84dc3c7e90dd2e58465d1ae6e0d31ecbc6ed07522dd0101a728fb92",
+          "sha256:f8a615301b69cc17e227e9dc7112cca1c4e377449dc85b7582ad666ac60cb187",
+          "sha256:1e47dedeb81866092eb83d59bd07a1fe43ebb5d00721d888793bfb232235842f"
         ],
         "effective_keys": [
           "test-third"
@@ -23452,9 +23494,9 @@
         ],
         "eligible": [],
         "rejected": [
-          "sha256:842905973c412ec3da7bfa96135948e234d296c7ae592eeb015e3e3b7f3a7e08",
-          "sha256:18e668ea607127846efd378d5ec02b09f3751c1e4c211a56c66ea80b7635ed9e",
-          "sha256:14ebc5e393d55f08a60972381589626232f16d846539cb53ea92fd10361ddfe2"
+          "sha256:63c309777cd6821aa3cc8ce99557be7de9766f79506b617af3f2bddda01bf066",
+          "sha256:8f56c2f7c4303e25188a3372f3e4c8127e8c704908d0549e021210bf57aa2307",
+          "sha256:a967036b56b28aef0cc156262e9dc39940cf5665913124dc2a405db68554a86b"
         ]
       }
     }
@@ -23489,6 +23531,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23508,10 +23551,10 @@
         "sig": {
           "key_id": "test-k1",
           "alg": "Ed25519",
-          "value": "f8IVkNmf0mMqF5yn5sJvgVF04zR84_c6k9i9kGpgCBe4O3BoiPcQTbvDX-X4-Lf7vRBZFiPY4VSxGM9pquK6BQ"
+          "value": "N-CYdUiR0VNvRBstJzRBsiGt02VK9yvLzEuRhPZFd87eA-QGzaH1avb_919w7BQ9sQRJcGxSe7uCKgn_Xy9yCA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": true,
       "expected_eligible": true
     },
@@ -23544,6 +23587,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23563,10 +23607,10 @@
         "sig": {
           "key_id": "test-k1",
           "alg": "Ed25519",
-          "value": "phmdVOtB5ChBufLkmBmbzO3eCG2xNSSleNjDVdG6lrDfJ1nSUt8DjWWF6DTMM1tBNMcPrOPnD5GuqHveP52mCQ"
+          "value": "NAAliJurfl_kZ-S5Sf0741gVYaE8E2MhAUvpAU2cEdTw1f4fb28azkJSenKSVo92HZ112uuOWHqJ902xHcbbAA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": true,
       "expected_eligible": false
     },
@@ -23599,6 +23643,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23618,10 +23663,10 @@
         "sig": {
           "key_id": "test-k2",
           "alg": "Ed25519",
-          "value": "f8IVkNmf0mMqF5yn5sJvgVF04zR84_c6k9i9kGpgCBe4O3BoiPcQTbvDX-X4-Lf7vRBZFiPY4VSxGM9pquK6BQ"
+          "value": "N-CYdUiR0VNvRBstJzRBsiGt02VK9yvLzEuRhPZFd87eA-QGzaH1avb_919w7BQ9sQRJcGxSe7uCKgn_Xy9yCA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": true,
       "expected_eligible": false
     },
@@ -23654,6 +23699,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23673,10 +23719,10 @@
         "sig": {
           "key_id": "test-k2",
           "alg": "Ed25519",
-          "value": "f8IVkNmf0mMqF5yn5sJvgVF04zR84_c6k9i9kGpgCBe4O3BoiPcQTbvDX-X4-Lf7vRBZFiPY4VSxGM9pquK6BQ"
+          "value": "N-CYdUiR0VNvRBstJzRBsiGt02VK9yvLzEuRhPZFd87eA-QGzaH1avb_919w7BQ9sQRJcGxSe7uCKgn_Xy9yCA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": true,
       "expected_eligible": false
     },
@@ -23709,6 +23755,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23728,10 +23775,10 @@
         "sig": {
           "key_id": "test-k2",
           "alg": "Ed25519",
-          "value": "f8IVkNmf0mMqF5yn5sJvgVF04zR84_c6k9i9kGpgCBe4O3BoiPcQTbvDX-X4-Lf7vRBZFiPY4VSxGM9pquK6BQ"
+          "value": "N-CYdUiR0VNvRBstJzRBsiGt02VK9yvLzEuRhPZFd87eA-QGzaH1avb_919w7BQ9sQRJcGxSe7uCKgn_Xy9yCA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": true,
       "expected_eligible": true
     },
@@ -23764,6 +23811,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23783,10 +23831,10 @@
         "sig": {
           "key_id": "test-k2",
           "alg": "Ed25519",
-          "value": "f8IVkNmf0mMqF5yn5sJvgVF04zR84_c6k9i9kGpgCBe4O3BoiPcQTbvDX-X4-Lf7vRBZFiPY4VSxGM9pquK6BQ"
+          "value": "N-CYdUiR0VNvRBstJzRBsiGt02VK9yvLzEuRhPZFd87eA-QGzaH1avb_919w7BQ9sQRJcGxSe7uCKgn_Xy9yCA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": false,
       "expected_eligible": false
     },
@@ -23819,6 +23867,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23838,10 +23887,10 @@
         "sig": {
           "key_id": "test-k2",
           "alg": "Ed25519",
-          "value": "phmdVOtB5ChBufLkmBmbzO3eCG2xNSSleNjDVdG6lrDfJ1nSUt8DjWWF6DTMM1tBNMcPrOPnD5GuqHveP52mCQ"
+          "value": "NAAliJurfl_kZ-S5Sf0741gVYaE8E2MhAUvpAU2cEdTw1f4fb28azkJSenKSVo92HZ112uuOWHqJ902xHcbbAA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": false,
       "expected_eligible": false
     },
@@ -23874,6 +23923,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23893,10 +23943,10 @@
         "sig": {
           "key_id": "unknown",
           "alg": "Ed25519",
-          "value": "f8IVkNmf0mMqF5yn5sJvgVF04zR84_c6k9i9kGpgCBe4O3BoiPcQTbvDX-X4-Lf7vRBZFiPY4VSxGM9pquK6BQ"
+          "value": "N-CYdUiR0VNvRBstJzRBsiGt02VK9yvLzEuRhPZFd87eA-QGzaH1avb_919w7BQ9sQRJcGxSe7uCKgn_Xy9yCA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": false,
       "expected_eligible": false
     },
@@ -23929,6 +23979,7 @@
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
+          "publisher": "example.com",
           "url": "https://example.com/settlement/bindings",
           "change_type": "new",
           "observed_at": "2026-08-04T10:00:00Z",
@@ -23948,10 +23999,10 @@
         "sig": {
           "key_id": "test-k1",
           "alg": "Ed25519",
-          "value": "phmdVOtB5ChBufLkmBmbzO3eCG2xNSSleNjDVdG6lrDfJ1nSUt8DjWWF6DTMM1tBNMcPrOPnD5GuqHveP52mCQ"
+          "value": "NAAliJurfl_kZ-S5Sf0741gVYaE8E2MhAUvpAU2cEdTw1f4fb28azkJSenKSVo92HZ112uuOWHqJ902xHcbbAA"
         }
       },
-      "delta_id": "sha256:e862baddc8cdb72fa82f98f035c79c1facd725229227af458e5c00eeec4872d6",
+      "delta_id": "sha256:6337050fde3c2bb3f9f30f4f5e4b6ac90505e7ea245568316851c8d8acdb0cd0",
       "expected_queued": true,
       "expected_eligible": true,
       "re_serve_of": 1

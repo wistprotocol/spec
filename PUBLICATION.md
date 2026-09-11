@@ -4,7 +4,19 @@ The WIST suite is an editable draft until its protocol roles have been
 implemented and validated together. A draft label identifies work under
 validation; it promises no stable edition or compatibility between draft
 revisions. Cite an exact specification commit when reporting conformance.
-Draft status does not waive the signed objects' version rules.
+Before either stable publication or the deployment boundary below, successive
+revisions define the same unreleased signed-object version, currently
+`wist_version = 1.0.0`. Incompatible changes, including required fields, MAY
+retain that version under WIST-1 §3.1. This exception applies across the
+suite, not only to one object type. A validator implements an exact draft
+revision and MUST enforce that revision's complete rules; the shared version
+string does not authorize accepting objects from other draft revisions.
+Compatibility claims and validation evidence MUST identify the specification
+commit. There is no implicit legacy-object acceptance or field normalization.
+
+The exception ends at the earlier of stable publication and the deployment
+boundary. After that boundary, a substantive change requires a new major
+version, even when the deployed edition is labelled draft.
 
 ## Developing the draft
 
@@ -41,9 +53,10 @@ Final consolidation requires all of the following:
 - Resolution of known specification gaps and conformance failures. Each
   resolved behavioral gap carries a discriminating vector. Validation
   evidence identifies the specification commit and obligations exercised.
-- An explicit reconciliation of the edition label with WIST-1 §3.1's signed
-  object version rules. A document tag alone cannot authorize a wire-format
-  change. This policy assigns no new `wist_version`.
+- An edition label and signed-object version consistent with WIST-1 §3.1.
+  Identify the exact validated draft revision being frozen; older incompatible
+  draft objects do not gain acceptance merely by sharing its version string.
+  A document tag alone cannot authorize a wire-format change.
 
 Until these conditions hold, publications remain drafts. Publish the
 validated edition with its conformance evidence and accept its consolidated

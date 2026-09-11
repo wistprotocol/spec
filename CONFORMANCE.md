@@ -350,64 +350,53 @@ addition at the validator instant.
 
 ## Delta Publisher attribution
 
-WIST-1 §3.2 permits a URL in overlapping Publisher authorities and calls
-both Publishers’ Deltas valid. WIST-3 §7 keys chains by `(Publisher domain,
-Normalized URL)` and selects which Publisher’s records materialize. Neither
-the Delta Envelope nor its WIST-3 §3.3 Entry carries a Publisher domain.
-WIST-1 §5.2 resolves the keys of “that domain” without determining the domain
-when several eligible Declarations authorize the same signed object.
+WIST-1 §3.8 and ADR-0029 require a canonical Publisher domain inside each
+signed Delta. It selects the sole Declaration history supplying authority;
+copying keys or changing an unsigned identifier cannot change the author.
+Chains use `(publisher, url)` across rotations, recovery and fresh identities.
+WIST-2 §5 rejects foreign-Publisher Deltas in a Feed/Page with WIST2-E03;
+physical redirect and Mirror hosts do not determine this association.
 
-Two scoped Declarations may carry the same signing identifier and public key.
-The same Delta then authenticates under both, and the fetched site's domain
-is unavailable to a party replaying the Log. The one-URL-one-Publisher rule
-selects materialized records after attribution; it does not determine the
-Delta's author. Selecting a Declaration by identifier before verifying its
-signature also loses valid candidates when the same identifier binds different
-public keys. Arbitrary host or iteration order is not a specified resolution.
+`vectors/wist1/delta-attribution.json` exercises shared and distinct keys,
+copied bindings, author tampering, missing/ineligible author sources, literal
+nonancestor scope, canonical host fields, Feed association and exact-draft
+version acceptance. Its signed hourly Block history authenticates ordinary
+rotation, recovery ownership/competition/followers, settlement and fresh reset,
+with scoped chain and binding probes. Conditional projections test which
+Publisher/current identity can receive credit, penalties and notice evidence;
+they do not establish the eligibility of an Audit Record or notice itself.
 
-The ambiguity also affects **distinct signing keys**. WIST-1 §4 hashes only
-the inner Delta, so two Publishers signing identical inner bytes obtain the
-same Delta ID even when each Envelope has exactly one matching authority.
-WIST-3 §3.2 seals that ID only once and §8 deduplicates it across Logs.
-Neither construction commits to the Publisher. This is equal hash input,
-not a SHA-256 collision. Namespacing `sig.key_id` alone does not repair it:
-that field is outside both the signature input and the Delta ID input. With
-shared public keys, changing only that identifier can select a different
-Declaration while preserving the signature and ID.
+Required independent role adoption remains: emit and validate the signed
+field without synthesizing it into old bytes; select only its authenticated
+Declaration/key history; enforce Publisher/URL predecessors and logical Feed
+association before idempotence; preserve domain-scoped recovery queues and
+chain tips across restart; derive sampling, reference chains, canary ownership,
+reputation and sanction evidence from the same author. Update every dependent
+ID, signature, Payload path, Block and Snapshot when changing fixture bytes.
+Existing signed objects without the field fail this exact draft, even when
+they say `1.0.0`. Passing supplied-source or conditional projection tests
+establishes neither live discovery nor integrated audit/process conformance.
 
-`vectors/wist1/delta-attribution.json` supplies five signed witnesses:
-identical named bindings; different public keys signing identical content;
-domain-qualified unsigned identifiers; a copied public binding in a
-Declaration signed by its own different key; and explicit scope outside
-hostname ancestry. The independent reference checks initial Declaration
-authentication, literal scope, time-eligible named bindings, strict Delta
-signatures and IDs, including reversed candidate order, tampering twins and
-two signed controls removing scope or postponing a binding's validity.
-The matching domains are observations of these checks, not author-selection
-or acceptance outcomes. Discovery, Log inclusion, predecessor ownership,
-recovery and downstream attribution are not exercised.
+### Remaining scope provenance and materialization questions
 
-Resolve authenticated candidate selection and ambiguous-match disposition
-before complete Delta/Audit Record replay. Possible resolutions include an
-explicit signed Publisher identity, rejection of ambiguous authority, or a
-specified attribution rule with its effects on existing domain identities.
-No alternative is selected. Discriminating signed histories must cover shared
-identifiers with different public keys, identical named bindings, multiple
-scoped authorities, predecessor ownership, rotations, recovery and identity
-resets; verify resulting chain, reputation and sanction attribution separately
-from materialization. Scope membership is literal: WIST-1 §3.2 names the
-Declaration's domain or any hostname in its `subdomain_scope`, without an
-ancestor-only restriction.
+WIST-1 §3.2 tests the URL host against the Publisher domain or a member of
+“its `subdomain_scope`”. During recovery, §5.2 freezes both source signing
+sets for queue admission while a later competitor can become current and
+a legitimate follower can advance the recovery head. The text does not
+select a scope source when those Declarations differ, nor specify scope
+revalidation at settlement. Resolve scope provenance and its temporal checks
+with signed histories before complete recovery Delta admission/sealing.
+The attribution history retains identical scopes and selects no reading
+for differing scopes.
 
-An explicit Publisher field inside the signed Delta would bind identity to
-both the signature and ID. Adding it must also resolve WIST-1 §3.1's rule
-that new fields require a new major version; [PUBLICATION.md](PUBLICATION.md)
-does not exempt drafts from signed-object version rules. Rejecting multiple
-matching authorities alone leaves the distinct-key equal-ID case unresolved.
-A complete resolution must preserve replay agreement, resistance to copied
-public bindings and attribution before materialization, and define its
-compatibility consequences. No wire field, version or resolution is adopted
-by these witnesses.
+WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
+restriction. WIST-3 §7's one-URL-one-Publisher rule selects self-declaration
+over a scoped parent, but supplies no winner between multiple scoped
+Publishers when the URL host has no Declaration of its own, including
+nonancestor Publishers. Resolve preference, eligibility or multiplicity with
+vectors before complete materialization and dependent audit selection.
+Signed authorship and separate chains are already determined; the attribution
+vectors choose no materialization winner for these cases.
 
 ## Validation still required
 
@@ -443,11 +432,14 @@ claiming that any row is satisfied.
 
 ## Object-version policy
 
-WIST-1 §3.1 prohibits new fields in a minor object version. Draft changes
-include required Audit Record fields and additional Registry Update actions
-while objects still carry `wist_version = 1.0.0`. Before final consolidation
-or an adopted wire-format change, determine explicitly whether successive
-drafts define one unreleased object version or require a new major object
-version. Align document labels and signed objects with that decision and
-add discriminating vectors. The draft publication policy itself changes
-neither object acceptance nor version semantics.
+WIST-1 §3.1, ADR-0028 and [PUBLICATION.md](PUBLICATION.md) permit incompatible
+revisions of the unreleased draft under `wist_version = 1.0.0`. Validators and
+compatibility claims must identify an exact specification commit and enforce
+its complete field set. The exception ends on stable publication or the first
+Log sealing Blocks consumed by a third party, whichever happens first.
+
+The signed version cases in `delta-attribution.json` exercise current fields,
+a same-version object lacking its Publisher, unknown fields and an
+unimplemented major. Independent role consumption and publication-boundary
+verification remain required; an offline vector cannot establish deployment
+status or waive the frozen edition's immutability.

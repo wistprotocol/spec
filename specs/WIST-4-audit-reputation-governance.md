@@ -530,7 +530,7 @@ VRF test:
 floating-point operation appears anywhere in the selection test**. `beta`
 is those 64 raw octets; `d.delta_id_utf8` is the UTF-8 encoding of the full
 Delta ID string including its `sha256:` prefix; `domain(d)` is the domain
-of the Publisher whose key signed *d*; and `reputation_u` is that domain's
+in *d*'s signed `publisher` field, authenticated under WIST-1 §3.8/§5; and `reputation_u` is that domain's
 §6 reputation, in micro-units, at height *B* − 1 — the state of the log
 immediately before *B* was sealed, which for Block 0 is the empty log —
 evaluated with the §9 constants in force at *B*'s `sealed_at`. If a
@@ -2043,6 +2043,14 @@ is strictly increasing across Blocks (WIST-3 §3.1), so every such difference
 is non-negative and the rounding direction of a negative quotient never
 arises.
 
+**Publisher attribution.** A Delta belongs to its authenticated signed
+`publisher` (WIST-1 §3.8), and every Record and finding about it uses that
+domain. Reference Deltas must have the same signed Publisher and URL as
+the audited Delta (§5). Canary ownership (§5.1), selection, credit,
+penalties and Publisher notice/sanction evidence (§7) use this attribution,
+independently of which Publisher's record materializes. Shared keys and
+identity resets never rewrite the author of an earlier Delta.
+
 **Identity scope.** `A`, `C`, and the set of Confirmed Inconsistencies are
 all scoped to the domain's **current identity**: every one of them counts
 only Log events sealed at a height ≤ N that belong to that identity, and
@@ -2862,8 +2870,9 @@ Process requirements:
 
 Four rules are constitutional: conforming implementations MUST enforce
 them, and no Parameter Registry change, sanction, or operational decision
-can amend them. Amending them requires a new major version of this suite
-— which is to say, a fork that must win adoption on its own merits.
+can amend them. Once an edition is frozen under WIST-1 §3.1 and
+[PUBLICATION.md](../PUBLICATION.md), amending them requires a new major
+version of this suite — a fork that must win adoption on its own merits.
 
 1. **No self-declared importance.** No object in this protocol carries a
    field by which a publisher declares its own relevance (WIST-1 §6). A
@@ -4073,16 +4082,16 @@ key is the WIST-1 vector keypair (`vectors/wist1/keypair.json`, seed
 |---|---|
 | Ciphersuite | `ECVRF-EDWARDS25519-SHA512-TAI` (`suite_string` `0x03`) |
 | Auditor public key (base64url) | `A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| Block Hash of *B* | `sha256:f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487` |
-| `alpha` (32 octets, hex) | `f6a352a23522bbce2ae827d9c4c4941dbca3a8a9a7be37d99d4f620e4d0d5487` |
-| `pi` = `vrf_proof` (80 octets) | `defb838b0b6ea0932bbd29a9ac6c5f89ef0d8bac94f76e2cf92dea63bc98f0bc`<br>`80b9d48617d2aca12c50449654647c3e60f63a8f9b9e1fb5c5232316c6ed6ff1`<br>`84358bb73f251175fb6a4ac8b935ca09` |
-| `beta` (64 octets) | `4d3a0bfb2e4d9b96b3d4245b0d846450d8bddb532b06361bb7c31bbaa30c74d8`<br>`76741d9fb507a447a99adec5148154e602f8e78d1639ff5b9bd101d04e0960a7` |
-| Delta ID of Entry 0 | `sha256:bb28d0f30208ef88cdb4d88aadb3531a7b023eb6639c8642d91fa503ea0a78e4` |
-| `SHA-256(beta ‖ Entry 0)[0..8]` | `90f367d0f8992759` |
-| `D`(Entry 0) | `10444806108023957337` |
-| Delta ID of Entry 3 | `sha256:21733620f4ade1efdc598a6512fd91d230ee1a66bb9bec640f846bf80cbdf47d` |
-| `SHA-256(beta ‖ Entry 3)[0..8]` | `46129a20b3dd8f1f` |
-| `D`(Entry 3) | `5049267597483020063` |
+| Block Hash of *B* | `sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e` |
+| `alpha` (32 octets, hex) | `8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e` |
+| `pi` = `vrf_proof` (80 octets) | `05c6ecc1a397b73133bd160eded515e4833c4bbd5e7a90a0d3231d276b63ad071e30092746899cc13335084bcce9ce695da8a42ac6731662abda8ab2df821372697b648ea4ec66dc4de79018ba7f9c01` |
+| `beta` (64 octets) | `080546f45eb9292655a9937d5dcec60ebb46c409a79c2c54e65b36f54fbad9affc4083e1cef79ddcc40ed103758ae26c2c41f99ed12eca79a2a41db8bd3b2b64` |
+| Delta ID of Entry 3 | `sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860` |
+| `SHA-256(beta ‖ Entry 3)[0..8]` | `118fb2ea4292e2e1` |
+| `D`(Entry 3) | `1265426739523412705` |
+| Delta ID of Entry 2 | `sha256:2d55e9abd67a517af15bbb035d0f9c7cf16585dc2a7ad1f86945e064eaedd267` |
+| `SHA-256(beta ‖ Entry 2)[0..8]` | `148de28378c98749` |
+| `D`(Entry 2) | `1481088906769827657` |
 
 Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
@@ -4091,14 +4100,14 @@ confuses them will produce a different, wrong selection set.
 
 Selection outcomes, by the §4 integer test `D × 10^7 < p_1e7 × 2^64`. Both
 Deltas are real Entries of the same Block drawn against the same `beta`;
-the two domains differ only in reputation:
+each Delta is evaluated under two alternative Publisher reputations:
 
 | Delta | `reputation_u` | `p_1e7` | `D × 10^7` | `p_1e7 × 2^64` | Selected? |
 |---|---|---|---|---|---|
-| Entry 0 | 100 000 (Provisional) | 2 900 000 | 1.044e26 | 5.350e25 | no |
-| Entry 0 | 900 000 (established) | 500 000 | 1.044e26 | 9.223e24 | no |
-| Entry 3 | 100 000 (Provisional) | 2 900 000 | 5.049e25 | 5.350e25 | **yes** |
-| Entry 3 | 900 000 (established) | 500 000 | 5.049e25 | 9.223e24 | no |
+| Entry 3 | 100000 | 2900000 | 1.265e25 | 5.350e25 | yes |
+| Entry 3 | 900000 | 500000 | 1.265e25 | 9.223e24 | no |
+| Entry 2 | 100000 | 2900000 | 1.481e25 | 5.350e25 | yes |
+| Entry 2 | 900000 | 500000 | 1.481e25 | 9.223e24 | no |
 
 The two product columns are shown rounded for reading; the exact integers
 are in the vector, and an implementation MUST compare the exact ones. Note

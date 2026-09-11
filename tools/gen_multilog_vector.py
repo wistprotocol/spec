@@ -110,6 +110,7 @@ payload = {"wist_version": "1.0.0", "salt": b64u(salt), "content": CONTENT}
 
 delta = {
     "wist_version": "1.0.0",
+    "publisher": DOMAIN,
     "url": DELTA_URL,
     "change_type": "new",
     "observed_at": "2026-08-02T12:00:00Z",
