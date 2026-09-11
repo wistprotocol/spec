@@ -4,7 +4,7 @@
 Never uses wall-clock or randomness: fixed seed, fixed timestamps.
 Re-running always produces byte-identical output.
 """
-import base64, calendar, hashlib, hmac, itertools, json, pathlib, time
+import base64, calendar, datetime, hashlib, hmac, itertools, json, pathlib, re, time
 from decimal import Decimal, localcontext
 
 import rfc8785
@@ -1669,7 +1669,11 @@ PROVISIONAL_CAP = 100_000
 
 def epoch_seconds(ts: str) -> int:
     """RFC 3339 UTC -> integer POSIX seconds (86400 s/day, no leap seconds)."""
-    return calendar.timegm(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ"))
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:[0-5][0-9]Z", ts, re.ASCII):
+        raise ValueError("invalid Log timestamp")
+    year_zero = ts.startswith("0000-")
+    parsed = datetime.datetime.strptime("0400" + ts[4:] if year_zero else ts, "%Y-%m-%dT%H:%M:%SZ")
+    return calendar.timegm(parsed.timetuple()) - (146097 * 86400 if year_zero else 0)
 
 
 def whole_days(earlier: str, later: str) -> int:
@@ -5054,3 +5058,131 @@ print("wist4 replay-derivation vectors: confirmation=%d derivation=%d coverage=%
     len(sanction_criterion_cases), len(sanction_accrual_cases),
     len(sanction_void_cases), len(sanction_in_force_cases),
     len(sanction_ladder_cases)))
+
+
+def raw_frame(payload, declared=None, single=True, width=4, chunks=None):
+    size = len(payload) if declared is None else declared
+    flag = {0: 0, 1: 0, 2: 1, 4: 2, 8: 3}[width]
+    header = bytes.fromhex("28b52ffd") + bytes([flag * 64 + (32 if single else 0)])
+    if not single:
+        header += b"\x10"
+    if width:
+        header += (size - (256 if width == 2 else 0)).to_bytes(width, "little")
+    pieces = [payload] if chunks is None else chunks
+    return header + b"".join(
+        (len(piece) * 8 + int(index == len(pieces) - 1)).to_bytes(3, "little") + piece
+        for index, piece in enumerate(pieces))
+
+
+transport_block = json.loads((EXAMPLES / "block.json").read_text())
+transport_bytes = rfc8785.dumps(transport_block)
+transport_size = len(transport_bytes)
+transport_frame = raw_frame(transport_bytes)
+transport_parts = {
+    "block": transport_frame,
+    "short size": raw_frame(transport_bytes, width=2),
+    "wide size": raw_frame(transport_bytes, width=8),
+    "window header": raw_frame(transport_bytes, single=False),
+    "undersized window": raw_frame(transport_bytes, single=False)[:5] + b"\x00" + raw_frame(transport_bytes, single=False)[6:],
+    "multiple raw blocks": raw_frame(transport_bytes, chunks=[transport_bytes[:200], transport_bytes[200:]]),
+    "empty": raw_frame(b"", width=1),
+    "nonempty": raw_frame(b"x", width=1),
+    "skippable empty": bytes.fromhex("502a4d18") + bytes(4),
+    "skippable payload": bytes.fromhex("5f2a4d18") + (4).to_bytes(4, "little") + b"meta",
+    "trailing byte": b"\x00",
+    "truncated": transport_frame[:-1],
+    "truncated header": transport_frame[:6],
+    "missing size": raw_frame(transport_bytes, single=False, width=0),
+    "false smaller size": raw_frame(transport_bytes, declared=transport_size - 1),
+    "false larger size": raw_frame(transport_bytes, declared=transport_size + 1),
+}
+transport_cases = []
+for name in ("block", "short size", "wide size", "window header", "multiple raw blocks"):
+    transport_cases.append({"label": "single frame " + name, "parts": [name],
+                            "bound": transport_size, "expected": "valid"})
+for tail in ("empty", "nonempty", "skippable empty", "skippable payload", "trailing byte"):
+    transport_cases.append({"label": "reject trailing " + tail, "parts": ["block", tail],
+                            "bound": transport_size + 1, "expected": "WIST3-E03"})
+for parts in (["skippable empty", "block"], ["skippable payload", "block"],
+              ["empty", "block"], ["block", "block"], ["skippable empty"],
+              ["truncated"], ["truncated header"], ["missing size"],
+              ["false smaller size"], ["false larger size"], ["undersized window"]):
+    transport_cases.append({"label": "reject " + " then ".join(parts), "parts": parts,
+                            "bound": transport_size + 1, "expected": "WIST3-E03"})
+transport_cases.append({"label": "declared size exceeds bound by one", "parts": ["block"],
+                        "bound": transport_size - 1, "expected": "WIST3-E03"})
+write_json(ROOT / "vectors/wist3/block-frames.json", {
+    "note": "WIST-3 §6. Each case concatenates the exact byte fragments named by parts in order. Valid cases decode to JCS(block). Raw Zstandard data blocks isolate frame composition from entropy coding. Bounds exercise transport decoding, not Registry amendment admission.",
+    "block": transport_block,
+    "fragments_hex": {name: part.hex() for name, part in transport_parts.items()},
+    "cases": transport_cases,
+})
+
+timestamp_cases = []
+for value, seconds in (
+    ("0000-01-01T00:00:00Z", -62167219200),
+    ("0000-02-29T00:00:00Z", -62162121600),
+    ("1970-01-01T00:00:00Z", 0),
+    ("1969-12-31T23:59:59Z", -1),
+    ("2000-02-29T00:00:00Z", 951782400),
+    ("2016-12-31T23:59:59Z", 1483228799),
+    ("2017-01-01T00:00:00Z", 1483228800),
+):
+    assert epoch_seconds(value) == seconds
+    timestamp_cases.append({"value": value, "epoch_seconds": seconds})
+timestamp_invalid = [
+    "2016-12-31T23:59:60Z", "2016-12-31T23:59:61Z", "2017-01-01T00:00:60Z",
+    "2016-12-31T23:59:59.0Z", "2016-12-31T23:59:59+00:00",
+    "2016-12-31t23:59:59z", "2016-12-31T24:00:00Z", "2016-12-31T23:60:00Z",
+    "1900-02-29T00:00:00Z", "2017-02-29T00:00:00Z", "2016-13-01T00:00:00Z",
+    "2016-12-31T23:59:59Z\n",
+    "２０１６-12-31T23:59:59Z", "2016-12-31T23:59:５９Z",
+]
+for value in timestamp_invalid:
+    try:
+        epoch_seconds(value)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError(value)
+    timestamp_cases.append({"value": value, "epoch_seconds": None})
+
+timestamp_fields = []
+for stem, path in (
+    ("block", ["header", "sealed_at"]),
+    ("checkpoint", ["checkpoint", "sealed_at"]),
+    ("feed", ["feed", "generated_at"]),
+    ("audit-record", ["record", "fetched_at"]),
+    ("registry-update", ["update", "effective_at"]),
+):
+    timestamp_fields.append({"schema": stem + ".schema.json", "document": json.loads((EXAMPLES / (stem + ".json")).read_text()), "path": path})
+notice_timestamp = sign_envelope("update", {
+    "wist_version": "1.0.0", "action": "notice", "subject": "example.com",
+    "details": {"kind": "sanction", "level": 3, "activation": "sha256:" + "1" * 64,
+                "reason": "Confirmed evidence", "appeal_deadline": "2017-01-15T00:00:00Z"},
+    "evidence": ["sha256:" + "1" * 64], "effective_at": "2017-01-01T00:00:00Z",
+}, "log1")
+timestamp_fields.append({"schema": "registry-update.schema.json", "document": notice_timestamp,
+                         "path": ["update", "details", "appeal_deadline"]})
+timestamp_probe = "2017-01-01T00:00:00Z"
+for entry, path in (
+    (["parameter", "confirm_auditors", timestamp_probe, 2], [2]),
+    (["sanction_state", "example.com", 3, ["sha256:" + "1" * 64], [["appeal", timestamp_probe]]], [4, 0, 1]),
+    (["recovery_window", "example.com", 1, timestamp_probe], [3]),
+    (["reputation_inputs", "example.com", timestamp_probe, None, 0, [], []], [2]),
+    (["reputation_inputs", "example.com", timestamp_probe, None, 0, [], [[timestamp_probe, 1]]], [6, 0, 0]),
+    (["escalation", "example.com", timestamp_probe], [2]),
+):
+    document = json.loads((EXAMPLES / "snapshot-state.json").read_text())
+    document["state"]["entries"] = [entry]
+    timestamp_fields.append({"schema": "snapshot-state.schema.json", "document": document,
+                             "path": ["state", "entries", 0] + path})
+write_json(ROOT / "vectors/wist3/timestamps.json", {
+    "note": "WIST-3 §3.1 whole-second literal-Z profile, including §7 Snapshot state. Null epoch_seconds means reject, including invalid calendar dates. Field cases supply schema-valid structural baselines; mutating a signed value requires re-signing before testing signature verification. The schema-only leap-second check does not depend on format validation.",
+    "cases": timestamp_cases,
+    "distances": [{"from": "2016-12-31T23:59:59Z", "to": "2017-01-01T00:00:00Z", "seconds": 1}],
+    "field_cases": timestamp_fields,
+    "field_accept": "2016-12-31T23:59:59Z",
+    "field_reject": "2016-12-31T23:59:60Z",
+    "field_reject_non_ascii": "２０１６-12-31T23:59:59Z",
+})

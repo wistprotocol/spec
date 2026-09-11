@@ -77,7 +77,7 @@ A Block is an Envelope-like object with `header`, `entries`, and `sig`
 | `merkle_root` | Root over `entries` (§4). |
 | `entry_count` | MUST equal `entries.length`. |
 
-`sealed_at` MUST match `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
+`sealed_at` MUST match `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$`
 (`schemas/block.schema.json`): no fractional seconds, and no numeric offset
 even one equal to zero. A Block whose `sealed_at` carries either MUST be
 rejected. RFC 3339 permits both, but WIST-4 §6.1 derives every reputation day
@@ -87,6 +87,15 @@ that two implementations could take differently — one rounded half-second
 can move a whole-day boundary and with it a domain's age, penalty ages, and
 score. Constraining the field is cheaper than specifying a rounding rule,
 and it costs the Aggregator nothing: it chooses when to seal.
+
+The date and time MUST be valid in the Gregorian calendar. Seconds are
+`00` through `59`: a leap-second spelling with `:60` MUST be rejected,
+never normalized to another instant. Integer epoch seconds count exactly
+86,400 seconds per calendar day from 1970-01-01T00:00:00Z, without leap
+seconds; 2016-12-31T23:59:59Z and 2017-01-01T00:00:00Z are one second
+apart. The same profile applies wherever the suite requires this
+whole-second, literal-`Z` form, including the Snapshot state timestamps
+in §7. Other RFC 3339 fields retain their specified formats.
 
 What it does not choose is the timestamp inside that choice: `sealed_at`,
 converted to integer seconds since the epoch, MUST be an integer multiple
@@ -490,9 +499,15 @@ this path without the verification §3.4 requires; a file an operator serves
 about itself is not a trust root because of where it sits.
 
 **Block files.** A Block file is the JCS canonical bytes of the Block
-object — `header`, `entries` and `sig` — compressed with zstandard. The
-compression level is unconstrained, but the frame MUST declare its
-decompressed size (zstandard's `Frame_Content_Size`), and that size MUST
+object — `header`, `entries` and `sig` — compressed in exactly one standard
+Zstandard frame ([RFC 8878] §3.1.1). The frame MUST start at the first byte
+and end at the last byte of the file, including its optional checksum.
+Concatenated frames, skippable frames at any position, and trailing bytes
+MUST be rejected as `WIST3-E03`, even if they add no decompressed output.
+The size declaration belongs to that single frame, not to a prefix or a
+concatenation of frames. The compression level is unconstrained, but the
+frame MUST declare its decompressed size (zstandard's `Frame_Content_Size`),
+and that size MUST
 NOT exceed the applicable Block-size bound in WIST-4 §9 (Registry
 default 256 MiB). Before fetching a Block, a Consumer derives a transport
 bound from its already verified prefix: the greatest
@@ -1349,7 +1364,7 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 |---------|--------------------------------------------------------------|
 | WIST3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
 | WIST3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
-| WIST3-E03 | Invalid Block file (hash or signature failure, missing or false declared frame size, or exceeded transport or accepted-schedule size bound — §6, WIST-4 §9); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
+| WIST3-E03 | Invalid Block file (hash or signature failure, invalid frame composition, missing or false declared frame size, or exceeded transport or accepted-schedule size bound — §6, WIST-4 §9); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
 | WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
@@ -1454,8 +1469,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       published, the latter at `/log/checkpoints/<block_number>.json` (§6)
 - [ ] Rebuilds a Snapshot superseded by a withdrawal at a `log_position`
       at or above the withdrawal's height, or withdraws it (§6.2, §7)
-- [ ] Never emits a Block exceeding the decompressed cap, and declares each
-      Block frame's decompressed size (§6)
+- [ ] Emits each Block in exactly one standard Zstandard frame with no
+      trailing data, declares its complete decompressed size and never
+      exceeds the decompressed cap (§6)
 - [ ] Publishes a Log Anchor and admits all later keys in-band (§3.4)
 - [ ] Seals a `publisher_declaration` Entry for a domain before, or in
       the same Block as, the first Delta it authorizes, and never seals a
@@ -1483,6 +1499,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 **Consumer:**
 
+- [ ] Rejects Block files containing anything beyond one standard Zstandard
+      frame and applies declared, actual and accepted-schedule size checks
+      (§6); rejects leap seconds in Log-comparable timestamps (§3.1, §7)
 - [ ] Verifies chain, signatures, Merkle roots, and entry counts on every
       Block before applying (§8)
 - [ ] When verifying an Inclusion Proof, derives sibling sides from
@@ -1611,5 +1630,7 @@ corresponding discovery index, carrying the same `snapshot_date`,
 - [RFC 6962] Certificate Transparency — Merkle hashing discipline,
   checkpoint/equivocation model
 - [RFC 8785] JSON Canonicalization Scheme (JCS)
+- [RFC 8878](https://www.rfc-editor.org/rfc/rfc8878.html) Zstandard
+  Compression and the `application/zstd` Media Type
 - WIST-1: Delta Format & Identity · WIST-2: Site Publication ·
   WIST-4: Audit, Reputation & Governance

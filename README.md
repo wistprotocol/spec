@@ -94,6 +94,8 @@ family, the independent anchor its verification rests on.
 - [ADR-0018](decisions/0018-confirmation-and-sanctions.md) — Confirmation, sanction activations and due process
 - [ADR-0019](decisions/0019-audit-duty-accounting.md) — Audit duty accounting from authenticated Log prefixes
 - [ADR-0020](decisions/0020-parameter-schedules.md) — Parameter schedules preserve historical obligations
+- [ADR-0021](decisions/0021-block-frame-composition.md) — One Zstandard frame per Block file
+- [ADR-0022](decisions/0022-log-timestamp-seconds.md) — Leap-free Log timestamps
 
 ## Licenses
 

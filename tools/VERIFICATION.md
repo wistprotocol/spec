@@ -52,6 +52,8 @@ cannot enter the vector unnoticed.
 | wist2 `page-keyset.json` | prose-traced resolution rule | self-consistency | self-consistency-only |
 | wist3 `block.json`, `inclusion-proof.json` | Merkle hashing vs the Certificate Transparency reference answers (`merkle:ct-reference-vectors`); exhaustive inclusion property test; signatures via third-party libs | external-KAT + property-test | anchored |
 | wist3 `empty-block.json` | the deliberate deviation from RFC 6962's empty root, with both constants pinned side by side | external-KAT (documented deviation) | anchored |
+| wist3 `block-frames.json` | raw frame layout traced to RFC 8878 §3.1.1; an independently structured fixture decoder checks sizes and EOF, with concatenation/truncation mutations; general entropy decoding and checksums are outside that decoder | self-consistency (framing) | partial |
+| wist3 `timestamps.json` | integer epoch answers checked through Python's Gregorian calendar; leap-second and schema-field mutations, including Snapshot tuple positions | third-party-lib (calendar) + self-consistency (profile) | partial |
 | wist3 `snapshot-records.json` | materialization re-derived from the Payload | self-consistency | self-consistency-only |
 | wist3 `chain-materialization.json` | prose-traced chain-tip rule | self-consistency | self-consistency-only |
 | multilog `dedup.json` | prose-traced dedup rules | self-consistency | self-consistency-only |

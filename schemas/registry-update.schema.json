@@ -19,7 +19,7 @@
         "effective_at": {
           "type": "string",
           "format": "date-time",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$",
           "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (WIST-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the §9 grace period above all — so the two are written in one form and compare without normalization. It is descriptive of when the act takes effect and never the anchor of a window: WIST-4 §7 runs the appeal window, and WIST-1 §5.2 the recovery window, from the `sealed_at` of the Block sealing the Entry."
         }
       }
@@ -120,7 +120,7 @@
                   "appeal_deadline": {
                     "type": "string",
                     "format": "date-time",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$",
                     "description": "The instant WIST-4 §7's appeal window closes, restated for the Publisher's convenience: the `sealed_at` of the Block sealing this notice plus `appeal_window_days`. It is descriptive — every party derives the same deadline from the Block — and carries the whole-second-plus-Z form so that the restatement and the Block value it is computed from compare without normalization."
                   }
                 },

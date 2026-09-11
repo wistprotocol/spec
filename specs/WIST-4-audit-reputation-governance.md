@@ -198,6 +198,8 @@ rests on a normalization step two implementations could perform
 differently: `fetched_at` below, a Feed's `generated_at` (WIST-2 §3.2), a
 Registry Update's `effective_at`, and a `notice`'s `appeal_deadline` (§9.1)
 are all constrained to it by their schemas. Validators
+MUST reject a leap-second `:60` in any such field rather than normalize it
+(WIST-3 §3.1). Validators
 recomputing reputation MUST reject:
 
 - a Record signed by a key not admitted at, or removed at or before, the
@@ -2033,7 +2035,9 @@ enforced by both WIST-3 §3.1 and `schemas/block.schema.json`, so
 `seconds(sealed_at)` — the count of seconds since 1970-01-01T00:00:00Z
 with every day counted as exactly 86 400 seconds and no leap seconds — is
 an exact integer for every conforming Block, with no fractional part to
-round and no offset to reduce. "Whole days between X and Y" is then
+round and no offset to reduce. The `:60` spelling is invalid under
+WIST-3 §3.1; it is not mapped to `:59` or the following second.
+"Whole days between X and Y" is then
 `(seconds(Y) − seconds(X)) / 86 400` under integer division. `sealed_at`
 is strictly increasing across Blocks (WIST-3 §3.1), so every such difference
 is non-negative and the rounding direction of a negative quotient never

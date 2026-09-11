@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
-import base64, calendar, collections, copy, hashlib, hmac, itertools, json, pathlib, re, sys, time
+import base64, calendar, collections, copy, datetime, hashlib, hmac, itertools, json, pathlib, re, sys, time
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -8,6 +8,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 import ecvrf
+from block_frames import decode_raw_fixture
 from merkle import audit_path, leaf_hash, merkle_root, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -31,6 +32,17 @@ def check(label, fn):
 
 def b64u_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+def log_seconds(value):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:[0-5][0-9]Z", value, re.ASCII):
+        raise ValueError("invalid Log timestamp")
+    year = int(value[:4])
+    instant = datetime.datetime(
+        year if year else 400, int(value[5:7]), int(value[8:10]),
+        int(value[11:13]), int(value[14:16]), int(value[17:19]),
+        tzinfo=datetime.timezone.utc)
+    elapsed = instant - datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+    return (elapsed.days - (146097 if year == 0 else 0)) * 86400 + elapsed.seconds
 
 def verify_inclusion(block, proof):
     """RFC 6962 audit-path verification (WIST-3 §4).
@@ -1052,6 +1064,12 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/timestamps.json", "response_commitment"): "audit:commitments",
+    ("vectors/wist3/timestamps.json", "credit_commitment"): "audit:commitments",
+    ("vectors/wist3/timestamps.json", "ref_extract_commitment"): "audit:commitments",
+    ("vectors/wist3/timestamps.json", "evidence_commitment"): "audit:commitments",
     ("vectors/multilog/dedup.json", "commitment"): "payload:commitment",
     ("vectors/wist4/roster.json", "response_commitment"): "audit:commitments",
     ("vectors/wist4/roster.json", "credit_commitment"): "audit:commitments",
@@ -4487,6 +4505,20 @@ NON_CONTENT_VALUES = {
         ("vectors/wist3/block.json", "merkle_root"): "root over Entries, which carry commitments only",
     ("vectors/wist3/block.json", "prev"): "a Delta ID",
     ("vectors/wist3/block.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/block-frames.json", "merkle_root"): "root over Entries carrying commitments",
+    ("vectors/wist3/block-frames.json", "prev"): "a Delta ID",
+    ("vectors/wist3/block-frames.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/timestamps.json", "merkle_root"): "root over Entries carrying commitments",
+    ("vectors/wist3/timestamps.json", "prev"): "a Delta ID",
+    ("vectors/wist3/timestamps.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/timestamps.json", "block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist3/timestamps.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist3/timestamps.json", "audited_delta"): "a Delta ID",
+    ("vectors/wist3/timestamps.json", "reference_delta"): "a Delta ID",
+    ("vectors/wist3/timestamps.json", "activation"): "an Audit Record ID used by a schema fixture",
+    ("vectors/wist3/timestamps.json", "evidence"): "Audit Record IDs used by a schema fixture",
+    ("vectors/wist3/timestamps.json", "entries"): "Snapshot state tuples of Log-derived identifiers",
+    ("vectors/wist3/timestamps.json", "deltas"): "Delta IDs in the Feed schema fixture",
     ("vectors/wist3/empty-block.json", "prev_block_hash"): "SHA-256 of a Block header",
     ("vectors/wist3/empty-block.json", "block_hash"): "SHA-256 of a Block header",
     ("vectors/wist3/empty-block.json", "merkle_root"):
@@ -5694,7 +5726,7 @@ def _dc4_reputation():
     w = r["worked_example"]
     # A and t_i are Block-derived, not asserted: recompute them from sealed_at.
     def secs(ts):
-        return calendar.timegm(time.strptime(ts, "%Y-%m-%dT%H:%M:%SZ"))
+        return log_seconds(ts)
     s = w["sealed_at"]
     assert (secs(s["block_n"]) - secs(s["first_delta_block"])) // 86400 == w["A"], \
         "A is not the whole-day count between the two Block sealed_at values"
@@ -5775,7 +5807,7 @@ def _dc4_sealed_at_precision():
     import re
     schema = json.loads((ROOT / "schemas" / "block.schema.json").read_text())
     pat = schema["properties"]["header"]["properties"]["sealed_at"].get("pattern")
-    assert pat == r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", \
+    assert pat == r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$", \
         "block.schema.json does not constrain sealed_at to whole seconds + Z"
     block = json.loads((ROOT / "examples" / "block.json").read_text())
     assert re.match(pat, block["header"]["sealed_at"]), \
@@ -5809,7 +5841,7 @@ check("schema:wist4-sealed-at-precision", _dc4_sealed_at_precision)
 # does not. Declaring a field unanchored is the deliberate act of asserting
 # that nothing recomputable is decided by comparing it to the Log's own clock.
 ANCHORED = "anchored to a Block `sealed_at`"
-SEALED_AT_PATTERN = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
+SEALED_AT_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"
 
 TIMESTAMP_FIELDS = {
     ("block.schema.json", "properties/header/properties/sealed_at"): ANCHORED,
@@ -6802,5 +6834,68 @@ def _verdict_pair_delete_mirror_twin():
             "still passed as consistent")
 
 check("negative:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror_twin)
+
+def _block_frame_vectors():
+    vector = json.loads((ROOT / "vectors/wist3/block-frames.json").read_text())
+    assert vector["block"] == json.loads((ROOT / "examples/block.json").read_text())
+    canonical = rfc8785.dumps(vector["block"])
+    fragments = {name: bytes.fromhex(value) for name, value in vector["fragments_hex"].items()}
+    for case in vector["cases"]:
+        raw = b"".join(fragments[name] for name in case["parts"])
+        try:
+            decoded = decode_raw_fixture(raw, case["bound"])
+        except ValueError:
+            result = "WIST3-E03"
+        else:
+            assert decoded == canonical, case["label"]
+            result = "valid"
+        assert result == case["expected"], case["label"]
+    for tail in ("empty", "skippable empty", "skippable payload"):
+        assert decode_raw_fixture(fragments["block"], len(canonical)) == canonical
+        assert any(case["parts"] == ["block", tail] and case["expected"] == "WIST3-E03"
+                   for case in vector["cases"]), tail
+
+check("vectors:wist3-block-frames", _block_frame_vectors)
+
+def _log_timestamp_vectors():
+    vector = json.loads((ROOT / "vectors/wist3/timestamps.json").read_text())
+    for case in vector["cases"]:
+        try:
+            result = log_seconds(case["value"])
+        except ValueError:
+            result = None
+        assert result == case["epoch_seconds"], case["value"]
+    for case in vector["distances"]:
+        assert log_seconds(case["to"]) - log_seconds(case["from"]) == case["seconds"]
+    exercised = set()
+    for case in vector["field_cases"]:
+        validator = Draft202012Validator(json.loads((ROOT / "schemas" / case["schema"]).read_text()))
+        assert validator.is_valid(case["document"]), case["path"]
+        for value, expected in ((vector["field_accept"], True), (vector["field_reject"], False),
+                                (vector["field_reject_non_ascii"], False)):
+            document = copy.deepcopy(case["document"])
+            target = document
+            for key in case["path"][:-1]:
+                target = target[key]
+            target[case["path"][-1]] = value
+            assert validator.is_valid(document) == expected, (case["schema"], case["path"], value)
+        identity = case["schema"], tuple(case["path"])
+        if case["schema"] == "snapshot-state.schema.json":
+            identity += (case["document"]["state"]["entries"][0][0],)
+        exercised.add(identity)
+    assert len(exercised) == 12, "all six fields and six Snapshot timestamp positions required"
+    snapshot = json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text())
+    def patterns(node):
+        if isinstance(node, dict):
+            if node.get("pattern") == SEALED_AT_PATTERN:
+                yield node
+            for child in node.values():
+                yield from patterns(child)
+        elif isinstance(node, list):
+            for child in node:
+                yield from patterns(child)
+    assert len(list(patterns(snapshot))) == 6, "Snapshot timestamp inventory changed"
+
+check("vectors:wist3-timestamps", _log_timestamp_vectors)
 
 sys.exit(1 if failures else 0)

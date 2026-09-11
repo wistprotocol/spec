@@ -17,7 +17,7 @@
         "sealed_at": {
           "type": "string",
           "format": "date-time",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$",
           "description": "The `sealed_at` of the Block this Checkpoint names, restated. It carries the same whole-second-plus-literal-Z form the Block header does (WIST-3 §3.1, block.schema.json): a Checkpoint whose copy of the value were free to be written `...:00.000Z` or `...+00:00` would not compare byte-equal to the header it is a statement about, and a Consumer binding the two would have to normalize timestamps to do it."
         }
       }
