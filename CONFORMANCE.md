@@ -90,6 +90,47 @@ in `tools/validate_examples.py` enables the documented format subset. Other Decl
 enable format assertions; their passing results establish neither hostname
 nor date-time format conformance.
 
+### Unresolved field profiles and recovery binding diagnostics
+
+Declaration hostname representation requires clarification before complete
+field and identity validation. WIST-1 §5.1 requires `hostname` format
+assertions, whose [JSON Schema definition](https://json-schema.org/draft/2020-12/json-schema-validation#section-7.3.3)
+uses ASCII RFC 1123 hostnames. WIST-1 §2 and draft ADR-0014 instead define
+Canonical Host identity with `CheckHyphens=false`, deliberately admitting
+some positional hyphens that hostname syntax rejects. The text does not
+explicitly require Declaration `domain` or `subdomain_scope` bytes to equal
+Canonical Host, or settle identity grouping for alternate signed spellings.
+Resolve acceptance and comparison with signed cases covering uppercase,
+trailing dots, positional hyphens, Unicode labels, malformed A-labels and
+same-identity Declaration conflicts. Normalizing signed members is forbidden;
+using canonicalization as a field validator does not establish conformance.
+No additional spelling or grouping rule is selected here.
+
+RFC 3339 field eligibility also needs a deterministic leap-event policy.
+WIST-1 §§3.4 and 5.1 retain RFC 3339; its
+[§5.7](https://www.rfc-editor.org/rfc/rfc3339.html#section-5.7)
+permits second 60 only at actual insertions, adjusted for the numeric offset,
+and excludes second 59 at a negative leap. The suite specifies no event-data
+authority/version or future-announcement treatment for `valid_from`.
+Ordering a represented leap second does not establish its eligibility.
+Resolve that policy with actual and offset-equivalent insertion cases,
+wrong-day and wrong-minute rejections, future-date handling and applicable
+negative-leap boundaries. No event table or narrower timestamp profile is
+selected here.
+
+WIST-1 §5.2 recovery admission requires verification under either the
+pre-recovery or window-owner signing Key Set. Complete bindings must remain
+available when the sets reuse an identifier; selecting only the first
+identifier match or replacing the owner with an in-window descendant does
+not satisfy that acceptance rule. The rejection diagnostic remains unspecified
+when usable named bindings fail different `valid_from` and signature checks.
+Resolve the mixed-failure WIST1-E01/WIST1-E02 result with signed union probes
+before selecting a diagnostic. Separately, WIST-2 §3.2 sealed-Page verification
+must retain the selected Declaration's key provenance: gathering every
+historical binding with its identifiers can authenticate against the wrong
+Declaration. Validation must distinguish reused identifiers and excluded
+bindings without broadening the permitted source Key Set.
+
 ### Authenticated recovery state
 
 WIST-1 §5.2 and WIST-4 §9 freeze each recovery window’s length at its
