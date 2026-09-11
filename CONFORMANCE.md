@@ -205,6 +205,24 @@ must retain the selected Declaration's key provenance: gathering every
 historical binding with its identifiers can authenticate against the wrong
 Declaration. Validation must distinguish reused identifiers and excluded
 bindings without broadening the permitted source Key Set.
+Full validation also requires authenticated applicable Declaration history,
+including recovery supersession. Both timestamp lookups read sealed Entries;
+an accepted but unsealed Declaration does not establish the first following
+Block's Key Set. Verification over supplied key sets alone does not establish
+these source-selection obligations or Page publication and immutability.
+
+**Unresolved Page alias fallback — WIST-2 §3.2.** The first-next resolution
+applies where current does not hold "the key that signed it". WIST-1 §2
+defines a Key Set in terms of public keys, while §4 requires verification
+under the entry named by `sig.key_id`. If current contains public bytes A
+under identifier `old` and first-next contains A under `new`, a Page naming
+`new` distinguishes public-byte membership from named-binding membership.
+An implementation using named-binding fallback accepts this case; the
+wording does not explicitly select that predicate. Resolve it with signed
+alias-renaming vectors and independent verification before claiming full
+Page key-history conformance. This does not authorize looking beyond the
+current and first-next Declarations or pooling their identifiers with
+unrelated historical bindings.
 
 ### Authenticated recovery state
 
