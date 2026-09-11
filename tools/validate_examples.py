@@ -4599,6 +4599,12 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/recovery-appeals.json", "declaration"): "SHA-256 of the selected publisher object",
     ("vectors/wist4/recovery-appeals.json", "notice"): "a signed appeal's notice identifier",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/declaration-key-eligibility.json", "accepted_notice"): "a conditionally supplied eligible sanction notice identifier",
+    ("vectors/wist1/declaration-key-eligibility.json", "notice"): "a conditionally supplied eligible sanction notice identifier",
+    ("vectors/wist1/declaration-key-eligibility.json", "public_key"): "an Ed25519 public key or excluded public point encoding",
+    ("vectors/wist1/declaration-key-eligibility.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
+    ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
     ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
     ("vectors/wist1/declaration-fields.json", "author_key"): "the fixture author public key",
@@ -5312,7 +5318,7 @@ def _dc1_declaration_sequence_vector():
             "the idempotent case's publisher objects are not byte-identical"
 check("vectors:wist1-declaration-sequence", _dc1_declaration_sequence_vector)
 
-def _declaration_binding_result(stored, incoming):
+def _declaration_binding_result(stored, incoming, usable_key=None, signature_check=None):
     current = incoming["publisher"]
     keys = current["keys"] + current.get("recovery_keys", [])
     ids = [key["key_id"] for key in keys]
@@ -5332,10 +5338,14 @@ def _declaration_binding_result(stored, incoming):
     if previous:
         candidates += previous["keys"] + previous.get("recovery_keys", [])
     candidates = [key for key in candidates if key["key_id"] == incoming["sig"]["key_id"]]
+    if usable_key:
+        candidates = [key for key in candidates if usable_key(key)]
     if not candidates:
         return "WIST1-E02"
     verified = set()
     for key in candidates:
+        if signature_check and not signature_check(key, incoming):
+            continue
         try:
             Ed25519PublicKey.from_public_bytes(b64u_decode(key["public_key"])).verify(
                 b64u_decode(incoming["sig"]["value"]), rfc8785.dumps(current))
@@ -5348,9 +5358,11 @@ def _declaration_binding_result(stored, incoming):
     if not previous:
         return "initial"
     public_key = verified.pop()
-    if public_key in {key["public_key"] for key in previous["keys"]}:
+    if public_key in {key["public_key"] for key in previous["keys"]
+                      if usable_key is None or usable_key(key)}:
         result = "ordinary_rotation"
-    elif public_key in {key["public_key"] for key in previous.get("recovery_keys", [])}:
+    elif public_key in {key["public_key"] for key in previous.get("recovery_keys", [])
+                        if usable_key is None or usable_key(key)}:
         result = "recovery_rotation"
     else:
         result = "fresh_identity"
@@ -5373,6 +5385,100 @@ def _declaration_binding_vectors():
 
 
 check("vectors:wist1-declaration-binding", _declaration_binding_vectors)
+
+
+def _declaration_key_eligibility_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/declaration-key-eligibility.json").read_text())
+    validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/publisher.schema.json").read_text()))
+
+    def canonical_bytes(value):
+        raw = b64u_decode(value)
+        if base64.urlsafe_b64encode(raw).rstrip(b"=").decode() != value:
+            raise NotImplementedError("key eligibility fixtures do not establish base64 decoder policy")
+        return raw
+
+    def usable(key):
+        raw = canonical_bytes(key["public_key"])
+        try:
+            point = ecvrf.string_to_point(raw)
+        except ecvrf.InvalidProof:
+            return False
+        return not ecvrf._is_identity(ecvrf._mul(8, point))
+
+    def signature(key, envelope):
+        return _ed25519_profile_verdict(canonical_bytes(key["public_key"]),
+            canonical_bytes(envelope["sig"]["value"]), rfc8785.dumps(envelope["publisher"]))[0]
+
+    def result(stored, fetched):
+        return _declaration_binding_result(stored, fetched, usable, signature)
+
+    outcomes, excluded_public = set(), set()
+    retained, immutable_hash = 0, 0
+    for case in vector["cases"]:
+        old, env = case["stored"], case["fetched"]
+        original = copy.deepcopy(case)
+        validator.validate(env)
+        Ed25519PublicKey.from_public_bytes(canonical_bytes(case["author_key"])).verify(
+            canonical_bytes(env["sig"]["value"]), rfc8785.dumps(env["publisher"]))
+        if old:
+            validator.validate(old)
+            assert result(None, old) == "initial", case["name"]
+        derived = {field: [key for key in env["publisher"].get(field, []) if usable(key)]
+                   for field in ("keys", "recovery_keys")}
+        assert derived == case["expected_usable"], case["name"]
+        actual = result(old, env)
+        assert actual == case["expected"], case["name"]
+        assert case == original, "key derivation changed signed entries"
+        outcomes.add(actual)
+        for field in ("keys", "recovery_keys"):
+            excluded_public.update(key["public_key"] for key in env["publisher"].get(field, []) if not usable(key))
+        if actual in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}:
+            stripped = copy.deepcopy(env)
+            for field in ("keys", "recovery_keys"):
+                if field in stripped["publisher"]:
+                    stripped["publisher"][field] = derived[field]
+            if stripped != env:
+                assert rfc8785.dumps(stripped["publisher"]) != rfc8785.dumps(env["publisher"])
+                assert not _ed25519_profile_verdict(canonical_bytes(case["author_key"]),
+                    canonical_bytes(env["sig"]["value"]), rfc8785.dumps(stripped["publisher"]))[0]
+                retained += 1
+            if old:
+                filtered_old = copy.deepcopy(old)
+                for field in ("keys", "recovery_keys"):
+                    if field in filtered_old["publisher"]:
+                        filtered_old["publisher"][field] = [key for key in old["publisher"][field] if usable(key)]
+                if filtered_old != old:
+                    assert result(filtered_old, env) == "WIST1-E08", case["name"]
+                    immutable_hash += 1
+            signature_invalid = copy.deepcopy(env)
+            signature_invalid["sig"]["value"] = base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode()
+            assert result(old, signature_invalid) == "WIST1-E01", case["name"]
+    declarations = {case["name"]: case for case in vector["cases"]}
+    appeal_validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/registry-update.schema.json").read_text()))
+    appeal_outcomes = set()
+    for probe in vector["appeal_cases"]:
+        case = declarations[probe["declaration_case"]]
+        assert result(case["stored"], case["fetched"]) in {"initial", "ordinary_rotation"}
+        env = probe["appeal"]
+        appeal_validator.validate(env)
+        assert env["update"]["details"]["notice"] == probe["accepted_notice"]
+        assert env["update"]["subject"] == case["fetched"]["publisher"]["domain"]
+        frozen = [key for key in case["fetched"]["publisher"]["keys"] if usable(key)]
+        key = next((key for key in frozen if key["key_id"] == env["sig"]["key_id"]), None)
+        actual = "WIST4-E05" if key is None else "signature_valid" if _ed25519_profile_verdict(
+            canonical_bytes(key["public_key"]), canonical_bytes(env["sig"]["value"]),
+            rfc8785.dumps(env["update"]))[0] else "WIST1-E01"
+        assert actual == probe["expected"], probe["declaration_case"]
+        appeal_outcomes.add(actual)
+    assert appeal_outcomes == {"WIST4-E05", "WIST1-E01", "signature_valid"}
+    assert len(excluded_public) == 5 and retained > 0 and immutable_hash > 0
+    assert outcomes == {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity",
+                        "WIST1-E01", "WIST1-E02", "WIST1-E08"}
+
+
+check("vectors:wist1-declaration-key-eligibility", _declaration_key_eligibility_vectors)
 
 def _recovery_order_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-order.json").read_text())

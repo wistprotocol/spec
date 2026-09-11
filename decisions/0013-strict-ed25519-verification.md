@@ -51,7 +51,13 @@ A signature failing any of these is `WIST1-E01`. A key in `keys` or
 `recovery_keys` that is non-canonically encoded or of small order is not
 admitted to the Key Set, and a Delta naming it is `WIST1-E02`: the check
 belongs where the key enters, so the Key Set a Consumer replays is the set
-the Aggregator ingested against.
+the Aggregator ingested against. WIST-1 §4 and ADR-0023 derive usable signing
+and recovery sets while preserving the original signed entries. An unused
+excluded key does not by itself reject an otherwise admissible Declaration;
+exclusion precedes signer resolution, and an identifier with no usable
+binding has no candidate (E02). Uniqueness and disjointness apply to all signed
+entries before exclusion; recovery-set protection compares the original signed
+array after the signer's authority has been classified.
 
 `vectors/wist1/ed25519-strictness.json` carries the seven cases that
 separate this profile from the permissive readings, the torsion-key case
@@ -84,9 +90,9 @@ names no single behavior.
 - Existing valid signatures are unaffected: an honest signer produces a
   canonical `R`, a reduced `s`, and a prime-order `A`, so nothing an honest
   Publisher has ever emitted stops verifying.
-- A key that no verifier will accept can no longer be published and then
-  discovered one rejected Delta at a time, because the Key Set rejects it
-  at discovery.
+- A published key that fails the profile never enters the usable Key Set.
+  Its signed entry remains part of the Declaration; subsequent objects
+  cannot authenticate through it, and it cannot authorize recovery.
 - The suite gains a property it claimed but did not have: two conforming
   verifiers reach the same verdict on every signature, including
   adversarially constructed ones.

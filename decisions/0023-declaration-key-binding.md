@@ -25,6 +25,24 @@ signing preserves ordinary continuity, recovery preserves recovery authority,
 and neither establishes fresh identity. An incoming recovery key cannot
 self-authorize. Apply recovery-set protection after classification.
 
+Derive usable signing and recovery sets by excluding public bytes that do
+not decode to a canonical Ed25519 point or are small-order. An unused
+excluded entry does not invalidate an otherwise admissible Declaration.
+Keep all original signed entries for signatures, hashes, idempotence,
+identifier uniqueness, cross-set disjointness and recovery-set protection.
+Filter before resolving signer candidates: an identifier with only excluded
+bindings is E02; usable candidates with no verifying signature are E01.
+An excluded predecessor binding does not suppress a usable incoming binding
+of the same identifier, or conversely. Classification uses usable previous
+sets. This derivation also governs Delta and frozen appeal Key Sets.
+
+A nonempty signing array can yield no usable key. A replacement can still
+be authorized by its predecessor, while an initial Declaration with no
+usable signing key fails E02. A nonempty recovery array remains protected
+even if all its keys are excluded; without a usable recovery key, no signer
+can authorize a change to that array. Declaration authentication applies no
+Delta `valid_from` bound.
+
 Assume the strictly verified Ed25519 signature identifies its signing public
 key; repeated references to identical public bytes do not create distinct
 signers. Object fields and versions are unchanged. The undeployed draft is
@@ -44,3 +62,18 @@ constraints. Signed cases in `vectors/wist1/declaration-binding.json` distinguis
 duplicate identifiers, reused identifiers, renamed keys, recovery protection,
 and invalid signatures. The independent reference derives their outcomes;
 these cases do not resolve recovery-window ordering or supersession.
+
+Rejecting the entire Declaration for an unused excluded key would give §4's
+key exclusion a separate object-rejection effect. Removing the signed entry
+would change the object hash, destroy its signature and potentially bypass
+recovery protection. Deriving usable sets while preserving the Envelope
+keeps these concerns distinct. The resulting unusable-key failure is visible
+at the object that needs the key; no unusable key acquires authority.
+`vectors/wist1/declaration-key-eligibility.json` exercises initial, ordinary,
+recovery and fresh authentication; invalid named and unused bindings; mixed
+order keys that are not small-order; and protection of excluded entries.
+Conditional appeal probes distinguish excluded identifiers from invalid
+signatures under usable notice-era bindings, taking accepted notices and
+selected Declaration sources as inputs. They establish no notice evidence
+or appeal-process result. Its canonical base64url fixtures do not establish a decoder policy for
+nonzero unused base64 bits or a complete Declaration field profile.

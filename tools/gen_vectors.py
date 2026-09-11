@@ -1006,6 +1006,110 @@ def declaration_field_vectors():
 
 declaration_field_vectors()
 
+def declaration_key_eligibility_vectors():
+    excluded = {
+        "noncanonical point": bytes.fromhex("ee" + "ff" * 30 + "7f"),
+        "small order point": bytes.fromhex("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a"),
+        "identity point": (1).to_bytes(32, "little"),
+        "negative zero point": (1 + 2**255).to_bytes(32, "little"),
+        "not a curve point": (2).to_bytes(32, "little"),
+    }
+    excluded_values = {b64u(value) for value in excluded.values()}
+    cases = []
+
+    def add(name, previous, incoming, signer, key_id, expected):
+        old = sign_envelope("publisher", previous, "test-k1") if previous else None
+        env = sign_envelope_with(signer, "publisher", incoming, key_id)
+        cases.append({"name": name, "stored": old, "fetched": env, "expected": expected,
+                      "author_key": b64u(raw_public(signer)),
+                      "expected_usable": {field: [key for key in incoming.get(field, [])
+                                                   if key["public_key"] not in excluded_values]
+                                          for field in ("keys", "recovery_keys")}})
+
+    for label, raw in excluded.items():
+        bad = dict(K2, key_id="excluded", public_key=b64u(raw))
+        for field in ("keys", "recovery_keys"):
+            initial = variant(**{field: stored_decl[field] + [bad]})
+            add("initial unused " + field + " " + label, None, initial, priv, "test-k1", "initial")
+            ordinary = dict(initial, seq=1, prev_declaration=decl_hash(initial),
+                            keys=[K2, bad] if field == "keys" else [K2])
+            add("ordinary unused " + field + " " + label, initial, ordinary,
+                priv, "test-k1", "ordinary_rotation")
+        incoming = variant(seq=1, prev_declaration=stored_hash, keys=[K2, bad])
+        add("recovery unused " + label, stored_decl, incoming, priv2, "test-r1", "recovery_rotation")
+        add("excluded incoming named signer " + label, stored_decl, incoming, priv3, "excluded", "WIST1-E02")
+        previous = variant(recovery_keys=[stored_decl["recovery_keys"][0], bad])
+        incoming = dict(previous, seq=1, prev_declaration=decl_hash(previous), keys=[K2])
+        add("excluded previous recovery named signer " + label, previous, incoming,
+            priv3, "excluded", "WIST1-E02")
+        add("valid recovery carries excluded entry " + label, previous, incoming,
+            priv2, "test-r1", "recovery_rotation")
+        changed = dict(incoming, recovery_keys=stored_decl["recovery_keys"])
+        add("excluded recovery entry still protected " + label, previous, changed,
+            priv, "test-k1", "WIST1-E08")
+        add("valid recovery removes excluded entry " + label, previous, changed,
+            priv2, "test-r1", "recovery_rotation")
+        add("initial no usable signing keys " + label, None, variant(keys=[bad]),
+            priv3, "excluded", "WIST1-E02")
+        add("replacement no usable signing keys " + label, stored_decl,
+            variant(seq=1, prev_declaration=stored_hash, keys=[bad]), priv, "test-k1", "ordinary_rotation")
+        previous = variant(keys=stored_decl["keys"] + [dict(bad, key_id="test-k2")])
+        incoming = variant(seq=1, prev_declaration=decl_hash(previous), keys=[K2])
+        add("excluded old binding permits incoming signer " + label, previous, incoming,
+            priv3, "test-k2", "fresh_identity")
+        incoming = variant(seq=1, prev_declaration=stored_hash, keys=[dict(bad, key_id="test-k1"), K2])
+        add("excluded incoming binding permits old signer " + label, stored_decl, incoming,
+            priv, "test-k1", "ordinary_rotation")
+        duplicate = variant(keys=stored_decl["keys"] + [dict(bad, key_id="test-k1")])
+        add("excluded duplicate identifier " + label, None, duplicate, priv, "test-k1", "WIST1-E08")
+        overlap = variant(keys=stored_decl["keys"] + [bad], recovery_keys=[dict(bad, key_id="other")])
+        add("excluded cross set overlap " + label, None, overlap, priv, "test-k1", "WIST1-E08")
+        previous = variant(recovery_keys=[bad])
+        incoming = dict(previous, seq=1, prev_declaration=decl_hash(previous), recovery_keys=[])
+        add("no usable recovery key does not unprotect entries " + label, previous, incoming,
+            priv, "test-k1", "WIST1-E08")
+    mixed = dict(K2, key_id="mixed", public_key=b64u(bytes.fromhex(
+        "b502ff3d92e31d8190b4aa4ea0414005167fad089c4de9dac8a2fc850fed4f58")))
+    add("non small mixed order key remains usable", None,
+        variant(keys=stored_decl["keys"] + [mixed]), priv, "test-k1", "initial")
+    add("usable named binding invalid signature", stored_decl,
+        variant(seq=1, prev_declaration=stored_hash, keys=[K2]), priv4, "test-k2", "WIST1-E01")
+    add("future valid from does not exclude Declaration signer", None,
+        variant(keys=[dict(stored_decl["keys"][0], valid_from="9999-12-31T23:59:59Z")]),
+        priv, "test-k1", "initial")
+    appeal_cases = []
+    for case in cases:
+        if not (case["name"].startswith("initial unused keys")
+                or case["name"] in {"replacement no usable signing keys noncanonical point",
+                                    "non small mixed order key remains usable",
+                                    "future valid from does not exclude Declaration signer"}):
+            continue
+        notice = decl_hash({"conditional_notice": case["name"]})
+        for key in case["fetched"]["publisher"]["keys"]:
+            signer = next((private for private in (priv, priv2, priv3, priv4)
+                           if b64u(raw_public(private)) == key["public_key"]), priv)
+            update = {"wist_version": "1.0.0", "action": "appeal", "subject": "example.com",
+                      "effective_at": "2026-08-04T00:00:00Z", "details": {"notice": notice}}
+            expected = ("WIST4-E05" if key["public_key"] in excluded_values else
+                        "signature_valid" if b64u(raw_public(signer)) == key["public_key"] else "WIST1-E01")
+            appeal_cases.append({"declaration_case": case["name"], "accepted_notice": notice,
+                                 "appeal": sign_envelope_with(signer, "update", update, key["key_id"]),
+                                 "expected": expected})
+    write_json(WIST1 / "declaration-key-eligibility.json", {
+        "note": "WIST-1 sections 4 and 5.2 derive usable keys while retaining every signed entry. "
+                "stored is null for initial admission; otherwise it is an authenticated initial Declaration. "
+                "Each fetched signature is independently verifiable under author_key, even when that key has "
+                "no eligible named binding. expected_usable describes cryptographic key exclusion only, "
+                "even for rejected Envelopes, and is not installed state. Fixtures use canonical base64url "
+                "and ordinary valid fields. Each appeal_case supplies an already-eligible notice and selects "
+                "the named case's accepted fetched Declaration as its authority source; only key exclusion and "
+                "signature verification are asserted. No notice evidence, temporal authority selection, appeal "
+                "process, full field/encoding profile, live admission, Delta replay or Snapshot result is asserted.",
+        "cases": cases, "appeal_cases": appeal_cases})
+
+
+declaration_key_eligibility_vectors()
+
 def recovery_identity_vectors():
     def signed(previous, seq, signer, key_id, **changes):
         inner = dict(previous["publisher"], seq=seq,

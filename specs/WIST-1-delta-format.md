@@ -437,6 +437,33 @@ Publisher cannot publish a key every verifier would otherwise reject one
 Delta at a time, and so that the Key Set a Consumer replays is the same set
 the Aggregator ingested against.
 
+**Excluded Declaration keys.** Exclusion derives a usable Key Set; it does
+not remove or rewrite entries in the signed Declaration, and an unused
+excluded key alone MUST NOT cause the Declaration to be rejected. After
+§5.1's field checks, exclude any entry whose decoded public bytes do not
+decode to a canonical Ed25519 point or represent a small-order point. Apply
+this to both `keys` and `recovery_keys`, before collecting §5.2's signer
+candidates or classifying the verified public key. A named identifier with
+only excluded bindings has no candidate (`WIST1-E02`); at least one usable
+named binding but no verifying signature is `WIST1-E01`. Check every usable
+named binding from the eligible predecessor and incoming signing array,
+even if another binding of that identifier was excluded. The same exclusion
+applies when deriving keys for Deltas and notice-era appeals.
+
+Retain the original Envelope for signatures, hashes, predecessor links,
+idempotence and recovery-set byte protection. Identifier uniqueness and
+cross-set disjointness in §5.2 apply to all signed entries before exclusion;
+excluded entries cannot hide a duplicate or permit an otherwise forbidden
+recovery-set change. A structurally nonempty `keys` array MAY yield an empty
+usable signing set: a replacement authenticated by a usable predecessor key
+is still accepted, but no Delta can authenticate under that empty set.
+An initial Declaration with no usable signing key cannot self-authenticate
+and is `WIST1-E02`. Likewise, a nonempty signed `recovery_keys` array with no
+usable recovery key remains protected; exclusion gives no signing key the
+authority to change it. A Publisher must keep a usable recovery key to retain
+that recovery path. These rules do not filter keys by `valid_from` during
+Declaration authentication; §5.1 applies that bound when checking a Delta.
+
 The profile chosen is the one libsodium applies by default and the one
 `ed25519-dalek`'s strict verification implements, so an implementation
 inherits it from its library rather than hand-rolling a WIST-specific mode
@@ -635,7 +662,8 @@ the entries named by its `sig.key_id` from the eligible predecessor named
 by `prev_declaration` (as defined below), using that
 Declaration's `keys` and `recovery_keys` and from the incoming Declaration's
 `keys`. Verify the Envelope against those candidate public keys using §4's
-signature profile. No named candidate is `WIST1-E02`; named candidates but
+signature profile, excluding unusable bindings under §4 first. No usable
+named candidate is `WIST1-E02`; usable named candidates but
 no verifying signature is `WIST1-E01`. A failed verification against an old
 binding MUST NOT prevent checking the incoming binding of the same identifier.
 The first Declaration instead resolves its signer only from its own `keys`.

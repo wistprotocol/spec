@@ -2699,8 +2699,9 @@ Process requirements:
   its Block and apply all that Block's Declarations in WIST-1 §5.2's order,
   independent of the notice's canonical Entry position. If a recovery
   window remains open, select the current recovery-chain head's `keys`;
-  otherwise select the current Declaration's `keys`. Freeze that complete
-  Key Set for this notice. An off-chain competitor's accepted head, the
+  otherwise select the current Declaration's `keys`. Derive the usable signing
+  Key Set from that array under WIST-1 §4, excluding unusable public keys, and
+  freeze that complete usable Key Set for this notice. An off-chain competitor's accepted head, the
   pre-recovery Delta-admission union and `recovery_keys` supply no additional
   appeal authority. Recovery keys sign only Declarations (WIST-1 §5.2).
 

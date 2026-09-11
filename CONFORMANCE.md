@@ -42,13 +42,35 @@ hostname or timestamp profile, leap-second eligibility, Delta chain/clock
 checks, or full key eligibility. Unsupported leap-second inputs fail this
 field-vector checker explicitly rather than silently selecting a policy.
 
-WIST-1 §4 excludes noncanonically encoded and small-order public keys from
-the Key Set. It does not explicitly determine the disposition of an otherwise
-authenticated Declaration containing an unused excluded key, or where exclusion
-occurs relative to §5.2's signer-candidate E01/E02 distinction. Specify whether
-the Declaration rejects as a whole or retains its signed entries while deriving
-usable bindings. Exercise initial, ordinary and recovery authentication,
-unused excluded keys and excluded named signers with signed vectors.
+WIST-1 §4 and draft ADR-0023 derive usable signing and recovery sets while
+preserving every signed entry. Exclusion precedes signer-candidate resolution;
+no usable candidate is E02, and usable candidates without a valid signature
+are E01. An unused excluded key alone does not reject the Declaration.
+Identifier uniqueness, cross-set disjointness, predecessor hashes and
+recovery-set byte protection still use the original signed entries.
+`vectors/wist1/declaration-key-eligibility.json` exercises signed initial,
+ordinary, recovery and fresh authentication; unusable named bindings, unused
+excluded entries, empty usable sets, identifier reuse, and protected recovery
+entries. The reference verifies signatures under the §4 profile and derives
+key eligibility with the curve arithmetic anchored by the strictness corpus.
+Conditional signed appeal probes use supplied eligible notices and selected
+Declaration sources to distinguish an excluded identifier (WIST4-E05) from
+a usable key with an invalid signature (WIST1-E01), including a future
+`valid_from` signing entry. They do not establish notice evidence, temporal
+authority selection or accepted appeal processes.
+Adoption in services, authenticated Delta history, frozen appeal authority
+and durable restoration remains required. These fixtures assume ordinary
+valid fields and canonical base64url; they do not establish full field or
+encoding eligibility.
+
+WIST-1 §2's unpadded base64url reference does not select the decoder behavior
+RFC 4648 §3.5 leaves optional for nonzero unused bits. The public-key and
+signature schemas constrain alphabet and length without fixing those bits.
+Define acceptance and diagnostics for alternate encodings, including how
+public-key membership and disjointness treat textual aliases, with signed
+mutation vectors before claiming complete signed-field validation. No decoder
+policy is selected here. The key-eligibility fixture checker explicitly
+refuses noncanonical base64url round trips without assigning a protocol code.
 
 The `publisher.schema.json` `hostname` and `date-time` formats require checks
 beyond typed JSON deserialization. Optional fields present as `null`, empty

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wistprotocol.org/schemas/publisher.schema.json",
   "title": "WIST Publisher Declaration (WIST-1)",
-  "$comment": "WIST-1 section 5.2 additionally requires key_id uniqueness across keys and recovery_keys, disjoint public_key values across those sets, and authenticated signer resolution. Section 5.1 requires format assertions and classifies field failures as WIST1-E14; cryptographic key eligibility is checked separately.",
+  "$comment": "WIST-1 section 5.2 additionally requires key_id uniqueness across keys and recovery_keys, disjoint public_key values across those sets, and authenticated signer resolution. Section 5.1 requires format assertions and classifies field failures as WIST1-E14; section 4 derives usable cryptographic keys without deleting signed entries or relaxing identifier uniqueness, disjointness or recovery protection.",
   "type": "object",
   "required": ["publisher", "sig"],
   "additionalProperties": false,
