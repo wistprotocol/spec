@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-    "salt": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22,}$"},
+    "salt": {"type": "string", "minLength": 22, "pattern": "^[A-Za-z0-9_-]{20}(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-][AQgw]|[A-Za-z0-9_-]{2}[AEIMQUYcgkosw048])?$(?![\\s\\S])"},
     "content": {
       "type": "object",
       "required": ["extract", "links", "summary"],

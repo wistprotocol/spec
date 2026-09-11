@@ -34,6 +34,19 @@ def check(label, fn):
 def b64u_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
+def canonical_b64u_decode(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]*", value) or len(value) % 4 == 1:
+        raise ValueError("invalid base64url alphabet or length")
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    number = 0
+    for char in value:
+        number = (number << 6) | alphabet.index(char)
+    unused = len(value) * 6 % 8
+    if number & ((1 << unused) - 1):
+        raise ValueError("nonzero unused base64url bits")
+    return (number >> unused).to_bytes(len(value) * 6 // 8, "big")
+
+
 def log_seconds(value):
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:[0-5][0-9]Z", value, re.ASCII):
         raise ValueError("invalid Log timestamp")
@@ -4598,6 +4611,14 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/recovery-appeals.json", "assumed_eligible_notices"): "Registry Update IDs supplied as eligible notice inputs",
     ("vectors/wist4/recovery-appeals.json", "declaration"): "SHA-256 of the selected publisher object",
     ("vectors/wist4/recovery-appeals.json", "notice"): "a signed appeal's notice identifier",
+    ("vectors/wist1/base64url.json", "author_key"): "the fixture author public key",
+    ("vectors/wist1/base64url.json", "encoded"): "an encoding or malformed field probe",
+    ("vectors/wist1/base64url.json", "public_key"): "a public key or malformed public-key encoding",
+    ("vectors/wist1/base64url.json", "value"): "a signature or rejected signature alias",
+    ("vectors/wist1/base64url.json", "prev_declaration"): "SHA-256 of the original predecessor publisher object",
+    ("vectors/wist1/base64url.json", "pinned_head"): "the authenticated candidate Block header hash",
+    ("vectors/wist1/base64url.json", "prev_block_hash"): "the previous Block header hash",
+    ("vectors/wist1/base64url.json", "merkle_root"): "the Merkle root of original Declaration Entries",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-key-eligibility.json", "accepted_notice"): "a conditionally supplied eligible sanction notice identifier",
     ("vectors/wist1/declaration-key-eligibility.json", "notice"): "a conditionally supplied eligible sanction notice identifier",
@@ -5393,10 +5414,7 @@ def _declaration_key_eligibility_vectors():
         (ROOT / "schemas/publisher.schema.json").read_text()))
 
     def canonical_bytes(value):
-        raw = b64u_decode(value)
-        if base64.urlsafe_b64encode(raw).rstrip(b"=").decode() != value:
-            raise NotImplementedError("key eligibility fixtures do not establish base64 decoder policy")
-        return raw
+        return canonical_b64u_decode(value)
 
     def usable(key):
         raw = canonical_bytes(key["public_key"])
@@ -5848,6 +5866,126 @@ def _declaration_field_vectors():
 
 
 check("vectors:wist1-declaration-fields", _declaration_field_vectors)
+
+def _base64url_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/base64url.json").read_text())
+    for encoded, expected in (("", b""), ("Zg", b"f"), ("Zm8", b"fo"), ("Zm9v", b"foo"),
+                              ("Zm9vYg", b"foob"), ("Zm9vYmE", b"fooba"), ("Zm9vYmFy", b"foobar"),
+                              ("-_8", bytes((251, 255)))):
+        assert canonical_b64u_decode(encoded) == expected
+    nodes = collections.defaultdict(list)
+
+    def visit(node, filename):
+        if isinstance(node, dict):
+            pattern = node.get("pattern", "")
+            if "A-Za-z0-9_-" in pattern:
+                kind = "public_key" if "{42}" in pattern else "signature" if "{85}" in pattern else "salt"
+                nodes[kind].append((filename, Draft202012Validator(node)))
+            for child in node.values():
+                visit(child, filename)
+        elif isinstance(node, list):
+            for child in node:
+                visit(child, filename)
+
+    for path in (ROOT / "schemas").glob("*.json"):
+        visit(json.loads(path.read_text()), path.name)
+    assert {kind: len(items) for kind, items in nodes.items()} == {"public_key": 8, "signature": 12, "salt": 1}
+
+    def encoding_result(value, kind):
+        try:
+            size = len(canonical_b64u_decode(value))
+        except (ValueError, TypeError):
+            return "WIST1-E14"
+        good = size >= 16 if kind == "salt" else size == (32 if kind == "public_key" else 64)
+        return "well_formed" if good else "WIST1-E14"
+
+    for case in vector["fields"]:
+        actual = encoding_result(case["encoded"], case["kind"])
+        assert actual == case["expected"], case["name"]
+        for filename, validator in nodes[case["kind"]]:
+            assert validator.is_valid(case["encoded"]) == (actual == "well_formed"), (filename, case["name"])
+    for size in range(0, 193):
+        value = base64.urlsafe_b64encode(bytes(size)).rstrip(b"=").decode()
+        assert canonical_b64u_decode(value) == bytes(size)
+        for kind, validators in nodes.items():
+            good = encoding_result(value, kind) == "well_formed"
+            for filename, validator in validators:
+                assert validator.is_valid(value) == good, (filename, size)
+                assert not validator.is_valid(value + "\n"), (filename, size)
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/publisher.schema.json").read_text()))
+    author = Ed25519PublicKey.from_public_bytes(canonical_b64u_decode(vector["author_key"]))
+
+    def field_error(envelope):
+        values = [(key["public_key"], "public_key") for field in ("keys", "recovery_keys")
+                  for key in envelope["publisher"].get(field, [])]
+        values.append((envelope["sig"]["value"], "signature"))
+        failed = any(encoding_result(value, kind) == "WIST1-E14" for value, kind in values)
+        assert validator.is_valid(envelope) != failed
+        return "WIST1-E14" if failed else None
+
+    for case in vector["cases"]:
+        env = case["envelope"]
+        author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["publisher"]))
+        before = copy.deepcopy(case)
+        outcome = field_error(env) or _declaration_binding_result(case["stored"], env)
+        assert outcome == case["expected"], case["name"]
+        assert case == before
+        if "cross set byte alias" in case["name"]:
+            signing = env["publisher"]["keys"][0]["public_key"]
+            recovery = env["publisher"]["recovery_keys"][0]["public_key"]
+            assert signing != recovery and b64u_decode(signing) == b64u_decode(recovery)
+        if "signature unused bits" in case["name"]:
+            fixed = copy.deepcopy(env)
+            fixed["sig"]["value"] = base64.urlsafe_b64encode(b64u_decode(env["sig"]["value"])).rstrip(b"=").decode()
+            assert field_error(fixed) is None
+            assert leaf_hash(rfc8785.dumps(fixed)) != leaf_hash(rfc8785.dumps(env))
+        elif outcome == "WIST1-E14":
+            fixed = copy.deepcopy(env)
+            for field in ("keys", "recovery_keys"):
+                for key in fixed["publisher"].get(field, []):
+                    key["public_key"] = base64.urlsafe_b64encode(b64u_decode(key["public_key"])).rstrip(b"=").decode()
+            assert rfc8785.dumps(fixed["publisher"]) != rfc8785.dumps(env["publisher"])
+            try:
+                author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(fixed["publisher"]))
+            except InvalidSignature:
+                pass
+            else:
+                raise AssertionError("normalizing signed public keys preserved the signature")
+    _, _, _, apply_block = _recovery_history_reference(vector, field_error)
+    for case in vector["block_cases"]:
+        history = vector["prefixes"][case["prefix"]]
+        blocks = _declaration_history_blocks(vector, history + [case["block"]], case["pinned_head"])
+        states, accepted_head = {}, "sha256:genesis"
+        for header, entries in blocks[:-1]:
+            result, states = apply_block(states, header, entries)
+            assert result == "accepted", case["name"]
+            accepted_head = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
+        before = copy.deepcopy(states)
+        header, entries = blocks[-1]
+        result, updated = apply_block(states, header, entries)
+        assert result == case["expected"], case["name"]
+        assert states == before
+        assert apply_block(states, header, list(reversed(entries)), True) == (result, updated)
+        if result == "WIST1-E14":
+            assert updated == before and accepted_head == header["prev_block_hash"]
+        else:
+            assert "other.example" in updated
+            if case["prefix"] == "deadline":
+                assert before["example.com"]["chain"] is not None
+                assert updated["example.com"]["chain"] is None
+                assert updated["example.com"]["floor"] == before["example.com"]["floor"]
+                assert updated["example.com"]["current"] == before["example.com"]["chain"]
+        damaged = copy.deepcopy(case["block"])
+        damaged["entries"][0]["body"]["publisher"]["domain"] = "tampered.example"
+        try:
+            _declaration_history_blocks(vector, history + [damaged], case["pinned_head"])
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("unauthenticated Block accepted")
+
+
+check("vectors:wist1-base64url", _base64url_vectors)
 
 def _wist1_recovery_settlement():
     vector = json.loads((ROOT / "vectors/wist1/recovery-settlement.json").read_text())

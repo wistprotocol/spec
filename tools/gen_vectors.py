@@ -1110,6 +1110,97 @@ def declaration_key_eligibility_vectors():
 
 declaration_key_eligibility_vectors()
 
+def base64url_vectors():
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    fields = []
+    for kind, size in (("public_key", 32), ("signature", 64), ("salt", 16), ("salt", 17), ("salt", 18)):
+        encoded = b64u(bytes(range(size)))
+        unused = (6 - (size * 8) % 6) % 6
+        for index, character in enumerate(alphabet):
+            fields.append({"name": f"{kind} {size} octets final sextet {index}", "kind": kind,
+                           "encoded": encoded[:-1] + character,
+                           "expected": "well_formed" if index % (2**unused) == 0 else "WIST1-E14"})
+    for kind, size in (("public_key", 32), ("signature", 64), ("salt", 16)):
+        canonical = b64u(bytes(range(size)))
+        for name, value in (("padding", canonical + "="), ("newline", canonical + "\n"),
+                            ("leading space", " " + canonical), ("foreign alphabet", "/" + canonical[1:]),
+                            ("non ASCII", "é" + canonical[1:]), ("one character", "A"),
+                            ("empty", ""), ("null", None), ("number", 42), ("boolean", True),
+                            ("wrong byte length", b64u(bytes(size - 1)))):
+            fields.append({"name": kind + " " + name, "kind": kind, "encoded": value,
+                           "expected": "WIST1-E14"})
+    cases = []
+
+    def alias(encoded, bits):
+        return encoded[:-1] + alphabet[alphabet.index(encoded[-1]) + bits]
+
+    def add(name, inner, previous=None, expected="WIST1-E14", signature_bits=0):
+        env = sign_envelope("publisher", inner, "test-k1")
+        if signature_bits:
+            env["sig"]["value"] = alias(env["sig"]["value"], signature_bits)
+        cases.append({"name": name, "stored": previous, "envelope": env, "expected": expected})
+
+    initial = sign_envelope("publisher", publisher, "test-k1")
+    ordinary = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
+    add("canonical initial", publisher, expected="initial")
+    add("canonical ordinary", ordinary, initial, "ordinary_rotation")
+    add("canonical in set alias", variant(keys=[publisher["keys"][0],
+        dict(publisher["keys"][0], key_id="alias")]), expected="initial")
+    add("canonical cross set overlap", variant(recovery_keys=[
+        dict(publisher["keys"][0], key_id="alias")]), expected="WIST1-E08")
+    for bits in range(1, 4):
+        for field in ("keys", "recovery_keys"):
+            mutated = json.loads(json.dumps(publisher))
+            mutated[field][0]["public_key"] = alias(mutated[field][0]["public_key"], bits)
+            add(f"initial {field} unused bits {bits}", mutated)
+            incoming = dict(mutated, seq=1, prev_declaration=stored_hash)
+            add(f"replacement {field} unused bits {bits}", incoming, initial)
+        bad = dict(K2, public_key=alias(K2["public_key"], bits))
+        add(f"unused signing key unused bits {bits}", variant(keys=publisher["keys"] + [bad]))
+        bad = dict(publisher["keys"][0], key_id="alias",
+                   public_key=alias(publisher["keys"][0]["public_key"], bits))
+        add(f"cross set byte alias unused bits {bits}", variant(recovery_keys=[bad]))
+        excluded = dict(K2, public_key=alias(b64u((1).to_bytes(32, "little")), bits))
+        add(f"excluded point malformed spelling {bits}", variant(keys=publisher["keys"] + [excluded]))
+    for bits in range(1, 16):
+        add(f"initial signature unused bits {bits}", publisher, signature_bits=bits)
+        add(f"replacement signature unused bits {bits}", ordinary, initial, signature_bits=bits)
+    conflicts = json.loads((WIST1 / "declaration-conflicts.json").read_text())
+    blocks = []
+    for prefix in ("empty", "initial", "open", "deadline"):
+        history = conflicts["prefixes"][prefix]
+        current = initial if prefix in {"empty", "initial"} else next(
+            entry["body"] for block in history for entry in block["entries"]
+            if entry["body"]["publisher"]["seq"] == (1 if prefix == "deadline" else 2))
+        malformed = json.loads(json.dumps(current))
+        malformed["sig"]["value"] = alias(malformed["sig"]["value"], 1)
+        other = sign_envelope("publisher", dict(publisher, domain="other.example"), "test-k1")
+        for reject in (False, True):
+            members = [other, current] + ([malformed] if reject else [])
+            entries = sorted(map(recovery_order_entry, members), key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+            instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=len(history))
+            header = {"wist_version": "1.0.0", "block_number": len(history),
+                      "prev_block_hash": decl_hash(history[-1]["header"]) if history else "sha256:genesis",
+                      "sealed_at": instant.isoformat().replace("+00:00", "Z"),
+                      "merkle_root": "sha256:" + merkle_tree_root([leaf_hash(rfc8785.dumps(entry)) for entry in entries]).hex(),
+                      "entry_count": len(entries)}
+            block = dict(sign_envelope_with(priv, "header", header, "test-log-k1"), entries=entries)
+            blocks.append({"name": prefix + (" rejects signature alias" if reject else " accepts canonical twin"),
+                           "prefix": prefix, "block": block, "pinned_head": decl_hash(header),
+                           "expected": "WIST1-E14" if reject else "accepted"})
+    write_json(WIST1 / "base64url.json", {
+        "note": "WIST-1 section 2 canonical base64url. Field cases establish encoding/length only, not point "
+                "eligibility or signatures. Declaration author signatures are valid under author_key even when "
+                "permissive decoding is needed to inspect a rejected signature alias; acceptance never repairs it. "
+                "Each Block appends to its named authenticated prefix; rejection preserves all state and the "
+                "accepted head, including due settlement and other domains. Canonical twins exercise acceptance. "
+                "Full field formats, live services, transport wrappers and Snapshot restoration are not established.",
+        "author_key": b64u(pub_raw), "log_key": conflicts["log_key"], "recovery_window_days": 7,
+        "fields": fields, "cases": cases, "prefixes": conflicts["prefixes"], "block_cases": blocks})
+
+
+base64url_vectors()
+
 def recovery_identity_vectors():
     def signed(previous, seq, signer, key_id, **changes):
         inner = dict(previous["publisher"], seq=seq,

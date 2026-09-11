@@ -63,14 +63,23 @@ and durable restoration remains required. These fixtures assume ordinary
 valid fields and canonical base64url; they do not establish full field or
 encoding eligibility.
 
-WIST-1 §2's unpadded base64url reference does not select the decoder behavior
-RFC 4648 §3.5 leaves optional for nonzero unused bits. The public-key and
-signature schemas constrain alphabet and length without fixing those bits.
-Define acceptance and diagnostics for alternate encodings, including how
-public-key membership and disjointness treat textual aliases, with signed
-mutation vectors before claiming complete signed-field validation. No decoder
-policy is selected here. The key-eligibility fixture checker explicitly
-refuses noncanonical base64url round trips without assigning a protocol code.
+WIST-1 §2 and [ADR-0025](decisions/0025-canonical-base64url.md) require
+canonical unpadded base64url in every protocol field using that encoding.
+Malformed encodings are underlying `WIST1-E14` failures before cryptographic
+use; existing object dispositions and transport wrappers remain applicable.
+`vectors/wist1/base64url.json` exhausts final-character choices for public
+keys, signatures and three salt lengths, with alphabet, type and length
+failures. Signed Declaration cases distinguish encoding rejection from
+public-key alias/disjointness checks and excluded-point derivation. Signed
+signature aliases decode to valid signatures but still reject; canonical
+Block twins distinguish field validation from conflict comparison and
+idempotence, including rollback of due recovery settlement and another
+domain's transition. The reference checks bits independently of decoder
+library policy and checks schema agreement, immutable signed input and
+Block authentication. The key-eligibility reference now uses this canonical
+decoder. Full field formats, role admission/replay/sealing/restoration,
+frozen appeal authority and transport-wrapper integration remain required.
+These vectors do not establish those operational obligations.
 
 The `publisher.schema.json` `hostname` and `date-time` formats require checks
 beyond typed JSON deserialization. Optional fields present as `null`, empty

@@ -97,6 +97,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0021](decisions/0021-block-frame-composition.md) — One Zstandard frame per Block file
 - [ADR-0022](decisions/0022-log-timestamp-seconds.md) — Leap-free Log timestamps
 - [ADR-0023](decisions/0023-declaration-key-binding.md) — Unambiguous Declaration key binding and identity continuity
+- [ADR-0025](decisions/0025-canonical-base64url.md) — Canonical base64url at validation
 
 ## Licenses
 

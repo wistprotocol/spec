@@ -23,7 +23,7 @@
                 "prefixItems": [
                   {"const": "aggregator_key"},
                   {"type": "string", "maxLength": 64},
-                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"},
+                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"},
                   {"type": "integer", "minimum": 0},
                   {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]}
                 ],
@@ -34,7 +34,7 @@
                   {"const": "auditor"},
                   {"type": "string", "format": "hostname"},
                   {"type": "string", "maxLength": 64},
-                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"},
+                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"},
                   {"type": "integer", "minimum": 0},
                   {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]}
                 ],
@@ -142,7 +142,7 @@
                   {"const": "observer"},
                   {"type": "string", "format": "hostname"},
                   {"type": "string", "maxLength": 64},
-                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"},
+                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"},
                   {"type": "integer", "minimum": 0},
                   {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]}
                 ],
@@ -171,7 +171,7 @@
       "properties": {
         "key_id": {"type": "string", "maxLength": 64},
         "alg": {"const": "Ed25519"},
-        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{85}[AQgw]$(?![\\s\\S])"}
       }
     }
   }

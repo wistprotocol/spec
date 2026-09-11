@@ -21,7 +21,9 @@ Do not mutate signed fields. Block rejection remains atomic, including
 settlement and changes for other domains. WIST-2 first-contact pull failures
 retain their `WIST2-E04` wrapper and noise accounting.
 
-Existing field formats are unchanged: format checks are required,
+The separate [ADR-0025](0025-canonical-base64url.md) extends `WIST1-E14`
+to malformed base64url throughout the suite and defines that encoding profile.
+Otherwise existing field formats are unchanged: format checks are required,
 `valid_from` and `observed_at` retain RFC 3339, and Log timestamps retain
 their separately specified profile. This decision assigns diagnostics; it
 does not redefine leap-second eligibility, hostname canonicalization,

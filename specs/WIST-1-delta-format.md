@@ -115,6 +115,33 @@ Hash strings throughout the suite are serialized as `"sha256:" + lowercase
 hex`. Signatures are Ed25519 [RFC 8032], detached, base64url-encoded
 without padding [RFC 4648 §5].
 
+**Canonical base64url.** Every field specified as base64url anywhere in the
+suite MUST use the URL-safe alphabet, omit padding and whitespace, and set
+all unused low bits of its final character to zero. Validators MUST reject
+other encodings, including length congruent to 1 modulo 4; they MUST NOT
+repair or normalize them. Decoding followed by unpadded base64url encoding
+MUST reproduce the original string exactly. Field-specific byte lengths
+still apply: an Ed25519 `public_key` is 32 octets (43 characters),
+`sig.value` is 64 octets (86 characters), and a Payload `salt` is at least
+16 octets. Empty strings are invalid for these fields.
+
+A malformed base64url field is `WIST1-E14`. Check the encoding before using
+that field for key exclusion, signer resolution, signature or commitment
+verification; an unused malformed Declaration key still rejects the whole
+Declaration under §5.1. This is distinct from a canonically encoded public
+key whose point §4 excludes. The signature-field check also applies when
+idempotence would otherwise waive signature verification. Existing
+object-level rejection rules and transport wrappers remain in force;
+`WIST1-E14` identifies the underlying encoding failure, including beneath
+first-contact `WIST2-E04` or invalid-Block-file `WIST3-E03` handling.
+This establishes no precedence between unrelated failures in other objects.
+
+Key membership and disjointness compare decoded public bytes after encoding
+validation; equality of these bytes is equivalent to equality of their
+canonical strings. Preserve original signed entries for JCS, hashes and
+recovery-set protection. Identifier aliases within one set remain permitted
+by §5.2; alternate base64url spellings cannot introduce another alias.
+
 ## 3. The Delta Object
 
 A Delta is the inner object of a Delta Envelope. Its machine-readable
@@ -380,8 +407,9 @@ JSON Canonicalization Scheme (JCS) [RFC 8785]:
    envelope.
 2. **Delta ID** = `"sha256:" + hex(SHA-256(Canonical Bytes))`.
 3. **Signature** = `Ed25519-sign(private_key, Canonical Bytes)`,
-   base64url without padding. A signature that does not verify against
-   Canonical Bytes under the key `sig.key_id` names is `WIST1-E01`.
+   base64url without padding under §2. A correctly encoded signature that
+   does not verify against Canonical Bytes under the key `sig.key_id` names
+   is `WIST1-E01`.
 
 **A number is the double it denotes.** RFC 8785 §3.2.2.3 serializes a JSON
 number by the ECMA-262 `Number::toString` algorithm over the IEEE-754
@@ -940,7 +968,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and verifying under the Key Set then in force is sealed (§5.2) |
-| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; or missing, non-string or malformed Delta `observed_at` (§3.4). Canonicalization failure remains WIST1-E05 |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; missing, non-string or malformed Delta `observed_at` (§3.4); or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's current one

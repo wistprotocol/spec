@@ -75,5 +75,6 @@ order keys that are not small-order; and protection of excluded entries.
 Conditional appeal probes distinguish excluded identifiers from invalid
 signatures under usable notice-era bindings, taking accepted notices and
 selected Declaration sources as inputs. They establish no notice evidence
-or appeal-process result. Its canonical base64url fixtures do not establish a decoder policy for
-nonzero unused base64 bits or a complete Declaration field profile.
+or appeal-process result. Its canonical base64url fixtures do not establish
+a complete Declaration field profile. [ADR-0025](0025-canonical-base64url.md)
+separately rejects malformed encodings before this key derivation.
