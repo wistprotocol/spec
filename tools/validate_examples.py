@@ -4549,6 +4549,18 @@ NON_CONTENT_VALUES = {
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-order.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-order.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/recovery-order.json", "prev_declaration"):
+        "SHA-256 over a Declaration's publisher object (WIST-1 section 5.2)",
+    ("vectors/wist1/recovery-order.json", "owner_declaration"):
+        "SHA-256 over the recovery owner's publisher object (WIST-1 section 5.2)",
+    ("vectors/wist1/recovery-order.json", "pinned_head"):
+        "the trusted final Block header hash (WIST-3 section 3.1)",
+    ("vectors/wist1/recovery-order.json", "prev_block_hash"):
+        "SHA-256 of a Block header (WIST-3 section 3.1)",
+    ("vectors/wist1/recovery-order.json", "merkle_root"):
+        "the Merkle root of Declaration Entries (WIST-3 section 4)",
     ("vectors/wist1/declaration-binding.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-binding.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 section 5.2)",
@@ -5318,6 +5330,82 @@ def _declaration_binding_vectors():
 
 
 check("vectors:wist1-declaration-binding", _declaration_binding_vectors)
+
+def _recovery_order_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-order.json").read_text())
+    schemas = {name: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{name}.schema.json").read_text()))
+        for name in ("block", "publisher")}
+    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
+    reversed_same_block = ascending_same_block = later_block = ordinary_prefix = False
+    for case in vector["cases"]:
+        previous_hash, stored, previous_time = "sha256:genesis", None, None
+        sequences, recoveries = [], []
+        for height, block in enumerate(case["blocks"]):
+            schemas["block"].validate(block)
+            header, entries = block["header"], block["entries"]
+            assert header["block_number"] == height
+            assert header["prev_block_hash"] == previous_hash
+            assert header["entry_count"] == len(entries)
+            instant = log_seconds(header["sealed_at"])
+            assert previous_time is None or instant > previous_time
+            previous_time = instant
+            encoded = rfc8785.dumps(header)
+            assert block["sig"]["key_id"] == vector["log_key"]["key_id"]
+            log_key.verify(b64u_decode(block["sig"]["value"]), encoded)
+            hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+            assert hashes == sorted(hashes)
+            assert header["merkle_root"] == "sha256:" + merkle_root(hashes).hex()
+            previous_hash = "sha256:" + hashlib.sha256(encoded).hexdigest()
+            assert all(entry["type"] == "publisher_declaration" for entry in entries)
+            candidates = [entry["body"] for entry in entries]
+            assert len({env["publisher"]["domain"] for env in candidates}) == 1
+            assert len({env["publisher"]["seq"] for env in candidates}) == len(candidates), \
+                "ownership fixtures must not settle conflicting-candidate disposition"
+            for incoming in sorted(candidates, key=lambda env: env["publisher"]["seq"]):
+                schemas["publisher"].validate(incoming)
+                assert stored is None or incoming["publisher"]["domain"] == stored["publisher"]["domain"]
+                result = _declaration_binding_result(stored, incoming)
+                assert result in {"initial", "ordinary_rotation", "recovery_rotation"}, case["name"]
+                if result == "recovery_rotation":
+                    recoveries.append((height, header["sealed_at"], incoming,
+                                       hashes[candidates.index(incoming)]))
+                    invalid_signature = copy.deepcopy(incoming)
+                    signature = bytearray(b64u_decode(incoming["sig"]["value"]))
+                    signature[0] ^= 1
+                    invalid_signature["sig"]["value"] = base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
+                    assert _declaration_binding_result(stored, invalid_signature) == "WIST1-E01"
+                    invalid_predecessor = copy.deepcopy(incoming)
+                    invalid_predecessor["publisher"]["prev_declaration"] = "sha256:" + "00" * 32
+                    assert _declaration_binding_result(stored, invalid_predecessor) not in {
+                        "initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
+                sequences.append(incoming["publisher"]["seq"])
+                stored = incoming
+        assert previous_hash == case["pinned_head"]
+        assert len(recoveries) == 2
+        owner_height, opened_at, owner, first_leaf = recoveries[0]
+        next_height, _, successor, next_leaf = recoveries[1]
+        assert log_seconds(case["blocks"][-1]["header"]["sealed_at"]) < (
+            log_seconds(opened_at) + vector["recovery_window_days"] * 86400)
+        initial = case["blocks"][0]["entries"][0]["body"]["publisher"]
+        assert successor["sig"]["key_id"] not in {
+            key["key_id"] for key in initial["keys"] + initial.get("recovery_keys", [])
+            + successor["publisher"]["keys"]}
+        derived = {"application_sequences": sequences,
+                   "owner_sequence": owner["publisher"]["seq"],
+                   "owner_height": owner_height,
+                   "owner_declaration": "sha256:" + hashlib.sha256(rfc8785.dumps(owner["publisher"])).hexdigest(),
+                   "opened_at": opened_at, "windows_opened": 1}
+        assert derived == case["expected"], case["name"]
+        assert (next_leaf < first_leaf) == case["recovery_leaves_reversed"]
+        reversed_same_block |= owner_height == next_height and next_leaf < first_leaf
+        ascending_same_block |= owner_height == next_height and first_leaf < next_leaf
+        later_block |= owner_height < next_height
+        ordinary_prefix |= owner["publisher"]["seq"] > 1
+    assert reversed_same_block and ascending_same_block and later_block and ordinary_prefix
+
+
+check("vectors:wist1-recovery-order", _recovery_order_vectors)
 
 def _parameter_registry_enum():
     """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.

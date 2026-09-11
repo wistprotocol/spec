@@ -32,6 +32,16 @@ changes what a replaying party derives:
 
 ## Decision
 
+**Recovery ownership follows application order.** Validate and apply each
+domain's Declarations in ascending `(Block height, seq)` order, including
+signature and predecessor checks. The first accepted recovery owns the
+window; another recovery inside it cannot replace the owner or open another
+window. Canonical leaf-hash order is storage order and cannot choose the
+owner. Signed Block histories in `vectors/wist1/recovery-order.json` include
+two recoveries whose sequence order reverses their leaf-hash order.
+This changes no object fields or schema constraints; it defines application
+order within the existing signed format under PUBLICATION.md.
+
 **Admission is the union.** A Delta is queued when it verifies under either
 the Key Set in effect immediately before the recovery or the recovery
 Declaration's own. The recovering Publisher keeps publishing; the
@@ -63,6 +73,14 @@ acceptance case.
 
 ## Alternatives considered
 
+**Use canonical Entry index to break a same-Block recovery race.** Rejected
+because Declaration predecessors and WIST-3 §3.3 application precedence read
+sequence numbers. A lower-sequence Declaration can be the authenticated
+predecessor of a higher-sequence Declaration even when stored after it.
+Selecting ownership by leaf hash would give storage order a conflicting
+authority over recovery. Selecting the highest sequence instead would let
+a later recovery replace the owner during its existing window.
+
 **Reject non-recovery Declarations while a window is open** (the reading
 a strict ingest reaches, under `WIST1-E08`). It is simpler, and it is what a
 reader reaches for when supersession is unstated. Rejected because it
@@ -78,9 +96,10 @@ a Delta signed by a superseded key does not verify, whenever it is served.
 
 ## Consequences
 
-- The window is now a complete mechanism: what enters the queue, what
-  governs while it is open, what supersedes what at its end, and what
-  becomes of the losers are each derivable from the Log alone.
+- Queue admission, settlement and recovery ownership have explicit rules.
+  Accepted versus effective predecessor heads and superseded identity-reset
+  effects still require resolution under CONFORMANCE.md before authenticated
+  recovery history replay can be validated.
 - A recovering Publisher may rotate again inside its own window — the
   realistic case, since a recovery is performed with an offline key that the
   operator usually wants to replace immediately afterwards.

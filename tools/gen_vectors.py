@@ -469,6 +469,77 @@ write_json(WIST1 / "recovery-settlement.json", {
 })
 print("wist1 recovery-settlement vector written")
 
+def recovery_order_entry(envelope):
+    return {"type": "publisher_declaration", "body": envelope}
+
+
+def recovery_order_leaf(envelope):
+    return leaf_hash(rfc8785.dumps(recovery_order_entry(envelope)))
+
+
+def recovery_order_case(name, reverse_leaves, split_blocks=False, ordinary_first=False):
+    initial = sign_envelope("publisher", publisher, "test-k1")
+    prefix = [initial]
+    if ordinary_first:
+        ordinary = variant(seq=1, prev_declaration=decl_hash(publisher),
+                           contact="mailto:rotation@example.com")
+        prefix.append(sign_envelope("publisher", ordinary, "test-k1"))
+    first_inner = variant(seq=len(prefix),
+                          prev_declaration=decl_hash(prefix[-1]["publisher"]),
+                          keys=[K2], recovery_keys=[R2])
+    first = sign_envelope_with(priv2, "publisher", first_inner, "test-r1")
+    for nonce in range(1000):
+        second_inner = dict(first_inner, seq=first_inner["seq"] + 1,
+                            prev_declaration=decl_hash(first_inner),
+                            contact=f"mailto:recovery{nonce}@example.com")
+        second = sign_envelope_with(priv4, "publisher", second_inner, "test-r2")
+        if (recovery_order_leaf(second) < recovery_order_leaf(first)) == reverse_leaves:
+            break
+    else:
+        raise AssertionError("no discriminating recovery leaf order")
+    batches = [[initial], prefix[1:] + [first, second]]
+    if split_blocks:
+        batches = [[initial], [first], [second]]
+    blocks, previous = [], "sha256:genesis"
+    for height, batch in enumerate(batches):
+        entries = sorted(map(recovery_order_entry, batch),
+                         key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+        leaves = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+        block_header = {"wist_version": "1.0.0", "block_number": height,
+                        "prev_block_hash": previous,
+                        "sealed_at": f"2026-08-04T{height:02d}:00:00Z",
+                        "merkle_root": "sha256:" + merkle_tree_root(leaves).hex(),
+                        "entry_count": len(entries)}
+        block = sign_envelope_with(priv, "header", block_header, "test-log-k1")
+        block["entries"] = entries
+        blocks.append(block)
+        previous = decl_hash(block_header)
+    return {"name": name, "blocks": blocks, "pinned_head": previous,
+            "expected": {"application_sequences": list(range(len(prefix) + 2)),
+                         "owner_sequence": first_inner["seq"], "owner_height": 1,
+                         "owner_declaration": decl_hash(first_inner),
+                         "opened_at": blocks[1]["header"]["sealed_at"],
+                         "windows_opened": 1},
+            "recovery_leaves_reversed": reverse_leaves}
+
+
+write_json(WIST1 / "recovery-order.json", {
+    "note": "WIST-1 section 5.2 and WIST-3 section 3.3 recovery ownership over "
+            "valid serial Declaration histories. The supplied Log key and pinned head "
+            "are trusted fixture inputs. All queries are at the final Block, strictly "
+            "inside the default seven-day recovery window; no settlement, conflicting "
+            "candidate disposition or identity-reset result is asserted. The second "
+            "recovery is signed by the recovery key installed by the first.",
+    "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+    "recovery_window_days": 7,
+    "cases": [
+        recovery_order_case("same Block reversed recovery leaves", True),
+        recovery_order_case("same Block ascending recovery leaves", False),
+        recovery_order_case("later Block does not reopen recovery", True, split_blocks=True),
+        recovery_order_case("ordinary predecessor before two recoveries", True, ordinary_first=True),
+    ],
+})
+
 # ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
 # The ordinary resolution rule over key_ids alone: a Delta sealed at height N
 # verifies under the highest-seq Declaration sealed at a height <= N, the

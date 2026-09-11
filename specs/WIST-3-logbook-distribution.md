@@ -191,8 +191,9 @@ cadence already bounds how often that choice recurs.
 
 Storage order and application order are therefore decoupled, and
 **application order** is defined, not inherited: within a Block, apply
-`publisher_declaration` Entries first (their own precedence is `seq`, and
-WIST-1 §5.2's resolution rule is height-based, so intra-Block position
+`publisher_declaration` Entries first (for each domain, validate and apply
+them in ascending `seq`; WIST-1 §5.2 selects a recovery window's owner in
+ascending `(Block height, seq)` order, so intra-Block storage position
 never decides between them), then `registry_update` Entries (admission
 and removal read at Block granularity — "admitted at this Block's
 `sealed_at`" — under WIST-4 §3.1's batch rules; `parameter_change`

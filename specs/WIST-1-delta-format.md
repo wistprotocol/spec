@@ -689,9 +689,15 @@ by what signs it, using the authenticated public key resolved above:
   rather than papered over, and it is the fork-level remedy (WIST-3 §3.4)
   that ultimately answers an Aggregator that sits on recoveries.
   Two recovery Declarations sealed inside one open window — two holders
-  of recovery keys, or one holder twice — are resolved by Log order
-  like every other race in this suite: the first-sealed recovery
-  Declaration is the one the window belongs to, and a second sealed
+  of recovery keys, or one holder twice — are resolved in ascending
+  `(Block height, seq)` order for that domain. Within a Block, validate
+  and apply Declarations in ascending `seq`, including their signatures
+  and predecessor links, before selecting the first accepted recovery
+  Declaration as the window owner. The canonical leaf-hash storage index
+  MUST NOT select the owner or override sequence precedence. This ordering
+  does not waive any Declaration acceptance check. The first-sealed recovery
+  Declaration in this application order is the one the window belongs to,
+  and a second sealed
   inside that window is a competing claim that does not open a second
   window and does not supersede the first; whichever party prevails does
   so by holding the recovery keys the *first* Declaration now lists.

@@ -1,0 +1,717 @@
+{
+  "note": "WIST-1 section 5.2 and WIST-3 section 3.3 recovery ownership over valid serial Declaration histories. The supplied Log key and pinned head are trusted fixture inputs. All queries are at the final Block, strictly inside the default seven-day recovery window; no settlement, conflicting candidate disposition or identity-reset result is asserted. The second recovery is signed by the recovery key installed by the first.",
+  "log_key": {
+    "key_id": "test-log-k1",
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+  },
+  "recovery_window_days": 7,
+  "cases": [
+    {
+      "name": "same Block reversed recovery leaves",
+      "blocks": [
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 0,
+            "prev_block_hash": "sha256:genesis",
+            "sealed_at": "2026-08-04T00:00:00Z",
+            "merkle_root": "sha256:cf38e89f07d9a599d5429578b6c609a84df71ec179936a8ee52b10d51765f4e8",
+            "entry_count": 1
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "gd_XtJMOY2RYTwPaTDn6dgrJKbfbhJA-VK1rxlSja4OkAdR75_933G2RNWwRrj10REIIQTmdk4pKdnB0CyatDg"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k1",
+                      "alg": "Ed25519",
+                      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r1",
+                      "alg": "Ed25519",
+                      "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com"
+                },
+                "sig": {
+                  "key_id": "test-k1",
+                  "alg": "Ed25519",
+                  "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 1,
+            "prev_block_hash": "sha256:8a02ad8e8d6e808377823616bda0a32d9ee5306e8357f2033e37532bfb99b477",
+            "sealed_at": "2026-08-04T01:00:00Z",
+            "merkle_root": "sha256:1df9164235cd7751a11bfc4f01478e15b2642548fe808d040b453d5d4a81d8dd",
+            "entry_count": 2
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "vrCpnF-JhKiq7wmq0XIL0YHHhGBVvzPpoNyS0HPSAbVHg5xLB8eKfb43RFG1j9wf1Vo7yNO9-lP7SnZ1Jc_BBQ"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 2,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:recovery13@example.com",
+                  "prev_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed"
+                },
+                "sig": {
+                  "key_id": "test-r2",
+                  "alg": "Ed25519",
+                  "value": "kJVHFkz1gqvoO0gBh-T6X08bwv3froqncLLXHKofpcKqzyhVdDkakRr32AJ8T0xbzKqS57GiltbQvCojw0yjAw"
+                }
+              }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 1,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com",
+                  "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+                },
+                "sig": {
+                  "key_id": "test-r1",
+                  "alg": "Ed25519",
+                  "value": "BgUnT_C_XYRgA_t8AlnJLpI7vpSgZOFhy0hvQSb9n6rJBUXjj6IMFP1qY8XQsXZDMQvaVwL1lpP6pXrGqblZBQ"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "pinned_head": "sha256:1dd0e2161b2b07a3e6e1f889863ef33f4a5ce4f47b41c66f346b17b6e5d8b1c9",
+      "expected": {
+        "application_sequences": [
+          0,
+          1,
+          2
+        ],
+        "owner_sequence": 1,
+        "owner_height": 1,
+        "owner_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed",
+        "opened_at": "2026-08-04T01:00:00Z",
+        "windows_opened": 1
+      },
+      "recovery_leaves_reversed": true
+    },
+    {
+      "name": "same Block ascending recovery leaves",
+      "blocks": [
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 0,
+            "prev_block_hash": "sha256:genesis",
+            "sealed_at": "2026-08-04T00:00:00Z",
+            "merkle_root": "sha256:cf38e89f07d9a599d5429578b6c609a84df71ec179936a8ee52b10d51765f4e8",
+            "entry_count": 1
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "gd_XtJMOY2RYTwPaTDn6dgrJKbfbhJA-VK1rxlSja4OkAdR75_933G2RNWwRrj10REIIQTmdk4pKdnB0CyatDg"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k1",
+                      "alg": "Ed25519",
+                      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r1",
+                      "alg": "Ed25519",
+                      "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com"
+                },
+                "sig": {
+                  "key_id": "test-k1",
+                  "alg": "Ed25519",
+                  "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 1,
+            "prev_block_hash": "sha256:8a02ad8e8d6e808377823616bda0a32d9ee5306e8357f2033e37532bfb99b477",
+            "sealed_at": "2026-08-04T01:00:00Z",
+            "merkle_root": "sha256:419c8171ffad8dd228f98ad4f988805143afd9a8fdb0f03842d637ed98a7a59e",
+            "entry_count": 2
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "3UQiy4-LE_zVJs7dMK3iidK1SiKkyi_DZexTPf8D6PmjIyEjMgbJIWvWT-SodRX8rctj8Fvmzy3ymSxIlrAUBw"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 1,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com",
+                  "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+                },
+                "sig": {
+                  "key_id": "test-r1",
+                  "alg": "Ed25519",
+                  "value": "BgUnT_C_XYRgA_t8AlnJLpI7vpSgZOFhy0hvQSb9n6rJBUXjj6IMFP1qY8XQsXZDMQvaVwL1lpP6pXrGqblZBQ"
+                }
+              }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 2,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:recovery0@example.com",
+                  "prev_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed"
+                },
+                "sig": {
+                  "key_id": "test-r2",
+                  "alg": "Ed25519",
+                  "value": "DuMivRcDlJfuPzKm890pwr7f-xYst5i-w8n_bBCGzvyaH0UXv6HZ8hRjVIqJnnYJO9gCYJVXr0_dIjVBqFZiAA"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "pinned_head": "sha256:fb17ea03416fa74d1ca053f150e222d9926c869595bcd0a8e12c720e1cbf8e9c",
+      "expected": {
+        "application_sequences": [
+          0,
+          1,
+          2
+        ],
+        "owner_sequence": 1,
+        "owner_height": 1,
+        "owner_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed",
+        "opened_at": "2026-08-04T01:00:00Z",
+        "windows_opened": 1
+      },
+      "recovery_leaves_reversed": false
+    },
+    {
+      "name": "later Block does not reopen recovery",
+      "blocks": [
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 0,
+            "prev_block_hash": "sha256:genesis",
+            "sealed_at": "2026-08-04T00:00:00Z",
+            "merkle_root": "sha256:cf38e89f07d9a599d5429578b6c609a84df71ec179936a8ee52b10d51765f4e8",
+            "entry_count": 1
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "gd_XtJMOY2RYTwPaTDn6dgrJKbfbhJA-VK1rxlSja4OkAdR75_933G2RNWwRrj10REIIQTmdk4pKdnB0CyatDg"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k1",
+                      "alg": "Ed25519",
+                      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r1",
+                      "alg": "Ed25519",
+                      "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com"
+                },
+                "sig": {
+                  "key_id": "test-k1",
+                  "alg": "Ed25519",
+                  "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 1,
+            "prev_block_hash": "sha256:8a02ad8e8d6e808377823616bda0a32d9ee5306e8357f2033e37532bfb99b477",
+            "sealed_at": "2026-08-04T01:00:00Z",
+            "merkle_root": "sha256:25ed58b11f80371a4947082052f90215c826075f0e6b1e92fb24b06c2eac5dc5",
+            "entry_count": 1
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "vYMiIn2bDTKi_pzYdooG0NYYvPWTrqm3YHhbhyt08GawXlaCz4BxJH9rVQIRXjR_S-d-KXap1boncngYbQlABg"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 1,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com",
+                  "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+                },
+                "sig": {
+                  "key_id": "test-r1",
+                  "alg": "Ed25519",
+                  "value": "BgUnT_C_XYRgA_t8AlnJLpI7vpSgZOFhy0hvQSb9n6rJBUXjj6IMFP1qY8XQsXZDMQvaVwL1lpP6pXrGqblZBQ"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 2,
+            "prev_block_hash": "sha256:360b74c07c07b13c841705649b72a2a91da6a7e3d3072f061eec264a8113a0a4",
+            "sealed_at": "2026-08-04T02:00:00Z",
+            "merkle_root": "sha256:1e4c9bfe72c7c358ae994db06265f15d9d2f7d14c4a112eda7668d8f0b8649f6",
+            "entry_count": 1
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "Mw5RlM2AfTiAydsiiqbkpMD9XACdUYowBpEEPdqlD3HR5nb0g7RrvPjHWa1h9PxUgCwO3prFXD6VbBuedwpYBQ"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 2,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:recovery13@example.com",
+                  "prev_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed"
+                },
+                "sig": {
+                  "key_id": "test-r2",
+                  "alg": "Ed25519",
+                  "value": "kJVHFkz1gqvoO0gBh-T6X08bwv3froqncLLXHKofpcKqzyhVdDkakRr32AJ8T0xbzKqS57GiltbQvCojw0yjAw"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "pinned_head": "sha256:71c4230495049a5eb02168a526aa7fc814d724cf212fbe8662fddaaeedd7c1e9",
+      "expected": {
+        "application_sequences": [
+          0,
+          1,
+          2
+        ],
+        "owner_sequence": 1,
+        "owner_height": 1,
+        "owner_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed",
+        "opened_at": "2026-08-04T01:00:00Z",
+        "windows_opened": 1
+      },
+      "recovery_leaves_reversed": true
+    },
+    {
+      "name": "ordinary predecessor before two recoveries",
+      "blocks": [
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 0,
+            "prev_block_hash": "sha256:genesis",
+            "sealed_at": "2026-08-04T00:00:00Z",
+            "merkle_root": "sha256:cf38e89f07d9a599d5429578b6c609a84df71ec179936a8ee52b10d51765f4e8",
+            "entry_count": 1
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "gd_XtJMOY2RYTwPaTDn6dgrJKbfbhJA-VK1rxlSja4OkAdR75_933G2RNWwRrj10REIIQTmdk4pKdnB0CyatDg"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 0,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k1",
+                      "alg": "Ed25519",
+                      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r1",
+                      "alg": "Ed25519",
+                      "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com"
+                },
+                "sig": {
+                  "key_id": "test-k1",
+                  "alg": "Ed25519",
+                  "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "header": {
+            "wist_version": "1.0.0",
+            "block_number": 1,
+            "prev_block_hash": "sha256:8a02ad8e8d6e808377823616bda0a32d9ee5306e8357f2033e37532bfb99b477",
+            "sealed_at": "2026-08-04T01:00:00Z",
+            "merkle_root": "sha256:94f4036655e5afcc259e50fcc88658ef38b7efdaf77b579ba8093e06a0bdce5b",
+            "entry_count": 3
+          },
+          "sig": {
+            "key_id": "test-log-k1",
+            "alg": "Ed25519",
+            "value": "B4uCDN_19BUfIQdZc0n68pI_wqMMPRPKwTYYNIfkf553CaqjUCX1JanA3CobpD71s5BQDQCfuFfhqw528LjGBw"
+          },
+          "entries": [
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 3,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:recovery0@example.com",
+                  "prev_declaration": "sha256:ef82f8476f5ea83af4191aa14379a2f574fb02fdc3ea611d3261bea1f77405f5"
+                },
+                "sig": {
+                  "key_id": "test-r2",
+                  "alg": "Ed25519",
+                  "value": "PFKlsXYx-21ooAq8k4bU_n99uEsXMFbPFmjAkdO0gCs7nqXt5__wCtLlJ-EtgiS1c0j8HUTBsh8Pwu8z69feBA"
+                }
+              }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 2,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k2",
+                      "alg": "Ed25519",
+                      "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r2",
+                      "alg": "Ed25519",
+                      "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                      "valid_from": "2026-08-03T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:webmaster@example.com",
+                  "prev_declaration": "sha256:d93a365f987a975e3b5f1ba9bc00ec226d876eb0da1a6b5604b0c563b5ed02db"
+                },
+                "sig": {
+                  "key_id": "test-r1",
+                  "alg": "Ed25519",
+                  "value": "uP49SqdtC1bYM6Kg3-vKkMI8B_AXUjM5IEukl7q050_zdYGsyHocjgQ55GagQwabmCRQ72a8LsucT8l_z9mVCw"
+                }
+              }
+            },
+            {
+              "type": "publisher_declaration",
+              "body": {
+                "publisher": {
+                  "wist_version": "1.0.0",
+                  "seq": 1,
+                  "domain": "example.com",
+                  "subdomain_scope": [
+                    "www.example.com",
+                    "blog.example.com"
+                  ],
+                  "keys": [
+                    {
+                      "key_id": "test-k1",
+                      "alg": "Ed25519",
+                      "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "recovery_keys": [
+                    {
+                      "key_id": "test-r1",
+                      "alg": "Ed25519",
+                      "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                      "valid_from": "2026-08-02T12:00:00Z"
+                    }
+                  ],
+                  "contact": "mailto:rotation@example.com",
+                  "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+                },
+                "sig": {
+                  "key_id": "test-k1",
+                  "alg": "Ed25519",
+                  "value": "2k2dWgOKK0rGBKA30v_ws-R5nen8shP1wvGwACLRDaoliao5l3L1CpNbAFk1k7UAESq7TsKg2X_WOAz5cNcUDw"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "pinned_head": "sha256:60869d890fce9ee9018630b21508699526d74b294a97bae4b59809cd0e58929e",
+      "expected": {
+        "application_sequences": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "owner_sequence": 2,
+        "owner_height": 1,
+        "owner_declaration": "sha256:ef82f8476f5ea83af4191aa14379a2f574fb02fdc3ea611d3261bea1f77405f5",
+        "opened_at": "2026-08-04T01:00:00Z",
+        "windows_opened": 1
+      },
+      "recovery_leaves_reversed": true
+    }
+  ]
+}
