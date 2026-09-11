@@ -36,11 +36,10 @@ valid transition, open recovery, due settlement and malformed current re-serves.
 Canonicalization, semantic sequencing and cryptographic failures retain their
 separate codes; first-contact pull failure retains the `WIST2-E04` wrapper.
 Adoption in admission, historical replay, sealing and durable restoration
-remains required. The reference checks the supplied structural, ASCII hostname
-and non-leap RFC 3339 cases; these vectors do not establish the complete
-hostname or timestamp profile, leap-second eligibility, Delta chain/clock
-checks, or full key eligibility. Unsupported leap-second inputs fail this
-field-vector checker explicitly rather than silently selecting a policy.
+remains required. The reference checks the supplied structural and ASCII
+hostname cases plus the Publisher timestamp profile described below. These
+vectors do not establish complete hostname validation, Delta chain/clock
+checks, full key eligibility or live service conformance.
 
 WIST-1 §4 and draft ADR-0023 derive usable signing and recovery sets while
 preserving every signed entry. Exclusion precedes signer-candidate resolution;
@@ -81,14 +80,14 @@ decoder. Full field formats, role admission/replay/sealing/restoration,
 frozen appeal authority and transport-wrapper integration remain required.
 These vectors do not establish those operational obligations.
 
-The `publisher.schema.json` `wist-canonical-host` and `date-time` formats require checks
-beyond typed JSON deserialization. Optional fields present as `null`, empty
+The `publisher.schema.json` formats `wist-canonical-host` and
+`wist-publisher-timestamp` require checks beyond typed JSON deserialization. Optional fields present as `null`, empty
 signing arrays, string bounds and §4's safe-integer bound also need validation.
 Declaration idempotence exempts re-verifying a signature, not the requirement
 for a structurally valid Envelope. The Declaration field and host checkers in `tools/validate_examples.py` enable
 the documented format subsets. Other Declaration schema checks do not enable
 format assertions; their passing results establish neither complete host
-nor date-time format conformance.
+nor Publisher timestamp format conformance.
 
 ### Unresolved field profiles and recovery binding diagnostics
 
@@ -112,7 +111,8 @@ Unknown decoded A-labels stop that checker; it does not implement the complete
 Unicode 16.0 mapping/validation algorithm or recompute every input's
 canonical output. Independent UTS #46 vector consumption, live field
 validation, discovery, admission, sealing and restoration remain required.
-These vectors do not resolve full RFC 3339 eligibility or Snapshot recovery.
+These host vectors do not establish Publisher timestamp validation or
+Snapshot recovery.
 
 **Single-label eligibility remains unresolved.** Canonical Host and
 Declaration representation impose no two-label minimum, but WIST-4 §5.1
@@ -142,17 +142,33 @@ process authority and signature failure, preserving the applicable ignored-act
 disposition, with signed Registry Update cases before authenticated governance
 admission/replay. Schema-field checks do not establish this result.
 
-RFC 3339 field eligibility also needs a deterministic leap-event policy.
-WIST-1 §§3.4 and 5.1 retain RFC 3339; its
-[§5.7](https://www.rfc-editor.org/rfc/rfc3339.html#section-5.7)
-permits second 60 only at actual insertions, adjusted for the numeric offset,
-and excludes second 59 at a negative leap. The suite specifies no event-data
-authority/version or future-announcement treatment for `valid_from`.
-Ordering a represented leap second does not establish its eligibility.
-Resolve that policy with actual and offset-equivalent insertion cases,
-wrong-day and wrong-minute rejections, future-date handling and applicable
-negative-leap boundaries. No event table or narrower timestamp profile is
-selected here.
+**Publisher timestamp eligibility is specified by draft ADR-0026 and
+WIST-1 §3.4.** `observed_at` and every Declaration `valid_from` use an
+RFC 3339-derived Gregorian profile with 86,400 seconds per day, exact
+fractions and numeric offsets. All `:60` labels reject with `WIST1-E14`;
+second 59 remains eligible independently of leap announcements, including
+hypothetical deletions. Future ordinary dates need no announcement horizon.
+This is an explicit clock policy, not physical UTC event validation.
+`wist-publisher-timestamp` requires Gregorian calendar checks beyond its
+schema pattern, including year zero and arithmetic outside the written
+year range after offset subtraction.
+
+`declaration-fields.json` exercises signed field mutations in both key
+arrays and Delta `observed_at`, preserved recovery-key protection, exact
+inclusive key bounds, isolated signed E06/E07 clock-skew and predecessor
+comparison twins, and authenticated whole-Block rejection through due
+settlement. Historical insertion labels and their offset equivalents
+reject; wrong dates/minutes, future dates, a hypothetical negative-leap
+boundary, arbitrary fractions beyond common parser limits and offset/year
+boundaries discriminate alternative readings. The reference uses Python's
+Gregorian calendar and exact rational arithmetic, independently of the
+hard-coded expected cases. The hypothetical event predicts no real leap
+announcement. This evidence does not establish live admission, authenticated
+Delta chains, live clock acquisition/skew enforcement, recovery-union
+diagnostics, sealing or durable restoration. Independent vector consumption and adoption in
+every role remain required. An implementation that merely orders `:60`
+without rejecting it, rounds fractions, or rejects offset-adjusted values
+beyond its calendar range does not conform to this profile.
 
 WIST-1 §5.2 recovery admission requires verification under either the
 pre-recovery or window-owner signing Key Set. Complete bindings must remain
@@ -223,9 +239,9 @@ of a rejected ID. These replace inadmissible abstract recovery-set rotations.
 The histories do not establish durable queuing, Payload availability, quotas,
 actual survivor inclusion, status reporting or complete historical Delta
 verification. Its timestamp comparisons exercise whole-second literal-Z
-fixtures only; full RFC 3339 `observed_at` and `valid_from` validation, including
-fractional-second ordering, remains required. Those remain integrated
-validation obligations.
+fixtures only; integrated §3.4 Publisher timestamp validation for `observed_at`
+and `valid_from`, including exact fractional-second ordering, remains an
+integrated validation obligation.
 
 WIST-3 §7's Snapshot `declaration` tuple carries only the current Envelope
 and sealing height, and `recovery_window` carries only owner height and end.

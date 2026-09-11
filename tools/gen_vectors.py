@@ -917,11 +917,52 @@ def declaration_field_vectors():
              ("２０２６-08-04T12:00:00Z", False), (None, False),
              ("2026-08-04T12:00:00Z", True), ("2026-08-04t12:00:00.0000000001z", True),
              ("2026-08-04T09:00:00-03:00", True), ("0000-02-29T00:00:00Z", True)]
+    times.extend([
+        ("2026-08-04T10:00:00." + "0" * 4400 + "1Z", True),
+        ("2016-12-31T23:59:60Z", False),
+        ("2016-12-31T15:59:60-08:00", False),
+        ("2017-01-01T00:59:60+01:00", False),
+        ("2016-12-31t23:59:60.1234567890123456789z", False),
+        ("2016-12-30T23:59:60Z", False),
+        ("2016-12-31T23:58:60Z", False),
+        ("1972-06-30T23:59:60Z", False),
+        ("1990-12-31T23:59:60Z", False),
+        ("1990-12-31T15:59:60-08:00", False),
+        ("2030-06-30T23:59:60Z", False),
+        ("9999-12-31T23:59:60Z", False),
+        ("2016-12-31T23:59:59.999999999999999999999999999999Z", True),
+        ("2017-01-01T00:00:00Z", True),
+        ("2030-06-30T23:59:58Z", True),
+        ("2030-06-30T23:59:59Z", True),
+        ("2030-06-30T23:59:59.99999999999999999999Z", True),
+        ("2030-07-01T00:00:00Z", True),
+        ("2030-07-01T00:59:59+01:00", True),
+        ("2030-06-30T15:59:59-08:00", True),
+        ("0000-01-01T00:00:00+23:59", True),
+        ("9999-12-31T23:59:59.99999999999999999999-23:59", True),
+        ("0000-02-29t00:00:00.0-00:00", True),
+        ("2000-02-29T00:00:00+00:00", True),
+        ("1900-02-29T00:00:00Z", False),
+        ("0001-02-29T00:00:00Z", False),
+        ("0000-02-30T00:00:00Z", False),
+        ("-0001-12-31T23:59:59Z", False),
+        ("10000-01-01T00:00:00Z", False),
+        ("2026-08-04T12:00:61Z", False),
+        ("2026-08-04T12:60:00Z", False),
+        ("2026-08-04T12:00:00-24:00", False),
+        ("2026-08-04T12:00:00-00:60", False),
+        ("2026-08-04T12:00:00,5Z", False),
+        ("2026-08-04T12:00:00.٥Z", False),
+        ("2026-08-04T12:00:00Z\n", False),
+        ("2026-08-04 12:00:00Z", False),
+        ("2026-08-04T12:00:00+01", False),
+        ("2026-08-04T12:00:00+00:00[UTC]", False),
+    ])
     for position, (value, valid) in enumerate(times):
         add(f"signing valid from {position}", ["keys", 0, "valid_from"], value,
             expected="ordinary_rotation" if valid else "WIST1-E14")
-        if not valid:
-            add(f"recovery valid from {position}", ["recovery_keys", 0, "valid_from"], value)
+        add(f"recovery valid from {position}", ["recovery_keys", 0, "valid_from"], value,
+            expected="WIST1-E08" if valid else "WIST1-E14")
     for field, value in (("sig", None), ("unknown", True)):
         env = sign_envelope("publisher", ordinary, "test-k1")
         env[field] = value
@@ -941,14 +982,66 @@ def declaration_field_vectors():
     delta_cases = []
     for position, (value, valid) in enumerate(times):
         inner = {key: value for key, value in delta.items() if key != "payload"}
-        inner.update(change_type="delete", observed_at=value)
+        inner.update(change_type="delete", observed_at=value, prev=decl_hash(delta))
         delta_cases.append({"name": f"observed at {position}",
                             "envelope": sign_envelope("delta", inner, "test-k1"),
                             "expected": "well_formed" if valid else "WIST1-E14"})
     absent = {key: value for key, value in delta.items() if key not in ("payload", "observed_at")}
-    absent["change_type"] = "delete"
+    absent.update(change_type="delete", prev=decl_hash(delta))
     delta_cases.append({"name": "missing observed at", "envelope": sign_envelope("delta", absent, "test-k1"),
                         "expected": "WIST1-E14"})
+
+    key_time_cases = []
+    for name, valid_from, observed_at, expected in [
+        ("fraction beyond integer parser defaults", "2026-08-04T10:00:00." + "0" * 4400 + "2Z", "2026-08-04T10:00:00." + "0" * 4400 + "1Z", "WIST1-E02"),
+        ("fraction follows whole second", "2026-08-04T10:00:00Z", "2026-08-04T10:00:00.5Z", "key_bound_satisfied"),
+        ("arbitrary precision equality", "2026-08-04T10:00:00.000000000000000000000000000001Z", "2026-08-04T07:00:00.000000000000000000000000000001000-03:00", "key_bound_satisfied"),
+        ("no fractional rounding", "2026-08-04T10:00:00.000000000000000000000000000002Z", "2026-08-04T10:00:00.000000000000000000000000000001Z", "WIST1-E02"),
+        ("unknown local offset equality", "2026-08-04T10:00:00-00:00", "2026-08-04t10:00:00.000z", "key_bound_satisfied"),
+        ("numeric offset equality", "2026-08-04T10:00:00+01:30", "2026-08-04T08:30:00Z", "key_bound_satisfied"),
+        ("positive leap boundary", "2016-12-31T23:59:59.9Z", "2017-01-01T00:00:00Z", "key_bound_satisfied"),
+        ("inserted leap label invalid", "2016-12-31T23:59:59Z", "2016-12-31T23:59:60Z", "WIST1-E14"),
+        ("future leap key invalid", "2030-06-30T23:59:60Z", "2030-07-01T00:00:00Z", "WIST1-E14"),
+        ("hypothetical deletion keeps 59", "2030-06-30T23:59:58Z", "2030-06-30T23:59:59Z", "key_bound_satisfied"),
+        ("hypothetical deletion boundary", "2030-06-30T23:59:59.9Z", "2030-07-01T00:00:00Z", "key_bound_satisfied"),
+        ("future key retains inclusive bound", "2030-07-01T00:00:00Z", "2030-06-30T23:59:59.99999999999999999999Z", "WIST1-E02"),
+        ("offset below written year range", "0000-01-01T00:00:00+23:59", "0000-01-01T00:00:00+23:58", "key_bound_satisfied"),
+        ("offset above written year range", "9999-12-31T23:59:59-23:58", "9999-12-31T23:59:59.00000000001-23:59", "key_bound_satisfied"),
+        ("year zero leap day", "0000-02-29T23:59:59Z", "0000-03-01T00:00:00Z", "key_bound_satisfied"),
+    ]:
+        declaration = dict(publisher, keys=[dict(publisher["keys"][0], valid_from=valid_from)])
+        inner = {key: value for key, value in delta.items() if key != "payload"}
+        inner.update(change_type="delete", observed_at=observed_at, prev=decl_hash(delta))
+        key_time_cases.append({"name": name,
+                               "declaration": sign_envelope("publisher", declaration, "test-k1"),
+                               "envelope": sign_envelope("delta", inner, "test-k1"),
+                               "expected": expected})
+    elapsed_cases = [
+        {"start": "2016-12-31T23:59:59Z", "end": "2017-01-01T00:00:00Z", "seconds": "1"},
+        {"start": "2030-06-30T23:59:58Z", "end": "2030-07-01T00:00:00Z", "seconds": "2"},
+        {"start": "2030-06-30T15:59:58-08:00", "end": "2030-07-01T01:00:00+01:00", "seconds": "2"},
+        {"start": "0000-02-28T00:00:00Z", "end": "0000-03-01T00:00:00Z", "seconds": "172800"},
+        {"start": "2026-08-04T10:00:00Z", "end": "2026-08-04T10:10:00.00000000000000000001Z", "seconds": "600.00000000000000000001"},
+    ]
+
+    relation_cases = []
+    for name, kind, reference, observed_at, expected in [
+        ("skew bound inclusive", "clock", "2026-08-04T10:00:00Z", "2026-08-04T07:10:00-03:00", "relation_satisfied"),
+        ("skew bound exact excess", "clock", "2026-08-04T10:00:00Z", "2026-08-04T10:10:00.00000000000000000001Z", "WIST1-E06"),
+        ("skew bound tiny older", "clock", "2026-08-04T10:00:00Z", "2026-08-04T10:09:59.99999999999999999999Z", "relation_satisfied"),
+        ("equal predecessor offset", "predecessor", "2026-08-04T10:00:00Z", "2026-08-04T07:00:00.000-03:00", "WIST1-E07"),
+        ("strict predecessor tiny later", "predecessor", "2026-08-04T10:00:00Z", "2026-08-04T10:00:00.00000000000000000001Z", "relation_satisfied"),
+        ("strict predecessor tiny earlier", "predecessor", "2026-08-04T10:00:00.00000000000000000002Z", "2026-08-04T10:00:00.00000000000000000001Z", "WIST1-E07"),
+    ]:
+        inner = {key: value for key, value in delta.items() if key != "payload"}
+        inner.update(change_type="delete", observed_at=observed_at, prev=decl_hash(delta))
+        case = {"name": name, "kind": kind, "reference": reference, "expected": expected}
+        if kind == "predecessor":
+            predecessor = dict(delta, observed_at=reference)
+            case["predecessor"] = sign_envelope("delta", predecessor, "test-k1")
+            inner["prev"] = decl_hash(predecessor)
+        case["envelope"] = sign_envelope("delta", inner, "test-k1")
+        relation_cases.append(case)
 
     def block(previous, height, batch):
         entries = sorted(map(recovery_order_entry, batch),
@@ -991,17 +1084,35 @@ def declaration_field_vectors():
                       len(history), [other, env])
         batches.append({"name": "malformed re serve " + prefix, "prefix": prefix, "block": batch,
                         "pinned_head": decl_hash(batch["header"]), "expected": "WIST1-E14"})
+    for prefix in ("empty", "initial", "open", "deadline"):
+        history = conflicts["prefixes"][prefix]
+        current = initial if prefix in ("empty", "initial") else history[2]["entries"][0]["body"]
+        for array in ("keys", "recovery_keys"):
+            inner = json.loads(json.dumps(current["publisher"]))
+            inner[array][0]["valid_from"] = "2016-12-31T23:59:60Z"
+            env = sign_envelope("publisher", inner, "test-k1")
+            batch = block(decl_hash(history[-1]["header"]) if history else "sha256:genesis",
+                          len(history), [other, env])
+            batches.append({"name": "leap field rolls back " + array + " " + prefix,
+                            "prefix": prefix, "block": batch,
+                            "pinned_head": decl_hash(batch["header"]), "expected": "WIST1-E14"})
     write_json(WIST1 / "declaration-fields.json", {
         "note": "WIST-1 sections 3.4, 5.1 and 7. Signature-valid field mutations use the supplied fixture "
                 "author key independently of eligibility. Each Declaration case replaces stored; each batch "
                 "appends to its named authenticated prefix. Rejection preserves the full accepted state and head, "
                 "including due settlement and other domains. Delta cases assert timestamp field syntax only, "
-                "not clock bounds, key-time ordering, chain or Payload eligibility. Date-time coverage excludes "
-                "leap seconds; hostname coverage is limited to ASCII structural examples. No full field profile, "
+                "not full clock, chain or Payload eligibility. Timestamp fields follow the event-independent "
+                "Gregorian profile in WIST-1 section 3.4, rejecting every leap label; the 2030-06-30 "
+                "deletion is hypothetical and asserts no IERS announcement. Key-time cases authenticate "
+                "one supplied binding and assert only field validity and its inclusive bound. Elapsed cases "
+                "use exact civil-clock seconds. Relation cases isolate the inclusive 600-second clock bound "
+                "and strict predecessor ordering; predecessor authorship and ID are checked but lower Log "
+                "position, chain availability and clock acquisition are supplied assumptions. Hostname coverage is limited to ASCII structural examples. No full field profile, "
                 "cryptographic key admission, Snapshot restoration or live service conformance is asserted.",
         "log_key": conflicts["log_key"], "author_key": b64u(pub_raw), "stored": initial,
         "recovery_window_days": 7, "prefixes": conflicts["prefixes"],
-        "cases": cases, "delta_cases": delta_cases, "block_cases": batches})
+        "cases": cases, "delta_cases": delta_cases, "block_cases": batches,
+        "key_time_cases": key_time_cases, "elapsed_cases": elapsed_cases, "relation_cases": relation_cases})
 
 
 declaration_field_vectors()

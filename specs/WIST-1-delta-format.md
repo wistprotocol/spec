@@ -232,14 +232,47 @@ content is no longer served.
 
 ### 3.4. `observed_at`
 
-The instant the Publisher observed the state being described, as an
-RFC 3339 UTC timestamp. It MUST NOT be more than 10 minutes in the future
-relative to the validator's clock (error `WIST1-E06`), and MUST be strictly
+The instant the Publisher observed the state being described, as a
+**Publisher timestamp** in the profile below. It MUST NOT be more than
+10 minutes in the future relative to the validator's clock (error `WIST1-E06`), and MUST be strictly
 greater than the `observed_at` of the Delta referenced by `prev` (error
-`WIST1-E07`). A missing, non-string or malformed RFC 3339 `observed_at` is
+`WIST1-E07`). A missing, non-string or malformed `observed_at` is
 `WIST1-E14`; validate its format before comparing it with a clock, predecessor
-or key validity bound. This diagnostic does not narrow RFC 3339 to the
-whole-second literal-Z profile used for Log timestamps.
+or key validity bound.
+
+**Publisher timestamp profile.** `observed_at` and every Declaration
+`valid_from` (§5.1) MUST use this RFC 3339-derived Gregorian profile:
+
+- ASCII `YYYY-MM-DD`, `T` or `t`, `hh:mm:ss`, an optional decimal point
+  followed by one or more ASCII fractional digits, then `Z`, `z`, or a
+  numeric `+hh:mm`/`-hh:mm` offset. No spaces or trailing characters.
+- Written years 0000–9999 and valid Gregorian dates, including leap year
+  zero. Hours are 00–23; minutes and seconds are 00–59. Numeric offset
+  hours are 00–23 and minutes 00–59. There is no fractional precision cap.
+- Second 60 MUST be rejected without clamping or normalization, even at
+  an actual leap insertion or its equivalent local offset. Every Gregorian
+  day has exactly 86,400 seconds and every minute permits second 59,
+  independent of positive or negative leap announcements. This clock rule
+  replaces RFC 3339 §5.7's event-dependent second eligibility. Validators
+  MUST NOT consult a leap table, wall-clock date or announcement horizon
+  to determine field validity. Ordinary future dates remain valid fields;
+  the Delta's clock-skew check still applies separately.
+
+For comparisons and arithmetic, subtract the numeric offset from the
+Gregorian day/hour/minute/second value, using 1970-01-01T00:00:00Z as zero,
+and add the exact decimal fraction. `-00:00` denotes a known instant with
+unknown local offset and contributes zero, as do `Z`, `z` and `+00:00`.
+Offset subtraction MAY produce an arithmetic instant outside the written
+four-digit year range; it does not invalidate a well-formed field. Compare
+all fractional digits without rounding or truncation, including for the
+inclusive `valid_from` bound and the 600-second skew bound. Preserve the
+original string for JCS, hashing and signatures. For example, the distance
+from 2016-12-31T23:59:59Z to 2017-01-01T00:00:00Z is one second; from
+`10:00:00Z` to `10:00:00.5Z` on the same date it is half a second.
+
+The whole-second literal-Z Log profile remains distinct. This profile does
+not redefine descriptive timestamps elsewhere in the suite. See
+[ADR-0026](../decisions/0026-publisher-timestamp-profile.md).
 
 ### 3.5. `prev`
 
@@ -599,8 +632,8 @@ unknown members, optional members present as `null`, empty `keys`, string
 bounds, noncanonical or malformed host fields, malformed `valid_from` in either key
 array, and malformed signature-field encodings. Schema `format` constraints
 are assertions, not optional annotations. Apply the fields' specified
-formats, including RFC 3339 for `valid_from`; do not substitute the narrower
-Log timestamp profile. A valid encoding that fails cryptographic key or
+formats, including §3.4's Publisher timestamp profile for `valid_from`;
+do not substitute the narrower Log timestamp profile. A valid encoding that fails cryptographic key or
 signature verification is governed by §4 and §5.2, not this syntax error.
 
 Perform this field validation before Declaration sequencing, same-Block
@@ -1168,6 +1201,8 @@ copies already served.
 - [ ] Treats identical resubmissions as idempotent (§4)
 - [ ] Rejects Declarations served over plain HTTP (§5.1)
 - [ ] Applies the 10-minute clock-skew allowance to `observed_at` (§3.4)
+- [ ] Validates Publisher timestamps without leap-event data, rejects `:60`
+      and compares exact offset-adjusted fractions (§3.4, §5.1)
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
       by Block height (§5.2)
 - [ ] Seals a Delta only where it verifies under the Key Set resolved at

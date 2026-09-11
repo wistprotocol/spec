@@ -23,9 +23,10 @@ retain their `WIST2-E04` wrapper and noise accounting.
 
 The separate [ADR-0025](0025-canonical-base64url.md) extends `WIST1-E14`
 to malformed base64url throughout the suite and defines that encoding profile.
-Otherwise existing field formats are unchanged: format checks are required,
-`valid_from` and `observed_at` retain RFC 3339, and Log timestamps retain
-their separately specified profile. This decision assigns diagnostics; it
+Format checks are required. The separate
+[ADR-0026](0026-publisher-timestamp-profile.md) defines `valid_from` and
+`observed_at`; Log timestamps retain their separately specified profile.
+This decision assigns diagnostics; it
 does not redefine leap-second eligibility, hostname canonicalization,
 cryptographic key admission or object-version compatibility.
 
@@ -43,6 +44,6 @@ The schema now restates the already-required safe-integer maximum for
 `vectors/wist1/declaration-fields.json` distinguish field errors, semantic
 errors, signature errors, idempotence and rollback. The reference exercises
 a documented subset of field formats; this evidence does not establish
-complete RFC 3339, hostname or live admission/restart conformance.
+complete hostname, integrated Delta or live admission/restart conformance.
 
 The undeployed draft changes under [PUBLICATION.md](../PUBLICATION.md).

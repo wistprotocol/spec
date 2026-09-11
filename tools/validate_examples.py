@@ -2,6 +2,8 @@
 """Validate examples/ against schemas/ and verify vectors/. Exit 0 = green."""
 import base64, calendar, collections, copy, datetime, hashlib, hmac, itertools, json, pathlib, re, sys, time
 
+from fractions import Fraction
+
 import rfc8785
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -1080,6 +1082,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
     ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "response_commitment"): "audit:commitments",
     ("vectors/wist3/timestamps.json", "credit_commitment"): "audit:commitments",
@@ -4646,6 +4649,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-key-eligibility.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
+    ("vectors/wist1/declaration-fields.json", "prev"): "a Delta predecessor ID; relation cases authenticate the supplied predecessor",
     ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
     ("vectors/wist1/declaration-fields.json", "author_key"): "the fixture author public key",
@@ -5918,29 +5922,51 @@ def _declaration_host_vectors():
 
 check('vectors:wist1-declaration-hosts', _declaration_host_vectors)
 
+def publisher_instant(value):
+    if not isinstance(value, str):
+        raise ValueError("Publisher timestamp must be a string")
+    match = re.fullmatch(
+        r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})"
+        r"(?:\.([0-9]+))?([Zz]|([+-])([0-9]{2}):([0-9]{2}))", value)
+    if not match:
+        raise ValueError("invalid Publisher timestamp grammar")
+    year, month, day, hour, minute, second = map(int, match.groups()[:6])
+    civil = datetime.datetime(year or 400, month, day, hour, minute, second)
+    elapsed = civil - datetime.datetime(1970, 1, 1)
+    seconds = (elapsed.days - (146097 if year == 0 else 0)) * 86400 + elapsed.seconds
+    if match[9]:
+        offset_hours, offset_minutes = int(match[10]), int(match[11])
+        if offset_hours > 23 or offset_minutes > 59:
+            raise ValueError("invalid Publisher timestamp offset")
+        offset = offset_hours * 3600 + offset_minutes * 60
+        seconds -= offset if match[9] == '+' else -offset
+    fraction = Fraction(0)
+    if match[7]:
+        digits, numerator = match[7], 0
+        for start in range(0, len(digits), 9):
+            chunk = digits[start:start + 9]
+            numerator = numerator * 10 ** len(chunk) + int(chunk)
+        fraction = Fraction(numerator, 10 ** len(digits))
+    return seconds + fraction
+
+
+def _publisher_timestamp_format(value):
+    if not isinstance(value, str):
+        return True
+    try:
+        publisher_instant(value)
+        return True
+    except ValueError:
+        return False
+
+
 def _declaration_field_vectors():
     vector = json.loads((ROOT / "vectors/wist1/declaration-fields.json").read_text())
     formats = FormatChecker(formats=[])
 
     formats.checks('wist-canonical-host')(_declaration_host_format)
 
-    @formats.checks("date-time")
-    def timestamp(value):
-        if not isinstance(value, str):
-            return True
-        match = re.fullmatch(
-            r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})"
-            r"(?:\.[0-9]+)?(?:[Zz]|[+-]([0-9]{2}):([0-9]{2}))", value)
-        if not match:
-            return False
-        year, month, day, hour, minute, second = map(int, match.groups()[:6])
-        if second == 60:
-            raise NotImplementedError("Declaration field fixtures do not establish leap-second eligibility")
-        try:
-            datetime.datetime(year or 400, month, day, hour, minute, second)
-        except ValueError:
-            return False
-        return match[7] is None or (int(match[7]) <= 23 and int(match[8]) <= 59)
+    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
 
     validator = Draft202012Validator(json.loads(
         (ROOT / "schemas/publisher.schema.json").read_text()), format_checker=formats)
@@ -5963,8 +5989,56 @@ def _declaration_field_vectors():
         env = case["envelope"]
         author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
         value = env["delta"].get("observed_at")
-        result = "well_formed" if isinstance(value, str) and timestamp(value) else "WIST1-E14"
+        result = "well_formed" if isinstance(value, str) and _publisher_timestamp_format(value) else "WIST1-E14"
         assert result == case["expected"], case["name"]
+    delta_validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/delta.schema.json").read_text()), format_checker=formats)
+    for case in vector["delta_cases"]:
+        assert delta_validator.is_valid(case["envelope"]) == (case["expected"] == "well_formed"), case["name"]
+    for case in vector["key_time_cases"]:
+        declaration, envelope = case["declaration"], case["envelope"]
+        for env, inner in ((declaration, "publisher"), (envelope, "delta")):
+            author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env[inner]))
+            changed = copy.deepcopy(env[inner])
+            if inner == "publisher":
+                changed["keys"][0]["valid_from"] += "0"
+            else:
+                changed["observed_at"] += "0"
+            try:
+                author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(changed))
+            except InvalidSignature:
+                pass
+            else:
+                raise AssertionError("changed timestamp retained its signature")
+        result = field_error(declaration)
+        if result is None and not delta_validator.is_valid(envelope):
+            result = "WIST1-E14"
+        if result is None:
+            observed = publisher_instant(envelope["delta"]["observed_at"])
+            bound = publisher_instant(declaration["publisher"]["keys"][0]["valid_from"])
+            result = "key_bound_satisfied" if observed >= bound else "WIST1-E02"
+        assert result == case["expected"], case["name"]
+    for case in vector["relation_cases"]:
+        env = case["envelope"]
+        assert delta_validator.is_valid(env), case["name"]
+        author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
+        observed, reference = publisher_instant(env["delta"]["observed_at"]), publisher_instant(case["reference"])
+        if case["kind"] == "clock":
+            result = "WIST1-E06" if observed - reference > 600 else "relation_satisfied"
+        else:
+            assert case["kind"] == "predecessor"
+            previous = case["predecessor"]
+            author.verify(b64u_decode(previous["sig"]["value"]), rfc8785.dumps(previous["delta"]))
+            assert previous["delta"]["observed_at"] == case["reference"]
+            assert env["delta"]["url"] == previous["delta"]["url"]
+            assert env["delta"]["prev"] == "sha256:" + hashlib.sha256(rfc8785.dumps(previous["delta"])).hexdigest()
+            result = "WIST1-E07" if observed <= reference else "relation_satisfied"
+        assert result == case["expected"], case["name"]
+    for case in vector["elapsed_cases"]:
+        assert publisher_instant(case["end"]) - publisher_instant(case["start"]) == Fraction(case["seconds"])
+    assert publisher_instant("1970-01-01T00:00:00Z") == 0
+    assert publisher_instant("0000-01-01T00:00:00+23:59") == -62167305540
+    assert publisher_instant("9999-12-31T23:59:59-23:59") == 253402387139
     _, _, _, apply_block = _recovery_history_reference(vector, field_error)
     outcomes, prefixes = set(), set()
     for case in vector["block_cases"]:
@@ -7094,6 +7168,7 @@ check("schema:wist4-sealed-at-precision", _dc4_sealed_at_precision)
 # does not. Declaring a field unanchored is the deliberate act of asserting
 # that nothing recomputable is decided by comparing it to the Log's own clock.
 ANCHORED = "anchored to a Block `sealed_at`"
+PUBLISHER_TIMESTAMP_PATTERN = '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])'
 SEALED_AT_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"
 
 TIMESTAMP_FIELDS = {
@@ -7132,7 +7207,7 @@ TIMESTAMP_FIELDS = {
 
 def _walk_timestamps(node, schema_name, found, key=None, root=None,
                      seen=frozenset(), path=""):
-    """Every `format: date-time` leaf in a schema, by the JSON path reaching it."""
+    """Every timestamp-format leaf in a schema, by the JSON path reaching it."""
     if root is None:
         root = node
     if not isinstance(node, dict):
@@ -7142,7 +7217,7 @@ def _walk_timestamps(node, schema_name, found, key=None, root=None,
         return found
     if node.get("$ref"):
         seen = seen | {node["$ref"]}
-    if node.get("format") == "date-time":
+    if node.get("format") in ("date-time", "wist-publisher-timestamp"):
         found.append((schema_name, path, node.get("pattern")))
 
     def step(sub, sub_key, seg):
@@ -7194,9 +7269,10 @@ def _timestamp_anchoring():
                 f"{schema_name}: {spath} is compared against a Block `sealed_at` but carries "
                 f"pattern {pattern!r}, not the whole-second-plus-Z form that field carries")
         else:
-            assert pattern is None, (
-                f"{schema_name}: {spath} is declared unanchored yet constrained; declare it "
-                "anchored or drop the pattern")
+            publisher_field = (schema_name == "delta.schema.json" or
+                               schema_name == "publisher.schema.json")
+            assert pattern == (PUBLISHER_TIMESTAMP_PATTERN if publisher_field else None), (
+                f"{schema_name}: {spath} has an unexpected unanchored timestamp pattern")
             assert len(declared) > 40, \
                 f"{schema_name}: {spath} is declared unanchored with no stated reason"
     assert not undeclared, (

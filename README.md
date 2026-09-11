@@ -98,6 +98,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0022](decisions/0022-log-timestamp-seconds.md) — Leap-free Log timestamps
 - [ADR-0023](decisions/0023-declaration-key-binding.md) — Unambiguous Declaration key binding and identity continuity
 - [ADR-0025](decisions/0025-canonical-base64url.md) — Canonical base64url at validation
+- [ADR-0026](decisions/0026-publisher-timestamp-profile.md) — Deterministic Publisher timestamps
 
 ## Licenses
 

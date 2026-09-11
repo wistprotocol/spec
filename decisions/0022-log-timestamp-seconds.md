@@ -25,9 +25,9 @@ This profile applies to Block and Checkpoint `sealed_at`, Feed
 `generated_at`, Audit Record `fetched_at`, Registry Update `effective_at`,
 notice `appeal_deadline`, and every Snapshot state timestamp specified by
 WIST-3 §7 in that same form. Calendar validity remains required in addition
-to matching a schema pattern. Other fields retaining the broader RFC 3339
-format are outside this decision; their precision and offset rules do not
-change.
+to matching a schema pattern. Other fields are outside this decision;
+[ADR-0026](0026-publisher-timestamp-profile.md) separately defines Publisher
+`observed_at` and `valid_from`, preserving their fractions and offsets.
 
 ## Consequences and alternatives
 
