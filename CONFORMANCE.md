@@ -24,6 +24,14 @@ add positive and negative cases without changing the specified algorithm.
 
 ## Recovery history resolution
 
+WIST-1 §5.2 and WIST-4 §9 freeze each recovery window’s length at its
+owner Block’s in-force parameter map. `recovery_window_cases` in
+`vectors/wist4/parameter-combinations.json` exercises exact effective-time
+and settlement boundaries, later shortening/lengthening, in-window followers,
+new windows and exact arithmetic beyond signed 64-bit seconds. Accepted
+amendments and eligible recovery events are supplied inputs; integrated
+replay must derive them from authenticated history before applying the rule.
+
 WIST-1 §5.2 and WIST-3 §3.3 select recovery ownership in ascending
 `(Block height, seq)` order. `vectors/wist1/recovery-order.json` exercises
 signed Declarations and predecessor links in authenticated Block chains,

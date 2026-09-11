@@ -2973,6 +2973,7 @@ whose `effective_at` equals the anchor instant is included.
 | §5.1 reveal minimum and budget-rotation parameters | Newest bound Delta's Block; S is read there too |
 | §5.1 scoring and associated serving window | Reveal Block |
 | §5 extraction and similarity-band profile, including §5.2 hard hits | Audited Delta's Block: `shingle_size`, `min_observed_words`, `similarity_consistent`, `similarity_variance_floor` |
+| WIST-1 §5.2 recovery window length | Window owner Declaration’s Block; freeze the end through later amendments and in-window recoveries |
 | §7 appeal window and appeal seal allowance | Notice Block |
 | §7 ruling deadline | Accepted appeal's Block |
 

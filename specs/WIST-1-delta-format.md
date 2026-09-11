@@ -718,7 +718,12 @@ by what signs it, using the authenticated public key resolved above:
   **recovery rotation**. The recovery window (Parameter Registry:
   `recovery_window_days`, 7 days) opens at the `sealed_at` of the Block
   sealing that Declaration's own `publisher_declaration` Entry, and during
-  it the domain's Deltas are queued rather than sealed. A Delta is queued
+  it the domain's Deltas are queued rather than sealed. Read
+  `recovery_window_days` from the parameter map in force at that opening
+  Block, including amendments effective exactly then. Freeze the end at
+  that Block’s `sealed_at` plus that many 86,400-second days. Later parameter
+  amendments and in-window recovery rotations MUST NOT move the end.
+  A Delta is queued
   when it verifies under **either** the Key Set in effect immediately
   before the recovery **or** the recovery Declaration's own — the union,
   because the Publisher that has just recovered must be able to keep

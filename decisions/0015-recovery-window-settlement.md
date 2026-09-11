@@ -42,6 +42,18 @@ two recoveries whose sequence order reverses their leaf-hash order.
 This changes no object fields or schema constraints; it defines application
 order within the existing signed format under PUBLICATION.md.
 
+**The owner freezes the recovery deadline.** Read `recovery_window_days`
+from the map in force at the owner Block, including amendments effective
+exactly at its `sealed_at`. Add that many 86,400-second days and retain the
+end through later amendments and recoveries inside the window. Recomputing
+from the current map could release queued Deltas early or extend their hold;
+reanchoring at a follower would let repeated rotations postpone settlement.
+A new window after settlement reads its own owner Block’s map. This adds no
+object fields or schema constraints. `recovery_window_cases` in
+`vectors/wist4/parameter-combinations.json` distinguishes these readings
+with explicitly accepted parameter schedules and eligible recovery events;
+those stage inputs do not establish Declaration or amendment authentication.
+
 **Equal-sequence groups cannot choose authority by storage order.** Evaluate
 each domain's group against the state after settlement and lower-sequence
 groups. A group containing only re-serves of the current canonical

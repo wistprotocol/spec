@@ -3958,6 +3958,35 @@ for values, declared, result in (([], BLOCK_CAP_DEFAULT+1, "frame"), ([2*BLOCK_C
         "transport_bound":max([BLOCK_CAP_DEFAULT]+values),"result":result,
         "error":None if result=="decoded" else "WIST3-E03"})
 
+recovery_window_cases = []
+for label, changes, openings, probes in [
+    ("default exact settlement boundary", [], [10], [16 * 86400 + 86399, 17 * 86400]),
+    ("later shortening preserves original end", [(0, 11, 2)], [10], [12 * 86400, 17 * 86400]),
+    ("later lengthening preserves original end", [(0, 11, 20)], [10], [17 * 86400, 30 * 86400]),
+    ("amendment effective at owner applies", [(0, 10, 2)], [10], [12 * 86400 - 1, 12 * 86400]),
+    ("in window recovery does not reanchor", [(0, 11, 2)], [10, 11], [13 * 86400, 17 * 86400]),
+    ("new window reads amended length", [(0, 11, 2)], [10, 17], [17 * 86400, 19 * 86400]),
+    ("maximum wire days retains exact endpoint", [(0, 10, (1 << 53) - 1)], [10], [9999 * 86400]),
+]:
+    amendments = [{"parameter": "recovery_window_days", "value": value,
+                   "block_height": i, "entry_index": 0,
+                   "sealed_at_s": sealed * 86400, "effective_at_s": effective * 86400}
+                  for i, (sealed, effective, value) in enumerate(changes)]
+    events = []
+    end = None
+    owner = None
+    for day in openings:
+        at = day * 86400
+        if end is None or at >= end:
+            owner = at
+            applicable = [change for change in amendments if change["effective_at_s"] <= at]
+            days = applicable[-1]["value"] if applicable else 7
+            end = at + days * 86400
+        events.append({"sealed_at_s": at, "owner_at_s": owner, "window_end_s": str(end)})
+    recovery_window_cases.append({"label": label, "accepted_amendments": amendments,
+                                  "eligible_recoveries": events,
+                                  "probes": [{"at_s": at, "open": at < end} for at in probes]})
+
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "note": "WIST-4 §9 combination rules. `cases`: the coverage-countability rule — each case gives the four participants, the sum the rule bounds, and — from a simulation of an Auditor that fails every Block on a fully sealed grid — the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window — each case gives the three participants, the sum, and the latest instant after B₁ at which a Record published at the extension deadline seals on a fully sealed grid.",
     "window_days": 30,
@@ -3970,6 +3999,7 @@ write_json(WIST4 / "parameter-combinations.json", spaced_labels({
     "prospective_cases": prospective_cases,
     "retention_profiles": RETENTION_PROFILES,
     "retention_cases": retention_cases,
+    "recovery_window_cases": recovery_window_cases,
     "cadence_transition_cases": cadence_transition_cases,
     "wire_public_key": b64u(pub_raw),
     "wire_cases": parameter_wire_cases,

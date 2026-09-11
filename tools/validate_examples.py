@@ -2734,6 +2734,37 @@ def _prospective_values(defaults, changes, at_s):
             values[c["parameter"]] = c["value"]
     return values
 
+def _recovery_parameter_windows():
+    vector = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    seen = set()
+    for case in vector["recovery_window_cases"]:
+        windows = []
+        for change in case["accepted_amendments"]:
+            assert change["parameter"] == "recovery_window_days"
+            assert 1 <= change["value"] <= (1 << 53) - 1
+            assert change["effective_at_s"] >= change["sealed_at_s"] + 7 * 86400
+        for event in case["eligible_recoveries"]:
+            at = event["sealed_at_s"]
+            active = next((window for window in windows if window[0] <= at < window[1]), None)
+            if active is None:
+                days = _prospective_values({"recovery_window_days": 7},
+                                           case["accepted_amendments"], at)["recovery_window_days"]
+                active = (at, at + days * 86400)
+                windows.append(active)
+            assert active == (event["owner_at_s"], int(event["window_end_s"])), case["label"]
+        for probe in case["probes"]:
+            assert probe["open"] == any(start <= probe["at_s"] < end for start, end in windows), case["label"]
+        seen.add(case["label"])
+    assert len(seen) == 7
+    assert any(int(event["window_end_s"]) > (1 << 63) - 1
+               for case in vector["recovery_window_cases"] for event in case["eligible_recoveries"])
+    prose = (ROOT / "specs/WIST-4-audit-reputation-governance.md").read_text()
+    assert "| WIST-1 §5.2 recovery window length | Window owner Declaration’s Block;" in prose
+
+
+check("vectors:wist4-recovery-parameter-windows", _recovery_parameter_windows)
+
+
 def _dc4_prospective_parameters():
     v = json.loads((ROOT / "vectors" / "wist4" / "parameter-combinations.json").read_text())
     for case in v["prospective_cases"]:

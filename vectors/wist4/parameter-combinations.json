@@ -2003,6 +2003,215 @@
       ]
     }
   ],
+  "recovery_window_cases": [
+    {
+      "label": "default exact settlement boundary",
+      "accepted_amendments": [],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "owner_at_s": 864000,
+          "window_end_s": "1468800"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 1468799,
+          "open": true
+        },
+        {
+          "at_s": 1468800,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "later shortening preserves original end",
+      "accepted_amendments": [
+        {
+          "parameter": "recovery_window_days",
+          "value": 2,
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "effective_at_s": 950400
+        }
+      ],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "owner_at_s": 864000,
+          "window_end_s": "1468800"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 1036800,
+          "open": true
+        },
+        {
+          "at_s": 1468800,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "later lengthening preserves original end",
+      "accepted_amendments": [
+        {
+          "parameter": "recovery_window_days",
+          "value": 20,
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "effective_at_s": 950400
+        }
+      ],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "owner_at_s": 864000,
+          "window_end_s": "1468800"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 1468800,
+          "open": false
+        },
+        {
+          "at_s": 2592000,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "amendment effective at owner applies",
+      "accepted_amendments": [
+        {
+          "parameter": "recovery_window_days",
+          "value": 2,
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "effective_at_s": 864000
+        }
+      ],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "owner_at_s": 864000,
+          "window_end_s": "1036800"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 1036799,
+          "open": true
+        },
+        {
+          "at_s": 1036800,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "in window recovery does not reanchor",
+      "accepted_amendments": [
+        {
+          "parameter": "recovery_window_days",
+          "value": 2,
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "effective_at_s": 950400
+        }
+      ],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "owner_at_s": 864000,
+          "window_end_s": "1468800"
+        },
+        {
+          "sealed_at_s": 950400,
+          "owner_at_s": 864000,
+          "window_end_s": "1468800"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 1123200,
+          "open": true
+        },
+        {
+          "at_s": 1468800,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "new window reads amended length",
+      "accepted_amendments": [
+        {
+          "parameter": "recovery_window_days",
+          "value": 2,
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "effective_at_s": 950400
+        }
+      ],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "owner_at_s": 864000,
+          "window_end_s": "1468800"
+        },
+        {
+          "sealed_at_s": 1468800,
+          "owner_at_s": 1468800,
+          "window_end_s": "1641600"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 1468800,
+          "open": true
+        },
+        {
+          "at_s": 1641600,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "maximum wire days retains exact endpoint",
+      "accepted_amendments": [
+        {
+          "parameter": "recovery_window_days",
+          "value": 9007199254740991,
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "effective_at_s": 864000
+        }
+      ],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "owner_at_s": 864000,
+          "window_end_s": "778222015609622486400"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 863913600,
+          "open": true
+        }
+      ]
+    }
+  ],
   "cadence_transition_cases": [
     {
       "label": "new map alone misses old extension",
