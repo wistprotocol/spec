@@ -49,8 +49,9 @@ compromised key's Deltas still reach the queue, where the settlement rejects
 them in the open rather than at an ingest no replaying party can see.
 
 **Supersession covers everything outside the recovery chain.** At the
-window's end, every Declaration sealed inside it other than the recovery
-Declaration and the chain legitimately following it is superseded, whatever
+window's end, every Declaration accepted after its owner while it is open,
+other than the recovery Declaration and the chain legitimately following it,
+is superseded, whatever
 its classification. A Declaration legitimately follows when its authenticated
 signing public key belongs to its named predecessor's `keys` or
 `recovery_keys`, that predecessor being the current recovery-chain head.
@@ -79,6 +80,22 @@ classification alone is not `WIST1-E08`; all sequence, predecessor, signature
 and recovery-key checks still apply. Rejecting an otherwise valid attempt at
 ingest would leave it invisible to a party replaying the Log.
 
+**Competing Declarations do not reset the recovering identity.** The owner
+preserves the identity immediately preceding its application. A fresh
+competitor accepted after it changes the accepted head and sequence floor,
+but not WIST-4 §6.3's reset height, reputation scope, findings or sanction
+state. The same applies to a competitor's ordinary or recovery descendants.
+This rule holds in every open prefix, so settlement has no identity effects
+to undo. Age, audit credit, decay, findings and ordinary sanction processes
+continue during the window; settlement does not roll them back or freeze
+their inputs. Signature eligibility remains a separate requirement.
+
+Declarations preceding the owner in its own Block are not competitors. A
+fresh predecessor resets normally, and the owner preserves that new identity.
+The entire opening Block still belongs to the Delta-queuing interval.
+After settlement, a fresh Declaration naming the restored head resets
+normally unless another window has already opened in application order.
+
 **Settlement revalidates against the chain's newest Declaration** — the
 recovery Declaration's own Key Set unless a legitimate follower was sealed
 inside the window.
@@ -96,6 +113,20 @@ extensions past competitors, and rejects stale predecessors and recovery-key
 replacement without authority. No object field or schema constraint changes.
 
 ## Alternatives considered
+
+**Reset on acceptance and restore at settlement.** Rejected because it
+temporarily discards the recovering identity's audit credit and findings,
+clears sanctions, and makes a candidate Block's notice targets depend on
+whether replay has reached a later settlement. Reconstructing dormant
+identity state cannot undo already applied ingestion effects.
+
+**Make a competing reset permanent.** Rejected because recovery would
+restore keys but forfeit the identity they were registered to protect. A
+competitor could erase penalties without possessing any recovery key.
+
+**Freeze reputation and sanction state for the window.** Rejected because
+audits of earlier Deltas and ordinary process deadlines continue to occur.
+Key recovery grants no immunity from findings or reversals.
 
 **Always follow the latest accepted Declaration.** A fresh competitor would
 then force a legitimate follower to authenticate against the competitor's
@@ -136,10 +167,13 @@ a Delta signed by a superseded key does not verify, whenever it is served.
 ## Consequences
 
 - Queue admission, settlement, recovery ownership, predecessor selection and
-  the persistent sequence floor have explicit rules. Superseded identity-reset
-  effects, conflicting batches and sufficient Snapshot recovery state still
-  require resolution under CONFORMANCE.md before complete recovery replay can
+  the persistent sequence floor and identity continuity have explicit rules.
+  Conflicting batches, notice-era appeal keys and sufficient Snapshot recovery
+  state still require resolution under CONFORMANCE.md before complete recovery replay can
   be validated. The signed head vectors assert no reputation or sanction result.
+  `vectors/wist4/recovery-identity.json` adds signed Declaration histories and
+  identity-scoping projections over separately supplied eligible event inputs;
+  it does not authenticate Audit Records, notices or appeals.
 - A recovering Publisher may rotate again inside its own window — the
   realistic case, since a recovery is performed with an offline key that the
   operator usually wants to replace immediately afterwards.

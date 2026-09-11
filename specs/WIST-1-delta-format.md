@@ -645,9 +645,12 @@ ordinary or recovery rotation against it. A fresh identity, or a replacement
 of a competitor, does not join the recovery chain. A later recovery rotation
 inside the window does not change its owner or deadline.
 
-The window contains Blocks from its opening Block through those whose
-`sealed_at` is strictly earlier than its end. Before applying any Declaration
-in the first Block at or after that end, settle the window: make its
+For Delta queuing, the window contains Blocks from its opening Block through
+those whose `sealed_at` is strictly earlier than its end. Declaration
+competition instead starts immediately after the owner's application in
+ascending `(Block height, seq)` order. A Declaration applied earlier in the
+opening Block is a predecessor, not a competitor, and is not superseded by
+this window. Before applying any Declaration in the first Block at or after that end, settle the window: make its
 recovery-chain head current, supersede its accepted non-chain competitors, and close the
 window without changing the sequence floor. Only the restored current head
 is then an eligible predecessor; a superseded competitor is `WIST1-E08`.
@@ -682,8 +685,9 @@ by what signs it, using the authenticated public key resolved above:
   publishing under its new keys, and the compromised key's Deltas must
   still reach the queue, which is where the settlement below rejects them
   in the open rather than at an ingest no replaying party can see.
-  At the end of the window the recovery Declaration takes effect with `A`
-  and `C` preserved, and **every** Declaration sealed inside the window
+  At the end of the window the recovery Declaration takes effect with its
+  identity preserved under WIST-4 §6.3, and **every** Declaration accepted
+  after the owner while the window is open
   other than the recovery Declaration and the chain legitimately following
   it is superseded — an ordinary rotation and a fresh identity alike, so a
   thief holding only a signing key cannot outrun the holder of the
@@ -747,11 +751,13 @@ by what signs it, using the authenticated public key resolved above:
   inside that window is a competing claim that does not open a second
   window and does not supersede the first; whichever party prevails does
   so by holding the recovery keys the *first* Declaration now lists.
-- Signed by neither — a **fresh identity**. The Declaration is accepted,
-  but `A` and `C` reset to zero and the domain re-enters Provisional
-  (WIST-4 §6). Served inside an open recovery window it is accepted like
-  any other Declaration and superseded at the window's end by the rule
-  above; fresh classification alone is never a `WIST1-E08`. The sequence,
+- Signed by neither — a **fresh identity**. The Declaration is accepted.
+  Outside an open recovery window, `A` and `C` reset to zero and the domain
+  re-enters Provisional (WIST-4 §6.3). Inside an already-open window it is
+  a competing Declaration: acceptance changes the current Declaration and
+  sequence floor, but MUST NOT reset identity or lift sanctions, in an open
+  prefix or after settlement. It is superseded at the window's end by the
+  rule above; fresh classification alone is never a `WIST1-E08`. The sequence,
   predecessor and recovery-key checks still apply. Rejecting an otherwise
   valid fresh identity at ingest would leave the attempt invisible to a party
   replaying the Log.
@@ -767,9 +773,9 @@ as `publisher_declaration` Entries (WIST-3 §3.3). The Key Set applicable to a
 `publisher_delta` Entry sealed in Block N is normally the one from that
 domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
 that a recovery Declaration which took effect under the Compromise
-recovery rule above prevails over every off-chain Declaration sealed during
-its recovery window, regardless of `seq`. A Consumer replaying the Log
-therefore excludes any such superseded Declaration from the "highest `seq`"
+recovery rule above prevails over every off-chain competitor accepted after
+its owner while the recovery window is open, regardless of `seq`. A Consumer
+replaying the Log therefore excludes any such superseded Declaration from the "highest `seq`"
 comparison and treats the recovery Declaration (and whatever legitimately
 follows it) as applicable instead, for every height from the recovery
 Declaration's own sealing height onward. Because `seq`, `prev_declaration`,
@@ -861,7 +867,9 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
 - **Domain transfer.** A Key Set replacement does not transfer standing
   by itself: §5.2 classifies a replacing Declaration by what signs it,
   and one signed by neither the previous Key Set nor the previous
-  `recovery_keys` is a fresh identity whose `A`/`C` reset to zero. A
+  `recovery_keys` is a fresh identity whose `A`/`C` reset to zero outside
+  an open recovery window. A competing fresh Declaration inside that window
+  cannot acquire the recovering identity's standing or reset it (§5.2). A
   party that acquires a domain's hosting without also acquiring a
   signing or recovery key therefore cannot inherit its predecessor's
   history — only cryptographic continuity does that, never possession of

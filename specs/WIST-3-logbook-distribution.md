@@ -196,7 +196,9 @@ them in ascending `seq`, after settling any recovery window whose end is
 at or before this Block's `sealed_at`; WIST-1 §5.2 retains the highest
 accepted sequence through settlement and selects a recovery window's owner in
 ascending `(Block height, seq)` order, so intra-Block storage position
-never decides between them), then `registry_update` Entries (admission
+never decides between them; a fresh Declaration applied before that owner
+resets identity, while an in-window fresh competitor does not, WIST-4 §6.3),
+then `registry_update` Entries (admission
 and removal read at Block granularity — "admitted at this Block's
 `sealed_at`" — under WIST-4 §3.1's batch rules; `parameter_change`
 validation and equal-effective-time precedence read canonical Entry

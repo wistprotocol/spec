@@ -28,11 +28,12 @@ Before authenticated recovery and identity-scoped finding replay can be
 validated, resolve these WIST-1 §5.2 and WIST-3 §3.3 ambiguities with signed
 Declaration histories carrying sequence numbers and predecessor hashes:
 
-- WIST-4 §6.3 resets identity and lifts sanctions at a fresh Declaration's
-  sealing height; WIST-1 supersedes a fresh Declaration inside recovery and
-  preserves reputation. Define whether supersession undoes reset effects
-  and how open-window prefixes versus settled histories determine reputation,
-  findings and sanctions at each candidate Block.
+- WIST-4 §7 authenticates an appeal against the Key Set current at its
+  notice's Block. An open recovery window can have distinct accepted and
+  recovery-chain heads, while WIST-1 §5.2's historical key rule addresses
+  Deltas. Define notice-era appeal authority across open and settled
+  prefixes with signed appeals under competing and recovery-chain keys.
+  WIST-4 §6.3's identity continuity does not determine signature eligibility.
 - Distinct same-domain, same-sequence Declaration candidates can each name
   the pre-Block head. WIST-1 requires rejection of an invalid Declaration,
   but does not define whether this conflicting batch invalidates its Block
@@ -50,6 +51,18 @@ rejection, named-predecessor classification, the deadline transition and
 idempotent re-serving of the restored lower-sequence head. Its reference
 validates Declaration authorship separately from Block inclusion. It asserts
 no identity-reset or conflicting-batch result.
+
+WIST-4 §6.3 preserves the recovery owner's identity from its application
+onward. In-window fresh competitors cause no reset or sanction lift in any
+prefix; settlement does not restore opening values or reverse ordinary
+process effects. A fresh predecessor earlier in the owner's Block resets
+normally, as does a valid fresh replacement after settlement unless a new
+window has opened. `vectors/wist4/recovery-identity.json` authenticates two
+hourly Declaration histories with reversed owner/competitor storage order
+and deadline probes. Its separate abstract projections exercise identity
+scope for age, credit, penalties, findings, rungs and notice targets with
+already-eligible inputs. They do not authenticate or establish eligibility
+of Audit Records, notices, lifts or appeals, or Snapshot resume conformance.
 
 `vectors/wist1/recovery-settlement.json` exercises abstract signer membership
 but omits authenticated sequence and predecessor transitions. Passing it
@@ -79,7 +92,8 @@ arithmetic checks do not establish live-service behavior.
 |---|---|
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
-| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json` and `recovery-heads.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Canonical storage order and a later recovery inside the window cannot replace its owner. Identity effects, Snapshot state and conflicting-candidate disposition require the resolutions listed above. |
+| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json` and `recovery-heads.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Canonical storage order and a later recovery inside the window cannot replace its owner. Snapshot state, appeal authority and conflicting-candidate disposition require the resolutions listed above. |
+| WIST-4 §6.3 recovery identity | Consume `recovery-identity.json`; integrate its reset boundaries with authenticated Delta/Audit Record history, candidate-Block parameter profiles, notice evidence and due process. Recovery preserves identity without freezing state or retroactively altering earlier prefixes. Abstract projection inputs do not establish these integrated obligations. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change audit timing without creating a selection duty; redirect termination and authority restrictions under live pulls |

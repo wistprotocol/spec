@@ -300,7 +300,7 @@ write_json(WIST1 / "declaration-sequence.json", {
              "same domain; a case's own `recovery_window_open` overrides the "
              "file-level default. `expected` is one of "
              "`idempotent` (accepted, replaces nothing), `ordinary_rotation`, "
-             "`recovery_rotation`, `fresh_identity` (accepted, A and C reset), "
+             "`recovery_rotation`, `fresh_identity` (accepted; resets only outside an open recovery window), "
              "or the error code the evaluation rejects with."),
     "recovery_window_open": False,
     "cases": declaration_cases,
@@ -682,6 +682,137 @@ def recovery_heads_vectors():
 
 
 recovery_heads_vectors()
+
+def recovery_identity_vectors():
+    def signed(previous, seq, signer, key_id, **changes):
+        inner = dict(previous["publisher"], seq=seq,
+                     prev_declaration=decl_hash(previous["publisher"]), **changes)
+        return sign_envelope_with(signer, "publisher", inner, key_id)
+
+    cases = []
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+    def timestamp(hour):
+        return (start + datetime.timedelta(hours=hour)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    for fresh_before_owner in (False, True):
+        initial = sign_envelope("publisher", publisher, "test-k1")
+        before = signed(initial, 1, priv3, "test-k2", keys=[K2]) if fresh_before_owner else initial
+        owner = signed(before, 2, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
+        for nonce in range(1000):
+            competitor = signed(owner, 3, priv, "test-k1", keys=publisher["keys"],
+                                contact=f"mailto:competitor{nonce}@example.com")
+            if recovery_order_leaf(competitor) < recovery_order_leaf(owner):
+                break
+        else:
+            raise AssertionError("no reversed owner and competitor leaves")
+        follower = signed(owner, 4, priv3, "test-k2", contact="mailto:chain@example.com")
+        fresh = signed(follower, 5, priv, "test-k1", keys=publisher["keys"])
+        descendant = signed(fresh, 6, priv, "test-k1", contact="mailto:descendant@example.com")
+        last_competitor = signed(descendant, 7, priv3, "test-k2", keys=[K2])
+        reset_height = 171 if fresh_before_owner else 172
+        outside = signed(follower, 8, priv, "test-k1", keys=publisher["keys"])
+        opening = ([before] if fresh_before_owner else []) + [owner, competitor]
+        events = {0: [initial], 3: opening, 4: [follower], 5: [fresh],
+                  6: [descendant], 170: [last_competitor], reset_height: [outside]}
+        blocks, previous = [], "sha256:genesis"
+        for height in range(175):
+            entries = sorted(map(recovery_order_entry, events.get(height, [])),
+                             key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+            hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+            root = merkle_tree_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
+            header = {"wist_version": "1.0.0", "block_number": height,
+                      "prev_block_hash": previous, "sealed_at": timestamp(height),
+                      "merkle_root": "sha256:" + root.hex(), "entry_count": len(entries)}
+            block = sign_envelope_with(priv, "header", header, "test-log-k1")
+            block["entries"] = entries
+            blocks.append(block)
+            previous = decl_hash(header)
+        resets = ([3] if fresh_before_owner else []) + [reset_height]
+        next_owner = signed(follower, 8, priv4, "test-r2")
+        next_competitor = signed(next_owner, 9, priv, "test-k1", keys=publisher["keys"])
+        cases.append({"name": "fresh before recovery owner" if fresh_before_owner else "recovery before fresh competitor",
+                      "blocks": blocks, "pinned_head": previous,
+                      "expected_resets": resets,
+                      "probes": [
+                          {"name": "recovery descendant of competitor preserves identity", "prefix_height": 5,
+                           "candidate_sealed_at": timestamp(6),
+                           "candidate": signed(fresh, 6, priv4, "test-r2", recovery_keys=publisher["recovery_keys"]),
+                           "expected_result": "recovery_rotation", "expected_reset": 3 if fresh_before_owner else None},
+                          {"name": "new deadline window prevents later same Block reset", "prefix_height": 170,
+                           "candidate_sealed_at": timestamp(171), "candidate": next_owner,
+                           "expected_result": "recovery_rotation", "successor": next_competitor,
+                           "expected_successor_result": "fresh_identity",
+                           "expected_reset": 3 if fresh_before_owner else None},
+                          {"name": "fresh restored head replacement at deadline resets", "prefix_height": 170,
+                           "candidate_sealed_at": timestamp(171), "candidate": outside,
+                           "expected_result": "fresh_identity", "expected_reset": 171},
+                          {"name": "last predeadline fresh competitor does not reset", "prefix_height": 169,
+                           "candidate_sealed_at": timestamp(170), "candidate": last_competitor,
+                           "expected_result": "fresh_identity", "expected_reset": 3 if fresh_before_owner else None},
+                          {"name": "deadline competitor predecessor rejects without reset", "prefix_height": 170,
+                           "candidate_sealed_at": timestamp(171),
+                           "candidate": signed(last_competitor, 8, priv3, "test-k2"),
+                           "expected_result": "WIST1-E08", "expected_reset": 3 if fresh_before_owner else None},
+                          {"name": "restored head idempotence creates no reset", "prefix_height": 170,
+                           "candidate_sealed_at": timestamp(171), "candidate": follower,
+                           "expected_result": "idempotent", "expected_reset": 3 if fresh_before_owner else None},
+                      ]})
+    inputs = {"deltas": [{"label": "old a", "height": 0, "url": "https://example.com/a"},
+                         {"label": "old b", "height": 0, "url": "https://example.com/b"},
+                         {"label": "new a", "height": 172, "url": "https://example.com/a"}],
+              "consistent": [{"height": 1, "delta": "old a"}, {"height": 7, "delta": "old b"},
+                             {"height": 173, "delta": "new a"}],
+              "findings": [{"height": 2, "delta": "old a", "severity": 3},
+                           {"height": 8, "delta": "old b", "severity": 1},
+                           {"height": 173, "delta": "new a", "severity": 1}],
+              "lifts": [9], "notice_target": {"notice_height": 5, "activation_height": 2, "level": 3}}
+    decay = json.loads((ROOT / "vectors/wist4/decay-table.json").read_text())["values"]
+    for case in cases:
+        rows, active, seen, reset = [], set(), [], None
+        for height in range(len(case["blocks"])):
+            if height in case["expected_resets"]:
+                reset, active, seen = height, set(), []
+            if height in inputs["lifts"]:
+                active.clear()
+            eligible = {d["label"]: d for d in inputs["deltas"]
+                        if (reset is None or d["height"] >= reset) and d["height"] <= height}
+            for finding in inputs["findings"]:
+                if finding["height"] != height or finding["delta"] not in eligible:
+                    continue
+                had_three = 3 in active
+                seen.append(finding)
+                active.add(1)
+                if len(seen) >= 3:
+                    active.add(2)
+                if len(seen) >= 10 or finding["severity"] == 3:
+                    active.add(3)
+                if had_three or sum(f["severity"] == 3 for f in seen) >= 3:
+                    active.add(4)
+            urls = {eligible[c["delta"]]["url"] for c in inputs["consistent"]
+                    if c["height"] <= height and c["delta"] in eligible}
+            first = min((d["height"] for d in eligible.values()), default=height)
+            rows.append({"height": height, "reset_height": reset, "A": (height - first) // 24,
+                         "C": len(urls), "penalty_n": sum(f["severity"] * decay[(height - f["height"]) // 24]
+                                                                  for f in seen),
+                         "finding_heights": [f["height"] for f in seen], "active_rungs": sorted(active)})
+        case["expected_projection"] = rows
+        case["expected_notice_target_matches_identity"] = case["expected_resets"][0] != 3
+    write_json(ROOT / "vectors/wist4/recovery-identity.json", {
+        "note": "WIST-1 section 5.2 and WIST-4 section 6.3. Each signed hourly Block history "
+                "authenticates Declarations only. expected_resets is derived in Declaration application "
+                "order, including same-Block predecessors, competitors and settlement. The separate "
+                "projection_inputs are abstract, already-eligible WIST-4 stage inputs at the same heights; "
+                "they are not asserted to occur in these Declaration-only Blocks. Projection results "
+                "test identity scoping, ongoing age/credit/decay, latched rungs and a supplied lawful lift, "
+                "not Audit Record eligibility, signature validity or notice admission. notice_target "
+                "tests only whether the supplied earlier activation survives identity scoping. "
+                "Probes independently settle the indicated prefix then evaluate an unsealed Declaration "
+                "and any successor in the same candidate Block, in sequence order.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "projection_inputs": inputs, "cases": cases})
+
+
+recovery_identity_vectors()
 
 # ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
 # The ordinary resolution rule over key_ids alone: a Delta sealed at height N

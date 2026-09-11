@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 \u00a75.2 Declaration sequencing and classification. Each case evaluates `fetched` against the already-accepted `stored` for the same domain; a case's own `recovery_window_open` overrides the file-level default. `expected` is one of `idempotent` (accepted, replaces nothing), `ordinary_rotation`, `recovery_rotation`, `fresh_identity` (accepted, A and C reset), or the error code the evaluation rejects with.",
+  "note": "WIST-1 \u00a75.2 Declaration sequencing and classification. Each case evaluates `fetched` against the already-accepted `stored` for the same domain; a case's own `recovery_window_open` overrides the file-level default. `expected` is one of `idempotent` (accepted, replaces nothing), `ordinary_rotation`, `recovery_rotation`, `fresh_identity` (accepted; resets only outside an open recovery window), or the error code the evaluation rejects with.",
   "recovery_window_open": false,
   "cases": [
     {

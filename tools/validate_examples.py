@@ -4548,6 +4548,12 @@ NON_CONTENT_VALUES = {
     ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
+    ("vectors/wist4/recovery-identity.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist4/recovery-identity.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/recovery-identity.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
+    ("vectors/wist4/recovery-identity.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist4/recovery-identity.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist4/recovery-identity.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-heads.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-heads.json", "value"): "an Ed25519 signature",
@@ -5415,8 +5421,7 @@ def _recovery_order_vectors():
 
 check("vectors:wist1-recovery-order", _recovery_order_vectors)
 
-def _recovery_heads_vectors():
-    vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())
+def _recovery_history_reference(vector):
     validators = {name: Draft202012Validator(json.loads(
         (ROOT / f"schemas/{name}.schema.json").read_text()))
         for name in ("publisher", "block")}
@@ -5429,7 +5434,7 @@ def _recovery_heads_vectors():
             state["current"] = state["chain"]
             state["chain"], state["end"] = None, None
 
-    def apply(state, incoming, instant, spelling):
+    def apply(state, incoming, instant, spelling, height):
         validators["publisher"].validate(incoming)
         settle(state, instant)
         current = state["current"]
@@ -5447,6 +5452,8 @@ def _recovery_heads_vectors():
         outcome = _declaration_binding_result(previous, incoming)
         if outcome not in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}:
             return outcome
+        if outcome == "fresh_identity" and state["chain"] is None:
+            state["reset_height"] = height
         if state["chain"] is not None:
             if previous == state["chain"] and outcome in {"ordinary_rotation", "recovery_rotation"}:
                 state["chain"] = incoming
@@ -5466,7 +5473,7 @@ def _recovery_heads_vectors():
                 "windows_opened": state["windows"]}
 
     def replay(blocks, pinned):
-        state = {"current": None, "chain": None, "floor": -1, "end": None, "windows": 0}
+        state = {"current": None, "chain": None, "floor": -1, "end": None, "windows": 0, "reset_height": None}
         prefix_states = []
         previous, previous_time = "sha256:genesis", None
         log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
@@ -5488,14 +5495,22 @@ def _recovery_heads_vectors():
             candidates = [entry["body"] for entry in entries]
             assert len({env["publisher"]["seq"] for env in candidates}) == len(candidates)
             for incoming in sorted(candidates, key=lambda env: env["publisher"]["seq"]):
-                assert apply(state, incoming, instant, header["sealed_at"]) in {
-                    "initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
+                outcome = apply(state, incoming, instant, header["sealed_at"], height)
+                assert outcome in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
             prefix_states.append(copy.deepcopy(state))
             previous = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
             previous_time = instant
         assert previous == pinned
         return prefix_states
 
+    return apply, summary, replay
+
+
+def _recovery_heads_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())
+    apply, summary, replay = _recovery_history_reference(vector)
+    def digest(envelope):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(envelope["publisher"])).hexdigest()
     states = replay(vector["blocks"], vector["pinned_head"])
     for expected in vector["expected_prefix_states"]:
         assert summary(states[expected["height"]]) == expected["state"], expected["height"]
@@ -5509,7 +5524,8 @@ def _recovery_heads_vectors():
         state = copy.deepcopy(selected_states[probe["prefix_height"]])
         instant = log_seconds(probe["candidate_sealed_at"])
         assert instant > log_seconds(selected["blocks"][probe["prefix_height"]]["header"]["sealed_at"])
-        result = apply(state, probe["candidate"], instant, probe["candidate_sealed_at"])
+        result = apply(state, probe["candidate"], instant, probe["candidate_sealed_at"],
+                       probe["prefix_height"] + 1)
         assert result == probe["expected_result"], probe["name"]
         assert summary(state) == probe["expected_state"], probe["name"]
         outcomes.add(result)
@@ -5538,6 +5554,80 @@ def _recovery_heads_vectors():
 
 
 check("vectors:wist1-recovery-heads", _recovery_heads_vectors)
+
+def _recovery_identity_vectors():
+    vector = json.loads((ROOT / "vectors/wist4/recovery-identity.json").read_text())
+    apply, _, replay = _recovery_history_reference(vector)
+    inputs = vector["projection_inputs"]
+    deltas = {d["label"]: d for d in inputs["deltas"]}
+    decay = json.loads((ROOT / "vectors/wist4/decay-table.json").read_text())["values"]
+    for case in vector["cases"]:
+        states = replay(case["blocks"], case["pinned_head"])
+        resets = [height for height, state in enumerate(states)
+                  if state["reset_height"] == height]
+        assert resets == case["expected_resets"], case["name"]
+        assert len(case["expected_projection"]) == len(states)
+        for height, state in enumerate(states):
+            reset = state["reset_height"]
+            lower = reset if reset is not None else 0
+            eligible = {label for label, d in deltas.items() if lower <= d["height"] <= height}
+            findings = [f for f in inputs["findings"]
+                        if f["height"] <= height and f["delta"] in eligible]
+            urls = {deltas[r["delta"]]["url"] for r in inputs["consistent"]
+                    if r["height"] <= height and r["delta"] in eligible}
+            first = min((deltas[label]["height"] for label in eligible), default=height)
+            elapsed = log_seconds(case["blocks"][height]["header"]["sealed_at"]) - log_seconds(
+                case["blocks"][first]["header"]["sealed_at"])
+            transitions = [{"height": h, "sealed_at_s": h * 3600,
+                            "lift": h in inputs["lifts"], "void_levels": [],
+                            "findings": [{"entry_index": index, "severity": f["severity"]}
+                                         for index, f in enumerate(findings) if f["height"] == h]}
+                           for h in range(lower, height + 1)]
+            derived = {"height": height, "reset_height": reset, "A": elapsed // 86400,
+                       "C": min(len(urls), 500),
+                       "penalty_n": sum(f["severity"] * decay[((height - f["height"]) * 3600) // 86400]
+                                        for f in findings),
+                       "finding_heights": [f["height"] for f in findings],
+                       "active_rungs": _transition_rungs({"blocks": transitions})[-1]}
+            assert derived == case["expected_projection"][height], (case["name"], height, derived)
+        target = inputs["notice_target"]
+        target_state = case["expected_projection"][target["notice_height"]]
+        matches = target["activation_height"] in target_state["finding_heights"] and (
+            target["level"] in target_state["active_rungs"])
+        assert matches == case["expected_notice_target_matches_identity"]
+        for height in (2, 3, 4, 5, 6, 7, 8, 9, 24, 170, 171, 172, 173, 174):
+            blocks = case["blocks"][:height + 1]
+            pinned = "sha256:" + hashlib.sha256(rfc8785.dumps(blocks[-1]["header"])).hexdigest()
+            prefix = replay(blocks, pinned)
+            assert prefix == states[:height + 1], (case["name"], height, "prefix depends on future")
+        for probe in case["probes"]:
+            state = copy.deepcopy(states[probe["prefix_height"]])
+            instant = log_seconds(probe["candidate_sealed_at"])
+            assert instant > log_seconds(case["blocks"][probe["prefix_height"]]["header"]["sealed_at"])
+            result = apply(state, probe["candidate"], instant, probe["candidate_sealed_at"],
+                           probe["prefix_height"] + 1)
+            assert result == probe["expected_result"]
+            if "successor" in probe:
+                result = apply(state, probe["successor"], instant, probe["candidate_sealed_at"],
+                               probe["prefix_height"] + 1)
+                assert result == probe["expected_successor_result"]
+            assert state["reset_height"] == probe["expected_reset"]
+        opening = case["blocks"][3]["entries"]
+        seqs = [entry["body"]["publisher"]["seq"] for entry in opening]
+        assert seqs.index(3) < seqs.index(2), "fixture does not reverse owner/competitor storage order"
+    preserved, reset_first = vector["cases"]
+    assert preserved["expected_resets"] == [172]
+    assert reset_first["expected_resets"] == [3, 171]
+    rows = preserved["expected_projection"]
+    assert rows[3]["active_rungs"] == [1, 3] and rows[3]["finding_heights"] == [2]
+    assert rows[7]["C"] == 2 and rows[8]["active_rungs"] == [1, 3, 4]
+    assert rows[9]["active_rungs"] == rows[171]["active_rungs"] == []
+    assert rows[171]["A"] == 7 and rows[171]["penalty_n"] < rows[8]["penalty_n"]
+    assert rows[172]["finding_heights"] == [] and rows[173]["finding_heights"] == [173]
+    assert reset_first["expected_projection"][7]["C"] == 0
+
+
+check("vectors:wist4-recovery-identity", _recovery_identity_vectors)
 
 def _parameter_registry_enum():
     """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.

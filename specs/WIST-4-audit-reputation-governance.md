@@ -2193,7 +2193,8 @@ step is upward.
 identity**, not to a name. A Declaration that WIST-1 §5.2 classifies as a
 **fresh identity** — signed by neither a key of the previous Key Set nor a
 key in the previous Declaration's `recovery_keys` — is an **identity
-reset** at the height its Declaration Entry is sealed. Call that height
+reset** at the height its Declaration Entry is sealed, unless accepted
+inside an already-open recovery window as defined below. Call that height
 `R`; the domain re-enters Provisional, and from `R` onward:
 
 - **`A`** is measured from the `sealed_at` of the first Block at or
@@ -2257,6 +2258,37 @@ age, its whole audited-URL count, and its standing above 0.10, in exchange
 for shedding penalties that decay to nothing in five years anyway. A
 domain with a severity-3 Confirmed Inconsistency and two years of history
 gives up far more than it sheds.
+
+**Recovery preserves the owner's identity throughout the window.** The
+window owner retains the identity in force immediately before its own
+application in WIST-1 §5.2's ascending `(Block height, seq)` order. Every
+fresh Declaration accepted after that owner while its window is open is a
+competitor, not an identity reset: it MUST NOT change the reset height,
+discard reputation inputs or findings, clear sanction rungs, or detach an
+accepted notice from its activation. This applies immediately to every
+open-window prefix, including the owner's Block, without awaiting
+settlement. Ordinary and recovery descendants of competitors have no such
+effects either. Legitimate recovery-chain followers retain the owner's
+identity even when a competing Declaration is current.
+
+Preserving identity does not freeze its state. At every candidate Block,
+compute age, audit credit, penalty decay, sampling and confirmation from
+that Block's prefix and applicable parameter profiles. A qualifying Record
+for a pre-window Delta remains in the same identity scope even when sealed
+after a competing fresh Declaration. Findings, notices, reversals and
+deadlines continue under §7. Settlement itself neither resets identity nor
+restores the window's opening values or rungs: an in-window reversal stays
+effective subject to ordinary rearming. Replaying through settlement MUST
+NOT revise an earlier Block's identity scope or discard its otherwise
+eligible findings or accepted notices merely because a competitor is now
+superseded. This identity rule does not change signature eligibility.
+
+A fresh Declaration applied **before** the owner in the same Block resets
+normally; that is the identity the owner preserves. Settle an expired window
+before processing the deadline Block's Declarations (WIST-1 §5.2). A valid
+fresh Declaration then naming the restored head resets normally, unless
+an earlier Declaration in that Block has already opened another window.
+A rejected candidate or idempotent re-serve never creates a reset.
 
 An **ordinary rotation** (signed by a previous signing key) and a
 **recovery rotation** (signed by a pre-registered offline recovery key)
@@ -3488,8 +3520,10 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   pages — exactly the thing that is expensive to fake at scale.
 - **Domain resale.** Reputation attaches to key continuity, not the name.
   A Declaration signed by neither the previous Key Set nor the previous
-  `recovery_keys` is a fresh identity: `A` and `C` reset and the domain
-  re-enters Provisional (§6.3, WIST-1 §5.2). Buying an aged domain, or its
+  `recovery_keys` is a fresh identity: outside an open recovery window,
+  `A` and `C` reset and the domain re-enters Provisional (§6.3, WIST-1 §5.2).
+  An in-window competitor neither inherits nor resets the recovering
+  identity's standing. Buying an aged domain, or its
   hosting, buys no standing. An ordinary rotation and a recovery rotation
   both preserve standing, because both prove possession of a key the prior
   identity chose in advance — recovery keys exist precisely so that losing
@@ -3956,7 +3990,8 @@ bound by WIST-3 §6.2's destroy obligation exactly as an Auditor is.
       Normalized URLs; and applies `C_cap` (§6.1)
 - [ ] Applies the Provisional cap as a ceiling, not a floor (§6.2), and
       resets `A`/`C` only for a fresh identity — never for an ordinary or
-      recovery rotation (§6.3)
+      recovery rotation or an in-window fresh competitor (§6.3); recovery
+      preserves identity in every prefix without freezing its evolving state
 - [ ] Scopes `C` and every Confirmed Inconsistency to the current identity
       by the sealing height of the Record's `audited_delta`, not the
       Record's own (§6.1, §6.3)
