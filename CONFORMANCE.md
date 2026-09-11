@@ -24,6 +24,37 @@ add positive and negative cases without changing the specified algorithm.
 
 ## Recovery history resolution
 
+### Declaration field and key eligibility
+
+WIST-1 §5.2 requires failed Declaration acceptance to reject its whole Block
+with the failing check's error code. The suite does not assign a diagnostic
+to otherwise canonicalizable Declaration schema failures during replacement
+or replay. WIST1-E05 covers invalid JCS input, WIST1-E08 the enumerated
+sequence and key-set violations, and WIST2-E04 malformed first-contact
+Declaration pulls. Specify the remaining syntax-failure classification,
+including malformed `observed_at` and `valid_from`, with signed field
+mutations and atomic Block-rejection vectors before claiming complete field
+validation. Treating an unparseable key-time comparison as WIST1-E02 is not
+an established schema-error rule.
+
+WIST-1 §4 excludes noncanonically encoded and small-order public keys from
+the Key Set. It does not explicitly determine the disposition of an otherwise
+authenticated Declaration containing an unused excluded key, or where exclusion
+occurs relative to §5.2's signer-candidate E01/E02 distinction. Specify whether
+the Declaration rejects as a whole or retains its signed entries while deriving
+usable bindings. Exercise initial, ordinary and recovery authentication,
+unused excluded keys and excluded named signers with signed vectors.
+
+The `publisher.schema.json` `hostname` and `date-time` formats require checks
+beyond typed JSON deserialization. Optional fields present as `null`, empty
+signing arrays, string bounds and §4's safe-integer bound also need validation.
+Declaration idempotence exempts re-verifying a signature, not the requirement
+for a structurally valid Envelope. The reference's Declaration schema checks
+in `tools/validate_examples.py` do not enable format assertions; their passing
+results establish neither hostname nor date-time format conformance.
+
+### Authenticated recovery state
+
 WIST-1 §5.2 and WIST-4 §9 freeze each recovery window’s length at its
 owner Block’s in-force parameter map. `recovery_window_cases` in
 `vectors/wist4/parameter-combinations.json` exercises exact effective-time
@@ -136,7 +167,7 @@ arithmetic checks do not establish live-service behavior.
 | WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change audit timing without creating a selection duty; redirect termination and authority restrictions under live pulls |
 | WIST-3 §§5–6 publication | Durable Block publication before its Checkpoint; Payload replication before the Block; acquisition of cited evidence before serving a notice |
-| WIST-3 §§3.1, 6 transport parsing | Independent decoding of the Block-frame vectors and general compressed/checksummed frames; rejection of extra frames, skippable data and trailing bytes; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples. The raw-frame reference in `tools/block_frames.py` does not implement entropy decoding or checksum verification. |
+| WIST-3 §§3.1, 6 transport parsing | Independent decoding of the Block-frame vectors and general compressed/checksummed frames; rejection of extra frames, skippable data and trailing bytes; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples; the full four-digit Gregorian year range, including late December 9999 independently of library timestamp limits. The raw-frame reference in `tools/block_frames.py` does not implement entropy decoding or checksum verification. |
 | WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Blocks and Checkpoints at the correct height, including rejected keys |
 | WIST-4 §§4–5 audit execution | Small-order VRF key rejection; actual fetch byte, time and redirect limits; reference/observed failures; WARC capture and required evidence retention |
 | WIST-4 §6.4 inclusion | Acceptance and per-domain turn accounting under backlog, overload and recovery; the Log alone does not reveal acceptance time |
