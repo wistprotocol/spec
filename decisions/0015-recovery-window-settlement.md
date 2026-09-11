@@ -89,6 +89,29 @@ settlement and historical verification retain their selected single source.
 `vectors/wist1/recovery-bindings.json` authenticates the owner and a later
 follower, exercising fixed sources and diagnostics with signed Delta probes.
 
+**Scope stays with its signing source.** Freeze the complete pre-recovery
+and owner Declarations, retaining each source's scope with its bindings.
+Queue authority requires a verifying eligible binding and a covered host
+from the same source. Pooling keys and scopes independently would let a
+compromised predecessor key acquire a hostname granted only to the owner's
+new key. Competitors and followers cannot change either frozen admission
+source. Repeated public keys remain separate bindings with separate scopes
+and timestamp bounds; no successful check borrows another source's result.
+WIST-1 §5.1's E02/E01 binding distinction remains unchanged, and §3.2 assigns
+E03 when a verifying eligible binding has no covering source of its own.
+
+Settlement rechecks both bindings and scope against the recovery-chain head
+immediately before deadline-Block Declarations. Either authority failure
+drops the queued copy with E13 after mandatory field checks. A surviving
+copy must still satisfy the Declaration applicable at actual sealing, where
+a scope failure is E03. Later scope expansion can permit a previously dropped
+Delta to be re-served; neither scope rejection nor recovery rejection creates
+a permanent ID ban. Historical scope follows the same height-specific
+Declaration as historical keys, without rewriting earlier sealed authority.
+No object fields or schema constraints change. Signed histories in
+`vectors/wist1/recovery-scope.json` distinguish frozen source pairing,
+competitors, followers, settlement, deadline-Block changes and re-serving.
+
 **Supersession covers everything outside the recovery chain.** At the
 window's end, every Declaration accepted after its owner while it is open,
 other than the recovery Declaration and the chain legitimately following it,
@@ -138,8 +161,8 @@ After settlement, a fresh Declaration naming the restored head resets
 normally unless another window has already opened in application order.
 
 **Settlement revalidates against the chain's newest Declaration** — the
-recovery Declaration's own Key Set unless a legitimate follower was sealed
-inside the window.
+recovery Declaration's own signing bindings and scope unless a legitimate
+follower was sealed inside the window.
 
 **Each sanction notice freezes its appeal authority.** After due settlement
 and all Declarations in the notice's Block, use the recovery-chain head's
@@ -162,8 +185,8 @@ exercise WIST-4 §7's resolution; notice evidence eligibility remains a
 separate validation obligation.
 
 **`WIST1-E13` drops the queued copy, not the identity.** The same Delta
-re-served later and verifying under the Key Set then in force is sealed like
-any other.
+re-served later and satisfying the signing and scope authority then in force
+remains eligible subject to all other checks.
 
 `vectors/wist1/recovery-settlement.json` carries seven authenticated hourly
 Declaration histories and signed Delta inputs. Fresh competitors preserve
@@ -182,6 +205,21 @@ extensions past competitors, and rejects stale predecessors and recovery-key
 replacement without authority. No object field or schema constraint changes.
 
 ## Alternatives considered
+
+**Pool admission scopes independently from keys.** Rejected because this
+lets one source's signer exercise authority granted only by the other source.
+A complete Declaration is the signed statement binding those two facts.
+
+**Use the latest competitor or recovery head for admission scope.** Rejected
+because a competitor could suppress the owner's queue, while legitimate
+followers could expand the compromised key's scope. Frozen source pairing
+matches the fixed admission bindings and makes queue eligibility stable.
+New scope or keys introduced only by a follower wait until settlement.
+
+**Keep the admission scope forever.** Rejected because settlement would then
+retain authority the recovering Publisher revoked. Applying E13 to scope
+revocation gives all recovery authority failures the same queued-copy
+status and retry semantics; ordinary sealing scope rejection remains E03.
 
 **Use the latest accepted competitor for appeals.** Rejected because it
 gives an off-chain fresh identity control of a sanction process against the

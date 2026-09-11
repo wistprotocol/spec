@@ -377,17 +377,25 @@ Existing signed objects without the field fail this exact draft, even when
 they say `1.0.0`. Passing supplied-source or conditional projection tests
 establishes neither live discovery nor integrated audit/process conformance.
 
-### Remaining scope provenance and materialization questions
+### Recovery scope authority and remaining materialization questions
 
-WIST-1 §3.2 tests the URL host against the Publisher domain or a member of
-“its `subdomain_scope`”. During recovery, §5.2 freezes both source signing
-sets for queue admission while a later competitor can become current and
-a legitimate follower can advance the recovery head. The text does not
-select a scope source when those Declarations differ, nor specify scope
-revalidation at settlement. Resolve scope provenance and its temporal checks
-with signed histories before complete recovery Delta admission/sealing.
-The attribution history retains identical scopes and selects no reading
-for differing scopes.
+WIST-1 §3.2/§5.2 and draft ADR-0015 pair each frozen recovery-admission
+Declaration's scope with its complete signing bindings. A candidate cannot
+borrow scope across sources. Settlement checks the newest recovery-chain
+Declaration before deadline-Block Declarations and drops either binding or
+scope failures with E13; actual sealing checks its own applicable Declaration.
+Historical scope remains tied to the Delta's sealing height.
+
+`vectors/wist1/recovery-scope.json` authenticates differing-scope Declaration
+histories and independently verifies signed stage probes, including same-Block
+source selection, repeated keys, exact timestamp bounds, deadline changes,
+re-serving and signature-invalid twins. These probes supply validation stages;
+they do not prove complete Delta admission, chain/clock eligibility, durable
+queue restoration, Payload/quotas, status publication or survivor inclusion.
+Independent role implementations must consume the vectors and retain complete
+source provenance through admission, settlement, sealing and restart. Existing
+signature-only settlement checks do not establish this authority requirement.
+No wire fields or schema constraints change.
 
 WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
 restriction. WIST-3 §7's one-URL-one-Publisher rule selects self-declaration

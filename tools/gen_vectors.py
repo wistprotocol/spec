@@ -6930,3 +6930,135 @@ def delta_attribution_vectors():
 
 
 write_json(WIST1 / "delta-attribution.json", delta_attribution_vectors())
+
+
+def recovery_scope_vectors():
+    keys = {name: Ed25519PrivateKey.from_private_bytes(hashlib.sha256(
+        ("wist recovery scope " + name).encode()).digest())
+        for name in ("old", "owner", "competitor", "recovery", "admin")}
+    start = datetime.datetime(2026, 8, 2, tzinfo=datetime.timezone.utc)
+    early = "2026-08-02T00:00:00.0000000001Z"
+    later = "2026-08-02T00:00:00.0000000002Z"
+    domain = "example.com"
+    hosts = [domain, "old.example", "owner.example", "retained.example",
+             "follower.example", "competitor.example", "stale.example"]
+
+    def timestamp(height):
+        return (start + datetime.timedelta(hours=height)).isoformat().replace("+00:00", "Z")
+
+    def binding(name, identifier="shared", valid_from=early):
+        return dict(key_id=identifier, alg="Ed25519", public_key=b64u(raw_public(keys[name])),
+                    valid_from=valid_from)
+
+    histories, probes = {}, []
+    for shared in (False, True):
+        name = "shared public key with distinct bounds" if shared else "distinct source public keys"
+        owner_key = "old" if shared else "owner"
+        owner_binding = binding(owner_key, valid_from=later if shared else early)
+        initial = sign_envelope_with(keys["old"], "publisher", dict(
+            wist_version="1.0.0", domain=domain, seq=0, keys=[binding("old")],
+            recovery_keys=[binding("recovery", "recovery")], subdomain_scope=["stale.example"]), "shared")
+
+        def replace(previous, seq, bindings, scope, signer, identifier="shared"):
+            inner = dict(previous["publisher"], seq=seq,
+                         prev_declaration=decl_hash(previous["publisher"]),
+                         keys=bindings, subdomain_scope=scope)
+            return sign_envelope_with(keys[signer], "publisher", inner, identifier)
+
+        prior = replace(initial, 1, [binding("old")],
+                        ["old.example", "retained.example"], "old")
+        owner = replace(prior, 2, [owner_binding, binding("admin", "admin")],
+                        ["owner.example", "retained.example"], "recovery", "recovery")
+        competitor = replace(owner, 3, [binding("competitor")],
+                             ["competitor.example"], "competitor")
+        follower = replace(owner, 4, [owner_binding, binding("admin", "admin")],
+                           ["old.example", "retained.example", "follower.example"], "admin", "admin")
+        latest = replace(follower, 5, [binding("competitor")], [], "competitor")
+        deadline = replace(follower, 6, [owner_binding], [], "admin", "admin")
+        deadline["publisher"].pop("subdomain_scope")
+        deadline = sign_envelope_with(keys["admin"], "publisher", deadline["publisher"], "admin")
+        restored = replace(deadline, 7, [owner_binding], hosts[1:], owner_key)
+        declarations = {0: [initial], 1: [prior, owner], 2: [competitor], 3: [follower],
+                        168: [latest], 169: [deadline], 170: [restored]}
+        blocks, previous = [], "sha256:genesis"
+        for height in range(171):
+            entries = [recovery_order_entry(env) for env in declarations.get(height, [])]
+            entries.sort(key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+            leaves = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+            header = dict(wist_version="1.0.0", block_number=height, prev_block_hash=previous,
+                          sealed_at=timestamp(height), entry_count=len(entries),
+                          merkle_root="sha256:" + (merkle_tree_root(leaves) if leaves else leaf_hash(b"")).hex())
+            blocks.append(dict(sign_envelope_with(priv, "header", header, "log-key"), entries=entries))
+            previous = decl_hash(header)
+        histories[name] = dict(blocks=blocks, pinned_head=previous)
+
+        def add(label, height, stage, signer, host, expected, observed_at=later,
+                identifier="shared", damage=None):
+            env = sign_envelope_with(keys[signer], "delta", dict(delta,
+                publisher=domain, url="https://" + host + "/scope", observed_at=observed_at), identifier)
+            if damage == "signature":
+                env["sig"]["value"] = b64u(bytes(64))
+            elif damage == "encoding":
+                env["sig"]["value"] += "="
+            probes.append(dict(name=label, history=name, height=height, stage=stage,
+                               envelope=env, expected=expected))
+
+        for height in (1, 2, 3, 168):
+            for signer in ("old", owner_key) if not shared else ("old",):
+                allowed = ({domain, "old.example", "owner.example", "retained.example"} if shared else
+                           {domain, "old.example", "retained.example"} if signer == "old" else
+                           {domain, "owner.example", "retained.example"})
+                for host in hosts:
+                    add(f"frozen source {signer} {host} at {height}", height, "admission", signer, host,
+                        "accepted" if host in allowed else "WIST1-E03")
+            add(f"competitor signature at {height}", height, "admission", "competitor", domain, "WIST1-E01")
+            add(f"unknown identifier at {height}", height, "admission", "old", domain, "WIST1-E02",
+                identifier="unknown")
+            add(f"malformed signature field at {height}", height, "admission", "old", domain, "WIST1-E14",
+                identifier="unknown", damage="encoding")
+        if shared:
+            for height in (1, 3, 168):
+                add(f"scope cannot borrow future binding at {height}", height, "admission", "old",
+                    "owner.example", "WIST1-E03", observed_at=early)
+                add(f"eligible old source at {height}", height, "admission", "old", "old.example",
+                    "accepted", observed_at=early)
+                add(f"inclusive owner bound at {height}", height, "admission", "old", "owner.example",
+                    "accepted", observed_at="2026-08-02t01:00:00.000000000200+01:00")
+        for host in (domain, "owner.example", "retained.example"):
+            expected = "WIST1-E13" if host == "owner.example" else "accepted"
+            add("owner queued copy settlement " + host, 169, "settlement", owner_key, host, expected)
+        for host in (domain, "old.example", "retained.example"):
+            add("old queued copy settlement " + host, 169, "settlement", "old", host,
+                "accepted" if shared else "WIST1-E13")
+        for height in (169, 170):
+            for host in hosts:
+                for stage in ("admission", "sealing"):
+                    add(f"post settlement {stage} {host} at {height}", height, stage, owner_key, host,
+                        "accepted" if height == 170 or host == domain else "WIST1-E03")
+        for host in (domain, "old.example", "owner.example", "retained.example"):
+            add("historical scope before deadline " + host, 1, "admission", owner_key, host,
+                "accepted" if shared or host != "old.example" else "WIST1-E03")
+        add("historical pre recovery scope", 0, "sealing", "old", "stale.example", "accepted")
+        add("historical scope cannot borrow later grant", 0, "sealing", "old", "old.example", "WIST1-E03")
+        add("omitted scope retains Publisher domain", 169, "sealing", owner_key, domain, "accepted")
+        add("settlement invalid signature", 169, "settlement", owner_key, domain,
+            "WIST1-E13", damage="signature")
+        add("settlement malformed field", 169, "settlement", owner_key, domain,
+            "WIST1-E14", damage="encoding")
+    return dict(note="WIST-1 sections 3.2, 5.1 and 5.2. Authenticated hourly Declaration histories "
+        "open recovery at height 1 after a same-Block ordinary predecessor, accept a competitor and "
+        "a legitimate follower, accept a higher-sequence competitor at 168, settle at 169, then apply "
+        "a scope-removing Declaration in that same deadline Block. Height 170 grants scopes again. "
+        "Admission and sealing probes run after the named Block's Declaration stage; settlement probes "
+        "run immediately before height 169's Declaration stage. Queued-copy probes reuse height-1 "
+        "authority-eligible Envelopes; damaged settlement probes are conditional stage inputs and do not "
+        "claim prior queue acceptance. "
+        "accepted establishes only signature/binding and scope authority. Probe timestamps are signed "
+        "inputs, not claimed live validation times. Chains, clocks, Payload, quotas, durable queue/status "
+        "effects and actual Delta inclusion are not exercised. Trusted Log key and pinned heads are "
+        "fixture inputs. Signature-invalid twins are checked independently by the reference.",
+        log_key=dict(key_id="log-key", public_key=b64u(pub_raw)), recovery_window_days=7,
+        histories=histories, probes=probes)
+
+
+write_json(WIST1 / "recovery-scope.json", recovery_scope_vectors())

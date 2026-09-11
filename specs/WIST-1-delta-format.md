@@ -193,7 +193,25 @@ Declaration seals.
 
 The value of `url` MUST already be a Normalized URL; a Delta whose `url`
 is not byte-identical to its own normalization MUST be rejected with
-`WIST1-E03`. The scope rule compares Canonical Hosts.
+`WIST1-E03`. The scope rule compares Canonical Hosts. Scope and signing
+bindings MUST come from the same authenticated Declaration for `delta.publisher`.
+Outside recovery queue admission, use the Declaration selected for that
+validation instant or sealing height under §5.2; an absent `subdomain_scope`
+adds no hosts beyond `domain`. During recovery queue admission, retain each
+frozen source Declaration's scope alongside its signing bindings. A Delta
+passes authority only if at least one source both covers its URL host and
+contains a usable, time-eligible named binding that verifies its signature.
+A signature from one source MUST NOT borrow another source's scope, even
+when both belong to the same Publisher. Preserve source provenance when
+identifiers, public keys or validity bounds repeat across Declarations.
+
+The §5.1 binding check still considers all authorized source bindings before
+any scope restriction: no eligible named binding is `WIST1-E02`, and eligible
+bindings with no verifying signature are `WIST1-E01`. If a signature verifies
+under an eligible binding but no such binding's own source covers the host,
+the scope failure is `WIST1-E03`. An independently established failure, such
+as no source covering the host at all, remains reportable under §7. Fields
+retain their existing precedence; settlement uses §5.2's `WIST1-E13` disposition.
 
 The UTF-8 octet length of `JCS(url)` — the JSON string literal with its
 enclosing quotes and any escapes — MUST NOT exceed `url_cap_bytes`
@@ -938,11 +956,14 @@ by what signs it, using the authenticated public key resolved above:
   publishing under its new keys, and the compromised key's Deltas must
   still reach the queue, which is where the settlement below rejects them
   in the open rather than at an ingest no replaying party can see.
-  Freeze both source signing sets at the owner's application, including any
-  lower-sequence predecessor in the same Block. Later in-window Declarations,
+  Freeze both source Declarations, including their signing bindings and scopes,
+  at the owner's application, including any lower-sequence predecessor in the
+  same Block. Later in-window Declarations,
   including legitimate recovery-chain followers, MUST NOT replace either
   admission source. Apply §5.1's complete-binding check across these two
   sources, preserving reused identifiers and their distinct validity bounds.
+  Apply §3.2 using those same frozen sources; neither a competitor nor a
+  legitimate follower can expand, shrink or replace their admission scopes.
   This union authorizes queue admission only, not sealing, historical Delta
   verification or appeal authentication.
   At the end of the window the recovery Declaration takes effect with its
@@ -958,14 +979,21 @@ by what signs it, using the authenticated public key resolved above:
   recovery-chain head under the rules above: the recovering Publisher may
   therefore rotate again inside its own window without forfeiting it. At the window's end the queue is
   settled deterministically: each queued Delta is revalidated against the
-  Key Set of that chain's newest Declaration — the recovery Declaration's
-  own unless a legitimate follower was sealed inside the window — and one
-  that no longer verifies is rejected with `WIST1-E13` and surfaced
+  signing bindings and scope of that chain's newest Declaration — the recovery
+  Declaration's own unless a legitimate follower was sealed inside the window.
+  This source is fixed immediately before applying any Declarations in the
+  first Block at or after the deadline. Admission at or after the deadline
+  first performs this settlement; new candidates use the then-current
+  Declaration, including any replacements already accepted at admission.
+  After mandatory field checks, a queued copy failing either the complete
+  binding check or the scope check against the settlement source is rejected
+  with `WIST1-E13` and surfaced
   on the status endpoint (WIST-2 §7.1) like any other typed rejection.
   The rejection is of the queued copy and not of the Delta's identity: the
-  same Delta re-served later and verifying under the Key Set then in force
-  is sealed like any other, which is what keeps replay agreement free of a
-  per-Log list of dropped IDs that every Consumer would have to carry.
+  same Delta re-served later and satisfying the signing and scope authority
+  then in force is eligible like any other, subject to all remaining checks.
+  This keeps replay agreement free of a per-Log list of dropped IDs that
+  every Consumer would have to carry.
   A Delta signed by the superseded signing key is exactly the case this
   settles: if the recovery rotated that key out, the Delta dies with it,
   which is the point of the rotation. The survivors become eligible
@@ -1047,6 +1075,15 @@ fully deterministic from log order alone, with no fetch and no trust in
 the Aggregator. "Took effect under the Compromise recovery rule" is
 therefore a predicate every replaying party evaluates identically, rather
 than a claim resting on an entry the Aggregator may or may not have filed.
+
+The selected Declaration also supplies the scope for historical Delta
+verification under §3.2. A later scope change does not revise authority at
+an earlier Delta's sealing height. Deltas cannot seal during an open recovery
+window. Recovery settlement does not exempt a survivor from revalidation
+against the Declaration applicable at its actual sealing height, including
+Declarations in the deadline Block. A scope failure at sealing is `WIST1-E03`;
+a Consumer ignores such an Entry and advances no chain tip. A settlement
+survivor is therefore only authority-eligible, not guaranteed inclusion.
 
 This historical rule governs Deltas. WIST-4 §7 separately freezes each
 sanction notice's appeal Key Set after its Block's Declaration stage,
@@ -1134,7 +1171,7 @@ WIST2-E03 remain required. See
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
-| WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and verifying under the Key Set then in force is sealed (§5.2) |
+| WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
 | WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; missing, non-string or malformed Delta `observed_at` (§3.4) or `publisher` (§3.8); or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration

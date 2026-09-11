@@ -740,7 +740,7 @@ def _recovery_queue_disposition():
     w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
     w4 = re.sub(r"\s+", " ",
                 (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "revalidated against the Key Set of that chain's newest Declaration" in w1
+    assert "revalidated against the signing bindings and scope of that chain's newest Declaration" in w1
     assert w1.count("WIST1-E13") >= 2, "E13 must appear in §5.2 and the §7 registry"
     assert "queued under WIST-1 §5.2" in w4, "§6.4 ceiling needs the recovery carve-out"
 
@@ -1086,6 +1086,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-diagnostics.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-attribution.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/recovery-scope.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "response_commitment"): "audit:commitments",
     ("vectors/wist3/timestamps.json", "credit_commitment"): "audit:commitments",
@@ -4658,6 +4659,12 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/delta-diagnostics.json", "prev_declaration"): "SHA-256 of the authenticated preceding publisher object",
     ("vectors/wist1/delta-diagnostics.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/delta-diagnostics.json", "value"): "an Ed25519 signature or noncanonical signature encoding probe",
+    ("vectors/wist1/recovery-scope.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-scope.json", "value"): "an Ed25519 signature or malformed encoding",
+    ("vectors/wist1/recovery-scope.json", "prev_declaration"): "the authenticated predecessor Declaration hash",
+    ("vectors/wist1/recovery-scope.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist1/recovery-scope.json", "prev_block_hash"): "the preceding Block header hash",
+    ("vectors/wist1/recovery-scope.json", "merkle_root"): "the Declaration Entry Merkle root",
     ("vectors/wist1/delta-attribution.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/delta-attribution.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/delta-attribution.json", "delta_ids"): "SHA-256 of each original signed inner Delta",
@@ -6320,7 +6327,7 @@ def _wist1_recovery_settlement():
     prose = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-delta-format.md").read_text())
     for marker in (
             "verifies under **either** the Key Set in effect immediately before the recovery **or** the recovery Declaration's own",
-            "revalidated against the Key Set of that chain's newest Declaration",
+            "revalidated against the signing bindings and scope of that chain's newest Declaration",
             "The rejection is of the queued copy and not of the Delta's identity"):
         assert marker in prose
 
@@ -8651,5 +8658,130 @@ def _signed_delta_appendices():
 
 
 check("spec:signed-delta-appendices", _signed_delta_appendices)
+
+def _recovery_scope_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-scope.json").read_text())
+    original = copy.deepcopy(vector)
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
+    validators = {name: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
+        for name in ("publisher", "delta")}
+    _, _, _, apply_block = _recovery_history_reference(vector)
+    snapshots, settlements = {}, {}
+
+    def digest(inner):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
+
+    for name, history in vector["histories"].items():
+        authenticated = _declaration_history_blocks(vector, history["blocks"], history["pinned_head"])
+        states, frozen = {}, {}
+        accepted = {}
+        for header, declarations in authenticated:
+            height = header["block_number"]
+            for domain, state in states.items():
+                if state["end"] and log_seconds(header["sealed_at"]) >= log_seconds(state["end"]):
+                    settlements[name, height, domain] = state["chain"]
+                    frozen.pop(domain)
+            for env in declarations:
+                validators["publisher"].validate(env)
+            outcome, updated = apply_block(states, header, declarations)
+            assert outcome == "accepted", (name, height, outcome)
+            by_domain = {}
+            for env in declarations:
+                by_domain.setdefault(env["publisher"]["domain"], []).append(env)
+            for domain, envelopes in by_domain.items():
+                state = states.get(domain)
+                chain = state["chain"] if state and state["end"] and (
+                    log_seconds(header["sealed_at"]) < log_seconds(state["end"])) else None
+                for env in sorted(envelopes, key=lambda item: item["publisher"]["seq"]):
+                    predecessor = accepted.get(env["publisher"].get("prev_declaration"))
+                    classification = _declaration_binding_result(predecessor, env)
+                    assert classification in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
+                    if chain is None and classification == "recovery_rotation":
+                        frozen[domain] = [predecessor, env]
+                        chain = env
+                    accepted[digest(env["publisher"])] = env
+            states = updated
+            sources = {domain: frozen.get(domain, [state["current"]]) for domain, state in states.items()}
+            snapshots[name, height] = copy.deepcopy((states, sources))
+        assert len(authenticated) == 171
+        state, sources = snapshots[name, 1]
+        assert [env["publisher"]["seq"] for env in sources["example.com"]] == [1, 2]
+        assert snapshots[name, 168][0]["example.com"]["current"]["publisher"]["seq"] == 5
+        assert settlements[name, 169, "example.com"]["publisher"]["seq"] == 4
+        assert snapshots[name, 169][0]["example.com"]["current"]["publisher"]["seq"] == 6
+
+    def authority(env, sources, stage):
+        inner = env["delta"]
+        try:
+            observed = publisher_instant(inner["observed_at"])
+            signature = canonical_b64u_decode(env["sig"]["value"])
+            if len(signature) != 64 or not _declaration_host_format(inner["publisher"]):
+                return "WIST1-E14"
+        except (ValueError, TypeError):
+            return "WIST1-E14"
+        validators["delta"].validate(env)
+        eligible, verified, covering = [], [], []
+        for source in sources:
+            declaration = source["publisher"]
+            if declaration["domain"] != inner["publisher"]:
+                continue
+            for binding in declaration["keys"]:
+                if binding["key_id"] != env["sig"]["key_id"]:
+                    continue
+                raw = canonical_b64u_decode(binding["public_key"])
+                try:
+                    point = ecvrf.string_to_point(raw)
+                except ValueError:
+                    continue
+                if ecvrf._is_identity(ecvrf._mul(8, point)) or publisher_instant(binding["valid_from"]) > observed:
+                    continue
+                eligible.append(binding)
+                if _ed25519_profile_verdict(raw, signature, rfc8785.dumps(inner))[0]:
+                    verified.append(binding)
+                    if inner["url"].split("/", 3)[2] in {
+                            declaration["domain"], *declaration.get("subdomain_scope", [])}:
+                        covering.append(binding)
+        result = ("WIST1-E02" if not eligible else "WIST1-E01" if not verified else
+                  "WIST1-E03" if not covering else "accepted")
+        if stage == "settlement" and result != "accepted":
+            return "WIST1-E13"
+        return result
+
+    outcomes, settlement_copies = set(), set()
+    for probe in vector["probes"]:
+        name, height, stage, env = (probe[key] for key in ("history", "height", "stage", "envelope"))
+        domain = env["delta"]["publisher"]
+        states, admission = snapshots[name, height]
+        if stage == "settlement":
+            sources = [settlements[name, height, domain]]
+        elif stage == "admission":
+            sources = admission[domain]
+        else:
+            assert stage == "sealing" and states[domain]["chain"] is None
+            sources = [states[domain]["current"]]
+        for ordering in (sources, list(reversed(sources))):
+            actual = authority(env, ordering, stage)
+            assert actual == probe["expected"], (name, probe["name"], actual, probe["expected"])
+        outcomes.add(actual)
+        if stage == "settlement" and "queued copy" in probe["name"]:
+            assert authority(env, snapshots[name, 1][1][domain], "admission") == "accepted"
+            settlement_copies.add((name, digest(env["delta"])))
+            if probe["expected"] == "WIST1-E13" and "owner queued" in probe["name"]:
+                assert authority(env, snapshots[name, 170][1][domain], "admission") == "accepted"
+        if actual == "accepted":
+            damaged = copy.deepcopy(env)
+            damaged["sig"]["value"] = base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode()
+            assert authority(damaged, sources, stage) == ("WIST1-E13" if stage == "settlement" else "WIST1-E01")
+        if probe["name"] == "historical pre recovery scope":
+            assert authority(env, snapshots[name, 169][1][domain], "sealing") != "accepted"
+    assert outcomes == {"accepted", "WIST1-E01", "WIST1-E02", "WIST1-E03", "WIST1-E13", "WIST1-E14"}
+    assert len(settlement_copies) == 8
+    assert vector == original
+
+
+check("vectors:wist1-recovery-scope", _recovery_scope_vectors)
 
 sys.exit(1 if failures else 0)
