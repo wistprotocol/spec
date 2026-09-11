@@ -397,6 +397,21 @@ source provenance through admission, settlement, sealing and restart. Existing
 signature-only settlement checks do not establish this authority requirement.
 No wire fields or schema constraints change.
 
+Source-paired checks alone do not establish source selection. An implementation
+that selects the highest sealed sequence without excluding recovery-superseded
+competitors violates WIST-1 §5.2, even if each supplied source's binding and
+scope are checked correctly. Validation must demonstrate a legitimate survivor
+sealing despite a higher-sequence competitor, and distinguish the last follower
+sealed inside the window from an accepted but unsealed replacement. Admission
+at or after the deadline must settle first and use the resulting current
+Declaration. Replay must preserve the accepted sequence floor, allow both
+eligible predecessor heads while the window is open, and allow only the
+restored current head after settlement. Restoring a sealed head must not
+introduce a new first installation.
+Dropped queue copies must not permanently suppress their IDs or leave invalid
+chain tips: test re-serving after authority changes, including after restart.
+These are requirements of the existing rules, not alternative interpretations.
+
 WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
 restriction. WIST-3 §7's one-URL-one-Publisher rule selects self-declaration
 over a scoped parent, but supplies no winner between multiple scoped
