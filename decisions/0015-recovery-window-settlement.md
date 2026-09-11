@@ -119,6 +119,26 @@ normally unless another window has already opened in application order.
 recovery Declaration's own Key Set unless a legitimate follower was sealed
 inside the window.
 
+**Each sanction notice freezes its appeal authority.** After due settlement
+and all Declarations in the notice's Block, use the recovery-chain head's
+signing entries if a window remains open, otherwise the current
+Declaration's signing entries. A competitor cannot acquire authority over
+the identity recovery preserves. Retain the complete identifier/public-key
+bindings; later extensions, settlement, rotations, resets and new windows
+cannot alter them. The historical Delta rule and queue-admission union
+do not apply. Recovery keys remain Declaration-only.
+
+Appeals carry no `observed_at`; the selected signing entries have no
+additional `valid_from` filter. Neither self-declared `effective_at` nor a
+sealing instant substitutes for the Delta timestamp that WIST-1 §5.1 bounds.
+Missing notice authority or a missing identifier is WIST4-E05; a signature
+failing under its selected entry is WIST1-E01 under WIST-1 §4. Neither
+failure fills an appeal slot. This defines authority within existing signed
+objects, adding no fields or schema constraints. Signed histories and
+independent signature probes in `vectors/wist4/recovery-appeals.json`
+exercise WIST-4 §7's resolution; notice evidence eligibility remains a
+separate validation obligation.
+
 **`WIST1-E13` drops the queued copy, not the identity.** The same Delta
 re-served later and verifying under the Key Set then in force is sealed like
 any other.
@@ -140,6 +160,24 @@ extensions past competitors, and rejects stale predecessors and recovery-key
 replacement without authority. No object field or schema constraint changes.
 
 ## Alternatives considered
+
+**Use the latest accepted competitor for appeals.** Rejected because it
+gives an off-chain fresh identity control of a sanction process against the
+identity it cannot reset. Selecting the recovery head makes appeal authority
+follow the party whose continuity the open window preserves.
+
+**Use the eventual settled head for earlier notices.** Rejected because
+later chain extensions could invalidate a previously accepted appeal or
+authorize a previously rejected signature, changing process deadlines and
+outcomes between prefixes. Freezing each notice's authority also preserves
+the existing opportunity to appeal notices preceding recovery or a reset.
+
+**Apply a new timestamp filter to appeal keys.** Rejected because an appeal
+has no Delta `observed_at`, and self-declared `effective_at` supplies no
+authority clock. A notice-sealing filter would prevent an admitted signing
+entry dated after the notice from ever appealing it; an appeal-sealing
+filter would let inclusion timing change the authority supplied by the
+same notice. Key omission in the selected Declaration controls revocation.
 
 **Take the first equal-sequence Entry and ignore its siblings.** Rejected
 because a Block would certify conflicting state transitions and leaf-hash
@@ -213,9 +251,10 @@ a Delta signed by a superseded key does not verify, whenever it is served.
 
 - Queue admission, settlement, recovery ownership, predecessor selection and
   the persistent sequence floor and identity continuity have explicit rules.
-  Conflicting batches reject atomically. Notice-era appeal keys and sufficient Snapshot recovery
-  state still require resolution under CONFORMANCE.md before complete recovery replay can
-  be validated. The signed head vectors assert no reputation or sanction result.
+  Conflicting batches reject atomically. Notice-era appeal authority is
+  stable across prefixes; sufficient Snapshot recovery state still requires
+  resolution under CONFORMANCE.md before Snapshot recovery replay can be
+  validated. The signed head vectors assert no reputation or sanction result.
   `vectors/wist4/recovery-identity.json` adds signed Declaration histories and
   identity-scoping projections over separately supplied eligible event inputs;
   it does not authenticate Audit Records, notices or appeals.

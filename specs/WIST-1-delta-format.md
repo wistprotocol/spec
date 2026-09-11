@@ -828,6 +828,11 @@ the Aggregator. "Took effect under the Compromise recovery rule" is
 therefore a predicate every replaying party evaluates identically, rather
 than a claim resting on an entry the Aggregator may or may not have filed.
 
+This historical rule governs Deltas. WIST-4 §7 separately freezes each
+sanction notice's appeal Key Set after its Block's Declaration stage,
+selecting the recovery-chain head while a window remains open. Later
+recovery settlement or chain extensions cannot revise that notice's keys.
+
 The Key Set so resolved is the one a sealed Delta MUST verify under, and
 it is not always the one the Aggregator ingested against. Ingest
 verifies a Delta against the Key Set current at the pull; a Declaration

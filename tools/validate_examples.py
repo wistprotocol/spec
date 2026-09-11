@@ -3,6 +3,7 @@
 import base64, calendar, collections, copy, datetime, hashlib, hmac, itertools, json, pathlib, re, sys, time
 
 import rfc8785
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
@@ -4555,6 +4556,17 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/recovery-identity.json", "pinned_head"): "the trusted final Block header hash",
     ("vectors/wist4/recovery-identity.json", "prev_block_hash"): "SHA-256 of a Block header",
     ("vectors/wist4/recovery-identity.json", "merkle_root"): "the Merkle root of Declaration Entries",
+    ("vectors/wist4/recovery-appeals.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist4/recovery-appeals.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/recovery-appeals.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
+    ("vectors/wist4/recovery-appeals.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist4/recovery-appeals.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist4/recovery-appeals.json", "merkle_root"): "the Merkle root of Declaration and notice Entries",
+    ("vectors/wist4/recovery-appeals.json", "activation"): "an abstract activation input identifier, not proven evidence",
+    ("vectors/wist4/recovery-appeals.json", "evidence"): "an abstract finding input identifier, not proven evidence",
+    ("vectors/wist4/recovery-appeals.json", "assumed_eligible_notices"): "Registry Update IDs supplied as eligible notice inputs",
+    ("vectors/wist4/recovery-appeals.json", "declaration"): "SHA-256 of the selected publisher object",
+    ("vectors/wist4/recovery-appeals.json", "notice"): "a signed appeal's notice identifier",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-conflicts.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-conflicts.json", "value"): "an Ed25519 signature",
@@ -5400,7 +5412,7 @@ def _recovery_order_vectors():
 
 check("vectors:wist1-recovery-order", _recovery_order_vectors)
 
-def _declaration_history_blocks(vector, blocks, pinned):
+def _declaration_history_blocks(vector, blocks, pinned, entry_types=("publisher_declaration",)):
     validator = Draft202012Validator(json.loads((ROOT / "schemas/block.schema.json").read_text()))
     previous, previous_time = "sha256:genesis", None
     log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
@@ -5415,11 +5427,15 @@ def _declaration_history_blocks(vector, blocks, pinned):
         log_key.verify(b64u_decode(block["sig"]["value"]), rfc8785.dumps(header))
         assert header["entry_count"] == len(entries)
         hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
-        assert hashes == sorted(hashes)
+        ranks = {name: rank for rank, name in enumerate(
+            ("publisher_declaration", "registry_update", "publisher_delta", "audit_record"))}
+        positions = [(ranks[entry["type"]], hashed) for entry, hashed in zip(entries, hashes)]
+        assert positions == sorted(positions)
         root = merkle_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
         assert header["merkle_root"] == "sha256:" + root.hex()
-        assert all(entry["type"] == "publisher_declaration" for entry in entries)
-        authenticated.append((header, [entry["body"] for entry in entries]))
+        assert all(entry["type"] in entry_types for entry in entries)
+        authenticated.append((header, [entry["body"] for entry in entries
+                                       if entry["type"] == "publisher_declaration"]))
         previous = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
         previous_time = instant
     assert previous == pinned
@@ -5812,6 +5828,159 @@ def _recovery_identity_vectors():
 
 
 check("vectors:wist4-recovery-identity", _recovery_identity_vectors)
+
+
+def _recovery_appeal_vectors():
+    vector = json.loads((ROOT / "vectors/wist4/recovery-appeals.json").read_text())
+    _, _, _, apply_block = _recovery_history_reference(vector)
+    validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/registry-update.schema.json").read_text()))
+    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
+
+    def digest(inner):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
+
+    def authority_prefixes(case, blocks, pinned):
+        authenticated = _declaration_history_blocks(
+            vector, blocks, pinned, ("publisher_declaration", "registry_update"))
+        states, authorities, prefixes = {}, {}, []
+        for block, (header, candidates) in zip(blocks, authenticated):
+            outcome, states = apply_block(states, header, candidates)
+            assert outcome == "accepted"
+            for entry in block["entries"]:
+                if entry["type"] != "registry_update":
+                    continue
+                envelope = entry["body"]
+                validator.validate(envelope)
+                notice = envelope["update"]
+                assert notice["action"] == "notice" and notice["details"]["kind"] == "sanction"
+                if envelope["sig"]["key_id"] != vector["log_key"]["key_id"]:
+                    continue
+                try:
+                    log_key.verify(b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(notice))
+                except InvalidSignature:
+                    continue
+                notice_id = digest(notice)
+                if notice_id not in case["assumed_eligible_notices"]:
+                    continue
+                state = states[notice["subject"]]
+                selected = state["chain"] if state["end"] is not None else state["current"]
+                authorities.setdefault(notice_id, {"height": header["block_number"],
+                                                   "subject": notice["subject"],
+                                                   "declaration": digest(selected["publisher"]),
+                                                   "keys": copy.deepcopy(selected["publisher"]["keys"])})
+            prefixes.append(copy.deepcopy(authorities))
+        return prefixes
+
+    def signature_result(envelope, authorities):
+        validator.validate(envelope)
+        inner = envelope["update"]
+        assert inner["action"] == "appeal"
+        notice = authorities.get(inner["details"]["notice"])
+        if notice is None or notice["subject"] != inner["subject"]:
+            return "WIST4-E05"
+        entry = next((key for key in notice["keys"] if key["key_id"] == envelope["sig"]["key_id"]), None)
+        if entry is None:
+            return "WIST4-E05"
+        try:
+            Ed25519PublicKey.from_public_bytes(b64u_decode(entry["public_key"])).verify(
+                b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(inner))
+        except InvalidSignature:
+            return "WIST1-E01"
+        return "authorized"
+
+    positions, outcomes = set(), set()
+    for case in vector["cases"]:
+        prefixes = authority_prefixes(case, case["blocks"], case["pinned_head"])
+        actual = sorted(({field: binding[field] for field in ("height", "declaration", "keys")}
+                         for binding in prefixes[-1].values()), key=lambda row: row["height"])
+        assert actual == case["expected_authority"], case["name"]
+        assert set(prefixes[-1]) == set(case["assumed_eligible_notices"])
+        for height in (0, 1, 2, 3, 4, 168, 169, 170):
+            blocks = case["blocks"][:height + 1]
+            independent = authority_prefixes(case, blocks, digest(blocks[-1]["header"]))
+            assert independent == prefixes[:height + 1], "notice authority depends on future history"
+        for height in (0, 1, 3, 4, 169, 170):
+            entries = case["blocks"][height]["entries"]
+            notice_index = next(i for i, entry in enumerate(entries) if entry["type"] == "registry_update")
+            assert notice_index == len(entries) - 1
+            notice_hash = leaf_hash(rfc8785.dumps(entries[notice_index]))
+            declaration_hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries[:notice_index]]
+            assert (notice_hash > max(declaration_hashes)) == case["notice_leaf_after_declaration_leaves"]
+            if not case["notice_leaf_after_declaration_leaves"]:
+                assert notice_hash < min(declaration_hashes)
+            positions.add(case["notice_leaf_after_declaration_leaves"])
+        opening = [entry["body"]["publisher"]["seq"] for entry in case["blocks"][1]["entries"]
+                   if entry["type"] == "publisher_declaration"]
+        assert opening == [2, 1], "opening history does not reverse competitor and owner storage order"
+        for probe in case["probes"]:
+            authorities = prefixes[probe["prefix_height"]]
+            outcome = signature_result(probe["appeal"], authorities)
+            assert outcome == probe["expected"], (case["name"], probe["name"], outcome)
+            outcomes.add(outcome)
+            if outcome == "authorized":
+                mutated = copy.deepcopy(probe["appeal"])
+                mutated["update"]["details"]["grounds"] = "Changed after signing"
+                assert signature_result(mutated, authorities) == "WIST1-E01"
+                without_notice = dict(authorities)
+                del without_notice[probe["appeal"]["update"]["details"]["notice"]]
+                assert signature_result(probe["appeal"], without_notice) == "WIST4-E05"
+        future_keys = actual[3]["keys"]
+        assert all(key["valid_from"] > case["blocks"][-1]["header"]["sealed_at"] for key in future_keys)
+        excluded = copy.deepcopy(case)
+        notice_id = case["assumed_eligible_notices"][1]
+        excluded["assumed_eligible_notices"].remove(notice_id)
+        without_notice = authority_prefixes(excluded, case["blocks"], case["pinned_head"])
+        assert all(notice_id not in prefix for prefix in without_notice)
+        for rejection in case["author_rejections"]:
+            blocks = case["blocks"][:1] + [rejection["block"]]
+            _declaration_history_blocks(vector, blocks, rejection["pinned_head"],
+                                        ("publisher_declaration", "registry_update"))
+            if rejection["type"] == "registry_update":
+                accepted = authority_prefixes(case, blocks, rejection["pinned_head"])
+                assert accepted[-1] == prefixes[0], "invalid notice supplied authority"
+            else:
+                try:
+                    authority_prefixes(case, blocks, rejection["pinned_head"])
+                except AssertionError:
+                    pass
+                else:
+                    raise AssertionError("Block signature replaced Declaration author verification")
+        rejection = case["ordering_rejection"]
+        header = rejection["header"]
+        log_key.verify(b64u_decode(rejection["sig"]["value"]), rfc8785.dumps(header))
+        assert header["merkle_root"] == "sha256:" + merkle_root(
+            [leaf_hash(rfc8785.dumps(entry)) for entry in rejection["entries"]]).hex()
+        try:
+            _declaration_history_blocks(vector, case["blocks"][:1] + [rejection], digest(header),
+                                        ("publisher_declaration", "registry_update"))
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("accepted Registry Update before Declaration group")
+        for corrupted_field in ("declaration", "notice", "block"):
+            corrupted = copy.deepcopy(case["blocks"])
+            target = corrupted[1]
+            if corrupted_field == "block":
+                signature = target["sig"]
+            else:
+                selected_type = "publisher_declaration" if corrupted_field == "declaration" else "registry_update"
+                signature = next(entry["body"]["sig"] for entry in target["entries"]
+                                 if entry["type"] == selected_type)
+            value = bytearray(b64u_decode(signature["value"]))
+            value[0] ^= 1
+            signature["value"] = base64.urlsafe_b64encode(value).rstrip(b"=").decode()
+            try:
+                authority_prefixes(case, corrupted, case["pinned_head"])
+            except Exception:
+                pass
+            else:
+                raise AssertionError(f"accepted tampered {corrupted_field}")
+    assert positions == {False, True}
+    assert outcomes == {"authorized", "WIST1-E01", "WIST4-E05"}
+
+
+check("vectors:wist4-recovery-appeals", _recovery_appeal_vectors)
 
 def _parameter_registry_enum():
     """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.

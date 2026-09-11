@@ -1005,6 +1005,195 @@ def recovery_identity_vectors():
 
 recovery_identity_vectors()
 
+
+def recovery_appeal_vectors():
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+    signing_keys = [priv, priv3, Ed25519PrivateKey.from_private_bytes(bytes([85]) * 32),
+                    Ed25519PrivateKey.from_private_bytes(bytes([102]) * 32)]
+
+    def timestamp(hour):
+        return (start + datetime.timedelta(hours=hour)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def storage_key(entry):
+        return (0 if entry["type"] == "publisher_declaration" else 1,
+                leaf_hash(rfc8785.dumps(entry)))
+
+    def key(index, key_id, valid_from=None):
+        return {"key_id": key_id, "alg": "Ed25519",
+                "public_key": b64u(raw_public(signing_keys[index])),
+                "valid_from": valid_from or timestamp(-24)}
+
+    def signed(previous, seq, signer, key_id, **changes):
+        inner = dict(previous["publisher"], seq=seq,
+                     prev_declaration=decl_hash(previous["publisher"]), **changes)
+        return sign_envelope_with(signer, "publisher", inner, key_id)
+
+    initial = sign_envelope("publisher", publisher, "test-k1")
+    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
+    future = "2030-01-01T00:00:00Z"
+    follower = signed(owner, 3, priv3, "test-k2",
+                      keys=[key(2, "test-k3", future), key(2, "test-k3-alias", future)])
+    cases = []
+    for second_window in (False, True):
+        for nonce in range(1000):
+            competitor = signed(owner, 2, priv, "test-k2", keys=[key(0, "test-k2")],
+                                contact=f"mailto:competitor{nonce}@example.com")
+            if recovery_order_leaf(competitor) < recovery_order_leaf(owner):
+                break
+        else:
+            raise AssertionError("no reversed recovery leaves")
+        off_chain = signed(follower, 4, priv, "test-k3", keys=[key(0, "test-k3")])
+        deadline = signed(follower, 5, priv4 if second_window else signing_keys[2],
+                          "test-r2" if second_window else "test-k3", keys=[key(3, "test-k4")])
+        deadline_entries = [deadline]
+        if second_window:
+            deadline_entries.append(signed(deadline, 6, priv, "test-k4", keys=[key(0, "test-k4")]))
+            after = signed(deadline, 7, signing_keys[3], "test-k4", keys=[key(1, "test-k2-later")])
+        else:
+            after = signed(deadline, 6, priv, "test-k1", keys=publisher["keys"])
+        declarations = {0: [initial], 1: [owner, competitor], 3: [follower],
+                        4: [off_chain], 169: deadline_entries, 170: [after]}
+        authority = {0: initial, 1: owner, 2: owner, 3: follower, 4: follower,
+                     168: follower, 169: deadline, 170: after, 171: after}
+        notices = {}
+        for height in authority:
+            declaration_leaves = list(map(recovery_order_leaf, declarations.get(height, [])))
+            for nonce in range(1000):
+                inner = {"wist_version": "1.0.0", "action": "notice", "subject": "example.com",
+                         "effective_at": timestamp(-24 if second_window else 400),
+                         "details": {"kind": "sanction", "level": 3,
+                                     "activation": decl_hash({"activation_input": height}),
+                                     "reason": f"Contested finding {height}, authority case {nonce}",
+                                     "appeal_deadline": timestamp(height + 336)},
+                         "evidence": [decl_hash({"evidence_input": height})]}
+                envelope = sign_envelope_with(priv, "update", inner, "test-log-k1")
+                hashed = leaf_hash(rfc8785.dumps({"type": "registry_update", "body": envelope}))
+                if not declaration_leaves or (hashed > max(declaration_leaves) if second_window
+                                              else hashed < min(declaration_leaves)):
+                    notices[height] = envelope
+                    break
+            else:
+                raise AssertionError("no notice position twin")
+        blocks, previous = [], "sha256:genesis"
+        for height in range(172):
+            entries = list(map(recovery_order_entry, declarations.get(height, [])))
+            if height in notices:
+                entries.append({"type": "registry_update", "body": notices[height]})
+            if height == 171:
+                entries.append({"type": "registry_update", "body": notices[1]})
+            entries.sort(key=storage_key)
+            leaves = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+            root = merkle_tree_root(leaves) if leaves else hashlib.sha256(b"\x00").digest()
+            header = {"wist_version": "1.0.0", "block_number": height,
+                      "prev_block_hash": previous, "sealed_at": timestamp(height),
+                      "merkle_root": "sha256:" + root.hex(), "entry_count": len(entries)}
+            block = sign_envelope_with(priv, "header", header, "test-log-k1")
+            block["entries"] = entries
+            blocks.append(block)
+            previous = decl_hash(header)
+        author_rejections = []
+        for entry_type in ("publisher_declaration", "registry_update"):
+            entries = json.loads(json.dumps(blocks[1]["entries"]))
+            signature = next(entry["body"]["sig"] for entry in entries if entry["type"] == entry_type)
+            raw = bytearray(base64.urlsafe_b64decode(signature["value"] + "=="))
+            raw[0] ^= 1
+            signature["value"] = b64u(raw)
+            entries.sort(key=storage_key)
+            header = dict(blocks[1]["header"], merkle_root="sha256:" + merkle_tree_root(
+                [leaf_hash(rfc8785.dumps(entry)) for entry in entries]).hex())
+            block = sign_envelope_with(priv, "header", header, "test-log-k1")
+            block["entries"] = entries
+            author_rejections.append({"type": entry_type, "block": block, "pinned_head": decl_hash(header)})
+        entries = blocks[1]["entries"][-1:] + blocks[1]["entries"][:-1]
+        header = dict(blocks[1]["header"], merkle_root="sha256:" + merkle_tree_root(
+            [leaf_hash(rfc8785.dumps(entry)) for entry in entries]).hex())
+        ordering_rejection = sign_envelope_with(priv, "header", header, "test-log-k1")
+        ordering_rejection["entries"] = entries
+        probes = []
+
+        def probe(name, notice_height, prefix, signer, key_id, expected, effective_hour=0,
+                  subject="example.com", notice_id=None, corrupt=False):
+            inner = {"wist_version": "1.0.0", "action": "appeal", "subject": subject,
+                     "effective_at": timestamp(effective_hour),
+                     "details": {"notice": notice_id or decl_hash(notices[notice_height]["update"])}}
+            envelope = sign_envelope_with(signer, "update", inner, key_id)
+            if corrupt:
+                raw = bytearray(base64.urlsafe_b64decode(envelope["sig"]["value"] + "=="))
+                raw[0] ^= 1
+                envelope["sig"]["value"] = b64u(raw)
+            probes.append({"name": name, "notice_height": notice_height, "prefix_height": prefix,
+                           "appeal": envelope, "expected": expected})
+
+        for height, declaration in authority.items():
+            entry = declaration["publisher"]["keys"][0]
+            signer = next(private for private in signing_keys
+                          if b64u(raw_public(private)) == entry["public_key"])
+            for prefix in sorted({height, max(height, 4), max(height, 168), 169, 170, 171}):
+                if prefix < height:
+                    continue
+                probe(f"notice {height} preserves authority at prefix {prefix}",
+                      height, prefix, signer, entry["key_id"], "authorized", effective_hour=400)
+            probe(f"notice {height} rejects corrupted author signature", height, 171,
+                  signer, entry["key_id"], "WIST1-E01", corrupt=True)
+            probe(f"notice {height} rejects recovery signer", height, 171,
+                  priv4, "test-r2", "WIST4-E05")
+        probe("pre recovery notice rejects recovered signing key", 0, 171, priv3, "test-k2", "WIST4-E05")
+        probe("opening notice rejects frozen admission union key", 1, 1, priv, "test-k1", "WIST4-E05")
+        for prefix in (1, 4, 169, 171):
+            probe(f"competitor reuses notice identifier at prefix {prefix}",
+                  1, prefix, priv, "test-k2", "WIST1-E01")
+        probe("later follower cannot rewrite opening notice", 1, 171,
+              signing_keys[2], "test-k3", "WIST4-E05")
+        probe("same public key under later identifier is not notice alias", 1, 171,
+              priv3, "test-k2-later", "WIST4-E05")
+        probe("admitted alias with future valid from", 3, 3,
+              signing_keys[2], "test-k3-alias", "authorized", effective_hour=-24)
+        probe("future effective at does not change notice binding", 3, 171,
+              signing_keys[2], "test-k3-alias", "authorized", effective_hour=400)
+        probe("unlisted alias cannot select same public key", 3, 171,
+              signing_keys[2], "test-k3-unlisted", "WIST4-E05")
+        probe("off chain reused follower identifier", 4, 171, priv, "test-k3", "WIST1-E01")
+        probe("deadline notice cannot use restored predecessor keys", 169, 171,
+              signing_keys[2], "test-k3", "WIST4-E05")
+        probe("post deadline notice cannot use previous signing key", 170, 171,
+              signing_keys[3], "test-k4", "WIST4-E05")
+        probe("appeal cannot use another domain notice authority", 1, 171,
+              priv3, "test-k2", "WIST4-E05", subject="other.example")
+        probe("unsealed notice supplies no authority", 1, 171, priv3, "test-k2", "WIST4-E05",
+              notice_id=decl_hash({"unsealed_notice": True}))
+        probe("future notice supplies no authority to earlier prefix", 3, 2,
+              signing_keys[2], "test-k3", "WIST4-E05")
+        cases.append({"name": "new recovery at settlement" if second_window else "rotation then fresh identity",
+                      "blocks": blocks, "pinned_head": previous,
+                      "notice_leaf_after_declaration_leaves": second_window,
+                      "author_rejections": author_rejections,
+                      "ordering_rejection": ordering_rejection,
+                      "assumed_eligible_notices": [decl_hash(env["update"]) for env in notices.values()],
+                      "expected_authority": [{"height": height, "declaration": decl_hash(env["publisher"]),
+                                              "keys": env["publisher"]["keys"]}
+                                             for height, env in authority.items()],
+                      "probes": probes})
+    write_json(ROOT / "vectors/wist4/recovery-appeals.json", {
+        "note": "WIST-4 section 7 notice-era appeal key selection. Signed hourly Blocks authenticate "
+                "Declaration history and notice inclusion; each Declaration and notice has its own signature. "
+                "assumed_eligible_notices are conditional stage inputs: these histories do not contain "
+                "the Audit Records or activations needed to establish notice evidence eligibility. "
+                "Their activation/evidence identifiers label supplied inputs, not proven findings. "
+                "Probes are independent, unsealed appeals evaluated against the indicated accepted prefix; "
+                "authorized means signature-authorized only, not process acceptance, timeliness or sealing. "
+                "Every probe starts with no appeal slot occupied. The future-dated signing entries and "
+                "effective_at twins distinguish appeal authority from Delta observed_at validation. "
+                "Author rejection twins have valid Block signatures: an invalid Declaration invalidates "
+                "its Block; an invalid notice signature supplies no appeal authority. The ordering twin "
+                "rejects a Registry Update stored before the Declaration group. "
+                "The branches exercise fresh identity and a second recovery window at or after settlement. "
+                "No Snapshot restoration or live appeal publication is established.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "cases": cases})
+
+
+recovery_appeal_vectors()
+
 # ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
 # The ordinary resolution rule over key_ids alone: a Delta sealed at height N
 # verifies under the highest-seq Declaration sealed at a height <= N, the

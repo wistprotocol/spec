@@ -24,17 +24,6 @@ add positive and negative cases without changing the specified algorithm.
 
 ## Recovery history resolution
 
-Before authenticated recovery and identity-scoped finding replay can be
-validated, resolve these WIST-1 §5.2 and WIST-3 §3.3 ambiguities with signed
-Declaration histories carrying sequence numbers and predecessor hashes:
-
-- WIST-4 §7 authenticates an appeal against the Key Set current at its
-  notice's Block. An open recovery window can have distinct accepted and
-  recovery-chain heads, while WIST-1 §5.2's historical key rule addresses
-  Deltas. Define notice-era appeal authority across open and settled
-  prefixes with signed appeals under competing and recovery-chain keys.
-  WIST-4 §6.3's identity continuity does not determine signature eligibility.
-
 WIST-1 §5.2 and WIST-3 §3.3 select recovery ownership in ascending
 `(Block height, seq)` order. `vectors/wist1/recovery-order.json` exercises
 signed Declarations and predecessor links in authenticated Block chains,
@@ -94,6 +83,32 @@ Snapshot-versus-full-history vectors, before Snapshot recovery replay can
 establish conformance. The full-history head vectors do not resolve this
 Snapshot representation question.
 
+WIST-4 §7 freezes each sanction notice's appeal Key Set after due settlement
+and its Block's complete Declaration stage. An open window selects the
+recovery-chain head; otherwise the current Declaration supplies the keys.
+Later history cannot rewrite the notice's authority. Signing identifiers
+retain their frozen public-key bindings; recovery entries and the Delta
+admission union supply no authority. Appeals have no `valid_from` time filter.
+`vectors/wist4/recovery-appeals.json` authenticates two 172-Block hourly
+Declaration/notice histories, including reversed Declaration sequence/leaf order
+and notice leaf hashes that cannot override canonical type grouping,
+fresh competitors, a follower with future-dated signing aliases, deadline
+rotation, a new recovery window and later identity reset. Independent signed
+appeal probes distinguish missing authority from bad signatures and preserve
+notice bindings across prefixes and repeated notice inclusion. Signed Block
+twins detect invalid author signatures: an invalid Declaration rejects its
+Block, while an invalid notice supplies no authority. A signed ordering twin
+rejects a Registry Update stored before the Declaration group.
+
+The appeal vectors condition key selection on separately supplied eligible
+notice IDs. Their notice evidence and activation identifiers are abstract
+inputs, not authenticated findings; Block inclusion and notice authorship
+alone do not establish §7 notice eligibility. The unsealed appeal probes
+establish signature authority only. Integrated validation must derive notice
+eligibility, reject invalid appeals before slot allocation, preserve frozen
+bindings on restart, and exercise live publication, sealing, deadlines,
+rulings and retention. No Snapshot resume behavior is established.
+
 ## Validation still required
 
 The vector-family inventory in `tools/VERIFICATION.md` distinguishes
@@ -105,9 +120,10 @@ arithmetic checks do not establish live-service behavior.
 |---|---|
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
-| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state and appeal authority require the resolutions listed above. |
+| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
 | WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-4 §6.3 recovery identity | Consume `recovery-identity.json`; integrate its reset boundaries with authenticated Delta/Audit Record history, candidate-Block parameter profiles, notice evidence and due process. Recovery preserves identity without freezing state or retroactively altering earlier prefixes. Abstract projection inputs do not establish these integrated obligations. |
+| WIST-4 §7 appeal authority | Consume `recovery-appeals.json` with independently established notice eligibility. Preserve notice-era signing bindings across recovery, rotations, resets, repeated notice inclusion and restart; apply signature eligibility before appeal-slot allocation and process replay. Exercise live appeal publication/sealing, deadlines and resulting retention with authenticated finding histories. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change audit timing without creating a selection duty; redirect termination and authority restrictions under live pulls |

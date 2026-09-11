@@ -2692,9 +2692,43 @@ Process requirements:
   appeal exists from the moment it is served; the
   Aggregator's Entry records it rather than creating it, and any party can
   fetch the served copy and verify it for itself. An `appeal` is signed by
-  the Publisher and MUST verify against the Key Set current at the
-  `notice`'s Block — not the present one — so that a domain in key
-  compromise or identity reset (WIST-1 §5.2) can still appeal.
+  the Publisher and MUST verify against the **notice-era appeal Key Set**
+  defined below, so later key changes do not remove its opportunity to appeal.
+- **Appeal authority is fixed by the notice's accepted prefix.** For the
+  notice's `subject` domain, first perform any recovery settlement due at
+  its Block and apply all that Block's Declarations in WIST-1 §5.2's order,
+  independent of the notice's canonical Entry position. If a recovery
+  window remains open, select the current recovery-chain head's `keys`;
+  otherwise select the current Declaration's `keys`. Freeze that complete
+  Key Set for this notice. An off-chain competitor's accepted head, the
+  pre-recovery Delta-admission union and `recovery_keys` supply no additional
+  appeal authority. Recovery keys sign only Declarations (WIST-1 §5.2).
+
+  A later Declaration, chain extension, settlement, identity reset or new
+  recovery window MUST NOT change this notice's appeal Key Set. In
+  particular, settlement cannot retroactively authorize a later follower's
+  keys or invalidate an appeal valid in an earlier prefix. A notice before
+  recovery retains its earlier keys; a notice during recovery uses the
+  chain head known at that notice, even if a fresh competitor is the latest
+  accepted Declaration. At the settlement boundary the restored head and
+  any subsequent Declarations in that Block determine the new notice's
+  authority, including a fresh identity or another recovery owner.
+
+  Resolve the appeal's `sig.key_id` only within the frozen `keys` entries
+  and verify its canonical `update` bytes under that entry's public key
+  using WIST-1 §4. A present-day entry with the same identifier cannot
+  replace the frozen binding; an alias is eligible only if that identifier
+  occurs in the frozen set. An appeal must name an accepted sanction
+  notice and the same `subject`. A missing or ineligible notice, mismatched
+  subject, absent notice-era authority or absent identifier is `WIST4-E05`.
+  A selected entry whose signature fails is
+  `WIST1-E01`. Either failure is ignored and fills no appeal slot.
+
+  The frozen signing entries have no additional `valid_from` time filter
+  for appeals: WIST-1 §5.1 applies that bound to a Delta's `observed_at`,
+  which an appeal does not carry. Neither act's `effective_at`, the appeal's
+  sealing time nor the notice's sealing time substitutes for `observed_at`.
+  WIST-1 §5.2's historical Delta-key rule does not revise appeal authority.
 - **Sealing an appeal is a duty with a derived deadline.** An `appeal`
   served inside the appeal window MUST be sealed within `appeal_seal_days`
   (Parameter Registry; default 7) of the Aggregator obtaining it, and in no
