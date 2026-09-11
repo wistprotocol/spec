@@ -683,6 +683,143 @@ def recovery_heads_vectors():
 
 recovery_heads_vectors()
 
+def declaration_conflict_vectors():
+    def signed(previous, seq, signer=priv, key_id="test-k1", **changes):
+        inner = dict(previous["publisher"], seq=seq,
+                     prev_declaration=decl_hash(previous["publisher"]), **changes)
+        return sign_envelope_with(signer, "publisher", inner, key_id)
+
+    def block(previous, height, batch):
+        entries = sorted(map(recovery_order_entry, batch),
+                         key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+        instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=height)
+        hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+        root = merkle_tree_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
+        header = {"wist_version": "1.0.0", "block_number": height,
+                  "prev_block_hash": previous,
+                  "sealed_at": instant.isoformat().replace("+00:00", "Z"),
+                  "merkle_root": "sha256:" + root.hex(), "entry_count": len(entries)}
+        return dict(sign_envelope_with(priv, "header", header, "test-log-k1"), entries=entries)
+
+    def state(current, chain=None, floor=None, windows=0, reset=None):
+        return {"current_envelope": decl_hash(current),
+                "recovery_envelope": decl_hash(chain) if chain else None,
+                "highest_accepted_seq": current["publisher"]["seq"] if floor is None else floor,
+                "window_end": "2026-08-11T01:00:00Z" if chain else None,
+                "windows_opened": windows, "reset_height": reset}
+
+    initial = sign_envelope("publisher", publisher, "test-k1")
+    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
+    fresh = signed(owner, 2, keys=publisher["keys"])
+    blocks, previous = [], "sha256:genesis"
+    for height in range(169):
+        batch = [initial] if height == 0 else [owner] if height == 1 else [fresh] if height == 2 else []
+        blocks.append(block(previous, height, batch))
+        previous = decl_hash(blocks[-1]["header"])
+    prefixes = {"empty": [], "initial": blocks[:1], "open": blocks[:3], "deadline": blocks}
+    initial_state = {"example.com": state(initial)}
+    open_state = {"example.com": state(fresh, owner, windows=1)}
+    cases = []
+
+    def add(name, prefix, batch, expected, result="accepted", isolated=(), invalid=(), **fields):
+        history = prefixes[prefix]
+        previous = decl_hash(history[-1]["header"]) if history else "sha256:genesis"
+        candidate = block(previous, len(history), batch)
+        cases.append({"name": name, "prefix": prefix, "block": candidate,
+                      "pinned_head": decl_hash(candidate["header"]),
+                      "expected_results": [result], "expected_state": expected,
+                      "signature_valid": [entry["body"] not in invalid for entry in candidate["entries"]],
+                      "expected_accepted_head": decl_hash(candidate["header"]) if result == "accepted" else previous,
+                      "isolated_candidates": [{"previous": p, "incoming": e, "expected_result": r}
+                                              for p, e, r in isolated], **fields})
+
+    ordinary = signed(initial, 1, keys=[K2])
+    recovery_same = sign_envelope_with(priv2, "publisher", ordinary["publisher"], "test-r1")
+    for reverse in (False, True):
+        for nonce in range(1000):
+            sibling = signed(initial, 1, contact=f"mailto:sibling{nonce}@example.com")
+            if (recovery_order_leaf(sibling) < recovery_order_leaf(ordinary)) == reverse:
+                break
+        else:
+            raise AssertionError("no discriminating sibling order")
+        add("distinct siblings " + ("reversed" if reverse else "ascending"), "initial",
+            [ordinary, sibling], initial_state, "WIST1-E08",
+            [(initial, ordinary, "ordinary_rotation"), (initial, sibling, "ordinary_rotation")],
+            first_candidate=decl_hash(ordinary), sibling_leaves_reversed=reverse)
+    add("same publisher ordinary and recovery signatures", "initial", [ordinary, recovery_same],
+        initial_state, "WIST1-E08",
+        [(initial, ordinary, "ordinary_rotation"), (initial, recovery_same, "recovery_rotation")])
+    add("ordinary signature alone", "initial", [ordinary], {"example.com": state(ordinary)})
+    add("recovery signature alone", "initial", [recovery_same],
+        {"example.com": state(recovery_same, recovery_same, windows=1)})
+    add("identical recovery Envelopes apply once", "initial", [owner, owner],
+        {"example.com": state(owner, owner, windows=1)})
+    add("current publisher alternate signatures install nothing", "initial",
+        [initial, sign_envelope_with(priv2, "publisher", publisher, "test-r1")], initial_state)
+    alternate_initial = sign_envelope("publisher", dict(publisher, contact="mailto:other@example.com"), "test-k1")
+    add("distinct initial Declarations", "empty", [initial, alternate_initial], {}, "WIST1-E08",
+        [(None, initial, "initial"), (None, alternate_initial, "initial")])
+    add("identical initial Envelopes", "empty", [initial, initial], initial_state)
+    other = sign_envelope("publisher", dict(publisher, domain="aaa.example.net", subdomain_scope=[],
+                                           contact="mailto:keys@aaa.example.net"), "test-k1")
+    add("equal sequences across domains", "empty", [initial, other],
+        {"example.com": state(initial), "aaa.example.net": state(other)})
+    lower = signed(initial, 1, contact="mailto:lower@example.com")
+    left = signed(lower, 2, contact="mailto:left@example.com")
+    right = signed(lower, 2, contact="mailto:right@example.com")
+    add("reject lower sequence and other domain effects", "initial", [other, lower, left, right],
+        initial_state, "WIST1-E08",
+        [(None, other, "initial"), (initial, lower, "ordinary_rotation"),
+         (lower, left, "ordinary_rotation"), (lower, right, "ordinary_rotation")])
+    follower = signed(owner, 3, priv3, "test-k2", contact="mailto:follower@example.com")
+    competitor = signed(fresh, 3, contact="mailto:competitor@example.com")
+    add("distinct eligible recovery heads", "open", [follower, competitor], open_state, "WIST1-E08",
+        [(owner, follower, "ordinary_rotation"), (fresh, competitor, "ordinary_rotation")])
+    restored_alternate = sign_envelope_with(priv3, "publisher", owner["publisher"], "test-k2")
+    add("settlement precedes restored current re serves", "deadline", [owner, restored_alternate],
+        {"example.com": state(owner, floor=2, windows=1)})
+    after_left = signed(owner, 3, priv3, "test-k2", contact="mailto:afterleft@example.com")
+    after_right = signed(owner, 3, priv3, "test-k2", contact="mailto:afterright@example.com")
+    add("rejected deadline Block does not settle", "deadline", [after_left, after_right],
+        open_state, "WIST1-E08",
+        [(owner, after_left, "ordinary_rotation"), (owner, after_right, "ordinary_rotation")])
+    alias_inner = dict(ordinary["publisher"], keys=[K2, dict(K2, key_id="alias")])
+    alias_one = sign_envelope_with(priv3, "publisher", alias_inner, "test-k2")
+    alias_two = sign_envelope_with(priv3, "publisher", alias_inner, "alias")
+    add("same authority distinct signature identifiers", "initial", [alias_one, alias_two],
+        initial_state, "WIST1-E08",
+        [(initial, alias_one, "fresh_identity"), (initial, alias_two, "fresh_identity")])
+    invalid_author = sign_envelope_with(priv4, "publisher", ordinary["publisher"], "test-k1")
+    add("conflict does not filter invalid signatures", "initial", [ordinary, invalid_author],
+        initial_state, "WIST1-E08",
+        [(initial, ordinary, "ordinary_rotation"), (initial, invalid_author, "WIST1-E01")],
+        invalid=[invalid_author])
+    add("duplicate does not waive first signature check", "initial", [invalid_author, invalid_author],
+        initial_state, "WIST1-E01", [(initial, invalid_author, "WIST1-E01")], invalid=[invalid_author])
+    add("current object and changed sibling conflict", "initial", [initial, alternate_initial],
+        initial_state, "WIST1-E08")
+    add("initial and duplicate replacement in one Block", "empty", [initial, ordinary, ordinary],
+        {"example.com": state(ordinary)})
+    invalid_other = sign_envelope_with(priv4, "publisher", other["publisher"], "test-k1")
+    add("different domains may report either failure", "initial", [invalid_other, ordinary, recovery_same],
+        initial_state, "WIST1-E08", [(None, invalid_other, "WIST1-E01")], invalid=[invalid_other],
+        expected_results=["WIST1-E01", "WIST1-E08"])
+    write_json(WIST1 / "declaration-conflicts.json", {
+        "note": "WIST-1 section 5.2 and WIST-3 section 3.3 equal-sequence Declaration groups. "
+                "Each case appends its Block to the named authenticated prefix; trusted fixture "
+                "inputs are the supplied Log key, pinned head and default seven-day window. "
+                "Expected state hashes commit to whole installed Envelopes, including signatures. "
+                "The deadline prefix ends one hour before settlement. Candidate classification "
+                "probes are independent of batch acceptance; signature_valid checks only cryptographic "
+                "authorship against fixture key bindings, not eligibility or idempotent installation. "
+                "No Audit Record, appeal or Snapshot "
+                "eligibility is asserted. Domain iteration order is immaterial to accepted state.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "prefixes": prefixes, "cases": cases})
+
+
+declaration_conflict_vectors()
+
 def recovery_identity_vectors():
     def signed(previous, seq, signer, key_id, **changes):
         inner = dict(previous["publisher"], seq=seq,

@@ -34,11 +34,6 @@ Declaration histories carrying sequence numbers and predecessor hashes:
   Deltas. Define notice-era appeal authority across open and settled
   prefixes with signed appeals under competing and recovery-chain keys.
   WIST-4 §6.3's identity continuity does not determine signature eligibility.
-- Distinct same-domain, same-sequence Declaration candidates can each name
-  the pre-Block head. WIST-1 requires rejection of an invalid Declaration,
-  but does not define whether this conflicting batch invalidates its Block
-  or has another disposition. Define the result without choosing a winner
-  by storage index, with signed conflicting-candidate vectors.
 
 WIST-1 §5.2 and WIST-3 §3.3 select recovery ownership in ascending
 `(Block height, seq)` order. `vectors/wist1/recovery-order.json` exercises
@@ -51,6 +46,16 @@ rejection, named-predecessor classification, the deadline transition and
 idempotent re-serving of the restored lower-sequence head. Its reference
 validates Declaration authorship separately from Block inclusion. It asserts
 no identity-reset or conflicting-batch result.
+
+WIST-1 §5.2 and WIST-3 §3.3 reject conflicting equal-sequence Declaration
+groups as an entire Block under `WIST1-E08`, preserving the accepted prefix
+and state. Only already-current publisher re-serves or identical first-install
+Envelopes are nonconflicting; differing signatures cannot choose a new
+Declaration's ordinary/recovery authority by leaf order.
+`vectors/wist1/declaration-conflicts.json` exercises signed sibling and
+signature conflicts, initial and open-window cases, idempotence, independent
+domains and atomic rejection. Service admission and replay must adopt these
+rules; a Block signature alone does not establish Declaration admissibility.
 
 WIST-4 §6.3 preserves the recovery owner's identity from its application
 onward. In-window fresh competitors cause no reset or sanction lift in any
@@ -92,7 +97,7 @@ arithmetic checks do not establish live-service behavior.
 |---|---|
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
-| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json` and `recovery-heads.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Canonical storage order and a later recovery inside the window cannot replace its owner. Snapshot state, appeal authority and conflicting-candidate disposition require the resolutions listed above. |
+| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state and appeal authority require the resolutions listed above. |
 | WIST-4 §6.3 recovery identity | Consume `recovery-identity.json`; integrate its reset boundaries with authenticated Delta/Audit Record history, candidate-Block parameter profiles, notice evidence and due process. Recovery preserves identity without freezing state or retroactively altering earlier prefixes. Abstract projection inputs do not establish these integrated obligations. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |

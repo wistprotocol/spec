@@ -622,6 +622,36 @@ continuity or acquire a different class of authority. Recovery-key protection
 still applies to the resulting classification. The rule does not authorize
 an incoming recovery key to authenticate its own installation.
 
+**Same-Block Declaration conflicts.** For each domain, process the Block's
+Declarations in groups of equal `seq`, in ascending `seq`, after settling
+any due recovery window. Evaluate each group against the state after all
+lower-sequence groups, before applying any member of this group. If every
+member's canonical `publisher` bytes equal the current Declaration's, the
+group is idempotent: it installs no Declaration or signature. Otherwise,
+every member MUST have identical canonical Envelope bytes, including `sig`;
+validate and apply that one Envelope once. Exact repeats have no additional
+effect. For structurally valid Envelopes, test group equality before any
+member's signature; do not filter invalid signatures to select a winner.
+Distinct Envelopes in such a group invalidate the entire Block
+under `WIST1-E08`, even if each would be admissible alone, or they differ
+only in signatures over the same `publisher` object. This applies to initial
+(`seq` 0) Declarations and inside recovery windows as well as outside them.
+Equal sequences for different domains do not conflict. Canonical leaf order
+MUST NOT select a winner or make another member an idempotent re-serve by
+installing the first member. A repeated Envelope does not waive any ordinary
+sequence, predecessor, key or signature check on its first installation.
+
+An Aggregator MUST NOT seal a Block with a conflicting Declaration group.
+A Consumer encountering one MUST reject the entire Block, retaining its
+previous accepted prefix and state; no Entry or settlement from that Block
+takes effect. The same whole-Block rejection applies when a Declaration
+fails its acceptance checks during Block replay, with that check's error
+code. If different domains have different acceptance failures, a validator
+MAY report any of those applicable error codes; no cross-domain diagnostic
+order is required. Rejection and retained state MUST agree regardless of
+which error is reported. This rule governs sealed Blocks; it assigns no
+winner among unsealed submissions or obligation to seal a rejected candidate.
+
 **Accepted sequence and recovery heads.** For each domain, retain the
 highest accepted `seq` independently of which Declaration is current.
 Supersession MUST NOT decrease that sequence floor: every new Declaration,
@@ -829,7 +859,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |

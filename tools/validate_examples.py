@@ -4555,6 +4555,16 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/recovery-identity.json", "prev_block_hash"): "SHA-256 of a Block header",
     ("vectors/wist4/recovery-identity.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/declaration-conflicts.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/declaration-conflicts.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/declaration-conflicts.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
+    ("vectors/wist1/declaration-conflicts.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist1/declaration-conflicts.json", "expected_accepted_head"): "the accepted Block header hash after batch validation",
+    ("vectors/wist1/declaration-conflicts.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist1/declaration-conflicts.json", "merkle_root"): "the Merkle root of Declaration Entries",
+    ("vectors/wist1/declaration-conflicts.json", "current_envelope"): "SHA-256 of the installed Declaration Envelope including signature",
+    ("vectors/wist1/declaration-conflicts.json", "recovery_envelope"): "SHA-256 of the recovery-chain Declaration Envelope including signature",
+    ("vectors/wist1/declaration-conflicts.json", "first_candidate"): "SHA-256 of a Declaration Envelope used to discriminate leaf order",
     ("vectors/wist1/recovery-heads.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-heads.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-heads.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
@@ -5421,6 +5431,32 @@ def _recovery_order_vectors():
 
 check("vectors:wist1-recovery-order", _recovery_order_vectors)
 
+def _declaration_history_blocks(vector, blocks, pinned):
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/block.schema.json").read_text()))
+    previous, previous_time = "sha256:genesis", None
+    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
+    authenticated = []
+    for height, block in enumerate(blocks):
+        validator.validate(block)
+        header, entries = block["header"], block["entries"]
+        instant = log_seconds(header["sealed_at"])
+        assert previous_time is None or instant == previous_time + 3600
+        assert header["block_number"] == height and header["prev_block_hash"] == previous
+        assert block["sig"]["key_id"] == vector["log_key"]["key_id"]
+        log_key.verify(b64u_decode(block["sig"]["value"]), rfc8785.dumps(header))
+        assert header["entry_count"] == len(entries)
+        hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+        assert hashes == sorted(hashes)
+        root = merkle_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
+        assert header["merkle_root"] == "sha256:" + root.hex()
+        assert all(entry["type"] == "publisher_declaration" for entry in entries)
+        authenticated.append((header, [entry["body"] for entry in entries]))
+        previous = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
+        previous_time = instant
+    assert previous == pinned
+    return authenticated
+
+
 def _recovery_history_reference(vector):
     validators = {name: Draft202012Validator(json.loads(
         (ROOT / f"schemas/{name}.schema.json").read_text()))
@@ -5472,43 +5508,119 @@ def _recovery_history_reference(vector):
                 "highest_accepted_seq": state["floor"], "window_end": state["end"],
                 "windows_opened": state["windows"]}
 
-    def replay(blocks, pinned):
-        state = {"current": None, "chain": None, "floor": -1, "end": None, "windows": 0, "reset_height": None}
-        prefix_states = []
-        previous, previous_time = "sha256:genesis", None
-        log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
-        for height, block in enumerate(blocks):
-            validators["block"].validate(block)
-            header, entries = block["header"], block["entries"]
-            instant = log_seconds(header["sealed_at"])
-            assert previous_time is None or instant == previous_time + 3600
-            assert header["block_number"] == height and header["prev_block_hash"] == previous
-            assert block["sig"]["key_id"] == vector["log_key"]["key_id"]
-            log_key.verify(b64u_decode(block["sig"]["value"]), rfc8785.dumps(header))
-            assert header["entry_count"] == len(entries)
-            hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
-            assert hashes == sorted(hashes)
-            root = merkle_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
-            assert header["merkle_root"] == "sha256:" + root.hex()
+    def apply_block(states, header, candidates, reverse_domains=False):
+        updated = copy.deepcopy(states)
+        instant = log_seconds(header["sealed_at"])
+        for state in updated.values():
             settle(state, instant)
-            assert all(entry["type"] == "publisher_declaration" for entry in entries)
-            candidates = [entry["body"] for entry in entries]
-            assert len({env["publisher"]["seq"] for env in candidates}) == len(candidates)
-            for incoming in sorted(candidates, key=lambda env: env["publisher"]["seq"]):
-                outcome = apply(state, incoming, instant, header["sealed_at"], height)
-                assert outcome in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
-            prefix_states.append(copy.deepcopy(state))
-            previous = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
-            previous_time = instant
-        assert previous == pinned
+        grouped = {}
+        for incoming in candidates:
+            validators["publisher"].validate(incoming)
+            inner = incoming["publisher"]
+            grouped.setdefault(inner["domain"], {}).setdefault(inner["seq"], []).append(incoming)
+        for domain in sorted(grouped, reverse=reverse_domains):
+            state = updated.setdefault(domain, {"current": None, "chain": None, "floor": -1,
+                                                "end": None, "windows": 0, "reset_height": None})
+            for seq in sorted(grouped[domain]):
+                group = grouped[domain][seq]
+                current = state["current"]
+                if current and all(rfc8785.dumps(env["publisher"]) == rfc8785.dumps(current["publisher"])
+                                   for env in group):
+                    continue
+                if len({rfc8785.dumps(env) for env in group}) != 1:
+                    return "WIST1-E08", states
+                result = apply(state, group[0], instant, header["sealed_at"], header["block_number"])
+                if result not in {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}:
+                    return result, states
+        return "accepted", updated
+
+    def replay(blocks, pinned):
+        states = {}
+        prefix_states = []
+        for header, candidates in _declaration_history_blocks(vector, blocks, pinned):
+            outcome, states = apply_block(states, header, candidates)
+            assert outcome == "accepted"
+            assert len(states) == 1
+            prefix_states.append(copy.deepcopy(next(iter(states.values()))))
         return prefix_states
 
-    return apply, summary, replay
+    return apply, summary, replay, apply_block
+
+
+def _declaration_conflict_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/declaration-conflicts.json").read_text())
+    _, _, _, apply_block = _recovery_history_reference(vector)
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/publisher.schema.json").read_text()))
+
+    def digest(obj):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(obj)).hexdigest()
+
+    def summaries(states):
+        return {domain: {"current_envelope": digest(state["current"]),
+                         "recovery_envelope": digest(state["chain"]) if state["chain"] else None,
+                         "highest_accepted_seq": state["floor"], "window_end": state["end"],
+                         "windows_opened": state["windows"], "reset_height": state["reset_height"]}
+                for domain, state in states.items()}
+
+    reversed_leaves = set()
+    for case in vector["cases"]:
+        blocks = vector["prefixes"][case["prefix"]] + [case["block"]]
+        authenticated = _declaration_history_blocks(vector, blocks, case["pinned_head"])
+        keys = {}
+        for _, candidates in authenticated:
+            for env in candidates:
+                inner = env["publisher"]
+                for key in inner["keys"] + inner.get("recovery_keys", []):
+                    keys.setdefault(key["key_id"], set()).add(key["public_key"])
+        assert len(case["signature_valid"]) == len(case["block"]["entries"])
+        for entry, expected_valid in zip(case["block"]["entries"], case["signature_valid"]):
+            env, verified = entry["body"], False
+            for public in keys.get(env["sig"]["key_id"], set()):
+                try:
+                    Ed25519PublicKey.from_public_bytes(b64u_decode(public)).verify(
+                        b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["publisher"]))
+                    verified = True
+                except Exception:
+                    pass
+            assert verified == expected_valid, case["name"]
+        for probe in case["isolated_candidates"]:
+            validator.validate(probe["incoming"])
+            assert probe["incoming"] in [entry["body"] for entry in case["block"]["entries"]]
+            assert _declaration_binding_result(probe["previous"], probe["incoming"]) == probe["expected_result"], case["name"]
+        if "sibling_leaves_reversed" in case:
+            first = case["block"]["entries"][0]["body"]
+            assert (digest(first) != case["first_candidate"]) == case["sibling_leaves_reversed"]
+            reversed_leaves.add(case["sibling_leaves_reversed"])
+        diagnostics = set()
+        for reverse_domains in (False, True):
+            states, accepted_head = {}, "sha256:genesis"
+            for header, candidates in authenticated:
+                before = copy.deepcopy(states)
+                result, updated = apply_block(states, header, candidates, reverse_domains)
+                assert states == before, "Block evaluation mutated its accepted prefix"
+                if header["block_number"] < len(blocks) - 1:
+                    assert result == "accepted", case["name"]
+                else:
+                    assert result in case["expected_results"], case["name"]
+                    diagnostics.add(result)
+                    reordered_result, reordered = apply_block(states, header, list(reversed(candidates)), reverse_domains)
+                    assert (reordered_result, reordered) == (result, updated), case["name"]
+                if result == "accepted":
+                    states, accepted_head = updated, digest(header)
+                else:
+                    assert updated == before, "rejected Block changed Declaration or settlement state"
+            assert summaries(states) == case["expected_state"], case["name"]
+            assert accepted_head == case["expected_accepted_head"], case["name"]
+        assert diagnostics == set(case["expected_results"]), case["name"]
+    assert reversed_leaves == {False, True}
+
+
+check("vectors:wist1-declaration-conflicts", _declaration_conflict_vectors)
 
 
 def _recovery_heads_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())
-    apply, summary, replay = _recovery_history_reference(vector)
+    apply, summary, replay, _ = _recovery_history_reference(vector)
     def digest(envelope):
         return "sha256:" + hashlib.sha256(rfc8785.dumps(envelope["publisher"])).hexdigest()
     states = replay(vector["blocks"], vector["pinned_head"])
@@ -5557,7 +5669,7 @@ check("vectors:wist1-recovery-heads", _recovery_heads_vectors)
 
 def _recovery_identity_vectors():
     vector = json.loads((ROOT / "vectors/wist4/recovery-identity.json").read_text())
-    apply, _, replay = _recovery_history_reference(vector)
+    apply, _, replay, _ = _recovery_history_reference(vector)
     inputs = vector["projection_inputs"]
     deltas = {d["label"]: d for d in inputs["deltas"]}
     decay = json.loads((ROOT / "vectors/wist4/decay-table.json").read_text())["values"]

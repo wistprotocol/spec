@@ -198,7 +198,13 @@ accepted sequence through settlement and selects a recovery window's owner in
 ascending `(Block height, seq)` order, so intra-Block storage position
 never decides between them; a fresh Declaration applied before that owner
 resets identity, while an in-window fresh competitor does not, WIST-4 §6.3),
-then `registry_update` Entries (admission
+with equal-sequence groups handled by WIST-1 §5.2: conflicting first-install
+Envelopes invalidate the entire Block under `WIST1-E08`; current-Declaration
+re-serves and exact duplicates install no additional state or signature.
+Every Declaration must pass its acceptance checks; on failure reject the
+whole Block with the applicable error, preserving the previously accepted
+prefix and all its state, including recovery windows due to settle in the
+rejected Block. Then apply `registry_update` Entries (admission
 and removal read at Block granularity — "admitted at this Block's
 `sealed_at`" — under WIST-4 §3.1's batch rules; `parameter_change`
 validation and equal-effective-time precedence read canonical Entry

@@ -42,6 +42,25 @@ two recoveries whose sequence order reverses their leaf-hash order.
 This changes no object fields or schema constraints; it defines application
 order within the existing signed format under PUBLICATION.md.
 
+**Equal-sequence groups cannot choose authority by storage order.** Evaluate
+each domain's group against the state after settlement and lower-sequence
+groups. A group containing only re-serves of the current canonical
+`publisher` object is idempotent and installs no signature. Otherwise all
+canonical Envelopes, including signatures, must be identical; apply that
+Envelope once, subject to every acceptance check. Distinct first-install
+Envelopes invalidate the entire Block with `WIST1-E08`. This includes two
+signatures over identical publisher bytes: an ordinary key and a recovery
+key can each authenticate those bytes but imply different window ownership.
+Initial Declarations and open recovery windows use the same rule; domains
+remain independent. A Declaration acceptance failure invalidates its Block
+without committing any Entry or settlement. Check a structurally valid
+group's equality before its signatures; filtering bad signatures would
+silently select a member of a conflicting batch. Different failing domains
+may report different applicable diagnostics, since their processing order
+does not affect Block rejection or retained state. Signed cases and positive
+controls in `vectors/wist1/declaration-conflicts.json` exercise these rules.
+This adds no object fields or schema constraints.
+
 **Admission is the union.** A Delta is queued when it verifies under either
 the Key Set in effect immediately before the recovery or the recovery
 Declaration's own. The recovering Publisher keeps publishing; the
@@ -114,6 +133,24 @@ replacement without authority. No object field or schema constraint changes.
 
 ## Alternatives considered
 
+**Take the first equal-sequence Entry and ignore its siblings.** Rejected
+because a Block would certify conflicting state transitions and leaf-hash
+order would select identity or recovery authority. Rejecting every sibling
+Entry but accepting the Block also discards a sealed Declaration whose
+acceptance WIST-3 §3.3 requires. Unsealed submissions remain subject to
+ordinary admission checks; the conflict rule does not mandate their sealing.
+
+**Compare only publisher bytes on first installation.** Rejected because
+different valid signatures can classify the same replacement as ordinary
+or recovery. Requiring one canonical Envelope also avoids introducing
+signature-equivalence rules for aliases that authenticate the same key.
+Idempotence is safe only against already-current publisher
+bytes at entry to the sequence group; those re-serves install no signature.
+
+**Reject all repeated sequences.** Rejected because byte-identical Envelope
+duplicates and already-current publisher re-serves have no additional
+effect, and equal sequence numbers for different domains are unrelated.
+
 **Reset on acceptance and restore at settlement.** Rejected because it
 temporarily discards the recovering identity's audit credit and findings,
 clears sanctions, and makes a candidate Block's notice targets depend on
@@ -168,7 +205,7 @@ a Delta signed by a superseded key does not verify, whenever it is served.
 
 - Queue admission, settlement, recovery ownership, predecessor selection and
   the persistent sequence floor and identity continuity have explicit rules.
-  Conflicting batches, notice-era appeal keys and sufficient Snapshot recovery
+  Conflicting batches reject atomically. Notice-era appeal keys and sufficient Snapshot recovery
   state still require resolution under CONFORMANCE.md before complete recovery replay can
   be validated. The signed head vectors assert no reputation or sanction result.
   `vectors/wist4/recovery-identity.json` adds signed Declaration histories and
