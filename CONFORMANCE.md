@@ -319,6 +319,54 @@ eligibility, reject invalid appeals before slot allocation, preserve frozen
 bindings on restart, and exercise live publication, sealing, deadlines,
 rulings and retention. No Snapshot resume behavior is established.
 
+## Delta cross-check diagnostics
+
+WIST-1 §3.4 fixes malformed `observed_at` as WIST1-E14 and excess skew as
+WIST1-E06. Section 5.1 fixes encoding/timestamp eligibility before E02/E01
+binding diagnostics. Sections 3.2 and 3.5 assign URL and chain failures E03
+and E07. These rules do not determine a diagnostic priority across all
+simultaneous failures: for example, a Delta may have both an invalid
+signature and excess skew, or both an out-of-scope URL and excess skew.
+
+Checking bindings before the clock, then URL, chain and Payload conditions,
+selects E01/E02 over E06 and E06 over E03/E07 in those overlapping cases.
+That order is a provisional implementation reading, not a specified priority.
+Resolve the ordering or explicitly permitted diagnostic freedom with signed
+multiple-failure vectors before asserting complete Delta admission conformance.
+The isolated clock vectors in `vectors/wist1/declaration-fields.json` establish
+the inclusive default 600-second relation only. WIST-4 §9's signed integer
+parameter `clock_skew_seconds` controls the active allowance, including negative
+values; the clock relation uses exact signed addition at the validator instant.
+
+## Delta Publisher attribution
+
+WIST-1 §3.2 permits a URL in overlapping Publisher authorities and calls
+both Publishers’ Deltas valid. WIST-3 §7 keys chains by `(Publisher domain,
+Normalized URL)` and selects which Publisher’s records materialize. Neither
+the Delta Envelope nor its WIST-3 §3.3 Entry carries a Publisher domain.
+WIST-1 §5.2 resolves the keys of “that domain” without determining the domain
+when several eligible Declarations authorize the same signed object.
+
+Two scoped Declarations may carry the same signing identifier and public key.
+The same Delta then authenticates under both, and the fetched site's domain
+is unavailable to a party replaying the Log. The one-URL-one-Publisher rule
+selects materialized records after attribution; it does not determine the
+Delta's author. Selecting a Declaration by identifier before verifying its
+signature also loses valid candidates when the same identifier binds different
+public keys. Arbitrary host or iteration order is not a specified resolution.
+
+Resolve authenticated candidate selection and ambiguous-match disposition
+before complete Delta/Audit Record replay. Possible resolutions include an
+explicit signed Publisher identity, rejection of ambiguous authority, or a
+specified attribution rule with its effects on existing domain identities.
+No alternative is selected. Discriminating signed histories must cover shared
+identifiers with different public keys, identical named bindings, multiple
+scoped authorities, predecessor ownership, rotations, recovery and identity
+resets; verify resulting chain, reputation and sanction attribution separately
+from materialization. Scope membership is literal: WIST-1 §3.2 names the
+Declaration's domain or any hostname in its `subdomain_scope`, without an
+ancestor-only restriction.
+
 ## Validation still required
 
 The vector-family inventory in `tools/VERIFICATION.md` distinguishes
