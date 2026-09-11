@@ -209,7 +209,10 @@ The instant the Publisher observed the state being described, as an
 RFC 3339 UTC timestamp. It MUST NOT be more than 10 minutes in the future
 relative to the validator's clock (error `WIST1-E06`), and MUST be strictly
 greater than the `observed_at` of the Delta referenced by `prev` (error
-`WIST1-E07`).
+`WIST1-E07`). A missing, non-string or malformed RFC 3339 `observed_at` is
+`WIST1-E14`; validate its format before comparing it with a clock, predecessor
+or key validity bound. This diagnostic does not narrow RFC 3339 to the
+whole-second literal-Z profile used for Log timestamps.
 
 ### 3.5. `prev`
 
@@ -505,6 +508,30 @@ Declaration this one replaces; REQUIRED when `seq` > 0, absent only for
 also covers), the `keys` array (each entry: `key_id`, `alg`, raw Ed25519
 `public_key` base64url, `valid_from`), optional `recovery_keys` (same
 item shape as `keys`; see §5.2), and optional `contact`.
+
+**Declaration field validation.** A validator MUST reject a canonicalizable
+Declaration Envelope that violates its schema or the integer range in §4
+with `WIST1-E14`. This includes missing required members, wrong JSON types,
+unknown members, optional members present as `null`, empty `keys`, string
+bounds, malformed hostname fields, malformed `valid_from` in either key
+array, and malformed signature-field encodings. Schema `format` constraints
+are assertions, not optional annotations. Apply the fields' specified
+formats, including RFC 3339 for `valid_from`; do not substitute the narrower
+Log timestamp profile. A valid encoding that fails cryptographic key or
+signature verification is governed by §4 and §5.2, not this syntax error.
+
+Perform this field validation before Declaration sequencing, same-Block
+conflict comparison, idempotence or signer resolution, including for a
+re-serve of the current `publisher` object. Do not repair, strip, coerce or
+normalize signed members to make a malformed Envelope acceptable. Invalid
+JCS input remains `WIST1-E05`. For a structurally valid Declaration, §5.2's
+semantic sequence, predecessor and key-set checks retain `WIST1-E08`;
+for example, absence of `prev_declaration` at `seq` > 0 is that semantic
+error, while a present malformed hash is `WIST1-E14`. A failed Declaration
+field check during Block replay rejects the whole Block under §5.2,
+including its tentative settlements and other domains' transitions.
+First-contact Declaration pull failure remains wrapped as `WIST2-E04`
+under WIST-2 §5; `WIST1-E14` identifies the underlying field failure.
 
 Discovery MUST use HTTPS; there is no alternative channel. A validator MUST
 NOT accept a Publisher Declaration served over plain HTTP, and MUST NOT
@@ -885,6 +912,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature does not verify against the Key Set in effect at the window's end. The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and verifying under the Key Set then in force is sealed (§5.2) |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; or missing, non-string or malformed Delta `observed_at` (§3.4). Canonicalization failure remains WIST1-E05 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's current one

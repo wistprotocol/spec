@@ -874,6 +874,138 @@ def declaration_conflict_vectors():
 
 declaration_conflict_vectors()
 
+def declaration_field_vectors():
+    conflicts = json.loads((WIST1 / "declaration-conflicts.json").read_text())
+    initial = sign_envelope("publisher", publisher, "test-k1")
+    ordinary = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
+    cases = []
+
+    def add(name, path, value=None, remove=False, expected="WIST1-E14", base=ordinary):
+        inner = json.loads(json.dumps(base))
+        target = inner
+        for part in path[:-1]:
+            target = target[part]
+        if remove:
+            del target[path[-1]]
+        else:
+            target[path[-1]] = value
+        cases.append({"name": name, "envelope": sign_envelope("publisher", inner, "test-k1"),
+                      "expected": expected, "author_signature_valid": True})
+
+    for path, value in (
+        (["seq"], None), (["seq"], True), (["seq"], 1.5), (["seq"], -1),
+        (["seq"], float(2**53)), (["prev_declaration"], None),
+        (["prev_declaration"], "sha256:bad"), (["keys"], []),
+        (["recovery_keys"], None), (["subdomain_scope"], None),
+        (["contact"], None), (["contact"], "x" * 257),
+        (["domain"], "bad host.example"), (["subdomain_scope"], ["bad host.example"]),
+        (["keys", 0, "key_id"], "x" * 65), (["keys", 0, "alg"], "other"),
+        (["keys", 0, "public_key"], "!" * 43),
+        (["wist_version"], "1.0"), (["unknown"], True),
+    ):
+        add("invalid " + " ".join(map(str, path)) + " " + str(value)[:12], path, value)
+    for path in (["seq"], ["domain"], ["keys"], ["keys", 0, "valid_from"]):
+        add("missing " + " ".join(map(str, path)), path, remove=True)
+    add("missing semantic predecessor", ["prev_declaration"], remove=True, expected="WIST1-E08")
+    add("well shaped wrong predecessor", ["prev_declaration"], "sha256:" + "00" * 32,
+        expected="WIST1-E08")
+    add("safe integer maximum", ["seq"], 2**53 - 1, expected="ordinary_rotation")
+    add("contact at bound", ["contact"], "x" * 256, expected="ordinary_rotation")
+    times = [("2026-02-30T12:00:00Z", False), ("2026-08-04T24:00:00Z", False),
+             ("2026-08-04T12:00:00", False), ("2026-08-04T12:00:00.Z", False),
+             ("2026-08-04T12:00:00+24:00", False), ("2026-08-04T12:00:00+00:60", False),
+             ("２０２６-08-04T12:00:00Z", False), (None, False),
+             ("2026-08-04T12:00:00Z", True), ("2026-08-04t12:00:00.0000000001z", True),
+             ("2026-08-04T09:00:00-03:00", True), ("0000-02-29T00:00:00Z", True)]
+    for position, (value, valid) in enumerate(times):
+        add(f"signing valid from {position}", ["keys", 0, "valid_from"], value,
+            expected="ordinary_rotation" if valid else "WIST1-E14")
+        if not valid:
+            add(f"recovery valid from {position}", ["recovery_keys", 0, "valid_from"], value)
+    for field, value in (("sig", None), ("unknown", True)):
+        env = sign_envelope("publisher", ordinary, "test-k1")
+        env[field] = value
+        cases.append({"name": "Envelope " + field, "envelope": env,
+                      "expected": "WIST1-E14", "author_signature_valid": field != "sig"})
+    for field, value in (("value", "bad"), ("key_id", None), ("alg", "other"), ("unknown", True)):
+        env = sign_envelope("publisher", ordinary, "test-k1")
+        env["sig"][field] = value
+        cases.append({"name": "signature " + field, "envelope": env,
+                      "expected": "WIST1-E14", "author_signature_valid": field != "value"})
+    bad_signature = sign_envelope_with(priv4, "publisher", ordinary, "test-k1")
+    cases.append({"name": "valid fields invalid signature", "envelope": bad_signature,
+                  "expected": "WIST1-E01", "author_signature_valid": False})
+    cases.append({"name": "invalid fields and invalid signature",
+                  "envelope": sign_envelope_with(priv4, "publisher", dict(ordinary, contact=None), "test-k1"),
+                  "expected": "WIST1-E14", "author_signature_valid": False})
+    delta_cases = []
+    for position, (value, valid) in enumerate(times):
+        inner = {key: value for key, value in delta.items() if key != "payload"}
+        inner.update(change_type="delete", observed_at=value)
+        delta_cases.append({"name": f"observed at {position}",
+                            "envelope": sign_envelope("delta", inner, "test-k1"),
+                            "expected": "well_formed" if valid else "WIST1-E14"})
+    absent = {key: value for key, value in delta.items() if key not in ("payload", "observed_at")}
+    absent["change_type"] = "delete"
+    delta_cases.append({"name": "missing observed at", "envelope": sign_envelope("delta", absent, "test-k1"),
+                        "expected": "WIST1-E14"})
+
+    def block(previous, height, batch):
+        entries = sorted(map(recovery_order_entry, batch),
+                         key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+        instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=height)
+        header = {"wist_version": "1.0.0", "block_number": height, "prev_block_hash": previous,
+                  "sealed_at": instant.isoformat().replace("+00:00", "Z"),
+                  "merkle_root": "sha256:" + merkle_tree_root([
+                      leaf_hash(rfc8785.dumps(entry)) for entry in entries]).hex(),
+                  "entry_count": len(entries)}
+        return dict(sign_envelope_with(priv, "header", header, "test-log-k1"), entries=entries)
+
+    batches = []
+    other = sign_envelope("publisher", dict(publisher, domain="other.example"), "test-k1")
+    for case in cases:
+        batch = block(decl_hash(conflicts["prefixes"]["initial"][-1]["header"]), 1,
+                      [other, case["envelope"]])
+        batches.append({"name": case["name"], "prefix": "initial", "block": batch,
+                        "pinned_head": decl_hash(batch["header"]),
+                        "expected": "accepted" if case["expected"] == "ordinary_rotation" else case["expected"]})
+    valid = sign_envelope("publisher", ordinary, "test-k1")
+    malformed = json.loads(json.dumps(valid))
+    malformed["sig"]["unknown"] = True
+    later = dict(ordinary, seq=2, prev_declaration=decl_hash(ordinary), contact=None)
+    for name, members, expected in (
+        ("field error precedes same sequence conflict", [valid, malformed], "WIST1-E14"),
+        ("field error rolls back lower sequence", [valid, sign_envelope_with(priv3, "publisher", later, "test-k2")], "WIST1-E14"),
+        ("repaired field accepts both sequences", [valid, sign_envelope_with(
+            priv3, "publisher", dict(later, contact="mailto:security@example.com"), "test-k2")], "accepted"),
+    ):
+        batch = block(decl_hash(conflicts["prefixes"]["initial"][-1]["header"]), 1, members + [other])
+        batches.append({"name": name, "prefix": "initial", "block": batch,
+                        "pinned_head": decl_hash(batch["header"]), "expected": expected})
+    for prefix in ("empty", "initial", "open", "deadline"):
+        history = conflicts["prefixes"][prefix]
+        current = initial if prefix in ("empty", "initial") else history[2]["entries"][0]["body"]
+        env = json.loads(json.dumps(current))
+        env["sig"]["unknown"] = True
+        batch = block(decl_hash(history[-1]["header"]) if history else "sha256:genesis",
+                      len(history), [other, env])
+        batches.append({"name": "malformed re serve " + prefix, "prefix": prefix, "block": batch,
+                        "pinned_head": decl_hash(batch["header"]), "expected": "WIST1-E14"})
+    write_json(WIST1 / "declaration-fields.json", {
+        "note": "WIST-1 sections 3.4, 5.1 and 7. Signature-valid field mutations use the supplied fixture "
+                "author key independently of eligibility. Each Declaration case replaces stored; each batch "
+                "appends to its named authenticated prefix. Rejection preserves the full accepted state and head, "
+                "including due settlement and other domains. Delta cases assert timestamp field syntax only, "
+                "not clock bounds, key-time ordering, chain or Payload eligibility. Date-time coverage excludes "
+                "leap seconds; hostname coverage is limited to ASCII structural examples. No full field profile, "
+                "cryptographic key admission, Snapshot restoration or live service conformance is asserted.",
+        "log_key": conflicts["log_key"], "author_key": b64u(pub_raw), "stored": initial,
+        "recovery_window_days": 7, "prefixes": conflicts["prefixes"],
+        "cases": cases, "delta_cases": delta_cases, "block_cases": batches})
+
+
+declaration_field_vectors()
+
 def recovery_identity_vectors():
     def signed(previous, seq, signer, key_id, **changes):
         inner = dict(previous["publisher"], seq=seq,

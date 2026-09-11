@@ -26,16 +26,21 @@ add positive and negative cases without changing the specified algorithm.
 
 ### Declaration field and key eligibility
 
-WIST-1 §5.2 requires failed Declaration acceptance to reject its whole Block
-with the failing check's error code. The suite does not assign a diagnostic
-to otherwise canonicalizable Declaration schema failures during replacement
-or replay. WIST1-E05 covers invalid JCS input, WIST1-E08 the enumerated
-sequence and key-set violations, and WIST2-E04 malformed first-contact
-Declaration pulls. Specify the remaining syntax-failure classification,
-including malformed `observed_at` and `valid_from`, with signed field
-mutations and atomic Block-rejection vectors before claiming complete field
-validation. Treating an unparseable key-time comparison as WIST1-E02 is not
-an established schema-error rule.
+WIST-1 §§3.4, 5.1 and 7 assign `WIST1-E14` to malformed Declaration
+Envelope fields and missing, non-string or malformed Delta `observed_at`.
+[ADR-0024](decisions/0024-declaration-field-diagnostics.md) fixes field-check
+precedence before Declaration sequencing, conflicts, idempotence and signer
+resolution. `vectors/wist1/declaration-fields.json` supplies signed field
+mutations and authenticated rejection Blocks, including another domain's
+valid transition, open recovery, due settlement and malformed current re-serves.
+Canonicalization, semantic sequencing and cryptographic failures retain their
+separate codes; first-contact pull failure retains the `WIST2-E04` wrapper.
+Adoption in admission, historical replay, sealing and durable restoration
+remains required. The reference checks the supplied structural, ASCII hostname
+and non-leap RFC 3339 cases; these vectors do not establish the complete
+hostname or timestamp profile, leap-second eligibility, Delta chain/clock
+checks, or full key eligibility. Unsupported leap-second inputs fail this
+field-vector checker explicitly rather than silently selecting a policy.
 
 WIST-1 §4 excludes noncanonically encoded and small-order public keys from
 the Key Set. It does not explicitly determine the disposition of an otherwise
@@ -49,9 +54,10 @@ The `publisher.schema.json` `hostname` and `date-time` formats require checks
 beyond typed JSON deserialization. Optional fields present as `null`, empty
 signing arrays, string bounds and §4's safe-integer bound also need validation.
 Declaration idempotence exempts re-verifying a signature, not the requirement
-for a structurally valid Envelope. The reference's Declaration schema checks
-in `tools/validate_examples.py` do not enable format assertions; their passing
-results establish neither hostname nor date-time format conformance.
+for a structurally valid Envelope. Only the Declaration field-vector checker
+in `tools/validate_examples.py` enables the documented format subset. Other Declaration schema checks do not
+enable format assertions; their passing results establish neither hostname
+nor date-time format conformance.
 
 ### Authenticated recovery state
 

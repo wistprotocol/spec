@@ -5,7 +5,7 @@ import base64, calendar, collections, copy, datetime, hashlib, hmac, itertools, 
 import rfc8785
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 
 import ecvrf
@@ -4599,6 +4599,13 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/recovery-appeals.json", "declaration"): "SHA-256 of the selected publisher object",
     ("vectors/wist4/recovery-appeals.json", "notice"): "a signed appeal's notice identifier",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
+    ("vectors/wist1/declaration-fields.json", "author_key"): "the fixture author public key",
+    ("vectors/wist1/declaration-fields.json", "prev_declaration"): "SHA-256 of a predecessor publisher object",
+    ("vectors/wist1/declaration-fields.json", "pinned_head"): "the trusted candidate Block header hash",
+    ("vectors/wist1/declaration-fields.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist1/declaration-fields.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/declaration-conflicts.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-conflicts.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-conflicts.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
@@ -5473,7 +5480,7 @@ def _declaration_history_blocks(vector, blocks, pinned, entry_types=("publisher_
     return authenticated
 
 
-def _recovery_history_reference(vector):
+def _recovery_history_reference(vector, field_error=None):
     validators = {name: Draft202012Validator(json.loads(
         (ROOT / f"schemas/{name}.schema.json").read_text()))
         for name in ("publisher", "block")}
@@ -5487,6 +5494,8 @@ def _recovery_history_reference(vector):
             state["chain"], state["end"] = None, None
 
     def apply(state, incoming, instant, spelling, height):
+        if field_error and (error := field_error(incoming)):
+            return error
         validators["publisher"].validate(incoming)
         settle(state, instant)
         current = state["current"]
@@ -5531,6 +5540,8 @@ def _recovery_history_reference(vector):
             settle(state, instant)
         grouped = {}
         for incoming in candidates:
+            if field_error and (error := field_error(incoming)):
+                return error, states
             validators["publisher"].validate(incoming)
             inner = incoming["publisher"]
             grouped.setdefault(inner["domain"], {}).setdefault(inner["seq"], []).append(incoming)
@@ -5633,6 +5644,104 @@ def _declaration_conflict_vectors():
 
 check("vectors:wist1-declaration-conflicts", _declaration_conflict_vectors)
 
+
+
+def _declaration_field_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/declaration-fields.json").read_text())
+    formats = FormatChecker(formats=[])
+
+    @formats.checks("hostname")
+    def hostname(value):
+        if not isinstance(value, str):
+            return True
+        if not value.isascii() or "xn--" in value.lower():
+            raise NotImplementedError("Declaration field fixtures do not establish IDNA eligibility")
+        return len(value) <= 253 and all(re.fullmatch(
+            r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+            for label in value.split("."))
+
+    @formats.checks("date-time")
+    def timestamp(value):
+        if not isinstance(value, str):
+            return True
+        match = re.fullmatch(
+            r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})"
+            r"(?:\.[0-9]+)?(?:[Zz]|[+-]([0-9]{2}):([0-9]{2}))", value)
+        if not match:
+            return False
+        year, month, day, hour, minute, second = map(int, match.groups()[:6])
+        if second == 60:
+            raise NotImplementedError("Declaration field fixtures do not establish leap-second eligibility")
+        try:
+            datetime.datetime(year or 400, month, day, hour, minute, second)
+        except ValueError:
+            return False
+        return match[7] is None or (int(match[7]) <= 23 and int(match[8]) <= 59)
+
+    validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/publisher.schema.json").read_text()), format_checker=formats)
+
+    def field_error(envelope):
+        return "WIST1-E14" if not validator.is_valid(envelope) else None
+
+    author = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["author_key"]))
+    for case in vector["cases"]:
+        env = case["envelope"]
+        try:
+            author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["publisher"]))
+            valid = True
+        except (InvalidSignature, ValueError, TypeError):
+            valid = False
+        assert valid == case["author_signature_valid"], case["name"]
+        result = field_error(env) or _declaration_binding_result(vector["stored"], env)
+        assert result == case["expected"], case["name"]
+    for case in vector["delta_cases"]:
+        env = case["envelope"]
+        author.verify(b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
+        value = env["delta"].get("observed_at")
+        result = "well_formed" if isinstance(value, str) and timestamp(value) else "WIST1-E14"
+        assert result == case["expected"], case["name"]
+    _, _, _, apply_block = _recovery_history_reference(vector, field_error)
+    outcomes, prefixes = set(), set()
+    for case in vector["block_cases"]:
+        history = vector["prefixes"][case["prefix"]]
+        authenticated = _declaration_history_blocks(vector, history + [case["block"]], case["pinned_head"])
+        for reverse_domains in (False, True):
+            states, accepted_head = {}, "sha256:genesis"
+            for header, candidates in authenticated[:-1]:
+                result, states = apply_block(states, header, candidates, reverse_domains)
+                assert result == "accepted", case["name"]
+                accepted_head = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
+            before = copy.deepcopy(states)
+            header, candidates = authenticated[-1]
+            result, updated = apply_block(states, header, candidates, reverse_domains)
+            assert result == case["expected"], case["name"]
+            assert states == before, "candidate evaluation changed accepted state"
+            assert apply_block(states, header, list(reversed(candidates)), reverse_domains) == (result, updated)
+            if result != "accepted":
+                assert updated == before, "rejected fields changed state or settled recovery"
+                assert accepted_head == case["block"]["header"]["prev_block_hash"]
+            else:
+                assert set(updated) == {"example.com", "other.example"}
+                expected_env = max((env for env in candidates if env["publisher"]["domain"] == "example.com"),
+                                   key=lambda env: env["publisher"]["seq"])
+                assert updated["example.com"]["current"] == expected_env
+                assert updated["example.com"]["floor"] == expected_env["publisher"]["seq"]
+            outcomes.add(result)
+            prefixes.add(case["prefix"])
+        damaged = copy.deepcopy(case["block"])
+        damaged["entries"][0]["body"]["publisher"]["contact"] = "changed after signing"
+        try:
+            _declaration_history_blocks(vector, history + [damaged], case["pinned_head"])
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("field rejection vector did not authenticate its Block")
+    assert outcomes == {"accepted", "WIST1-E14", "WIST1-E08", "WIST1-E01"}
+    assert prefixes == {"empty", "initial", "open", "deadline"}
+
+
+check("vectors:wist1-declaration-fields", _declaration_field_vectors)
 
 def _wist1_recovery_settlement():
     vector = json.loads((ROOT / "vectors/wist1/recovery-settlement.json").read_text())
