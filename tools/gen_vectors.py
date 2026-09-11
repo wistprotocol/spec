@@ -6738,3 +6738,71 @@ def delta_diagnostic_vectors():
 
 
 write_json(WIST1 / "delta-diagnostics.json", delta_diagnostic_vectors())
+
+
+def delta_attribution_vectors():
+    other = Ed25519PrivateKey.from_private_bytes(bytes([93]) * 32)
+    domains = ["example.com", "child.example.com"]
+    inner = dict(delta, url="https://child.example.com/page")
+
+    def binding(key, identifier):
+        return {"key_id": identifier, "alg": "Ed25519",
+                "public_key": b64u(key.public_key().public_bytes(
+                    serialization.Encoding.Raw, serialization.PublicFormat.Raw)),
+                "valid_from": "2026-08-01T00:00:00Z"}
+
+    def declaration(domain, key, identifier, extra=()):
+        publisher = {"wist_version": "1.0.0", "domain": domain, "seq": 0,
+                     "keys": [binding(key, identifier), *extra]}
+        if domain != "child.example.com":
+            publisher["subdomain_scope"] = ["child.example.com"]
+        return sign_envelope_with(key, "publisher", publisher, identifier)
+
+    shared = [declaration(domain, priv, "shared") for domain in domains]
+    distinct = [declaration(domains[0], priv, "shared"),
+                declaration(domains[1], other, "shared")]
+    namespaced = [declaration(domain, priv, domain + "#key") for domain in domains]
+    cases = [
+        {"name": "one signature matches two Publisher domains", "declarations": shared,
+         "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
+         "matching_domains": [domains]},
+        {"name": "distinct keys sign identical content", "declarations": distinct,
+         "envelopes": [sign_envelope_with(key, "delta", inner, "shared")
+                       for key in (priv, other)], "matching_domains": [[d] for d in domains]},
+        {"name": "unsigned identifier can select another domain", "declarations": namespaced,
+         "envelopes": [sign_envelope_with(priv, "delta", inner, d + "#key") for d in domains],
+         "matching_domains": [[d] for d in domains]},
+        {"name": "copied public binding in independently signed Declaration",
+         "declarations": [shared[0], declaration(domains[1], other, "own", [binding(priv, "shared")])],
+         "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
+         "matching_domains": [domains]},
+        {"name": "explicit scope outside hostname ancestry",
+         "declarations": [declaration("elsewhere.example", priv, "shared"), distinct[1]],
+         "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
+         "matching_domains": [["elsewhere.example"]]},
+    ]
+    for control in ("scope removed", "binding not yet valid"):
+        publisher = json.loads(json.dumps(shared[0]["publisher"]))
+        if control == "scope removed":
+            publisher.pop("subdomain_scope")
+        else:
+            publisher["keys"][0]["valid_from"] = "2026-08-03T00:00:00Z"
+        cases.append({"name": control,
+                      "declarations": [sign_envelope_with(priv, "publisher", publisher, "shared"), shared[1]],
+                      "envelopes": [sign_envelope_with(priv, "delta", inner, "shared")],
+                      "matching_domains": [["child.example.com"]]})
+    for case in cases:
+        case["delta_ids"] = ["sha256:" + sha256_hex(rfc8785.dumps(env["delta"]))
+                             for env in case["envelopes"]]
+    return {
+        "note": "Unresolved-attribution witnesses under WIST-1 sections 3.2, 4 and 5.2. "
+                "matching_domains reports only literal scope, eligible named binding and strict "
+                "signature checks against supplied initial Declarations. It selects no author or "
+                "admission result. Declaration discovery and Log inclusion are supplied assumptions, "
+                "not exercised; no chain, recovery, reputation or sanction outcome is asserted. "
+                "The Payload commitment is the shared envelope.json fixture commitment.",
+        "cases": cases,
+    }
+
+
+write_json(WIST1 / "delta-attribution.json", delta_attribution_vectors())

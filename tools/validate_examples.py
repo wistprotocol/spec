@@ -1085,6 +1085,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
     ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-diagnostics.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/delta-attribution.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "response_commitment"): "audit:commitments",
     ("vectors/wist3/timestamps.json", "credit_commitment"): "audit:commitments",
@@ -4656,6 +4657,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/delta-diagnostics.json", "prev_declaration"): "SHA-256 of the authenticated preceding publisher object",
     ("vectors/wist1/delta-diagnostics.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/delta-diagnostics.json", "value"): "an Ed25519 signature or noncanonical signature encoding probe",
+    ("vectors/wist1/delta-attribution.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/delta-attribution.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/delta-attribution.json", "delta_ids"): "SHA-256 of each original signed inner Delta",
     ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
     ("vectors/wist1/declaration-fields.json", "author_key"): "the fixture author public key",
@@ -8438,5 +8442,83 @@ def _delta_diagnostic_vectors():
 
 
 check("vectors:wist1-delta-diagnostics", _delta_diagnostic_vectors)
+
+
+def _delta_attribution_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/delta-attribution.json").read_text())
+    original = copy.deepcopy(vector)
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
+    validators = {name: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
+        for name in ("publisher", "delta")}
+
+    def matches(envelope, declarations):
+        url = envelope["delta"]["url"]
+        assert url == "https://child.example.com/page"
+        observed = publisher_instant(envelope["delta"]["observed_at"])
+        matched = []
+        for declaration in declarations:
+            publisher = declaration["publisher"]
+            if "child.example.com" not in [publisher["domain"], *publisher.get("subdomain_scope", [])]:
+                continue
+            for key in publisher["keys"]:
+                if key["key_id"] != envelope["sig"]["key_id"]:
+                    continue
+                if publisher_instant(key["valid_from"]) > observed:
+                    continue
+                if _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
+                        canonical_b64u_decode(envelope["sig"]["value"]),
+                        rfc8785.dumps(envelope["delta"]))[0]:
+                    matched.append(publisher["domain"])
+                    break
+        return sorted(matched)
+
+    for case in vector["cases"]:
+        declarations = case["declarations"]
+        for declaration in declarations:
+            validators["publisher"].validate(declaration)
+            assert _declaration_binding_result(None, declaration) == "initial"
+            damaged = copy.deepcopy(declaration)
+            damaged["publisher"]["contact"] = "changed"
+            assert _declaration_binding_result(None, damaged) == "WIST1-E01"
+        ids = []
+        for envelope, expected in zip(case["envelopes"], case["matching_domains"], strict=True):
+            validators["delta"].validate(envelope)
+            ids.append("sha256:" + hashlib.sha256(rfc8785.dumps(envelope["delta"])).hexdigest())
+            for order in (declarations, list(reversed(declarations))):
+                assert matches(envelope, order) == sorted(expected), case["name"]
+            damaged = copy.deepcopy(envelope)
+            damaged["delta"]["observed_at"] = "2026-08-02T12:00:01Z"
+            assert matches(damaged, declarations) == []
+            damaged = copy.deepcopy(envelope)
+            damaged["sig"]["key_id"] = "absent"
+            assert matches(damaged, declarations) == []
+        assert ids == case["delta_ids"]
+        assert len(set(ids)) == 1
+    shared, distinct, namespaced, copied, external, unscoped, future = vector["cases"]
+    assert len(vector["cases"]) == 7
+    assert len(shared["matching_domains"][0]) == len(copied["matching_domains"][0]) == 2
+    left, right = distinct["envelopes"]
+    assert left["delta"] == right["delta"] and left["sig"]["value"] != right["sig"]["value"]
+    assert distinct["matching_domains"] == [["example.com"], ["child.example.com"]]
+    assert (distinct["declarations"][0]["publisher"]["keys"][0]["public_key"] !=
+            distinct["declarations"][1]["publisher"]["keys"][0]["public_key"])
+    left, right = namespaced["envelopes"]
+    assert left["sig"]["value"] == right["sig"]["value"]
+    assert left["sig"]["key_id"] != right["sig"]["key_id"]
+    assert namespaced["matching_domains"] == [["example.com"], ["child.example.com"]]
+    assert copied["declarations"][1]["sig"]["key_id"] == "own"
+    assert copied["envelopes"][0]["sig"]["key_id"] == "shared"
+    own_key, copied_key = copied["declarations"][1]["publisher"]["keys"]
+    assert own_key["public_key"] != copied_key["public_key"]
+    assert copied_key == copied["declarations"][0]["publisher"]["keys"][0]
+    assert external["matching_domains"] == [["elsewhere.example"]]
+    assert unscoped["matching_domains"] == future["matching_domains"] == [["child.example.com"]]
+    assert vector == original
+
+
+check("vectors:wist1-delta-attribution", _delta_attribution_vectors)
 
 sys.exit(1 if failures else 0)

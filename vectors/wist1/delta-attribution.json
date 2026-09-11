@@ -1,0 +1,649 @@
+{
+  "note": "Unresolved-attribution witnesses under WIST-1 sections 3.2, 4 and 5.2. matching_domains reports only literal scope, eligible named binding and strict signature checks against supplied initial Declarations. It selects no author or admission result. Declaration discovery and Log inclusion are supplied assumptions, not exercised; no chain, recovery, reputation or sanction outcome is asserted. The Payload commitment is the shared envelope.json fixture commitment.",
+  "cases": [
+    {
+      "name": "one signature matches two Publisher domains",
+      "declarations": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ],
+            "subdomain_scope": [
+              "child.example.com"
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "gMJ7df4A9Em0TFauyZSyLa9kxdV8srsC5dbek3G_g23GXXWrNcHMCy68pFHH_OmS13VTa5Beo-DNx5ucYJdqCw"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "child.example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "BNN-EilYPV4kZhKXf7VZPnmlw2myZj78s_eprJcY_Ugrz--FKfWraZ4RQjf5JVXBuqmCEHEZJJegxVtH7pBSAA"
+          }
+        }
+      ],
+      "envelopes": [
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        }
+      ],
+      "matching_domains": [
+        [
+          "example.com",
+          "child.example.com"
+        ]
+      ],
+      "delta_ids": [
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1"
+      ]
+    },
+    {
+      "name": "distinct keys sign identical content",
+      "declarations": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ],
+            "subdomain_scope": [
+              "child.example.com"
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "gMJ7df4A9Em0TFauyZSyLa9kxdV8srsC5dbek3G_g23GXXWrNcHMCy68pFHH_OmS13VTa5Beo-DNx5ucYJdqCw"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "child.example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "XkSa1vpLLWV0bozU-WjjjFqWefhJXbEU7gYxf3L3F9s",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "SXyLlf90VuACcLSuZ1nj2oT5Ov9sqBpgf_hHAewHcbWusc7AvPFErBdOXyLpIY2MbnSvRYClVd7JoF6-HzI6Ag"
+          }
+        }
+      ],
+      "envelopes": [
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        },
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "eQATTTSyygXDCV-e0acLFkc3GFMTWW_YyXP3W_eYuiA0MweUSLsId83EEa1GRk2b_nKYaXUBtr88_-IU1xOjBA"
+          }
+        }
+      ],
+      "matching_domains": [
+        [
+          "example.com"
+        ],
+        [
+          "child.example.com"
+        ]
+      ],
+      "delta_ids": [
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1",
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1"
+      ]
+    },
+    {
+      "name": "unsigned identifier can select another domain",
+      "declarations": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "example.com#key",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ],
+            "subdomain_scope": [
+              "child.example.com"
+            ]
+          },
+          "sig": {
+            "key_id": "example.com#key",
+            "alg": "Ed25519",
+            "value": "fI1Tq8IPWDrXLv5NaxOX9I9TpthDRGQLGDwsjf-ejHASTpPX2A3Hl8mBRiMZgfOLYqc05v7IjA2qqElpahdMDg"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "child.example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "child.example.com#key",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "child.example.com#key",
+            "alg": "Ed25519",
+            "value": "icUsHEXysh6jwYxmYj55Mhl2fL93Xko-EnC9rWwUibZxuGdmZIyyZ7rKFYJq78Gg2Q-HS99qdSt0XeFcWx9cCw"
+          }
+        }
+      ],
+      "envelopes": [
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "example.com#key",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        },
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "child.example.com#key",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        }
+      ],
+      "matching_domains": [
+        [
+          "example.com"
+        ],
+        [
+          "child.example.com"
+        ]
+      ],
+      "delta_ids": [
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1",
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1"
+      ]
+    },
+    {
+      "name": "copied public binding in independently signed Declaration",
+      "declarations": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ],
+            "subdomain_scope": [
+              "child.example.com"
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "gMJ7df4A9Em0TFauyZSyLa9kxdV8srsC5dbek3G_g23GXXWrNcHMCy68pFHH_OmS13VTa5Beo-DNx5ucYJdqCw"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "child.example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "own",
+                "alg": "Ed25519",
+                "public_key": "XkSa1vpLLWV0bozU-WjjjFqWefhJXbEU7gYxf3L3F9s",
+                "valid_from": "2026-08-01T00:00:00Z"
+              },
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "own",
+            "alg": "Ed25519",
+            "value": "Nr_gruJwZpw0cbQeVTnrb3Mwq_9kKRQYFzjmCmkVjwv16CnP3FOZxEFKlF5AjAM84ie70GPRw0PdJ4YUTAzJDg"
+          }
+        }
+      ],
+      "envelopes": [
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        }
+      ],
+      "matching_domains": [
+        [
+          "example.com",
+          "child.example.com"
+        ]
+      ],
+      "delta_ids": [
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1"
+      ]
+    },
+    {
+      "name": "explicit scope outside hostname ancestry",
+      "declarations": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "elsewhere.example",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ],
+            "subdomain_scope": [
+              "child.example.com"
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "GbfMaZt0Sjx2ld-PxAe37JayjzX8MxCK4vejIgVifNZrJJC7nbJ4-v7OdJhpGhGXnSYmo2kgB8nJlXCiIdDqDA"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "child.example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "XkSa1vpLLWV0bozU-WjjjFqWefhJXbEU7gYxf3L3F9s",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "SXyLlf90VuACcLSuZ1nj2oT5Ov9sqBpgf_hHAewHcbWusc7AvPFErBdOXyLpIY2MbnSvRYClVd7JoF6-HzI6Ag"
+          }
+        }
+      ],
+      "envelopes": [
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        }
+      ],
+      "matching_domains": [
+        [
+          "elsewhere.example"
+        ]
+      ],
+      "delta_ids": [
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1"
+      ]
+    },
+    {
+      "name": "scope removed",
+      "declarations": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "M1mFwxjlV_hspf4gOoK3DRAp7_F2bWuy2XiEarvCklQogWMvhg6mwan7V0Aes74NqhywFMztP5ciLwo8J9OdBQ"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "child.example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "BNN-EilYPV4kZhKXf7VZPnmlw2myZj78s_eprJcY_Ugrz--FKfWraZ4RQjf5JVXBuqmCEHEZJJegxVtH7pBSAA"
+          }
+        }
+      ],
+      "envelopes": [
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        }
+      ],
+      "matching_domains": [
+        [
+          "child.example.com"
+        ]
+      ],
+      "delta_ids": [
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1"
+      ]
+    },
+    {
+      "name": "binding not yet valid",
+      "declarations": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-03T00:00:00Z"
+              }
+            ],
+            "subdomain_scope": [
+              "child.example.com"
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "NcRdui6uvcNNpLdKk9gUcyXf7GKMYwKKTXFgZamXpr8ubVhdyJjDWJOol9rG1WYZKO8SH3aaahXefDiomhaKDA"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "child.example.com",
+            "seq": 0,
+            "keys": [
+              {
+                "key_id": "shared",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-01T00:00:00Z"
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "BNN-EilYPV4kZhKXf7VZPnmlw2myZj78s_eprJcY_Ugrz--FKfWraZ4RQjf5JVXBuqmCEHEZJJegxVtH7pBSAA"
+          }
+        }
+      ],
+      "envelopes": [
+        {
+          "delta": {
+            "wist_version": "1.0.0",
+            "url": "https://child.example.com/page",
+            "change_type": "new",
+            "observed_at": "2026-08-02T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+              "alg": "HMAC-SHA256",
+              "bytes": 263
+            },
+            "meta": {
+              "lang": "en",
+              "topics": [
+                "software"
+              ],
+              "license": "CC-BY-4.0"
+            }
+          },
+          "sig": {
+            "key_id": "shared",
+            "alg": "Ed25519",
+            "value": "T9w_A5LHY1oy-YiNNfPSuEbzJljSTv4cWxorr6M9hggWQfIOYTpHfW1DOwDNjOdkCqDkKLwuF171K-knp96nDA"
+          }
+        }
+      ],
+      "matching_domains": [
+        [
+          "child.example.com"
+        ]
+      ],
+      "delta_ids": [
+        "sha256:1c5cbbedf4979212100e6093d7e38057ee7ed351a2a5eb4419c59ba886841ee1"
+      ]
+    }
+  ]
+}

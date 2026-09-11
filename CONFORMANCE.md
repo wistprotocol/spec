@@ -365,6 +365,28 @@ Delta's author. Selecting a Declaration by identifier before verifying its
 signature also loses valid candidates when the same identifier binds different
 public keys. Arbitrary host or iteration order is not a specified resolution.
 
+The ambiguity also affects **distinct signing keys**. WIST-1 §4 hashes only
+the inner Delta, so two Publishers signing identical inner bytes obtain the
+same Delta ID even when each Envelope has exactly one matching authority.
+WIST-3 §3.2 seals that ID only once and §8 deduplicates it across Logs.
+Neither construction commits to the Publisher. This is equal hash input,
+not a SHA-256 collision. Namespacing `sig.key_id` alone does not repair it:
+that field is outside both the signature input and the Delta ID input. With
+shared public keys, changing only that identifier can select a different
+Declaration while preserving the signature and ID.
+
+`vectors/wist1/delta-attribution.json` supplies five signed witnesses:
+identical named bindings; different public keys signing identical content;
+domain-qualified unsigned identifiers; a copied public binding in a
+Declaration signed by its own different key; and explicit scope outside
+hostname ancestry. The independent reference checks initial Declaration
+authentication, literal scope, time-eligible named bindings, strict Delta
+signatures and IDs, including reversed candidate order, tampering twins and
+two signed controls removing scope or postponing a binding's validity.
+The matching domains are observations of these checks, not author-selection
+or acceptance outcomes. Discovery, Log inclusion, predecessor ownership,
+recovery and downstream attribution are not exercised.
+
 Resolve authenticated candidate selection and ambiguous-match disposition
 before complete Delta/Audit Record replay. Possible resolutions include an
 explicit signed Publisher identity, rejection of ambiguous authority, or a
@@ -376,6 +398,16 @@ resets; verify resulting chain, reputation and sanction attribution separately
 from materialization. Scope membership is literal: WIST-1 §3.2 names the
 Declaration's domain or any hostname in its `subdomain_scope`, without an
 ancestor-only restriction.
+
+An explicit Publisher field inside the signed Delta would bind identity to
+both the signature and ID. Adding it must also resolve WIST-1 §3.1's rule
+that new fields require a new major version; [PUBLICATION.md](PUBLICATION.md)
+does not exempt drafts from signed-object version rules. Rejecting multiple
+matching authorities alone leaves the distinct-key equal-ID case unresolved.
+A complete resolution must preserve replay agreement, resistance to copied
+public bindings and attribution before materialization, and define its
+compatibility consequences. No wire field, version or resolution is adopted
+by these witnesses.
 
 ## Validation still required
 
