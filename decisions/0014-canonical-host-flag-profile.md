@@ -52,6 +52,27 @@ operation, and §2 now forbids any case operation in front of it.
 including the sigma case whose two possible A-labels this decision chooses
 between.
 
+**Signed names use the output representation.** Declaration `domain` and
+`subdomain_scope` members must equal their own Canonical Host. Publisher
+references in Feeds, status, Snapshot state and governance use the same
+bytes. `wist-canonical-host` replaces generic `hostname` assertions on
+these surfaces: [JSON Schema's hostname definition](https://json-schema.org/draft/2020-12/json-schema-validation#section-7.3.3)
+uses RFC 1123 syntax, which excludes leading/trailing hyphens permitted by
+this decision's flag profile. Schemas bound ASCII spelling and DNS length;
+format validation additionally checks the complete pinned UTS #46 profile,
+including A-label decoding. Existing Auditor/Observer identity restrictions
+remain additional admission constraints.
+
+Publishers canonicalize before signing. Validators reject alternate signed
+spellings as WIST1-E14 before sequencing, conflicts, idempotence or signer
+selection, preserving original bytes and whole-Block rejection semantics.
+Accepted Declaration identity comparison is therefore byte equality, with
+no second grouping algorithm or case-normalized predecessor representation.
+`vectors/wist1/declaration-hosts.json` supplies signed spelling cases and
+authenticated rejection/acceptance Blocks. Full UTS #46 mapping requires an
+independent implementation; the Python reference explicitly limits its
+A-label eligibility checks to the documented fixture corpus.
+
 ## Alternatives considered
 
 **All three checks on.** The strictest reading, and the one an
@@ -72,12 +93,24 @@ implement, but it keeps a stage whose only remaining job is one UTS #46
 already performs, and every additional stage in an identity computation is
 another place two implementations can differ.
 
+**Accept alternate signed spellings and canonicalize identity keys.** This
+would require a separate comparison representation at every sequence,
+recovery, reference and Snapshot boundary while preserving original signed
+bytes for hashes. Requiring canonical output before signing gives every
+accepted identity one representation without changing URL input mapping.
+
+**Intersect Canonical Host with RFC 1123 hostname syntax.** This would
+remove Publishers the chosen hyphen profile admits, while still permitting
+their URLs as citation targets. Using the protocol format consistently
+preserves the decision that these hosts can publish.
+
 ## Consequences
 
 - Canonical Host is computable by a single call into any conforming UTS #46
   implementation with three arguments, and no pre-processing.
 - Hosts using positional hyphens become valid Publishers and valid link
-  targets. No host that was valid before becomes invalid.
+  targets. Signed names must use their canonical output spelling; alternate
+  spellings are rejected rather than rewritten.
 - The final-sigma case has one answer, and it is the one §2's rationale
   always implied.
 - The profile is not the most permissive available, and the two flags kept

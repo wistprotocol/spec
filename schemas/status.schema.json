@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-    "domain": {"type": "string", "format": "hostname"},
+    "domain": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
     "last_pull_at": {"type": ["string", "null"], "format": "date-time"},
     "quota_remaining": {"type": "integer", "minimum": 0},
     "state": {"enum": ["new", "active", "sanctioned_quarantine", "delisted"]},

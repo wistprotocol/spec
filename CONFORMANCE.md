@@ -81,30 +81,66 @@ decoder. Full field formats, role admission/replay/sealing/restoration,
 frozen appeal authority and transport-wrapper integration remain required.
 These vectors do not establish those operational obligations.
 
-The `publisher.schema.json` `hostname` and `date-time` formats require checks
+The `publisher.schema.json` `wist-canonical-host` and `date-time` formats require checks
 beyond typed JSON deserialization. Optional fields present as `null`, empty
 signing arrays, string bounds and §4's safe-integer bound also need validation.
 Declaration idempotence exempts re-verifying a signature, not the requirement
-for a structurally valid Envelope. Only the Declaration field-vector checker
-in `tools/validate_examples.py` enables the documented format subset. Other Declaration schema checks do not
-enable format assertions; their passing results establish neither hostname
+for a structurally valid Envelope. The Declaration field and host checkers in `tools/validate_examples.py` enable
+the documented format subsets. Other Declaration schema checks do not enable
+format assertions; their passing results establish neither complete host
 nor date-time format conformance.
 
 ### Unresolved field profiles and recovery binding diagnostics
 
-Declaration hostname representation requires clarification before complete
-field and identity validation. WIST-1 §5.1 requires `hostname` format
-assertions, whose [JSON Schema definition](https://json-schema.org/draft/2020-12/json-schema-validation#section-7.3.3)
-uses ASCII RFC 1123 hostnames. WIST-1 §2 and draft ADR-0014 instead define
-Canonical Host identity with `CheckHyphens=false`, deliberately admitting
-some positional hyphens that hostname syntax rejects. The text does not
-explicitly require Declaration `domain` or `subdomain_scope` bytes to equal
-Canonical Host, or settle identity grouping for alternate signed spellings.
-Resolve acceptance and comparison with signed cases covering uppercase,
-trailing dots, positional hyphens, Unicode labels, malformed A-labels and
-same-identity Declaration conflicts. Normalizing signed members is forbidden;
-using canonicalization as a field validator does not establish conformance.
-No additional spelling or grouping rule is selected here.
+WIST-1 §§2 and 5.1 and draft ADR-0014 require signed Declaration `domain`
+and every `subdomain_scope` member to equal its own Canonical Host. The
+`wist-canonical-host` format preserves the pinned UTS #46 profile, including
+positional hyphens and A-label eligibility; it rejects alternate signed
+spellings before grouping or idempotence. Feed/status Publisher domains,
+Publisher-domain Snapshot fields and Publisher Registry subjects use the same
+representation. Auditor/Observer admission restrictions remain separate.
+`vectors/wist1/declaration-hosts.json` supplies 40 host spellings, 80 signed
+Declaration probes and 92 authenticated candidate Blocks, covering identity
+conflicts, alternate spellings, immutable signatures and whole-state
+rejection through due recovery settlement. Shared schema-field probes cover
+the Publisher reference surfaces without asserting object/process eligibility.
+
+The Python reference independently checks ASCII spelling/length and Punycode
+round trips, with explicitly enumerated decoded eligibility for the fixture
+corpus (`bücher`, `faß`, `ασ`, and rejected control, joiner and bidi labels).
+Unknown decoded A-labels stop that checker; it does not implement the complete
+Unicode 16.0 mapping/validation algorithm or recompute every input's
+canonical output. Independent UTS #46 vector consumption, live field
+validation, discovery, admission, sealing and restoration remain required.
+These vectors do not resolve full RFC 3339 eligibility or Snapshot recovery.
+
+**Single-label eligibility remains unresolved.** Canonical Host and
+Declaration representation impose no two-label minimum, but WIST-4 §5.1
+permits a canary planter to be any domain holding a Declaration while
+rationing by its two-label suffix; the canary subject schemas require two
+labels. That existing minimum is retained while correcting the signed host
+representation. Define single-label canary eligibility and any applicable
+suffix handling with discriminating vectors before claiming canary admission
+conformance. WIST-4 §9's claim that `https://a.b/` is the shortest Normalized
+URL also needs reconciliation with §2's acceptance of single-label hosts.
+No new suffix policy or global host restriction is selected here.
+
+**Host-field diagnostics outside Declarations remain unresolved.** WIST-2
+§7 assigns schema failure to WIST2-E01 (backoff, no noise), while §4 and
+WIST2-E04 require a Feed domain differing from the fetched host to be
+discarded as noise. A signed `EXAMPLE.com` Feed fetched for `example.com`
+now violates both conditions. Define their precedence, including malformed
+domain types and other simultaneous field failures, with signed pull vectors
+before live Feed format adoption. Field-only host probes select no diagnostic.
+
+Likewise, WIST-4 §10's WIST4-E04 covers `details`/`evidence` contracts,
+WIST4-E03 signatures, and WIST4-E05 process/evidence failures. None assigns a
+general malformed Publisher `subject` diagnostic. WIST-1 §5.1's host-field
+WIST1-E14 applies to Declarations; it does not extend that code to governance.
+Define the subject-field diagnostic and precedence relative to unavailable
+process authority and signature failure, preserving the applicable ignored-act
+disposition, with signed Registry Update cases before authenticated governance
+admission/replay. Schema-field checks do not establish this result.
 
 RFC 3339 field eligibility also needs a deterministic leap-event policy.
 WIST-1 §§3.4 and 5.1 retain RFC 3339; its

@@ -13,10 +13,10 @@
       "additionalProperties": false,
       "properties": {
         "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-        "domain": {"type": "string", "format": "hostname"},
+        "domain": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
         "seq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
         "prev_declaration": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        "subdomain_scope": {"type": "array", "items": {"type": "string", "format": "hostname"}},
+        "subdomain_scope": {"type": "array", "items": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."}},
         "keys": {
           "type": "array",
           "minItems": 1,

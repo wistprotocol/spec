@@ -1201,6 +1201,112 @@ def base64url_vectors():
 
 base64url_vectors()
 
+def declaration_host_vectors():
+    longest = '.'.join(['a' * 63] * 3 + ['a' * 61])
+    hosts = [
+        ('canonical ASCII', 'example.com', 'example.com'),
+        ('uppercase', 'EXAMPLE.com', 'example.com'),
+        ('trailing dot', 'example.com.', 'example.com'),
+        ('uppercase trailing dot', 'EXAMPLE.COM.', 'example.com'),
+        ('third fourth hyphens', 'r2---sn-x.example', 'r2---sn-x.example'),
+        ('leading hyphen', '-foo.example', '-foo.example'),
+        ('trailing hyphen', 'foo-.example', 'foo-.example'),
+        ('hyphen label', '-.example', '-.example'),
+        ('U label', 'bücher.example', 'xn--bcher-kva.example'),
+        ('A label', 'xn--bcher-kva.example', 'xn--bcher-kva.example'),
+        ('uppercase A label', 'XN--BCHER-KVA.example', 'xn--bcher-kva.example'),
+        ('nontransitional U label', 'faß.de', 'xn--fa-hia.de'),
+        ('nontransitional A label', 'xn--fa-hia.de', 'xn--fa-hia.de'),
+        ('mapped sigma', 'example.ΑΣ', 'example.xn--mxa0b'),
+        ('canonical sigma', 'example.xn--mxa0b', 'example.xn--mxa0b'),
+        ('Unicode separator', 'example。com', 'example.com'),
+        ('single label', 'example', 'example'),
+        ('numeric labels', '127.0.0.1', '127.0.0.1'),
+        ('numeric final label', 'example.123', 'example.123'),
+        ('label boundary', 'a' * 63 + '.example', 'a' * 63 + '.example'),
+        ('host boundary', longest, longest),
+        ('empty', '', None), ('root', '.', None),
+        ('empty label', 'example..com', None), ('leading dot', '.example.com', None),
+        ('two trailing dots', 'example.com..', None),
+        ('underscore', 'under_score.example', None), ('space', 'bad host.example', None),
+        ('newline', 'example.com\n', None), ('port', 'example.com:443', None),
+        ('URL', 'https://example.com/', None), ('wildcard', '*.example.com', None),
+        ('label overflow', 'a' * 64 + '.example', None), ('host overflow', longest + 'a', None),
+        ('empty A label', 'xn--.example', None),
+        ('ASCII only A label', 'xn--abc-.example', None),
+        ('invalid Punycode', 'xn--0.example', None),
+        ('disallowed decoded point', 'xn--a.example', None),
+        ('decoded joiner violation', 'xn--ab-j1t.example', None),
+        ('decoded bidi violation', 'xn--a-zhc.example', None),
+    ]
+    host_cases = [{'name': name, 'input': value, 'canonical': canonical,
+                   'expected': 'well_formed' if value == canonical else 'WIST1-E14'}
+                  for name, value, canonical in hosts]
+    cases = []
+    for host in host_cases:
+        for field in ('domain', 'subdomain_scope'):
+            inner = variant(**{field: host['input'] if field == 'domain' else [host['input']]})
+            cases.append({'name': field + ' ' + host['name'], 'host_case': host['name'], 'field': field,
+                          'envelope': sign_envelope('publisher', inner, 'test-k1'),
+                          'expected': 'initial' if host['expected'] == 'well_formed' else 'WIST1-E14'})
+    conflicts = json.loads((WIST1 / 'declaration-conflicts.json').read_text())
+    blocks = []
+
+    def add_block(name, prefix, members, expected, domains=None):
+        history = conflicts['prefixes'][prefix]
+        entries = sorted(map(recovery_order_entry, members), key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+        instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=len(history))
+        header = {'wist_version': '1.0.0', 'block_number': len(history),
+                  'prev_block_hash': decl_hash(history[-1]['header']) if history else 'sha256:genesis',
+                  'sealed_at': instant.isoformat().replace('+00:00', 'Z'),
+                  'merkle_root': 'sha256:' + merkle_tree_root([leaf_hash(rfc8785.dumps(entry)) for entry in entries]).hex(),
+                  'entry_count': len(entries)}
+        blocks.append({'name': name, 'prefix': prefix,
+                       'block': dict(sign_envelope_with(priv, 'header', header, 'test-log-k1'), entries=entries),
+                       'pinned_head': decl_hash(header), 'expected': expected,
+                       'expected_domains': sorted(domains) if domains is not None else None})
+
+    for case in cases:
+        add_block(case['name'], 'empty', [case['envelope']],
+                  'accepted' if case['expected'] == 'initial' else 'WIST1-E14',
+                  [case['envelope']['publisher']['domain']] if case['expected'] == 'initial' else None)
+    initial = sign_envelope('publisher', publisher, 'test-k1')
+    other = sign_envelope('publisher', variant(domain='other.example'), 'test-k1')
+    for spelling in ('EXAMPLE.com', 'example.com.'):
+        alias = sign_envelope('publisher', variant(domain=spelling), 'test-k1')
+        add_block('canonical and alternate ' + spelling, 'empty', [initial, alias, other], 'WIST1-E14')
+    upper_idn = sign_envelope('publisher', variant(domain='bücher.example'), 'test-k1')
+    canonical_idn = sign_envelope('publisher', variant(domain='xn--bcher-kva.example'), 'test-k1')
+    add_block('U label and A label identity', 'empty', [upper_idn, canonical_idn], 'WIST1-E14')
+    add_block('canonical duplicate identity', 'empty', [canonical_idn, canonical_idn], 'accepted', ['xn--bcher-kva.example'])
+    sibling = sign_envelope('publisher', variant(domain='xn--bcher-kva.example', contact='other'), 'test-k1')
+    add_block('canonical identity conflicts', 'empty', [canonical_idn, sibling], 'WIST1-E08')
+    add_block('distinct canonical identities', 'empty', [initial, canonical_idn, other], 'accepted',
+              ['example.com', 'xn--bcher-kva.example', 'other.example'])
+    for prefix in ('initial', 'open', 'deadline'):
+        history = conflicts['prefixes'][prefix]
+        current = initial if prefix == 'initial' else next(
+            entry['body'] for block in history for entry in block['entries']
+            if entry['body']['publisher']['seq'] == (1 if prefix == 'deadline' else 2))
+        malformed = dict(current['publisher'], subdomain_scope=['EXAMPLE.com'])
+        bad = sign_envelope('publisher', malformed, 'test-k1')
+        add_block(prefix + ' field before conflict and settlement', prefix, [current, bad, other], 'WIST1-E14')
+        add_block(prefix + ' canonical acceptance twin', prefix, [current, other], 'accepted',
+                  ['example.com', 'other.example'])
+    write_json(WIST1 / 'declaration-hosts.json', {
+        'note': 'WIST-1 sections 2 and 5.1 signed Canonical Host representation. Host cases distinguish '
+                'canonicalization from signed spelling eligibility. Every Declaration case has a valid '
+                'author signature but only expected initial cases have valid host fields. Each candidate '
+                'Block appends to its named authenticated prefix. Rejection preserves all state and the '
+                'accepted head, including due recovery settlement. These fixtures do not establish full '
+                'Unicode mapping coverage, RFC 3339 eligibility, discovery, live service validation or '
+                'Snapshot recovery. Single label host acceptance asserts no canary eligibility or suffix policy.',
+        'author_key': b64u(pub_raw), 'log_key': conflicts['log_key'], 'recovery_window_days': 7,
+        'hosts': host_cases, 'cases': cases, 'prefixes': conflicts['prefixes'], 'block_cases': blocks})
+
+
+declaration_host_vectors()
+
 def recovery_identity_vectors():
     def signed(previous, seq, signer, key_id, **changes):
         inner = dict(previous["publisher"], seq=seq,

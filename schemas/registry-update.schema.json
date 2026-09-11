@@ -553,7 +553,7 @@
           "update": {
             "required": ["details"],
             "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})+$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
               "details": {
                 "type": "object",
                 "required": ["root", "leaves"],
@@ -575,7 +575,7 @@
           "update": {
             "required": ["details"],
             "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})+$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
               "details": {
                 "type": "object",
                 "required": ["commitment", "leaves"],
@@ -636,6 +636,10 @@
           }
         }
       }
+    },
+    {
+      "if": {"properties": {"update": {"properties": {"action": {"enum": ["sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "payload_withdrawal", "canary_commitment", "canary_reveal"]}}}}},
+      "then": {"properties": {"update": {"properties": {"subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Publisher identity in WIST-1 sections 2 and 5.1 Canonical Host form; validate A-labels under the pinned UTS #46 profile."}}}}}
     }
   ]
 }

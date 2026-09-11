@@ -564,11 +564,39 @@ also covers), the `keys` array (each entry: `key_id`, `alg`, raw Ed25519
 `public_key` base64url, `valid_from`), optional `recovery_keys` (same
 item shape as `keys`; see §5.2), and optional `contact`.
 
+**Signed host representation.** `domain` and each `subdomain_scope` member
+MUST be byte-identical to its own Canonical Host (§2), using the pinned
+Unicode version and flag profile. This is the `wist-canonical-host` format:
+canonicalization must succeed and reproduce the original string exactly.
+It replaces JSON Schema's `hostname` format for these fields. A regular
+expression for ASCII labels alone does not validate an `xn--` A-label;
+its decoded label must also satisfy §2's processing rules.
+
+Uppercase, a trailing dot and U-label spellings are therefore invalid signed
+representations even when they canonicalize to an eligible host. A Publisher
+canonicalizes names before signing; a validator MUST NOT normalize signed
+members. Leading, trailing and third/fourth-position hyphens remain permitted
+where §2 accepts them. The format adds no requirement for two labels, an
+alphabetic final label, a public suffix or DNS registration; discovery and
+role-specific requirements still apply.
+
+After field validation, Publisher identity equality is byte equality of
+`domain`, including sequence/conflict grouping, recovery heads, identity
+resets and references to that Publisher. Noncanonical spellings do not form
+separate identities or merge into an accepted Declaration: they fail field
+validation before grouping. Scope members use the same representation but
+do not change the Declaration's Publisher identity. Feed and status `domain`,
+Publisher-domain Snapshot fields, and Registry Update `subject` when it names
+a Publisher use this same format and exact identity. This does not relax
+separate Auditor/Observer admission constraints or apply a hostname format
+to subjects that name parameters or keys. Each object's existing failure
+disposition and diagnostic remains applicable.
+
 **Declaration field validation.** A validator MUST reject a canonicalizable
 Declaration Envelope that violates its schema or the integer range in §4
 with `WIST1-E14`. This includes missing required members, wrong JSON types,
 unknown members, optional members present as `null`, empty `keys`, string
-bounds, malformed hostname fields, malformed `valid_from` in either key
+bounds, noncanonical or malformed host fields, malformed `valid_from` in either key
 array, and malformed signature-field encodings. Schema `format` constraints
 are assertions, not optional annotations. Apply the fields' specified
 formats, including RFC 3339 for `valid_from`; do not substitute the narrower
@@ -1106,6 +1134,7 @@ copies already served.
 
 **Publisher:**
 
+- [ ] Signs `domain` and every `subdomain_scope` member in Canonical Host form (§5.1)
 - [ ] Serves `publisher.json` at the well-known path over HTTPS (§5.1)
 - [ ] Signs every Delta with a key in its current Key Set, over JCS
       Canonical Bytes (§4)

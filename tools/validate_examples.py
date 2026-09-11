@@ -4359,6 +4359,19 @@ check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
 # be an `hmac-sha256:` commitment under the Payload salt, or it fails. Adding a
 # field here is the deliberate act of asserting it carries no content.
 NON_CONTENT_DIGESTS = {
+    ('feed.schema.json', 'properties/feed/properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('publisher.schema.json', 'properties/publisher/properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('publisher.schema.json', 'properties/publisher/properties/subdomain_scope/items'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('registry-update.schema.json', 'allOf[17]/then/properties/update/properties/subject'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[2]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[4]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[5]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[6]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[8]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[9]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[10]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[12]/prefixItems[2]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
+    ('status.schema.json', 'properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
     ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/details/properties/activation"): "a confirming Audit Record ID identifying one rung activation",
     ("registry-update.schema.json", "allOf[2]/then/properties/update/properties/details/properties/finding"): "an Audit Record ID identifying a primary finding",
     ("registry-update.schema.json",
@@ -4611,6 +4624,13 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/recovery-appeals.json", "assumed_eligible_notices"): "Registry Update IDs supplied as eligible notice inputs",
     ("vectors/wist4/recovery-appeals.json", "declaration"): "SHA-256 of the selected publisher object",
     ("vectors/wist4/recovery-appeals.json", "notice"): "a signed appeal's notice identifier",
+    ("vectors/wist1/declaration-hosts.json", 'author_key'): 'the fixture author public key',
+    ("vectors/wist1/declaration-hosts.json", 'public_key'): 'an Ed25519 public key',
+    ("vectors/wist1/declaration-hosts.json", 'value'): 'an Ed25519 signature',
+    ("vectors/wist1/declaration-hosts.json", 'prev_declaration'): 'SHA-256 of the original predecessor publisher object',
+    ("vectors/wist1/declaration-hosts.json", 'pinned_head'): 'the authenticated candidate Block header hash',
+    ("vectors/wist1/declaration-hosts.json", 'prev_block_hash'): 'the previous Block header hash',
+    ("vectors/wist1/declaration-hosts.json", 'merkle_root'): 'the Merkle root of original Declaration Entries',
     ("vectors/wist1/base64url.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/base64url.json", "encoded"): "an encoding or malformed field probe",
     ("vectors/wist1/base64url.json", "public_key"): "a public key or malformed public-key encoding",
@@ -5770,19 +5790,139 @@ check("vectors:wist1-declaration-conflicts", _declaration_conflict_vectors)
 
 
 
+def _declaration_host_format(value):
+    if not isinstance(value, str):
+        return True
+    if not value.isascii() or len(value) > 253:
+        return False
+    for label in value.split('.'):
+        if not 1 <= len(label) <= 63 or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in label):
+            return False
+        if label.startswith('xn--'):
+            try:
+                decoded = label[4:].encode('ascii').decode('punycode')
+            except UnicodeError:
+                return False
+            if decoded.isascii() or decoded.encode('punycode').decode('ascii') != label[4:]:
+                return False
+            if decoded in {'\x80', 'a\u200cb', 'אa'}:
+                return False
+            if decoded not in {'bücher', 'faß', 'ασ'}:
+                raise NotImplementedError('A-label eligibility outside the Declaration host fixture corpus')
+    return True
+
+
+def _declaration_host_vectors():
+    vector = json.loads((ROOT / 'vectors/wist1/declaration-hosts.json').read_text())
+    formats = FormatChecker(formats=[])
+    formats.checks('wist-canonical-host')(_declaration_host_format)
+    schemas = {name: json.loads((ROOT / f'schemas/{name}.schema.json').read_text())
+               for name in ('publisher', 'feed', 'status', 'snapshot-state', 'registry-update')}
+    validator = Draft202012Validator(schemas['publisher'], format_checker=formats)
+    fields = [schemas['publisher']['properties']['publisher']['properties']['domain'],
+              schemas['publisher']['properties']['publisher']['properties']['subdomain_scope']['items'],
+              schemas['feed']['properties']['feed']['properties']['domain'],
+              schemas['status']['properties']['domain']]
+    kinds = {'declaration', 'sanction_state', 'recovery_window', 'exclusion',
+             'reputation_inputs', 'record', 'escalation', 'canary_commitment'}
+    for branch in schemas['snapshot-state']['properties']['state']['properties']['entries']['items']['oneOf']:
+        items = branch['prefixItems']
+        if items[0].get('const') in kinds:
+            fields.append(items[2 if items[0]['const'] == 'canary_commitment' else 1])
+    subject_branch = schemas['registry-update']['allOf'][-1]
+    assert set(subject_branch['if']['properties']['update']['properties']['action']['enum']) == {
+        'sanction', 'sanction_lift', 'notice', 'appeal', 'appeal_ruling', 'payload_withdrawal',
+        'canary_commitment', 'canary_reveal'}
+    fields.append(subject_branch['then']['properties']['update']['properties']['subject'])
+    assert len(fields) == 13
+    for case in vector['hosts']:
+        expected = case['expected'] == 'well_formed'
+        assert _declaration_host_format(case['input']) == expected, case['name']
+        assert expected == (case['input'] == case['canonical']), case['name']
+        for field in fields:
+            assert field['format'] == 'wist-canonical-host'
+            assert Draft202012Validator(field, format_checker=formats).is_valid(case['input']) == expected, case['name']
+        if case['canonical'] is not None:
+            assert _declaration_host_format(case['canonical']), case['name']
+    for branch in schemas['registry-update']['allOf']:
+        action = branch.get('if', {}).get('properties', {}).get('update', {}).get('properties', {}).get('action', {}).get('const')
+        if action in {'canary_commitment', 'canary_reveal'}:
+            field = branch['then']['properties']['update']['properties']['subject']
+            assert field['format'] == 'wist-canonical-host'
+            for case in vector['hosts']:
+                expected = case['expected'] == 'well_formed' and '.' in case['input']
+                assert Draft202012Validator(field, format_checker=formats).is_valid(case['input']) == expected, case['name']
+    author = Ed25519PublicKey.from_public_bytes(b64u_decode(vector['author_key']))
+
+    def field_error(env):
+        return 'WIST1-E14' if not validator.is_valid(env) else None
+
+    for case in vector['cases']:
+        env = case['envelope']
+        before = rfc8785.dumps(env)
+        author.verify(b64u_decode(env['sig']['value']), rfc8785.dumps(env['publisher']))
+        result = field_error(env) or _declaration_binding_result(None, env)
+        assert result == case['expected'], case['name']
+        assert rfc8785.dumps(env) == before
+        host = next(host for host in vector['hosts'] if host['name'] == case['host_case'])
+        if host['canonical'] is not None and host['canonical'] != host['input']:
+            repaired = copy.deepcopy(env['publisher'])
+            repaired[case['field']] = host['canonical'] if case['field'] == 'domain' else [host['canonical']]
+            try:
+                author.verify(b64u_decode(env['sig']['value']), rfc8785.dumps(repaired))
+            except InvalidSignature:
+                pass
+            else:
+                raise AssertionError('normalizing a signed host preserved its signature')
+    _, _, _, apply_block = _recovery_history_reference(vector, field_error)
+    outcomes, prefixes = set(), set()
+    for case in vector['block_cases']:
+        history = vector['prefixes'][case['prefix']]
+        blocks = _declaration_history_blocks(vector, history + [case['block']], case['pinned_head'])
+        for reverse_domains in (False, True):
+            states, accepted_head = {}, 'sha256:genesis'
+            for header, entries in blocks[:-1]:
+                result, states = apply_block(states, header, entries, reverse_domains)
+                assert result == 'accepted', case['name']
+                accepted_head = 'sha256:' + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
+            before = copy.deepcopy(states)
+            header, entries = blocks[-1]
+            result, updated = apply_block(states, header, entries, reverse_domains)
+            assert result == case['expected'], case['name']
+            assert states == before
+            assert apply_block(states, header, list(reversed(entries)), reverse_domains) == (result, updated)
+            if result != 'accepted':
+                assert updated == before and accepted_head == header['prev_block_hash']
+            else:
+                assert sorted(updated) == case['expected_domains'], case['name']
+                for state in updated.values():
+                    assert state['floor'] == state['current']['publisher']['seq'] or case['prefix'] == 'deadline'
+                if case['prefix'] == 'deadline':
+                    assert before['example.com']['chain'] is not None
+                    assert updated['example.com']['chain'] is None
+                    assert updated['example.com']['current'] == before['example.com']['chain']
+                    assert updated['example.com']['floor'] == before['example.com']['floor']
+            outcomes.add(result)
+            prefixes.add(case['prefix'])
+        damaged = copy.deepcopy(case['block'])
+        damaged['entries'][0]['body']['publisher']['domain'] = 'tampered.example'
+        try:
+            _declaration_history_blocks(vector, history + [damaged], case['pinned_head'])
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('unauthenticated host Block accepted')
+    assert outcomes == {'accepted', 'WIST1-E14', 'WIST1-E08'}
+    assert prefixes == {'empty', 'initial', 'open', 'deadline'}
+
+
+check('vectors:wist1-declaration-hosts', _declaration_host_vectors)
+
 def _declaration_field_vectors():
     vector = json.loads((ROOT / "vectors/wist1/declaration-fields.json").read_text())
     formats = FormatChecker(formats=[])
 
-    @formats.checks("hostname")
-    def hostname(value):
-        if not isinstance(value, str):
-            return True
-        if not value.isascii() or "xn--" in value.lower():
-            raise NotImplementedError("Declaration field fixtures do not establish IDNA eligibility")
-        return len(value) <= 253 and all(re.fullmatch(
-            r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
-            for label in value.split("."))
+    formats.checks('wist-canonical-host')(_declaration_host_format)
 
     @formats.checks("date-time")
     def timestamp(value):
