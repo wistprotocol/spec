@@ -4548,6 +4548,10 @@ NON_CONTENT_VALUES = {
     ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
+    ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/declaration-binding.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/declaration-binding.json", "prev_declaration"):
+        "SHA-256 over a Declaration's publisher object (WIST-1 section 5.2)",
     ("vectors/wist1/declaration-sequence.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/ed25519-strictness.json", "public_key_hex"):
         "an Ed25519 public key (WIST-1 §4's verification profile), canonical, non-canonical and small-order alike",
@@ -5252,6 +5256,68 @@ def _dc1_declaration_sequence_vector():
             rfc8785.dumps(case["fetched"]["publisher"]), \
             "the idempotent case's publisher objects are not byte-identical"
 check("vectors:wist1-declaration-sequence", _dc1_declaration_sequence_vector)
+
+def _declaration_binding_result(stored, incoming):
+    current = incoming["publisher"]
+    keys = current["keys"] + current.get("recovery_keys", [])
+    ids = [key["key_id"] for key in keys]
+    if len(ids) != len(set(ids)):
+        return "WIST1-E08"
+    if {k["public_key"] for k in current["keys"]} & {
+            k["public_key"] for k in current.get("recovery_keys", [])}:
+        return "WIST1-E08"
+    previous = stored["publisher"] if stored else None
+    if previous:
+        if current["seq"] <= previous["seq"] or current.get("prev_declaration") != (
+                "sha256:" + hashlib.sha256(rfc8785.dumps(previous)).hexdigest()):
+            return "WIST1-E08"
+    elif current["seq"] != 0 or "prev_declaration" in current:
+        return "WIST1-E08"
+    candidates = list(current["keys"])
+    if previous:
+        candidates += previous["keys"] + previous.get("recovery_keys", [])
+    candidates = [key for key in candidates if key["key_id"] == incoming["sig"]["key_id"]]
+    if not candidates:
+        return "WIST1-E02"
+    verified = set()
+    for key in candidates:
+        try:
+            Ed25519PublicKey.from_public_bytes(b64u_decode(key["public_key"])).verify(
+                b64u_decode(incoming["sig"]["value"]), rfc8785.dumps(current))
+        except Exception:
+            continue
+        verified.add(key["public_key"])
+    if not verified:
+        return "WIST1-E01"
+    assert len(verified) == 1
+    if not previous:
+        return "initial"
+    public_key = verified.pop()
+    if public_key in {key["public_key"] for key in previous["keys"]}:
+        result = "ordinary_rotation"
+    elif public_key in {key["public_key"] for key in previous.get("recovery_keys", [])}:
+        result = "recovery_rotation"
+    else:
+        result = "fresh_identity"
+    if result != "recovery_rotation" and previous.get("recovery_keys"):
+        if rfc8785.dumps(previous["recovery_keys"]) != rfc8785.dumps(current.get("recovery_keys", [])):
+            return "WIST1-E08"
+    return result
+
+
+def _declaration_binding_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/declaration-binding.json").read_text())
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/publisher.schema.json").read_text()))
+    for case in vector["cases"]:
+        validator.validate(case["fetched"])
+        if case["stored"]:
+            validator.validate(case["stored"])
+        assert _declaration_binding_result(case["stored"], case["fetched"]) == case["expected"], case["name"]
+    assert {c["expected"] for c in vector["cases"]} == {
+        "initial", "ordinary_rotation", "recovery_rotation", "fresh_identity", "WIST1-E01", "WIST1-E02", "WIST1-E08"}
+
+
+check("vectors:wist1-declaration-binding", _declaration_binding_vectors)
 
 def _parameter_registry_enum():
     """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.

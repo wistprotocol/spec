@@ -307,6 +307,66 @@ write_json(WIST1 / "declaration-sequence.json", {
 })
 print("wist1 declaration-sequence vector written")
 
+
+def binding_case(name, incoming, signer, key_id, expected, stored=stored_decl):
+    return {"name": name,
+            "stored": sign_envelope("publisher", stored, "test-k1") if stored else None,
+            "fetched": sign_envelope_with(signer, "publisher", incoming, key_id),
+            "expected": expected}
+
+binding_cases = []
+for array, original, other in (("keys", stored_decl["keys"][0], K2),
+                                ("recovery_keys", stored_decl["recovery_keys"][0], R2)):
+    for duplicate in (dict(original), dict(other, key_id=original["key_id"])):
+        for reverse in (False, True):
+            entries = [original, duplicate]
+            if reverse:
+                entries.reverse()
+            incoming = variant(seq=1, prev_declaration=stored_hash, **{array: entries})
+            binding_cases.append(binding_case(
+                f"duplicate {array} identifier {'reversed' if reverse else 'forward'} "
+                f"{'identical' if duplicate == original else 'different key'}",
+                incoming, priv, "test-k1", "WIST1-E08"))
+            initial = variant(**{array: entries})
+            binding_cases.append(binding_case(
+                f"initial duplicate {array} {'reversed' if reverse else 'forward'} "
+                f"{'identical' if duplicate == original else 'different key'}",
+                initial, priv, "test-k1", "WIST1-E08", stored=None))
+
+reused = variant(seq=1, prev_declaration=stored_hash,
+                 keys=[dict(K2, key_id="test-k1")])
+alias = dict(stored_decl["keys"][0], key_id="alias")
+renamed = variant(seq=1, prev_declaration=stored_hash, keys=[alias])
+recovery_alias = dict(stored_decl["recovery_keys"][0], key_id="recovery-alias")
+renamed_recovery = variant(seq=1, prev_declaration=stored_hash,
+                           keys=[recovery_alias], recovery_keys=[R2])
+binding_cases.extend([
+    binding_case("reused identifier new signer", reused, priv3, "test-k1", "fresh_identity"),
+    binding_case("reused identifier old signer", reused, priv, "test-k1", "ordinary_rotation"),
+    binding_case("renamed signing key preserves identity", renamed, priv, "alias", "ordinary_rotation"),
+    binding_case("signing aliases remain valid", variant(seq=1, prev_declaration=stored_hash,
+                 keys=[stored_decl["keys"][0], alias]), priv, "alias", "ordinary_rotation"),
+    binding_case("renamed recovery key retains authority", renamed_recovery,
+                 priv2, "recovery-alias", "recovery_rotation"),
+    binding_case("renamed signing key cannot alter recovery", dict(renamed, recovery_keys=[R2]),
+                 priv, "alias", "WIST1-E08"),
+    binding_case("reused identifier cannot alter recovery", dict(reused, recovery_keys=[R2]),
+                 priv3, "test-k1", "WIST1-E08"),
+    binding_case("unrelated signature under known identifier", reused, priv4, "test-k1", "WIST1-E01"),
+    binding_case("unknown signer identifier", reused, priv3, "unknown", "WIST1-E02"),
+    binding_case("incoming recovery key cannot self authorize", recovery_rotated,
+                 priv4, "test-r2", "WIST1-E02"),
+    binding_case("initial self signature", stored_decl, priv, "test-k1", "initial", stored=None),
+    binding_case("initial signature names second signing key",
+                 variant(keys=[K2, stored_decl["keys"][0]]), priv, "test-k1", "initial", stored=None),
+])
+write_json(WIST1 / "declaration-binding.json", {
+    "note": "WIST-1 section 5.2: authenticate sig.key_id against previous signing/recovery "
+            "and incoming signing entries; classify verified public bytes by previous set membership. "
+            "A null stored value tests the initial self-signed Declaration. Duplicate key_id is WIST1-E08.",
+    "cases": binding_cases,
+})
+
 # ------------------------------ WIST-1 §5.2: recovery-window settlement
 # The window's two derivations, over key_ids alone: which served Deltas are
 # admitted to the queue (the union of the pre-recovery Key Set and the

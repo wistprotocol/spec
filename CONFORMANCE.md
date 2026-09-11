@@ -22,6 +22,30 @@ segments survive merging and removal of dot segments. The link-extraction
 vectors do not exercise these cases. Correct the reference resolver and
 add positive and negative cases without changing the specified algorithm.
 
+## Recovery history resolution
+
+Before authenticated recovery and identity-scoped finding replay can be
+validated, resolve these WIST-1 §5.2 and WIST-3 §3.3 ambiguities with signed
+Declaration histories carrying sequence numbers and predecessor hashes:
+
+- WIST-1 awards competing recoveries by Log order and first sealing;
+  WIST-3 gives Declarations sequence precedence and excludes intra-Block
+  position as a deciding factor. Define the window owner when two recoveries
+  share a Block and their leaf-hash order reverses their sequence order.
+- WIST-1 requires a sequence above the highest accepted and a predecessor
+  naming the previously accepted Declaration. Settlement can supersede that
+  Declaration. Define the predecessor and sequence floor for a legitimate
+  follower after an accepted competitor, both before and after settlement.
+- WIST-4 §6.3 resets identity and lifts sanctions at a fresh Declaration's
+  sealing height; WIST-1 supersedes a fresh Declaration inside recovery and
+  preserves reputation. Define whether supersession undoes reset effects
+  and how open-window prefixes versus settled histories determine reputation,
+  findings and sanctions at each candidate Block.
+
+`vectors/wist1/recovery-settlement.json` exercises abstract signer membership
+but omits authenticated sequence and predecessor transitions. Passing it
+cannot establish agreement on these unresolved history cases.
+
 ## Validation still required
 
 The vector-family inventory in `tools/VERIFICATION.md` distinguishes
@@ -32,6 +56,7 @@ arithmetic checks do not establish live-service behavior.
 | Surface | Required evidence |
 |---|---|
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
+| WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change audit timing without creating a selection duty; redirect termination and authority restrictions under live pulls |

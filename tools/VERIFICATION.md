@@ -45,6 +45,7 @@ cannot enter the vector unnoticed.
 | wist1 `ed25519-strictness.json` | the §4 profile that certifies it is pinned to the ed25519-speccheck corpus (`ed25519:speccheck-corpus`) | external-KAT | anchored |
 | wist1 `host-canonicalization.json` | flags pinned to §2; A-label structure and Punycode round-trip recomputed; full UTS #46 mapping deliberately not reimplemented here (`requirements.txt`), so byte-level recomputation happens in consumers' independent UTS #46 libraries | structural + external | partial |
 | wist1 `declaration-sequence.json` | prose-traced sequencing rules | self-consistency | self-consistency-only |
+| wist1 `declaration-binding.json` | independently derived signer resolution and continuity; real Ed25519 signatures | third-party-lib + self-consistency | partial |
 | wist1 `recovery-settlement.json` | prose-traced settlement rules | self-consistency | self-consistency-only |
 | wist1 `keyset-at-height.json` | prose-traced resolution rule | self-consistency | self-consistency-only |
 | wist2 `link-extraction.json` | recomputed by `tools/link_extraction.py` over the fixture page | self-consistency | self-consistency-only |

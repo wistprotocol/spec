@@ -554,8 +554,8 @@ the superseded-replay and same-`seq`-mutation case the rule exists to
 catch.
 
 Key rotation is performed by publishing a Declaration whose envelope is
-signed by a key from the **previous** Key Set (`sig.key_id` names the old
-key). The first Declaration a domain publishes (`seq` 0) is self-signed. A
+signed by a key from the **previous** Key Set (the signer resolution
+below authenticates that key even when its identifier changes). The first Declaration a domain publishes (`seq` 0) is self-signed. A
 key is revoked by publishing a Declaration that omits it.
 
 **Recovery keys.** A Declaration MAY list `recovery_keys` alongside its
@@ -592,8 +592,36 @@ answerable: whether a Declaration opens a recovery window is state every
 replaying party must derive identically, and a signer present in both sets
 would leave two defensible answers.
 
+**Unambiguous key identifiers.** A Declaration MUST NOT repeat a `key_id`
+within `keys`, within `recovery_keys`, or across them, even when the repeated
+entries are identical. Reject such a Declaration with `WIST1-E08`, including
+a first (`seq` 0) Declaration. Different identifiers MAY name the same
+`public_key` within one set; the cross-set prohibition above still applies.
+For a Delta, `sig.key_id` selects its entry and the `valid_from` bound
+applied to `observed_at`, so aliases within a set do not make that lookup
+ambiguous.
+This rule is a semantic constraint beyond the Declaration schema.
+
+**Declaration signer resolution.** For a replacement Declaration, collect
+the entries named by its `sig.key_id` from the previously accepted
+Declaration's `keys` and `recovery_keys` and from the incoming Declaration's
+`keys`. Verify the Envelope against those candidate public keys using §4's
+signature profile. No named candidate is `WIST1-E02`; named candidates but
+no verifying signature is `WIST1-E01`. A failed verification against an old
+binding MUST NOT prevent checking the incoming binding of the same identifier.
+The first Declaration instead resolves its signer only from its own `keys`.
+
+Classify the authenticated public key by its bytes, not by its identifier:
+membership in the previous signing set is ordinary rotation, membership in
+the previous recovery set is recovery rotation, and membership in neither
+is fresh identity. Thus a new public key reusing an identifier can establish
+a fresh identity, while renaming an existing public key cannot erase
+continuity or acquire a different class of authority. Recovery-key protection
+still applies to the resulting classification. The rule does not authorize
+an incoming recovery key to authenticate its own installation.
+
 **Compromise recovery.** A Declaration with a higher `seq` is classified
-by what signs it:
+by what signs it, using the authenticated public key resolved above:
 
 - Signed by a key in the previous Key Set — an ordinary rotation.
   Accepted; `A` and `C` (WIST-4 §6) are preserved.
@@ -742,7 +770,7 @@ matter". Importance is measured at consumption, outside this protocol.
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces; or the same `key_id` or `public_key` named in both `keys` and `recovery_keys`) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, except a re-serve of the accepted Declaration's own `publisher` object, which is idempotent (§5.2); `prev_declaration` absent when `seq` > 0; `prev_declaration` mismatched against the previously accepted Declaration; `recovery_keys` added, removed, or altered by a Declaration not signed by one of the recovery keys it replaces; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
