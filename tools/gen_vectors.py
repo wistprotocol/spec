@@ -1349,6 +1349,10 @@ def declaration_host_vectors():
         ('disallowed decoded point', 'xn--a.example', None),
         ('decoded joiner violation', 'xn--ab-j1t.example', None),
         ('decoded bidi violation', 'xn--a-zhc.example', None),
+        ('Unicode 16 U label', '\u1c89.example', 'xn--d4f.example'),
+        ('Unicode 16 A label', 'xn--d4f.example', 'xn--d4f.example'),
+        ('Unicode 17 U label excluded', '\U0001e6c0.example', None),
+        ('Unicode 17 A label excluded', 'xn--uv5h.example', None),
     ]
     host_cases = [{'name': name, 'input': value, 'canonical': canonical,
                    'expected': 'well_formed' if value == canonical else 'WIST1-E14'}

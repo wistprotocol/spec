@@ -89,6 +89,17 @@ the documented format subsets. Other Declaration schema checks do not enable
 format assertions; their passing results establish neither complete host
 nor Publisher timestamp format conformance.
 
+Canonical Host backends must remain pinned to Unicode 16.0 even when their
+package versions or default data change. `declaration-hosts.json` includes
+U+1C89/U+1C8A (assigned in Unicode 16) and U+1E6C0 (disallowed in Unicode 16),
+with signed A-label counterparts and authenticated Block rejection. A backend
+that admits `xn--uv5h.example` violates WIST-1 §2 despite accepting every
+older hostname example. The external anchor is the
+[Unicode 16 IDNA Mapping Table](https://www.unicode.org/Public/idna/16.0.0/IdnaMappingTable.txt):
+U+1C89 maps to U+1C8A, and U+1E6C0 lies in its disallowed U+1E600–U+1E7DF range.
+The reference's fixture-limited checks do not establish exhaustive mapping
+agreement; independent role validation must exercise the pinned backend.
+
 ### Unresolved field profiles and recovery binding diagnostics
 
 WIST-1 §§2 and 5.1 and draft ADR-0014 require signed Declaration `domain`
@@ -98,15 +109,16 @@ positional hyphens and A-label eligibility; it rejects alternate signed
 spellings before grouping or idempotence. Feed/status Publisher domains,
 Publisher-domain Snapshot fields and Publisher Registry subjects use the same
 representation. Auditor/Observer admission restrictions remain separate.
-`vectors/wist1/declaration-hosts.json` supplies 40 host spellings, 80 signed
-Declaration probes and 92 authenticated candidate Blocks, covering identity
+`vectors/wist1/declaration-hosts.json` supplies 44 host spellings, 88 signed
+Declaration probes and 100 authenticated candidate Blocks, covering identity
 conflicts, alternate spellings, immutable signatures and whole-state
 rejection through due recovery settlement. Shared schema-field probes cover
 the Publisher reference surfaces without asserting object/process eligibility.
 
 The Python reference independently checks ASCII spelling/length and Punycode
 round trips, with explicitly enumerated decoded eligibility for the fixture
-corpus (`bücher`, `faß`, `ασ`, and rejected control, joiner and bidi labels).
+corpus (`bücher`, `faß`, `ασ`, U+1C8A, and rejected control, joiner, bidi and
+post-Unicode-16 labels).
 Unknown decoded A-labels stop that checker; it does not implement the complete
 Unicode 16.0 mapping/validation algorithm or recompute every input's
 canonical output. Independent UTS #46 vector consumption, live field

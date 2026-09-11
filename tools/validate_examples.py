@@ -5809,9 +5809,9 @@ def _declaration_host_format(value):
                 return False
             if decoded.isascii() or decoded.encode('punycode').decode('ascii') != label[4:]:
                 return False
-            if decoded in {'\x80', 'a\u200cb', 'אa'}:
+            if decoded in {'\x80', 'a\u200cb', 'אa', '\U0001e6c0'}:
                 return False
-            if decoded not in {'bücher', 'faß', 'ασ'}:
+            if decoded not in {'bücher', 'faß', 'ασ', '\u1c8a'}:
                 raise NotImplementedError('A-label eligibility outside the Declaration host fixture corpus')
     return True
 
