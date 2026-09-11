@@ -699,6 +699,16 @@ greater than 2. Naming F after settlement fails even with a valid signature.
 These are Declaration acceptance and key-continuity rules; identity-scoped
 reputation and sanction effects are governed separately by WIST-4 §6.3.
 
+For an admissible competing branch, suppose R replaces signing key k1 with
+k2 and recovery key r1 with r2. A fresh F naming R may install k1 again only
+while preserving R's r2 recovery set, with a valid signature under an incoming
+signing entry. F's ordinary successor naming F remains outside R's recovery
+chain, even if its authenticated signer also belongs to R's signing set.
+That signer advances recovery only by naming the current recovery-chain head.
+Restoring r1 without r2's signature fails recovery-key protection; such a
+Declaration is rejected, not accepted for later supersession. Signed cases
+and rejection twins appear in `vectors/wist1/recovery-settlement.json`.
+
 **Compromise recovery.** A Declaration with a higher `seq` is classified
 by what signs it, using the authenticated public key resolved above:
 

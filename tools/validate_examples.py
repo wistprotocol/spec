@@ -1062,6 +1062,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("examples/delta.json", "commitment"): "payload:commitment",
     ("examples/block.json", "commitment"): "payload:commitment",
     ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/recovery-settlement.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
     ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
@@ -4565,6 +4566,21 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-conflicts.json", "current_envelope"): "SHA-256 of the installed Declaration Envelope including signature",
     ("vectors/wist1/declaration-conflicts.json", "recovery_envelope"): "SHA-256 of the recovery-chain Declaration Envelope including signature",
     ("vectors/wist1/declaration-conflicts.json", "first_candidate"): "SHA-256 of a Declaration Envelope used to discriminate leaf order",
+    ("vectors/wist1/recovery-settlement.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-settlement.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/recovery-settlement.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
+    ("vectors/wist1/recovery-settlement.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist1/recovery-settlement.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist1/recovery-settlement.json", "merkle_root"): "the Merkle root of Declaration Entries",
+    ("vectors/wist1/recovery-settlement.json", "label"): "SHA-256 of a publisher object",
+    ("vectors/wist1/recovery-settlement.json", "predecessor"): "SHA-256 of a named predecessor publisher object",
+    ("vectors/wist1/recovery-settlement.json", "effective_declaration"): "SHA-256 of the effective publisher object",
+    ("vectors/wist1/recovery-settlement.json", "superseded"): "SHA-256 identifiers of superseded publisher objects",
+    ("vectors/wist1/recovery-settlement.json", "delta_id"): "SHA-256 of a signed Delta object",
+    ("vectors/wist1/recovery-settlement.json", "queued"): "SHA-256 identifiers of queued Delta objects",
+    ("vectors/wist1/recovery-settlement.json", "not_queued"): "SHA-256 identifiers of nonadmitted Delta objects",
+    ("vectors/wist1/recovery-settlement.json", "eligible"): "SHA-256 identifiers of signature-eligible Delta objects",
+    ("vectors/wist1/recovery-settlement.json", "rejected"): "SHA-256 identifiers of rejected Delta objects",
     ("vectors/wist1/recovery-heads.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/recovery-heads.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-heads.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
@@ -4918,53 +4934,6 @@ def _wist3_empty_block():
                    (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     assert "A Block MAY be empty (`entry_count: 0`)" in prose
 check("vectors:wist3-empty-block", _wist3_empty_block)
-
-def _wist1_recovery_settlement():
-    """WIST-1 §5.2: the window's admission and settlement derivations.
-
-    Recomputed here from the case inputs rather than read off `expected`, so
-    the vector states the rule and this check proves the file agrees with it.
-    """
-    v = json.loads((ROOT / "vectors" / "wist1" / "recovery-settlement.json").read_text())
-    saw_supersession = saw_chain_extension = saw_rejection = False
-    for case in v["cases"]:
-        name = case["name"]
-        recovery = case["recovery_declaration"]
-        admitted_keys = set(case["pre_recovery_keys"]) | set(recovery["keys"])
-        queued = [d for d in case["served"] if d["signer"] in admitted_keys]
-        not_queued = [d for d in case["served"] if d["signer"] not in admitted_keys]
-        assert [d["delta_id"] for d in queued] == case["expected"]["queued"], \
-            f"{name}: queue admission"
-        assert [d["delta_id"] for d in not_queued] == case["expected"]["not_queued"], \
-            f"{name}: non-admission"
-
-        head, superseded = recovery, []
-        for decl in case["window_declarations"]:
-            if decl["signer"] in set(head["keys"]) | set(head.get("recovery_keys", [])):
-                head = decl
-                saw_chain_extension = True
-            else:
-                superseded.append(decl["label"])
-        assert superseded == case["expected"]["superseded"], f"{name}: supersession"
-        assert head["keys"] == case["expected"]["effective_keys"], f"{name}: effective keys"
-        sealed = [d["delta_id"] for d in queued if d["signer"] in head["keys"]]
-        rejected = [d["delta_id"] for d in queued if d["signer"] not in head["keys"]]
-        assert sealed == case["expected"]["sealed"], f"{name}: sealed"
-        assert rejected == case["expected"]["rejected"], f"{name}: WIST1-E13"
-        saw_supersession |= bool(superseded)
-        saw_rejection |= bool(rejected)
-    assert saw_supersession and saw_chain_extension and saw_rejection, \
-        "the vector must exercise supersession, a chain extension and an E13 drop"
-
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
-    for marker in (
-            "verifies under **either** the Key Set in effect immediately before the "
-            "recovery **or** the recovery Declaration's own",
-            "an ordinary rotation and a fresh identity alike",
-            "revalidated against the Key Set of that chain's newest Declaration",
-            "The rejection is of the queued copy and not of the Delta's identity"):
-        assert marker in prose, f"§5.2 does not state: {marker!r}"
-check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
 
 def _keyset_vector():
     return json.loads((ROOT / "vectors" / "wist1" / "keyset-at-height.json").read_text())
@@ -5617,6 +5586,109 @@ def _declaration_conflict_vectors():
 
 check("vectors:wist1-declaration-conflicts", _declaration_conflict_vectors)
 
+
+def _wist1_recovery_settlement():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-settlement.json").read_text())
+    apply, _, replay, _ = _recovery_history_reference(vector)
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/delta.schema.json").read_text()))
+    def digest(inner):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
+    def fixture_time(value):
+        assert re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z", value), \
+            "settlement fixtures require whole-second UTC time"
+        return log_seconds(value)
+    def verifies(env, keys):
+        key = next((key for key in keys if key["key_id"] == env["sig"]["key_id"]), None)
+        if key is None or fixture_time(env["delta"]["observed_at"]) < fixture_time(key["valid_from"]):
+            return False
+        try:
+            Ed25519PublicKey.from_public_bytes(b64u_decode(key["public_key"])).verify(
+                b64u_decode(env["sig"]["value"]), rfc8785.dumps(env["delta"]))
+            return True
+        except Exception:
+            return False
+    for case in vector["binding_cases"]:
+        env = case["envelope"]
+        validator.validate(env)
+        assert digest(env["delta"]) == case["delta_id"]
+        queued = any(verifies(env, case[field]) for field in ("pre_recovery_keys", "recovery_keys"))
+        assert queued == case["expected_queued"], case["name"]
+        assert (queued and verifies(env, case["settlement_keys"])) == case["expected_eligible"], case["name"]
+        if "re_serve_of" in case:
+            earlier = vector["binding_cases"][case["re_serve_of"]]
+            assert earlier["envelope"] == env and earlier["delta_id"] == case["delta_id"]
+            assert earlier["expected_queued"] and not earlier["expected_eligible"]
+            assert case["expected_eligible"]
+    saw_named_competitor = False
+    for case in vector["cases"]:
+        name = case["name"]
+        states = replay(case["blocks"], case["pinned_head"])
+        projections = [case["initial_declaration"], case["recovery_declaration"]] + case["window_declarations"]
+        bindings = {}
+        for height, projection in enumerate(projections):
+            env = projection["envelope"]
+            inner = env["publisher"]
+            assert case["blocks"][height]["entries"] == [{"type": "publisher_declaration", "body": env}]
+            assert projection["label"] == digest(inner)
+            assert projection["predecessor"] == inner.get("prev_declaration")
+            assert projection["signer"] == env["sig"]["key_id"]
+            for field in ("keys", "recovery_keys"):
+                assert projection[field] == [key["key_id"] for key in inner.get(field, [])]
+                for key in inner.get(field, []):
+                    assert bindings.setdefault(key["key_id"], key) == key
+        initial, recovery = projections[:2]
+        expected = case["expected"]
+        assert case["pre_recovery_keys"] == initial["keys"]
+        assert states[1]["windows"] == states[-1]["windows"] == 1
+        assert states[168]["chain"] is not None and states[169]["chain"] is None
+        assert log_seconds(case["blocks"][169]["header"]["sealed_at"]) == log_seconds(states[1]["end"])
+        head = states[-1]["current"]
+        assert digest(head["publisher"]) == expected["effective_declaration"], name
+        assert [key["key_id"] for key in head["publisher"]["keys"]] == expected["effective_keys"]
+        superseded = []
+        for height, projection in enumerate(projections[2:], 2):
+            env = projection["envelope"]
+            if states[height]["chain"] != env:
+                superseded.append(projection["label"])
+                old_head = states[height - 1]["chain"]["publisher"]
+                signer_key = bindings[env["sig"]["key_id"]]["public_key"]
+                saw_named_competitor |= signer_key in {key["public_key"] for key in old_head["keys"]}
+        assert superseded == expected["superseded"], name
+        queued, not_queued, eligible, rejected = [], [], [], []
+        for served in case["served"]:
+            env = served["envelope"]
+            validator.validate(env)
+            assert served["delta_id"] == digest(env["delta"])
+            assert served["signer"] == env["sig"]["key_id"]
+            admitted = any(verifies(env, projection["envelope"]["publisher"]["keys"])
+                           for projection in (initial, recovery))
+            (queued if admitted else not_queued).append(served["delta_id"])
+            if admitted:
+                (eligible if verifies(env, head["publisher"]["keys"]) else rejected).append(served["delta_id"])
+            mutated = copy.deepcopy(env)
+            mutated["delta"]["url"] += "/changed"
+            assert not any(verifies(mutated, projection["envelope"]["publisher"]["keys"])
+                           for projection in (initial, recovery)), "signature mutation queued"
+        assert queued == expected["queued"] and not_queued == expected["not_queued"], name
+        assert eligible == expected["eligible"] and rejected == expected["rejected"], name
+        for probe in case["probes"]:
+            height = probe["prefix_height"] + 1
+            state = copy.deepcopy(states[height - 1])
+            before = copy.deepcopy(state)
+            spelling = case["blocks"][height]["header"]["sealed_at"]
+            result = apply(state, probe["candidate"], log_seconds(spelling), spelling, height)
+            assert result == probe["expected_result"], (name, probe["name"], result)
+            assert state == before, "rejected candidate changed its prefix"
+    assert saw_named_competitor, "a shared key must not join the chain via a competitor"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-delta-format.md").read_text())
+    for marker in (
+            "verifies under **either** the Key Set in effect immediately before the recovery **or** the recovery Declaration's own",
+            "revalidated against the Key Set of that chain's newest Declaration",
+            "The rejection is of the queued copy and not of the Delta's identity"):
+        assert marker in prose
+
+
+check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
 
 def _recovery_heads_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())

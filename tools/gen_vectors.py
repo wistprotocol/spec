@@ -367,109 +367,6 @@ write_json(WIST1 / "declaration-binding.json", {
     "cases": binding_cases,
 })
 
-# ------------------------------ WIST-1 §5.2: recovery-window settlement
-# The window's two derivations, over key_ids alone: which served Deltas are
-# admitted to the queue (the union of the pre-recovery Key Set and the
-# recovery Declaration's own), and what the window's end does with them
-# (revalidation against the recovery chain's newest Declaration). Every
-# Declaration sealed inside the window that does not legitimately follow the
-# recovery Declaration is superseded, whatever its classification.
-def settle_case(name, recovery, window, served, why):
-    chain = [recovery]
-    superseded = []
-    for decl in window:
-        head = chain[-1]
-        if decl["signer"] in head["keys"] + head.get("recovery_keys", []):
-            chain.append(decl)
-        else:
-            superseded.append(decl["label"])
-    effective = chain[-1]["keys"]
-    admitted = [d for d in served
-                if d["signer"] in PRE_RECOVERY_KEYS + recovery["keys"]]
-    return {
-        "name": name,
-        "pre_recovery_keys": PRE_RECOVERY_KEYS,
-        "recovery_declaration": recovery,
-        "window_declarations": window,
-        "served": served,
-        "expected": {
-            "queued": [d["delta_id"] for d in admitted],
-            "not_queued": [d["delta_id"] for d in served if d not in admitted],
-            "effective_keys": effective,
-            "superseded": superseded,
-            "sealed": [d["delta_id"] for d in admitted if d["signer"] in effective],
-            "rejected": [d["delta_id"] for d in admitted
-                         if d["signer"] not in effective],
-        },
-        "why": why,
-    }
-
-PRE_RECOVERY_KEYS = ["k1"]
-RECOVERY_DECL = {"label": "recovery", "signer": "r1", "keys": ["k2"],
-                 "recovery_keys": ["r2"]}
-
-settlement_cases = [
-    settle_case(
-        "no competing declaration", RECOVERY_DECL, [],
-        [{"delta_id": "d-old", "signer": "k1"},
-         {"delta_id": "d-new", "signer": "k2"},
-         {"delta_id": "d-alien", "signer": "kX"}],
-        "§5.2: the union admits the compromised key's Delta and the "
-        "recovered Publisher's alike, and the settlement keeps only what "
-        "verifies under the recovery Declaration's own keys. A Delta signed "
-        "by a key in neither set never reaches the queue (WIST1-E02)."),
-    settle_case(
-        "thief rotates inside the window", RECOVERY_DECL,
-        [{"label": "thief rotation", "signer": "k1", "keys": ["kT"],
-          "recovery_keys": ["r1"]}],
-        [{"delta_id": "d-thief", "signer": "k1"},
-         {"delta_id": "d-owner", "signer": "k2"}],
-        "§5.2: an ordinary rotation signed by the compromised key does not "
-        "follow the recovery Declaration, so it is superseded and its "
-        "Deltas are WIST1-E13."),
-    settle_case(
-        "fresh identity inside the window", RECOVERY_DECL,
-        [{"label": "fresh identity", "signer": "kF", "keys": ["kF"],
-          "recovery_keys": ["r2"]}],
-        [{"delta_id": "d-owner", "signer": "k2"}],
-        "§5.2: a fresh identity is accepted when served and superseded at "
-        "the window's end like any other non-following Declaration — "
-        "otherwise a thief answers a recovery by starting over under the "
-        "same domain."),
-    settle_case(
-        "recovered Publisher rotates again", RECOVERY_DECL,
-        [{"label": "post-recovery rotation", "signer": "k2", "keys": ["k3"],
-          "recovery_keys": ["r2"]}],
-        [{"delta_id": "d-k2", "signer": "k2"},
-         {"delta_id": "d-old", "signer": "k1"}],
-        "§5.2: signed by a key of the recovery Declaration's own Key Set, so "
-        "it legitimately follows and its Key Set is the one settlement "
-        "revalidates against — d-k2 no longer verifies under it."),
-    settle_case(
-        "recovery key rotates again", RECOVERY_DECL,
-        [{"label": "second recovery rotation", "signer": "r2",
-          "keys": ["k4"], "recovery_keys": ["r3"]},
-         {"label": "thief rotation after it", "signer": "k1",
-          "keys": ["kT"], "recovery_keys": ["r1"]}],
-        [{"delta_id": "d-k4", "signer": "k2"}],
-        "§5.2: the chain may extend through a recovery key too, and a "
-        "rotation signed by the compromised key is superseded wherever in "
-        "the window it lands."),
-]
-
-write_json(WIST1 / "recovery-settlement.json", {
-    "note": ("WIST-1 §5.2 recovery-window admission and settlement, over "
-             "key_ids alone. These projections do not establish Declaration "
-             "admissibility: sequence, predecessor, signature and recovery-key "
-             "protection checks require authenticated histories (CONFORMANCE.md). `served` is in "
-             "acceptance order; `expected.queued` are the Deltas the union "
-             "rule admits, `expected.sealed` those the settlement keeps in "
-             "that order, and `expected.rejected` those it drops with "
-             "WIST1-E13 (the queued copy only — the Delta ID is not barred)."),
-    "cases": settlement_cases,
-})
-print("wist1 recovery-settlement vector written")
-
 def recovery_order_entry(envelope):
     return {"type": "publisher_declaration", "body": envelope}
 
@@ -540,6 +437,163 @@ write_json(WIST1 / "recovery-order.json", {
         recovery_order_case("ordinary predecessor before two recoveries", True, ordinary_first=True),
     ],
 })
+
+def recovery_settlement_vectors():
+    extra = {name: Ed25519PrivateKey.from_private_bytes(hashlib.sha256(
+        ("wist settlement " + name).encode()).digest()) for name in ("third", "fourth", "alien")}
+    key_entries = {name: {"key_id": "test-" + name, "alg": "Ed25519",
+                          "public_key": b64u(raw_public(key)),
+                          "valid_from": "2026-08-03T12:00:00Z"}
+                   for name, key in extra.items()}
+    initial = sign_envelope("publisher", publisher, "test-k1")
+
+    def signed(previous, seq, signer, key_id, **changes):
+        inner = dict(previous["publisher"], seq=seq,
+                     prev_declaration=decl_hash(previous["publisher"]), **changes)
+        return sign_envelope_with(signer, "publisher", inner, key_id)
+
+    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
+    fresh = signed(owner, 2, priv, "test-k1", keys=publisher["keys"])
+    descendant = signed(fresh, 3, priv, "test-k1", keys=[key_entries["third"]])
+    alien = signed(owner, 2, extra["alien"], "test-alien", keys=[key_entries["alien"]])
+    ordinary = signed(owner, 2, priv3, "test-k2", keys=[key_entries["third"]])
+    second = signed(owner, 2, priv4, "test-r2", keys=[key_entries["fourth"]],
+                    recovery_keys=publisher["recovery_keys"])
+    after_second = signed(second, 3, priv, "test-k1", keys=publisher["keys"])
+    shared = signed(owner, 2, priv, "test-k1", keys=publisher["keys"] + [K2])
+    wrong_branch = signed(shared, 3, priv3, "test-k2", keys=[key_entries["third"]])
+    right_branch = signed(owner, 3, priv3, "test-k2", keys=[key_entries["third"]])
+    scenarios = [
+        ("no competitor", [], owner, []),
+        ("fresh competitor and ordinary descendant", [fresh, descendant], owner, [fresh, descendant]),
+        ("unrelated fresh identity", [alien], owner, [alien]),
+        ("ordinary recovery chain follower", [ordinary], ordinary, []),
+        ("recovery follower and fresh competitor", [second, after_second], second, [after_second]),
+        ("shared signing key names competitor", [shared, wrong_branch], owner, [shared, wrong_branch]),
+        ("shared signing key names recovery head", [shared, right_branch], right_branch, [shared]),
+    ]
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+    def timestamp(hour):
+        return (start + datetime.timedelta(hours=hour)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    def projection(env):
+        inner = env["publisher"]
+        return {"label": decl_hash(inner), "predecessor": inner.get("prev_declaration"),
+                "signer": env["sig"]["key_id"],
+                "keys": [key["key_id"] for key in inner["keys"]],
+                "recovery_keys": [key["key_id"] for key in inner.get("recovery_keys", [])],
+                "envelope": env}
+    cases = []
+    for name, window, effective, superseded in scenarios:
+        events = [initial, owner] + window
+        blocks, previous = [], "sha256:genesis"
+        for height in range(170):
+            entries = [recovery_order_entry(events[height])] if height < len(events) else []
+            root = recovery_order_leaf(events[height]) if entries else hashlib.sha256(b"\x00").digest()
+            header = {"wist_version": "1.0.0", "block_number": height,
+                      "prev_block_hash": previous, "sealed_at": timestamp(height),
+                      "merkle_root": "sha256:" + root.hex(), "entry_count": len(entries)}
+            block = sign_envelope_with(priv, "header", header, "test-log-k1")
+            block["entries"] = entries
+            blocks.append(block)
+            previous = decl_hash(header)
+        served = []
+        for index, (signer, key_id) in enumerate([
+                (priv, "test-k1"), (priv3, "test-k2"),
+                (extra["third"], "test-third"), (extra["fourth"], "test-fourth"),
+                (extra["alien"], "test-alien"), (priv3, "test-k2")]):
+            inner = dict(delta, url=f"https://example.com/settlement/{index}",
+                         observed_at=timestamp(10))
+            env = sign_envelope_with(signer, "delta", inner, key_id)
+            served.append({"delta_id": decl_hash(inner), "signer": key_id, "envelope": env})
+        queued = [d for d in served if d["signer"] in {"test-k1", "test-k2"}]
+        effective_ids = [key["key_id"] for key in effective["publisher"]["keys"]]
+        probes = []
+        for height, env in enumerate(events[2:], 2):
+            predecessor = next(e for e in events[:height]
+                               if decl_hash(e["publisher"]) == env["publisher"]["prev_declaration"])
+            altered = publisher["recovery_keys"] if predecessor["publisher"]["recovery_keys"] == [R2] else [R2]
+            signer_id = env["sig"]["key_id"]
+            if signer_id in [key["key_id"] for key in predecessor["publisher"]["recovery_keys"]]:
+                continue
+            signer = {"test-k1": priv, "test-k2": priv3,
+                      "test-alien": extra["alien"]}[signer_id]
+            twin = signed(predecessor, env["publisher"]["seq"], signer, signer_id,
+                          keys=env["publisher"]["keys"], recovery_keys=altered)
+            probes.append({"name": "unauthorized recovery set replacement",
+                           "prefix_height": height - 1, "candidate": twin,
+                           "expected_result": "WIST1-E08"})
+        stale = signed(initial, len(events), priv, "test-k1")
+        probes.append({"name": "pre recovery predecessor cannot return",
+                       "prefix_height": len(events) - 1, "candidate": stale,
+                       "expected_result": "WIST1-E08"})
+        bad = json.loads(json.dumps(owner))
+        raw = bytearray(base64.urlsafe_b64decode(bad["sig"]["value"] + "=="))
+        raw[0] ^= 1
+        bad["sig"]["value"] = b64u(raw)
+        probes.append({"name": "invalid Declaration author signature",
+                       "prefix_height": 0, "candidate": bad, "expected_result": "WIST1-E01"})
+        cases.append({"name": name, "blocks": blocks, "pinned_head": previous,
+                      "initial_declaration": projection(initial),
+                      "pre_recovery_keys": ["test-k1"], "recovery_declaration": projection(owner),
+                      "window_declarations": [projection(env) for env in window], "served": served,
+                      "probes": probes,
+                      "expected": {"queued": [d["delta_id"] for d in queued],
+                                   "not_queued": [d["delta_id"] for d in served if d not in queued],
+                                   "effective_keys": effective_ids,
+                                   "effective_declaration": decl_hash(effective["publisher"]),
+                                   "superseded": [decl_hash(env["publisher"]) for env in superseded],
+                                   "eligible": [d["delta_id"] for d in queued if d["signer"] in effective_ids],
+                                   "rejected": [d["delta_id"] for d in queued if d["signer"] not in effective_ids]}})
+    binding_cases = []
+    sample = dict(delta, observed_at=timestamp(10), url="https://example.com/settlement/bindings")
+    old_delta = sign_envelope_with(priv, "delta", sample, "test-k1")
+    new_delta = sign_envelope_with(priv3, "delta", sample, "test-k2")
+    rebound = dict(K2, key_id="test-k1")
+    rebound_delta = sign_envelope_with(priv3, "delta", sample, "test-k1")
+    bad_delta = json.loads(json.dumps(new_delta))
+    bad_delta["sig"]["value"] = old_delta["sig"]["value"]
+    def binding(name, before, opening, final, env, queued, eligible):
+        binding_cases.append({"name": name, "pre_recovery_keys": before,
+                              "recovery_keys": opening, "settlement_keys": final,
+                              "envelope": env, "delta_id": decl_hash(env["delta"]),
+                              "expected_queued": queued, "expected_eligible": eligible})
+    binding("reused identifier checks the second admission set", publisher["keys"], [rebound],
+            [rebound], rebound_delta, True, True)
+    binding("old binding queues but fails settlement", publisher["keys"], [rebound],
+            [rebound], old_delta, True, False)
+    binding("renamed same public key does not retain Delta identifier", publisher["keys"], [K2],
+            [dict(K2, key_id="renamed")], new_delta, True, False)
+    binding("settlement valid_from excludes previously queued Delta", publisher["keys"], [K2],
+            [dict(K2, valid_from=timestamp(11))], new_delta, True, False)
+    binding("valid_from equality is eligible", publisher["keys"], [dict(K2, valid_from=timestamp(10))],
+            [dict(K2, valid_from=timestamp(10))], new_delta, True, True)
+    binding("future valid_from prevents queue admission", publisher["keys"], [dict(K2, valid_from=timestamp(11))],
+            [K2], new_delta, False, False)
+    binding("known identifier with invalid signature is not queued", publisher["keys"], [K2],
+            [K2], bad_delta, False, False)
+    binding("unknown identifier is not queued", publisher["keys"], [K2], [K2],
+            sign_envelope_with(priv3, "delta", sample, "unknown"), False, False)
+    binding("later re serve of rejected Delta ID under a restored key", publisher["keys"], [K2],
+            publisher["keys"], old_delta, True, True)
+    binding_cases[-1]["re_serve_of"] = 1
+    write_json(WIST1 / "recovery-settlement.json", {
+        "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Blocks, "
+                "opening recovery at height 1 and settling at height 169. Declaration projections "
+                "must match their signed Envelopes and Block Entries. All key identifiers in each history "
+                "have fixed public-key and valid_from bindings; separate binding_cases vary them. "
+                "Every timestamp probe uses whole-second literal-Z values; this family does not "
+                "establish the broader RFC 3339 profile of observed_at or valid_from. Signed served Deltas are "
+                "distinct new URLs received in array order at hour 10; their shape and signature "
+                "eligibility are exercised, not Payload availability, quotas or actual Block packing. "
+                "expected.eligible denotes signature-eligible survivors in acceptance order, not proof "
+                "of their eventual inclusion. Each probe independently replaces the next Block's "
+                "Declaration as an unsealed candidate and must reject without changing its prefix. "
+                "Snapshot recovery and appeal authority are not established by these histories.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "cases": cases, "binding_cases": binding_cases})
+
+
+recovery_settlement_vectors()
 
 def recovery_heads_vectors():
     def signed(previous, seq, signer, key_id, **changes):

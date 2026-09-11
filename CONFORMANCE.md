@@ -69,13 +69,21 @@ scope for age, credit, penalties, findings, rungs and notice targets with
 already-eligible inputs. They do not authenticate or establish eligibility
 of Audit Records, notices, lifts or appeals, or Snapshot resume conformance.
 
-`vectors/wist1/recovery-settlement.json` exercises abstract signer membership
-but omits authenticated sequence and predecessor transitions. Passing it
-cannot establish agreement on these unresolved history cases. Its two
-abstract thief-rotation cases restore `recovery_keys` from `r2` to `r1`
-without the replaced recovery key's authority, contrary to WIST-1 §5.2.
-Replace these inadmissible projections with signed admissible competitors
-and rejection twins before claiming authenticated settlement conformance.
+`vectors/wist1/recovery-settlement.json` authenticates seven 170-Block hourly
+histories through the settlement boundary, with admissible fresh competitors,
+ordinary descendants and legitimate ordinary/recovery followers. Signed
+rejection twins enforce recovery-key protection, predecessor eligibility and
+Declaration authorship. A shared key naming a competitor cannot advance the
+recovery chain. Signed Delta inputs exercise admission under the frozen union
+and signature-eligible settlement survivors; separate binding probes cover
+identifier reuse, aliases, `valid_from`, bad signatures and later re-serving
+of a rejected ID. These replace inadmissible abstract recovery-set rotations.
+The histories do not establish durable queuing, Payload availability, quotas,
+actual survivor inclusion, status reporting or complete historical Delta
+verification. Its timestamp comparisons exercise whole-second literal-Z
+fixtures only; full RFC 3339 `observed_at` and `valid_from` validation, including
+fractional-second ordering, remains required. Those remain integrated
+validation obligations.
 
 WIST-3 §7's Snapshot `declaration` tuple carries only the current Envelope
 and sealing height, and `recovery_window` carries only owner height and end.
@@ -98,6 +106,7 @@ arithmetic checks do not establish live-service behavior.
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
 | WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state and appeal authority require the resolutions listed above. |
+| WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-4 §6.3 recovery identity | Consume `recovery-identity.json`; integrate its reset boundaries with authenticated Delta/Audit Record history, candidate-Block parameter profiles, notice evidence and due process. Recovery preserves identity without freezing state or retroactively altering earlier prefixes. Abstract projection inputs do not establish these integrated obligations. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |

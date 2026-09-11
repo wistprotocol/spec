@@ -123,8 +123,16 @@ inside the window.
 re-served later and verifying under the Key Set then in force is sealed like
 any other.
 
-`vectors/wist1/recovery-settlement.json` carries both derivations over five
-abstract cases, whose admission limitations are listed in CONFORMANCE.md.
+`vectors/wist1/recovery-settlement.json` carries seven authenticated hourly
+Declaration histories and signed Delta inputs. Fresh competitors preserve
+their named predecessor's recovery set; their ordinary descendants remain
+off-chain. A shared signing key naming a competitor does not extend recovery,
+whereas the same key naming the recovery head does. Independent candidate
+probes reject unauthorized recovery-set replacement, stale predecessors and
+invalid author signatures. Separate Delta binding probes distinguish public
+key reuse, identifier renaming, `valid_from`, invalid signatures and later
+re-serving of a rejected Delta ID. Survivors are signature-eligible inputs,
+not proof of eventual inclusion. No object field or schema constraint changes.
 `vectors/wist1/recovery-heads.json` carries a signed hourly Block chain,
 Declaration predecessors and independent candidate probes across settlement.
 It distinguishes accepted sequence from restored head, authenticates chain
@@ -214,8 +222,8 @@ a Delta signed by a superseded key does not verify, whenever it is served.
 - A recovering Publisher may rotate again inside its own window — the
   realistic case, since a recovery is performed with an offline key that the
   operator usually wants to replace immediately afterwards.
-- The thief's options inside a window are all sealed and all superseded, so
-  the Log records the attempt rather than hiding it.
+- Admissible competing Declarations can be sealed and are superseded;
+  sequence, signature and recovery-key violations still reject at admission.
 - Two implementation behaviors change: an aggregator stops rejecting
   in-window Declarations with `WIST1-E08`, and a consumer stops superseding
   a legitimate post-recovery rotation.
