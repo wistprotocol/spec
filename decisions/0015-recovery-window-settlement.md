@@ -78,6 +78,16 @@ the Key Set in effect immediately before the recovery or the recovery
 Declaration's own. The recovering Publisher keeps publishing; the
 compromised key's Deltas still reach the queue, where the settlement rejects
 them in the open rather than at an ingest no replaying party can see.
+Freeze both signing sets at the owner's application, including any
+same-Block predecessor; later competitors and legitimate followers replace
+neither admission source. WIST-1 §5.1 and
+[ADR-0023](0023-declaration-key-binding.md) retain complete named bindings,
+filter key usability and each timestamp bound before signature verification,
+and assign E02 when no eligible binding remains or E01 when all eligible
+bindings fail verification. The union applies only to queue admission;
+settlement and historical verification retain their selected single source.
+`vectors/wist1/recovery-bindings.json` authenticates the owner and a later
+follower, exercising fixed sources and diagnostics with signed Delta probes.
 
 **Supersession covers everything outside the recovery chain.** At the
 window's end, every Declaration accepted after its owner while it is open,

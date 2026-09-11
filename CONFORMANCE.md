@@ -182,14 +182,25 @@ every role remain required. An implementation that merely orders `:60`
 without rejecting it, rounds fractions, or rejects offset-adjusted values
 beyond its calendar range does not conform to this profile.
 
-WIST-1 §5.2 recovery admission requires verification under either the
-pre-recovery or window-owner signing Key Set. Complete bindings must remain
-available when the sets reuse an identifier; selecting only the first
-identifier match or replacing the owner with an in-window descendant does
-not satisfy that acceptance rule. The rejection diagnostic remains unspecified
-when usable named bindings fail different `valid_from` and signature checks.
-Resolve the mixed-failure WIST1-E01/WIST1-E02 result with signed union probes
-before selecting a diagnostic. Separately, WIST-2 §3.2 sealed-Page verification
+**Resolved recovery-binding diagnostics — WIST-1 §5.1/§5.2 and draft
+ADR-0023.** Queue admission retains the pre-recovery and window-owner
+signing sets, including complete reused-identifier/public-key/time bindings.
+Filter unusable and future named bindings before signature verification:
+none remaining is WIST1-E02; remaining bindings with no verifying signature
+is WIST1-E01. A single binding must satisfy both checks. Encoding and
+Publisher timestamp errors retain
+WIST1-E14 precedence, and settlement retains WIST1-E13. The signed
+`recovery-bindings.json` histories and independent reference exercise mixed
+failures, exact fractional/offset bounds, exclusions, aliases, reversed
+signed arrays and fixed owner sources after a legitimate follower. They
+establish source selection and key diagnostics, not full Delta/chain
+eligibility, live clock checks, durable queues, Payload availability, quotas,
+sealing, settlement or Snapshot restoration. Independent role consumption
+and integrated admission/replay/restoration remain required. Selecting only
+the first identifier match, merging distinct bounds or substituting a later
+Declaration does not conform.
+
+Separately, WIST-2 §3.2 sealed-Page verification
 must retain the selected Declaration's key provenance: gathering every
 historical binding with its identifiers can authenticate against the wrong
 Declaration. Validation must distinguish reused identifiers and excluded
@@ -301,6 +312,7 @@ arithmetic checks do not establish live-service behavior.
 |---|---|
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
+| WIST-1 §5.1/§5.2 Delta recovery bindings | Consume `recovery-bindings.json` with independent signature and timestamp implementations. Preserve frozen source provenance and complete bindings in admission, authenticated replay and durable restoration; distinguish E14 fields, E02 absence of eligible authority and E01 failed signatures without borrowing the union for sealing or historical verification. Exercise complete Delta/chain and live-clock eligibility separately. |
 | WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
 | WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-4 §6.3 recovery identity | Consume `recovery-identity.json`; integrate its reset boundaries with authenticated Delta/Audit Record history, candidate-Block parameter profiles, notice evidence and due process. Recovery preserves identity without freezing state or retroactively altering earlier prefixes. Abstract projection inputs do not establish these integrated obligations. |

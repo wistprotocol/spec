@@ -595,6 +595,107 @@ def recovery_settlement_vectors():
 
 recovery_settlement_vectors()
 
+def recovery_binding_vectors():
+    signers = {name: Ed25519PrivateKey.from_private_bytes(hashlib.sha256(
+        ("wist recovery binding " + name).encode()).digest()) for name in ("a", "b", "c")}
+    instant = "2026-08-04T10:00:00.0000000001Z"
+    future = "2026-08-04T10:00:00.0000000002Z"
+    equivalent = "2026-08-04t11:00:00.000000000100+01:00"
+    excluded = b64u((1).to_bytes(32, "little"))
+
+    def key(name, valid_from=instant, key_id="shared", public=None):
+        return {"key_id": key_id, "alg": "Ed25519",
+                "public_key": public or b64u(raw_public(signers[name])), "valid_from": valid_from}
+
+    scenarios = [
+        ("both eligible", key("a"), key("b"), ("accepted", "accepted", "WIST1-E01")),
+        ("old future", key("a", future), key("b"), ("WIST1-E01", "accepted", "WIST1-E01")),
+        ("owner future", key("a"), key("b", future), ("accepted", "WIST1-E01", "WIST1-E01")),
+        ("both future", key("a", future), key("b", future), ("WIST1-E02",) * 3),
+        ("same public old future", key("a", future), key("a", equivalent),
+         ("accepted", "WIST1-E01", "WIST1-E01")),
+        ("same public owner future", key("a", equivalent), key("a", future),
+         ("accepted", "WIST1-E01", "WIST1-E01")),
+        ("old excluded", key("a", public=excluded), key("b"),
+         ("WIST1-E01", "accepted", "WIST1-E01")),
+        ("owner excluded", key("a"), key("b", public=excluded),
+         ("accepted", "WIST1-E01", "WIST1-E01")),
+        ("both excluded", key("a", public=excluded), key("b", public=excluded), ("WIST1-E02",) * 3),
+        ("excluded and future", key("a", public=excluded), key("b", future), ("WIST1-E02",) * 3),
+        ("future and excluded", key("a", future), key("b", public=excluded), ("WIST1-E02",) * 3),
+        ("eligible differently named alias", key("a", future), key("a", key_id="renamed"),
+         ("WIST1-E02",) * 3),
+    ]
+    histories, cases = {}, []
+    for name, before, opening, outcomes in scenarios:
+        for reverse in (False, True):
+            history_name = name + (" reversed arrays" if reverse else "")
+            old_keys = publisher["keys"] + [before]
+            new_keys = [K2, opening]
+            if reverse:
+                old_keys.reverse()
+                new_keys.reverse()
+            initial = sign_envelope("publisher", dict(publisher, keys=old_keys), "test-k1")
+            owner = sign_envelope_with(priv2, "publisher", dict(publisher, seq=1,
+                prev_declaration=decl_hash(initial["publisher"]), keys=new_keys,
+                recovery_keys=[R2]), "test-r1")
+            follower = sign_envelope_with(priv3, "publisher", dict(owner["publisher"], seq=2,
+                prev_declaration=decl_hash(owner["publisher"]), keys=[key("c", key_id="test-k3")]), "test-k2")
+            blocks, previous = [], "sha256:genesis"
+            for height, env in enumerate((initial, owner, follower)):
+                header = {"wist_version": "1.0.0", "block_number": height,
+                          "prev_block_hash": previous, "sealed_at": f"2026-08-04T{height:02d}:00:00Z",
+                          "merkle_root": "sha256:" + recovery_order_leaf(env).hex(), "entry_count": 1}
+                blocks.append(dict(sign_envelope_with(priv, "header", header, "test-log-k1"),
+                                   entries=[recovery_order_entry(env)]))
+                previous = decl_hash(header)
+            histories[history_name] = {"blocks": blocks, "pinned_head": previous}
+
+            def add(label, signer, identifier, expected, observed_at=instant, damage=None):
+                inner = dict(delta, url="https://example.com/recovery/bindings", observed_at=observed_at)
+                env = sign_envelope_with(signer, "delta", inner, identifier)
+                if damage == "signature":
+                    env["sig"]["value"] = b64u(bytes(64))
+                elif damage == "encoding":
+                    env["sig"]["value"] += "="
+                for height in (1, 2):
+                    cases.append({"name": history_name + " " + label + f" at height {height}",
+                                  "history": history_name, "prefix_height": height,
+                                  "envelope": env, "expected": expected})
+
+            for signer_name, outcome in zip(("a", "b", "c"), outcomes):
+                add("signature " + signer_name, signers[signer_name], "shared", outcome)
+            no_eligible = outcomes == ("WIST1-E02",) * 3
+            add("invalid signature", signers["a"], "shared",
+                "WIST1-E02" if no_eligible else "WIST1-E01", damage="signature")
+            add("unknown identifier", signers["a"], "unknown", "WIST1-E02")
+            add("pre recovery only recovery key", priv2, "test-r1", "WIST1-E02")
+            add("owner only recovery key", priv4, "test-r2", "WIST1-E02")
+            add("follower only signing key", signers["c"], "test-k3", "WIST1-E02")
+            add("retired owner signing key", priv3, "test-k2", "accepted")
+            add("malformed signature before missing authority", signers["a"], "unknown",
+                "WIST1-E14", damage="encoding")
+            add("leap label before missing authority", signers["a"], "unknown", "WIST1-E14",
+                observed_at="2016-12-31T23:59:60Z")
+            add("fraction beyond nanoseconds", signers["a"], "shared", outcomes[0],
+                observed_at="2026-08-04T10:00:00.00000000010000000000000000001Z")
+            add("offset equality", signers["b"], "shared", outcomes[1], observed_at=equivalent)
+    write_json(WIST1 / "recovery-bindings.json", {
+        "note": "WIST-1 sections 4, 5.1 and 5.2. Each history authenticates an initial Declaration, "
+                "a recovery owner and an ordinary recovery-chain follower in three hourly Blocks. "
+                "The supplied Log key and pinned head are trusted fixture inputs. Every independent Delta "
+                "probe uses the prefix through prefix_height; the open window freezes the initial and "
+                "owner signing bindings even after the follower. accepted denotes only successful Delta "
+                "key verification, not queue mutation, complete Delta/chain eligibility, Payload availability, "
+                "quotas, clock skew, actual sealing, settlement or Snapshot restoration. Timestamp probes "
+                "exercise exact bound ordering and field rejection; accepted probes supply no live clock. "
+                "Reversed-array histories re-sign Declarations and rebuild authenticated hashes.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "histories": histories, "cases": cases})
+
+
+recovery_binding_vectors()
+
 def recovery_heads_vectors():
     def signed(previous, seq, signer, key_id, **changes):
         inner = dict(previous["publisher"], seq=seq,

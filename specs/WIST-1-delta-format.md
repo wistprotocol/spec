@@ -504,12 +504,15 @@ excluded key alone MUST NOT cause the Declaration to be rejected. After
 §5.1's field checks, exclude any entry whose decoded public bytes do not
 decode to a canonical Ed25519 point or represent a small-order point. Apply
 this to both `keys` and `recovery_keys`, before collecting §5.2's signer
-candidates or classifying the verified public key. A named identifier with
-only excluded bindings has no candidate (`WIST1-E02`); at least one usable
+candidates or classifying the verified public key. For Declaration
+authentication, a named identifier with only excluded bindings has no
+candidate (`WIST1-E02`); at least one usable
 named binding but no verifying signature is `WIST1-E01`. Check every usable
 named binding from the eligible predecessor and incoming signing array,
 even if another binding of that identifier was excluded. The same exclusion
-applies when deriving keys for Deltas and notice-era appeals.
+applies when deriving keys for Deltas and notice-era appeals. Deltas also
+apply §5.1's per-binding timestamp eligibility before signature diagnostics;
+Declaration and appeal authentication apply no such time filter.
 
 Retain the original Envelope for signatures, hashes, predecessor links,
 idempotence and recovery-set byte protection. Identifier uniqueness and
@@ -664,10 +667,30 @@ the one observation that tells a validator the cache may be behind a
 rotation, and an Aggregator MUST re-fetch the Declaration once on that
 observation before it counts the failure (WIST-2 §5).
 
-`valid_from` bounds a key's use: a Delta whose `observed_at` precedes the
-`valid_from` of the key named in `sig.key_id` MUST be rejected with
-`WIST1-E02`. Backdating a Delta to before a key existed is therefore not a
-route around key history.
+`valid_from` bounds each signing binding's use. After field validation,
+collect every signing entry named by the Delta's `sig.key_id` from the
+source Key Set or sets authorized by §5.2. Exclude unusable public keys
+under §4, then exclude each binding whose `valid_from` is later than the
+Delta's `observed_at`, comparing exact instants under §3.4. If no binding
+remains, reject with `WIST1-E02`. Otherwise verify the signature against
+every remaining candidate until one succeeds under §4; accept this key
+check if any succeeds, or reject with `WIST1-E01` if none does.
+
+An eligible binding must itself satisfy both the timestamp bound and the
+signature check. A verifying signature under a future binding cannot borrow
+another binding's earlier `valid_from`. In particular, one eligible binding
+with a failed signature plus one future binding with a valid signature is
+`WIST1-E01`; all named bindings being excluded or future is `WIST1-E02`,
+regardless of their signature results. The field failures specified in §2
+and §3.4 retain `WIST1-E14` precedence. Other Delta checks and object-specific dispositions,
+including recovery settlement's `WIST1-E13`, remain applicable.
+
+Preserve complete `(key_id, public_key, valid_from)` bindings across the
+authorized sources; neither identifier reuse nor repeated public bytes
+permits dropping a distinct validity bound. Candidate or source iteration
+order MUST NOT affect acceptance or its diagnostic. Recovery-only entries
+and differently named aliases supply no Delta authority. Backdating a
+Delta to before every authorized binding existed therefore fails this check.
 
 ### 5.2. Sequencing, Rotation and Revocation
 
@@ -741,9 +764,10 @@ within `keys`, within `recovery_keys`, or across them, even when the repeated
 entries are identical. Reject such a Declaration with `WIST1-E08`, including
 a first (`seq` 0) Declaration. Different identifiers MAY name the same
 `public_key` within one set; the cross-set prohibition above still applies.
-For a Delta, `sig.key_id` selects its entry and the `valid_from` bound
-applied to `observed_at`, so aliases within a set do not make that lookup
-ambiguous.
+For a Delta, `sig.key_id` selects its entry within each authorized source
+set and that entry's `valid_from` bound applied to `observed_at`; §5.1
+checks every eligible binding when recovery admission authorizes two sets.
+Aliases with other identifiers do not make that lookup ambiguous.
 This rule is a semantic constraint beyond the Declaration schema.
 
 **Declaration signer resolution.** For a replacement Declaration, collect
@@ -874,6 +898,13 @@ by what signs it, using the authenticated public key resolved above:
   publishing under its new keys, and the compromised key's Deltas must
   still reach the queue, which is where the settlement below rejects them
   in the open rather than at an ingest no replaying party can see.
+  Freeze both source signing sets at the owner's application, including any
+  lower-sequence predecessor in the same Block. Later in-window Declarations,
+  including legitimate recovery-chain followers, MUST NOT replace either
+  admission source. Apply §5.1's complete-binding check across these two
+  sources, preserving reused identifiers and their distinct validity bounds.
+  This union authorizes queue admission only, not sealing, historical Delta
+  verification or appeal authentication.
   At the end of the window the recovery Declaration takes effect with its
   identity preserved under WIST-4 §6.3, and **every** Declaration accepted
   after the owner while the window is open
@@ -1016,8 +1047,8 @@ matter". Importance is measured at consumption, outside this protocol.
 
 | Code | Meaning |
 |---------|--------------------------------------------------------------|
-| WIST1-E01 | Invalid signature (does not verify against the named key) |
-| WIST1-E02 | Unknown key (`sig.key_id` not in the current Key Set at ingest, or, at sealing, not in the Key Set §5.2 resolves at the Delta's sealing height — a Delta a Declaration accepted since the pull has stranded, never sealed) |
+| WIST1-E01 | Invalid signature (for a Delta, no signature verifies under any usable, time-eligible named binding authorized by §5.1/§5.2, although at least one such binding exists) |
+| WIST1-E02 | No usable, time-eligible named Delta signing binding in the source Key Set(s) authorized by §5.1/§5.2, including the frozen recovery-admission union; or no usable Declaration signer candidate (§5.2). At sealing, a Delta stranded by a Declaration accepted since the pull is never sealed |
 | WIST1-E03 | URL out of scope, not normalized, or not normalizable (host not covered by domain/`subdomain_scope`; `url` not byte-identical to its own Normalized URL; or `url` has no normalization at all — §2) |
 | WIST1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
@@ -1203,6 +1234,10 @@ copies already served.
 - [ ] Applies the 10-minute clock-skew allowance to `observed_at` (§3.4)
 - [ ] Validates Publisher timestamps without leap-event data, rejects `:60`
       and compares exact offset-adjusted fractions (§3.4, §5.1)
+- [ ] Checks complete named Delta bindings, filtering usability and time
+      before E02/E01 diagnostics; preserves both frozen recovery-admission
+      sources through later Declarations without using that union at sealing
+      (§5.1, §5.2)
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
       by Block height (§5.2)
 - [ ] Seals a Delta only where it verifies under the Key Set resolved at

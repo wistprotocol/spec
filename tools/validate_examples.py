@@ -1079,6 +1079,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("examples/block.json", "commitment"): "payload:commitment",
     ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
     ("vectors/wist1/recovery-settlement.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/recovery-bindings.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
     ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
@@ -4668,6 +4669,12 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-conflicts.json", "recovery_envelope"): "SHA-256 of the recovery-chain Declaration Envelope including signature",
     ("vectors/wist1/declaration-conflicts.json", "first_candidate"): "SHA-256 of a Declaration Envelope used to discriminate leaf order",
     ("vectors/wist1/recovery-settlement.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-bindings.json", "public_key"): "an Ed25519 public key or excluded point",
+    ("vectors/wist1/recovery-bindings.json", "value"): "an Ed25519 signature or malformed signature encoding",
+    ("vectors/wist1/recovery-bindings.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
+    ("vectors/wist1/recovery-bindings.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist1/recovery-bindings.json", "prev_block_hash"): "SHA-256 of a Block header",
+    ("vectors/wist1/recovery-bindings.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/recovery-settlement.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-settlement.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
     ("vectors/wist1/recovery-settlement.json", "pinned_head"): "the trusted final Block header hash",
@@ -6303,6 +6310,118 @@ def _wist1_recovery_settlement():
 
 
 check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
+
+def _recovery_binding_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-bindings.json").read_text())
+    original = copy.deepcopy(vector)
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
+    validators = {name: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{name}.schema.json").read_text()), format_checker=formats)
+        for name in ("publisher", "delta")}
+
+    def usable(key):
+        raw = canonical_b64u_decode(key["public_key"])
+        assert len(raw) == 32
+        try:
+            point = ecvrf.string_to_point(raw)
+        except ecvrf.InvalidProof:
+            return False
+        return not ecvrf._is_identity(ecvrf._mul(8, point))
+
+    def verifies(key, envelope, inner):
+        return _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
+            canonical_b64u_decode(envelope["sig"]["value"]),
+            rfc8785.dumps(envelope[inner]))[0]
+
+    def declaration_result(previous, envelope):
+        validators["publisher"].validate(envelope)
+        return _declaration_binding_result(previous, envelope, usable,
+            lambda key, env: verifies(key, env, "publisher"))
+
+    def admission(envelope, sources):
+        try:
+            observed = publisher_instant(envelope["delta"].get("observed_at"))
+            signature = canonical_b64u_decode(envelope["sig"]["value"])
+            if len(signature) != 64:
+                return "WIST1-E14"
+        except (KeyError, TypeError, ValueError):
+            return "WIST1-E14"
+        validators["delta"].validate(envelope)
+        candidates = [key for keys in sources for key in keys
+                      if key["key_id"] == envelope["sig"]["key_id"] and usable(key)
+                      and publisher_instant(key["valid_from"]) <= observed]
+        if not candidates:
+            return "WIST1-E02"
+        return ("accepted" if any(verifies(key, envelope, "delta") for key in candidates)
+                else "WIST1-E01")
+
+    prefixes = {}
+    for name, history in vector["histories"].items():
+        authenticated = _declaration_history_blocks(vector, history["blocks"], history["pinned_head"])
+        current, frozen, deadline = None, None, None
+        prefixes[name] = {}
+        classifications = []
+        for header, declarations in authenticated:
+            block = history["blocks"][header["block_number"]]
+            assert verifies(vector["log_key"], block, "header")
+            assert len(declarations) == 1
+            envelope = declarations[0]
+            result = declaration_result(current, envelope)
+            assert result in {"initial", "ordinary_rotation", "recovery_rotation"}, (name, result)
+            classifications.append(result)
+            if result == "recovery_rotation" and frozen is None:
+                assert current is not None
+                frozen = [current["publisher"]["keys"], envelope["publisher"]["keys"]]
+                deadline = log_seconds(header["sealed_at"]) + vector["recovery_window_days"] * 86400
+            if frozen is not None:
+                assert log_seconds(header["sealed_at"]) < deadline
+                prefixes[name][header["block_number"]] = copy.deepcopy(frozen)
+            tampered = copy.deepcopy(envelope)
+            tampered["publisher"]["subdomain_scope"] = ["changed.example.com"]
+            assert declaration_result(current, tampered) == "WIST1-E01", name
+            current = envelope
+        assert classifications == ["initial", "recovery_rotation", "ordinary_rotation"], name
+        assert prefixes[name][1] == prefixes[name][2]
+        damaged = copy.deepcopy(history["blocks"])
+        damaged[-1]["entries"][0]["body"]["publisher"]["domain"] = "tampered.example"
+        try:
+            _declaration_history_blocks(vector, damaged, history["pinned_head"])
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("unauthenticated recovery binding history accepted")
+        damaged = copy.deepcopy(history["blocks"][-1])
+        damaged["header"]["sealed_at"] = "2026-08-09T00:00:00Z"
+        assert not verifies(vector["log_key"], damaged, "header")
+
+    outcomes, exercised_prefixes, seen_names = set(), set(), set()
+    for case in vector["cases"]:
+        assert case["name"] not in seen_names
+        seen_names.add(case["name"])
+        sources = prefixes[case["history"]][case["prefix_height"]]
+        envelope = case["envelope"]
+        result = admission(envelope, sources)
+        assert result == case["expected"], (case["name"], result)
+        for ordered in (list(reversed(sources)), [list(reversed(keys)) for keys in sources],
+                        [list(reversed(keys)) for keys in reversed(sources)]):
+            assert admission(envelope, ordered) == result, case["name"]
+        if result == "accepted":
+            matching = [key for keys in sources for key in keys
+                        if key["key_id"] == envelope["sig"]["key_id"] and usable(key)]
+            assert any(verifies(key, envelope, "delta") for key in matching), case["name"]
+            tampered = copy.deepcopy(envelope)
+            tampered["delta"]["url"] += "/changed"
+            assert admission(tampered, sources) == "WIST1-E01", case["name"]
+        outcomes.add(result)
+        exercised_prefixes.add(case["prefix_height"])
+    assert outcomes == {"accepted", "WIST1-E01", "WIST1-E02", "WIST1-E14"}
+    assert exercised_prefixes == {1, 2}
+    assert vector == original, "binding validation mutated signed input"
+
+
+check("vectors:wist1-recovery-bindings", _recovery_binding_vectors)
 
 def _recovery_heads_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())

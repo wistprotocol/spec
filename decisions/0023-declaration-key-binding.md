@@ -36,6 +36,26 @@ An excluded predecessor binding does not suppress a usable incoming binding
 of the same identifier, or conversely. Classification uses usable previous
 sets. This derivation also governs Delta and frozen appeal Key Sets.
 
+For Delta authentication, retain every complete named signing binding from
+the source sets authorized by WIST-1 §5.2. Filter usability, then each
+binding's inclusive `valid_from` bound using the exact Publisher timestamp
+profile. No remaining binding is E02; at least one remaining binding but
+no verifying signature is E01. Accept the key check if any remaining
+binding verifies. The same binding must satisfy both conditions. A valid
+signature under a future binding plus an invalid signature under an
+eligible binding is E01; even a valid signature cannot authorize a Delta
+when every named binding is future or excluded.
+
+The recovery admission union preserves both source sets at the owner's
+application. A later follower or competitor cannot replace either source.
+Identifier reuse and repeated public bytes cannot discard distinct bounds;
+source or array iteration order cannot affect the result. Other aliases and
+recovery-only entries supply no Delta authority. This refines diagnostics
+within the existing key-binding mechanism under PUBLICATION.md, with no
+object-field or schema change. Encoding and Publisher timestamp errors retain E14 precedence;
+settlement retains its E13 disposition, and neither Declaration nor appeal
+authentication acquires a Delta timestamp filter.
+
 A nonempty signing array can yield no usable key. A replacement can still
 be authorized by its predecessor, while an initial Declaration with no
 usable signing key fails E02. A nonempty recovery array remains protected
@@ -78,3 +98,24 @@ selected Declaration sources as inputs. They establish no notice evidence
 or appeal-process result. Its canonical base64url fixtures do not establish
 a complete Declaration field profile. [ADR-0025](0025-canonical-base64url.md)
 separately rejects malformed encodings before this key derivation.
+
+First-match Delta lookup can suppress an eligible owner binding behind a
+future or invalid predecessor binding. Deduplicating by public bytes can
+likewise erase a different bound. Trying signatures first and using the
+bound of whichever key verifies would assign E02 to mixed failures;
+filtering candidates first instead makes E02 mean absence of eligible
+authority and E01 mean failed authentication under authority that exists.
+Combining successful checks from different bindings would authorize a
+signature before that binding's own activation. These alternatives either
+depend on iteration order, obscure the rejection condition or broaden
+authority.
+
+`vectors/wist1/recovery-bindings.json` supplies authenticated Declaration
+histories and independent signed Delta probes for reused identifiers,
+excluded points, same-public-key bounds, aliases, exact fractions and
+offsets, malformed fields, mixed failures and owner bindings retained after
+a legitimate follower. Reversed-array histories rebuild signatures and
+hashes. The independent reference derives the sources and checks their
+complete bindings. Successful key verification alone establishes no Delta
+chain eligibility, live clock check, durable queue, Payload availability,
+quota result, sealing, settlement or Snapshot restoration.
