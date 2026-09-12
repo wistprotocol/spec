@@ -1,8 +1,7 @@
 # WIST Protocol Suite
 
 **Status: editable draft under implementation and validation.**
-Stable publication requires integrated validation of all four roles
-under [PUBLICATION.md](PUBLICATION.md).
+Development and publication rules: [PUBLICATION.md](PUBLICATION.md).
 
 An open, verifiable, push-based web index protocol for local AI agents.
 
@@ -10,8 +9,7 @@ Sites publish signed **deltas** about their own URLs; an **aggregator**
 sequences them into a public, hash-chained, append-only log (the
 Certificate Transparency model); **consumers** download a compact snapshot
 once, then follow an hourly delta stream — and query everything locally.
-No crawling for freshness, no trust in any operator: consumers verify
-signatures and hashes, never sources.
+Consumers verify signatures and hashes locally.
 
 ```
 Publisher                 Aggregator                    Mirrors / Consumers

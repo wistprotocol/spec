@@ -4,12 +4,10 @@
 
 ## 1. Introduction
 
-WIST is an open, verifiable, push-based web index. Instead of being
-crawled, a site describes its own changes: for each URL it controls, it
-publishes small signed objects called **deltas** — "this page is new", "this
-page changed, here is its main text", "this page was deleted", "this page is
-unchanged as of this date". Deltas flow into a public, hash-chained log
-(WIST-3) from which consumers materialize a compact, fresh local index.
+WIST is an open, verifiable, push-based web index. Sites publish signed
+**deltas** describing new, updated, deleted or unchanged URLs. Aggregators
+sequence them into a public, hash-chained Log (WIST-3), from which Consumers
+materialize a local index.
 
 This document defines the two foundational objects of the suite:
 
@@ -64,36 +62,13 @@ shown here.
   labels are the IDNA2008 A-labels of RFC 5891 encoded with Punycode
   [RFC 3492]; with any trailing dot removed and no port. Case is folded by
   UTS #46's own mapping step and by nothing before it: an implementation
-  MUST NOT lowercase the input first. The algorithm is
-  pinned rather than named because IDNA2003 and IDNA2008 disagree on
-  characters such as `ß` (U+00DF) and final sigma (U+03C2) — IDNA2003 maps
-  them away, IDNA2008 keeps them — so two implementers following "IDN
-  encoding" loosely produce different bytes for the same input, which is
-  precisely the failure this definition exists to prevent. RFC 5890 defines
-  the terminology these terms come from; it defines no algorithm. Every
-  flag is pinned for the same reason, and the two values that are not the
-  strictest available are chosen deliberately. `CheckHyphens=false` matches
-  the profile every browser applies: hyphen position inside a label is
-  registry policy, not identity, and the strict value rejects hosts that
-  resolve and serve today — which would bar them as Publishers *and* drop
-  them from the citation graph of every Consumer, since WIST-2 §11
-  normalizes link targets through this same definition. `CheckBidi` and
-  `CheckJoiners` stay on, because those rules govern visual confusability,
-  and a domain-anchored identity is exactly what confusable labels attack.
-  A separate lowercasing step is excluded for the reason the paragraph
-  above gives: a context-sensitive full lowercase maps a word-final Σ to ς
-  and a UTS #46 mapping maps it to σ, so the extra step changes the input
-  of the algorithm at the very character this definition cites, and it can
-  only ever disagree with the mapping it precedes. The **Unicode version**
-  is pinned with the flags, at **Unicode 16.0**: UTS #46's mapping table
-  is derived from the Unicode Character Database, which gains entries at
-  every release, so the same host maps to different A-labels under two
-  releases and the flag profile alone does not close the gap the profile
-  exists to close. Every Unicode property this suite reads comes from that
-  one version (§9 of WIST-4 states the same pin for the properties its
-  similarity metric reads), and moving it is a change to this document —
-  after a deployment exists, a new major version — because it changes
-  identities the Log has already sealed.
+  MUST NOT lowercase the input first. Every Unicode property read by the
+  suite uses **Unicode 16.0**, including these mapping tables and WIST-4's
+  similarity properties. Moving the version changes the specification and,
+  after deployment, requires a new major version under
+  [PUBLICATION.md](../PUBLICATION.md#deployment-boundary).
+  Algorithm and flag rationale: [ADR-0014](../decisions/0014-canonical-host-flag-profile.md);
+  version rationale: [ADR-0017](../decisions/0017-one-pinned-unicode-version.md).
 - **Normalized URL**: an `https` URL after RFC 3986 §6.2.2 syntax-based
   normalization — percent-encoding hex digits uppercased and
   percent-encoded octets that correspond to unreserved characters decoded,

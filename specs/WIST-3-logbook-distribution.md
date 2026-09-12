@@ -4,14 +4,11 @@
 
 ## 1. Introduction
 
-The Logbook is the single source of everything in WIST: an
-append-only sequence of signed, hash-chained Blocks containing every
-accepted Delta (WIST-1), every audit record, and every governance action
-(WIST-4). Its design descends from Certificate Transparency [RFC 6962]: the
-Aggregator that operates the log gains no authority from doing so, because
-anyone can verify the chain, recompute every derived artifact, and detect
-any attempt to rewrite or fork history. Consumers never trust the
-Aggregator — they trust signatures and hashes.
+The Logbook is an append-only sequence of signed, hash-chained Blocks
+containing accepted Deltas (WIST-1), Audit Records and governance actions
+(WIST-4). Consumers verify the chain and recompute derived artifacts.
+The Certificate Transparency [RFC 6962] design rationale is recorded in
+[ADR-0004](../decisions/0004-log-centric-ct-model.md).
 
 This document defines the Block format, the Merkle tree and inclusion
 proofs, checkpoints and anti-equivocation, the static distribution layout,
@@ -61,8 +58,6 @@ detached — and carries `wist_version` (WIST-1 §3.1) and the WIST-1 §4 signat
 block (`key_id`, `alg`, `value`).
 
 ## 3. Block Format
-
-Everything that happens in the system happens inside the log.
 
 A Block is an Envelope-like object with `header`, `entries`, and `sig`
 (schema: [`schemas/block.schema.json`](../schemas/block.schema.json)).

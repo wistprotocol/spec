@@ -4,14 +4,11 @@
 
 ## 1. Introduction
 
-WIST-2 defines how a Publisher makes its Deltas (WIST-1) available and how
-Aggregators learn about them. The design principle is **ping + pull**: the
-site never sends content to anyone. It publishes Deltas on itself, under
-its own `.well-known` path, and merely rings a doorbell when something is
-new. The site's `.well-known` is the canonical source of truth; publishers
-are not coupled to any aggregator. Any aggregator, auditor, or researcher
-pulling the same paths sees the same data, which is what makes the system
-third-party verifiable and the aggregator substitutable (WIST-3, WIST-4).
+WIST-2 defines **ping + pull** publication: a Publisher serves Deltas
+(WIST-1) under its `.well-known` path and notifies Aggregators to fetch them.
+These Publisher-hosted artifacts permit independent retrieval and verification
+without coupling publication to one Aggregator. Design rationale:
+[ADR-0003](../decisions/0003-ping-plus-pull.md).
 
 ## 2. Conventions and Terminology
 

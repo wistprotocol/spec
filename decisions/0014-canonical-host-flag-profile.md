@@ -4,6 +4,11 @@
 
 ## Context
 
+IDNA2003 maps away `ß` (U+00DF) and final sigma (U+03C2), while IDNA2008
+preserves them. An unspecified "IDN encoding" therefore permits different
+identity bytes. RFC 5890 defines terminology, not a mapping algorithm;
+WIST-1 §2 specifies UTS #46 processing and its complete flag profile.
+
 The Canonical Host is the identity surface of this suite. It is the
 Publisher's name in a Declaration, the authority a Delta's `url` is scoped
 against (WIST-1 §3.2), the key of a Record tuple and therefore an input to

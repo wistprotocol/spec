@@ -4,18 +4,11 @@
 
 ## 1. Introduction
 
-Everything WIST-4 defines is an input to, or a pure function of, the log.
-Nothing exists outside it.
-
-WIST-1 through WIST-3 make the system verifiable; WIST-4 makes it defensible.
-It defines how sampled Deltas are checked against reality (audit), how a
-domain's track record becomes a number anyone can recompute (reputation),
-how misbehavior is punished with due process (sanctions), and which rules
-are beyond amendment by operation (constitutional invariants). Because
-every audit record, sanction, appeal, and parameter change is a log entry
-(WIST-3 §3.3), the entire governance history of the system is public,
-ordered, and permanent — and any party can independently recompute every
-reputation score and verify every sanction's evidence.
+WIST-4 defines sampled Delta audits, derivable domain reputation, sanctions
+with due process, and constitutional invariants that operators cannot amend.
+Audit Records, sanctions, appeals and parameter changes are Log Entries
+(WIST-3 §3.3), making governance history public and ordered. Any party can
+recompute reputation and verify sanction evidence from that history.
 
 ## 2. Conventions and Terminology
 
@@ -2661,7 +2654,7 @@ Process requirements:
   three fabrications inside 180 days a delisting whatever the process
   between them did.
 
-  The limit is worth naming rather than glossing. The appeal window is
+  The appeal window is
   anchored to a `notice`'s Block, so where the criteria are met
   and the Aggregator seals no `notice`, the derived state is in force on
   recomputation with no window ever opening against it. The Publisher's
@@ -4093,7 +4086,7 @@ key is the WIST-1 vector keypair (`vectors/wist1/keypair.json`, seed
 | `SHA-256(beta ‖ Entry 2)[0..8]` | `148de28378c98749` |
 | `D`(Entry 2) | `1481088906769827657` |
 
-Note that `alpha` is the Block Hash's 32 decoded octets, while the Delta ID
+`alpha` is the Block Hash's 32 decoded octets, while the Delta ID
 enters the draw as the UTF-8 bytes of the whole string, `sha256:` prefix
 included — the two are deliberately different and an implementation that
 confuses them will produce a different, wrong selection set.

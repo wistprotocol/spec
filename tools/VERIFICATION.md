@@ -1,15 +1,9 @@
 # Vector verification anchors
 
-The specification prose is normative; every vector is derived from it and
-never the reverse. This file inventories, per vector family, what that
-derivation is verified *against* — because "the harness passes" can mean
-two different things. Where a family is anchored to an answer published
-outside this repository, a shared misreading of the prose by the vector
-generator and the harness cannot survive: the external answer breaks the
-tie. Where no such anchor exists, generator and harness — which share
-authorship — could in principle share one
-misreading and still agree, so those rows are the suite's open
-verification surface, listed here to stay visible rather than implicit.
+This inventory identifies each vector family's verification anchors and
+limits under [PUBLICATION.md](../PUBLICATION.md#developing-the-draft).
+External answers detect shared generator/verifier errors in the behavior
+they exercise; agreement without such an anchor may preserve a shared error.
 
 ## Anchor kinds
 

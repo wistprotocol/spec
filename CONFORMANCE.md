@@ -1,9 +1,7 @@
 # Conformance validation
 
-The specification is authoritative. Passing the reference harness does not
-establish conformance for behavior it does not exercise. Known reference
-divergences below must be resolved with discriminating vectors before a
-stable edition can be published under [PUBLICATION.md](PUBLICATION.md).
+Known reference divergences and outstanding validation requirements follow.
+Resolution and publication criteria: [PUBLICATION.md](PUBLICATION.md).
 
 ## URL resolution
 
