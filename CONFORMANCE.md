@@ -293,6 +293,19 @@ Snapshot-versus-full-history vectors, before Snapshot recovery replay can
 establish conformance. The full-history head vectors do not resolve this
 Snapshot representation question.
 
+Recovery deadline range also needs a Snapshot representation decision.
+WIST-1 §5.2 fixes the end as the opening instant plus
+`recovery_window_days × 86,400`; `parameter-combinations.json` includes exact
+ends beyond signed 64-bit seconds. WIST-3 §3.1 requires four-digit
+Log-comparable and Snapshot timestamps, while §7's `recovery_window` tuple
+carries that end. Some permitted ends therefore have no timestamp spelling.
+Specify a faithful representation or an explicit normative parameter
+constraint, with discriminating full-history/Snapshot vectors, before
+claiming full-range recovery Snapshot publication. No encoding, clamping or
+parameter restriction is selected here. Implementations must retain exact
+replay arithmetic; rejection before publication does not establish full-range
+serving conformance.
+
 WIST-4 §7 freezes each sanction notice's appeal Key Set after due settlement
 and its Block's complete Declaration stage. An open window selects the
 recovery-chain head; otherwise the current Declaration supplies the keys.
@@ -410,6 +423,12 @@ restored current head after settlement. Restoring a sealed head must not
 introduce a new first installation.
 Dropped queue copies must not permanently suppress their IDs or leave invalid
 chain tips: test re-serving after authority changes, including after restart.
+Queue validation must also cover Deltas accepted before the recovery opening
+but excluded from intermediate Blocks by capacity. They still require recovery
+settlement, including E13 rejection and deadline-based inclusion-turn accounting.
+Movement between pending and recovery queues must preserve original acceptance
+order across both populations; canonical leaf order is only storage order.
+Test reversed leaf hashes under a restrictive per-domain capacity at settlement.
 These are requirements of the existing rules, not alternative interpretations.
 
 WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
