@@ -536,3 +536,19 @@ checks schema spelling and derives major eligibility and permitted errors.
 Integrated roles must enforce these checks before acceptance, including
 fetched predecessors, duplicate handling and restoration. These Delta cases
 do not establish version support for other objects or complete chain replay.
+
+### Unresolved Delta size-cap temporal anchor
+
+WIST-1 §§3.2/3.6 require URL and Payload caps. WIST-4 §9 defines values
+“in force at every instant T” but its “Parameter reads for work already
+begun” table supplies no Delta size-cap anchor. The text does not explicitly
+choose the admission clock, signed `observed_at`, sealing instant or replay
+clock for these checks, or say whether an admitted Delta crossing a cap
+amendment must be rechecked at sealing. These choices can disagree for both
+cap increases and decreases; delayed Payload retrieval also needs a profile.
+
+Resolve this before claiming authenticated historical cap eligibility.
+Add signed amendment-boundary histories covering admission, queued Deltas,
+sealing, delayed Payload retrieval and restart, with discriminating results
+for the competing timestamps. Supplied-cap field vectors establish no
+temporal selection rule; no historical cap interpretation is selected here.
