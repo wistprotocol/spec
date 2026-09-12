@@ -429,6 +429,13 @@ settlement, including E13 rejection and deadline-based inclusion-turn accounting
 Movement between pending and recovery queues must preserve original acceptance
 order across both populations; canonical leaf order is only storage order.
 Test reversed leaf hashes under a restrictive per-domain capacity at settlement.
+Also test a rejected predecessor with otherwise eligible accepted descendants:
+none may seal with an unresolved lower predecessor, and removing those copies
+must restore the surviving tip without suppressing later re-serving. Upgrading
+persistent queues must not invent original acceptance order from row identifiers
+that prior transfers may have assigned in leaf order. Demonstrate either
+independent order evidence or rejection of ambiguous restoration, preserving
+copies and status atomically on failure.
 These are requirements of the existing rules, not alternative interpretations.
 
 WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
