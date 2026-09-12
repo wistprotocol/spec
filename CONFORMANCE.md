@@ -438,6 +438,22 @@ independent order evidence or rejection of ambiguous restoration, preserving
 copies and status atomically on failure.
 These are requirements of the existing rules, not alternative interpretations.
 
+Admission validation must distinguish an ordinary successor of a competing
+Declaration from a recovery follower when both authenticate with the same
+public key: only a candidate naming the recovery-chain head may advance it.
+Persistent restoration must repair or reject a summary that classified the
+former as the latter, using authenticated sealed history and retained pending
+admissions. A partial Block must not erase still-pending recovery continuations
+from admission state. Test independent sequence-floor persistence through
+settlement, current-object idempotence below that floor, malformed re-serves,
+and rollback when a head write fails after a floor update.
+
+Capacity validation must also exercise two pending Declarations for one domain
+that name different eligible heads. Sealing a higher sequence while retaining
+a lower sequence can make the lower candidate permanently ineligible under
+WIST-1 §5.2. Predecessor closure alone does not prevent this: a valid subsequent
+Block and continued queue progress must be demonstrated after capacity deferral.
+
 WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
 restriction. WIST-3 §7's one-URL-one-Publisher rule selects self-declaration
 over a scoped parent, but supplies no winner between multiple scoped
