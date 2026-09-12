@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 section 5.1 and WIST-2 section 5. Signed ordinary-rotation transport sequences; initial is the first publisher.json response and optionally already cached. responses lists failure-triggered Declaration responses; null is HTTP unavailability. Serve feed and each Delta unchanged, with examples/payload.json for every commitment. Budget strings mean the exact JCS byte lengths of the named served objects, with no Declaration bytes. An absent numeric limit means a sufficient content budget. Declaration request counts include initial or periodic discovery. Resume and recovery settlement, complete HTTP resource bounds, sealing and durability require separate integration.",
+  "note": "WIST-1 section 5.1 and WIST-2 section 5. Signed ordinary-rotation transport sequences; initial is the first publisher.json response and optionally already cached. responses lists failure-triggered Declaration responses; null is HTTP unavailability. Serve feed and each Delta unchanged, with examples/payload.json for every commitment. Budget strings mean the exact JCS byte lengths of the named served objects, with no Declaration bytes. An absent numeric limit means a sufficient content budget. Declaration request counts include initial or periodic discovery. Optional sealed entries supply the authenticated-prefix context held fixed during a Page walk; they do not prove Block inclusion. Optional empty Pages isolate authentication, not Page cardinality or publication. Resume and recovery settlement, complete HTTP resource bounds, sealing and durability require separate integration.",
   "domain": "localhost",
   "now": "2026-08-09T14:01:00Z",
   "payload": {
@@ -2028,6 +2028,1617 @@
         "suspended": false,
         "declaration_requests": 2
       }
+    },
+    {
+      "name": "Page first contact needs inclusion",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k1",
+                "alg": "Ed25519",
+                "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 0
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "4QrirGgxVerVExPBdamChNzJ5FzRQ7V9KyDA-yfMUy0FO1CHeRtWfytYrskqkQGQs1xX2qcVZ0NeHlLjPTZ2BQ"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "3h7F3H2e9vu9BTg5aKFRFVFqxpgHDT-76SYutD81ba2Vl54tYf1-esR5lFkWwl2gWWF6QK_PwxTAgyPRSyyuDQ"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "SlKamm-eQDXD9U4ud_DtxdIjkDsJkAv5_AKD0pZUwb8jLR5G2cnr0H8s4vAPX-BtjsqeR4foJ1EdeguOCwJ2BA"
+        }
+      },
+      "sealed": []
+    },
+    {
+      "name": "Page refresh cannot supply unsealed authority",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "4QrirGgxVerVExPBdamChNzJ5FzRQ7V9KyDA-yfMUy0FO1CHeRtWfytYrskqkQGQs1xX2qcVZ0NeHlLjPTZ2BQ"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "3h7F3H2e9vu9BTg5aKFRFVFqxpgHDT-76SYutD81ba2Vl54tYf1-esR5lFkWwl2gWWF6QK_PwxTAgyPRSyyuDQ"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "wT8zbMZR5KBAcZRQ6vxXQdoVQ5ys8mE8PqIqBBQMrcnr681xPL3jevg1a4lNbF0C1GKhM0iVMVsHVULt2tL5BQ"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page unchanged refresh",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k1",
+                "alg": "Ed25519",
+                "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 0
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "4QrirGgxVerVExPBdamChNzJ5FzRQ7V9KyDA-yfMUy0FO1CHeRtWfytYrskqkQGQs1xX2qcVZ0NeHlLjPTZ2BQ"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "3h7F3H2e9vu9BTg5aKFRFVFqxpgHDT-76SYutD81ba2Vl54tYf1-esR5lFkWwl2gWWF6QK_PwxTAgyPRSyyuDQ"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "wT8zbMZR5KBAcZRQ6vxXQdoVQ5ys8mE8PqIqBBQMrcnr681xPL3jevg1a4lNbF0C1GKhM0iVMVsHVULt2tL5BQ"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page unavailable refresh",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        null
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "4QrirGgxVerVExPBdamChNzJ5FzRQ7V9KyDA-yfMUy0FO1CHeRtWfytYrskqkQGQs1xX2qcVZ0NeHlLjPTZ2BQ"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "3h7F3H2e9vu9BTg5aKFRFVFqxpgHDT-76SYutD81ba2Vl54tYf1-esR5lFkWwl2gWWF6QK_PwxTAgyPRSyyuDQ"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "wT8zbMZR5KBAcZRQ6vxXQdoVQ5ys8mE8PqIqBBQMrcnr681xPL3jevg1a4lNbF0C1GKhM0iVMVsHVULt2tL5BQ"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page invalid refresh",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "4QrirGgxVerVExPBdamChNzJ5FzRQ7V9KyDA-yfMUy0FO1CHeRtWfytYrskqkQGQs1xX2qcVZ0NeHlLjPTZ2BQ"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "3h7F3H2e9vu9BTg5aKFRFVFqxpgHDT-76SYutD81ba2Vl54tYf1-esR5lFkWwl2gWWF6QK_PwxTAgyPRSyyuDQ"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "wT8zbMZR5KBAcZRQ6vxXQdoVQ5ys8mE8PqIqBBQMrcnr681xPL3jevg1a4lNbF0C1GKhM0iVMVsHVULt2tL5BQ"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page shares the live Feed attempt",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "JB5LBed7wWbrV6biK0m0c31RNvZehEbMcFnjJhby2d6DT1LT-gE8So16Vj29Giq79Uw0ULSq8wXKaBsqe4KvDg"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "aL_eIwP_fKSipfFZ1NwTB5r1u-waIMmXOAsXCiNowOoPS6xYdXSQZTDELRgm-Z0zPp2zwDy2ubi9B0CV0v-vCg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "wT8zbMZR5KBAcZRQ6vxXQdoVQ5ys8mE8PqIqBBQMrcnr681xPL3jevg1a4lNbF0C1GKhM0iVMVsHVULt2tL5BQ"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page retry at content budget boundary",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "4QrirGgxVerVExPBdamChNzJ5FzRQ7V9KyDA-yfMUy0FO1CHeRtWfytYrskqkQGQs1xX2qcVZ0NeHlLjPTZ2BQ"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "3h7F3H2e9vu9BTg5aKFRFVFqxpgHDT-76SYutD81ba2Vl54tYf1-esR5lFkWwl2gWWF6QK_PwxTAgyPRSyyuDQ"
+            }
+          }
+        }
+      ],
+      "content_budget": "feed and page",
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "wT8zbMZR5KBAcZRQ6vxXQdoVQ5ys8mE8PqIqBBQMrcnr681xPL3jevg1a4lNbF0C1GKhM0iVMVsHVULt2tL5BQ"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page retired source needs no retry",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 1,
+          "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+        }
+      },
+      "responses": [],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "JB5LBed7wWbrV6biK0m0c31RNvZehEbMcFnjJhby2d6DT1LT-gE8So16Vj29Giq79Uw0ULSq8wXKaBsqe4KvDg"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "aL_eIwP_fKSipfFZ1NwTB5r1u-waIMmXOAsXCiNowOoPS6xYdXSQZTDELRgm-Z0zPp2zwDy2ubi9B0CV0v-vCg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 1,
+        "noise": null
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "SlKamm-eQDXD9U4ud_DtxdIjkDsJkAv5_AKD0pZUwb8jLR5G2cnr0H8s4vAPX-BtjsqeR4foJ1EdeguOCwJ2BA"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        },
+        {
+          "at": "2026-08-09T13:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k2",
+                  "alg": "Ed25519",
+                  "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 1,
+              "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page first-next source needs no retry",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 1,
+          "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+        }
+      },
+      "responses": [],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "JB5LBed7wWbrV6biK0m0c31RNvZehEbMcFnjJhby2d6DT1LT-gE8So16Vj29Giq79Uw0ULSq8wXKaBsqe4KvDg"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "aL_eIwP_fKSipfFZ1NwTB5r1u-waIMmXOAsXCiNowOoPS6xYdXSQZTDELRgm-Z0zPp2zwDy2ubi9B0CV0v-vCg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 1,
+        "noise": null
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "wT8zbMZR5KBAcZRQ6vxXQdoVQ5ys8mE8PqIqBBQMrcnr681xPL3jevg1a4lNbF0C1GKhM0iVMVsHVULt2tL5BQ"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        },
+        {
+          "at": "2026-08-09T13:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k2",
+                  "alg": "Ed25519",
+                  "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 1,
+              "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Page later source remains ineligible",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+              "valid_from": "2026-08-09T00:00:00Z"
+            },
+            {
+              "key_id": "k3",
+              "alg": "Ed25519",
+              "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 2,
+          "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "BtEHDezDN9_6q8S1pCmNBSTmXSKlAWq2g4JOI8VtZ6uPMcGUjDYNjP8FjZ0u-k-aw8fwvZN2okSalpYAV3k2Cw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              },
+              {
+                "key_id": "k3",
+                "alg": "Ed25519",
+                "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 2,
+            "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+          },
+          "sig": {
+            "key_id": "k2",
+            "alg": "Ed25519",
+            "value": "BtEHDezDN9_6q8S1pCmNBSTmXSKlAWq2g4JOI8VtZ6uPMcGUjDYNjP8FjZ0u-k-aw8fwvZN2okSalpYAV3k2Cw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k3",
+          "alg": "Ed25519",
+          "value": "e6waj0jWxiqIS0385pTY8L1auiMMCrROcdeXZH82t-esBdilTRucv_RHOof8fWhPa4yDFj-KSOZjSL3N-r8iAg"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k3",
+              "alg": "Ed25519",
+              "value": "nFd8rhfAgrifRWnIT-8LN_JDIvtUMeIa2vkUXy8QhRj0EFxwB4_K1wMSdkWukNtyjeLGb_s0lrYA4zDZRF_WCw"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2,
+        "noise": "WIST2-E04"
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k3",
+          "alg": "Ed25519",
+          "value": "eGlrn1CLtnJxcpyftRsq6rSuQhkxfO9NKYCubKJ6_AjsZaOEDJAFPrWzW2Jnshq1QNnDScoVmdca6V64EvGnAg"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        },
+        {
+          "at": "2026-08-09T13:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k2",
+                  "alg": "Ed25519",
+                  "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 1,
+              "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+            }
+          }
+        },
+        {
+          "at": "2026-08-09T14:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k2",
+                  "alg": "Ed25519",
+                  "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                },
+                {
+                  "key_id": "k3",
+                  "alg": "Ed25519",
+                  "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 2,
+              "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "BtEHDezDN9_6q8S1pCmNBSTmXSKlAWq2g4JOI8VtZ6uPMcGUjDYNjP8FjZ0u-k-aw8fwvZN2okSalpYAV3k2Cw"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feed and Delta retries remain independent across a Page walk",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              },
+              {
+                "key_id": "k3",
+                "alg": "Ed25519",
+                "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 2,
+            "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+          },
+          "sig": {
+            "key_id": "k2",
+            "alg": "Ed25519",
+            "value": "BtEHDezDN9_6q8S1pCmNBSTmXSKlAWq2g4JOI8VtZ6uPMcGUjDYNjP8FjZ0u-k-aw8fwvZN2okSalpYAV3k2Cw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+          ],
+          "next": "https://localhost/.well-known/wist/feed/0.json"
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "JB5LBed7wWbrV6biK0m0c31RNvZehEbMcFnjJhby2d6DT1LT-gE8So16Vj29Giq79Uw0ULSq8wXKaBsqe4KvDg"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/page-live",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k3",
+              "alg": "Ed25519",
+              "value": "nFd8rhfAgrifRWnIT-8LN_JDIvtUMeIa2vkUXy8QhRj0EFxwB4_K1wMSdkWukNtyjeLGb_s0lrYA4zDZRF_WCw"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:eb767bc7d3bfc86a0708c800c13b4fc1e5ac03cca9b0492a1a38f94d87b9691c"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 3,
+        "noise": null
+      },
+      "page": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "SlKamm-eQDXD9U4ud_DtxdIjkDsJkAv5_AKD0pZUwb8jLR5G2cnr0H8s4vAPX-BtjsqeR4foJ1EdeguOCwJ2BA"
+        }
+      },
+      "sealed": [
+        {
+          "at": "2026-08-09T12:00:00Z",
+          "envelope": {
+            "publisher": {
+              "wist_version": "1.0.0",
+              "domain": "localhost",
+              "keys": [
+                {
+                  "key_id": "k1",
+                  "alg": "Ed25519",
+                  "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                  "valid_from": "2026-08-09T00:00:00Z"
+                }
+              ],
+              "seq": 0
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+            }
+          }
+        }
+      ]
     }
   ]
 }

@@ -9045,7 +9045,18 @@ def _declaration_refresh_vectors():
     for case in vector["cases"]:
         source = case["initial"]
         schemas["publisher"].validate(source)
-        assert _declaration_binding_result(None, source) == "initial"
+        sealed = case.get("sealed", [])
+        previous = None
+        for entry in sealed:
+            incoming = entry["envelope"]
+            schemas["publisher"].validate(incoming)
+            assert _declaration_binding_result(previous, incoming) == (
+                "initial" if previous is None else "ordinary_rotation")
+            previous = incoming
+        if previous is None:
+            assert _declaration_binding_result(None, source) == "initial"
+        else:
+            assert source == previous
         responses = iter(case["responses"])
         requests = 1
         def refresh():
@@ -9066,11 +9077,13 @@ def _declaration_refresh_vectors():
         budget = case["content_budget"]
         if isinstance(budget, str):
             budget = len(rfc8785.dumps(case["feed"])) + (
-                sum(len(rfc8785.dumps(doc)) for doc in objects.values()) if budget == "feed and deltas" else 0)
+                sum(len(rfc8785.dumps(doc)) for doc in objects.values()) if budget == "feed and deltas"
+                else len(rfc8785.dumps(case["page"])) if budget == "feed and page" else 0)
         if budget is None:
             budget = 10**9
         spent = 0
         suspended = False
+        noise = None
         accepted, rejected, fetched, attempts = [], [], set(), set()
         def fetch(doc):
             nonlocal spent, suspended
@@ -9081,9 +9094,22 @@ def _declaration_refresh_vectors():
             return True
 
         if fetch(case["feed"]):
-            if diagnostic(source, case["feed"], "feed"):
+            feed_attempt = diagnostic(source, case["feed"], "feed") is not None
+            if feed_attempt:
                 refresh()
             assert diagnostic(source, case["feed"], "feed") is None, (case["name"], diagnostic(source, case["feed"], "feed"))
+            if "page" in case and fetch(case["page"]):
+                page = case["page"]
+                schemas["feed"].validate(page)
+                ordered = sorted(sealed, key=lambda entry: entry["at"])
+                before = [entry for entry in ordered if entry["at"] <= page["feed"]["generated_at"]]
+                after = [entry for entry in ordered if entry["at"] > page["feed"]["generated_at"]]
+                eligible = before[-1:] + after[:1]
+                if not any(diagnostic(entry["envelope"], page, "feed") is None for entry in eligible):
+                    if not feed_attempt:
+                        refresh()
+                    assert not any(diagnostic(entry["envelope"], page, "feed") is None for entry in eligible)
+                    noise = "WIST2-E04"
             def process(id):
                 if id in accepted:
                     return
@@ -9117,13 +9143,18 @@ def _declaration_refresh_vectors():
                     return
                 accepted.append(id)
             for id in case["feed"]["feed"]["deltas"]:
+                if noise or suspended:
+                    break
                 process(id)
                 if suspended:
                     break
-        assert dict(accepted=accepted, rejected=rejected, suspended=suspended,
-                    declaration_requests=requests) == case["expected"], case["name"]
+        actual = dict(accepted=accepted, rejected=rejected, suspended=suspended,
+                      declaration_requests=requests)
+        if "page" in case:
+            actual["noise"] = noise
+        assert actual == case["expected"], case["name"]
         assert next(responses, "exhausted") == "exhausted", case["name"]
-    assert len(vector["cases"]) == 19
+    assert len(vector["cases"]) == 30
 
 
 check("vectors:wist2-declaration-refresh", _declaration_refresh_vectors)

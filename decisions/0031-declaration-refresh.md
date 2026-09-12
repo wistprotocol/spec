@@ -14,7 +14,10 @@ including when an unchanged Feed still verifies with a cached key.
 
 WIST-1 §5.1 delegates live Delta retries to WIST-2 §5, which defines their
 trigger, per-ID/per-pull scope, authenticated retry and budget treatment.
-No object schema changes. The live Feed retains its separate retry.
+No object schema changes. The live Feed and sealed Pages share one retry
+per pull, independent of Delta attempts. Page re-verification retains
+WIST-2 §3.2's authenticated current/first-next sources; fetching and accepting
+a Declaration does not establish its Log inclusion.
 Historical replay and sealing retain their authenticated Log sources.
 
 ## Alternatives and consequences
@@ -41,7 +44,18 @@ observation and prevents a replacement response from hiding the failure.
 Multiple rotations in one pull can still invalidate an earlier accepted
 Delta at sealing; WIST-1 §5.2's sealing verification remains necessary.
 
+Giving every Page a retry would replace the existing one-per-pull limit
+with history-dependent discovery traffic. Letting a refreshed unsealed
+Declaration authorize a Page would bypass the current/first-next cutoffs
+and make Page authority depend on local admission. The shared attempt can
+discover a missing rotation for later inclusion without broadening authority
+during the current walk. A validator may retain one authenticated prefix
+through that walk; discovery then cannot change its Page sources.
+
 `vectors/wist2/declaration-refresh.json` exercises signed discovery, Feed and
-Delta sequences, independent retries, unsuccessful responses and content
-budget boundaries. Recovery settlement and crash durability require live
-integration beyond these supplied ordinary-rotation sequences.
+Delta sequences, shared Feed/Page retries, independent Delta retries,
+unsuccessful responses and content-budget boundaries. Page cases distinguish
+admission authority from current/first-next sources using supplied sealing
+positions; they establish no Block inclusion or complete Page fields.
+Recovery settlement and crash durability require live integration beyond
+these supplied ordinary-rotation sequences.

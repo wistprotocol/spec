@@ -505,15 +505,19 @@ status or waive the frozen edition's immutability.
 WIST-1 §5.1, WIST-2 §5 and draft ADR-0031 define live Delta E01/E02
 refresh, per-requested-ID attempts within a pull and Declaration discovery's
 exclusion from the content budget. `vectors/wist2/declaration-refresh.json`
-carries 19 signed transport sequences. The reference independently checks
+carries 30 signed transport sequences. The reference independently checks
 signatures, fields, ordinary replacement authority, retry counts, predecessor
 ordering and content-budget suspension using supplied responses. It includes
-revalidation of an ID after another candidate changes authority.
+revalidation of an ID after another candidate changes authority. Eleven Page
+cases exercise the shared Feed/Page attempt, unsealed-source exclusion,
+current/first-next selection, unsuccessful responses, independent Delta retries
+and the exact content-budget boundary. Supplied Declaration sealing positions
+hold the Page source prefix fixed; they do not establish Block inclusion.
 
-These vectors do not establish complete HTTP ingestion, sealed-Page source
-selection/refresh, recovery settlement, cache expiry, resumption, durable
-admission or bounded fetch/work. Integrated implementations must exercise
-those obligations; excluding discovery from the content budget does not bound
+These vectors do not establish complete HTTP ingestion, authenticated Page
+source reconstruction, complete Page fields/publication, recovery settlement,
+cache expiry, resumption, durable admission or bounded fetch/work. Integrated
+implementations must exercise those obligations; excluding discovery from the content budget does not bound
 Declaration response sizes or total discovery traffic.
 
 ## Complete Delta field diagnostics

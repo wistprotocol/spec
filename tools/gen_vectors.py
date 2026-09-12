@@ -7504,13 +7504,41 @@ def declaration_refresh_vectors():
         content_budget="feed", suspended=True, accepted=[])
     add("failed Delta retry at content budget boundary", [delta_object("a", 1)], [original],
         content_budget="feed and deltas", errors=[(0, "WIST1-E02")], accepted=[])
+    page_cases = [
+        ("Page first contact needs inclusion", original, 0, 0, [], [original], True, None),
+        ("Page refresh cannot supply unsealed authority", original, 0, 1, [original], [rotated], True, None),
+        ("Page unchanged refresh", original, 0, 1, [original], [original], True, None),
+        ("Page unavailable refresh", original, 0, 1, [original], [None], True, None),
+        ("Page invalid refresh", original, 0, 1, [original], [dict(rotated, sig=original["sig"])], True, None),
+        ("Page shares the live Feed attempt", original, 1, 1, [original], [rotated], True, None),
+        ("Page retry at content budget boundary", original, 0, 1, [original], [rotated], True, "feed and page"),
+        ("Page retired source needs no retry", rotated, 1, 0, [original, rotated], [], False, None),
+        ("Page first-next source needs no retry", rotated, 1, 1, [original, rotated], [], False, None),
+        ("Page later source remains ineligible", third, 2, 2, [original, rotated, third], [third], True, None),
+        ("Feed and Delta retries remain independent across a Page walk", original, 1, 0, [original], [rotated, third], False, None),
+    ]
+    for name, initial, feed_key, page_key, sealed, responses, fails, budget in page_cases:
+        delta_key = 2 if len(responses) == 2 else feed_key
+        add(name, [delta_object("page-live", delta_key)], responses, initial=initial,
+            feed_key=feed_key, accepted=[] if fails else [0], content_budget=budget)
+        case = cases[-1]
+        body = dict(case["feed"]["feed"], next=f"https://{domain}/.well-known/wist/feed/0.json")
+        case["feed"] = signed("feed", body, feed_key)
+        case["page"] = signed("feed", dict(wist_version="1.0.0", domain=domain,
+            generated_at="2026-08-09T12:30:00Z", deltas=[], next=None), page_key)
+        case["sealed"] = [dict(at=f"2026-08-09T{12 + i}:00:00Z", envelope=doc)
+                          for i, doc in enumerate(sealed)]
+        case["expected"]["noise"] = "WIST2-E04" if fails else None
     return dict(note="WIST-1 section 5.1 and WIST-2 section 5. Signed ordinary-rotation transport "
         "sequences; initial is the first publisher.json response and optionally already cached. "
         "responses lists failure-triggered Declaration responses; null is HTTP unavailability. "
         "Serve feed and each Delta unchanged, with examples/payload.json for every commitment. "
         "Budget strings mean the exact JCS byte lengths of the named served objects, with no "
         "Declaration bytes. An absent numeric limit means a sufficient content budget. "
-        "Declaration request counts include initial or periodic discovery. Resume and recovery "
+        "Declaration request counts include initial or periodic discovery. Optional sealed entries "
+        "supply the authenticated-prefix context held fixed during a Page walk; they do not prove "
+        "Block inclusion. Optional empty Pages isolate authentication, not Page cardinality or publication. "
+        "Resume and recovery "
         "settlement, complete HTTP resource bounds, sealing and durability require separate integration.",
         domain=domain, now="2026-08-09T14:01:00Z", payload=payload, cases=cases)
 

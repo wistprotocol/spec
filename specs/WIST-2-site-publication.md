@@ -347,6 +347,18 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    fails under the current Declaration too costs the same one rejection
    it did before.
 
+   The live Feed and all sealed Pages share this one failure-triggered
+   Declaration attempt per pull. A sealed Page whose signature fails both
+   §3.2 sources MUST trigger it if unused; initial/periodic discovery does
+   not consume it. A failed, invalid or unchanged response consumes the
+   attempt. Reverify the same Page Envelope using §3.2's authenticated Log
+   sources, never the fetched Declaration merely because it was accepted
+   for admission. Without an applicable sealed source, the Page remains
+   `WIST2-E04`; a later pull can succeed after inclusion. A failure after
+   the shared attempt was used is `WIST2-E04` without another request.
+   Declaration retry traffic creates no separate noise event, and the
+   content-budget exclusion above applies to this attempt too.
+
    **Delta Declaration retry.** When live ingestion checks a fetched Delta's
    binding under WIST-1 §5.1 and obtains `WIST1-E01` or `WIST1-E02`, it MUST
    re-fetch `publisher.json` once before rejecting for that binding failure.
@@ -356,9 +368,9 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    retrieved predecessors. Repeated occurrences or revalidation of that ID
    during the same pull, including after predecessor retrieval or recovery
    settlement, share the attempt; they MUST NOT trigger another. A later
-   pull starts new attempts. Initial/periodic discovery and the live Feed's
-   retry do not consume any Delta's attempt, and one Delta's retry does not
-   consume another's. A pull here includes its live Feed, Page walk and
+   pull starts new attempts. Initial/periodic discovery and the shared
+   Feed/Page retry do not consume any Delta's attempt; neither does another
+   Delta's retry. A pull here includes its live Feed, Page walk and
    all predecessor, Delta and Payload processing until completion or
    suspension; resumption is a later pull.
 
