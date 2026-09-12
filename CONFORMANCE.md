@@ -296,7 +296,7 @@ rulings and retention. No Snapshot resume behavior is established.
 ## Delta cross-check diagnostics
 
 WIST-1 §7 and [ADR-0027](decisions/0027-delta-diagnostic-selection.md)
-require the existing E14 field checks before semantic rejection and permit
+require the complete E14 field checks before semantic rejection and permit
 any established applicable semantic error afterward. The complete binding
 check retains its E02/E01 distinction; choosing one failed semantic check
 does not waive retrieval/refresh prerequisites or object/stage dispositions.
@@ -313,8 +313,7 @@ Delta field validation, other semantic checks, live clock acquisition,
 Declaration re-fetches, predecessor retrieval, Payload handling, recovery,
 transport wrapping, status accounting or restart. Integrated role validation
 must exercise those obligations and consume permitted sets rather than
-require one semantic diagnostic order. Publisher attribution remains the
-separate unresolved question below.
+require one semantic diagnostic order. Publisher attribution is specified separately below.
 
 The isolated clock vectors in `vectors/wist1/declaration-fields.json` and
 the diagnostic combinations use the inclusive default 600-second relation.
@@ -499,3 +498,22 @@ a same-version object lacking its Publisher, unknown fields and an
 unimplemented major. Independent role consumption and publication-boundary
 verification remain required; an offline vector cannot establish deployment
 status or waive the frozen edition's immutability.
+
+## Complete Delta field diagnostics
+
+WIST-1 §§3.7/7 and ADR-0027 define field validation and its semantic
+exceptions; WIST-2 §5 preserves those diagnostics during pull.
+`vectors/wist1/delta-fields.json` tests 166 signed field candidates, scalar-length
+and safe-integer boundaries, supplied active caps, signature precedence and
+eight Feed/ID association cases. Parameter schedule replay is not asserted.
+The reference uses the schema independently of the generator's expected
+labels and verifies signatures and IDs. This does not establish complete
+Delta admission, authenticated chain replay, live transport/refresh/retrieval,
+Payload validation or durable rejection handling; integrated roles must
+exercise those obligations and consume the vectors independently.
+
+Unsupported-major diagnostics remain unresolved: WIST-1 §3.1 requires
+Consumers to reject unsupported major versions, but §7 supplies no code or
+corresponding non-Consumer disposition. Field syntax validation does not
+establish implemented-version eligibility. Resolve this with signed version
+vectors before complete Delta eligibility is claimed.

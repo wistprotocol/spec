@@ -6869,6 +6869,160 @@ def delta_diagnostic_vectors():
 write_json(WIST1 / "delta-diagnostics.json", delta_diagnostic_vectors())
 
 
+def delta_field_vectors():
+    base = {
+        "wist_version": "1.0.0", "publisher": "example.com",
+        "url": "https://example.com/page", "change_type": "new",
+        "observed_at": "2026-08-04T10:00:00Z",
+        "payload": delta["payload"], "meta": {"lang": "en"},
+    }
+    cases = []
+
+    def add(name, inner, allowed=(), envelope_changes=None):
+        for damaged in (False, True):
+            envelope = sign_envelope("delta", inner, "test-k1")
+            envelope = json.loads(json.dumps(envelope))
+            if damaged:
+                envelope["sig"]["value"] = b64u(
+                    Ed25519PrivateKey.from_private_bytes(bytes([99]) * 32).sign(rfc8785.dumps(inner)))
+            for path, value in (envelope_changes or []):
+                node = envelope
+                for part in path[:-1]:
+                    node = node[part]
+                if value == "REMOVE":
+                    del node[path[-1]]
+                else:
+                    node[path[-1]] = value
+            errors = set(allowed)
+            if damaged and "WIST1-E14" not in errors:
+                errors.add("WIST1-E01")
+            cases.append({"name": name + (" with invalid signature" if damaged else ""),
+                          "envelope": envelope,
+                          "id": "sha256:" + sha256_hex(rfc8785.dumps(inner)),
+                          "allowed": sorted(errors)})
+
+    def change(name, path, value, allowed=("WIST1-E14",)):
+        inner = json.loads(json.dumps(base))
+        node = inner
+        for part in path[:-1]:
+            node = node[part]
+        if value == "REMOVE":
+            del node[path[-1]]
+        else:
+            node[path[-1]] = value
+        add(name, inner, allowed)
+
+    add("valid content commitment", base)
+    change("valid predecessor spelling", ["prev"], "sha256:" + sha256_hex(rfc8785.dumps(delta)), ())
+    for field in ("wist_version", "publisher", "url", "change_type", "observed_at", "meta"):
+        for value, label in (("REMOVE", "absent"), (None, "null"), (False, "boolean")):
+            change(field + " " + label, [field], value)
+    for path, value, label in [
+        (["extra"], 1, "unknown Delta member"),
+        (["change_type"], "replace", "unknown change type"),
+        (["wist_version"], "01.0.0", "leading zero version"),
+        (["wist_version"], "1.0.0\n", "version final newline"),
+        (["wist_version"], "１.0.0", "non ASCII version"),
+        (["prev"], None, "null predecessor"),
+        (["prev"], "sha256:" + "a" * 63, "short predecessor"),
+        (["prev"], "sha256:" + "a" * 64 + "\n", "predecessor final newline"),
+        (["payload"], None, "null commitment"),
+        (["payload", "extra"], 1, "unknown commitment member"),
+        (["payload", "commitment"], "REMOVE", "absent commitment digest"),
+        (["payload", "commitment"], delta["payload"]["commitment"] + "\n", "commitment final newline"),
+        (["payload", "alg"], "SHA256", "wrong commitment algorithm"),
+        (["payload", "bytes"], -1, "negative bytes"),
+        (["payload", "bytes"], 0.5, "fractional bytes"),
+        (["payload", "bytes"], True, "boolean bytes"),
+        (["payload", "bytes"], "1", "string bytes"),
+        (["payload", "bytes"], "REMOVE", "absent bytes"),
+        (["meta", "extra"], 1, "unknown metadata member"),
+        (["meta", "lang"], "REMOVE", "absent language"),
+        (["meta", "lang"], "EN", "uppercase primary language"),
+        (["meta", "lang"], "en\n", "language final newline"),
+        (["meta", "lang"], "en-abcdefghi", "long language subtag"),
+        (["meta", "topics"], None, "null topics"),
+        (["meta", "topics"], ["topic"] * 11, "eleven topics"),
+        (["meta", "topics"], ["😀" * 65], "topic scalar overflow"),
+        (["meta", "topics"], [5], "nonstrings in topics"),
+        (["meta", "license"], None, "null license"),
+        (["meta", "license"], "😀" * 65, "license scalar overflow"),
+    ]:
+        change(label, path, value)
+    for path, value, label in [
+        (["meta", "lang"], "zh-Hant-HK", "language multiple subtags"),
+        (["meta", "lang"], "en-a-a", "lexical language without registry checks"),
+        (["meta", "topics"], ["😀" * 64] * 10, "ten scalar boundary topics"),
+        (["meta", "license"], "😀" * 64, "license scalar boundary"),
+        (["meta", "license"], "", "empty license"),
+        (["payload", "bytes"], 0, "zero bytes"),
+        (["payload", "bytes"], 0.0, "decimal zero bytes"),
+        (["payload", "bytes"], 38944.0, "decimal byte cap"),
+    ]:
+        change(label, path, value, ())
+    for path, value, label in [
+        (["extra"], 1, "unknown Envelope member"),
+        (["sig", "extra"], 1, "unknown signature member"),
+        (["sig", "key_id"], "😀" * 65, "signature identifier scalar overflow"),
+        (["sig", "key_id"], None, "null signature identifier"),
+        (["sig", "alg"], "Ed448", "wrong signature algorithm"),
+        (["sig", "alg"], "REMOVE", "absent signature algorithm"),
+        (["sig"], None, "null signature"),
+        (["sig"], "REMOVE", "absent signature"),
+    ]:
+        add(label, base, ("WIST1-E14",), [(path, value)])
+    change("absent new commitment", ["payload"], "REMOVE", ("WIST1-E09",))
+    change("oversized commitment", ["payload", "bytes"], 38945, ("WIST1-E04",))
+    change("bytes beyond unsigned integer storage", ["payload", "bytes"], 1e30)
+    change("safe integer bytes above default cap", ["payload", "bytes"], 9007199254740991, ("WIST1-E04",))
+    change("unsafe integer bytes", ["payload", "bytes"], 9007199254740992.0)
+    for name, amount, cap, allowed in [
+        ("raised commitment cap", 38945, 38945, ()),
+        ("lowered commitment cap", 38944, 38943, ("WIST1-E04",)),
+    ]:
+        change(name, ["payload", "bytes"], amount, allowed)
+        for case in cases[-2:]:
+            case["commitment_cap_bytes"] = cap
+    for cap, allowed in [(26, ()), (25, ("WIST1-E11",))]:
+        add("URL active cap " + str(cap), base, allowed)
+        for case in cases[-2:]:
+            case["url_cap_bytes"] = cap
+    change("URL octet cap", ["url"], "https://example.com/" + "a" * 2028, ("WIST1-E11",))
+    change("URL raised cap", ["url"], "https://example.com/" + "a" * 2030, ())
+    for case in cases[-2:]:
+        case["url_cap_bytes"] = 2052
+    change("HTTP URL", ["url"], "http://example.com/page", ("WIST1-E03",))
+    for kind in ("attest", "delete"):
+        inner = json.loads(json.dumps(base)); inner["change_type"] = kind
+        add(kind + " forbidden commitment", inner, ("WIST1-E14",))
+        del inner["payload"]
+        add(kind + " absent predecessor", inner, ("WIST1-E07",))
+    inner = json.loads(json.dumps(base)); inner["change_type"] = "update"; del inner["payload"]
+    add("update absent predecessor and commitment", inner, ("WIST1-E07", "WIST1-E09"))
+    inner["meta"]["lang"] = "en\n"
+    add("malformed metadata precedes semantic omissions", inner, ("WIST1-E14",))
+    transports = []
+    for malformed, wrong_id, foreign in itertools.product((False, True), repeat=3):
+        inner = json.loads(json.dumps(base))
+        if malformed:
+            inner["change_type"] = "replace"
+        doc = sign_envelope("delta", inner, "test-k1")
+        actual_id = "sha256:" + sha256_hex(rfc8785.dumps(inner))
+        transports.append({"envelope": doc, "requested_id": "sha256:" + "0" * 64 if wrong_id else actual_id,
+                           "feed_domain": "other.example" if foreign else "example.com",
+                           "expected": "WIST1-E14" if malformed else "WIST2-E03" if wrong_id or foreign else "association_satisfied"})
+    return {"note": "WIST-1 sections 3.7/7 and WIST-2 section 5. Each allowed set covers only field, "
+            "signature, URL and static change-type/commitment checks under fresh supplied authority. "
+            "Caps use defaults unless a case supplies an active cap; no parameter schedule replay is asserted. "
+            "An empty set is not complete admission. No predecessor history, live clock, refresh/retrieval, "
+            "Payload content, Log inclusion or durable state is supplied. Commitment mutations do not "
+            "assert Payload validity. Transport cases supply logical Feed and requested ID without HTTP.",
+            "author_key": b64u(pub_raw), "cases": cases, "transport_cases": transports}
+
+
+write_json(WIST1 / "delta-fields.json", delta_field_vectors())
+
+
 def delta_attribution_vectors():
     keys = [Ed25519PrivateKey.from_private_bytes(bytes([n]) * 32) for n in range(91, 99)]
     parent, child, external = "example.com", "child.example.com", "elsewhere.example"

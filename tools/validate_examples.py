@@ -1085,6 +1085,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
     ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-diagnostics.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/delta-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-attribution.json", "commitment"): "payload:commitment",
     ("vectors/wist1/recovery-scope.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
@@ -1180,7 +1181,7 @@ def _instance_suffix(schema_path, n=2):
     return names[-n:]
 
 def _instance_values_at(suffix):
-    """Every shipped string value reached at an instance path ending in `suffix`."""
+    """Source file, instance path and string value for each matching suffix."""
     out = set()
     for path in _shipped_files():
         try:
@@ -1195,7 +1196,7 @@ def _instance_values_at(suffix):
                 for v in node:
                     walk(v, trail)
             elif isinstance(node, str) and trail[-len(suffix):] == suffix:
-                out.add(node)
+                out.add((str(path.relative_to(ROOT)), tuple(trail), node))
         walk(doc, [])
     return out
 
@@ -1217,7 +1218,12 @@ def _assert_schema_instances(check_name, recomputed):
             f"{schema_file}: {spath} is declared covered by {check_name}, but no "
             f"shipped file carries an instance at .../{'/'.join(suffix)} for it to "
             "have recomputed")
-        for got in values:
+        for rel, trail, got in values:
+            if (schema_file == "delta.schema.json" and rel == "vectors/wist1/delta-fields.json"
+                    and trail == ("cases", "envelope", "delta", "payload", "commitment")
+                    and got.endswith("\n") and got[:-1] in recomputed):
+                assert not re.fullmatch(field["pattern"], got)
+                continue
             assert got in recomputed, (
                 f"{schema_file}: {spath} is declared covered by {check_name}, but the "
                 f"instance at .../{'/'.join(suffix)} is {got[:28]}…, which "
@@ -1287,6 +1293,9 @@ def _payload_commitment():
         values = _values_at(rel, key)
         assert values, f"{rel}: no {key!r} to recompute, but it is declared here"
         for got in values:
+            if rel == "vectors/wist1/delta-fields.json" and got.endswith("\n"):
+                assert got[:-1] in recomputed
+                continue
             assert got in recomputed, \
                 f"{rel}: {key} = {got[:28]}… is not HMAC(salt, JCS(content))"
     # Located, not read off the declarations, so an undeclared copy also fails.
@@ -4658,6 +4667,11 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
     ("vectors/wist1/declaration-fields.json", "prev"): "a Delta predecessor ID; relation cases authenticate the supplied predecessor",
+    ("vectors/wist1/delta-fields.json", "prev"): "a supplied predecessor ID or malformed spelling; chain eligibility is not asserted",
+    ("vectors/wist1/delta-fields.json", "id"): "SHA-256 of the signed Delta",
+    ("vectors/wist1/delta-fields.json", "requested_id"): "a supplied matching or mismatching transport ID",
+    ("vectors/wist1/delta-fields.json", "author_key"): "the fixture author public key",
+    ("vectors/wist1/delta-fields.json", "value"): "a valid or deliberately damaged Ed25519 signature",
     ("vectors/wist1/delta-diagnostics.json", "prev"): "SHA-256 of the supplied signed predecessor Delta",
     ("vectors/wist1/delta-diagnostics.json", "prev_declaration"): "SHA-256 of the authenticated preceding publisher object",
     ("vectors/wist1/delta-diagnostics.json", "public_key"): "an Ed25519 public key",
@@ -8468,6 +8482,75 @@ def _delta_diagnostic_vectors():
 
 
 check("vectors:wist1-delta-diagnostics", _delta_diagnostic_vectors)
+
+
+def _delta_field_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/delta-fields.json").read_text())
+    original = copy.deepcopy(vector)
+    schema = json.loads((ROOT / "schemas/delta.schema.json").read_text())
+    fields = copy.deepcopy(schema)
+    fields["allOf"] = [fields["allOf"][1]]
+    properties = fields["properties"]["delta"]["properties"]
+    properties["url"] = {"type": "string"}
+    properties["payload"]["properties"]["bytes"]["maximum"] = 9007199254740991
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
+    validator = Draft202012Validator(fields, format_checker=formats)
+    complete = Draft202012Validator(schema, format_checker=formats)
+    public = canonical_b64u_decode(vector["author_key"])
+
+    def diagnostics(doc, url_cap=2048, commitment_cap=38944):
+        rfc8785.dumps(doc)
+        if not validator.is_valid(doc):
+            return {"WIST1-E14"}
+        body = doc["delta"]
+        errors = set()
+        if not _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
+                                       rfc8785.dumps(body))[0]:
+            errors.add("WIST1-E01")
+        if body["change_type"] != "new" and "prev" not in body:
+            errors.add("WIST1-E07")
+        if body["change_type"] in ("new", "update") and "payload" not in body:
+            errors.add("WIST1-E09")
+        if body.get("payload", {}).get("bytes", 0) > commitment_cap:
+            errors.add("WIST1-E04")
+        if len(rfc8785.dumps(body["url"])) > url_cap:
+            errors.add("WIST1-E11")
+        assert re.fullmatch(r"https?://example\.com/[a-z]*", body["url"])
+        if not body["url"].startswith("https:"):
+            errors.add("WIST1-E03")
+        return errors
+
+    errors_seen = set()
+    for case in vector["cases"]:
+        doc = case["envelope"]
+        assert case["id"] == "sha256:" + hashlib.sha256(rfc8785.dumps(doc["delta"])).hexdigest()
+        actual = diagnostics(doc, case.get("url_cap_bytes", 2048), case.get("commitment_cap_bytes", 38944))
+        assert actual == set(case["allowed"]), (case["name"], actual)
+        errors_seen |= actual
+        if not actual - {"WIST1-E01", "WIST1-E11"} and "commitment_cap_bytes" not in case and "url_cap_bytes" not in case:
+            complete.validate(doc)
+        if isinstance(doc.get("sig"), dict) and "value" in doc["sig"]:
+            verified = _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
+                                               rfc8785.dumps(doc["delta"]))[0]
+            assert verified == (not case["name"].endswith(" with invalid signature")), case["name"]
+    assert errors_seen == {"WIST1-E01", "WIST1-E03", "WIST1-E04", "WIST1-E07", "WIST1-E09", "WIST1-E11", "WIST1-E14"}
+    assert len(vector["cases"]) == 166
+    for case in vector["transport_cases"]:
+        doc = case["envelope"]
+        assert _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
+                                       rfc8785.dumps(doc["delta"]))[0]
+        actual_id = "sha256:" + hashlib.sha256(rfc8785.dumps(doc["delta"])).hexdigest()
+        got = "WIST1-E14" if not validator.is_valid(doc) else (
+            "WIST2-E03" if actual_id != case["requested_id"] or doc["delta"]["publisher"] != case["feed_domain"]
+            else "association_satisfied")
+        assert got == case["expected"]
+    assert len(vector["transport_cases"]) == 8
+    assert vector == original
+
+
+check("vectors:wist1-delta-fields", _delta_field_vectors)
 
 
 def _delta_attribution_vectors():

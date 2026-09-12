@@ -1,0 +1,5014 @@
+{
+  "note": "WIST-1 sections 3.7/7 and WIST-2 section 5. Each allowed set covers only field, signature, URL and static change-type/commitment checks under fresh supplied authority. Caps use defaults unless a case supplies an active cap; no parameter schedule replay is asserted. An empty set is not complete admission. No predecessor history, live clock, refresh/retrieval, Payload content, Log inclusion or durable state is supplied. Commitment mutations do not assert Payload validity. Transport cases supply logical Feed and requested ID without HTTP.",
+  "author_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "cases": [
+    {
+      "name": "valid content commitment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": []
+    },
+    {
+      "name": "valid content commitment with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "valid predecessor spelling",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "R7n-WWh6vf30BdTNIRJVTK8xLJtCuStvvZYzHBT-o4UUQtVE38I5FgKDgLIVwk2hKNXOz8WWP5KE2cwGQlGTAw"
+        }
+      },
+      "id": "sha256:c000f0a02a77aa2822c38990ff7aa27583217334da2ebfdeb99688e6470e94f1",
+      "allowed": []
+    },
+    {
+      "name": "valid predecessor spelling with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "9WdErJeqXph3Z9XVXQYtqXhjSPEYXGDAQ71_-SgMQ1uO8BAneQZX6yiamiqCIDpjpjGgHhNwVHNtjuHeoWIhAA"
+        }
+      },
+      "id": "sha256:c000f0a02a77aa2822c38990ff7aa27583217334da2ebfdeb99688e6470e94f1",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "wist_version absent",
+      "envelope": {
+        "delta": {
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "_nndHUPGTWEQAvS_03dG-z1iWIM1qX9CaN46QohSZGYSO74ECtH7lCHrVXEauDT4N98XKBJVMsGQd0xNUmjeAQ"
+        }
+      },
+      "id": "sha256:29b50e909acfbd6856b1ae627fcedaaf319869248429efd4f1fda3679378f2f8",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wist_version absent with invalid signature",
+      "envelope": {
+        "delta": {
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "JH69uzw2RZ8vRxyuo6xszEaXMBc8hnoypYBCvL_q7NlJ0QAS7yN4Y6o7WeRGEhlpBWlWMAar9IjEztTHd8otAA"
+        }
+      },
+      "id": "sha256:29b50e909acfbd6856b1ae627fcedaaf319869248429efd4f1fda3679378f2f8",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wist_version null",
+      "envelope": {
+        "delta": {
+          "wist_version": null,
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "71JFJXpy4Nfb9w7Grx8HdTOQwL3mR1amQmo9CRpuY78VTcV6FWjsD_B1_ozJbFh4DOjDy4F5G5BNpr_ZrgcFBw"
+        }
+      },
+      "id": "sha256:b2fb7d8f43ca69232121cbd2dccdaf78d1a0f685e9aacb77fe14b1b61b1909bd",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wist_version null with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": null,
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "fuf6PlC7VzpL0fl-sLBADBQT8XRmTr12Pvi0ftZW3Z0T-kNKwssQc2ipQnZXnaZUrNFyhXKm9FbaKKJ22BVcCg"
+        }
+      },
+      "id": "sha256:b2fb7d8f43ca69232121cbd2dccdaf78d1a0f685e9aacb77fe14b1b61b1909bd",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wist_version boolean",
+      "envelope": {
+        "delta": {
+          "wist_version": false,
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "K1oZMKTlLoAx7iJ2PIFFSBGBpDNDnRbVpolIVpd2x_ZhNWJAaSoul-npLYm-Xt-Ms2rcjPo29lRsRjrGxiTQBQ"
+        }
+      },
+      "id": "sha256:75a29a469ab4ca11831c71f2586ee51fceda9e397cd2c82e161ea0f9e7e72901",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wist_version boolean with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": false,
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "41MjmUQc-zeSGZ_O10izi-Dd5XoD7w1WPfa9bC1SVsG-d2K8qsMs76RaX8YOpxI2rml-5OYSjWYD3YFQa5FGBw"
+        }
+      },
+      "id": "sha256:75a29a469ab4ca11831c71f2586ee51fceda9e397cd2c82e161ea0f9e7e72901",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "publisher absent",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "RKa_83XNJ-pagT30f3TToLeAk10kR4KvQnEw-GHpObLpzjybuPIw-fWVV53-Nlif_UCcqLjJp1KjrRkfZG6aDA"
+        }
+      },
+      "id": "sha256:4183192cd445a015c808acb6b1647751518042e35465f42063ae827e4ac42252",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "publisher absent with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "i1s607Emk9xr4n4hXimAyNbB_eeg2cnEZOTRZDkhqXbHHPUkdhzrRE3k62vO1NsAymAPm8TRFdc4bOlYt8zpDw"
+        }
+      },
+      "id": "sha256:4183192cd445a015c808acb6b1647751518042e35465f42063ae827e4ac42252",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "publisher null",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": null,
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "4hRLhqFAX5ZQ9luQ8CQWzIKNnBVt6I-_W9S0rUagnOWtx2K29MuHsHuI0_EhvIz9fIw7vpJki5_jH4mF3dIODQ"
+        }
+      },
+      "id": "sha256:7a7b555991a2532e111be1c2270dd0c73ae8621969a734b9ef6088cca546948c",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "publisher null with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": null,
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "v_iYcZ2s9e1DRhC3jkVmHdVP7K32jXBKYXmYjKugftuLbHL6jzBed04uhgIoILe00UkTS6uA88oRs48Q57S_Aw"
+        }
+      },
+      "id": "sha256:7a7b555991a2532e111be1c2270dd0c73ae8621969a734b9ef6088cca546948c",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "publisher boolean",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": false,
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "SVf8HO-Mumv_dv5UOfFik1v6-W7ydv_I6Xd5b07gwbrrKIpNANhm3e1mdd9i3-3DAU0bBWghf-UCBGq2O9e8CQ"
+        }
+      },
+      "id": "sha256:57c3134c764d0767c6c305475e952cdb771d66f87c073108c23454395cec2ce3",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "publisher boolean with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": false,
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "grZs4U2ckXk0FKHD9evwjVK-tc3HXYmIgZzz0nlV6fpDbr_ncPSwLnyc0x2Dp5b7tHHvgO_1u4IBpYOlAJNsDw"
+        }
+      },
+      "id": "sha256:57c3134c764d0767c6c305475e952cdb771d66f87c073108c23454395cec2ce3",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "url absent",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "sDuqOHBvoUwqF8WCWkqx1rRWuUWdkfzRZLiIvGlvW2jMGAWqKRZQIkUfMowDkrezfpJjQl5_t-2WYSofF8R7AA"
+        }
+      },
+      "id": "sha256:5256924171a715475847b31ccfef1a7b4d039142c5e886dd537c60e01bd5e2ee",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "url absent with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "DUb7wIO6tOQdpNKcji-XV5Xt-RtDbA_q98_nmM4olKCOXIVvlCZ5MkmMucSq3r3kjdeuOtNaLEKL5ZCMUrksCA"
+        }
+      },
+      "id": "sha256:5256924171a715475847b31ccfef1a7b4d039142c5e886dd537c60e01bd5e2ee",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "url null",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": null,
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "NxzIZGq6GGDbW-EkhXrUbksjr4D-FpX2DkFKEyQTET-lXt6eEIt8jw58KxAgZfmEUyRFFAlpWsb0efLeTKv_BQ"
+        }
+      },
+      "id": "sha256:4bd52126561062cd7848d8fc63c8945b4b660cb3d560b789d1dd11a0ea16f672",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "url null with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": null,
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "gwNi_B4MewjkD4-AhHqdEVSvimPLdK36jbIBDuH2lexPcTiQNfw9riDETSe5ZMMlKKUWoptliBoh1RFQin7NCg"
+        }
+      },
+      "id": "sha256:4bd52126561062cd7848d8fc63c8945b4b660cb3d560b789d1dd11a0ea16f672",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "url boolean",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": false,
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "DxCFdF9r5jULT41F3MtupDQiU-d-wOPz-JnJh8D7b55G8ayKC8NEmAUvyHhbY1YC2P6d_Xu3t_sQD0pplw7vDA"
+        }
+      },
+      "id": "sha256:eba34fb2bddeb62f80974f9f15e63bc5b6c42c8042d7417b7df074c2a8537fa5",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "url boolean with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": false,
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "su4uE8BdHudPgCfAwyURLt5r6MThBuSdKbPHU439zItsOnKLdoB-7C7dIoAnJfro5U-AzeL4J54ahc8onxlsCg"
+        }
+      },
+      "id": "sha256:eba34fb2bddeb62f80974f9f15e63bc5b6c42c8042d7417b7df074c2a8537fa5",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "change_type absent",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "tLirChIiLv1zqYkbIXDwIRPF5FVd10I66lbfqG8MPGZJVCLqgDNa7tnfxV1L7OLF85I1_Po58dIFBn1TFLPxBA"
+        }
+      },
+      "id": "sha256:a7e2082b4e0996198194edd35369461e7f4edf13c877a01c5e41efbe45982fb0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "change_type absent with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "4_9dufI35stEb8DvxUabqLzxUmzgKo8hNKQIf6NuEIjaMh-Uj2ClXBDlYg9K8SW2VMPNvwDq9Z5HlW04SD0-DA"
+        }
+      },
+      "id": "sha256:a7e2082b4e0996198194edd35369461e7f4edf13c877a01c5e41efbe45982fb0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "change_type null",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": null,
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "8sF3q53RVFcCPuqpblz7SsBLLPh5IdZ9lsiWQ-goyzIf0Sv30vlLlHVerSvBDLKlHoQCFAp5HoBGqb3soe3fBA"
+        }
+      },
+      "id": "sha256:a49ecc6eae28b2a80b48e5d4f172d8b6588b0d48b8547366edc5ab0db6aa0e5c",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "change_type null with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": null,
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Rd0ZUiXcoc-LDQhSijXGo_Cq84ukz32-TnrUiru2363_bHwBIr__Et_slsrBCS7vI_1g0f840K-yL41e5MMLCg"
+        }
+      },
+      "id": "sha256:a49ecc6eae28b2a80b48e5d4f172d8b6588b0d48b8547366edc5ab0db6aa0e5c",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "change_type boolean",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": false,
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "f4qtXPuPpPfrvhpGE8LLgzVaYBwXEBPVH4SVTcszrjcvJXcAU4KKL-na86WRUOo5JjXJT_8NMA9jEnaJd7XLDw"
+        }
+      },
+      "id": "sha256:ffa0fc764a1f91c5bfdd522e1ae1e2a7b2445611b7aa22237dcae3444e16b919",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "change_type boolean with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": false,
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "CLskRe-vm0Odc315szfvOUiZ6jYCtpJ1Ba15O13YpmP113bS3PP10gRWi4QciBw5P1Pc9akFx_dLCqf8kTLtBw"
+        }
+      },
+      "id": "sha256:ffa0fc764a1f91c5bfdd522e1ae1e2a7b2445611b7aa22237dcae3444e16b919",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "observed_at absent",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "CmATC2MzlLM0noEdLZuEdui43zKFLmbJ1zu5220eZM6kWqSYgEF72X7HcPdFCGjFqslZqhX0jMGvzzScK5-pCA"
+        }
+      },
+      "id": "sha256:161599d2696a120f79719732e51023f5f2403ec4ecdc768de318d13a3ffb945a",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "observed_at absent with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "60cqrkRteUwbp8uXJQ7bFEzdaPCHpSc_TOfxVxPzelbKdecwFOGAyW5DtRkiFSArPjq1rzxeZAlH_OzS_OJgAQ"
+        }
+      },
+      "id": "sha256:161599d2696a120f79719732e51023f5f2403ec4ecdc768de318d13a3ffb945a",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "observed_at null",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": null,
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "qijGM4FKpgtmpsiaxzaOT1Hn5N1nCrSP1ZaPEFZ2-6rWFIiRm2gRwncqMSMjrPq6CJPigpM3dCYbp13e5Dd3BQ"
+        }
+      },
+      "id": "sha256:44c445a8f50d4abf23491b4cedeaa87fb81f2ded9da980e56cda4fe88febb2e4",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "observed_at null with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": null,
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Tf1VeASK-Rstcd8I6GpH7DU1x6fQrQaCxPK4jZDqL7YiPN5m3E-Z-F5m6yfDas0Gsa2kU_y0oHMld_ABxPbvCg"
+        }
+      },
+      "id": "sha256:44c445a8f50d4abf23491b4cedeaa87fb81f2ded9da980e56cda4fe88febb2e4",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "observed_at boolean",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": false,
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "yuWyH__k1RbhaXumy7jvD18scleAgSOr3OZcRIsvXFo2LdsOT9f286nlK0JVtjKUWiGYV20PXJEQGVe3UHPVAg"
+        }
+      },
+      "id": "sha256:ff43508204b61301589628b53e08dbf4005c8f4809085c99bbe7b959ca01e105",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "observed_at boolean with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": false,
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "v1Tq1-YW3BGdVYqG-MTYCplrBwCHORujJeu-oUNz_7obR8Cm17Ic9nrvl3N4qXvE4VaHHkaInrzm4KiHB4PbBQ"
+        }
+      },
+      "id": "sha256:ff43508204b61301589628b53e08dbf4005c8f4809085c99bbe7b959ca01e105",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "meta absent",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OmJoH4ZLpE1ydyvgJK6D033Y04IyzVSvq6vyOZkjotDiU9Pfl4gFtp04lGmWShcXuNL0IW_TBhe56hdNjMrVBQ"
+        }
+      },
+      "id": "sha256:4a5c0d7d116c8b096710c0a6fcfbb957afce9cebc8671c6e05b967fadc7a00a2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "meta absent with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "JFBvbPphc0GLWWbRBtJiq4vIrIyP3DMSwtYcYAowxg89pfKcHdHYOQzr0YPjT0bL0owmXBbf2wxzSHm9IsniDg"
+        }
+      },
+      "id": "sha256:4a5c0d7d116c8b096710c0a6fcfbb957afce9cebc8671c6e05b967fadc7a00a2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "meta null",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": null
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "MaRdCw-jFsFpE1dYz315_0_QS4mMnPxhw15u82Ar2cG8tHtR3q5a2QS80VkMtYqSy8gDqoBih9QcM4UY_3_yCw"
+        }
+      },
+      "id": "sha256:05f925e7821c4a22b4ef4a4915d3d8745f22245030adbd2c8b0088d2c8ea4353",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "meta null with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": null
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Peta2Ls7SZ-Z5bulOcFHFL0MmZFFKzlxyou-eXLNexsziw9vKf3mymOTzV41QR0p9Uan8sZi2_MSKFm7kBn6Ag"
+        }
+      },
+      "id": "sha256:05f925e7821c4a22b4ef4a4915d3d8745f22245030adbd2c8b0088d2c8ea4353",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "meta boolean",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": false
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "RyBcVQv8iS_GX-GMZMLNr5fwd0pDf-vqwQhsP4sQOOk_F8YKF-3rKXtyvmIn5vXxDgWs7CVR-vzzdWt7F_BxAg"
+        }
+      },
+      "id": "sha256:04c1bdf8970e1a64a047e2e56246a474e0a62ebf7e7010e2b55f1f21349f9b48",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "meta boolean with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": false
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "9yMC-_EwxoFfYl7Ks2oYGrowae9S5ELqR_OMl1-niFjm5goy0IXQarnefjRQ4LxjROylraz9uLYv2Xec7JovDA"
+        }
+      },
+      "id": "sha256:04c1bdf8970e1a64a047e2e56246a474e0a62ebf7e7010e2b55f1f21349f9b48",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown Delta member",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "extra": 1
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "4i6U7Lr1hztyc2XI8T306DlUnpNaqxiTkLBJG3bWH8hCCW4LycFrIl4-rYw-ULXT_qRSyLN-C4HYcweiWlFcDg"
+        }
+      },
+      "id": "sha256:d1c0ca234bb8bb386693067debc87f3b75425780739fcc85e5d86e38d0bea9c0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown Delta member with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "extra": 1
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "bxTRcC-vjARmyWDOkLlkCuht10IdX4AC4EhfIfvtl9ywT3Px8NSAcYcELzfVOl0vUzF_1BIJM7KcKpf3Lx5xCA"
+        }
+      },
+      "id": "sha256:d1c0ca234bb8bb386693067debc87f3b75425780739fcc85e5d86e38d0bea9c0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown change type",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "replace",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "gsDaPFy2WjE92m1jNRIPBQau2oxm3Xh2aSKYtnfo4l0wQH9eLcYJ5dDFJhN_E82ZBHiudYXFvbwms248trx7Cw"
+        }
+      },
+      "id": "sha256:7886f67bf0f4322642c492d5b636967fd8f984e9c9765743950db16745b6cf97",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown change type with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "replace",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "eeehI4CYi9NZBFu-rFfOUU7XrokhzyXmYIaXqniKkaptZnii961uNIqgLT48-ztoTri_K9KMW4sJqFwQ65_-Bw"
+        }
+      },
+      "id": "sha256:7886f67bf0f4322642c492d5b636967fd8f984e9c9765743950db16745b6cf97",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "leading zero version",
+      "envelope": {
+        "delta": {
+          "wist_version": "01.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "hXyGoJEdtMuYvlKw15D_zzerYkkVgbr5pAqGR2_EV0zHUGEmbTkXHiC9TatWCfVAjLBMjric3MkQ2z2e2g0sBA"
+        }
+      },
+      "id": "sha256:a5cb8cb951e4ed2841901d5f9845be3d52e00e8eddb37f58da1df42e9e772a69",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "leading zero version with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "01.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "vPfco2mUul2qsWYDuUupOPJ3iWzeHnkC3FlVW7-aCF5wmRCjw2KjNwxKOXtzjMf-5qU9Sjug7bjMDN-2klrbDA"
+        }
+      },
+      "id": "sha256:a5cb8cb951e4ed2841901d5f9845be3d52e00e8eddb37f58da1df42e9e772a69",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "version final newline",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0\n",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "IrxtAF1OK_0zRuGYnMkqUvUolyDmQIU7_hF9l4SjegUhYm-rRbg8SHsy3U-q85P1OIDXRixvGAdTn7qQ6I8GAQ"
+        }
+      },
+      "id": "sha256:b40c8c765d8313e8d73adffd8f7e567aa9d2cd3d12be12a839f079307518d6fe",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "version final newline with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0\n",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "d10qYjPZNR_U-4bK6X0oaVQwPmOflJW5dKLYMThaTEJPVDhLxwdGPenCTCbxeYQfZpsmyOZNJmAdhvwHE9ABAw"
+        }
+      },
+      "id": "sha256:b40c8c765d8313e8d73adffd8f7e567aa9d2cd3d12be12a839f079307518d6fe",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "non ASCII version",
+      "envelope": {
+        "delta": {
+          "wist_version": "\uff11.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "UHO0lYOacVLhCAgvWVxhWwilaWpGCmySzHG_oI8JWJ84HKQhNHes_nQnjb2z4PALFF-kXr5nK7XxxsLsI0vVAA"
+        }
+      },
+      "id": "sha256:1ba69e4ce7e3aa318b5bf6ef1bd508c77292b47d0f692c9733514396920b1b76",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "non ASCII version with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "\uff11.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "DNwwdxLX2r1cA_OtPEgBpJnv2jg20wh9pY7dTzasZuDDdV9wCs8ixlgWNx0fksrEJpatilOyomn1NoRLqH82Ag"
+        }
+      },
+      "id": "sha256:1ba69e4ce7e3aa318b5bf6ef1bd508c77292b47d0f692c9733514396920b1b76",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null predecessor",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": null
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "f_ocm1mC6R5NOIH4Ca7dAwJskFJ_kb5fz58d2ObX797aOIoo0tK6PBpD7dKDAUib7gGXxsLUC8Pf9ydFpP3PBg"
+        }
+      },
+      "id": "sha256:459bb9580dc4021d60c98faa52b3e5848ff229d32d9db7f3ddc950e18167faeb",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null predecessor with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": null
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "CMFpQxM0uFHFDbkSPB6hlleYZhEX958UqloEeBTCosBj7kcimmLuSSsiFQLUnovSOO_DDwF-bzs5JDc5Bs4SAQ"
+        }
+      },
+      "id": "sha256:459bb9580dc4021d60c98faa52b3e5848ff229d32d9db7f3ddc950e18167faeb",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "short predecessor",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "bDdxm4IEoyqNUmrM7iG7Z7wjMXGZ8hB4VLm-t1MrTrmjDwI7WSipoNbGNcsZ7-pvwQtqCZpBBxAn4AgG6RMeCw"
+        }
+      },
+      "id": "sha256:3a5e19d2b6f9750c880e983573899f5348e9eb64e5fb7075cc205105324683a2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "short predecessor with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "2vrJgqWVlNpLNoxB4p6lrfV9icpW9zcsTt3xUzVtDqlCMZ9ZGuSwLBuIV8z674FOew-aosONzgRL41ZCT9SBCg"
+        }
+      },
+      "id": "sha256:3a5e19d2b6f9750c880e983573899f5348e9eb64e5fb7075cc205105324683a2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "predecessor final newline",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "PTn4b_NKdKCzaCVtuwcpBtpXGzWSkEiHO9I2aa4UCEsLsknq_pJ1iJCtUtC5JHYdcwIEzPpI2FtHErPEcvAUBw"
+        }
+      },
+      "id": "sha256:87434c5e333137883d47cdc2876ccc18df0642e64dff9c684df66252e0140376",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "predecessor final newline with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          },
+          "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "PAzUqV_BL0jA7CFdhww2ZKzSmIlHK8UMXM_KLhStWLG0JiKQbWIXnJeL2xw4jYxcpexpezATLF2NR_DpZ0HIAg"
+        }
+      },
+      "id": "sha256:87434c5e333137883d47cdc2876ccc18df0642e64dff9c684df66252e0140376",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null commitment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": null,
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "iC0LQVigAUlj92zJU_CrhGtl9dtG-EAty9GxYnAOD6FjyPx4eCbCQpKUj8K_EmXJ8MUR7caLO0OwCCW4XGpTAQ"
+        }
+      },
+      "id": "sha256:dc0447642060e5fa413c7a82ba349d12c9c2f6863f4174da072ea017b4131fd0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null commitment with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": null,
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "rGYbRz2_A4M4ZLvvzMPucpsZzyn7qebaWJoUdztFbc6QFxJ2ZF_WrkJA0l9-dLfzvO_L52zZi2Z7ywxUa8HiCg"
+        }
+      },
+      "id": "sha256:dc0447642060e5fa413c7a82ba349d12c9c2f6863f4174da072ea017b4131fd0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown commitment member",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263,
+            "extra": 1
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "sG4gDj4S-iwvAsK9rgsUtEmn2widXqwkLnDX7Pm697Ln0JCZcO6drmU6dYpB9XA1kfPb84DBEafPfI5DJPsUDQ"
+        }
+      },
+      "id": "sha256:2c6bc79e48843bbc34aabc5e11f2741d545ed5ccc4aee1e56aebdc52e6c1bcd2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown commitment member with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263,
+            "extra": 1
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "eNV_pTY29loUsgTrg3RNR5JNPUQlfI_LkV981LM0W7zGxTk2zHkryAR956j8hq4U-Neck-wLx5IcKyvHeQmBCQ"
+        }
+      },
+      "id": "sha256:2c6bc79e48843bbc34aabc5e11f2741d545ed5ccc4aee1e56aebdc52e6c1bcd2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent commitment digest",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "LR98gRadfMRnpvNc2t1OeQ_rbgGrrnz0t4BFJhEn15ajJPrGta6Jf5fOYNF5aBRe3TsozsliKLMMnhvA8kQmBw"
+        }
+      },
+      "id": "sha256:b4e31928b75162701ebf77a803501501bbb954467b00bef01ab1e52ce7c4f963",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent commitment digest with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "oh0EAFMHqr4lDbUl92EzS0Szddp-VTozq7JFVzsYmyAF8De7Qkd3XSwZtpJvyioMn4qQH7O5E5wJmbKF6fLUBA"
+        }
+      },
+      "id": "sha256:b4e31928b75162701ebf77a803501501bbb954467b00bef01ab1e52ce7c4f963",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "commitment final newline",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3\n",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "A_RB-0VWXGYPRRMXqwAVl_0uHD8IxM1AxO9ulVsDQTrwoZoU8g0uEXquckKwROSW5BzD8RII95-EqTNKY_mrBw"
+        }
+      },
+      "id": "sha256:07892ed28f36386e403a13bd917b57649a00c5ec7e11c941b9fec5564a204e7f",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "commitment final newline with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3\n",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "RXM_Qp83hj7obR4fMurDAiknlLKl-xZmke7VL2mn6kz5MvWLvG-bzKAHZ90ADWt5U1gBb30xpH0zYnc44KxXAA"
+        }
+      },
+      "id": "sha256:07892ed28f36386e403a13bd917b57649a00c5ec7e11c941b9fec5564a204e7f",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wrong commitment algorithm",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "64AVo5i3oHesm7i4B77iZSxHuwzsNAjqel9ERLlhC4-D78cbfVggspeHKwrZ7tjFqSC_qdQmX1NVV_K4VoXZCg"
+        }
+      },
+      "id": "sha256:df210e645fb81934ca3e5880bf46d03793187361c154e3f6aaa1049d352d8b35",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wrong commitment algorithm with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "yybtZEvHoqgi98BgfS0s16yCTYs_yTFumcRa5MjXnGMdjksw9YISiNzFQLspd7k0FfDXJsa3SdWnb0w_sTZsDQ"
+        }
+      },
+      "id": "sha256:df210e645fb81934ca3e5880bf46d03793187361c154e3f6aaa1049d352d8b35",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "negative bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": -1
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "UrNPeoCKS9wdFBtypk2_b8Uu7csXhBub6IheW2k8BEgthWkwHDaOrMYj9iscB5wHjYjpMKFgYpPkOWRKuJUuAg"
+        }
+      },
+      "id": "sha256:6fed4982726c6c49ef57aee329a886c1930590811c0d29e13e8036c3e87ee9d5",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "negative bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": -1
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OmWb0EC0KYBh7FsRbYqapL2XVojSa07USPcE-HZ_d1zcYT4YEXMCbQ-2PpJ6hpQx0VAB7t9ccVrsG2HELhKmDg"
+        }
+      },
+      "id": "sha256:6fed4982726c6c49ef57aee329a886c1930590811c0d29e13e8036c3e87ee9d5",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "fractional bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 0.5
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "vrRvCAiwHcoGZ-w9eCK6h95Fm-7RxxIguuskTkuZe_Cmwhbqt-1FaUmy73qx674EnrXoL0j-Z7j47Zme9SjSAw"
+        }
+      },
+      "id": "sha256:014b9e597e935abe375b4e3bdc809c4f01d25b032abcd7960e8bfaafee07da2a",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "fractional bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 0.5
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "dWH0oXJ3Dsts1DaD9pDQPLdD4qFXD0ERwXRsIUxtcwEAW7ZVow1_YvzUfIK2Pgj6NPfpwOEoDtnOlRADPdStBA"
+        }
+      },
+      "id": "sha256:014b9e597e935abe375b4e3bdc809c4f01d25b032abcd7960e8bfaafee07da2a",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "boolean bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": true
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "-20yAAA4-H8c3HVYlk7_XIAqsxdMfX6ZqmbthRIlq06JqJYw9vjiERE75LqjbZCvU-MVKA8GSU_ZSh8XOMuQBQ"
+        }
+      },
+      "id": "sha256:d7fcb4556d70132e8d7053d64f7bd1a9d251957552616ccb7c93456a601a75fa",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "boolean bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": true
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "_IQhxQtrS-kc7dqST-lIQ48OM-nMupwQypVseuCoHXsGRCIcbxM8ujQpkx3FrrqlRmaY7jzmICjGv_OYi7ZgDA"
+        }
+      },
+      "id": "sha256:d7fcb4556d70132e8d7053d64f7bd1a9d251957552616ccb7c93456a601a75fa",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "string bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": "1"
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "MWMv_pibtBHF_S9SrX4me1GncpIicRYoNKG2rXS66sLD86RT3HqyXi3EK3fkv_m9XqLPletK7SK-qvTaGgLYDg"
+        }
+      },
+      "id": "sha256:af15a53c62f458114922e96cc54d32477f96094612d16a1419b3693e30a9d365",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "string bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": "1"
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "tJdHoPdialSzmh5bUfqwKbufbgwMh8b_UNe2mh3YewZvPnHrzjc9A9hRqaGEJXSpwTn6oNJ3hoeRxCMVgrMeCA"
+        }
+      },
+      "id": "sha256:af15a53c62f458114922e96cc54d32477f96094612d16a1419b3693e30a9d365",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256"
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "BBsktH0jeZjMmgwK7xQK9jIA6HqMf3GgpHNxXh-i6shmyHAALI3867vP_x7gCdpOgA4szudvmyknP-fydeJnCg"
+        }
+      },
+      "id": "sha256:2213026298961441f01022c520a67576476bd59256f34bdd97a655a472047a6e",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256"
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "iZOgVCvhvt2GhB46wWX2KyUT-Rm0xJLEVV7rdanuk2K757Dc0o99_BdK5o2t3pBi9UYIQJqPK7Vf3dTKO_3VCw"
+        }
+      },
+      "id": "sha256:2213026298961441f01022c520a67576476bd59256f34bdd97a655a472047a6e",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown metadata member",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "extra": 1
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "j1RQnWkJfVctvfc7PIvwhx37DB4mlPInddNPPNCFef2fpnbAWtcaGb-igXxWPNZjs4LQajb9GVzu4RGjKAAaDQ"
+        }
+      },
+      "id": "sha256:c91da74c261454756a7144983a61dd2708d1436c9a1ef5bad691fdc1cd6d9b19",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown metadata member with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "extra": 1
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "_Sfdxvo48GofS6626sbG6SO13Jcpn85f4wJ57vrJ0Wm0Ioato5-lHpNeKeUBLbvU_VmBR9zc0OqvobFf4ElxBw"
+        }
+      },
+      "id": "sha256:c91da74c261454756a7144983a61dd2708d1436c9a1ef5bad691fdc1cd6d9b19",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent language",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {}
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "nArYuQ20fCSlTu2sjVa3NEcPRzEs15_2SVUHItsLEGQGpjoqkBaAHGnp9ni9oTmwy1eL_clrMS2AZMFP9TBXBA"
+        }
+      },
+      "id": "sha256:dd39f366c26e2d08b31bed96fdfb976e8946e0b193974d2fb2a8d3a38d0fa0e2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent language with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {}
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "85764_T6j7wHXDZkQMXtWaa0bgQIT8alKsB6PMnas4Fqr24QaOmBnDDDGwwoq9sDxnTY424_KgE-5PPHO9iLAw"
+        }
+      },
+      "id": "sha256:dd39f366c26e2d08b31bed96fdfb976e8946e0b193974d2fb2a8d3a38d0fa0e2",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "uppercase primary language",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "EN"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "phf-iZE_Azt6eUlom9Jf0yotya3DJP1GB2yS6-yg1mjhHyuSUBD3FADNGJxLDu5blxQUMbUA4_3aXawmF3rLDA"
+        }
+      },
+      "id": "sha256:2ac6642872532c50cb48c7b9897914fb56f578395a6e8beb11406f2966c4fd85",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "uppercase primary language with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "EN"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "y4PUi0XteEqtbH8fpxWh2Mbn3bq53WKr_yjde2WobpnrfZNcX90XelTwxEfymrE35Ee5DYlJj5CMpKcCIiBuBg"
+        }
+      },
+      "id": "sha256:2ac6642872532c50cb48c7b9897914fb56f578395a6e8beb11406f2966c4fd85",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "language final newline",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en\n"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "7aNB0MRS9fX1SODw0IW07zdNsEY2FpnYSEpSxVMkF672kf82vkqrkDkV4246gi0VQkNE2rY1pwS3EVlcEuQkBA"
+        }
+      },
+      "id": "sha256:0230d25010e82283b8313827ed3ae85b8f2934436faaafe676a8c4d9b2b7fa05",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "language final newline with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en\n"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "FtawEI97cwV-sYyTau59mByV2OwOfv3i9KTLM_W3b_Oy7wXs5yfybqOULJzyQlZvIESGPLGGck0XUMrzceGuBA"
+        }
+      },
+      "id": "sha256:0230d25010e82283b8313827ed3ae85b8f2934436faaafe676a8c4d9b2b7fa05",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "long language subtag",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en-abcdefghi"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "jX3hD69s-GjiRuSTZ3fqYnae0O1x83hgmtrzLyEIsk5FaJfKjLSuqC6OxxMLamFjW7-VtsVAzCGigrvo2KWpDg"
+        }
+      },
+      "id": "sha256:a9b2b14a9b246c76cc5111ad25ae53e3fb1b4eb8a18f92827404fcc3ed7cfafe",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "long language subtag with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en-abcdefghi"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "sayznsfxGamULj7zD-PCc-Q-0_tfn_ZMQK5QHKty_ifsWWZfmCQaSCvdJUfuL3q0CPNAQRJUgZlvvn7dq6xsBA"
+        }
+      },
+      "id": "sha256:a9b2b14a9b246c76cc5111ad25ae53e3fb1b4eb8a18f92827404fcc3ed7cfafe",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null topics",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": null
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "6IJ1vliJwW4nbkETOpi4Aj6RyNXKeGdwZ2jjGzVAdhx0SsCaoPIdRv1HbYE8LQA2Uap_3SO87_WB_35EprQsBQ"
+        }
+      },
+      "id": "sha256:04bef613d1ba517b8d8199df48ef67f7fb100bdf7d7877ba7b6bdf04f5c29286",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null topics with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": null
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Mln36FwGjJ5EcnG6Pgg7xi8zZvfVHH7nkwtoYK61cehVbY52uZ_oXGQyeQ-FvFQniWkbGF1E3MHKIV5JMFvgCA"
+        }
+      },
+      "id": "sha256:04bef613d1ba517b8d8199df48ef67f7fb100bdf7d7877ba7b6bdf04f5c29286",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "eleven topics",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic"
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ePGagO2NAhcgoS2AxtUf4tiB3vr4sIt2TCQaZGeH-6Y5ujHuVoeq6f8bbWhPJWFyDZPOYlMwhqscnGsE3eYWBw"
+        }
+      },
+      "id": "sha256:b28011542d520ac42248c2589fe5e15660c3535dcf5269f3f98fd039f99ee969",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "eleven topics with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic",
+              "topic"
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "JR3pH_FtHII-wmyG66zgIgwrYitNEuwL8mKXI8X1yvY1QNLIO5e_Kk8w83nilDVwf8jASDTf791ghuMCusrkAQ"
+        }
+      },
+      "id": "sha256:b28011542d520ac42248c2589fe5e15660c3535dcf5269f3f98fd039f99ee969",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "topic scalar overflow",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "XukgzZw66cFVBJ6eVD4mGa8lNY8LeMgi12xvaiVwELtSfYfOzo9sluHoQYkD8a9VZYGn0FMA5wwZEq5bue2VAg"
+        }
+      },
+      "id": "sha256:53da8489f5fc82fd7219d5e96d2a69871d8cdbf72aae069398777292d6d9e13f",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "topic scalar overflow with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "SS_WPpdZcOa7t787xibzOlg6L4qj8ZB3mvizJcMH_LW9ZHGUGROrYVw-XYgtLtpeZbuSQcTKxUjGlQrLvmdxAg"
+        }
+      },
+      "id": "sha256:53da8489f5fc82fd7219d5e96d2a69871d8cdbf72aae069398777292d6d9e13f",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "nonstrings in topics",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              5
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "WhUwwfIK10AUJx9NsYvCYqhjoIEEadr0ZGBXkRwkJbulO8keEP51PtE2-H3-pDRK8o3uM3Q0isWAeTFNaKSbAA"
+        }
+      },
+      "id": "sha256:5dc296893c33d7d66807b151418a4ee89939d46839cbc651ca46271f607fb36d",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "nonstrings in topics with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              5
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Wr6uKgv8yWKIu9kuYvZzm79lZjQh_NmP6E_ln8vhlkwnqQzyFs6pkVzSnzXju_DXAMV5O-WXb20U24ekUWtiCA"
+        }
+      },
+      "id": "sha256:5dc296893c33d7d66807b151418a4ee89939d46839cbc651ca46271f607fb36d",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null license",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": null
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "gD609sKTJ639dUA_aRERP8DiH2-UBvVMnwnBFP4ISfgFQw-2zKyGZYth2fEai4WE3FwbDO8QFzO71s4wXX2JAw"
+        }
+      },
+      "id": "sha256:17d946fcd4895a90cd3fcfd072ce9c4b28b246e5ed814066fd9552e46c9822ba",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null license with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": null
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ssseQNfYHnJ5N9Gfd_eS1vUlKmsKfntRIgD9RPNdD41clTrW1VcwR3wL-nCG2xnIvks-GXH8S9X0Ct1_ZKHpCw"
+        }
+      },
+      "id": "sha256:17d946fcd4895a90cd3fcfd072ce9c4b28b246e5ed814066fd9552e46c9822ba",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "license scalar overflow",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "NdDjORodsKpbnsEy5j8kvQA1EGzrV5QBJ12vC_aSN8_7RJltvHX_PyluMjrTD30XblRzyXtGeiCAPPg43UCaAg"
+        }
+      },
+      "id": "sha256:6d9af4e14faaedaf65c4126267d4e03a8783a9fa1ae8bcdb4284742b09b73e4b",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "license scalar overflow with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "38gpLQziW1tKxqB1X8UtuhC5ks0csylyFpJYzxvfmusZaiEGmCbSEanz3CshbCtvMZd6rNS26XyG5qEPPV5fDA"
+        }
+      },
+      "id": "sha256:6d9af4e14faaedaf65c4126267d4e03a8783a9fa1ae8bcdb4284742b09b73e4b",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "language multiple subtags",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "zh-Hant-HK"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "LLnkUI2NIguVdWugzaIQivNe4G9gO7nrx8KEZ1ArTU27ymqZFDDJ8KTtfP6rzr9u1dtHswlfzbE9i15mraYoAw"
+        }
+      },
+      "id": "sha256:45cfb54e2e5520cbda7f4c516fcf57b6abe353c3c560250590772b1acdf73089",
+      "allowed": []
+    },
+    {
+      "name": "language multiple subtags with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "zh-Hant-HK"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "DB3qz0wMxzTcbWtJeoBTvaYa6f7xq1c9FyZh_sXo9KhLOomj6gtTfCX_wgtvr3egU_SnoqymrLbLYZm_hC9KAg"
+        }
+      },
+      "id": "sha256:45cfb54e2e5520cbda7f4c516fcf57b6abe353c3c560250590772b1acdf73089",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "lexical language without registry checks",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en-a-a"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "C6VzDDXAR8mhDpF6edmNWDdmddyEQOqNzyHegtesvcSFwd-d2JUz9tLNCfTTlROr0iNrjo-LEAMAqe7HHF-XAw"
+        }
+      },
+      "id": "sha256:0075cd1ec1273e47d513c6d91449797213edacd370a9eac937957b34b98005b6",
+      "allowed": []
+    },
+    {
+      "name": "lexical language without registry checks with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en-a-a"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "GbcXwMZZ1tr7k8RT3HygLQ3WuB7gCYYNYCe8YvbNDL_HZzLY7yd726yI7HZ9U6rwBBshChJtATYY6e8QZZsDCQ"
+        }
+      },
+      "id": "sha256:0075cd1ec1273e47d513c6d91449797213edacd370a9eac937957b34b98005b6",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "ten scalar boundary topics",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "q9BYgGLOFXpzVeuhYjSyf0RKvQn7Vhaj4aURNAYbTPCNnvf4rY2HDMJKSjNCGHhvbqw_5JkzQbU0EOeMlV1-CQ"
+        }
+      },
+      "id": "sha256:105efe3f7280d6dba7a915f6e122e01b59311024f9f33d95d6a98b677f204827",
+      "allowed": []
+    },
+    {
+      "name": "ten scalar boundary topics with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+            ]
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "K2neoXWBL5IUEA5Sq_hcVvOF5QTKYqOPHASY9jxrzFj1kCp2pfYq45i6o8nv9DNtS7HhqhUVBlWpRYzkBLfaAg"
+        }
+      },
+      "id": "sha256:105efe3f7280d6dba7a915f6e122e01b59311024f9f33d95d6a98b677f204827",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "license scalar boundary",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "yG1GT4wxLGnHqhWUzUhPy0TSiI8GWpnZOjleV4GHyxHFqUDkhq1XEa3AAVZzJsvu3mbp-quSDetD7J2R1l9PAg"
+        }
+      },
+      "id": "sha256:7bdb8ea33dc91b2f8480a466714fc5681f93e84cf4d7354bcfec6b48b7a47efd",
+      "allowed": []
+    },
+    {
+      "name": "license scalar boundary with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "JzDP7thj1ZlynZPjXsCcrP9e2fVg5h-ZeJfcyzzBzk0U0wDeie4tG_WiuWKRIhFXFxCt_faB4BkWrpKp2hkCDQ"
+        }
+      },
+      "id": "sha256:7bdb8ea33dc91b2f8480a466714fc5681f93e84cf4d7354bcfec6b48b7a47efd",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "empty license",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": ""
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "2LZh5ewJ3yleoIn7FE5LgPZ2hVOiWvOWlEmT8NTVWpOAvBIh4z5wQun9WJmKfSqxoSxy1unz3jQ4Pd1zOeD6DQ"
+        }
+      },
+      "id": "sha256:0e0b25ecd7a954528b5e9f26450f4c9cd15f8958a70eb16a34e40ad33b572f3c",
+      "allowed": []
+    },
+    {
+      "name": "empty license with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "license": ""
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ZaxGmt3RXOHojJTrN_1gT7MaIw7YRcOtujbcPZ7qrFbo7lDoVRcCVs0ho0pbHtq8KCuQKkfsubvbnjXy4-j5AA"
+        }
+      },
+      "id": "sha256:0e0b25ecd7a954528b5e9f26450f4c9cd15f8958a70eb16a34e40ad33b572f3c",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "zero bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "28w5laByOBa3MksnF2sQr5bunsn43P5a6_lWkTyqJH4c1DrVwHBSCq038vt2lIzmvV1MXAmoXeGtNc-SzSyADQ"
+        }
+      },
+      "id": "sha256:193d2c1bf98d1f0d9648f58d9535b498c7df4c020b8c50fee556ca9826fa70d2",
+      "allowed": []
+    },
+    {
+      "name": "zero bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Am95kSjFkcBUblsa68XJVUUA860iIM-PRYVrkUlLnMSQSoJSaLFg_os5JpYkYMsW92TGVgu9j7cajaaGAoSzAQ"
+        }
+      },
+      "id": "sha256:193d2c1bf98d1f0d9648f58d9535b498c7df4c020b8c50fee556ca9826fa70d2",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "decimal zero bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 0.0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "28w5laByOBa3MksnF2sQr5bunsn43P5a6_lWkTyqJH4c1DrVwHBSCq038vt2lIzmvV1MXAmoXeGtNc-SzSyADQ"
+        }
+      },
+      "id": "sha256:193d2c1bf98d1f0d9648f58d9535b498c7df4c020b8c50fee556ca9826fa70d2",
+      "allowed": []
+    },
+    {
+      "name": "decimal zero bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 0.0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Am95kSjFkcBUblsa68XJVUUA860iIM-PRYVrkUlLnMSQSoJSaLFg_os5JpYkYMsW92TGVgu9j7cajaaGAoSzAQ"
+        }
+      },
+      "id": "sha256:193d2c1bf98d1f0d9648f58d9535b498c7df4c020b8c50fee556ca9826fa70d2",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "decimal byte cap",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38944.0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "f2XzLEjgGhQU6TSn8-Zz3teAcUub5NDvEWL_x5Q0Fpk0tSOOH3wrLNtm6vbKEie-C1_6i2DWavYhGhazk3UbCQ"
+        }
+      },
+      "id": "sha256:1f006868a0401e8246b7c043c6dd89cc0ed077f3471cd2d2e21c17fc4ed7e2dc",
+      "allowed": []
+    },
+    {
+      "name": "decimal byte cap with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38944.0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "jChJosKVFjzAXrS9btR61j5uWBZtpFoOmX_ueZc3_LB0uStrgUCeyAarkxDiVufu66PuUMcnT0hFZTQkyf2tCw"
+        }
+      },
+      "id": "sha256:1f006868a0401e8246b7c043c6dd89cc0ed077f3471cd2d2e21c17fc4ed7e2dc",
+      "allowed": [
+        "WIST1-E01"
+      ]
+    },
+    {
+      "name": "unknown Envelope member",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        },
+        "extra": 1
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown Envelope member with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        },
+        "extra": 1
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown signature member",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg",
+          "extra": 1
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unknown signature member with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ",
+          "extra": 1
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "signature identifier scalar overflow",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "signature identifier scalar overflow with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+          "alg": "Ed25519",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null signature identifier",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": null,
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null signature identifier with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": null,
+          "alg": "Ed25519",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wrong signature algorithm",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed448",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "wrong signature algorithm with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed448",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent signature algorithm",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent signature algorithm with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": null
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "null signature with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": null
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent signature with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "absent new commitment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "pZElS48vjzHRrMTzoZJxSMQ-Dz7xO33A7YiRzhjZO8rfatEizfvXFCRnvFlEZJlTkoLlnUsRRMmC5Oo5oSqeCQ"
+        }
+      },
+      "id": "sha256:697de0ee3875c1a220295ccad81bb485dc9589ed0b9d91daf05e2bf2c0b014fd",
+      "allowed": [
+        "WIST1-E09"
+      ]
+    },
+    {
+      "name": "absent new commitment with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "12tCpx4KPRkmAwJQ4xmMGaoMUImFil_ATamglcbSrSX1sLTp6qgi1ITXtgrnRSaXZkyFsYV_0gFADN6g_pOtCg"
+        }
+      },
+      "id": "sha256:697de0ee3875c1a220295ccad81bb485dc9589ed0b9d91daf05e2bf2c0b014fd",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E09"
+      ]
+    },
+    {
+      "name": "oversized commitment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38945
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "pMcqa7eWgHy_sxtui2ekOAuXSIsHjdbrRPg-0cXuMYiqes0qIH1GrYfz6AKXtD5DCiBZjSwP91cf8083nhGIAQ"
+        }
+      },
+      "id": "sha256:6f582848f3f0987b9148aa5a2b6c515e856a58325a6f3db6728716d609ff347b",
+      "allowed": [
+        "WIST1-E04"
+      ]
+    },
+    {
+      "name": "oversized commitment with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38945
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ZowEAKTRu3y5_u3_Z7kDprxTvisEbY8moTQc7lyg3tdYFG4TdO082yg-6DZU2kGy8OsN9fSoVsPLzpCL2xQ7AQ"
+        }
+      },
+      "id": "sha256:6f582848f3f0987b9148aa5a2b6c515e856a58325a6f3db6728716d609ff347b",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E04"
+      ]
+    },
+    {
+      "name": "bytes beyond unsigned integer storage",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 1e+30
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "X4kXiTQ0tXpFvKX0-lf6maHG0bKurfauDLuUiSq7a3rgU-5OfbRTSI0JHt_wuRI-KH4tKpUb06FrO9WKG8AhCA"
+        }
+      },
+      "id": "sha256:ea43b7125bc46303765a9d5fdd66972177ac7d66859cfb2b9c76505969925f25",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "bytes beyond unsigned integer storage with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 1e+30
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "hj_UUwTl29h99imMbGWRwOTWRzoUDtd51xTMvh029hSXt4RqBJHYNDdkZU615ZLle5Q2SRV2gCb-HREmSYlzDg"
+        }
+      },
+      "id": "sha256:ea43b7125bc46303765a9d5fdd66972177ac7d66859cfb2b9c76505969925f25",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "safe integer bytes above default cap",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 9007199254740991
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Z_d7UjkT1XaKCWeNsFf7YEwf0YMaJqtYc8PNgieLGS9wTJnIGozwHzEv6yX1NVIoyDZLlBj16O9oUS5o1x_VCg"
+        }
+      },
+      "id": "sha256:94989aeae9a735b0cd2c17571d33fabdb024c7e76003d5e983edf957dffb5d27",
+      "allowed": [
+        "WIST1-E04"
+      ]
+    },
+    {
+      "name": "safe integer bytes above default cap with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 9007199254740991
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ONYvqfzr2pqhTdD0YN2cWTfFYCvpzDTnRWa4kEtBiVhDvkR722APkZjbdBbZ-tifPNZYwBjZmASmyF6WDm7YBw"
+        }
+      },
+      "id": "sha256:94989aeae9a735b0cd2c17571d33fabdb024c7e76003d5e983edf957dffb5d27",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E04"
+      ]
+    },
+    {
+      "name": "unsafe integer bytes",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 9007199254740992.0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "y7XK0-98URnBLF_r0UEK4FHcfuwYwNAosahvMh1XHzSbezt_WZH_Iv_pR1x8_34V7HEfMAP2LJdoUAS5-fi8CQ"
+        }
+      },
+      "id": "sha256:df6c9cca33c86c5c9c7231cf3be94c36daf043637717185e11a3e3158fdbc278",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "unsafe integer bytes with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 9007199254740992.0
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "KlYkWjwNESJisCBZvny15oDkH3L_a4Ox3Lj1USanqL82yLFMW6LX3-oa7bMmbueDFewx3d80fqmy0gjuxIOsDg"
+        }
+      },
+      "id": "sha256:df6c9cca33c86c5c9c7231cf3be94c36daf043637717185e11a3e3158fdbc278",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "raised commitment cap",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38945
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "pMcqa7eWgHy_sxtui2ekOAuXSIsHjdbrRPg-0cXuMYiqes0qIH1GrYfz6AKXtD5DCiBZjSwP91cf8083nhGIAQ"
+        }
+      },
+      "id": "sha256:6f582848f3f0987b9148aa5a2b6c515e856a58325a6f3db6728716d609ff347b",
+      "allowed": [],
+      "commitment_cap_bytes": 38945
+    },
+    {
+      "name": "raised commitment cap with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38945
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ZowEAKTRu3y5_u3_Z7kDprxTvisEbY8moTQc7lyg3tdYFG4TdO082yg-6DZU2kGy8OsN9fSoVsPLzpCL2xQ7AQ"
+        }
+      },
+      "id": "sha256:6f582848f3f0987b9148aa5a2b6c515e856a58325a6f3db6728716d609ff347b",
+      "allowed": [
+        "WIST1-E01"
+      ],
+      "commitment_cap_bytes": 38945
+    },
+    {
+      "name": "lowered commitment cap",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38944
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "f2XzLEjgGhQU6TSn8-Zz3teAcUub5NDvEWL_x5Q0Fpk0tSOOH3wrLNtm6vbKEie-C1_6i2DWavYhGhazk3UbCQ"
+        }
+      },
+      "id": "sha256:1f006868a0401e8246b7c043c6dd89cc0ed077f3471cd2d2e21c17fc4ed7e2dc",
+      "allowed": [
+        "WIST1-E04"
+      ],
+      "commitment_cap_bytes": 38943
+    },
+    {
+      "name": "lowered commitment cap with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 38944
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "jChJosKVFjzAXrS9btR61j5uWBZtpFoOmX_ueZc3_LB0uStrgUCeyAarkxDiVufu66PuUMcnT0hFZTQkyf2tCw"
+        }
+      },
+      "id": "sha256:1f006868a0401e8246b7c043c6dd89cc0ed077f3471cd2d2e21c17fc4ed7e2dc",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E04"
+      ],
+      "commitment_cap_bytes": 38943
+    },
+    {
+      "name": "URL active cap 26",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [],
+      "url_cap_bytes": 26
+    },
+    {
+      "name": "URL active cap 26 with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E01"
+      ],
+      "url_cap_bytes": 26
+    },
+    {
+      "name": "URL active cap 25",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E11"
+      ],
+      "url_cap_bytes": 25
+    },
+    {
+      "name": "URL active cap 25 with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "L_pHNiFVHaannL6ljyKRt3UW8ztAXiOpGHUzHOfvloPQYAGY0Oqf0iCrGaKGx66EEC3ciE4Eh6_dKhFduKk6BQ"
+        }
+      },
+      "id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E11"
+      ],
+      "url_cap_bytes": 25
+    },
+    {
+      "name": "URL octet cap",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "YWUmpSolWSg7l0Suk7Y2id73quiNimCRpzK6efjvxmmNXO8ZwGNp3UAIAn3glv09_fcvzkvotoyGyMqLrBlLCw"
+        }
+      },
+      "id": "sha256:aaf219772174db3932f6d56f1095e31639002eecdb8b9c0bb74ee34860f6aade",
+      "allowed": [
+        "WIST1-E11"
+      ]
+    },
+    {
+      "name": "URL octet cap with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "TmE_tEkxHr7dtg1qjE27zgBRPVLfJydiCkM-9EkDgLtiwUmwoZRCoDMyTGePe5xmRxP9zrH_KtO5sHBKpkqTBA"
+        }
+      },
+      "id": "sha256:aaf219772174db3932f6d56f1095e31639002eecdb8b9c0bb74ee34860f6aade",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E11"
+      ]
+    },
+    {
+      "name": "URL raised cap",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "JSPn_4IFVKDCtwUl1tMHtxwug8OFlq48QuuhUv62Wx6KSVuFKDFXEEofGYGoXzXxSPXctsewM9LGfd68bkm6CQ"
+        }
+      },
+      "id": "sha256:7441105f7e3206479a6ea9222e8616e758c1444e70475c0b0fa2fb16a88cf68a",
+      "allowed": [],
+      "url_cap_bytes": 2052
+    },
+    {
+      "name": "URL raised cap with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "jedQy3k_UciC6r8tdJ5ypSbZsXE4EDAVpLfnX3Ah2LyN7N0oWqcasumOxZyhJpqoqXZ9Uxva7ND4pWs9GYeAAQ"
+        }
+      },
+      "id": "sha256:7441105f7e3206479a6ea9222e8616e758c1444e70475c0b0fa2fb16a88cf68a",
+      "allowed": [
+        "WIST1-E01"
+      ],
+      "url_cap_bytes": 2052
+    },
+    {
+      "name": "HTTP URL",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "http://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "WvJnP9McTFi1rwndHdSwBeHrgeCH0ahgURiQ1caVAxfUT8GOc3fNugSui_BQno_jn8ktYFngauF79TiNybLvAA"
+        }
+      },
+      "id": "sha256:acee3b40085e26e0652fb81ce7105162327c8b0bfdd7cf820672175cd03a473c",
+      "allowed": [
+        "WIST1-E03"
+      ]
+    },
+    {
+      "name": "HTTP URL with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "http://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "hs25NEgaI2IcS-0WkPnWR40Ct_XE2FY3ciP2tQpSEiFBdiSpSZMox0qTQXytGP3S-eT7SRtW5ZNJV7fNXPtTDA"
+        }
+      },
+      "id": "sha256:acee3b40085e26e0652fb81ce7105162327c8b0bfdd7cf820672175cd03a473c",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E03"
+      ]
+    },
+    {
+      "name": "attest forbidden commitment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "attest",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "j_pIL2MBEn1MmRM0QoxR1oTB66dHvIkGe8gvhFVN2_ogTsMrnirrbIA-Vgzh5HR5NESp9ChgwWL7XpIQOqV-Bw"
+        }
+      },
+      "id": "sha256:abe2f41297d11c8d4577b22b08f6bcd5689f5ed23b7cd2ab1ed6ed2aa48a40e7",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "attest forbidden commitment with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "attest",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "lDSLoIJR32WJI-2xx3ddPi2roeMzXzC2CfVuP8pcbvlqwxBGPgviNBLPDwwgc6OXe2ISl82K1csCuafCark1Bw"
+        }
+      },
+      "id": "sha256:abe2f41297d11c8d4577b22b08f6bcd5689f5ed23b7cd2ab1ed6ed2aa48a40e7",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "attest absent predecessor",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "attest",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "W4kozESIlSJmSLLS_H4K_NC3ZJHAOgR2toZwtBl7UNNBVuoAOjBTZwrsz8Cbn4Lh5ON4Ei__O2Z5RywVFoqKAA"
+        }
+      },
+      "id": "sha256:54ad58af701e0d661a4bdc885213dc2ae0777bcc7224025c8901579514c080d9",
+      "allowed": [
+        "WIST1-E07"
+      ]
+    },
+    {
+      "name": "attest absent predecessor with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "attest",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "HCmUXQK37vebKW2skOGsRnF1G_6Nw7V9n7sQ6sQf8Qtywf_dqbnO3UZNEIhoGwFUOMQkRT_Sx-mhzoGYpaCLDQ"
+        }
+      },
+      "id": "sha256:54ad58af701e0d661a4bdc885213dc2ae0777bcc7224025c8901579514c080d9",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E07"
+      ]
+    },
+    {
+      "name": "delete forbidden commitment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "delete",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "KEwQHKH8I2Gr7PC_ArJnXCYUZI8fq_Ac8lmVfe0k41se_zUT_qRIQqC3N4t4KGnc7fqZAObO_FG8RrsS8HrsDA"
+        }
+      },
+      "id": "sha256:162921b7ae045c38b229dfddc2e3b1086f84ba0c47654adb4394c40dfafed392",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "delete forbidden commitment with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "delete",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "AaDthjiFP8LiWcaoWMvhB5CD3tnDEYzBNmUDxCVJ2ugwVo3n0y0GDRnDtA7AHKZlOopDi8zfC2ebtRW_tT4gBQ"
+        }
+      },
+      "id": "sha256:162921b7ae045c38b229dfddc2e3b1086f84ba0c47654adb4394c40dfafed392",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "delete absent predecessor",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "delete",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "-GEIAYTBMYz07r4XUBKRB_Mbr3QWYeZOfUiIBvN9TKGJWe__nEdIBWeS3yqBnbLgonWLCQ9PXtMOczGI330ZBw"
+        }
+      },
+      "id": "sha256:6898c698fdd201090c7f29c35edee0aefd5e12e266022b592f47ffe4a2cea186",
+      "allowed": [
+        "WIST1-E07"
+      ]
+    },
+    {
+      "name": "delete absent predecessor with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "delete",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "3LkzeNv-lPPECZPdH_RDHh6JAirYzCUPsl_sVGKe_m0jxnbqg2UWarhssjDDouQFE7o9_wPrBG2YiRkzbTlECw"
+        }
+      },
+      "id": "sha256:6898c698fdd201090c7f29c35edee0aefd5e12e266022b592f47ffe4a2cea186",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E07"
+      ]
+    },
+    {
+      "name": "update absent predecessor and commitment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "update",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "CJTIMYQnt_bdbI1f9QS0cZaMqAyuHKYHalu5cfynBGy0fHy8Vo4Ov4IlQxpJcPC1nVjxbrkwg0qiVq79fTH-AA"
+        }
+      },
+      "id": "sha256:64423af191ce3097d751a7910467c212fbc0ba14e39cbb5d2746eb2850c7e79b",
+      "allowed": [
+        "WIST1-E07",
+        "WIST1-E09"
+      ]
+    },
+    {
+      "name": "update absent predecessor and commitment with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "update",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "_ATK-Sd3Tai1GhTRslYjMko6HaJ4xaSaR-TiG060eMQ4wk_iZpsZF1VjlevFN1L13OPt_bjRWeNJItMGmU6xAQ"
+        }
+      },
+      "id": "sha256:64423af191ce3097d751a7910467c212fbc0ba14e39cbb5d2746eb2850c7e79b",
+      "allowed": [
+        "WIST1-E01",
+        "WIST1-E07",
+        "WIST1-E09"
+      ]
+    },
+    {
+      "name": "malformed metadata precedes semantic omissions",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "update",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en\n"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "YyTSwI73z2N5mg3EA7IaInlut2K6BnJsAcIIozUZ7QWiWd9VajpkB6eiJqVISrYJt1U0h0dHoLS1wqLm8lAdAg"
+        }
+      },
+      "id": "sha256:248c944ed658cfa49222125f283693389edf9bd1e3fa5e9a8d4bf4d2c7fbd8b0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    },
+    {
+      "name": "malformed metadata precedes semantic omissions with invalid signature",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "update",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "meta": {
+            "lang": "en\n"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "mYCiilKy6C-W8jFlHg01F8lmDt7barvPXpmaXJRIPrnvc9ZoGIQxzVLDAhztycSa43BB7hdP-1Drj4I9RQalAw"
+        }
+      },
+      "id": "sha256:248c944ed658cfa49222125f283693389edf9bd1e3fa5e9a8d4bf4d2c7fbd8b0",
+      "allowed": [
+        "WIST1-E14"
+      ]
+    }
+  ],
+  "transport_cases": [
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "requested_id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "feed_domain": "example.com",
+      "expected": "association_satisfied"
+    },
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "requested_id": "sha256:3f8d0f5feb009e29a17ca5f8350009965c4dd1316cc08c11ba12045a4968e6b6",
+      "feed_domain": "other.example",
+      "expected": "WIST2-E03"
+    },
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "requested_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "feed_domain": "example.com",
+      "expected": "WIST2-E03"
+    },
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "VEaj7hFYjcXycq1nt_98OZtLFXsgpykVLxMOE1PJbwYzOMzDpSzWtaH0N_LfMR90JSFdosI1bFiPOG3YmWfrAg"
+        }
+      },
+      "requested_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "feed_domain": "other.example",
+      "expected": "WIST2-E03"
+    },
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "replace",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "gsDaPFy2WjE92m1jNRIPBQau2oxm3Xh2aSKYtnfo4l0wQH9eLcYJ5dDFJhN_E82ZBHiudYXFvbwms248trx7Cw"
+        }
+      },
+      "requested_id": "sha256:7886f67bf0f4322642c492d5b636967fd8f984e9c9765743950db16745b6cf97",
+      "feed_domain": "example.com",
+      "expected": "WIST1-E14"
+    },
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "replace",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "gsDaPFy2WjE92m1jNRIPBQau2oxm3Xh2aSKYtnfo4l0wQH9eLcYJ5dDFJhN_E82ZBHiudYXFvbwms248trx7Cw"
+        }
+      },
+      "requested_id": "sha256:7886f67bf0f4322642c492d5b636967fd8f984e9c9765743950db16745b6cf97",
+      "feed_domain": "other.example",
+      "expected": "WIST1-E14"
+    },
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "replace",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "gsDaPFy2WjE92m1jNRIPBQau2oxm3Xh2aSKYtnfo4l0wQH9eLcYJ5dDFJhN_E82ZBHiudYXFvbwms248trx7Cw"
+        }
+      },
+      "requested_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "feed_domain": "example.com",
+      "expected": "WIST1-E14"
+    },
+    {
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/page",
+          "change_type": "replace",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "gsDaPFy2WjE92m1jNRIPBQau2oxm3Xh2aSKYtnfo4l0wQH9eLcYJ5dDFJhN_E82ZBHiudYXFvbwms248trx7Cw"
+        }
+      },
+      "requested_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "feed_domain": "other.example",
+      "expected": "WIST1-E14"
+    }
+  ]
+}

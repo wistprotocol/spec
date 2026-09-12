@@ -358,7 +358,11 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    This rejection neither attributes the foreign Delta to the Feed's domain
    nor invalidates it under its actual Publisher; it does not count as Ping
    noise (§4). Scope failure against the signed Publisher remains WIST1-E03.
-   A malformed `publisher` retains WIST1-E14 instead of this association code.
+   A fetched JSON Delta Envelope's field failures retain WIST1-E14 under
+   WIST-1 §7, even if its signature fails, its ID differs from the requested
+   ID, or its Publisher differs from the Feed domain. WIST2-E03 covers
+   unavailable or non-JSON Delta responses and, after mandatory field
+   checks, mismatched Delta IDs; it does not wrap WIST-1 field diagnostics.
    For every content-bearing Delta it also fetches the corresponding
    `payloads/<id>.json` in the same pass and verifies it against the
    Delta's commitment and `bytes` (WIST-1 §3.6). A Delta whose Payload is

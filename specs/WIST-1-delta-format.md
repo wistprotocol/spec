@@ -424,9 +424,13 @@ Deltas, keeps the binding and forfeits the hiding.
 
 ### 3.7. `meta`
 
-Descriptive metadata: `lang` (REQUIRED; BCP 47 primary tag, e.g. `en`,
-`pt-BR`), `topics` (≤ 10 free-form strings), and `license` (the declared
-license of the page content, e.g. `CC-BY-4.0` or `proprietary`).
+Descriptive metadata: `lang` is REQUIRED and uses the schema's lexical
+language-tag profile: two or three lowercase ASCII letters followed by zero
+or more hyphen-separated subtags of one to eight ASCII alphanumerics.
+Validation requires this complete spelling, without language-registry lookup,
+subtag ordering or uniqueness checks. `topics` permits at most ten free-form
+strings of at most 64 Unicode scalar values each; `license` is a string of
+at most 64 scalar values declaring the content's license.
 
 `meta` is the one descriptive field that lives inside the signed Delta
 rather than in the Payload, so it is sealed with the Delta and is outside
@@ -1141,10 +1145,34 @@ matter". Importance is measured at consumption, outside this protocol.
 ## 7. Error Registry
 
 **Delta diagnostics.** Invalid JCS input is `WIST1-E05`. For a
-canonicalizable Delta Envelope, validate the base64url fields specified in
-§2, `observed_at` in §3.4 and `publisher` in §3.8 before selecting a
-semantic rejection; failure of any is `WIST1-E14`. This does not assign E14 to additional
-Delta fields or change other objects' field diagnostics.
+canonicalizable Delta Envelope, validate its complete field structure under
+`delta.schema.json`, including §2 base64url, §3.4 timestamps and §3.8
+Publisher spelling, before semantic rejection or idempotent acceptance.
+Missing required members, unknown members, wrong types, explicit null in an
+optional member, malformed strings and forbidden `payload` on `attest` or
+`delete` are `WIST1-E14`, with these exceptions:
+
+- A string `url` retains E03 for normalization/authority and E11 for its
+  §3.2 size bound; a missing or non-string `url` is E14.
+- Absent `prev` required by §3.3/§3.5 retains E07; a present malformed
+  `prev` is E14. Absence alone requires no network retrieval.
+- Absent `payload` on `new` or `update` retains E09; a present malformed
+  commitment object is E14.
+- A nonnegative integral `payload.bytes` within §4's safe-integer range
+  but exceeding §3.6's active derived cap retains E04; a negative, fractional,
+  nonnumeric or unsafe-integer value is E14. Integer eligibility
+  depends on the JSON number's value, not decimal or exponent spelling.
+
+The schema's fixed `url.maxLength` and `payload.bytes.maximum` describe
+the default profile. For these two checks, validators MUST instead apply
+§3.2's JCS-octet URL cap and §3.6's derived commitment cap from the parameter
+profile required at their validation stage under WIST-4 §9; the fixed schema
+values MUST NOT reject an object permitted by that active profile.
+
+Apply all E14 checks before these semantic exceptions. String lengths in
+schema field checks count Unicode scalar values, without normalization;
+URL/content octet caps retain their own rules. Field validation does not
+change other objects' diagnostics or select an unsupported-version code.
 
 After those checks pass, a validator MAY report any applicable semantic
 error whose conditions it has established. No priority is imposed between
@@ -1190,7 +1218,7 @@ WIST2-E03 remain required. See
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
-| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; missing, non-string or malformed Delta `observed_at` (§3.4) or `publisher` (§3.8); or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope fields under §7, subject to its semantic exceptions; or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's current one
