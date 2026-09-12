@@ -3551,10 +3551,13 @@ def _dc4_ladder_reversals():
     assert any(p["level"] == 4 for p in across["probes"])
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("A lift clears rungs, never findings",
-                   "a third severity-3 finding is the first to meet that branch only where "
-                   "the level-3 state was cleared in between"):
-        assert marker in prose, f"§7 does not state: {marker!r}"
+    assert "A lift clears rungs, never findings" in prose, \
+        "§7 no longer preserves pre-lift findings"
+    rationale = re.sub(r"\s+", " ",
+                       (ROOT / "decisions" / "0018-confirmation-and-sanctions.md").read_text())
+    assert ("a third severity-3 finding is the first to meet that branch only where "
+            "the level-3 state was cleared in between") in rationale, \
+        "ADR-0018 no longer explains the count branch across reversals"
 check("vectors:wist4-ladder-reversals", _dc4_ladder_reversals)
 
 def _dc4_ladder_reversals_twin():

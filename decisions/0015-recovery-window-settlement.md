@@ -39,8 +39,6 @@ window; another recovery inside it cannot replace the owner or open another
 window. Canonical leaf-hash order is storage order and cannot choose the
 owner. Signed Block histories in `vectors/wist1/recovery-order.json` include
 two recoveries whose sequence order reverses their leaf-hash order.
-This changes no object fields or schema constraints; it defines application
-order within the existing signed format under PUBLICATION.md.
 
 **The owner freezes the recovery deadline.** Read `recovery_window_days`
 from the map in force at the owner Block, including amendments effective
@@ -48,8 +46,8 @@ exactly at its `sealed_at`. Add that many 86,400-second days and retain the
 end through later amendments and recoveries inside the window. Recomputing
 from the current map could release queued Deltas early or extend their hold;
 reanchoring at a follower would let repeated rotations postpone settlement.
-A new window after settlement reads its own owner Block’s map. This adds no
-object fields or schema constraints. `recovery_window_cases` in
+A new window after settlement reads its own owner Block’s map.
+`recovery_window_cases` in
 `vectors/wist4/parameter-combinations.json` distinguishes these readings
 with explicitly accepted parameter schedules and eligible recovery events;
 those stage inputs do not establish Declaration or amendment authentication.
@@ -71,7 +69,6 @@ silently select a member of a conflicting batch. Different failing domains
 may report different applicable diagnostics, since their processing order
 does not affect Block rejection or retained state. Signed cases and positive
 controls in `vectors/wist1/declaration-conflicts.json` exercise these rules.
-This adds no object fields or schema constraints.
 
 **Admission is the union.** A Delta is queued when it verifies under either
 the Key Set in effect immediately before the recovery or the recovery
@@ -108,7 +105,7 @@ a scope failure is E03. Later scope expansion can permit a previously dropped
 Delta to be re-served; neither scope rejection nor recovery rejection creates
 a permanent ID ban. Historical scope follows the same height-specific
 Declaration as historical keys, without rewriting earlier sealed authority.
-No object fields or schema constraints change. Signed histories in
+Signed histories in
 `vectors/wist1/recovery-scope.json` distinguish frozen source pairing,
 competitors, followers, settlement, deadline-Block changes and re-serving.
 
@@ -208,8 +205,7 @@ additional `valid_from` filter. Neither self-declared `effective_at` nor a
 sealing instant substitutes for the Delta timestamp that WIST-1 §5.1 bounds.
 Missing notice authority or a missing identifier is WIST4-E05; a signature
 failing under its selected entry is WIST1-E01 under WIST-1 §4. Neither
-failure fills an appeal slot. This defines authority within existing signed
-objects, adding no fields or schema constraints. Signed histories and
+failure fills an appeal slot. Signed histories and
 independent signature probes in `vectors/wist4/recovery-appeals.json`
 exercise WIST-4 §7's resolution; notice evidence eligibility remains a
 separate validation obligation.
@@ -227,12 +223,12 @@ probes reject unauthorized recovery-set replacement, stale predecessors and
 invalid author signatures. Separate Delta binding probes distinguish public
 key reuse, identifier renaming, `valid_from`, invalid signatures and later
 re-serving of a rejected Delta ID. Survivors are signature-eligible inputs,
-not proof of eventual inclusion. No object field or schema constraint changes.
+not proof of eventual inclusion.
 `vectors/wist1/recovery-heads.json` carries a signed hourly Block chain,
 Declaration predecessors and independent candidate probes across settlement.
 It distinguishes accepted sequence from restored head, authenticates chain
 extensions past competitors, and rejects stale predecessors and recovery-key
-replacement without authority. No object field or schema constraint changes.
+replacement without authority.
 
 ## Alternatives considered
 
@@ -370,6 +366,5 @@ a Delta signed by a superseded key does not verify, whenever it is served.
   operator usually wants to replace immediately afterwards.
 - Admissible competing Declarations can be sealed and are superseded;
   sequence, signature and recovery-key violations still reject at admission.
-- Two implementation behaviors change: an aggregator stops rejecting
-  in-window Declarations with `WIST1-E08`, and a consumer stops superseding
-  a legitimate post-recovery rotation.
+- Replay preserves legitimate recovery followers while superseding admissible
+  off-chain competitors; fresh classification alone is not `WIST1-E08`.

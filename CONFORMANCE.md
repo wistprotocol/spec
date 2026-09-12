@@ -2,6 +2,7 @@
 
 Known reference divergences and outstanding validation requirements follow.
 Resolution and publication criteria: [PUBLICATION.md](PUBLICATION.md).
+Vector anchors and exercised cases: [tools/VERIFICATION.md](tools/VERIFICATION.md).
 
 ## URL resolution
 
@@ -24,59 +25,32 @@ add positive and negative cases without changing the specified algorithm.
 
 ### Declaration field and key eligibility
 
-WIST-1 §§3.4, 5.1 and 7 assign `WIST1-E14` to malformed Declaration
-Envelope fields and missing, non-string or malformed Delta `observed_at`.
-[ADR-0024](decisions/0024-declaration-field-diagnostics.md) fixes field-check
-precedence before Declaration sequencing, conflicts, idempotence and signer
-resolution. `vectors/wist1/declaration-fields.json` supplies signed field
-mutations and authenticated rejection Blocks, including another domain's
-valid transition, open recovery, due settlement and malformed current re-serves.
-Canonicalization, semantic sequencing and cryptographic failures retain their
-separate codes; first-contact pull failure retains the `WIST2-E04` wrapper.
-Adoption in admission, historical replay, sealing and durable restoration
-remains required. The reference checks the supplied structural and ASCII
-hostname cases plus the Publisher timestamp profile described below. These
-vectors do not establish complete hostname validation, Delta chain/clock
-checks, full key eligibility or live service conformance.
+Field validation and diagnostic precedence are defined by WIST-1 §§3.4,
+5.1 and 7 and [ADR-0024](decisions/0024-declaration-field-diagnostics.md).
+`declaration-fields.json` covers signed field mutations and atomic Block
+rejection. Admission, historical replay, sealing and durable restoration
+must adopt those checks. The reference's structural, ASCII-host and Publisher
+timestamp checks do not establish complete hostname, Delta chain/clock,
+key-eligibility or live-service conformance.
 
-WIST-1 §4 and draft ADR-0023 derive usable signing and recovery sets while
-preserving every signed entry. Exclusion precedes signer-candidate resolution;
-no usable candidate is E02, and usable candidates without a valid signature
-are E01. An unused excluded key alone does not reject the Declaration.
-Identifier uniqueness, cross-set disjointness, predecessor hashes and
-recovery-set byte protection still use the original signed entries.
-`vectors/wist1/declaration-key-eligibility.json` exercises signed initial,
-ordinary, recovery and fresh authentication; unusable named bindings, unused
-excluded entries, empty usable sets, identifier reuse, and protected recovery
-entries. The reference verifies signatures under the §4 profile and derives
-key eligibility with the curve arithmetic anchored by the strictness corpus.
-Conditional signed appeal probes use supplied eligible notices and selected
-Declaration sources to distinguish an excluded identifier (WIST4-E05) from
-a usable key with an invalid signature (WIST1-E01), including a future
-`valid_from` signing entry. They do not establish notice evidence, temporal
-authority selection or accepted appeal processes.
-Adoption in services, authenticated Delta history, frozen appeal authority
-and durable restoration remains required. These fixtures assume ordinary
-valid fields and canonical base64url; they do not establish full field or
-encoding eligibility.
+Usable-key derivation and original-entry protections are defined by WIST-1
+§4 and [ADR-0023](decisions/0023-declaration-key-binding.md).
+`declaration-key-eligibility.json` anchors curve checks to the strictness
+corpus but assumes valid ordinary fields and canonical base64url. Conditional
+appeal probes supply eligible notices and selected Declaration sources;
+they distinguish excluded-identifier WIST4-E05 from usable-key signature
+WIST1-E01, including future `valid_from` entries. They do not establish
+notice evidence, temporal authority selection or accepted appeal processes.
+Full field/encoding validation, authenticated Delta history, frozen appeal
+authority and durable service adoption remain required.
 
-WIST-1 §2 and [ADR-0025](decisions/0025-canonical-base64url.md) require
-canonical unpadded base64url in every protocol field using that encoding.
-Malformed encodings are underlying `WIST1-E14` failures before cryptographic
-use; existing object dispositions and transport wrappers remain applicable.
-`vectors/wist1/base64url.json` exhausts final-character choices for public
-keys, signatures and three salt lengths, with alphabet, type and length
-failures. Signed Declaration cases distinguish encoding rejection from
-public-key alias/disjointness checks and excluded-point derivation. Signed
-signature aliases decode to valid signatures but still reject; canonical
-Block twins distinguish field validation from conflict comparison and
-idempotence, including rollback of due recovery settlement and another
-domain's transition. The reference checks bits independently of decoder
-library policy and checks schema agreement, immutable signed input and
-Block authentication. The key-eligibility reference now uses this canonical
-decoder. Full field formats, role admission/replay/sealing/restoration,
-frozen appeal authority and transport-wrapper integration remain required.
-These vectors do not establish those operational obligations.
+Canonical encoding and its diagnostics are defined by WIST-1 §2 and
+[ADR-0025](decisions/0025-canonical-base64url.md). `base64url.json` checks
+unused bits independently of decoder policy, schema agreement, signed aliases,
+field-before-conflict/idempotence ordering and atomic Block rejection.
+The key-eligibility reference uses this decoder. Complete field formats,
+role admission/replay/sealing/restoration, frozen appeal authority and
+transport-wrapper integration remain unvalidated by this corpus.
 
 The `publisher.schema.json` formats `wist-canonical-host` and
 `wist-publisher-timestamp` require checks beyond typed JSON deserialization. Optional fields present as `null`, empty
@@ -100,18 +74,12 @@ agreement; independent role validation must exercise the pinned backend.
 
 ### Unresolved field profiles and recovery binding diagnostics
 
-WIST-1 §§2 and 5.1 and draft ADR-0014 require signed Declaration `domain`
-and every `subdomain_scope` member to equal its own Canonical Host. The
-`wist-canonical-host` format preserves the pinned UTS #46 profile, including
-positional hyphens and A-label eligibility; it rejects alternate signed
-spellings before grouping or idempotence. Feed/status Publisher domains,
-Publisher-domain Snapshot fields and Publisher Registry subjects use the same
-representation. Auditor/Observer admission restrictions remain separate.
-`vectors/wist1/declaration-hosts.json` supplies 44 host spellings, 88 signed
-Declaration probes and 100 authenticated candidate Blocks, covering identity
-conflicts, alternate spellings, immutable signatures and whole-state
-rejection through due recovery settlement. Shared schema-field probes cover
-the Publisher reference surfaces without asserting object/process eligibility.
+Signed host representation is specified by WIST-1 §§2 and 5.1 and
+[ADR-0014](decisions/0014-canonical-host-flag-profile.md), including the
+Publisher reference surfaces and separate Auditor/Observer restrictions.
+`declaration-hosts.json` exercises signed spelling, identity conflicts and
+atomic rejection through recovery settlement. Its shared schema-field probes
+do not establish object or process eligibility.
 
 The Python reference independently checks ASCII spelling/length and Punycode
 round trips, with explicitly enumerated decoded eligibility for the fixture
@@ -152,16 +120,11 @@ process authority and signature failure, preserving the applicable ignored-act
 disposition, with signed Registry Update cases before authenticated governance
 admission/replay. Schema-field checks do not establish this result.
 
-**Publisher timestamp eligibility is specified by draft ADR-0026 and
-WIST-1 §3.4.** `observed_at` and every Declaration `valid_from` use an
-RFC 3339-derived Gregorian profile with 86,400 seconds per day, exact
-fractions and numeric offsets. All `:60` labels reject with `WIST1-E14`;
-second 59 remains eligible independently of leap announcements, including
-hypothetical deletions. Future ordinary dates need no announcement horizon.
-This is an explicit clock policy, not physical UTC event validation.
-`wist-publisher-timestamp` requires Gregorian calendar checks beyond its
-schema pattern, including year zero and arithmetic outside the written
-year range after offset subtraction.
+**Publisher timestamp eligibility** follows WIST-1 §3.4 and
+[ADR-0026](decisions/0026-publisher-timestamp-profile.md).
+`wist-publisher-timestamp` needs Gregorian calendar checks beyond its schema
+pattern, including year zero and offset arithmetic outside the written year
+range. The specified clock is independent of physical UTC leap events.
 
 `declaration-fields.json` exercises signed field mutations in both key
 arrays and Delta `observed_at`, preserved recovery-key protection, exact

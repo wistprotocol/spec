@@ -24,7 +24,7 @@ input is "a hostname lowercased". Three UTS #46 flags were left unstated —
 no case operation.
 
 Both gaps have observable consequences. An implementation reaching for a
-strict default (Rust's `idna::domain_to_ascii_strict`, for instance) gets
+strict library default gets
 `CheckHyphens=true`, which rejects any label with hyphens in the third and
 fourth positions — the shape CDN nodes such as `r2---sn-x.example` actually
 use, and which every browser resolves. And "lowercased" admits a

@@ -147,6 +147,13 @@ removal. Coverage accounting is described in
 
 ## Consequences and limits
 
+A contradiction cannot distinguish a dishonest filer from an honest fetch
+of a cloaked response, stale cache, reverted defacement or page updated before
+the summoned peers fetch. Escalation therefore buys more observations without
+penalizing either party. The trigger ration bounds a liar's imposed peer
+fetches; repeated contradictions remain public evidence for discretionary
+removal, whose judgement can still harm an honestly cloaked filer.
+
 The roster's admission evidence becomes inspectable without making Observer
 verdicts canonical. Canary evidence demonstrates timely byte possession;
 it does not prove independent network retrieval, honest administration or
@@ -159,8 +166,10 @@ universal full-page verification.
 - Colluding identities can share one fetch. Planter diversity matters:
   a ring can credit its own members through its own canaries, while the
   domain and suffix budgets bound visible activity rather than ownership.
-- Cloaking can fill an honest party's miss column. No automatic penalty
-  follows, but admission or removal judgement can still be influenced.
+- Cloaking can fill an honest party's miss column. Filtering those misses
+  would also let fabricators discard theirs. No automatic penalty follows,
+  but admission or removal judgement can still be influenced; planting
+  rations limit this attack only where the planting is attributable.
 - Fraud canaries incur sanctions and are needed to expose false
   `consistent` verdicts over fraudulent content. Watermark credit alone
   cannot establish that a party would detect fraud.

@@ -115,6 +115,31 @@ replay across aging, reversals and rearming. Entry order remains relevant
 where findings are sequential, while simultaneous eligible process conflicts
 choose no winner by position.
 
+Derived sanctions prevent an Aggregator from sparing a qualifying domain
+by withholding registry acts. Public evidence lets any party recompute and
+contest the basis; notice additionally obliges the Aggregator to open a
+process before exercising its own ingestion or exclusion authority. Requiring
+a notice in a strictly earlier Block would delay that process without
+delaying derived state. Levels 1–2, including weight reduction, require no
+notice because their evidence and severity are already public. This design
+does not guarantee that third-party materialization waits for an appeal.
+
+An appeal clock based on `effective_at` could expire before its notice seals.
+A clock starting only when an appeal seals would let the Aggregator suppress
+that appeal indefinitely. The notice-anchored sealing deadline instead
+requires a timely appeal or an `"unappealed"` ruling to preserve state.
+Publisher silence earns neither reprieve nor penalty. Suppressing a served
+appeal then requires a signed, public assertion falsifiable by that appeal;
+sealing nothing voids state. The resulting process burden gives Aggregators
+an incentive to omit notices, but omission also bars their own enforcement.
+If no notice seals, public evidence can still invalidate derived state, and
+WIST-4 §8 preserves the ability to follow another Log.
+
+Level 4's count branch matters after reversals: a third severity-3 finding
+is the first to meet that branch only where the level-3 state was cleared
+in between. Otherwise the second finding already reaches level 4 through
+the further-finding branch. Reversals never alter evidence-derived `penalty_n`.
+
 Automatic expiry would contradict latched sanctions; reversing every future
 activation would let an old process reach a new offense. Accepting partial
 quorums would let citation selection fabricate support or severity. Retention

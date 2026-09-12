@@ -96,61 +96,39 @@ contradicts the admission publicly, which is evidence for `auditor_remove`
 and an instance of the exposure §11 states — never a retroactive rewriting
 of Records already sealed.
 
-**Independence, and what it is worth.** Two Auditors are **independent**
-when their `auditor_id`s share no suffix of two or more labels:
-`a.example.org` and `b.example.org` share `example.org` and are not
-independent; `audit.example.net` and `checker.example.org` share nothing
-and are. The test is a label comparison over hostnames the Log already
-carries, so every party recomputes it identically with no Public Suffix
-List, no registry lookup, and no judgement, and it errs toward finding
-Auditors dependent — it withholds confirmations rather than manufacturing
-them. Two unrelated operators under one two-label suffix (`a.com.br`,
-`b.com.br`) therefore cannot confirm each other's `inconsistent` verdicts;
-both may still audit everything, and what a confirmation needs is a third
-Auditor elsewhere, not an exception here. A Confirmed Inconsistency (§5)
-requires a quorum of Auditors independent in exactly this sense, not merely distinct
-keys.
+**Independence.** Two Auditors are independent when their `auditor_id`s
+share no suffix of two or more labels. Compare hostname labels directly,
+without a Public Suffix List or registry lookup: `a.example.org` and
+`b.example.org` are dependent; `audit.example.net` and `checker.example.org`
+are independent. Unrelated operators at `a.com.br` and `b.com.br` are also
+dependent under this test. Both may audit, but confirming each other's
+`inconsistent` verdicts requires an independent Auditor elsewhere. A
+Confirmed Inconsistency (§5) requires pairwise independence, not merely
+distinct keys. Ownership limits are described in §11.
 
 **The identity a Record claims is the admitted one.** A Record's
 `auditor_id` MUST be byte-identical to the `subject` of the
 `auditor_admit` that admitted the key named in its `sig.key_id`, and a
 Record where it is not MUST be rejected by validators recomputing
-reputation. Without that binding every test below compares a string the
-Auditor writes for itself: one admitted key could sign
-`checker.example.org` on one Record and `audit.example.net` on the next
-and pass the independence test against itself, or claim an unrelated
-hostname in order to audit its own domain. The Log already says which
-hostname that key was admitted under; the Record is required to agree with
-it, and the schema constrains the field to the same shape `subject`
-carries.
+reputation. The schema constrains `auditor_id` to the same shape as
+`subject`; this binding prevents one admitted key from claiming multiple
+independent identities or evading self-audit restrictions.
 
 An Auditor MUST NOT audit a Delta whose Publisher domain fails the
 independence test above against its own `auditor_id` — that is, whose
 Publisher domain shares a suffix of two or more labels with it — and an
 `auditor_admit` MUST NOT name an `auditor_id` that fails the same test
-against the Log Anchor's `log_id` (WIST-3 §3.4). One test governs all three
-relations deliberately: a rule that put only a hostname's parents and
-subdomains beyond its audits would leave `audit.example.net` free to audit
-`blog.example.net`, which is the same operator by the very measure §5's
-confirmation rule uses. Both are comparisons over values the Log carries:
-a Record breaching the first MUST be rejected by validators recomputing
-reputation, and an `auditor_admit` breaching the second MUST be rejected
-outright, so no key it names is ever an admitted key and no Record signed
-by that key counts. Neither rule makes independence true — §11 states
-exactly how far it reaches — but both remove the cases the Log itself
-already shows to be false.
+against the Log Anchor's `log_id` (WIST-3 §3.4). A Record breaching the first
+restriction MUST be rejected by validators
+recomputing reputation. An admission breaching the second MUST be rejected;
+its key is never admitted and no Record signed by it counts. These tests
+exclude relationships visible in the Log; §11 limits the ownership claims
+they establish.
 
-**Seed the roster across suffixes.** Because the test is a suffix
-comparison, a roster whose members all sit under one two-label suffix is a
-roster in which no Confirmed Inconsistency can ever form, however many
-Auditors it holds and however diligently each audits. A deployment MUST
-therefore admit Auditors under distinct two-label suffixes, and SHOULD
-treat the number of *mutually independent* suffixes on the roster, not the
-number of admitted keys, as the measure of whether confirmation is
-possible at all. The warning is sharpest in a namespace where operators
-cluster under one public suffix — where every candidate Auditor is under
-`.com.br`, admitting eight of them yields a roster that looks healthy and
-a confirmation mechanism that is silently disabled.
+**Seed the roster across suffixes.** A deployment MUST admit Auditors
+under distinct two-label suffixes and SHOULD measure confirmation capacity
+by mutually independent suffixes rather than admitted keys. Any number of
+Auditors under one such suffix cannot form a Confirmed Inconsistency.
 
 That one `public_key` serves both purposes: it verifies the Auditor's
 Record signatures **and** it is the VRF public key against which its
@@ -532,30 +510,16 @@ level-1 sanction (§7) or an escalation (below) is in force against
 5 000 000, instead of the clamp above; those two states are the only
 things that displace the formula, and each displaces it identically.
 
-`p_1e7` is the sampling rate scaled by 10^7, and that scale is exact
-rather than approximate: `reputation_u` carries six decimal digits and the
-slope contributes one more, so seven digits represent the rate with
-nothing left over to round. The floor 200 000, the ceiling 5 000 000, and
-the slope 3 per micro-unit of reputation are the Parameter Registry values
-(§9); rendered for humans they are the familiar 0.02, 0.50 and 0.30, but
-**the integers are normative and the decimals are only a reading of
-them** — an implementation MUST compute with the integers. Likewise
-`select` is the exact rendering of "the draw `D / 2^64` falls below the
-rate `p_1e7 / 10^7`", with both sides multiplied by `10^7 x 2^64` so that
-neither fraction is ever evaluated. `D x 10^7` reaches
-`(2^64 − 1) x 10^7` ≈ 1.845e26, which needs 88 bits, and `p_1e7 x 2^64`
-reaches 9.223e25; implementations MUST use 128-bit or arbitrary-precision
-integers for both. Computing either product in 64-bit arithmetic overflows
-and is non-conforming.
-
-This is what makes selection *recomputable* rather than merely
-*reproducible-in-practice*. The comparison is strict and sits directly on
-the last digit of the reputation that feeds it, so had either side stayed
-in binary floating point, two honest Auditors using two correct `libm`s
-could have disagreed about whether a given Delta was theirs to audit —
-and, under the coverage duty below, one of them would be provably in
-breach for a Delta the other never owed. Integers remove the disagreement
-rather than making it rare.
+`p_1e7` scales the sampling rate by 10^7 exactly: reputation supplies six
+decimal digits and the slope one more. The normative floor, ceiling and
+slope are the §9 integers 200 000, 5 000 000 and 3; their human-readable
+decimals are 0.02, 0.50 and 0.30. Implementations MUST compute with integers.
+`select` compares `D / 2^64 < p_1e7 / 10^7` by cross-multiplication without
+evaluating either fraction. `D x 10^7` can reach `(2^64 − 1) x 10^7`
+(approximately 1.845e26, requiring 88 bits); `p_1e7 x 2^64` can reach
+9.223e25. Implementations MUST use 128-bit or arbitrary-precision integers
+for both products; 64-bit overflow is non-conforming. Arithmetic rationale:
+[ADR-0011](../decisions/0011-audit-effort-scales-with-the-roster.md#consequences).
 
 The Auditor publishes the VRF proof `pi`, lowercase hex, in every Audit
 Record it emits for Block *B* (`vrf_proof`). Verification runs RFC 9381's
@@ -563,12 +527,9 @@ Record it emits for Block *B* (`vrf_proof`). Verification runs RFC 9381's
 document leaves to the application: a proof under an Auditor public key
 that fails key validation — a small-order or non-canonically encoded point
 — does not verify, and the Record is void for standing (`WIST4-E01`) like
-any other Record whose `vrf_proof` does not verify. The step is required
-because §11's claim rests on the uniqueness it buys: without it a small-order
-Auditor key admits more than one valid `beta` for the same Block, and an
-Auditor could grind selection sets until one omitted the Deltas it preferred
-not to audit. It is also the same standard WIST-1 §4 applies to the Ed25519
-keys of this suite, which RFC 9381 §5.5 shares with the VRF.
+any other Record whose `vrf_proof` does not verify. This shares WIST-1 §4's key-validation standard; the VRF uniqueness
+rationale is recorded in [ADR-0013](../decisions/0013-strict-ed25519-verification.md#the-same-standard-for-the-vrfs-keys).
+
 Anyone can verify with the
 Auditor's public key that `beta` is the unique correct output for that
 Block, and can therefore recompute the Auditor's entire selection set for
@@ -576,13 +537,8 @@ Block, and can therefore recompute the Auditor's entire selection set for
 input to which is itself in the Log — and check it audited exactly that
 set: no more (harassment) and no less (favoritism).
 
-This construction closes three problems at once. The Aggregator cannot
-steer audits: it does not hold Auditor keys, so grinding the Block Hash
-changes every Auditor's selection unpredictably and in no chosen direction.
-The Auditor cannot steer them either: the VRF output is uniquely determined
-by its key and the Block, and any deviation is detectable. And assignment
-needs no coordinator: each Auditor's duties for each Block are derived, not
-allocated.
+Selection needs no coordinator. The resistance to Aggregator and Auditor
+steering, including its limits, is specified in §11.
 
 **Coverage duty.** For **every** Delta in its selection set for a Block
 — those its VRF selects, less those §3's self-audit rule bars it from —
@@ -844,34 +800,16 @@ to. Only a Record that summoned can be contradicted, so the ration
 above is also the ceiling on contradictions: at most
 `extension_triggers_max` per Auditor in any 30-day window.
 
-The consequence falls on the audited claim and on nobody's standing.
-From the establishing height, and for as long as that height lies
-inside the 30 whole days ending at the height read, `domain(d)` is under
-**escalated sampling**: `p_1e7` for every Delta of that domain is
-`sampling_ceiling`, exactly as under a level-1 sanction, which is the
-other input the selection test above reads beside the formula. Nothing
-else follows — no penalty, no ladder rung, no `notice`, no appeal, and
-no mark on the filer — because the Log cannot tell the two cases apart:
-an Auditor that lied, and an honest Auditor that fetched a page which
-differed at its vantage or its moment — a cloak served to one Auditor,
-an edge cache behind the update, a defacement reverted, or a truthful
-`update` the Publisher sealed between the first fetch and the summoned
-ones (§5). Both are answered by more looks rather than by a verdict on
-either party: a Publisher serving different pages to different Auditors
-meets more of them at more vantages, and an honest Publisher pays audit
-fetches and nothing else — the pressure without penalty that level 1
-already applies. Escalation is a derived state like every other in this
-section, read at height *B* − 1 beside the sanction, and carried by the
-state artifact (WIST-3 §7).
-
-What a lying filer costs the roster is bounded by the ration — one
-fetch per independent peer per rationed triggering Record — and what it
-earns is a public contradiction and nothing else: a run of contradicted
-filings is evidence for `auditor_remove`, weighed by the same judgement
-that admitted the Auditor (§3, §11), never a derived removal, because a
-derived removal would land on the cloaked honest filer exactly as often
-as on the liar. The cost of the extension rule is therefore one fetch
-per admitted Auditor per rationed triggering Record, whoever pays it.
+From the contradiction's establishing height, while it remains inside the
+30 whole days ending at the height read, `domain(d)` is under **escalated
+sampling**. Every Delta of that domain uses `sampling_ceiling`. Escalation
+is read at height *B* − 1 alongside sanctions and carried by the WIST-3 §7
+state artifact. It creates no penalty, ladder rung, notice or appeal, and
+no mark on the filer. A run of contradictions may inform discretionary
+`auditor_remove` judgement (§3, §11), never derived removal. Each rationed
+trigger costs one fetch per independent peer. The indistinguishability of
+dishonest and honestly contradicted filings is discussed in
+[ADR-0012](../decisions/0012-auditor-track-record-becomes-derivable.md#consequences-and-limits).
 
 **How Records reach the Log.** Every duty above is discharged by a
 Record or attestation *sealed* in the Log, and this paragraph is the
@@ -940,13 +878,7 @@ item seals, this missing-item exemption ends; the ordinary discharge
 rule determines whether the duty is complete. This acknowledgment exempts only its named pair, never other
 unattested duties of the same Auditor.
 
-**The gate is not an amnesty.** Gating the failure count on the
-attestation protects an honest Auditor from a silent Aggregator, but
-read alone it would hand every shirking Auditor the same protection:
-an Aggregator that simply never attests would make coverage failure
-uncountable for the whole roster, with visible missing discharge but
-no consequence. So the omission resolves rather than suspends. When the
-Log carries no `pull_attestation` for an (Auditor, Block) pair by
+**Unattested duties.** When the Log carries no `pull_attestation` for an (Auditor, Block) pair by
 `record_seal_blocks` Blocks after that Auditor's coverage deadline —
 the `record_seal_blocks`-th Block whose `sealed_at` is after that
 deadline — the pair is **unattested** from that Block's height, and an
@@ -2523,33 +2455,17 @@ notices never target sanction activations or open this process.
 
 Process requirements:
 
-- Levels 1–2 follow automatically from the escalation criteria; levels 3
-  and 4 MUST be preceded by a `notice` naming the evidence, whose sealing
-  starts the appeal window below. Levels 1–2 need neither: their entire
-  basis — the confirming Audit Records and the §7 severity table above — is already
-  public and independently recomputable, so there is nothing a notice
-  would let the Publisher contest that a replaying party cannot already
-  verify for itself; this holds even for level 2's weight reduction, which
-  affects standing without suspending ingestion. This applies to sanction
-  notices (`details.kind` `"sanction"`); a `notice` with `details.kind`
-  `"recovery"` *records* the WIST-1 §5.2 recovery window instead — that
-  window opens at the `sealed_at` of the Block sealing the recovery
-  Declaration itself, so it opens whether or not the notice is ever sealed
-  — and is not subject to the appeal process below.
-- **"Preceded by" bounds the Aggregator's conduct, not the Block.** The
-  `notice` for a level-3 or level-4 `sanction` MUST be sealed in that
-  `sanction`'s Block or a lower one; the same Block is permitted. What
-  the Aggregator MUST NOT do is act before the notice is sealed: it MUST
-  NOT reject that domain's Pings or Feed pulls (`403`, WIST-2 §4), and
-  MUST NOT withhold its Deltas from materialization, at any height below
-  the notice's Block. Requiring a strictly lower Block would buy the
-  Publisher nothing, because the derived state is already in force from
-  the height its criteria were met, whatever the Aggregator has sealed —
-  a Block of delay in filing does not delay the state, it only delays
-  the Publisher learning of it. What the ordering does buy is the one
-  thing the derivation cannot: the window opens no later than the
-  enforcement does, so there is no height at which a Publisher is being
-  acted on with no way to answer.
+- Levels 1–2 follow automatically from the escalation criteria and require
+  no notice or appeal process, including level 2's weight reduction.
+  Levels 3 and 4 MUST be preceded by a sanction `notice` naming the evidence; its sealing starts
+  the appeal window. A recovery `notice` instead records the window opened
+  by the recovery Declaration's Block under WIST-1 §5.2, independently of
+  notice sealing, and opens no appeal process.
+- **Notice before enforcement.** A level-3 or level-4 `sanction`'s notice
+  MUST seal in that sanction's Block or a lower one. Until the notice seals,
+  the Aggregator MUST NOT enforce the sanction by rejecting the domain's
+  Pings or Feed pulls (`403`, WIST-2 §4) or withholding its Deltas from
+  materialization. The derivation rule below independently governs replay.
 - Escalation criteria: level 1 at a single Confirmed Inconsistency; level
   2 at 3 within 90 days; level 3 at 10 within 90 days, or any severity-3;
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or
@@ -2558,55 +2474,22 @@ Process requirements:
   measured exactly as §4's are: the 90 or 180 **whole days ending at**
   Block N's `sealed_at`, so a Confirmed Inconsistency counts when the §6.1
   whole-day distance from its confirming Block to N is below 90 (or below
-  180) — end-inclusive, start-exclusive. Nothing here introduces a second
-  way to measure a window: the Blocks that bound these spans sit on an
-  hourly cadence, so a finding exactly 90 days before N would otherwise be
-  in one implementation's count and outside another's.
-- **Every rung is derived, levels 3 and 4 included.** Once the escalation
-  criteria above are met at some height N, the corresponding state is in
-  force on recomputation from N's Block onward, whether or not the
-  Aggregator has sealed a `sanction` recording it. For levels 1 and 2 this
-  is what "follow automatically" above already says, and it is not
-  optional: §4's sampling rate reads a level-1 sanction as an input, and
-  §6.4 and WIST-3 §7 read level 2 as one, so a rung that took effect only
-  when an Aggregator chose to file would make audit selection and
-  materialization depend on an act outside the Log — which §1 forbids and
-  §4's recomputability claim could not survive. Levels 3 and 4 are derived
-  on the same terms, mirroring severity above and the deadline rule below,
-  and the derivation reaches their states — ingestion rejected (level 3),
-  excluded from materialization (level 4). This governs
-  recomputation only: the Aggregator's own conduct still MUST issue the
-  `notice` before it enforces the rejection or exclusion in real time, so
-  a Publisher retains its chance to appeal before the Aggregator itself
-  acts. A captured Aggregator that never files either cannot spare a
-  qualifying domain — a party replaying the Log arrives at the level-3 or
-  level-4 state independently of what the Aggregator chose to record.
-- **Derivation and due process, reconciled.** The rule above lets a party
-  that operates no Aggregator — a Consumer, a Snapshot rebuilder, any
-  third-party materializer — treat a domain as level-3 or level-4 when no
-  `notice` has ever been sealed and no appeal window has ever opened. That
-  is deliberate, and what makes it compatible with due process is what due
-  process here is for. It is not a guarantee that no consequence precedes a
-  notice; it is a guarantee that no consequence rests on facts the affected
-  Publisher cannot see, recompute and contest. The derived state rests on
-  nothing but Audit Records already sealed in the public Log, under the
-  same §7 table every party applies, so a `notice` tells the Publisher
-  nothing it could not read for itself — it fixes *who is obliged to tell
-  it*, and it binds the one party that also holds the ingestion lever.
-  Reversal propagates the same way the state does: a `sanction_lift`, an
-  `appeal_ruling` of `"overturned"`, a ruling deadline that lapses, and an
-  appeal-sealing deadline that lapses with neither an `appeal` nor an
-  `"unappealed"` ruling sealed against the notice are all facts of the Log,
-  so every recomputing party lifts the state at the same
-  height without waiting on the Aggregator (WIST-3 §7). This is also why the
-  derivation is bounded to the sanction's *state* and never to `penalty_n`:
-  §6.1 counts the penalty from the evidence regardless, and an appeal has
-  never reached it.
-- **What each reversal reaches.** The four are not interchangeable, and
-  each one's reach is fixed here. The three that hang on a `notice` — an
-  `"overturned"` ruling, a lapsed ruling deadline, a lapsed
-  appeal-sealing deadline — reverse only the state that notice was
-  required for: the level-3 ingestion rejection or the level-4 exclusion.
+  180) — end-inclusive, start-exclusive.
+
+- **Every rung is derived, levels 3 and 4 included.** A rung takes effect
+  on recomputation at the Block where its criteria are met, independently
+  of any `sanction` or `notice`. This includes level-3 ingestion rejection
+  and level-4 materialization exclusion. Consumers and other materializers
+  apply that state even when no notice or appeal window exists; the
+  Aggregator remains bound by the notice-before-enforcement rule above.
+  Reversals are likewise derived from the Log without waiting for a
+  discretionary Aggregator act. They affect sanction state, never
+  `penalty_n`, which §6.1 derives from evidence. Rationale and limits:
+  [ADR-0018](../decisions/0018-confirmation-and-sanctions.md#consequences-and-alternatives).
+
+- **What each reversal reaches.** An `"overturned"` ruling, lapsed ruling
+  deadline or lapsed appeal-sealing deadline reverses only its notice's
+  level-3 ingestion rejection or level-4 exclusion.
   Rungs are **latched**: once reached, a rung stays active until its
   own reversal or an identity reset clears it. Aging evidence out of a
   counting window does not itself clear an active rung. A notice-scoped
@@ -2642,29 +2525,13 @@ Process requirements:
   in one Block can reach level 3 and then level 4 in Entry order; one
   finding never counts as its own further finding. A reversal alone,
   or the passage of a Block with no new qualifying finding, rearms
-  nothing. A lift clears rungs, never findings: every Confirmed
-  Inconsistency sealed before it stays inside the windows the criteria
-  read, so a count criterion is met again at the first finding after the
-  lift that completes its count, with the earlier findings inside it. That
-  is also the whole reason level 4's three-severity-3 branch exists. With
-  any severity-3 finding reaching level 3 and a level-3 domain's next
-  finding reaching level 4, a third severity-3 finding is the first to
-  meet that branch only where the level-3 state was cleared in between —
-  by a lift, or by one of the voids above — and the branch is what keeps
-  three fabrications inside 180 days a delisting whatever the process
-  between them did.
+  nothing. A lift clears rungs, never findings.
 
-  The appeal window is
-  anchored to a `notice`'s Block, so where the criteria are met
-  and the Aggregator seals no `notice`, the derived state is in force on
-  recomputation with no window ever opening against it. The Publisher's
-  remedy in that case is not an appeal but the evidence: the confirming
-  Records are public, and a Record that is void under §3, or a severity the
-  §7 table does not support, is rejected by every recomputing party alike,
-  which removes the derived state at its root rather than pardoning it. An
-  Aggregator that suppresses notices while the derivation runs is visible
-  as exactly that, and §8's invariant 4 is what the commons has instead of
-  an appeal to it.
+  Without a sealed notice, no appeal window opens. Recomputing parties
+  still reject void Records (§3) and unsupported severity (§7), removing
+  any state that depended on them. Notice suppression remains visible;
+  §8 invariant 4 permits following another Log.
+
 - **Every Registry Update has a Registry Update ID**:
   `"sha256:" + hex(SHA-256(JCS(update)))` — the update's inner object
   canonicalized and hashed under the same content-addressing construction
@@ -2674,13 +2541,9 @@ Process requirements:
   whatever processes a domain has open.
 - The appeal window is `appeal_window_days` (14) from the `sealed_at` of
   the Block sealing the `notice`, never from its `effective_at`.
-  `effective_at` is a value the Aggregator writes for itself, bounded by
-  nothing: a notice sealed today and dated a month ago would arrive with
-  its own appeal window already closed, and every recomputing party would
-  agree that it was. Every window in this document reads Block `sealed_at`
-  for exactly that reason (§3), and the notice's `appeal_deadline` (§9.1)
-  restates the derived instant rather than setting it — where the two
-  disagree, the Block governs.
+  The notice's `appeal_deadline` (§9.1) records this derived instant;
+  the Block governs any disagreement.
+
 - **An appeal is published, then recorded.** A Publisher appeals by
   serving a signed `appeal` Registry Update at
   `/.well-known/wist/appeals/<notice-id-hex>.json` (WIST-2 §3.3),
@@ -2820,32 +2683,9 @@ Process requirements:
   rejects the act as `WIST4-E05`. None of these rules reads a Registry
   Update's stored Entry position or its self-declared `effective_at`.
 
-- **Why the omission carries the consequence.** Suppressing an appeal was
-  otherwise strictly more effective than suppressing a ruling, which this
-  section already closes: an unsealed appeal starts no clock, so a sanction
-  the Publisher had contested stood forever while one it had not was
-  eventually void. Anchoring the duty to T removes the asymmetry without
-  making any party's silence a reprieve. A Publisher that does not appeal
-  is answered by the `"unappealed"` ruling and its sanction takes effect
-  unchanged — there is no silent reprieve and no penalty for silence. An
-  Aggregator that receives an appeal and buries it must seal an
-  `"unappealed"` ruling to keep the sanction standing, and that ruling is a
-  signed, permanent, public claim that the Publisher's own served,
-  signed appeal falsifies at a path anyone can fetch. What was invisible
-  and free becomes attributable and dated, and doing nothing at all lifts
-  the state on the same clock as an unmet ruling deadline.
+- Omission and false `"unappealed"` rulings have the accountability limits
+  described in [ADR-0018](../decisions/0018-confirmation-and-sanctions.md#consequences-and-alternatives).
 
-  One consequence is worth naming rather than leaving to be discovered:
-  sealing a `notice` now starts a clock the Aggregator must answer, so an
-  Aggregator looking only at its own workload is better off sealing none.
-  That path is already closed from the other side and at a price the same
-  §7 sets — the Aggregator MUST issue the `notice` before it enforces the
-  rejection or exclusion itself, so an Aggregator that files nothing keeps
-  no ingestion lever and no exclusion of its own; what remains is the
-  derived state that every other party applies without it. The bargain is
-  the intended one. An Aggregator that wants a level-3 or level-4 sanction
-  it can act on takes on a bounded, public duty to run the process it
-  opened, and one that will not take that on does not get to act.
 - An `appeal_ruling` MUST be sealed within `ruling_deadline_days` (30) of
   the `sealed_at` of the Block sealing the `appeal`
   (Parameter Registry: ruling deadline). An appeal does not stay a
@@ -2867,28 +2707,23 @@ can amend them. Once an edition is frozen under WIST-1 §3.1 and
 [PUBLICATION.md](../PUBLICATION.md), amending them requires a new major
 version of this suite — a fork that must win adoption on its own merits.
 
-1. **No self-declared importance.** No object in this protocol carries a
-   field by which a publisher declares its own relevance (WIST-1 §6). A
-   push channel where submission could claim importance would inherit
-   the entire adversarial history of SEO; importance is measured at
-   consumption, outside the protocol.
+1. **No self-declared importance.** Publishers cannot declare their own
+   relevance in any protocol object (WIST-1 §6). Importance is measured at
+   consumption, outside the protocol; see
+   [ADR-0006](../decisions/0006-no-self-declared-importance.md).
 2. **Position is not for sale.** The Aggregator MUST NOT accept payment
-   or any consideration in exchange for inclusion, weight, latency, or
-   any treatment of a Publisher's content. The day money buys position,
-   the index's neutrality — its entire value — is gone. (Payment for
-   infrastructure services that treat all Publishers identically, e.g.
-   mirror bandwidth, is outside this prohibition.)
-3. **The record is not rewritable.** Sealed Blocks are immutable and the
-   Log is corrected by appending, never by editing; every commitment,
-   verdict and governance action ever sealed remains. Content Payloads are
-   not part of that record: they may be withdrawn, and only withdrawn,
-   through a logged entry stating its legal basis (WIST-3 §6.2). The
-   distinction is deliberate — an index must be able to comply with an
-   erasure order without being able to rewrite its own history.
-4. **The data stays open.** Public tier data is licensed under ODbL 1.0,
-   irrevocably. Together with invariant 3, this guarantees forkability:
-   if the institution operating the Aggregator is ever captured, the
-   community can take the commons and leave.
+   or any consideration for inclusion, weight, latency or any treatment
+   of a Publisher's content. Infrastructure services treating all
+   Publishers identically, such as mirror bandwidth, are exempt.
+3. **The record is not rewritable.** Sealed Blocks and their commitments,
+   verdicts and governance actions are immutable; corrections append to the
+   Log. Payloads remain outside it and may be withdrawn only through a
+   logged entry stating the legal basis (WIST-3 §6.2). Erasure rationale:
+   [ADR-0007](../decisions/0007-content-payloads-outside-the-log.md).
+4. **The data stays open.** Public tier data is irrevocably licensed under
+   ODbL 1.0 ([ADR-0005](../decisions/0005-odbl-for-tier-data.md)). Together
+   with invariant 3, this permits the community to retain the data and
+   fork if an Aggregator's operator is captured.
 
 ## 9. Parameter Registry
 
@@ -3354,23 +3189,18 @@ mirroring §7 and §3:
   to serve makes falsifiable.
 - `observer_checkpoint`: `head`, the ID of the Observer's newest Audit
   Record or `coverage_attestation` for this Log (§3.1); `subject` the
-  `observer_id`, signed by its registered key. REQUIRED, because a
-  checkpoint that named no head covers nothing.
+  `observer_id`, signed by its registered key. REQUIRED.
 - `canary_commitment`: `root`, the `sha256:`-prefixed Merkle root over
   the leaves (§5.1), and `leaves`, their count as an integer from 1 to
   `canary_leaves_max`; `subject` the planter's domain, signed by its Key
-  Set. Both REQUIRED: a commitment without a root commits to nothing, and
-  one without a count leaves the tree size, which every inclusion proof
-  reads, to the reveal's choice.
+  Set. Both REQUIRED; `leaves` fixes the tree size for inclusion proofs.
 - `canary_reveal`: `commitment`, the Registry Update ID of the
   `canary_commitment` revealed, and `leaves`, a non-empty array of
   objects each carrying `index` (an integer), `delta_id`, `leaf_hash`
 (the `sha256:`-prefixed leaf digest defined in §5.1), and `path` (the
   sibling hashes of the leaf's Inclusion Proof, WIST-3 §4, as
   `sha256:`-prefixed strings, leaf level first); `subject` the canary
-  domain, signed by its Key Set (§5.1). All REQUIRED, because a reveal
-  that named no commitment, no Delta, no leaf hash or no proof binds nothing the Log
-  could check.
+  domain, signed by its Key Set (§5.1). All REQUIRED.
 - `aggregator_key_remove`, `auditor_remove`: `key_id`. An
   `auditor_remove`'s `evidence` (top-level), where present, MUST name at
   least one ID: its presence is what makes the removal for cause (§4),
@@ -3393,9 +3223,7 @@ mirroring §7 and §3:
   from compare without normalization. It is descriptive: where it and the
   Block disagree, §7's derivation governs.
 - `appeal`: `notice`, the Registry Update ID (§7) of the `notice` being
-  appealed. REQUIRED, because §7's sealing deadline and void rule are
-  evaluated per notice: an appeal naming none would attach to every open
-  process of that domain or to none of them.
+  appealed. REQUIRED; §7 evaluates deadlines and voids per notice.
 - `appeal_ruling`: `notice` (the Registry Update ID of the `notice` this
   ruling closes), `outcome` (`"upheld"`, `"overturned"`, or
   `"unappealed"` — the last recording that the appeal window closed with
@@ -3407,28 +3235,17 @@ mirroring §7 and §3:
   after the Block's `sealed_at`, as stated above.
 - `payload_withdrawal`: `delta_id` (the Delta whose Payload is being
   withdrawn), `legal_basis`, and `jurisdiction` (WIST-3 §6.2); `subject` is
-  the Publisher's domain. All three are REQUIRED, because a withdrawal
-  that named no Delta, no basis, or no demanding jurisdiction would be an
-  unfalsifiable claim to have removed something — which is precisely what
-  a quiet drop looks like.
+  the Publisher's domain. All three are REQUIRED.
 - `pull_attestation`: `block` (the audited Block's Block Hash) and
   `found` (the IDs the §4 pull returned, an array, empty where the fetch
-  found nothing to seal); `subject` is the Auditor's `auditor_id`. Both
-  are REQUIRED, because the attestation exists to be the signed statement
-  a coverage failure is derived against (§4), and an attestation naming
-  no Block or no result set would attest to nothing a replayer could
-  hold the Aggregator to.
+  found nothing to seal); `subject` is the Auditor's `auditor_id`. Both are REQUIRED for §4 coverage accounting.
 
 - `coverage_attestation`: `block` (the audited Block's Block Hash, the
   same value that names the Auditor's well-known records file, §4),
   `vrf_proof` (the §4 VRF Proof for that Block, 80 octets as 160 lowercase
   hex characters) and `prev_record` (§4), the same Auditor's preceding
   publication for that Log or `null`; `subject` is the Auditor's
-  `auditor_id`. All three
-  are REQUIRED, because the attestation exists to put the proof of an empty
-  selection in the Log where the coverage duty is derived from it (§4): one
-  carrying no proof attests to nothing a replayer could check, and one
-  naming no Block leaves the proof with no input to verify against.
+  `auditor_id`. All three are REQUIRED to verify empty-selection coverage (§4).
 
 `sanction_lift` carries an unconstrained `details` object, and an
 `appeal`'s is unconstrained beyond the `notice` it MUST name; every Audit
@@ -3508,32 +3325,17 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 
 ## 11. Security Considerations
 
-- **Audit selection is unforgeable and unsteerable.** Who audits what is
-  fixed by each Auditor's own VRF over the Block Hash (§4), so no party
-  chooses it. Two of the three inputs the Aggregator once chose freely
-  are now pinned — `sealed_at` to the cadence grid, Entry order to
-  canonical order (WIST-3 §3.1, §3.3) — leaving Block membership as its one
-  grinding dimension, bounded by the cadence: one candidate hash per
-  deferral, hours apart, in a Log where deferral itself is bounded by
-  §6.4's inclusion ceiling. And the direction of any grind is blind: the
-  Aggregator holds no Auditor key, so a changed Block Hash moves every
-  Auditor's selection at once and in no direction it can predict, and
-  the sub-two-trial steer that a single log-wide draw permitted no longer
-  exists. The Auditor cannot steer its own draw either, because `beta` is
-  uniquely determined by its key and the Block. Auditing *outside* the VRF
-  set is detectable by anyone: the published `pi` recomputes the set, §4's
-  extension rule is the one further path in and every input to it is
-  sealed, and a Record for a Delta outside both is void (§3) and is
-  evidence for `auditor_remove`. Confirmation requires *independent*
-  Auditors and does not wait on coincidence: the extension rule summons
-  every independent Auditor to the first `inconsistent` Record, so a
-  fraudulent Delta's chance of escaping confirmation is the chance of
-  escaping the whole roster, not of escaping a second simultaneous VRF
-  draw; a run of contradicted filings by one Auditor is evidence for
-  `auditor_remove`, weighed by the judgement that admitted it (§3) and
-  never a derived state, because §4 answers a contradiction by escalating
-  the audited domain's sampling — the Log cannot tell a lying filer from
-  a cloaked one, and more looks resolve both.
+- **Selection resists steering without Auditor keys.** Each Auditor's
+  VRF fixes its draw (§4). Canonical Entry order and the sealing grid
+  (WIST-3 §§3.1, 3.3) leave Block membership as the Aggregator's grinding
+  input, with deferrals bounded by §6.4. Without Auditor keys, changing
+  membership rerandomizes selections without revealing a preferred outcome.
+  A validated key has one VRF output per Block; published proofs expose
+  Records outside both ordinary and extension standing (§3). Such Records
+  can support removal. The extension rule summons independent peers without
+  requiring a second simultaneous draw, subject to its trigger ration.
+  Contradictions and removal retain the limits stated in §4.
+
 - **Coverage shortfalls are derivable; their cause is not always provable.**
   Each selected Delta requires a Record and an empty draw requires a
   coverage attestation. Missing discharge counts under §4's attested or
@@ -3548,25 +3350,15 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   a Block and buy silence with a single Record: the proof it publishes in
   that Record recomputes the whole selection set, so covering some selected
   Deltas and not others is a failure for the Block, not partial credit (§4).
-- **Reputation gaming via attest-farming.** A domain cannot inflate `C`
-  by emitting torrents of trivially-true `attest` Deltas: a Record whose
-  reference Delta is an `attest` or a `delete` never contributes to `C`,
-  whatever Delta it audited (§6.1). Nor can it inflate `C` by
-  re-publishing the same URL: `C` counts *distinct* Normalized URLs with
-  a `consistent` audit, capped at 500, so the only way to dilute a
-  penalty is to publish, and keep passing audits on, many different
-  pages — exactly the thing that is expensive to fake at scale.
-- **Domain resale.** Reputation attaches to key continuity, not the name.
-  A Declaration signed by neither the previous Key Set nor the previous
-  `recovery_keys` is a fresh identity: outside an open recovery window,
-  `A` and `C` reset and the domain re-enters Provisional (§6.3, WIST-1 §5.2).
-  An in-window competitor neither inherits nor resets the recovering
-  identity's standing. Buying an aged domain, or its
-  hosting, buys no standing. An ordinary rotation and a recovery rotation
-  both preserve standing, because both prove possession of a key the prior
-  identity chose in advance — recovery keys exist precisely so that losing
-  a signing key does not force a Publisher to forfeit its history, and a
-  thief holding only a signing key cannot outrun them (WIST-1 §5.2).
+- **Attest-farming.** §6.1 excludes `attest` and `delete` references from
+  `C`, which counts distinct Normalized URLs and is capped at 500.
+  Repeating a URL or trivial attestation cannot inflate that credit;
+  diluting a penalty requires many different pages passing audits.
+- **Domain resale.** Buying a domain or its hosting conveys no standing.
+  WIST-1 §5.2 and §6.3 bind standing to key continuity: fresh identities
+  reset outside recovery, in-window competitors cannot reset or inherit
+  the recovering identity, and ordinary/recovery rotations preserve it.
+
 - **Floating-point divergence in reputation.** Reputation decides audit
   selection, quota, and inclusion latency through strict comparisons, so
   two implementations differing by one unit in the last place would
@@ -3574,40 +3366,19 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   possibility rather than tolerating it: every quantity is an integer,
   `exp()` is replaced by a published table, and division order and
   rounding are pinned. There is no conforming path that uses `double`.
-- **Sanction censorship, and why equivocation is not the answer to it.**
-  Omission is not equivocation. An Aggregator that seals a Block without an
-  entry it should have sealed produces one chain, consistent with itself,
-  which every observer sees identically — WIST-3 §5's proof needs two
-  Checkpoints with one `block_number` and two `block_hash`es, and uniform
-  omission produces neither. Nothing about suppression is detectable that
-  way, and this document does not rest on the claim that it is. What
-  bounds it is that the consequences of the entries an Aggregator would
-  want to suppress do not depend on the entries. A `sanction` it never
-  files leaves the penalty in place, because §6.1 computes `penalty_n` from
-  the Audit Records (§7). A ladder rung it never records is in force on
-  recomputation from the height the criteria were met (§7). A `notice` it
-  never seals opens no window, and the Publisher's remedy there is the
-  evidence rather than an appeal (§7). And an `appeal` it never seals
-  voids the sanction's state at T unless it also seals an `"unappealed"`
-  ruling, which the Publisher's own served appeal falsifies (§7). Each is
-  a derivation the Aggregator cannot reach, not a detection it cannot
-  evade.
-- **A sanction's severity can be neither fabricated nor suppressed.**
-  Severity is derived from the confirming Audit Records' **effective
-  similarity** values (§5) by the §7 table — the sealed `similarity` read
-  directly, or mirrored where the reference Delta is a `delete` — not
-  asserted by the Aggregator, and §6.1 counts every Confirmed
-  Inconsistency's and Confirmed Link Inconsistency's penalty from its
-  confirming Block onward regardless of whether a `sanction` Registry
-  Update ever names it. A party recomputing reputation therefore arrives
-  at the same `penalty_n` whether the Aggregator inflates a
-  `details.severity` past what the Records show (the mismatched
-  `sanction` is rejected and the table's value used instead), invents a
-  `sanction` with no real evidence behind it (rejected outright — §5's
-  predicate fails), or never records one at all (the penalty applies
-  anyway, computed directly from the Records). A captured Aggregator has
-  no lever over the reputation consequence of evidence that is already
-  public.
+- **Sanction censorship.** Omission is not equivocation: uniform omission
+  produces one consistent chain, not the conflicting Checkpoints required
+  by WIST-3 §5. Its consequences follow §7's derivation and omission rules:
+  withholding a registry act cannot erase sealed findings, derived rungs or
+  evidence-based `penalty_n`; withholding a notice opens no appeal window.
+  [ADR-0018](../decisions/0018-confirmation-and-sanctions.md#consequences-and-alternatives)
+  explains the limits of notice duties and falsifiable `"unappealed"` rulings.
+- **False sanction severity.** §7 derives severity from confirming Records'
+  effective similarity, including the delete mirror. Inflated severity or
+  absent supporting evidence rejects a `sanction`; omitting that act does
+  not remove the underlying finding's penalty. This protects consequences
+  of already-public evidence, not the honesty of the Records themselves.
+
 - **Griefing via false `inconsistent` verdicts.** A single hostile Auditor
   confirms nothing by itself: a Confirmed Inconsistency requires a second
   `inconsistent` from an Auditor independent of it under §3's suffix test,
@@ -3635,137 +3406,72 @@ would hand any Auditor a veto over every other Entry sealed beside it.
   visibility for a bounded period rather than standing — while
   contradiction by an independent Auditor's successful fetch of the same
   URL is exactly the evidence `auditor_remove` runs on.
-- **Auditor independence is an admission-time trust assumption, and this
-  document does not claim otherwise.** `auditor_admit` is signed by the
-  Aggregator alone. An Aggregator holding two Auditor keys, admitted under
-  hostnames that share no two-label suffix and each publishing a matching
-  Declaration, satisfies §5's confirmation requirement literally while
-  being one party — and can seal a Confirmed Inconsistency out of two
-  substantively false Records that every schema and every recomputation
-  accepts. Nothing downstream repairs that: §6.1 counts the penalty from
-  the confirming Block whether or not a `sanction` is ever filed, and an
-  appeal reaches the sanction's state, never `penalty_n`. Four things bound
-  the exposure and none removes it. Selection is VRF-derived (§4), so both
-  keys must have *selected* the same Delta: reaching a chosen one means
-  grinding Block membership and ordering until they do, which costs
-  re-sealing work rather than being impossible. Every Record names a
-  domain-anchored identity (§3), so a fabrication has a public author with
-  a published Key Set rather than an opaque key. While the Reference
-  Payload is served, anyone holding the page — the audited Publisher above
-  all — can obtain the salt, demand the Auditor's capture, and show the
-  commitments do not reproduce (§5); after withdrawal nobody can, in either
-  direction. And an Aggregator shown to be doing this is an institution the
-  commons can leave: the Log is public, the tier data is ODbL, and §8's
-  invariant 4 makes the fork the remedy rather than an appeal to the party
-  that admitted the Auditors. A deployment that needs more than that MUST
-  obtain it outside this protocol — by admitting Auditors it did not
-  choose, or by operating no Auditor keys at all — because nothing inside
-  the protocol distinguishes an Aggregator's second Auditor from a
-  stranger's. §3.1 puts evidence behind that judgement without removing
-  it: what an admission weighs is a track record nobody can fabricate,
-  and the bullets below name what the record still cannot show.
-- **The independence test is also a suppression lever.** It cuts both ways,
-  and the second edge is the quieter one. Because confirmation requires two
-  Auditors that share no two-label suffix, an Aggregator that admits eight
-  Auditors all under one suffix has published a roster that looks healthy
-  by every visible measure — eight keys, eight Declarations, full coverage
-  attestations, `inconsistent` verdicts appearing in the Log — inside which
-  no Confirmed Inconsistency can ever form, and therefore no penalty and no
-  sanction. Nothing about that is detectable as misconduct, because each
-  admission is individually unimpeachable and the rule suppressing the
-  confirmations is this document's own. It is deniable by construction: the
-  same configuration arises by accident wherever candidate Auditors cluster
-  under one public suffix (§3). What a party replaying the Log can do is
-  compute the roster's independent suffixes directly, which is why §3 makes
-  that count, and not the key count, the measure of whether confirmation is
-  possible — a roster of one suffix is a Log-visible fact, and one that any
-  Consumer choosing which Log to follow can weigh.
-- **Roster size is a security parameter, and audit effort does not shard.**
-  Selection is per-Auditor over every Delta (§4), so each admitted Auditor
-  draws its own share of the whole Log and no Auditor's work is any other's
-  relief: a roster of N costs N times one Auditor's fetch volume and buys
-  coverage rather than division of labour. That is deliberate — a scheme
-  that partitioned Deltas between Auditors would have to make the partition
-  derivable, and a derivable partition tells a Publisher which Auditors can
-  ever see it, which is the collusion surface §4's unpredictability exists
-  to remove — but it fixes what N buys, and the figures are worth stating
-  because the roster is the one variable an Aggregator controls and a
-  Consumer can inspect. At the `sampling_floor` rate a mature domain
-  enjoys, one altered URL is selected by at least one Auditor with
-  probability 1 − (1 − 0.02)^N: about 10 % at N = 5, 33 % at N = 20, 64 %
-  at N = 50. Confirmation does not then need a second coincidence, because
-  the extension rule summons every independent Auditor to the first
-  `inconsistent` Record — so for a campaign small enough to stay inside
-  `extension_triggers_max`, detection of the campaign is detection of any
-  one of its URLs: five altered URLs are caught 40 % of the time by a
-  five-Auditor roster, twenty-five of them 92 % of the time. A campaign
-  large enough to ration the extension rule out falls back to needing two
-  independent draws on the same Delta — 0.38 % per URL at N = 5 — but it
-  arrives there having already been confirmed `extension_triggers_max`
-  times per triggering Auditor, and the ladder it walked into raises its
-  sampling rate to `sampling_ceiling`, twenty-five times the floor, for
-  everything it publishes next. The property the suite offers is therefore
-  bounded undetected fraud rather than none: small-scale alteration by a
-  high-reputation domain can go unaudited, sustained alteration cannot, and
-  N is what sets where the boundary falls.
-- **Camouflage is an arms race.** A fabricator fails only the canaries
-  it cannot identify without fetching. Canary domains must be
-  statistically unremarkable on Log-visible metadata; the defense is
-  imperfect, and its value is that even partial camouflage moves
-  fabrication cost from zero to "fetch everything that might be one".
-  The watermark class moves the equilibrium — prevalence can climb toward
-  the whole byte-stable stratum at near-zero planting cost — but only
-  that stratum: a creditable leaf is fixed per Delta, so a page serving
-  per-request bytes cannot carry one, and byte instability is a durable
-  signature a fabricator classifies cheaply. The cost side erodes too:
-  after one full fetch of a byte-stable page, later unchanged Deltas
-  differ from the cache only at the nonce, and a range request can
-  retrieve it for kilobytes. Planters SHOULD refuse range requests or
-  scatter several nonces; even the probe is per-Delta contact with the
-  real domain, and what the arms race prices is the cost of credit, not
-  its possibility.
-- **Fraud canaries still burn, and hard hits reach only where they are.**
-  The watermark class removes the recurring burn from evidence supply;
-  what still burns is the fraud canary, and it remains the only detector
-  of a party that fetches and then lies. Its volume is a planter's choice,
-  and a stratum fraud canaries never visit is one where rubber-stamping is
-  caught by nothing: a contradiction attaches only to a summoning
-  `inconsistent` (§4), and an always-`consistent` stamper never files one.
-- **Planter diversity is a security parameter.** A scoreboard is only as
-  honest as the fraction of encountered canaries the candidate's colluders
-  did not plant. A ring inflating a credit rate must supply a large share
-  of the Log's canary volume in the relevant tier — Log-visible in
-  aggregate even when unattributable per planter — and the epoch ration on
-  commitments prices the flood per suffix, not per party. The judgement
-  absorbs the residue: an Aggregator weighing a scoreboard is entitled to
-  weigh who fed it, which no formula could without the attribution the
-  next bullet concedes is absent.
-- **Fetch-work is provable only at ring granularity.** The signer-bound
-  credit commitment stops a party from crediting another's published
-  value; nothing stops N identities from sharing one fetching backend,
-  each sealing an honest, distinct commitment over bytes one fetch
-  obtained. The evidence certifies that a signer held the served bytes in
-  time, so fetch cost scales with rings, not identities.
-- **The miss column is a smear channel, and it rides to removal stakes.**
-  A planter that cloaks its canaries for one party's fetches fills that
-  party's encountered set with canaries no honest act can credit: the
-  cloaked fetch commits to Payload-matching bytes, exactly what a
-  fabricator commits to, so no definition of "encountered" filters the
-  frame without also letting fabricators discard their misses. Because
-  admission and removal are judgements rather than formulas, the smear
-  denies nothing mechanically — but it degrades the evidence §3.1 exists
-  to create, an admitted Auditor's collapsed rate can be manufactured the
-  same way, and the ration bounding the attack is only as enforceable as
-  planting is attributable. Long windows and planter diversity thin the
-  frame; the judgement is what has to tell the framed from the lazy.
-- **The bootstrap majority persists until it is loosened in public.**
-  Admission is discretionary, so decentralization of the roster is a
-  practice, never a mechanism, and it never completes on its own. What
-  §3.1 adds is legibility, not compulsion: a strong scoreboard left
-  unadmitted is a fact anyone can compute and weigh against the operator.
-  The Aggregator retains the admission lever entire — it can starve
-  nothing, since the checkpoint budget is derivable, and still decline to
-  admit anyone, forever — and the remedy is the one §8 invariant 4 names.
+- **Auditor independence is an admission-time trust assumption.** An
+  Aggregator can admit its own keys under independent-looking hostnames
+  with matching Declarations. Two false Records can then satisfy the
+  confirmation rules and produce penalties that appeals cannot reverse.
+  Records still need §4 standing, but Auditor keys allow evaluating
+  candidate Block memberships at a re-sealing cost, defeating the
+  blind-grinding assumption above. Domain-anchored authorship exposes
+  signers; while the Reference Payload remains served, a party holding the
+  page can obtain its salt, demand the capture and contest the commitments.
+  Withdrawal removes that check in either direction. Public data and §8
+  invariant 4 permit leaving the operator; none of these protections proves
+  independent ownership. A deployment needing stronger independence MUST
+  obtain it outside the protocol, for example through Auditors it did not
+  choose or by holding no Auditor keys. §3.1 supplies admission evidence
+  subject to the canary limitations below.
+
+- **Roster concentration can suppress confirmation.** A roster under one
+  two-label suffix cannot confirm inconsistencies, regardless of key count
+  or coverage. Individual admissions do not reveal whether this reflects
+  deliberate suppression or a shared public suffix. Consumers can inspect
+  that concentration; §3 requires suffix-diverse deployment and specifies
+  the confirmation-capacity measure.
+
+- **Roster size controls coverage and cost.** Each of N Auditors samples
+  independently, multiplying fetch volume rather than dividing it.
+  For mutually independent Auditors and independent draws at the default
+  mature-domain floor, an altered URL is selected with
+  probability `1 − (1 − 0.02)^N`: about 10% for N = 5, 33% for N = 20,
+  and 64% for N = 50. Within the extension ration, one inconsistent Record
+  summons independent peers. If selected audits report the alteration,
+  at N = 5 the chance of detecting at least one of five altered URLs is
+  about 40%, or 92% for twenty-five. After the ration is exhausted,
+  at least two independent ordinary selections of one URL have
+  probability about 0.38% at N = 5. Confirmed fraud activates §7's ladder,
+  whose sampling ceiling is twenty-five times the floor. Small campaigns
+  can escape observation; roster size and sampling rates determine the
+  exposure. Scaling choices and rejected sharding/budget alternatives:
+  [ADR-0011](../decisions/0011-audit-effort-scales-with-the-roster.md).
+
+- **Canary camouflage and cheap probes.** Canary domains must be
+  statistically unremarkable in Log-visible metadata. Fixed leaves cannot
+  cover per-request content, whose instability helps fabricators identify
+  non-canaries. After one full fetch, range requests may retrieve only a
+  changed nonce. Planters SHOULD refuse ranges or scatter several nonces;
+  this raises credit cost without proving full-page verification.
+- **Fraud-canary coverage.** Watermarks reduce recurring planting cost,
+  but fraud canaries still incur sanctions and detect parties that fetch
+  then lie. A stratum without them leaves always-`consistent` filers
+  untested: contradiction applies only to summoning inconsistent Records.
+- **Planter and fetch-ring diversity.** Colluders can supply a candidate's
+  creditable canaries or share one fetch across distinct commitments.
+  Inflating a credit rate requires a large share of the tier's canary volume,
+  visible in aggregate even when individual planters are unattributable.
+  Commitment budgets bound suffix activity, not ownership, and cannot
+  identify the planter behind every credit. Evidence demonstrates timely
+  byte possession at ring granularity, not independent retrieval per signer.
+- **Misses can be manufactured.** Cloaking produces the same missed credit
+  for an honest fetcher as for a fabricator. Admission/removal judgement may
+  therefore penalize an honest party despite the absence of an automatic
+  penalty. Long windows and planter diversity reduce this exposure; they
+  do not identify every framed party.
+- **Admission remains discretionary.** A derivable checkpoint budget and
+  public scoreboard expose strong candidates left unadmitted but cannot
+  compel admission or decentralize the roster. §8 invariant 4 remains the
+  remedy. Canary tradeoffs are recorded in
+  [ADR-0012](../decisions/0012-auditor-track-record-becomes-derivable.md#consequences-and-limits).
 
 ## 12. Privacy Considerations
 

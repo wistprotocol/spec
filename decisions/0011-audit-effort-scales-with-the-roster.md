@@ -68,6 +68,12 @@ affordable is a stewardship duty, not an automatic property.
 
 ## Consequences
 
+The exact integer selection comparison in WIST-4 §4 prevents floating-point
+rounding from assigning different coverage duties to honest Auditors. Its
+seven-digit rate scale preserves every reputation digit; cross-products need
+more than 64 bits. Approximate agreement is insufficient when disagreement
+can establish a coverage breach.
+
 - One Auditor's steady-state bill is proportional to corpus churn times
   the reputation-weighted rate, derivable entirely from published
   parameters — and it is the same bill whether the roster is one or
