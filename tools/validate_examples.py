@@ -503,9 +503,9 @@ def _wist2_page_keyset():
         f"the vector must exercise both resolutions, a WIST2-E04, a Page before first contact and one between a rotation and its seal; saw {saw}"
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     for marker in (
-            "against the Key Set of the first Block after `generated_at` sealing an applicable Declaration of the domain",
+            "**first** Block sealed after `generated_at` that seals an applicable Declaration of the domain",
             "the Key Set is the highest `seq`'s, exactly as at a height",
-            "A page that verifies under neither Key Set is `WIST2-E04`"):
+            "A Page that verifies under neither source is `WIST2-E04`"):
         assert marker in prose, f"§3.2 does not state: {marker!r}"
 check("vectors:wist2-page-keyset", _wist2_page_keyset)
 
@@ -4677,6 +4677,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/declaration-refresh.json", "accepted"): "expected accepted Delta IDs",
     ("vectors/wist2/declaration-refresh.json", "rejected"): "expected rejected Delta IDs and diagnostics",
     ("vectors/wist2/declaration-refresh.json", "deltas"): "Feed Delta IDs",
+    ("vectors/wist2/page-bindings.json", "prev_declaration"): "SHA-256 of the previous publisher object",
+    ("vectors/wist2/page-bindings.json", "public_key"): "a usable or deliberately excluded Ed25519 point",
+    ("vectors/wist2/page-bindings.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/delta-fields.json", "prev"): "a supplied predecessor ID or malformed spelling; chain eligibility is not asserted",
     ("vectors/wist1/delta-fields.json", "id"): "SHA-256 of the signed Delta",
     ("vectors/wist1/delta-fields.json", "requested_id"): "a supplied matching or mismatching transport ID",
@@ -9124,5 +9127,71 @@ def _declaration_refresh_vectors():
 
 
 check("vectors:wist2-declaration-refresh", _declaration_refresh_vectors)
+
+def _page_binding_vectors():
+    vector = json.loads((ROOT / "vectors/wist2/page-bindings.json").read_text())
+    original = copy.deepcopy(vector)
+    schemas = {name: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{name}.schema.json").read_text())) for name in ("publisher", "feed")}
+
+    def usable(key):
+        try:
+            point = ecvrf.string_to_point(canonical_b64u_decode(key["public_key"]))
+        except ecvrf.InvalidProof:
+            return False
+        return not ecvrf._is_identity(ecvrf._mul(8, point))
+
+    def verifies(key, doc, inner):
+        return _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
+            canonical_b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc[inner]))[0]
+
+    for sources in vector["histories"].values():
+        previous = None
+        last = None
+        for source in sources:
+            doc = source["envelope"]
+            schemas["publisher"].validate(doc)
+            assert _declaration_binding_result(previous, doc, usable,
+                lambda key, env: verifies(key, env, "publisher")) == (
+                    "initial" if previous is None else "ordinary_rotation")
+            at = log_seconds(source["sealed_at"])
+            assert last is None or last < at
+            previous, last = doc, at
+
+    def resolve(sources, doc):
+        cut = log_seconds(doc["feed"]["generated_at"])
+        ordered = sorted(sources, key=lambda source: (
+            log_seconds(source["sealed_at"]), source["envelope"]["publisher"]["seq"]))
+        before = [source for source in ordered if log_seconds(source["sealed_at"]) <= cut]
+        after = [source for source in ordered if log_seconds(source["sealed_at"]) > cut]
+        current = before[-1:] if before else []
+        following = ([source for source in after if source["sealed_at"] == after[0]["sealed_at"]][-1:]
+                     if after else [])
+        for role, selected in (("current", current), ("next", following)):
+            for source in selected:
+                for key in source["envelope"]["publisher"]["keys"]:
+                    if key["key_id"] == doc["sig"]["key_id"] and usable(key) and verifies(key, doc, "feed"):
+                        return role
+        return "WIST2-E04"
+
+    for probe in vector["probes"]:
+        doc = probe["envelope"]
+        schemas["feed"].validate(doc)
+        sources = vector["histories"][probe["history"]]
+        assert resolve(sources, doc) == probe["expected"], probe["name"]
+        assert resolve(list(reversed(sources)), doc) == probe["expected"], probe["name"]
+        damaged = copy.deepcopy(doc)
+        damaged["feed"]["domain"] = "tampered.example"
+        assert resolve(sources, damaged) == "WIST2-E04", probe["name"]
+    renamed = vector["probes"][0]
+    current = vector["histories"]["renamed"][0]["envelope"]["publisher"]["keys"]
+    assert renamed["expected"] == "next"
+    assert any(verifies(key, renamed["envelope"], "feed") for key in current if usable(key))
+    assert all(key["key_id"] != renamed["envelope"]["sig"]["key_id"] for key in current)
+    assert len(vector["probes"]) == 16
+    assert vector == original
+
+
+check("vectors:wist2-page-bindings", _page_binding_vectors)
 
 sys.exit(1 if failures else 0)

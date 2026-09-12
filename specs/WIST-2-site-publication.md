@@ -127,16 +127,21 @@ which has no older Page before it. Pages MUST partition the Publisher's
 history: every Delta ID the Publisher has ever sealed MUST appear on
 exactly one Page, never on two and never on none.
 
-**Verification of sealed pages.** A page is verified against the Key Set
-current at the page's `generated_at` or, where that Key Set does not
-hold the key that signed it, against the Key Set of the first Block
-after `generated_at` sealing an applicable Declaration of the domain
-(the bridge below);
-because pages are immutable they are
-never re-signed on rotation, and a validator MUST NOT reject a page solely
-because its signing key has since been retired, or because the
-Declaration admitting it had not been sealed when the page was cut. A
-page that verifies under neither Key Set is `WIST2-E04`.
+**Verification of sealed pages.** Verify a Page under WIST-1 §4 using the
+signing entry named by its `sig.key_id` in the Declaration current at
+`generated_at`. If no usable named entry verifies, try the Declaration
+selected from the first following Block by the bridge below. An absent
+current Declaration also permits this fallback. Each attempt MUST use that
+Declaration's own named entry and public bytes; another alias of those bytes
+does not supply the named entry or suppress fallback. Finding `sig.key_id`
+in current does not suppress fallback when its entry fails verification.
+No other Declaration supplies authority, and the Delta-only
+`valid_from` comparison does not apply to Pages. A Page that verifies under
+neither source is `WIST2-E04`.
+
+Pages are immutable and never re-signed on rotation. A validator MUST NOT
+reject a Page solely because its signing key has since been retired or its
+authorizing Declaration had not sealed when the Page was cut.
 
 A Page's `generated_at` is the instant of the cutover that sealed it — the
 same value the `feed.json` published at that cutover carries — and not the
@@ -180,9 +185,8 @@ started. A Delta has no such gap, because an Aggregator seals a
 Declaration before or beside the first Delta it authorizes (WIST-3 §3.3)
 and seals a Delta only where the Key Set at its height verifies it
 (WIST-1 §5.2); a Page is never sealed, so nothing holds it. The second
-resolution above closes the gap: a Page whose signing key the Key Set
-current at `generated_at` does not hold verifies if that key is in the
-Key Set of the **first** Block sealed after `generated_at` that seals an
+resolution above closes the gap: fallback selects the Key Set of the
+**first** Block sealed after `generated_at` that seals an
 applicable Declaration of the domain — the same recovery exception
 applied — the Publisher's own act attested one seal late. Where that
 Block seals several Declarations of the domain, the Key Set is the

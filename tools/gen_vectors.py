@@ -2519,6 +2519,63 @@ write_json(WIST2V / "page-keyset.json", {
 })
 print("wist2 page-keyset vector written")
 
+def page_binding_vectors():
+    def binding(identifier, key, excluded=False):
+        return dict(key_id=identifier, alg="Ed25519",
+                    public_key=b64u(bytes(32) if excluded else raw_public(key)),
+                    valid_from="2099-01-01T00:00:00Z")
+
+    histories = {}
+    for name, bindings in {
+        "renamed": [binding("old", priv2), binding("new", priv2), binding("later", priv3)],
+        "reused": [binding("shared", priv2), binding("shared", priv3), binding("shared", priv4)],
+        "excluded": [binding("shared", priv2, True), binding("shared", priv3), binding("shared", priv4)],
+    }.items():
+        sources = []
+        previous = None
+        for seq, key in enumerate(bindings):
+            body = dict(wist_version="1.0.0", domain="example.com", seq=seq,
+                        keys=[binding("anchor", priv), key])
+            if previous:
+                body["prev_declaration"] = decl_hash(previous["publisher"])
+            envelope = sign_envelope_with(priv, "publisher", body, "anchor")
+            sources.append(dict(sealed_at=f"2026-08-09T{12 + seq:02}:00:00Z", envelope=envelope))
+            previous = envelope
+        histories[name] = sources
+
+    probes = []
+    def probe(name, history, identifier, key, expected, cut="2026-08-09T12:30:00Z"):
+        body = dict(wist_version="1.0.0", domain="example.com", generated_at=cut,
+                    deltas=[], next=None)
+        probes.append(dict(name=name, history=history,
+                           envelope=sign_envelope_with(key, "feed", body, identifier),
+                           expected=expected))
+
+    probe("renamed public key uses first next named entry", "renamed", "new", priv2, "next")
+    probe("old alias still verifies current", "renamed", "old", priv2, "current")
+    probe("absent alias cannot borrow identical public bytes", "renamed", "absent", priv2, "WIST2-E04")
+    probe("alias from a later Block cannot supply authority", "renamed", "later", priv3, "WIST2-E04")
+    probe("renamed identifier is current at exact seal", "renamed", "new", priv2, "current", "2026-08-09T13:00:00Z")
+    probe("retired alias cannot borrow current public bytes", "renamed", "old", priv2, "WIST2-E04", "2026-08-09T13:00:00Z")
+    probe("renamed identifier before first contact is too late", "renamed", "new", priv2, "WIST2-E04", "2026-08-09T11:00:00Z")
+    probe("first contact resolves original named entry", "renamed", "old", priv2, "next", "2026-08-09T11:00:00Z")
+    probe("invalid signature under permitted aliases rejects", "renamed", "new", priv4, "WIST2-E04")
+    probe("reused identifier verifies current bytes", "reused", "shared", priv2, "current")
+    probe("reused identifier verifies first next bytes", "reused", "shared", priv3, "next")
+    probe("reused identifier cannot borrow later bytes", "reused", "shared", priv4, "WIST2-E04")
+    probe("excluded current entry permits first next", "excluded", "shared", priv3, "next")
+    probe("excluded current entry cannot borrow later bytes", "excluded", "shared", priv4, "WIST2-E04")
+    probe("current succeeds without a following Declaration", "renamed", "later", priv3, "current", "2026-08-09T15:00:00Z")
+    probe("retired bytes fail without a following Declaration", "renamed", "new", priv2, "WIST2-E04", "2026-08-09T15:00:00Z")
+    return dict(note="WIST-2 §3.2 named-entry verification over signed ordinary Declaration chains. "
+                "Sealing positions are supplied inputs, without Block inclusion or recovery proofs. "
+                "Empty Delta lists isolate signature/source selection; these are not publication or "
+                "Page-size fixtures. Future valid_from values distinguish Pages from Delta filtering.",
+                histories=histories, probes=probes)
+
+
+write_json(WIST2V / "page-bindings.json", page_binding_vectors())
+
 # ------------------------------------------------------------ WIST-3: log anchor
 anchor = {
     "wist_version": "1.0.0",

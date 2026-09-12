@@ -68,6 +68,10 @@ key; repeated references to identical public bytes do not create distinct
 signers. Object fields and versions are unchanged. The undeployed draft is
 updated under PUBLICATION.md.
 
+Sealed Pages use the named-entry verification and current/first-next fallback
+in WIST-2 §3.2. This refines the same binding mechanism without changing
+Declaration source cutoffs, recovery supersession or schemas.
+
 ## Alternatives and consequences
 
 First-match lookup lets array order select authority. Rejecting every reused
@@ -119,3 +123,13 @@ hashes. The independent reference derives the sources and checks their
 complete bindings. Successful key verification alone establishes no Delta
 chain eligibility, live clock check, durable queue, Payload availability,
 quota result, sealing, settlement or Snapshot restoration.
+
+For Pages, public-byte membership alone cannot resolve a signature's named
+entry after an alias rename. Suppressing fallback because current holds the
+bytes under another identifier would reject an honest Page cut during that
+rename. Identifier presence alone also suppresses a valid first-next binding
+when an identifier changes public keys. Independent named-entry verification
+in each permitted source preserves both cases without borrowing historical
+authority. `vectors/wist2/page-bindings.json` distinguishes these predicates
+with signed Declaration chains and Page probes; supplied sealing positions
+do not establish authenticated Block inclusion or recovery supersession.
