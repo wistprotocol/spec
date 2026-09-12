@@ -499,6 +499,22 @@ unimplemented major. Independent role consumption and publication-boundary
 verification remain required; an offline vector cannot establish deployment
 status or waive the frozen edition's immutability.
 
+## Declaration refresh boundaries
+
+WIST-1 §5.1 requires an Aggregator to re-fetch a Declaration once after a
+cached-key signature failure. WIST-2 §5 step 1 explicitly limits Feed refresh
+to one per failing pull. Delta retry scope remains unspecified: whether E02
+also triggers refresh, and whether multiple failing Deltas, retrieved
+predecessors or repeated checks after recovery settlement share an attempt.
+Resolve these cases with signed transport sequences before claiming complete
+Delta refresh conformance.
+
+WIST-2 §5 budgets Feed pages, Deltas and Payloads, but does not specify whether
+initial, periodic or required Declaration fetches consume that budget or whether
+exhaustion defers mandatory refresh. Metering Declaration requests and suspending
+before a required retry is an unresolved reading. Resolution requires transport
+vectors covering exhaustion, noise accounting and resumption.
+
 ## Complete Delta field diagnostics
 
 WIST-1 §§3.7/7 and ADR-0027 define field validation and its semantic
