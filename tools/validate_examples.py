@@ -4668,6 +4668,10 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
     ("vectors/wist1/declaration-fields.json", "prev"): "a Delta predecessor ID; relation cases authenticate the supplied predecessor",
+    ("vectors/wist2/feed-fields.json", "domain"): "supplied Canonical Hosts or deliberately malformed field probes",
+    ("vectors/wist2/feed-fields.json", "deltas"): "supplied Delta IDs or deliberately malformed field probes; retrieval is not asserted",
+    ("vectors/wist2/feed-fields.json", "public_key"): "the fixture Declaration public key",
+    ("vectors/wist2/feed-fields.json", "value"): "valid or deliberately malformed or invalid signatures",
     ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
     ("vectors/wist2/declaration-refresh.json", "id"): "SHA-256 of the served Delta",
     ("vectors/wist2/declaration-refresh.json", "prev"): "SHA-256 of the served predecessor",
@@ -7446,7 +7450,7 @@ def _timestamp_anchoring():
             undeclared.append(f"{schema_name}: {spath}")
             continue
         if declared is ANCHORED:
-            assert pattern == SEALED_AT_PATTERN, (
+            assert pattern in (SEALED_AT_PATTERN, SEALED_AT_PATTERN + r"(?![\s\S])"), (
                 f"{schema_name}: {spath} is compared against a Block `sealed_at` but carries "
                 f"pattern {pattern!r}, not the whole-second-plus-Z form that field carries")
         else:
@@ -9224,5 +9228,62 @@ def _page_binding_vectors():
 
 
 check("vectors:wist2-page-bindings", _page_binding_vectors)
+
+
+def _feed_field_vectors():
+    vector = json.loads((ROOT / "vectors/wist2/feed-fields.json").read_text())
+    original = copy.deepcopy(vector)
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+
+    def timestamp(value):
+        if not isinstance(value, str):
+            return True
+        try:
+            log_seconds(value)
+            return True
+        except ValueError:
+            return False
+
+    formats.checks("date-time")(timestamp)
+    validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/feed.schema.json").read_text()), format_checker=formats)
+    source = vector["declaration"]
+    key = source["publisher"]["keys"][0]
+    public = canonical_b64u_decode(key["public_key"])
+    assert _ed25519_profile_verdict(public, canonical_b64u_decode(source["sig"]["value"]),
+                                  rfc8785.dumps(source["publisher"]))[0]
+    observed = set()
+    for case in vector["cases"]:
+        doc = case["envelope"]
+        try:
+            signature = base64.urlsafe_b64decode(doc["sig"]["value"] + "==")
+            author_signature = _ed25519_profile_verdict(public, signature, rfc8785.dumps(doc["feed"]))[0]
+        except (KeyError, TypeError, ValueError):
+            author_signature = False
+        assert author_signature == case["author_signature"], case["name"]
+        if not validator.is_valid(doc):
+            phase = "fields"
+        else:
+            rfc8785.dumps(doc)
+            if doc["feed"]["domain"] != vector["host"]:
+                phase = "domain"
+            elif (doc["sig"]["key_id"] != key["key_id"] or
+                  not _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
+                                              rfc8785.dumps(doc["feed"]))[0]):
+                phase = "signature"
+            else:
+                phase = "accepted"
+        assert phase == case["expected"], case["name"]
+        assert case["code"] == {"fields": "WIST2-E01", "domain": "WIST2-E04",
+                                "signature": "WIST2-E04", "accepted": None}[phase]
+        assert case["rejection_noise"] == (phase in ("domain", "signature"))
+        assert case["declaration_retries"] == int(phase == "signature")
+        observed.add(phase)
+    assert observed == {"fields", "domain", "signature", "accepted"}
+    assert vector == original
+
+
+check("vectors:wist2-feed-fields", _feed_field_vectors)
 
 sys.exit(1 if failures else 0)

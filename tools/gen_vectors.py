@@ -8,6 +8,7 @@ import base64, calendar, datetime, hashlib, hmac, itertools, json, pathlib, re, 
 from decimal import Decimal, localcontext
 
 import rfc8785
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -7544,3 +7545,94 @@ def declaration_refresh_vectors():
 
 
 write_json(ROOT / "vectors/wist2/declaration-refresh.json", declaration_refresh_vectors())
+
+
+def feed_field_vectors():
+    base = dict(wist_version="1.0.0", domain="localhost",
+                generated_at="2026-08-09T14:00:00Z", deltas=[], next=None)
+    cases = []
+
+    def add(name, body=None, *, expected="accepted", mutate=None, live=True):
+        body = dict(base) if body is None else body
+        doc = sign_envelope("feed", body, "test-k1")
+        if mutate:
+            mutate(doc)
+        try:
+            priv.public_key().verify(base64.urlsafe_b64decode(doc["sig"]["value"] + "=="),
+                                     rfc8785.dumps(doc["feed"]))
+            author_signature = True
+        except (KeyError, TypeError, ValueError, InvalidSignature):
+            author_signature = False
+        cases.append(dict(name=name, envelope=doc, expected=expected, live=live,
+                          author_signature=author_signature,
+                          code={"fields": "WIST2-E01", "domain": "WIST2-E04",
+                                "signature": "WIST2-E04", "accepted": None}[expected],
+                          rejection_noise=expected in ("domain", "signature"),
+                          declaration_retries=int(expected == "signature")))
+
+    add("valid empty Feed")
+    for value in ("0000-02-29T00:00:00Z", "9999-12-31T23:59:59Z"):
+        add("timestamp boundary " + value, dict(base, generated_at=value))
+    add("unbounded release components", dict(base, wist_version="1." + "9" * 80 + "." + "8" * 80))
+    for field in base:
+        body = dict(base)
+        del body[field]
+        add("missing " + field, body, expected="fields")
+        if field != "next":
+            add("null " + field, dict(base, **{field: None}), expected="fields")
+    for domain in ("LOCALHOST", "localhost.", "", "xn--.example", "a" * 64,
+                   "a." * 127 + "a", "localhost:443", "bücher.example", 7, [], {}):
+        add("invalid domain " + repr(domain), dict(base, domain=domain), expected="fields")
+    for host in ("-foo.example", "r2---sn-x.example", "xn--bcher-kva.example"):
+        add("valid foreign host " + host, dict(base, domain=host), expected="domain")
+    invalid = [
+        ("generated_at", value) for value in (
+            "2026-02-29T00:00:00Z", "1900-02-29T00:00:00Z", "2026-08-09T24:00:00Z",
+            "2026-08-09T14:00:60Z", "2026-08-09T14:00:00.0Z", "2026-08-09T14:00:00+00:00",
+            "2026-08-09t14:00:00z", "2026-08-09T14:00:00Z\n", "10000-01-01T00:00:00Z")]
+    invalid += [("wist_version", value) for value in (
+        "01.0.0", "1.00.0", "1.0.00", "١.0.0", "1.0.0\n", "1.0.0-beta", "1.0.0+build", "1.0", "1..0")]
+    invalid += [("next", value) for value in (7, [], "http://localhost/.well-known/wist/feed/0.json",
+                 "https://localhost/.well-known/wist/feed/0.json#part")]
+    invalid += [("deltas", value) for value in ("wrong", [None], ["sha256:" + "A" * 64],
+                ["sha256:" + "0" * 64 + "\n"], ["sha256:" + "0" * 64] * 2)]
+    for index, (field, value) in enumerate(invalid):
+        body = dict(base, **{field: value})
+        add(f"invalid {field} {index}", body, expected="fields")
+        add(f"invalid {field} {index} with foreign domain", dict(body, domain="other.example"), expected="fields")
+        add(f"invalid {field} {index} with bad signature", body, expected="fields",
+            mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
+    for count in (1000, 1001):
+        ids = ["sha256:" + hashlib.sha256(str(i).encode()).hexdigest() for i in range(count)]
+        add(f"Delta count {count}", dict(base, deltas=ids),
+            expected="accepted" if count == 1000 else "fields", live=count > 1000)
+    for field in ("key_id", "alg", "value"):
+        add("missing signature " + field, expected="fields", mutate=lambda doc, f=field: doc["sig"].pop(f))
+    for field, value in (("key_id", "é" * 65), ("key_id", None), ("alg", "Other"),
+                         ("value", "A" * 85 + "B"), ("value", "A" * 86 + "=="), ("value", None)):
+        add("invalid signature " + field + " " + repr(value), expected="fields",
+            mutate=lambda doc, f=field, v=value: doc["sig"].update({f: v}))
+        add("invalid signature " + field + " " + repr(value) + " with foreign domain",
+            dict(base, domain="other.example"), expected="fields",
+            mutate=lambda doc, f=field, v=value: doc["sig"].update({f: v}))
+    add("scalar key identifier boundary", mutate=lambda doc: doc["sig"].update(key_id="é" * 64), expected="signature")
+    add("unknown Envelope member", expected="fields", mutate=lambda doc: doc.update(extra=True))
+    add("unknown Feed member", dict(base, extra=True), expected="fields")
+    add("unknown signature member", expected="fields", mutate=lambda doc: doc["sig"].update(extra=True))
+    add("missing Feed", expected="fields", mutate=lambda doc: doc.pop("feed"))
+    add("missing signature", expected="fields", mutate=lambda doc: doc.pop("sig"))
+    add("foreign domain", dict(base, domain="other.example"), expected="domain")
+    add("foreign domain and bad signature", dict(base, domain="other.example"), expected="domain",
+        mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
+    add("bad signature", expected="signature", mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
+    source = sign_envelope("publisher", dict(wist_version="1.0.0", domain="localhost", seq=0,
+        keys=[dict(key_id="test-k1", alg="Ed25519", public_key=b64u(pub_raw),
+                   valid_from="2026-08-09T00:00:00Z")]), "test-k1")
+    return dict(description="Feed Envelope field and identity precedence under WIST-2 section 5. "
+                "Serve each live candidate unchanged after the supplied Declaration, re-serving that "
+                "Declaration on retry. Field checks also apply to Pages; these supplied-context probes "
+                "establish no Page publication, history partitioning or Feed regression state.",
+                host="localhost", declaration=source, cases=cases)
+
+
+write_json(ROOT / "vectors/wist2/feed-fields.json", feed_field_vectors())

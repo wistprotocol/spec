@@ -103,15 +103,17 @@ conformance. WIST-4 §9's claim that `https://a.b/` is the shortest Normalized
 URL also needs reconciliation with §2's acceptance of single-label hosts.
 No new suffix policy or global host restriction is selected here.
 
-**Host-field diagnostics outside Declarations remain unresolved.** WIST-2
-§7 assigns schema failure to WIST2-E01 (backoff, no noise), while §4 and
-WIST2-E04 require a Feed domain differing from the fetched host to be
-discarded as noise. A signed `EXAMPLE.com` Feed fetched for `example.com`
-now violates both conditions. Define their precedence, including malformed
-domain types and other simultaneous field failures, with signed pull vectors
-before live Feed format adoption. Field-only host probes select no diagnostic.
+**Feed field diagnostics** follow WIST-2 §5 and
+[ADR-0032](decisions/0032-feed-field-diagnostics.md). Signed
+`vectors/wist2/feed-fields.json` probes exercise complete schema/format
+validation, release spelling, exact Log timestamps and field/domain/signature
+precedence. The reference checks supplied dispositions independently of the
+generator. Live transport, Page publication/partitioning, Feed regression
+state, supported-major policy and durable selected-source provenance require
+separate validation.
 
-Likewise, WIST-4 §10's WIST4-E04 covers `details`/`evidence` contracts,
+**Registry subject diagnostics remain unresolved.** WIST-4 §10's WIST4-E04
+covers `details`/`evidence` contracts,
 WIST4-E03 signatures, and WIST4-E05 process/evidence failures. None assigns a
 general malformed Publisher `subject` diagnostic. WIST-1 §5.1's host-field
 WIST1-E14 applies to Declarations; it does not extend that code to governance.

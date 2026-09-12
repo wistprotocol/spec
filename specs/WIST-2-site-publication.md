@@ -274,6 +274,7 @@ ping whose `host` is not canonical, and MUST reject a Feed whose
 `feed.domain` differs from the host it was fetched from, with
 `WIST2-E04` (§7): a Feed naming another domain does not authenticate as
 this domain's Feed, whatever its signature verifies against.
+The field-validation precedence in §5 applies before this comparison.
 
 The Ping carries no content and no signature; authenticity comes from the
 subsequent HTTPS pull of the signed Feed and Deltas. Responses:
@@ -328,7 +329,23 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    at the budget boundary; discovery alone neither completes the walk nor
    makes an unusable Feed usable. Discovery remains subject to WIST-1 §5.1
    and §8's transport rules. See [ADR-0031](../decisions/0031-declaration-refresh.md).
-1. Fetches `feed.json`; verifies its signature against the domain's Key
+1. Fetches `feed.json`. Before domain comparison or signature verification,
+   the Aggregator MUST validate the complete Feed Envelope against its schema,
+   including formats and WIST-1 §4 canonicalizability. This gate applies to
+   sealed Pages too. A failure is `WIST2-E01`, including when a malformed
+   domain also differs from the requested host or a malformed signature would
+   fail verification. Do not normalize signed fields or trigger the
+   failure-driven Declaration retry for a field failure. Feed/Page
+   `wist_version` MUST contain exactly three dot-separated ASCII decimal
+   components with no leading zeros except `0`, no suffix and no numeric upper
+   bound. `generated_at` uses WIST-3 §3.1's exact Log-comparable timestamp
+   profile, including Gregorian calendar validation. After this gate, a
+   `feed.domain` differing from the requested host is `WIST2-E04` without a
+   Declaration retry, even if the signature also fails. The existing §7 noise
+   and backoff dispositions apply. See
+   [ADR-0032](../decisions/0032-feed-field-diagnostics.md).
+
+   Verifies its signature against the domain's Key
    Set (WIST-1 §5). A Feed the Aggregator cannot use is `WIST2-E01` and is
    retried on the backoff schedule of §7 — one that cannot be fetched at
    all, and one fetched but unusable: not well-formed JSON, failing the
