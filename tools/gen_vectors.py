@@ -839,6 +839,129 @@ def recovery_heads_vectors():
 
 recovery_heads_vectors()
 
+def recovery_admission_vectors():
+    def signed(previous, seq, signer, key_id, **changes):
+        inner = dict(previous["publisher"], seq=seq,
+                     prev_declaration=decl_hash(previous["publisher"]), **changes)
+        return sign_envelope_with(signer, "publisher", inner, key_id)
+
+    initial = sign_envelope("publisher", publisher, "test-k1")
+    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
+    fresh = signed(owner, 2, priv, "test-k1", keys=publisher["keys"])
+    branch = signed(fresh, 3, priv, "test-k1", contact="mailto:branch@example.com")
+    branch_recovery = signed(branch, 4, priv4, "test-r2", keys=[K2])
+    follower = signed(owner, 5, priv3, "test-k2", contact="mailto:follower@example.com")
+    competitor = signed(follower, 6, priv, "test-k1", keys=publisher["keys"])
+    newest = signed(follower, 7, priv3, "test-k2", contact="mailto:newest@example.com")
+    recovered = signed(owner, 3, priv4, "test-r2", keys=publisher["keys"])
+    recovered_again = signed(recovered, 4, priv4, "test-r2", contact="mailto:again@example.com")
+    fresh_after_recovery = signed(recovered, 4, priv3, "test-k2", keys=[K2], contact="mailto:after-recovery@example.com")
+    after = signed(newest, 8, priv, "test-k1", keys=publisher["keys"])
+    late = signed(owner, 3, priv, "test-k1", keys=publisher["keys"], contact="mailto:late@example.com")
+    declarations = dict(initial=initial, owner=owner, fresh=fresh, branch=branch,
+                        branch_recovery=branch_recovery, follower=follower,
+                        competitor=competitor, newest=newest, recovered=recovered,
+                        recovered_again=recovered_again, fresh_after_recovery=fresh_after_recovery,
+                        after=after, late=late)
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+    def timestamp(hour, seconds=0):
+        return (start + datetime.timedelta(hours=hour, seconds=seconds)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    def block(height, previous, names):
+        entries = sorted((recovery_order_entry(declarations[name]) for name in names),
+                         key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
+        leaves = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+        root = merkle_tree_root(leaves) if leaves else hashlib.sha256(b"\x00").digest()
+        header = dict(wist_version="1.0.0", block_number=height, prev_block_hash=previous,
+                      sealed_at=timestamp(height), merkle_root="sha256:" + root.hex(),
+                      entry_count=len(entries))
+        result = sign_envelope_with(priv, "header", header, "test-log-k1")
+        result["entries"] = entries
+        return result
+    blocks, previous = [], "sha256:genesis"
+    for height in range(168):
+        result = block(height, previous, ["initial"] if height == 0 else ["owner"] if height == 1 else [])
+        blocks.append(result)
+        previous = decl_hash(result["header"])
+
+    cases = []
+    def case(name, accepted, sealed, retained, discarded, current, floor,
+             post=None, log_current=None, log_floor=None, new_window=False, boundary=None,
+             new_window_owner=None, log_reset=False, overdue=False):
+        before = block(168, previous, sealed)
+        post = post or []
+        deadline = block(169, decl_hash(before["header"]), retained + [item[0] for item in post if item[1] != "WIST1-E08"])
+        probes = [{"declaration": item, "expected": result} for item, result in post]
+        cases.append({
+            "name": name,
+            "admitted_at": boundary or timestamp(167, 1),
+            "admitted": accepted,
+            "last_inside_block": before,
+            "last_inside_pin": decl_hash(before["header"]),
+            "expected_settlement": {"current": current, "floor": floor,
+                                    "queue_source": "owner", "retained": retained,
+                                    "removed": discarded},
+            "removed_recovery_sealing_violation": overdue,
+            "at_deadline": probes,
+            "expected_after_repeat": {"current": post[-1][0] if post and post[-1][1] != "WIST1-E08" else current,
+                                      "floor": declarations[post[-1][0]]["publisher"]["seq"]
+                                      if post and post[-1][1] != "WIST1-E08" else floor},
+            "deadline_block": deadline,
+            "deadline_pin": decl_hash(deadline["header"]),
+            "expected_log": {"current": log_current or (post[-1][0] if post and post[-1][1] != "WIST1-E08" else current),
+                             "floor": log_floor if log_floor is not None else (declarations[post[-1][0]]["publisher"]["seq"]
+                                       if post and post[-1][1] != "WIST1-E08" else floor),
+                             "window_end": timestamp(337) if new_window else None,
+                             "reset_height": 169 if log_reset else None},
+        })
+        if new_window:
+            cases[-1]["expected_window_owner"] = new_window_owner or "recovered"
+        if discarded == ["fresh"]:
+            revival = block(169, decl_hash(before["header"]), ["fresh"])
+            cases[-1]["forbidden_revival"] = {"block": revival, "pin": decl_hash(revival["header"]),
+                                             "log_current": "fresh", "log_reset_height": 169}
+    case("pending fresh competitor is removed", ["fresh"], [], [], ["fresh"], "owner", 2,
+         post=[("fresh", "WIST1-E08")], log_floor=1)
+    case("ordinary and recovery descendants are removed", ["fresh", "branch", "branch_recovery"], [], [],
+         ["fresh", "branch", "branch_recovery"], "owner", 4, log_floor=1)
+    case("legitimate followers survive competing branches",
+         ["fresh", "branch", "branch_recovery", "follower", "competitor", "newest"], [],
+         ["follower", "newest"], ["fresh", "branch", "branch_recovery", "competitor"], "newest", 7)
+    case("pending recovery follower opens its own sealing window", ["fresh", "recovered"], [],
+         ["recovered"], ["fresh"], "recovered", 3, new_window=True)
+    case("repeated settlement preserves a new accepted identity",
+         ["follower", "competitor", "newest"], [], ["follower", "newest"], ["competitor"], "newest", 7,
+         post=[("after", "fresh_identity")], log_reset=True)
+    case("last second competitor is superseded", ["fresh"], [], [], ["fresh"], "owner", 2,
+         log_floor=1, boundary=timestamp(169, -1))
+    case("exact deadline fresh candidate is a new identity", ["fresh"], [], [], ["fresh"], "owner", 2,
+         post=[("late", "fresh_identity")], log_reset=True)
+    case("sealed competitor remains visible with its sequence floor", ["fresh"], ["fresh"], [], [],
+         "owner", 2)
+    case("first pending recovery owns the new window", ["fresh", "recovered", "recovered_again"], [],
+         ["recovered", "recovered_again"], ["fresh"], "recovered_again", 4, new_window=True)
+    case("newly admitted fresh successor seals inside the next window", ["fresh", "recovered"], [],
+         ["recovered"], ["fresh"], "recovered", 3, post=[("fresh_after_recovery", "fresh_identity")],
+         new_window=True)
+    case("supersession does not erase an overdue recovery sealing duty", ["fresh", "branch", "branch_recovery"], [], [],
+         ["fresh", "branch", "branch_recovery"], "owner", 4, log_floor=1,
+         boundary=timestamp(2, 1), overdue=True)
+    write_json(WIST1 / "recovery-admission.json", {
+        "note": "WIST-1 section 5.2. Shared signed hourly prefix plus each case's last inside Block "
+                "and deadline Block authenticate sealed Declaration state. Named signed admission "
+                "candidates are separate supplied local events, not claims of inclusion. Admission "
+                "happens at admitted_at, including when later than last_inside_block. Settle at "
+                "deadline, evaluate at_deadline candidates in order, then repeat admission settlement "
+                "before evaluating the deadline Block. No Delta, Payload, quota, Snapshot, durable "
+                "storage or authenticated Audit Record eligibility is asserted.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "deadline": timestamp(169),
+        "blocks": blocks, "pinned_head": previous,
+        "declarations": declarations, "cases": cases,
+    })
+
+
+recovery_admission_vectors()
+
 def declaration_conflict_vectors():
     def signed(previous, seq, signer=priv, key_id="test-k1", **changes):
         inner = dict(previous["publisher"], seq=seq,

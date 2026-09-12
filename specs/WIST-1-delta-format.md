@@ -917,6 +917,44 @@ is below the retained floor. Re-serving any other accepted Declaration is
 window is still open. Idempotence installs no new Declaration or signature
 and does not reopen a window.
 
+**Unsealed Declarations at settlement.** Admission and Log replay retain
+their own accepted heads and sequence floors. At admission settlement, the
+restored current head includes legitimate followers already accepted there,
+even when they have not sealed. Queue revalidation still uses only the last
+recovery-chain Declaration sealed strictly before the deadline, as specified
+below. An unsealed follower MUST NOT supply that queue-settlement authority.
+Closing the admission window is persistent: later pulls and the first
+deadline Block MUST NOT repeat that admission transition over replacements
+already accepted after it. The sealed-history window closes separately when
+a valid Block at or after the deadline applies.
+
+Remove every superseded, still-unsealed non-chain Declaration from the
+eligible sealing set, including ordinary, fresh and recovery descendants of
+a competitor. Such a copy MUST NOT first install after the deadline. This is
+an exception to the Declaration sealing obligation below: it prevents a
+competing act from becoming a fresh identity or a new recovery merely through
+delayed inclusion. Supersession adds no new rejection diagnostic; a re-serve
+remains subject to the retained admission floor and current-object idempotence.
+Previously sealed competitors remain in the Log and undergo normal replay
+supersession. A Consumer cannot infer unsealed admission history from a Block;
+the removal duty belongs to the Aggregator that accepted those copies.
+
+Retain pending legitimate recovery-chain followers in predecessor order.
+They remain subject to every acceptance check at their actual sealing Block,
+whose sequence floor excludes unsealed admission. In particular, a retained
+recovery-signed follower first applied at or after the old deadline opens a
+new window if none is then open; the first recovery in application order
+owns it. Earlier admission inside the old window cannot suppress that
+Log-derived effect. A new Declaration admitted at or after settlement
+uses the restored current admission head and a sequence above the retained
+admission floor. Its fresh or recovery classification has the normal
+post-settlement admission semantics, rather than inheriting the closed window's
+protection. Actual Log effects still follow sealing application order: if a
+retained recovery follower opens a new window before a fresh successor applies,
+that successor is a competitor inside the new window and does not reset identity.
+`vectors/wist1/recovery-admission.json` separates these admission and sealing
+traces, including the exact deadline and a copy sealed just before it.
+
 For example, let recovery R have `seq` 1, and let a fresh competitor F with
 `seq` 2 name R. During the window a legitimate D signed by R's signing or
 recovery key names R, not F, and uses `seq` greater than 2. If settlement
@@ -1017,7 +1055,11 @@ by what signs it, using the authenticated public key resolved above:
   discovering a served recovery Declaration that verifies — by pull, by
   hint, or by the Publisher's Ping — the Aggregator MUST seal its Entry
   within the number of Blocks `record_seal_blocks` fixes (WIST-4 §4's
-  sealing-latency constant, default 24). A recovery the operator can
+  sealing-latency constant, default 24). Supersession of a still-unsealed
+  non-chain copy at the recovery deadline cancels that copy's remaining
+  sealing duty, without excusing a sealing-latency violation already incurred
+  before supersession. Legitimate followers retain their sealing duty.
+  A recovery the operator can
   shelve indefinitely is the notice-layer goodwill dependency
   reconstituted one layer down. The violation is attributable — the
   Declaration is signed, dated by its own `seq` and `prev_declaration`,
@@ -1057,7 +1099,8 @@ the same name, and preserving standing on domain control alone would let
 anyone buy an aged domain and inherit its reputation.
 
 **Historical verification.** Accepted Declarations are sealed into the Log
-as `publisher_declaration` Entries (WIST-3 §3.3). The Key Set applicable to a
+as `publisher_declaration` Entries (WIST-3 §3.3), except pending non-chain
+copies removed by recovery supersession above. The Key Set applicable to a
 `publisher_delta` Entry sealed in Block N is normally the one from its
 signed `delta.publisher` domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
 that a recovery Declaration which took effect under the Compromise

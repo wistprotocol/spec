@@ -139,6 +139,36 @@ the restored lower-sequence head; any other old Declaration rejects. Equal
 `prev_declaration` values alone do not prove identical objects. Idempotence
 changes no accepted state and installs no new signature.
 
+**Pending competitors cannot acquire a post-window effect by waiting.**
+Admission settlement restores its accepted recovery head, including pending
+legitimate followers, and retains its sequence floor. Queue revalidation uses
+the distinct head sealed inside the window. Persist completion of admission
+settlement so processing another pull or the first deadline Block cannot
+erase subsequently accepted replacements.
+
+Superseded competitors that have not sealed are removed from sealing
+eligibility, including their ordinary and recovery descendants. This narrows
+the general accepted-Declaration sealing obligation: a copy first sealed after
+the deadline could otherwise apply as a fresh identity or open a new recovery
+window, although its admission classified it as a superseded competing act.
+Already-sealed competitors remain visible and are superseded normally. There
+is no new wire field, schema constraint or supersession diagnostic. The duty
+is on the accepting Aggregator; supersession cancels the removed copy's
+remaining recovery-sealing duty but excuses no violation already incurred.
+Legitimate followers retain that duty. Consumers still validate only their Log's
+authenticated history and cannot infer unpublished admission times.
+
+Pending legitimate followers survive, subject to actual sealing acceptance
+and predecessor order. A recovery-signed follower first sealed after the old
+deadline opens a new window if none is open, under the existing Log-time rule.
+The first recovery in application order owns that window. A fresh
+replacement newly accepted after admission settlement has normal
+post-settlement admission semantics; its actual identity effect still follows
+Log application order, including any new window opened by an earlier Entry.
+Signed Declaration Envelopes with supplied admission events and Block traces in
+`vectors/wist1/recovery-admission.json` exercise those distinctions without
+claiming live queue durability or complete Delta eligibility.
+
 **A fresh identity inside a window is accepted and superseded.** Fresh
 classification alone is not `WIST1-E08`; all sequence, predecessor, signature
 and recovery-key checks still apply. Rejecting an otherwise valid attempt at
@@ -205,6 +235,23 @@ extensions past competitors, and rejects stale predecessors and recovery-key
 replacement without authority. No object field or schema constraint changes.
 
 ## Alternatives considered
+
+**Seal every pending competitor after the deadline.** Rejected because a
+copy naming the restored head can pass Log acceptance as a new fresh identity
+or recovery, escaping the supersession applied to its admission. Its delayed
+inclusion would change the identity protection that justified accepting it.
+
+**Require every admitted competitor to seal before expiry.** This would
+retain public evidence of all competing attempts, but a candidate can arrive
+after the last eligible pre-deadline sealing slot. The existing cadence and
+Block capacity cannot guarantee that inclusion. Retaining the signed attempt
+as a different kind of evidence would require a separate protocol capability;
+this mechanism introduces none.
+
+**Drop every pending Declaration at expiry.** Rejected because legitimate
+followers belong to the recovering chain and their accepted continuity must
+survive. Their actual sealing remains governed by the Log's own predecessor,
+sequence and recovery-window rules.
 
 **Pool admission scopes independently from keys.** Rejected because this
 lets one source's signer exercise authority granted only by the other source.

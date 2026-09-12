@@ -454,6 +454,36 @@ a lower sequence can make the lower candidate permanently ineligible under
 WIST-1 §5.2. Predecessor closure alone does not prevent this: a valid subsequent
 Block and continued queue progress must be demonstrated after capacity deferral.
 
+WIST-1 §5.2 and draft ADR-0015 resolve the fate of competing Declarations
+admitted inside recovery but still unsealed at expiry. Remove those superseded
+copies and their non-chain descendants from sealing eligibility while retaining
+the admission sequence floor and legitimate pending followers. The exception
+to Declaration sealing does not remove already-sealed evidence. A Consumer
+cannot infer an unpublished admission time: a removed competitor could otherwise
+pass its Log's post-deadline acceptance checks and acquire a new identity effect.
+`vectors/wist1/recovery-admission.json` supplies signed Declaration Envelopes
+with separately supplied chronological admission events and authenticated hourly
+Block histories. It distinguishes
+the pending admission head from the sealed queue-settlement source, ordinary
+and recovery descendants, legitimate pending followers, a last-second admission,
+exact-deadline replacement, repeated settlement and an already-sealed competitor.
+Signed alternate Blocks demonstrate why Log validation alone cannot detect the
+forbidden revival. A pending recovery-signed follower first sealed after expiry
+opens a new window at that sealing instant if none is open. The first such
+follower owns the window; later Entries inherit its protection. Supersession
+cancels a removed recovery copy's remaining sealing duty without excusing an
+already-incurred latency violation.
+
+Independent role consumption and live adoption remain required. Demonstrate
+atomic restoration/removal with queue, status, seen-ID and chain-tip effects;
+preserve completion of admission settlement across reopen and the first deadline
+Block so later accepted replacements are not overwritten or their new Deltas
+revalidated as copies from the closed window. Exercise capacity-deferred
+Declaration chains and failure/retry before committing a new Block. The signed
+traces establish Declaration stages and selected source identity, not full
+Delta eligibility, actual E13 processing, inclusion turns, Payload availability,
+quotas, Snapshot restoration or authenticated Audit Record eligibility.
+
 WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
 restriction. WIST-3 §7's one-URL-one-Publisher rule selects self-declaration
 over a scoped parent, but supplies no winner between multiple scoped

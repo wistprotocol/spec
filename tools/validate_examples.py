@@ -4660,6 +4660,15 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/delta-diagnostics.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/delta-diagnostics.json", "value"): "an Ed25519 signature or noncanonical signature encoding probe",
     ("vectors/wist1/recovery-scope.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-admission.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/recovery-admission.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/recovery-admission.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
+    ("vectors/wist1/recovery-admission.json", "pinned_head"): "the trusted shared Block prefix hash",
+    ("vectors/wist1/recovery-admission.json", "last_inside_pin"): "the trusted last pre-deadline Block hash",
+    ("vectors/wist1/recovery-admission.json", "deadline_pin"): "the trusted deadline Block hash",
+    ("vectors/wist1/recovery-admission.json", "pin"): "the trusted alternate deadline Block hash",
+    ("vectors/wist1/recovery-admission.json", "prev_block_hash"): "SHA-256 of the preceding Block header",
+    ("vectors/wist1/recovery-admission.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/recovery-scope.json", "value"): "an Ed25519 signature or malformed encoding",
     ("vectors/wist1/recovery-scope.json", "prev_declaration"): "the authenticated predecessor Declaration hash",
     ("vectors/wist1/recovery-scope.json", "pinned_head"): "the trusted final Block header hash",
@@ -8783,5 +8792,119 @@ def _recovery_scope_vectors():
 
 
 check("vectors:wist1-recovery-scope", _recovery_scope_vectors)
+
+def _recovery_admission_vectors():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-admission.json").read_text())
+    original = copy.deepcopy(vector)
+    apply, _, replay, _ = _recovery_history_reference(vector)
+    prefix_states = replay(vector["blocks"], vector["pinned_head"])
+    prefix = prefix_states[-1]
+    declarations = vector["declarations"]
+    deadline = log_seconds(vector["deadline"])
+    assert log_seconds(prefix["end"]) == deadline
+    def identity(envelope):
+        return "sha256:" + hashlib.sha256(rfc8785.dumps(envelope["publisher"])).hexdigest()
+    names = {identity(envelope): name for name, envelope in declarations.items()}
+    def name(envelope):
+        return names[identity(envelope)]
+    def compact(state):
+        return {"current": name(state["current"]), "floor": state["floor"]}
+
+    classifications, removed_kinds, revival_count = set(), set(), 0
+    for case in vector["cases"]:
+        admitted_at = log_seconds(case["admitted_at"])
+        assert log_seconds(vector["blocks"][1]["header"]["sealed_at"]) < admitted_at < deadline
+        preceding = max(index for index, block in enumerate(vector["blocks"])
+                        if log_seconds(block["header"]["sealed_at"]) < admitted_at)
+        admission = copy.deepcopy(prefix_states[preceding])
+        accepted_chain, kinds = {identity(prefix["chain"])}, {}
+        for label in case["admitted"]:
+            envelope = declarations[label]
+            previous_chain = identity(admission["chain"])
+            result = apply(admission, envelope, admitted_at, case["admitted_at"], len(vector["blocks"]))
+            assert result in {"ordinary_rotation", "recovery_rotation", "fresh_identity"}, (case["name"], label, result)
+            classifications.add(result)
+            kinds[label] = result
+            if identity(admission["chain"]) != previous_chain:
+                accepted_chain.add(identity(envelope))
+            damaged = copy.deepcopy(envelope)
+            damaged["sig"]["value"] = base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode()
+            assert _declaration_binding_result(
+                next(env for env in declarations.values()
+                     if identity(env) == envelope["publisher"]["prev_declaration"]), damaged
+            ) == "WIST1-E01"
+
+        inside = case["last_inside_block"]
+        sealed_names = {name(entry["body"]) for entry in inside["entries"]}
+        assert sealed_names <= set(case["admitted"])
+        if sealed_names:
+            assert admitted_at < log_seconds(inside["header"]["sealed_at"])
+        sealed_prefix = vector["blocks"] + [inside]
+        sealed = replay(sealed_prefix, case["last_inside_pin"])[-1]
+        queue_source = name(sealed["chain"])
+        pending = [label for label in case["admitted"] if label not in sealed_names]
+        retained = [label for label in pending if identity(declarations[label]) in accepted_chain]
+        removed = [label for label in pending if label not in retained]
+        removed_kinds.update(kinds[label] for label in removed)
+        admission["current"] = admission["chain"]
+        admission["chain"], admission["end"] = None, None
+        expected = case["expected_settlement"]
+        actual = dict(compact(admission), queue_source=queue_source, retained=retained, removed=removed)
+        assert actual == expected, (case["name"], actual, expected)
+        assert admission["reset_height"] == prefix["reset_height"]
+        elapsed_blocks = sum(log_seconds(block["header"]["sealed_at"]) > admitted_at
+                             for block in sealed_prefix)
+        assert elapsed_blocks in {0, 1, 166}
+        overdue = elapsed_blocks > 24 and any(kinds[label] == "recovery_rotation" for label in removed)
+        assert overdue == case["removed_recovery_sealing_violation"]
+
+        included = list(retained)
+        for probe in case["at_deadline"]:
+            envelope = declarations[probe["declaration"]]
+            before = copy.deepcopy(admission)
+            result = apply(admission, envelope, deadline, vector["deadline"], len(sealed_prefix))
+            assert result == probe["expected"], case["name"]
+            if result == "WIST1-E08":
+                assert admission == before
+            else:
+                included.append(probe["declaration"])
+                if result == "fresh_identity":
+                    assert admission["reset_height"] == len(sealed_prefix)
+        assert compact(admission) == case["expected_after_repeat"]
+        resumed = json.loads(json.dumps(admission))
+        result = apply(resumed, resumed["current"], deadline + 1, vector["deadline"], len(sealed_prefix))
+        assert result == "idempotent" and resumed == admission
+        assert compact(resumed) == case["expected_after_repeat"]
+
+        sealed_block = case["deadline_block"]
+        actual_members = {name(entry["body"]) for entry in sealed_block["entries"]}
+        assert actual_members == set(included) and not actual_members.intersection(removed)
+        final = replay(sealed_prefix + [sealed_block], case["deadline_pin"])[-1]
+        assert dict(compact(final), window_end=final["end"], reset_height=final["reset_height"]) == case["expected_log"], case["name"]
+        if "expected_window_owner" in case:
+            projected = copy.deepcopy(sealed)
+            owner = None
+            for label in sorted(included, key=lambda label: declarations[label]["publisher"]["seq"]):
+                windows = projected["windows"]
+                result = apply(projected, declarations[label], deadline, vector["deadline"], len(sealed_prefix))
+                assert result in {"ordinary_rotation", "recovery_rotation", "fresh_identity"}
+                if projected["windows"] > windows:
+                    assert owner is None
+                    owner = label
+            assert owner == case["expected_window_owner"]
+            assert projected == final
+        if "forbidden_revival" in case:
+            revival = case["forbidden_revival"]
+            revived = replay(sealed_prefix + [revival["block"]], revival["pin"])[-1]
+            assert name(revived["current"]) == revival["log_current"]
+            assert revived["reset_height"] == revival["log_reset_height"]
+            assert actual_members != {name(entry["body"]) for entry in revival["block"]["entries"]}
+            revival_count += 1
+    assert classifications == removed_kinds == {"ordinary_rotation", "recovery_rotation", "fresh_identity"}
+    assert revival_count >= 2
+    assert len(vector["cases"]) == 11 and vector == original
+
+
+check("vectors:wist1-recovery-admission", _recovery_admission_vectors)
 
 sys.exit(1 if failures else 0)
