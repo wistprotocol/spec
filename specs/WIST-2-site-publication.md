@@ -104,6 +104,24 @@ and `next`. `generated_at` MUST be monotonically non-decreasing across
 successive versions of `feed.json`; an Aggregator MUST discard a pull whose
 `generated_at` has regressed, under `WIST2-E05`.
 
+For each requested Canonical Host, the Aggregator MUST durably retain the
+greatest `generated_at` of a live `feed.json` that passed §5's complete
+field, domain and signature checks, including any required Declaration
+retry. After those checks and before following `next` or admitting Deltas,
+it MUST atomically compare and retain that timestamp. A smaller value is
+`WIST2-E05`; equality passes. Failed field, domain or signature checks take
+precedence and MUST NOT change the retained value. Failure to persist the
+comparison result MUST stop the pull before Page or Delta work.
+
+Later Page, Delta or Payload failures, budget suspension and an empty or
+already-ingested Feed MUST NOT undo this observation. Sealed Pages neither
+compare against nor advance this live-Feed value. The value survives restart
+and all Declaration changes, including recovery settlement and identity
+reset; it is scoped to the requested host, not a signing key or identity
+interval. A host without a retained observation starts with its first
+authenticated live Feed. The validator clock imposes no additional bound on
+`generated_at`. See [ADR-0033](../decisions/0033-feed-regression-state.md).
+
 **Publication order** is the order in which the Publisher first added each
 Delta to the Feed. A Delta MUST NOT appear before the Delta named by its
 `prev`.

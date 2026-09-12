@@ -4668,6 +4668,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
     ("vectors/wist1/declaration-fields.json", "prev"): "a Delta predecessor ID; relation cases authenticate the supplied predecessor",
+    ("vectors/wist2/feed-regression.json", "public_key"): "the supplied Declaration public key",
+    ("vectors/wist2/feed-regression.json", "value"): "a valid or deliberately invalid signature",
     ("vectors/wist2/feed-fields.json", "domain"): "supplied Canonical Hosts or deliberately malformed field probes",
     ("vectors/wist2/feed-fields.json", "deltas"): "supplied Delta IDs or deliberately malformed field probes; retrieval is not asserted",
     ("vectors/wist2/feed-fields.json", "public_key"): "the fixture Declaration public key",
@@ -9285,5 +9287,46 @@ def _feed_field_vectors():
 
 
 check("vectors:wist2-feed-fields", _feed_field_vectors)
+
+def _feed_regression_vectors():
+    vector = json.loads((ROOT / "vectors/wist2/feed-regression.json").read_text())
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("date-time")(lambda value: not isinstance(value, str) or
+                               isinstance(log_seconds(value), int))
+    validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/feed.schema.json").read_text()), format_checker=formats)
+    source = vector["declaration"]
+    key = source["publisher"]["keys"][0]
+    public = canonical_b64u_decode(key["public_key"])
+    assert _ed25519_profile_verdict(public, canonical_b64u_decode(source["sig"]["value"]),
+                                  rfc8785.dumps(source["publisher"]))[0]
+    for case in vector["cases"]:
+        retained = None
+        for event in case["observations"]:
+            doc = event["envelope"]
+            retries = 0
+            if not validator.is_valid(doc):
+                code = "WIST2-E01"
+            elif doc["feed"]["domain"] != vector["host"]:
+                code = "WIST2-E04"
+            elif (doc["sig"]["key_id"] != key["key_id"] or
+                  not _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
+                                              rfc8785.dumps(doc["feed"]))[0]):
+                code, retries = "WIST2-E04", 1
+            elif retained is not None and log_seconds(doc["feed"]["generated_at"]) < log_seconds(retained):
+                code = "WIST2-E05"
+            else:
+                code = None
+                retained = doc["feed"]["generated_at"]
+            assert code == event["code"], event["name"]
+            assert retained == event["retained"], event["name"]
+            assert event["retained_s"] == (None if retained is None else log_seconds(retained))
+            assert retries == event["declaration_retries"], event["name"]
+            assert event["noise"] == ("WIST2-E04" if code == "WIST2-E04" else
+                                      "WIST2-E02" if code is None else None)
+
+
+check("vectors:wist2-feed-regression", _feed_regression_vectors)
 
 sys.exit(1 if failures else 0)

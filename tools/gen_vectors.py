@@ -7636,3 +7636,66 @@ def feed_field_vectors():
 
 
 write_json(ROOT / "vectors/wist2/feed-fields.json", feed_field_vectors())
+
+
+def feed_regression_vectors():
+    source = feed_field_vectors()["declaration"]
+    early = "2026-08-09T13:59:59Z"
+    base = "2026-08-09T14:00:00Z"
+    later = "2026-08-09T14:00:01Z"
+    final = "9999-12-31T23:59:59Z"
+
+    def observation(name, at, retained, code=None, *, domain="localhost", bad_signature=False,
+                    extra=False):
+        body = dict(wist_version="1.0.0", domain=domain, generated_at=at, deltas=[], next=None)
+        if extra:
+            body["extra"] = True
+        doc = sign_envelope("feed", body, "test-k1")
+        if bad_signature:
+            doc["sig"]["value"] = b64u(bytes(64))
+        retained_s = None
+        if retained is not None:
+            civil = retained if not retained.startswith("0000") else "0400" + retained[4:]
+            retained_s = calendar.timegm(time.strptime(civil, "%Y-%m-%dT%H:%M:%SZ"))
+            if retained.startswith("0000"):
+                retained_s -= 146097 * 86400
+        return dict(name=name, envelope=doc, retained=retained, retained_s=retained_s, code=code,
+                    noise="WIST2-E04" if code == "WIST2-E04" else
+                    "WIST2-E02" if code is None else None,
+                    declaration_retries=int(bad_signature and not extra and domain == "localhost"))
+
+    cases = [dict(name="nondecreasing observations", observations=[
+        observation("first", base, base),
+        observation("equal", base, base),
+        observation("older", early, base, "WIST2-E05"),
+        observation("newer", later, later),
+        observation("previous maximum", base, later, "WIST2-E05"),
+        observation("equal maximum", later, later)]),
+        dict(name="only authenticated fields establish a baseline", observations=[
+            observation("invalid fields", final, None, "WIST2-E01", extra=True),
+            observation("invalid signature", final, None, "WIST2-E04", bad_signature=True),
+            observation("foreign domain", final, None, "WIST2-E04", domain="other.example"),
+            observation("first authenticated", base, base),
+            observation("invalid newer signature", final, base, "WIST2-E04", bad_signature=True),
+            observation("newer authenticated", later, later)]),
+        dict(name="regression diagnostic follows authentication", observations=[
+            observation("baseline", base, base),
+            observation("older invalid fields and signature", early, base, "WIST2-E01",
+                        extra=True, bad_signature=True),
+            observation("older foreign domain and signature", early, base, "WIST2-E04",
+                        domain="other.example", bad_signature=True),
+            observation("older bad signature", early, base, "WIST2-E04", bad_signature=True),
+            observation("older authenticated", early, base, "WIST2-E05")]),
+        dict(name="full range without a validator clock bound", observations=[
+            observation("year zero", "0000-01-01T00:00:00Z", "0000-01-01T00:00:00Z"),
+            observation("final representable second", final, final),
+            observation("clock contemporary regression", base, final, "WIST2-E05"),
+            observation("equal final second", final, final)])]
+    return dict(description="WIST-2 section 3.2 ordered live Feed observations. Start each case "
+                "without retained state and reopen durable state between observations. Serve the "
+                "supplied Declaration on discovery and retries. Empty Feeds isolate observation "
+                "state; Pages, downstream failures and Declaration transitions require integration.",
+                host="localhost", declaration=source, cases=cases)
+
+
+write_json(ROOT / "vectors/wist2/feed-regression.json", feed_regression_vectors())

@@ -112,6 +112,16 @@ generator. Live transport, Page publication/partitioning, Feed regression
 state, supported-major policy and durable selected-source provenance require
 separate validation.
 
+**Feed regression state** follows WIST-2 §3.2 and
+[ADR-0033](decisions/0033-feed-regression-state.md).
+`vectors/wist2/feed-regression.json` supplies 21 signed observations covering
+equality, rejection precedence, unauthenticated-baseline exclusion and the full
+timestamp range. The independent reference derives their per-host maximum;
+the empty Feeds do not establish Page retrieval or Delta admission. Durable
+comparison, restart, later failures, Page isolation and preservation through
+Declaration changes require integration validation. A restored backup must
+retain the observations needed for the claimed rollback protection.
+
 **Registry subject diagnostics remain unresolved.** WIST-4 §10's WIST4-E04
 covers `details`/`evidence` contracts,
 WIST4-E03 signatures, and WIST4-E05 process/evidence failures. None assigns a
