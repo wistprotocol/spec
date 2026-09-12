@@ -1086,6 +1086,7 @@ SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
     ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-diagnostics.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-fields.json", "commitment"): "payload:commitment",
+    ("vectors/wist2/declaration-refresh.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-attribution.json", "commitment"): "payload:commitment",
     ("vectors/wist1/recovery-scope.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
@@ -4667,6 +4668,15 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-key-eligibility.json", "prev_declaration"): "SHA-256 of the original signed predecessor publisher object",
     ("vectors/wist1/declaration-fields.json", "prev"): "a Delta predecessor ID; relation cases authenticate the supplied predecessor",
+    ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
+    ("vectors/wist2/declaration-refresh.json", "id"): "SHA-256 of the served Delta",
+    ("vectors/wist2/declaration-refresh.json", "prev"): "SHA-256 of the served predecessor",
+    ("vectors/wist2/declaration-refresh.json", "prev_declaration"): "SHA-256 of the previous publisher object",
+    ("vectors/wist2/declaration-refresh.json", "public_key"): "a usable or deliberately excluded Ed25519 point",
+    ("vectors/wist2/declaration-refresh.json", "value"): "a signature or deliberately invalid signature",
+    ("vectors/wist2/declaration-refresh.json", "accepted"): "expected accepted Delta IDs",
+    ("vectors/wist2/declaration-refresh.json", "rejected"): "expected rejected Delta IDs and diagnostics",
+    ("vectors/wist2/declaration-refresh.json", "deltas"): "Feed Delta IDs",
     ("vectors/wist1/delta-fields.json", "prev"): "a supplied predecessor ID or malformed spelling; chain eligibility is not asserted",
     ("vectors/wist1/delta-fields.json", "id"): "SHA-256 of the signed Delta",
     ("vectors/wist1/delta-fields.json", "requested_id"): "a supplied matching or mismatching transport ID",
@@ -8992,5 +9002,127 @@ def _recovery_admission_vectors():
 
 
 check("vectors:wist1-recovery-admission", _recovery_admission_vectors)
+
+
+def _declaration_refresh_vectors():
+    vector = json.loads((ROOT / "vectors/wist2/declaration-refresh.json").read_text())
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
+    schemas = {kind: Draft202012Validator(json.loads(
+        (ROOT / f"schemas/{kind}.schema.json").read_text()), format_checker=formats)
+        for kind in ("publisher", "delta", "feed")}
+
+    def verifies(key, doc, kind):
+        return _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
+            canonical_b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc[kind]))[0]
+
+    def usable(encoded):
+        try:
+            point = ecvrf.string_to_point(canonical_b64u_decode(encoded))
+            return not ecvrf._is_identity(ecvrf._mul(8, point))
+        except ecvrf.InvalidProof:
+            return False
+
+    def diagnostic(source, doc, kind):
+        if not schemas[kind].is_valid(doc):
+            return "WIST1-E14" if kind == "delta" else "WIST2-E01"
+        if kind == "delta" and doc[kind]["publisher"] != vector["domain"]:
+            return "WIST2-E03"
+        keys = [k for k in source["publisher"]["keys"] if k["key_id"] == doc["sig"]["key_id"]]
+        if kind == "delta":
+            keys = [k for k in keys if usable(k["public_key"])
+                    and publisher_instant(k["valid_from"]) <= publisher_instant(doc[kind]["observed_at"])]
+        if not keys:
+            return "WIST1-E02" if kind == "delta" else "WIST2-E04"
+        if any(verifies(k, doc, kind) for k in keys):
+            return None
+        return "WIST1-E01" if kind == "delta" else "WIST2-E04"
+
+    for case in vector["cases"]:
+        source = case["initial"]
+        schemas["publisher"].validate(source)
+        assert _declaration_binding_result(None, source) == "initial"
+        responses = iter(case["responses"])
+        requests = 1
+        def refresh():
+            nonlocal source, requests
+            incoming = next(responses)
+            requests += 1
+            if incoming is None or not schemas["publisher"].is_valid(incoming):
+                return
+            if incoming["publisher"] == source["publisher"]:
+                assert any(verifies(k, incoming, "publisher") for k in source["publisher"]["keys"])
+                return
+            if _declaration_binding_result(source, incoming) == "ordinary_rotation":
+                source = incoming
+
+        objects = {entry["id"]: entry["envelope"] for entry in case["deltas"]}
+        for id, doc in objects.items():
+            assert id == "sha256:" + hashlib.sha256(rfc8785.dumps(doc["delta"])).hexdigest()
+        budget = case["content_budget"]
+        if isinstance(budget, str):
+            budget = len(rfc8785.dumps(case["feed"])) + (
+                sum(len(rfc8785.dumps(doc)) for doc in objects.values()) if budget == "feed and deltas" else 0)
+        if budget is None:
+            budget = 10**9
+        spent = 0
+        suspended = False
+        accepted, rejected, fetched, attempts = [], [], set(), set()
+        def fetch(doc):
+            nonlocal spent, suspended
+            if spent >= budget:
+                suspended = True
+                return False
+            spent += len(rfc8785.dumps(doc))
+            return True
+
+        if fetch(case["feed"]):
+            if diagnostic(source, case["feed"], "feed"):
+                refresh()
+            assert diagnostic(source, case["feed"], "feed") is None, (case["name"], diagnostic(source, case["feed"], "feed"))
+            def process(id):
+                if id in accepted:
+                    return
+                doc = objects[id]
+                if id not in fetched:
+                    if not fetch(doc):
+                        return
+                    fetched.add(id)
+                error = diagnostic(source, doc, "delta")
+                if error in ("WIST1-E01", "WIST1-E02") and id not in attempts:
+                    attempts.add(id)
+                    refresh()
+                    error = diagnostic(source, doc, "delta")
+                if error:
+                    rejected.append([id, error])
+                    return
+                prev = doc["delta"].get("prev")
+                if prev and prev not in accepted:
+                    process(prev)
+                    if suspended:
+                        return
+                    assert prev in accepted
+                    assert publisher_instant(objects[prev]["delta"]["observed_at"]) < publisher_instant(doc["delta"]["observed_at"])
+                    assert objects[prev]["delta"]["url"] == doc["delta"]["url"]
+                    error = diagnostic(source, doc, "delta")
+                    if error:
+                        assert id in attempts
+                        rejected.append([id, error])
+                        return
+                if not fetch(vector["payload"]):
+                    return
+                accepted.append(id)
+            for id in case["feed"]["feed"]["deltas"]:
+                process(id)
+                if suspended:
+                    break
+        assert dict(accepted=accepted, rejected=rejected, suspended=suspended,
+                    declaration_requests=requests) == case["expected"], case["name"]
+        assert next(responses, "exhausted") == "exhausted", case["name"]
+    assert len(vector["cases"]) == 19
+
+
+check("vectors:wist2-declaration-refresh", _declaration_refresh_vectors)
 
 sys.exit(1 if failures else 0)

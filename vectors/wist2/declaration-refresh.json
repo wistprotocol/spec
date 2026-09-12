@@ -1,0 +1,2033 @@
+{
+  "note": "WIST-1 section 5.1 and WIST-2 section 5. Signed ordinary-rotation transport sequences; initial is the first publisher.json response and optionally already cached. responses lists failure-triggered Declaration responses; null is HTTP unavailability. Serve feed and each Delta unchanged, with examples/payload.json for every commitment. Budget strings mean the exact JCS byte lengths of the named served objects, with no Declaration bytes. An absent numeric limit means a sufficient content budget. Declaration request counts include initial or periodic discovery. Resume and recovery settlement, complete HTTP resource bounds, sealing and durability require separate integration.",
+  "domain": "localhost",
+  "now": "2026-08-09T14:01:00Z",
+  "payload": {
+    "wist_version": "1.0.0",
+    "salt": "caQADX8cVHuEd7RZhUUZNA",
+    "content": {
+      "extract": "WIST is an open, verifiable, push-based web index protocol.",
+      "links": {
+        "total": 3,
+        "urls": [
+          "https://example.org/reference",
+          "https://spec.example.net/wist-1",
+          "https://example.org/~user"
+        ]
+      },
+      "summary": {
+        "title": "Post 1",
+        "abstract": "An introduction to WIST."
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "absent identifier rotation",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "reused identifier rotation",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k1",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "R3mXmucMdYLaS97CgCBCKSt2gNn-2BL18N6A-BypzL_eXJ93pFqM2LJAKcLznh4kLiaxpuHFV-NLD2xPt3yVBQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "future binding replacement",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            },
+            {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+              "valid_from": "2026-08-10T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "3yFHkfyEQHa7-CRlpwtyXLT3g2JojgpClMKZfi7mt1MSUuVzd_GVbKaMRKoeCgvemzffKvZOB09aJoVfFZ6lAw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:2a80b365cb585b77113cdee5f3633982eea05c1fcf75bbd64d17f84c3672bb70"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "hY9gIv9XGrivxwIWmngHQE0fK0VMvtVIMS0Nf9JFactnkDI3gL-xyUyJcNi8DlApov_7N2Om-WOwv3U8j96XCw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "excluded binding replacement",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            },
+            {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "public_key": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "qPTINgkBOr4TcSYNsXZtrC3oLEGXyZRAnymfQ2WEHxA8X-NTbad3fOPieCd2F5EWF5O90DWrIik85RjrBla8AA"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:4473e1c8847b46115cb1a362cfc5d4bc47d2f48148c50083cf295a933b9f581a"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "b5tN7AG96QGvgO9cwtzPcKqPt3sep5xqR40PU93C8DH02zATysmU7NmDAENuMvLQmDytf6tEBPb0yixoo0y1AA"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "unchanged refresh",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k1",
+                "alg": "Ed25519",
+                "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 0
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [
+          [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+            "WIST1-E02"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "unavailable refresh",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        null
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [
+          [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+            "WIST1-E02"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "invalid signature refresh",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [
+          [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+            "WIST1-E02"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "remaining signature failure",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [
+          [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+            "WIST1-E01"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "fields do not trigger retry",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:c969baed7895cf11eaa54577ba1062b1036ec15dcb5bb3d21df6a0ae462c4879"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "NgqZUl8ezkvuBuVsoIegT64vPw539Mk35KQRuAj_6fd0wXIeArCaxt3WwGDAAnn8gl-kP6O6o6gt95Da5NDiAQ"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:c969baed7895cf11eaa54577ba1062b1036ec15dcb5bb3d21df6a0ae462c4879",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "invalid",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "VtiZ-eqdpA3ZDCX0ASVaZGaU9kJWvPLOTHE37r48EgOJkp2t0TYnBTyyenK7y_6ebk-5vsXtsE9PG1q78xGICA"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [
+          [
+            "sha256:c969baed7895cf11eaa54577ba1062b1036ec15dcb5bb3d21df6a0ae462c4879",
+            "WIST1-E14"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 1
+      }
+    },
+    {
+      "name": "foreign Publisher does not trigger retry",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:9d3f2c1e2d43fd19dc0ff2c14e8074ab624e2982ac2d670bc9850fd4eaefd6e0"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "WZlf-oDXIdRwNjrOVlbKRXKUUy3hO6KfWdhC4dt9GZXq1BcFXgV20l0EDGlLcjF4REVK2BUG9F_vfs8qxh4HAg"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:9d3f2c1e2d43fd19dc0ff2c14e8074ab624e2982ac2d670bc9850fd4eaefd6e0",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "example.com",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "TI5IyVqobJrRIH0fdDigypg_6JelOiBLntgqoRDGRxzXfoEJll3CS9xV7vbW1QlC_pdYhHqIjvyOCG1D_34QBA"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [],
+        "rejected": [
+          [
+            "sha256:9d3f2c1e2d43fd19dc0ff2c14e8074ab624e2982ac2d670bc9850fd4eaefd6e0",
+            "WIST2-E03"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 1
+      }
+    },
+    {
+      "name": "separate Delta attempts",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              },
+              {
+                "key_id": "k3",
+                "alg": "Ed25519",
+                "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 2,
+            "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+          },
+          "sig": {
+            "key_id": "k2",
+            "alg": "Ed25519",
+            "value": "BtEHDezDN9_6q8S1pCmNBSTmXSKlAWq2g4JOI8VtZ6uPMcGUjDYNjP8FjZ0u-k-aw8fwvZN2okSalpYAV3k2Cw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+            "sha256:4c8ed7d93c9267e1f35b6b86702e339d62e4ff56e1f86662f5a2cbb968c80bd2"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "VVGBquCTtvr2eMHZqkCddcwS0Tn70uf4jeBUPeKmmIQVkPcL9uS_uu-xxd3yLWtDXTZQIRzowMlnDi6DJDMNBg"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        },
+        {
+          "id": "sha256:4c8ed7d93c9267e1f35b6b86702e339d62e4ff56e1f86662f5a2cbb968c80bd2",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/b",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k3",
+              "alg": "Ed25519",
+              "value": "TrUzzAKJzl8MIGEJTCcVxISVGKW_o661vC1YILyvaqgT9e3sjEf6qlEcD-sTQnH-pQSBTH98b10HWBWZgypAAw"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "sha256:4c8ed7d93c9267e1f35b6b86702e339d62e4ff56e1f86662f5a2cbb968c80bd2"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 3
+      }
+    },
+    {
+      "name": "Feed attempt independent from Delta",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              },
+              {
+                "key_id": "k3",
+                "alg": "Ed25519",
+                "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 2,
+            "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+          },
+          "sig": {
+            "key_id": "k2",
+            "alg": "Ed25519",
+            "value": "BtEHDezDN9_6q8S1pCmNBSTmXSKlAWq2g4JOI8VtZ6uPMcGUjDYNjP8FjZ0u-k-aw8fwvZN2okSalpYAV3k2Cw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "NxeehwoSrFTTVpRoI1oe2lV-0OkBjQ40uEI_8pUJyzP8TZXaXlV0eo__b7sHiH1P_YSBrcIHVxM5h349Gy_JDA"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k3",
+              "alg": "Ed25519",
+              "value": "ubA9sckwx69kfpBNdmCyKhgJOboAj9MysOXV_csdT8_MMdyucBs4F7Q6uqCJtXh5cnOmEJ4Ip6bEKD11FSUKCQ"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 3
+      }
+    },
+    {
+      "name": "retrieved predecessor has separate attempt",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              },
+              {
+                "key_id": "k3",
+                "alg": "Ed25519",
+                "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 2,
+            "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+          },
+          "sig": {
+            "key_id": "k2",
+            "alg": "Ed25519",
+            "value": "BtEHDezDN9_6q8S1pCmNBSTmXSKlAWq2g4JOI8VtZ6uPMcGUjDYNjP8FjZ0u-k-aw8fwvZN2okSalpYAV3k2Cw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:c95583bb91de4e7fea6399dbbec2b38cf5aad52d57421e4839723d33bfec216f"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "C1wdzlz81ySp6BWwVNF_rE3Fmebbk1P5yRmEcPI4qNEy6k8lVt8WhmQsh0-2c0JEZDZmlcuJbktNPR8wxQnhAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k3",
+              "alg": "Ed25519",
+              "value": "ubA9sckwx69kfpBNdmCyKhgJOboAj9MysOXV_csdT8_MMdyucBs4F7Q6uqCJtXh5cnOmEJ4Ip6bEKD11FSUKCQ"
+            }
+          }
+        },
+        {
+          "id": "sha256:c95583bb91de4e7fea6399dbbec2b38cf5aad52d57421e4839723d33bfec216f",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "update",
+              "observed_at": "2026-08-09T14:00:01Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              },
+              "prev": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "CbfnrNMuPmCI7gjDwedeKgF-22kPoRDCle4BN-jEIAVkp3rHlj8PZoAPZEXfGBtnRWZY9tumWS_iqChsTCVPAg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "sha256:c95583bb91de4e7fea6399dbbec2b38cf5aad52d57421e4839723d33bfec216f"
+        ],
+        "rejected": [],
+        "suspended": false,
+        "declaration_requests": 3
+      }
+    },
+    {
+      "name": "revalidated ID shares attempt",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        },
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k3",
+                "alg": "Ed25519",
+                "public_key": "Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 2,
+            "prev_declaration": "sha256:218a3548de21dbf63d1ae084cc578fc5602f54697d64a0586975ab03440039a1"
+          },
+          "sig": {
+            "key_id": "k2",
+            "alg": "Ed25519",
+            "value": "1oQbkhG7qhWZVgv04bMWmWP55xE8E9VQA2nzK3Y-CEFcQE5eVrzUK9VUF-VLSIUKY87DafzdTdC1w890cRqmDQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:c95583bb91de4e7fea6399dbbec2b38cf5aad52d57421e4839723d33bfec216f"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "C1wdzlz81ySp6BWwVNF_rE3Fmebbk1P5yRmEcPI4qNEy6k8lVt8WhmQsh0-2c0JEZDZmlcuJbktNPR8wxQnhAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k3",
+              "alg": "Ed25519",
+              "value": "ubA9sckwx69kfpBNdmCyKhgJOboAj9MysOXV_csdT8_MMdyucBs4F7Q6uqCJtXh5cnOmEJ4Ip6bEKD11FSUKCQ"
+            }
+          }
+        },
+        {
+          "id": "sha256:c95583bb91de4e7fea6399dbbec2b38cf5aad52d57421e4839723d33bfec216f",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "update",
+              "observed_at": "2026-08-09T14:00:01Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              },
+              "prev": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "CbfnrNMuPmCI7gjDwedeKgF-22kPoRDCle4BN-jEIAVkp3rHlj8PZoAPZEXfGBtnRWZY9tumWS_iqChsTCVPAg"
+            }
+          }
+        }
+      ],
+      "content_budget": null,
+      "expected": {
+        "accepted": [
+          "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+        ],
+        "rejected": [
+          [
+            "sha256:c95583bb91de4e7fea6399dbbec2b38cf5aad52d57421e4839723d33bfec216f",
+            "WIST1-E02"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 3
+      }
+    },
+    {
+      "name": "initial discovery outside exhausted content budget",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "njt3DcmkEOpJEzcXXWmA470x2DghMbsoV7-WToHLx_DO37jH4Z72gfU-ywbuaGNfQJj1Ay5VPPIRgvfkaJSyAA"
+        }
+      },
+      "deltas": [],
+      "content_budget": 0,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": true,
+        "declaration_requests": 1
+      }
+    },
+    {
+      "name": "periodic discovery outside exhausted content budget",
+      "cached": true,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "njt3DcmkEOpJEzcXXWmA470x2DghMbsoV7-WToHLx_DO37jH4Z72gfU-ywbuaGNfQJj1Ay5VPPIRgvfkaJSyAA"
+        }
+      },
+      "deltas": [],
+      "content_budget": 0,
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": true,
+        "declaration_requests": 1
+      }
+    },
+    {
+      "name": "Delta retry at content budget boundary",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": "feed and deltas",
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": true,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "Feed retry at content budget boundary",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k2",
+                "alg": "Ed25519",
+                "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 1,
+            "prev_declaration": "sha256:49f87a8d848872ca4dbfa56508c3abadc8bef61c20e13bb0ac6354bc6ea1ac3f"
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "VfHP79FiOh3zc81VxZZJT79fN14jN9AeQS6RMDTlfS1bACDYoKiIn1051a1B3XqXq31qJGSMb0fuxWkE4XuCCQ"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k2",
+          "alg": "Ed25519",
+          "value": "NxeehwoSrFTTVpRoI1oe2lV-0OkBjQ40uEI_8pUJyzP8TZXaXlV0eo__b7sHiH1P_YSBrcIHVxM5h349Gy_JDA"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": "feed",
+      "expected": {
+        "accepted": [],
+        "rejected": [],
+        "suspended": true,
+        "declaration_requests": 2
+      }
+    },
+    {
+      "name": "failed Delta retry at content budget boundary",
+      "cached": false,
+      "initial": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "keys": [
+            {
+              "key_id": "k1",
+              "alg": "Ed25519",
+              "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+              "valid_from": "2026-08-09T00:00:00Z"
+            }
+          ],
+          "seq": 0
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+        }
+      },
+      "responses": [
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "domain": "localhost",
+            "keys": [
+              {
+                "key_id": "k1",
+                "alg": "Ed25519",
+                "public_key": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+                "valid_from": "2026-08-09T00:00:00Z"
+              }
+            ],
+            "seq": 0
+          },
+          "sig": {
+            "key_id": "k1",
+            "alg": "Ed25519",
+            "value": "cDG-M3wbUmCTTLT2Nga0RLkYwQX2K-MLBvbtLaNNYE4pHVunxi_6FYC7E4cMclc6HsWsstQ7OJzbmMGygWXLCw"
+          }
+        }
+      ],
+      "feed": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "localhost",
+          "generated_at": "2026-08-09T14:00:00Z",
+          "deltas": [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8"
+          ],
+          "next": null
+        },
+        "sig": {
+          "key_id": "k1",
+          "alg": "Ed25519",
+          "value": "5G_ZNl-NVXQlChihEQj9w2_gh_w0JShwGyVbEORlwQuZwEYCQ2WlTYoolGOhe3qgag8GuiOfTvwdi3ab66dzAw"
+        }
+      },
+      "deltas": [
+        {
+          "id": "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+          "envelope": {
+            "delta": {
+              "wist_version": "1.0.0",
+              "publisher": "localhost",
+              "url": "https://localhost/a",
+              "change_type": "new",
+              "observed_at": "2026-08-09T14:00:00Z",
+              "payload": {
+                "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+                "alg": "HMAC-SHA256",
+                "bytes": 263
+              },
+              "meta": {
+                "lang": "en",
+                "topics": [
+                  "software"
+                ],
+                "license": "CC-BY-4.0"
+              }
+            },
+            "sig": {
+              "key_id": "k2",
+              "alg": "Ed25519",
+              "value": "cvlnRFwCIpGbRQ8kbs-JDmdx5qpCtPWFQ1ZdctqrUCc6X1EzlCpiXhYsPkXwuqXSJfqUXQexvBfGEmhaSYw5Dg"
+            }
+          }
+        }
+      ],
+      "content_budget": "feed and deltas",
+      "expected": {
+        "accepted": [],
+        "rejected": [
+          [
+            "sha256:e369c54355dcdc7c44e53e89f4c108c5264e2525938090967a8e10009f5a04a8",
+            "WIST1-E02"
+          ]
+        ],
+        "suspended": false,
+        "declaration_requests": 2
+      }
+    }
+  ]
+}

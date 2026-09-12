@@ -501,19 +501,19 @@ status or waive the frozen edition's immutability.
 
 ## Declaration refresh boundaries
 
-WIST-1 §5.1 requires an Aggregator to re-fetch a Declaration once after a
-cached-key signature failure. WIST-2 §5 step 1 explicitly limits Feed refresh
-to one per failing pull. Delta retry scope remains unspecified: whether E02
-also triggers refresh, and whether multiple failing Deltas, retrieved
-predecessors or repeated checks after recovery settlement share an attempt.
-Resolve these cases with signed transport sequences before claiming complete
-Delta refresh conformance.
+WIST-1 §5.1, WIST-2 §5 and draft ADR-0031 define live Delta E01/E02
+refresh, per-requested-ID attempts within a pull and Declaration discovery's
+exclusion from the content budget. `vectors/wist2/declaration-refresh.json`
+carries 19 signed transport sequences. The reference independently checks
+signatures, fields, ordinary replacement authority, retry counts, predecessor
+ordering and content-budget suspension using supplied responses. It includes
+revalidation of an ID after another candidate changes authority.
 
-WIST-2 §5 budgets Feed pages, Deltas and Payloads, but does not specify whether
-initial, periodic or required Declaration fetches consume that budget or whether
-exhaustion defers mandatory refresh. Metering Declaration requests and suspending
-before a required retry is an unresolved reading. Resolution requires transport
-vectors covering exhaustion, noise accounting and resumption.
+These vectors do not establish complete HTTP ingestion, sealed-Page source
+selection/refresh, recovery settlement, cache expiry, resumption, durable
+admission or bounded fetch/work. Integrated implementations must exercise
+those obligations; excluding discovery from the content budget does not bound
+Declaration response sizes or total discovery traffic.
 
 ## Complete Delta field diagnostics
 

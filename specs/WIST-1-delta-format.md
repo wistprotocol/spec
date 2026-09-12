@@ -711,8 +711,10 @@ discovery fails, the validator MUST fail closed: Deltas are rejected with
 `WIST1-E02` and MUST NOT be sealed. The cache is a ceiling on staleness,
 not a licence for it: a signature that fails under a cached Key Set is
 the one observation that tells a validator the cache may be behind a
-rotation, and an Aggregator MUST re-fetch the Declaration once on that
-observation before it counts the failure (WIST-2 §5).
+rotation. For live Delta ingestion, either binding failure below
+(`WIST1-E01` or `WIST1-E02`) triggers the Declaration retry procedure in
+WIST-2 §5. Historical replay and sealing use their Log-derived sources
+(§5.2); they MUST NOT substitute live discovery for those sources.
 
 `valid_from` bounds each signing binding's use. After field validation,
 collect every signing entry named by the Delta's `sig.key_id` from the
@@ -1200,9 +1202,9 @@ not acceptance, source authority or the meaning of an error.
 
 A validator MAY stop after establishing a rejection and need not perform
 unrelated checks solely to choose a different diagnostic. Every prerequisite
-of a check it performs still applies: a failed cached-key signature still
-requires the Declaration re-fetch in §5.1/WIST-2 §5 before counting the
-failure; missing predecessor data still requires the retrieval attempt in
+of a check it performs still applies: a live Delta binding failure (E01 or
+E02) still requires the Declaration retry in §5.1/WIST-2 §5 before counting
+the failure; missing predecessor data still requires the retrieval attempt in
 §3.5 before concluding E07. Lack of a performed check is not evidence of
 its failure. E01 and E02 remain mutually exclusive outcomes of the complete
 binding check in §5.1. Status rejection entries and Ping noise accounting

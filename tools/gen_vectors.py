@@ -7358,3 +7358,104 @@ def recovery_scope_vectors():
 
 
 write_json(WIST1 / "recovery-scope.json", recovery_scope_vectors())
+
+
+def declaration_refresh_vectors():
+    import copy
+    domain = "localhost"
+    now = "2026-08-09T14:00:00Z"
+    seeds = [bytes([n]) * 32 for n in (1, 7, 11)]
+    signing = [Ed25519PrivateKey.from_private_bytes(seed) for seed in seeds]
+
+    def signed(inner, body, key, identifier=None):
+        return {inner: body, "sig": {"key_id": identifier or f"k{key + 1}",
+            "alg": "Ed25519", "value": b64u(signing[key].sign(rfc8785.dumps(body)))}}
+
+    def binding(key, identifier=None, at="2026-08-09T00:00:00Z"):
+        return dict(key_id=identifier or f"k{key + 1}", alg="Ed25519",
+            public_key=b64u(signing[key].public_key().public_bytes(
+                serialization.Encoding.Raw, serialization.PublicFormat.Raw)), valid_from=at)
+
+    def declaration(keys, previous=None, signer=0):
+        body = dict(wist_version="1.0.0", domain=domain, keys=keys,
+                    seq=0 if previous is None else previous["publisher"]["seq"] + 1)
+        if previous:
+            body["prev_declaration"] = "sha256:" + sha256_hex(rfc8785.dumps(previous["publisher"]))
+        return signed("publisher", body, signer)
+
+    original = declaration([binding(0)])
+    rotated = declaration([binding(1)], original)
+    third = declaration([binding(1), binding(2)], rotated, 1)
+
+    def delta_object(path, key, identifier=None, previous=None, **changes):
+        body = copy.deepcopy(delta)
+        body.update(publisher=domain, url=f"https://{domain}/{path}", observed_at=now)
+        if previous:
+            body.update(prev="sha256:" + sha256_hex(rfc8785.dumps(previous["delta"])),
+                        change_type="update", observed_at="2026-08-09T14:00:01Z")
+        body.update(changes)
+        return signed("delta", body, key, identifier)
+
+    cases = []
+    def add(name, objects, responses, *, initial=original, feed_key=0, listed=None,
+            errors=(), accepted=None, suspended=False, content_budget=None, cached=False):
+        ids = ["sha256:" + sha256_hex(rfc8785.dumps(doc["delta"])) for doc in objects]
+        feed = signed("feed", dict(wist_version="1.0.0", domain=domain, generated_at=now,
+            deltas=ids if listed is None else [ids[i] for i in listed], next=None), feed_key)
+        cases.append(dict(name=name, cached=cached, initial=initial, responses=responses,
+            feed=feed, deltas=[dict(id=id, envelope=doc) for id, doc in zip(ids, objects)],
+            content_budget=content_budget,
+            expected=dict(accepted=[ids[i] for i in (range(len(ids)) if accepted is None else accepted)],
+                rejected=[[ids[i], code] for i, code in errors], suspended=suspended,
+                declaration_requests=1 + len(responses))))
+
+    add("absent identifier rotation", [delta_object("a", 1)], [rotated])
+    reused = declaration([binding(1, "k1")], original)
+    add("reused identifier rotation", [delta_object("a", 1, "k1")], [reused])
+    future = declaration([binding(0), binding(1, at="2026-08-10T00:00:00Z")])
+    add("future binding replacement", [delta_object("a", 1)],
+        [declaration([binding(1)], future)], initial=future)
+    excluded_key = binding(1)
+    excluded_key["public_key"] = b64u(bytes([1]) + bytes(31))
+    excluded = declaration([binding(0), excluded_key])
+    add("excluded binding replacement", [delta_object("a", 1)],
+        [declaration([binding(1)], excluded)], initial=excluded)
+    for name, response in (("unchanged", original), ("unavailable", None),
+                           ("invalid signature", dict(rotated, sig=original["sig"]))):
+        add(name + " refresh", [delta_object("a", 1)], [response],
+            errors=[(0, "WIST1-E02")], accepted=[])
+    tampered = delta_object("a", 1)
+    tampered["sig"]["value"] = b64u(bytes(64))
+    add("remaining signature failure", [tampered], [rotated], errors=[(0, "WIST1-E01")], accepted=[])
+    malformed = delta_object("a", 1, observed_at="invalid")
+    add("fields do not trigger retry", [malformed], [], errors=[(0, "WIST1-E14")], accepted=[])
+    foreign = delta_object("a", 1, publisher="example.com")
+    add("foreign Publisher does not trigger retry", [foreign], [], errors=[(0, "WIST2-E03")], accepted=[])
+    add("separate Delta attempts", [delta_object("a", 1), delta_object("b", 2)], [rotated, third])
+    add("Feed attempt independent from Delta", [delta_object("a", 2)], [rotated, third], feed_key=1)
+    ancestor = delta_object("a", 2)
+    leaf = delta_object("a", 1, previous=ancestor)
+    add("retrieved predecessor has separate attempt", [ancestor, leaf], [rotated, third], listed=[1])
+    add("revalidated ID shares attempt", [ancestor, leaf],
+        [rotated, declaration([binding(2)], rotated, 1)], listed=[1],
+        errors=[(1, "WIST1-E02")], accepted=[0])
+    add("initial discovery outside exhausted content budget", [], [], content_budget=0, suspended=True)
+    add("periodic discovery outside exhausted content budget", [], [], content_budget=0, suspended=True, cached=True)
+    add("Delta retry at content budget boundary", [delta_object("a", 1)], [rotated],
+        content_budget="feed and deltas", suspended=True, accepted=[])
+    add("Feed retry at content budget boundary", [delta_object("a", 1)], [rotated], feed_key=1,
+        content_budget="feed", suspended=True, accepted=[])
+    add("failed Delta retry at content budget boundary", [delta_object("a", 1)], [original],
+        content_budget="feed and deltas", errors=[(0, "WIST1-E02")], accepted=[])
+    return dict(note="WIST-1 section 5.1 and WIST-2 section 5. Signed ordinary-rotation transport "
+        "sequences; initial is the first publisher.json response and optionally already cached. "
+        "responses lists failure-triggered Declaration responses; null is HTTP unavailability. "
+        "Serve feed and each Delta unchanged, with examples/payload.json for every commitment. "
+        "Budget strings mean the exact JCS byte lengths of the named served objects, with no "
+        "Declaration bytes. An absent numeric limit means a sufficient content budget. "
+        "Declaration request counts include initial or periodic discovery. Resume and recovery "
+        "settlement, complete HTTP resource bounds, sealing and durability require separate integration.",
+        domain=domain, now="2026-08-09T14:01:00Z", payload=payload, cases=cases)
+
+
+write_json(ROOT / "vectors/wist2/declaration-refresh.json", declaration_refresh_vectors())

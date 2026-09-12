@@ -316,6 +316,14 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    as completion. The budget bounds the walk without breaking it: an
    honest large site backfills across days; a hostile deep feed costs
    its own hosting bill, not the Aggregator's month.
+
+   Declaration discovery is outside this byte budget: initial, periodic and
+   failure-triggered `publisher.json` requests MUST NOT debit it. Exhaustion
+   MUST NOT defer a required Declaration retry for an already-fetched object
+   or turn a failed retry into suspension. Content fetching still suspends
+   at the budget boundary; discovery alone neither completes the walk nor
+   makes an unusable Feed usable. Discovery remains subject to WIST-1 §5.1
+   and §8's transport rules. See [ADR-0031](../decisions/0031-declaration-refresh.md).
 1. Fetches `feed.json`; verifies its signature against the domain's Key
    Set (WIST-1 §5). A Feed the Aggregator cannot use is `WIST2-E01` and is
    retried on the backoff schedule of §7 — one that cannot be fetched at
@@ -334,6 +342,35 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    wait a day. The re-fetch is one per failing pull, so a Feed that
    fails under the current Declaration too costs the same one rejection
    it did before.
+
+   **Delta Declaration retry.** When live ingestion checks a fetched Delta's
+   binding under WIST-1 §5.1 and obtains `WIST1-E01` or `WIST1-E02`, it MUST
+   re-fetch `publisher.json` once before rejecting for that binding failure.
+   This includes absent, excluded and not-yet-valid named bindings, as well
+   as eligible bindings whose signatures fail. Apply the retry separately
+   to each distinct requested Delta ID within the domain's pull, including
+   retrieved predecessors. Repeated occurrences or revalidation of that ID
+   during the same pull, including after predecessor retrieval or recovery
+   settlement, share the attempt; they MUST NOT trigger another. A later
+   pull starts new attempts. Initial/periodic discovery and the live Feed's
+   retry do not consume any Delta's attempt, and one Delta's retry does not
+   consume another's. A pull here includes its live Feed, Page walk and
+   all predecessor, Delta and Payload processing until completion or
+   suspension; resumption is a later pull.
+
+   Evaluate the fetched Declaration under WIST-1 §§5.1–5.2, retaining only
+   accepted authority. A failed request or invalid/unchanged response still
+   consumes the attempt. Then reverify the same Delta Envelope bytes under
+   the resulting admission sources, applying any recovery settlement due
+   before admission. Retry success does not waive scope, fields, version,
+   clock, predecessor, Payload or other admission checks. A malformed field
+   or foreign-Publisher association alone MUST NOT trigger this retry;
+   other semantic failures alone do not trigger it either. WIST-1 §7 still
+   permits rejection for another established semantic failure without
+   performing a binding check. Record a remaining binding failure using
+   its post-retry E02/E01 result. Declaration retry traffic adds no noise
+   event of its own; the enclosing Feed or Delta retains §7's disposition.
+   These live Delta rules do not change §3.2's sealed-Page source selection.
 2. Diffs `feed.deltas` against the IDs it has already seen for the
    domain, following `next` through sealed Pages as required by §3.2.
    An ID is seen when the Aggregator has sealed it or holds it accepted
@@ -483,8 +520,8 @@ the Publisher's debugging surface, not an artifact other parties verify.
   conditional Feed fetch, but a first contact obliges the §3.2 page
   walk, whose depth the pinging domain controls — which is why §5's
   per-domain ingest budget, not the Ping's own cheapness, is the
-  actual bound. Quotas (WIST-4 §6) throttle abusive domains; Ingest
-  Endpoints SHOULD additionally apply source-IP rate limits below the
+  content-walk bound; Declaration discovery is excluded (§5). Quotas
+  (WIST-4 §6) throttle abusive domains; Ingest Endpoints SHOULD additionally apply source-IP rate limits below the
   per-domain quotas.
 - **Feed replay.** An attacker replaying an old `feed.json` cannot
   regress state: signatures bind content, `generated_at` monotonicity
