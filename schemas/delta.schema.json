@@ -11,7 +11,7 @@
       "required": ["wist_version", "publisher", "url", "change_type", "observed_at", "meta"],
       "additionalProperties": false,
       "properties": {
-        "wist_version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$(?![\\s\\S])"},
+        "wist_version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$(?![\\s\\S])", "description": "Release-version spelling only. WIST-1 sections 3.1 and 7 separately require supported-major validation; minor and patch differences alone do not reject."},
         "publisher": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Signed Publisher identity under WIST-1 section 3.8; must equal its own Canonical Host. The pattern alone does not validate A-labels."},
         "url": {"type": "string", "format": "uri", "pattern": "^https://[^#]*$", "maxLength": 2048},
         "change_type": {"enum": ["new", "update", "delete", "attest"]},

@@ -6797,7 +6797,7 @@
           "value": "QE6JKEm7zTklZwSU3XALs4TxltzIpMLKaQIPS6yHES-6Z6KyDYSn6JkEKCexOtktHWocZtojnpbwYizF3-WXBQ"
         }
       },
-      "expected": "schema rejection"
+      "expected": "WIST1-E14"
     },
     {
       "name": "unimplemented major",
@@ -6827,7 +6827,7 @@
           "value": "hpzQNgdKwsIliWfzqH41PWTENd8LMx3qqZrARHT5wsOxKkjFeXJ8Oy9h4CcIrQ6yyWgfnaMbHFuwili1srx7Dw"
         }
       },
-      "expected": "unsupported major"
+      "expected": "WIST1-E15"
     }
   ]
 }

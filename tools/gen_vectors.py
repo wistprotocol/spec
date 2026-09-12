@@ -6914,6 +6914,25 @@ def delta_field_vectors():
 
     add("valid content commitment", base)
     change("valid predecessor spelling", ["prev"], "sha256:" + sha256_hex(rfc8785.dumps(delta)), ())
+    for version in ("1.0.1", "1.1.0", "1." + "9" * 80 + "." + "9" * 80):
+        change("supported version " + version, ["wist_version"], version, ())
+    for version in ("0.0.0", "2.0.0", "10.0.0", "9" * 80 + ".0.0"):
+        change("unsupported major " + version, ["wist_version"], version, ("WIST1-E15",))
+    for version in ("1.0", "1.0.0.0", "1.0.0-rc.1", "1.0.0+build", "2.00.0", "2.0.0\n"):
+        change("malformed version " + repr(version), ["wist_version"], version)
+    for field, value, label in (("publisher", "REMOVE", "absent Publisher"),
+                                ("extra", True, "unknown field"),
+                                ("observed_at", "invalid", "invalid timestamp")):
+        inner = json.loads(json.dumps(base)); inner["wist_version"] = "2.0.0"
+        if value == "REMOVE":
+            del inner[field]
+        else:
+            inner[field] = value
+        add("unsupported major with " + label, inner, ("WIST1-E14",))
+    inner = json.loads(json.dumps(base)); inner["wist_version"] = "2.0.0"
+    inner["change_type"] = "update"; del inner["payload"]
+    add("unsupported major with missing predecessor and commitment", inner,
+        ("WIST1-E07", "WIST1-E09", "WIST1-E15"))
     for field in ("wist_version", "publisher", "url", "change_type", "observed_at", "meta"):
         for value, label in (("REMOVE", "absent"), (None, "null"), (False, "boolean")):
             change(field + " " + label, [field], value)
@@ -7177,8 +7196,8 @@ def delta_attribution_vectors():
     for name, version, mutation, expected in [
             ("current draft", "1.0.0", None, "accepted"),
             ("same version old draft lacks author", "1.0.0", "missing", "WIST1-E14"),
-            ("unknown fields remain forbidden", "1.0.0", "unknown", "schema rejection"),
-            ("unimplemented major", "2.0.0", None, "unsupported major")]:
+            ("unknown fields remain forbidden", "1.0.0", "unknown", "WIST1-E14"),
+            ("unimplemented major", "2.0.0", None, "WIST1-E15")]:
         env = signed(parent, keys[0], wist_version=version)
         if mutation == "missing": del env["delta"]["publisher"]
         if mutation == "unknown": env["delta"]["extra"] = True

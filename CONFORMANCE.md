@@ -503,7 +503,7 @@ status or waive the frozen edition's immutability.
 
 WIST-1 §§3.7/7 and ADR-0027 define field validation and its semantic
 exceptions; WIST-2 §5 preserves those diagnostics during pull.
-`vectors/wist1/delta-fields.json` tests 166 signed field candidates, scalar-length
+`vectors/wist1/delta-fields.json` tests 200 signed field/version candidates, scalar-length
 and safe-integer boundaries, supplied active caps, signature precedence and
 eight Feed/ID association cases. Parameter schedule replay is not asserted.
 The reference uses the schema independently of the generator's expected
@@ -512,8 +512,11 @@ Delta admission, authenticated chain replay, live transport/refresh/retrieval,
 Payload validation or durable rejection handling; integrated roles must
 exercise those obligations and consume the vectors independently.
 
-Unsupported-major diagnostics remain unresolved: WIST-1 §3.1 requires
-Consumers to reject unsupported major versions, but §7 supplies no code or
-corresponding non-Consumer disposition. Field syntax validation does not
-establish implemented-version eligibility. Resolve this with signed version
-vectors before complete Delta eligibility is claimed.
+WIST-1 §§3.1/7 and ADR-0030 resolve Delta version eligibility for every
+validator role. Signed cases in `delta-fields.json` exercise E14 precedence,
+E15 semantic combinations, unsupported majors, supported minor/patch values
+and components exceeding machine-integer ranges. The reference independently
+checks schema spelling and derives major eligibility and permitted errors.
+Integrated roles must enforce these checks before acceptance, including
+fetched predecessors, duplicate handling and restoration. These Delta cases
+do not establish version support for other objects or complete chain replay.

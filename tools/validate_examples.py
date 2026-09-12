@@ -8506,6 +8506,8 @@ def _delta_field_vectors():
             return {"WIST1-E14"}
         body = doc["delta"]
         errors = set()
+        if body["wist_version"].partition(".")[0] != "1":
+            errors.add("WIST1-E15")
         if not _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
                                        rfc8785.dumps(body))[0]:
             errors.add("WIST1-E01")
@@ -8535,8 +8537,8 @@ def _delta_field_vectors():
             verified = _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
                                                rfc8785.dumps(doc["delta"]))[0]
             assert verified == (not case["name"].endswith(" with invalid signature")), case["name"]
-    assert errors_seen == {"WIST1-E01", "WIST1-E03", "WIST1-E04", "WIST1-E07", "WIST1-E09", "WIST1-E11", "WIST1-E14"}
-    assert len(vector["cases"]) == 166
+    assert errors_seen == {"WIST1-E01", "WIST1-E03", "WIST1-E04", "WIST1-E07", "WIST1-E09", "WIST1-E11", "WIST1-E14", "WIST1-E15"}
+    assert len(vector["cases"]) == 200
     for case in vector["transport_cases"]:
         doc = case["envelope"]
         assert _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
@@ -8710,12 +8712,10 @@ def _delta_attribution_vectors():
             case["publisher"] == "child.example.com" and case["expected_current_identity"])
     for case in vector["version_cases"]:
         env = case["envelope"]
-        if env["delta"]["wist_version"].split(".")[0] != "1":
-            actual = "unsupported major"
-        elif "publisher" not in env["delta"]:
+        if not validators["delta"].is_valid(env):
             actual = "WIST1-E14"
-        elif not validators["delta"].is_valid(env):
-            actual = "schema rejection"
+        elif env["delta"]["wist_version"].partition(".")[0] != "1":
+            actual = "WIST1-E15"
         else:
             source = vector["cases"][0]["declarations"][0]
             actual = result(env, {"example.com": [source]},

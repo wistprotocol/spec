@@ -100,6 +100,7 @@ family, the independent anchor its verification rests on.
 
 - [ADR-0028](decisions/0028-unreleased-object-version.md) — One unreleased signed-object version
 - [ADR-0029](decisions/0029-signed-delta-publisher.md) — Publisher identity bound into Delta signatures and IDs
+- [ADR-0030](decisions/0030-delta-version-eligibility.md) — Delta version eligibility and diagnostics
 
 ## Licenses
 

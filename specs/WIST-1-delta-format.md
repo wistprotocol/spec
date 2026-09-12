@@ -129,7 +129,20 @@ document governs semantics.
 
 The version of this specification the object conforms to, as a semver
 string. This document defines version `1.0.0`. Consumers MUST reject
-objects whose major version they do not implement.
+objects whose major version they do not implement. Every Delta validator,
+including a Publisher checking its output, an Aggregator, an Auditor or a
+Consumer, MUST enforce this rejection before treating a Delta as valid.
+For Deltas, a validator implementing this revision supports major `1`. A
+different minor or patch component alone MUST NOT cause rejection; all rules
+of the implemented revision still apply.
+
+For a Delta, the version string MUST contain exactly three dot-separated
+nonnegative ASCII decimal components, with no leading zeros except `0`
+itself and no prerelease or build suffix. Components have no numeric upper
+bound; validators MUST NOT impose a machine-integer range on them. Malformed
+spelling is `WIST1-E14`; a well-formed unsupported major is `WIST1-E15`
+under §7. Never rewrite the signed version. See
+[ADR-0030](../decisions/0030-delta-version-eligibility.md).
 
 **Draft revisions and extensibility.** Before stable publication or the first
 Log sealing Blocks consumed by a third party, whichever occurs first,
@@ -1172,15 +1185,16 @@ values MUST NOT reject an object permitted by that active profile.
 Apply all E14 checks before these semantic exceptions. String lengths in
 schema field checks count Unicode scalar values, without normalization;
 URL/content octet caps retain their own rules. Field validation does not
-change other objects' diagnostics or select an unsupported-version code.
+change other objects' diagnostics. Version spelling is an E14 field check;
+an unsupported major is the semantic error E15 (§3.1), after all E14 checks.
 
 After those checks pass, a validator MAY report any applicable semantic
 error whose conditions it has established. No priority is imposed between
 the binding check (`WIST1-E02` or `WIST1-E01`), URL authority/normalization
 (`WIST1-E03`), clock allowance (`WIST1-E06`), predecessor chain
-(`WIST1-E07`), or other Delta semantic checks. Thus an invalid signature
-and excess skew permit either E01 or E06; excess skew and an out-of-scope
-URL permit either E06 or E03. A validator MUST NOT accept a Delta that
+(`WIST1-E07`), version support (`WIST1-E15`), or other Delta semantic checks.
+Thus an invalid signature and excess skew permit either E01 or E06; excess
+skew and an out-of-scope URL permit either E06 or E03. A validator MUST NOT accept a Delta that
 fails any required check. This freedom governs diagnostic selection only,
 not acceptance, source authority or the meaning of an error.
 
@@ -1219,6 +1233,7 @@ WIST2-E03 remain required. See
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
 | WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope fields under §7, subject to its semantic exceptions; or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
+| WIST1-E15 | Delta major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's current one
@@ -1383,6 +1398,8 @@ copies already served.
 
 **Validator (any party checking Deltas):**
 
+- [ ] Checks Delta version spelling and supported major under §3.1/§7,
+      preserving same-major minor/patch values and field-error precedence
 - [ ] Enforces the required canonical `publisher` field before semantic checks;
       uses only that domain’s authority and preserves Publisher/URL chain ownership (§3.5, §3.8)
 - [ ] Recomputes Canonical Bytes with JCS and verifies the Ed25519
