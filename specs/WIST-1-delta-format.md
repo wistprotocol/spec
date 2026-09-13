@@ -129,19 +129,21 @@ document governs semantics.
 
 The version of this specification the object conforms to, as a semver
 string. This document defines version `1.0.0`. Consumers MUST reject
-objects whose major version they do not implement. Every Delta validator,
+objects whose major version they do not implement. Every Delta or Payload validator,
 including a Publisher checking its output, an Aggregator, an Auditor or a
-Consumer, MUST enforce this rejection before treating a Delta as valid.
-For Deltas, a validator implementing this revision supports major `1`. A
+Consumer, MUST enforce this rejection before treating either object as valid.
+For Deltas and Payloads, a validator implementing this revision supports major `1`. A
 different minor or patch component alone MUST NOT cause rejection; all rules
 of the implemented revision still apply.
 
-For a Delta, the version string MUST contain exactly three dot-separated
+For a Delta or Payload, the version string MUST contain exactly three dot-separated
 nonnegative ASCII decimal components, with no leading zeros except `0`
 itself and no prerelease or build suffix. Components have no numeric upper
 bound; validators MUST NOT impose a machine-integer range on them. Malformed
 spelling is `WIST1-E14`; a well-formed unsupported major is `WIST1-E15`
-under §7. Never rewrite the signed version. See
+under §7. Validate each object's version independently; no equality between
+a Payload's version and its committing Delta's version is required. Never
+rewrite a version field during validation. See
 [ADR-0030](../decisions/0030-delta-version-eligibility.md).
 
 **Draft revisions and extensibility.** Before stable publication or the first
@@ -444,12 +446,13 @@ WIST-4 §5's link dimension, not an ingest rule. The extraction procedure
 itself is defined in WIST-2 and is the same procedure for the Publisher
 declaring and the Auditor checking.
 
-`schemas/payload.schema.json` bounds `extract`, `links.urls` and
-`summary.title`/`summary.abstract` with JSON Schema `maxLength`, which
-counts **code points**. Those bounds are a cheap structural first pass and
-are neither equal to nor implied by the octet caps above — a code point
-can occupy four octets — so a validator MUST enforce the octet caps
-itself. Where the two differ, this section governs.
+The Payload schema's `extract.maxLength` and `links.urls` item
+`maxLength` describe the default profile; validators MUST apply the active
+JCS-octet caps instead, without rejecting a value those caps permit.
+`summary.title` and `summary.abstract` retain independent field limits of
+256 and 1500 Unicode scalar values, respectively, without normalization,
+in addition to the active summary octet cap. Field and semantic diagnostics
+follow §7.
 
 The commitment is what carries the Publisher's accountability across the
 boundary, and it carries two distinct properties. It is **binding**:
@@ -1192,6 +1195,29 @@ matter". Importance is measured at consumption, outside this protocol.
 
 ## 7. Error Registry
 
+**Payload diagnostics.** Invalid JCS input is `WIST1-E05`. For a
+canonicalizable Payload, validate the complete `payload.schema.json` field
+structure, §2's canonical base64url salt of at least 16 decoded octets and
+§3.1's version spelling before any semantic rejection. Missing or unknown
+members, wrong types, explicit null in optional `summary.abstract`, and
+malformed fields are `WIST1-E14`. `links.total` MUST be a nonnegative
+integer within §4's safe-integer range; eligibility depends on its numeric
+value, so `1`, `1.0` and `1e0` are equivalent. String lengths count Unicode
+scalar values without normalization.
+
+The §3.6 size-cap exceptions to schema lengths retain E04. Each `links.urls`
+entry MUST be a string (E14); normalization, externality, duplicates and
+`len(urls) > total` retain E12, even when a schema constraint also describes
+that failure. After all E14 checks pass, a validator MAY report any
+established applicable semantic failure: size cap exceeded (E04), commitment
+or declared-length mismatch (E10), invalid links (E12), or unsupported major
+(E15). Acceptance requires every applicable check. This order governs
+Payload validation once its committing Delta and parameter profile are
+supplied; it imposes no precedence between independent Delta and Payload
+failures. WIST-2 §5 retains its WIST2-E03 pull wrapper, and WIST-3 §6.1 retains
+its availability and materialization dispositions. See
+[ADR-0034](../decisions/0034-payload-field-diagnostics.md).
+
 **Delta diagnostics.** Invalid JCS input is `WIST1-E05`. For a
 canonicalizable Delta Envelope, validate its complete field structure under
 `delta.schema.json`, including §2 base64url, §3.4 timestamps and §3.8
@@ -1267,8 +1293,8 @@ WIST2-E03 remain required. See
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
-| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope fields under §7, subject to its semantic exceptions; or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
-| WIST1-E15 | Delta major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
+| WIST1-E15 | Delta or Payload major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's current one
@@ -1433,6 +1459,8 @@ copies already served.
 
 **Validator (any party checking Deltas):**
 
+- [ ] Applies §7's complete Payload field checks and §3.1's independent
+      Payload version policy before using retrieved content
 - [ ] Checks Delta version spelling and supported major under §3.1/§7,
       preserving same-major minor/patch values and field-error precedence
 - [ ] Enforces the required canonical `publisher` field before semantic checks;

@@ -610,19 +610,20 @@ remain required.
 
 ## Payload field and version eligibility
 
-WIST-3 §6.1 requires the Payload schema and refers `wist_version` to WIST-1
-§3.1, whose exact release spelling and all-validator major requirement are
-Delta-specific. The Payload schema retains `^\d+\.\d+\.\d+$`; the Python
-schema reference accepts Unicode decimal characters, leading zeros and a
-final newline. Define the intended release spelling and each role's
-major-version policy before claiming complete Payload validation.
+WIST-1 §§3.1/3.6/7, WIST-3 §6.1 and draft ADR-0030/0034 define complete
+Payload fields, version support and field-before-semantic diagnostics.
+`vectors/wist1/payload-fields.json` supplies independently signed Delta
+commitments, explicit preimages, Payload mutations and size-cap contexts.
+The reference checks complete fields, unbounded release components,
+optional nulls, numeric-value safe integers, scalar boundaries, cap overrides
+and E04/E10/E12/E15 combinations after E14 precedence. Raw Payload probes
+exercise RFC 8785 §§3.1/3.2.2's E05 rejection of duplicate decoded member
+names, lone surrogates and invalid/nonfinite numbers before field checks.
+They include escaped-name and nested-duplicate cases. Other objects' raw
+input boundaries still require duplicate-rejection validation; ordinary
+JSON object parsing can discard that evidence before JCS or schema checks.
 
-WIST-1 §7 assigns WIST1-E14 to Declaration/Delta fields and malformed
-base64url, but specifies no general malformed-Payload or unsupported-major
-diagnostic. WIST-2 §5 rejects malformed pull Payloads with WIST2-E03; this
-wrapper supplies no standalone precedence among field, cap, commitment and
-link failures. Resolve these diagnoses with discriminating vectors. Include
-optional nulls, JSON numeric-value integers such as `links.total = 1.0`,
-and schema string bounds versus active octet caps; typed deserialization
-alone does not establish field conformance. The existing WIST1-E12 link
-rules remain determined independently.
+Supplied profiles do not establish accepted parameter schedules, retrieval,
+sealing, historical reference selection, restart or page agreement. Each role
+must adopt these rules independently; typed deserialization alone is
+insufficient, and accepted Payload distribution must preserve original bytes.

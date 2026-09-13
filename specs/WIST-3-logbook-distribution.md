@@ -628,7 +628,8 @@ that path either the exact bytes it verified at ingest (WIST-2 §5) or
 nothing at all.
 
 A Payload carries exactly three members. `wist_version` is the version of
-this suite it conforms to (WIST-1 §3.1). `salt` is the base64url encoding,
+this suite it conforms to (WIST-1 §3.1); WIST-1 §7 defines complete Payload
+field/version validation and diagnostic precedence. `salt` is the base64url encoding,
 unpadded, of the ≥ 16 octets that key the Delta's commitment (WIST-1 §3.6);
 it is the one place the salt is published, and destroying it is what makes
 a withdrawal effective (§6.2). `content` is the object the commitment is

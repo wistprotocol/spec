@@ -7909,3 +7909,163 @@ def payload_link_vectors():
 
 
 write_json(WIST1 / 'payload-links.json', payload_link_vectors())
+
+
+def payload_field_vectors():
+    import copy
+    base = dict(wist_version='1.0.0', salt=b64u(bytes(range(16))),
+                content=dict(extract='Content', links=dict(total=1, urls=['https://example.org/']),
+                             summary=dict(title='Title')))
+    cases = []
+
+    def add(name, payload, allowed=(), caps=None, corrupt=False, wrong_length=False):
+        content = payload.get('content', base['content']) if isinstance(payload, dict) else base['content']
+        encoded = rfc8785.dumps(content)
+        salt = bytes(range(16))
+        if isinstance(payload, dict) and isinstance(payload.get('salt'), str):
+            try:
+                salt = base64.urlsafe_b64decode(payload['salt'] + '=' * (-len(payload['salt']) % 4))
+            except ValueError:
+                pass
+        if len(salt) < 16 or corrupt:
+            salt = bytes(32) if corrupt else bytes(range(16))
+        commitment = 'hmac-sha256:' + hmac.new(salt, encoded, hashlib.sha256).hexdigest()
+        body = dict(wist_version='1.0.0', publisher='example.com',
+                    url=f'https://example.com/field-case-{len(cases)}', change_type='new',
+                    observed_at='2026-08-09T12:00:00Z', meta=dict(lang='en'),
+                    payload=dict(commitment=commitment,
+                                 alg='HMAC-SHA256', bytes=len(encoded) + int(wrong_length)))
+        case = dict(name=name, envelope=sign_envelope('delta', body, 'test-k1'),
+                    payload=payload, allowed=sorted(allowed), preimage=dict(salt=b64u(salt), content=content))
+        if caps:
+            caps = dict(caps)
+            if 'links_cap_bytes' in caps:
+                caps.setdefault('link_url_cap_bytes', caps['links_cap_bytes'] - 21)
+            if caps.get('link_url_cap_bytes', 2048) + 21 > caps.get('links_cap_bytes', 4096):
+                caps['links_cap_bytes'] = caps['link_url_cap_bytes'] + 21
+            case['caps'] = caps
+        cases.append(case)
+
+    def changed(path, value):
+        payload = copy.deepcopy(base)
+        target = payload
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        return payload
+
+    add('valid', copy.deepcopy(base))
+    for path in [[], ['content'], ['content', 'links'], ['content', 'summary']]:
+        original = base
+        for key in path:
+            original = original[key]
+        for key in original:
+            payload = copy.deepcopy(base)
+            target = payload
+            for part in path:
+                target = target[part]
+            del target[key]
+            add('missing ' + '.'.join([*path, key]), payload, ['WIST1-E14'])
+        payload = copy.deepcopy(base)
+        target = payload
+        for part in path:
+            target = target[part]
+        target['unknown'] = True
+        add('unknown at ' + ('.'.join(path) or 'root'), payload, ['WIST1-E14'])
+        for value in [None, [], 'object']:
+            payload = changed(path, value) if path else value
+            add('object type ' + ('.'.join(path) or 'root') + ' ' + repr(value), payload, ['WIST1-E14'])
+    for path in [['wist_version'], ['salt'], ['content', 'extract'],
+                 ['content', 'links', 'urls'], ['content', 'links', 'total'],
+                 ['content', 'summary', 'title'], ['content', 'summary', 'abstract']]:
+        for value in [None, {}, True]:
+            add('field type ' + '.'.join(path) + ' ' + repr(value), changed(path, value), ['WIST1-E14'])
+    add('nonstring URL', changed(['content', 'links', 'urls'], [1]), ['WIST1-E14'])
+    for version in ['0.0.0', '2.0.0', '9' * 40 + '.0.0']:
+        add('unsupported ' + version, changed(['wist_version'], version), ['WIST1-E15'])
+    for version in ['1.1.0', '1.0.1', '1.' + '9' * 40 + '.' + '8' * 40]:
+        add('supported ' + version, changed(['wist_version'], version))
+    for version in ['', '01.0.0', '1.01.0', '1.0.00', '1.0', '1.0.0.0',
+                    '1.0.0-alpha', '1.0.0+build', '1.0.0\n', '\u0661.0.0', '1.\u0660.0']:
+        add('version spelling ' + repr(version), changed(['wist_version'], version), ['WIST1-E14'])
+    for salt in ['', b64u(bytes(15)), base['salt'] + '=', base['salt'] + '\n',
+                 base['salt'][:-1] + 'x', '+' * 22, 'A' * 23 + '/']:
+        add('salt spelling ' + repr(salt), changed(['salt'], salt), ['WIST1-E14'])
+    for length in [16, 17, 18, 32]:
+        add('salt octets ' + str(length), changed(['salt'], b64u(bytes(length))))
+    for label, total in [('zero', 0), ('decimal integral', 1.0), ('exponent integral', 1e0), ('maximum safe', 9007199254740991)]:
+        payload = changed(['content', 'links', 'total'], total)
+        if total == 0:
+            payload['content']['links']['urls'] = []
+        add('integer value ' + label, payload)
+        if label == 'exponent integral':
+            cases[-1]['payload_json'] = json.dumps(payload).replace('"total": 1.0', '"total": 1e0')
+    payload = changed(['content', 'links', 'total'], -0.0)
+    payload['content']['links']['urls'] = []
+    add('negative zero', payload)
+    for total in [-1, 0.5, 9007199254740992.0, '1']:
+        add('invalid integer ' + repr(total), changed(['content', 'links', 'total'], total), ['WIST1-E14'])
+    for field, bound in [('title', 256), ('abstract', 1500)]:
+        for text, allowed, label in [('x' * bound, [], 'boundary'),
+                                     ('x' * (bound + 1), ['WIST1-E14'], 'excess'),
+                                     ('\U0001f600' * bound, [], 'astral'),
+                                     ('\U0001f600' * (bound + 1), ['WIST1-E14'], 'astral excess')]:
+            add(field + ' ' + label, changed(['content', 'summary', field], text), allowed,
+                dict(summary_cap_bytes=8192))
+    add('empty abstract', changed(['content', 'summary', 'abstract'], ''))
+    for field, value, caps in [
+            ('extract', 'x' * 32769, dict(extract_cap_bytes=40000)),
+            ('links', dict(total=1, urls=['https://example.org/' + 'x' * 2100]), dict(link_url_cap_bytes=4096))]:
+        add('increased cap ' + field, changed(['content', field], value), caps=caps)
+    for field, value, caps in [
+            ('extract', 'x' * 8, dict(extract_cap_bytes=10)),
+            ('extract', '\U0001f600' * 2, dict(extract_cap_bytes=10)),
+            ('extract', '\n' * 4, dict(extract_cap_bytes=10)),
+            ('links', base['content']['links'], dict(links_cap_bytes=len(rfc8785.dumps(base['content']['links'])))),
+            ('summary', base['content']['summary'], dict(summary_cap_bytes=len(rfc8785.dumps(base['content']['summary']))))]:
+        add('exact cap ' + field + ' ' + repr(value), changed(['content', field], value), caps=caps)
+        add('exceeded cap ' + field + ' ' + repr(value), changed(['content', field], value), ['WIST1-E04'],
+            {key: value - 1 for key, value in caps.items()})
+    add('URL octet cap', copy.deepcopy(base), ['WIST1-E04'], dict(link_url_cap_bytes=14))
+    add('declared length', copy.deepcopy(base), ['WIST1-E10'], wrong_length=True)
+    add('commitment mismatch', copy.deepcopy(base), ['WIST1-E10'], corrupt=True)
+    add('duplicate links', changed(['content', 'links'], dict(total=2, urls=['https://example.org/'] * 2)), ['WIST1-E12'])
+    add('non-normalized link', changed(['content', 'links', 'urls'], ['http://example.org/']), ['WIST1-E12'])
+    add('internal link', changed(['content', 'links', 'urls'], ['https://example.com/']), ['WIST1-E12'])
+    add('underdeclared links', changed(['content', 'links', 'total'], 0), ['WIST1-E12'])
+    payload = changed(['wist_version'], '2.0.0')
+    payload['content']['links']['urls'] = ['http://example.org/']
+    add('semantic combination', payload, ['WIST1-E04', 'WIST1-E10', 'WIST1-E12', 'WIST1-E15'],
+        dict(extract_cap_bytes=2), corrupt=True, wrong_length=True)
+    for path, value in [(['content', 'summary', 'abstract'], None), (['wist_version'], '02.0.0'),
+                        (['content', 'links', 'total'], 0.5)]:
+        combined = copy.deepcopy(payload)
+        target = combined
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        add('field precedence ' + '.'.join(path), combined, ['WIST1-E14'],
+            dict(extract_cap_bytes=2), corrupt=True, wrong_length=True)
+    raw = json.dumps(base)
+    wire_cases = [
+        ('duplicate version', raw.replace('"wist_version": "1.0.0"', '"wist_version": "2.0.0", "wist_version": "1.0.0"')),
+        ('identical duplicate', raw.replace('"title": "Title"', '"title": "Title", "title": "Title"')),
+        ('duplicate content', raw.replace('"extract": "Content"', '"extract": "Other", "extract": "Content"')),
+        ('duplicate total', raw.replace('"total": 1', '"total": 2, "total": 1')),
+        ('escaped duplicate', raw.replace('"total": 1', '"\\u0074otal": 2, "total": 1')),
+        ('duplicate before field error', raw[:-1] + ', "extra": [{"a": 1, "a": 2}]}'),
+        ('lone surrogate', raw.replace('"Content"', '"\\ud800"')),
+        ('nonfinite magnitude', raw.replace('"total": 1', '"total": 1e400')),
+        ('invalid number', raw.replace('"total": 1', '"total": 01')),
+        ('trailing document', raw + '{}'),
+    ]
+    for name, wire in wire_cases:
+        add(name, copy.deepcopy(base), ['WIST1-E05'])
+        cases[-1]['payload_json'] = wire
+    add('escaped member', copy.deepcopy(base))
+    cases[-1]['payload_json'] = raw.replace('"total": 1', '"\\u0074otal": 1')
+    return dict(spec='WIST-1 sections 3.1, 3.6 and 7; WIST-3 section 6.1',
+                public_key=b64u(pub_raw), cases=cases)
+
+
+write_json(WIST1 / 'payload-fields.json', payload_field_vectors())

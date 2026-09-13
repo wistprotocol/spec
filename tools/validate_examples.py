@@ -1075,6 +1075,7 @@ SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
 }
 
 SALTED_COMMITMENT_VALUES = {
+    ("vectors/wist1/payload-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/payload-links.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-cap-time.json", "commitment"): "payload:commitment",    # (ROOT-relative file, key) -> proving check
     ("examples/delta.json", "commitment"): "payload:commitment",
@@ -1291,6 +1292,12 @@ def _payload_commitment():
     for case in link_vectors["cases"]:
         content = case["payload"]
         actual = _commit(content["salt"], content["content"])
+        assert actual == case["envelope"]["delta"]["payload"]["commitment"]
+        recomputed.add(actual)
+    field_vectors = json.loads((ROOT / "vectors/wist1/payload-fields.json").read_text())
+    for case in field_vectors["cases"]:
+        preimage = case["preimage"]
+        actual = _commit(preimage["salt"], preimage["content"])
         assert actual == case["envelope"]["delta"]["payload"]["commitment"]
         recomputed.add(actual)
     cap_vectors = json.loads((ROOT / "vectors/wist1/delta-cap-time.json").read_text())
@@ -4521,6 +4528,10 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist1/payload-fields.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/payload-fields.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/payload-fields.json", "salt"): "Payload salts and malformed encoding probes",
+
     ("vectors/wist4/coverage.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist4/coverage.json", "value"): "an Ed25519 signature",
     ("vectors/wist4/coverage.json", "block"): "a Block hash",
@@ -9546,5 +9557,83 @@ def _payload_link_vectors():
 
 
 check('vectors:wist1-payload-links', _payload_link_vectors)
+
+def _payload_field_vectors():
+    import urllib.parse
+    import link_extraction
+    vector = json.loads((ROOT / 'vectors/wist1/payload-fields.json').read_text())
+    original = copy.deepcopy(vector)
+    schema = json.loads((ROOT / 'schemas/payload.schema.json').read_text())
+    fields = copy.deepcopy(schema)
+    props = fields['properties']['content']['properties']
+    del props['extract']['maxLength']
+    del props['links']['properties']['urls']['uniqueItems']
+    props['links']['properties']['urls']['items'] = dict(type='string')
+    validator = Draft202012Validator(fields)
+    seen = set()
+    names = set()
+
+    def unique(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                raise ValueError('duplicate JSON member')
+            obj[key] = value
+        return obj
+
+    for case in vector['cases']:
+        assert case['name'] not in names
+        names.add(case['name'])
+        verify_envelope(case['envelope'], 'delta', b64u_decode(vector['public_key']))
+        try:
+            payload = json.loads(case['payload_json'], object_pairs_hook=unique) if 'payload_json' in case else case['payload']
+            rfc8785.dumps(payload)
+        except (ValueError, rfc8785.CanonicalizationError):
+            assert case['allowed'] == ['WIST1-E05'], case['name']
+            seen.add('WIST1-E05')
+            continue
+        assert payload == case['payload']
+        body = case['envelope']['delta']
+        errors = set()
+        if not validator.is_valid(payload):
+            errors.add('WIST1-E14')
+        else:
+            salt = canonical_b64u_decode(payload['salt'])
+            assert len(salt) >= 16
+            if payload['wist_version'].partition('.')[0] != '1':
+                errors.add('WIST1-E15')
+            content = payload['content']
+            encoded = rfc8785.dumps(content)
+            if body['payload']['bytes'] != len(encoded):
+                errors.add('WIST1-E10')
+            if body['payload']['commitment'] != 'hmac-sha256:' + hmac.new(salt, encoded, hashlib.sha256).hexdigest():
+                errors.add('WIST1-E10')
+            caps = dict(extract_cap_bytes=32768, links_cap_bytes=4096,
+                        summary_cap_bytes=2048, link_url_cap_bytes=2048)
+            caps.update(case.get('caps', {}))
+            if any(len(rfc8785.dumps(content[name])) > caps[name + '_cap_bytes']
+                   for name in ('extract', 'links', 'summary')):
+                errors.add('WIST1-E04')
+            if len(encoded) > sum(caps[name + '_cap_bytes'] for name in ('extract', 'links', 'summary')) + 32:
+                errors.add('WIST1-E04')
+            links = content['links']
+            if len(set(links['urls'])) != len(links['urls']) or len(links['urls']) > links['total']:
+                errors.add('WIST1-E12')
+            for url in links['urls']:
+                if len(rfc8785.dumps(url)) > caps['link_url_cap_bytes']:
+                    errors.add('WIST1-E04')
+                if link_extraction.normalize_url(url, url) != url:
+                    errors.add('WIST1-E12')
+                    continue
+                host = urllib.parse.urlsplit(url).hostname
+                if host == body['publisher'] or host.endswith('.' + body['publisher']):
+                    errors.add('WIST1-E12')
+        assert errors == set(case['allowed']), (case['name'], errors)
+        seen |= errors
+    assert seen == {'WIST1-E04', 'WIST1-E05', 'WIST1-E10', 'WIST1-E12', 'WIST1-E14', 'WIST1-E15'}
+    assert vector == original
+
+
+check('vectors:wist1-payload-fields', _payload_field_vectors)
 
 sys.exit(1 if failures else 0)
