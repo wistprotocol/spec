@@ -1834,6 +1834,23 @@ def _dc4_sampling():
         assert c["p_1e7"] == expect, f"{c['label']}: p_1e7"
         assert c["is_ceiling"] == (c["p_1e7"] == par["ceiling_1e7"]), f"{c['label']}: is_ceiling"
     assert "provisional cap under no rung" in labels, "vector lacks the Provisional-cap rate"
+    signed_twins = 0
+    for c in v["parameter_rate_cases"]:
+        profile = c["parameters"]
+        floor, ceiling, slope = (profile[k] for k in ("floor_1e7", "ceiling_1e7", "slope_per_micro"))
+        assert 1 <= floor <= ceiling <= 9_007_199_254_740_991
+        assert -9_007_199_254_740_991 <= slope <= 9_007_199_254_740_991
+        assert 0 <= c["reputation_u"] <= 1_000_000
+        from fractions import Fraction
+        raw_rate = Fraction(floor, 10**7) + Fraction(slope, 10**7) * (1_000_000 - c["reputation_u"])
+        clamped = min(Fraction(ceiling, 10**7), max(Fraction(floor, 10**7), raw_rate))
+        expected = ceiling if c["level1_or_escalation"] else clamped * 10**7
+        assert c["p_1e7"] == expected, f"signed sampling profile: {c}"
+        if slope < 0 and not c["level1_or_escalation"] and c["reputation_u"] < 1_000_000:
+            unsigned = min(ceiling, max(floor, floor + (slope % 2**64) * (1_000_000 - c["reputation_u"])))
+            assert unsigned != expected, "negative slope case does not discriminate unsigned conversion"
+            signed_twins += 1
+    assert signed_twins == 4
     cap = next(c for c in v["rate_cases"] if c["label"] == "provisional cap under no rung")
     assert not cap["is_ceiling"], "the Provisional cap's rate is the formula's, not the ceiling"
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())

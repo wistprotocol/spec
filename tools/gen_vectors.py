@@ -3245,6 +3245,19 @@ rate_cases = [
 assert [c["p_1e7"] for c in rate_cases] == [2_900_000, 5_000_000, 3_200_000, 200_000, 5_000_000], \
     "rate cases drifted"
 
+parameter_rate_cases = []
+for slope in [-9_007_199_254_740_991, -1, 0, 9_007_199_254_740_991]:
+    for rep_u in [0, 999_999, 1_000_000]:
+        for displaced in [False, True]:
+            rate = SAMPLING_CEILING_1E7 if displaced else max(
+                SAMPLING_FLOOR_1E7,
+                min(SAMPLING_CEILING_1E7, SAMPLING_FLOOR_1E7 + slope * (1_000_000 - rep_u)))
+            parameter_rate_cases.append({
+                "parameters": {"floor_1e7": SAMPLING_FLOOR_1E7,
+                               "ceiling_1e7": SAMPLING_CEILING_1E7, "slope_per_micro": slope},
+                "reputation_u": rep_u, "level1_or_escalation": displaced, "p_1e7": rate,
+            })
+
 write_json(WIST4 / "sampling.json", {
     "auditor_public_key": b64u(pub_raw),
     "ciphersuite": "ECVRF-EDWARDS25519-SHA512-TAI",
@@ -3259,6 +3272,7 @@ write_json(WIST4 / "sampling.json", {
                    "slope_per_micro": SAMPLING_SLOPE},
     "selection": selection_cases,
     "rate_cases": spaced_labels(rate_cases),
+    "parameter_rate_cases": parameter_rate_cases,
 })
 print("wist4 sampling alpha:", alpha.hex())
 print("wist4 sampling pi:", pi.hex())

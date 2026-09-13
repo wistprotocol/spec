@@ -74,7 +74,7 @@ cannot enter the vector unnoticed.
 | wist3 `snapshot-records.json` | materialization re-derived from the Payload | self-consistency | self-consistency-only |
 | wist3 `chain-materialization.json` | prose-traced chain-tip rule | self-consistency | self-consistency-only |
 | multilog `dedup.json` | prose-traced dedup rules | self-consistency | self-consistency-only |
-| wist4 `sampling.json` | ECVRF primitive vs RFC 9381 Appendix B.3 (`ecvrf:rfc9381-b3-vectors`); the sampling rule above the primitive is harness-recomputed only | external-KAT (primitive) | partial |
+| wist4 `sampling.json` | ECVRF primitive vs RFC 9381 Appendix B.3 (`ecvrf:rfc9381-b3-vectors`); sampling rates independently recomputed with exact rationals, including signed slope wire endpoints, zero and sanction/escalation overrides; negative-slope twins reject unsigned conversion; supplied profiles do not establish amendment or standing replay | external-KAT (primitive) + self-consistency (sampling) | partial |
 | wist4 `extension-proof.json` | ECVRF primitive as above; which Block a proof binds a Record to is harness-recomputed only | external-KAT (primitive) | partial |
 | wist4 `link-agreement.json` verdict profiles | supplied accepted amendments, audited-Block anchors, increasing/decreasing link thresholds, exact boundaries and reference change-type applicability; independent schedule/band recomputation and alternative-anchor rejection, without signed history or complete Record eligibility | self-consistency | partial |
 | wist4 `parameter-in-force.json` | prose-traced in-force rule | self-consistency | self-consistency-only |
