@@ -774,7 +774,7 @@ def _wist4_error_registry():
     assert "## 13. Conformance Checklist" in w4
     assert "## 10. Security Considerations" not in w4
     codes = re.findall(r"WIST4-E(\d{2})", w4)
-    assert sorted(set(codes)) == ["01", "02", "03", "04", "05", "06", "07", "08"], sorted(set(codes))
+    assert sorted(set(codes)) == [f"{n:02}" for n in range(1, 11)], sorted(set(codes))
     assert "never invalidates the containing Block" in re.sub(r"\s+", " ", w4)
 
 check("spec:wist4-error-registry", _wist4_error_registry)
@@ -4546,6 +4546,7 @@ NON_CONTENT_DIGESTS = {
 }
 
 NON_CONTENT_VALUES = {
+    ("vectors/wist4/record-fields.json", "public_key"): "the supplied Record signature verification key",
     ("vectors/wist1/payload-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/payload-fields.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/payload-fields.json", "salt"): "Payload salts and malformed encoding probes",
@@ -9761,5 +9762,93 @@ def _delta_clock_time_vectors():
 
 
 check('vectors:wist1-delta-clock-time', _delta_clock_time_vectors)
+
+
+def _record_field_vectors():
+    vector = json.loads((ROOT / 'vectors/wist4/record-fields.json').read_text())
+    original = copy.deepcopy(vector)
+    schema = json.loads((ROOT / 'schemas/audit-record.schema.json').read_text())
+    evidence = {'reference_delta', 'fetched_at', 'verdict', 'response_commitment',
+                'credit_commitment', 'ref_extract_commitment', 'evidence_commitment',
+                'similarity', 'link_agreement', 'robots_excluded', 'unmeasured'}
+    structural = copy.deepcopy(schema)
+    del structural['allOf']
+    record_fields = structural['properties']['record']
+    record_fields['required'] = [name for name in record_fields['required'] if name not in evidence]
+    for name in evidence:
+        record_fields['properties'][name] = {}
+    formats = FormatChecker(formats=[])
+
+    @formats.checks('date-time', raises=(TypeError, ValueError))
+    def instant(value):
+        if isinstance(value, str):
+            log_seconds(value)
+        return True
+
+    @formats.checks('hostname')
+    def hostname(value):
+        if not isinstance(value, str):
+            return True
+        return all(1 <= len(label) <= 63 for label in value.split('.'))
+
+    validators = [Draft202012Validator(s, format_checker=formats) for s in (structural, schema)]
+    public = canonical_b64u_decode(vector['public_key'])
+    names, outcomes = set(), set()
+    discharged_errors = set()
+
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate decoded member')
+            result[key] = value
+        return result
+
+    for case in vector['cases']:
+        name = case['name']
+        assert name not in names, name
+        names.add(name)
+        try:
+            doc = json.loads(case['record_json'], object_pairs_hook=unique, parse_int=float, parse_float=float)
+            rfc8785.dumps(doc)
+        except (ValueError, rfc8785.CanonicalizationError):
+            allowed, discharge = {'WIST1-E05'}, False
+        else:
+            if not validators[0].is_valid(doc):
+                allowed, discharge = {'WIST4-E09'}, False
+            else:
+                body, context = doc['record'], case['context']
+                supported = body['wist_version'].split('.')[0] == '1'
+                signature = canonical_b64u_decode(doc['sig']['value'])
+                authentic = _ed25519_profile_verdict(public, signature, rfc8785.dumps(body))[0]
+                try:
+                    Ed25519PublicKey.from_public_bytes(public).verify(signature, rfc8785.dumps(body))
+                    library_authentic = True
+                except InvalidSignature:
+                    library_authentic = False
+                assert library_authentic == authentic, name
+                discharge = supported and authentic and context['identity'] and context['duty']
+                if not validators[1].is_valid(doc):
+                    allowed = {'WIST4-E02'}
+                else:
+                    allowed = set()
+                    if not supported:
+                        allowed.add('WIST4-E10')
+                    if not (authentic and context['identity'] and context['duty']) or context['removed'] or context['coverage_failure']:
+                        allowed.add('WIST4-E01')
+                    if context['semantic_evidence_error']:
+                        allowed.add('WIST4-E02')
+        assert allowed == set(case['allowed']), (name, allowed, case['allowed'])
+        assert discharge == case['discharge'], (name, discharge)
+        outcomes.update(allowed)
+        if discharge:
+            discharged_errors.update(allowed)
+    assert outcomes == {'WIST1-E05', 'WIST4-E01', 'WIST4-E02', 'WIST4-E09', 'WIST4-E10'}
+    assert discharged_errors == {'WIST4-E01', 'WIST4-E02'}
+    assert len(names) >= 170
+    assert vector == original
+
+
+check('vectors:wist4-record-fields', _record_field_vectors)
 
 sys.exit(1 if failures else 0)

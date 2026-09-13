@@ -8197,3 +8197,194 @@ def delta_clock_time_vectors():
 
 
 write_json(WIST1 / 'delta-clock-time.json', delta_clock_time_vectors())
+
+def record_field_vectors():
+    import copy
+    base = copy.deepcopy(audit_record)
+    cases = []
+
+    def add(name, body=None, allowed=(), discharge=True, mutate=None, **context):
+        body = copy.deepcopy(base if body is None else body)
+        doc = sign_envelope('record', body, 'test-aud-k1')
+        if context.get('forged', False):
+            doc['sig']['value'] = b64u(bytes(64))
+        if mutate:
+            mutate(doc)
+        cases.append(dict(name=name, record_json=json.dumps(doc, ensure_ascii=True),
+                          context=dict(duty=True, identity=True, removed=False,
+                                       coverage_failure=False, semantic_evidence_error=False),
+                          allowed=list(allowed), discharge=discharge))
+        cases[-1]['context'].update({k: v for k, v in context.items() if k != 'forged'})
+
+    def changed(field, value):
+        body = copy.deepcopy(base)
+        body[field] = value
+        return body
+
+    evidence = {'reference_delta', 'fetched_at', 'verdict', 'response_commitment',
+                'credit_commitment', 'ref_extract_commitment', 'evidence_commitment',
+                'similarity', 'link_agreement', 'robots_excluded', 'unmeasured'}
+    add('valid measured')
+    for field in base:
+        body = copy.deepcopy(base)
+        del body[field]
+        if field == 'link_agreement':
+            add('missing optional link score', body)
+        else:
+            code = 'WIST4-E02' if field in evidence else 'WIST4-E09'
+            add('missing ' + field, body, [code], code == 'WIST4-E02')
+    for field in base:
+        if field == 'prev_record':
+            continue
+        for value in (None, [], True):
+            code = 'WIST4-E02' if field in evidence else 'WIST4-E09'
+            add('type ' + field + ' ' + repr(value), changed(field, value), [code], code == 'WIST4-E02')
+    for field in ('response_commitment', 'credit_commitment', 'ref_extract_commitment',
+                  'evidence_commitment', 'audited_delta', 'reference_delta', 'vrf_proof',
+                  'auditor_id', 'fetched_at'):
+        code = 'WIST4-E02' if field in evidence else 'WIST4-E09'
+        for value in (base[field] + '\n', '', base[field].upper()):
+            if value == base[field]:
+                continue
+            add('spelling ' + field + ' ' + repr(value), changed(field, value), [code], code == 'WIST4-E02')
+    for field in ('response_commitment', 'credit_commitment', 'ref_extract_commitment', 'evidence_commitment'):
+        add('bare digest ' + field, changed(field, 'sha256:' + 'a' * 64), ['WIST4-E02'])
+    for value in (False, None, {}, 'sha256:' + 'a' * 64 + '\n'):
+        if value is None:
+            continue
+        add('predecessor ' + repr(value), changed('prev_record', value), ['WIST4-E09'], False)
+    add('predecessor ID', changed('prev_record', 'sha256:' + 'a' * 64))
+    for version in ('1.1.0', '1.0.1', '1.' + '9' * 5000 + '.' + '8' * 80):
+        add('supported version ' + version[:20], changed('wist_version', version))
+    for version in ('0.0.0', '2.0.0', '9' * 5000 + '.0.0'):
+        add('unsupported version ' + version[:20], changed('wist_version', version), ['WIST4-E10'], False)
+    for version in ('', '01.0.0', '1.01.0', '1.0.00', '1.0', '1.0.0.0',
+                    '1.0.0-alpha', '1.0.0+build', '1.0.0\n', '\u0661.0.0', '1.\u0660.0'):
+        add('version spelling ' + repr(version), changed('wist_version', version), ['WIST4-E09'], False)
+    for value in ('2026-02-29T00:00:00Z', '2026-08-02T14:00:60Z', '2026-08-02T14:00:00.0Z',
+                  '2026-08-02T14:00:00+00:00', '2026-08-02t14:00:00z'):
+        add('invalid fetch instant ' + value, changed('fetched_at', value), ['WIST4-E02'])
+    for value in ('0000-02-29T00:00:00Z', '9999-12-31T23:59:59Z'):
+        add('calendar endpoint ' + value, changed('fetched_at', value))
+    for field in ('similarity', 'link_agreement'):
+        for value in (-1, 1000001, 0.5, '940000'):
+            add('invalid score ' + field + ' ' + repr(value), changed(field, value), ['WIST4-E02'])
+        for value in (0, -0.0, 1000000.0):
+            body = changed(field, value)
+            if value == 0:
+                body['verdict'] = 'inconsistent' if field == 'similarity' else 'link_inconsistent'
+            add('integer value ' + field + ' ' + repr(value), body)
+    for path in ((), ('record',), ('sig',)):
+        def mutate(doc, path=path):
+            target = doc
+            for key in path:
+                target = target[key]
+            target['unknown'] = True
+        add('unknown at ' + ('.'.join(path) or 'Envelope'), allowed=['WIST4-E09'], discharge=False, mutate=mutate)
+    for key in ('record', 'sig'):
+        add('missing container ' + key, allowed=['WIST4-E09'], discharge=False,
+            mutate=lambda doc, key=key: doc.pop(key))
+        for value in (None, [], 'object'):
+            add('container ' + key + ' ' + repr(value), allowed=['WIST4-E09'], discharge=False,
+                mutate=lambda doc, key=key, value=value: doc.update({key: value}))
+    for field in ('key_id', 'alg', 'value'):
+        add('missing signature ' + field, allowed=['WIST4-E09'], discharge=False,
+            mutate=lambda doc, field=field: doc['sig'].pop(field))
+    for field, value in (('key_id', 'x' * 65), ('key_id', None), ('alg', 'other'),
+                         ('value', 'B' * 86), ('value', b64u(bytes(64)) + '\n')):
+        add('signature field ' + field + ' ' + repr(value), allowed=['WIST4-E09'], discharge=False,
+            mutate=lambda doc, field=field, value=value: doc['sig'].update({field: value}))
+    add('signature scalar boundary', mutate=lambda doc: doc['sig'].update(key_id='\U0001f600' * 64))
+    add('signature scalar excess', allowed=['WIST4-E09'], discharge=False,
+        mutate=lambda doc: doc['sig'].update(key_id='\U0001f600' * 65))
+    for verdict in ('unreachable', 'not_auditable'):
+        body = copy.deepcopy(base)
+        body['verdict'] = verdict
+        for field in ('response_commitment', 'credit_commitment', 'ref_extract_commitment',
+                      'evidence_commitment', 'similarity', 'link_agreement'):
+            body.pop(field)
+        if verdict == 'not_auditable':
+            body['unmeasured'] = 'observed'
+        else:
+            body['robots_excluded'] = True
+        add('valid ' + verdict, body)
+        for field in ('response_commitment', 'credit_commitment', 'ref_extract_commitment',
+                      'evidence_commitment', 'similarity', 'link_agreement'):
+            invalid = copy.deepcopy(body)
+            invalid[field] = base[field]
+            add(verdict + ' forbidden ' + field, invalid, ['WIST4-E02'])
+        if verdict == 'not_auditable':
+            for value in ('reference',):
+                add('unmeasured ' + value, dict(body, unmeasured=value))
+            for value in (None, 'other'):
+                add('unmeasured ' + repr(value), dict(body, unmeasured=value), ['WIST4-E02'])
+            del body['unmeasured']
+            add('missing unmeasured', body, ['WIST4-E02'])
+    for field, value in (('robots_excluded', True), ('robots_excluded', False), ('unmeasured', 'observed')):
+        add('measured forbidden ' + field + ' ' + repr(value), changed(field, value), ['WIST4-E02'])
+    for verdict in ('link_variance', 'link_inconsistent'):
+        body = changed('verdict', verdict)
+        body.pop('link_agreement')
+        add(verdict + ' missing score', body, ['WIST4-E02'])
+    for label, context in (('forged', dict(forged=True)), ('missing duty', dict(duty=False)),
+                           ('identity mismatch', dict(identity=False)), ('removed', dict(removed=True)),
+                           ('coverage failure', dict(coverage_failure=True))):
+        discharge = label in ('removed', 'coverage failure')
+        add(label, allowed=['WIST4-E01'], discharge=discharge, **context)
+        body = changed('credit_commitment', 'malformed')
+        add('evidence plus ' + label, body, ['WIST4-E02'], discharge, **context)
+    body = changed('wist_version', '2.0.0')
+    body['credit_commitment'] = 'malformed'
+    add('evidence before unsupported', body, ['WIST4-E02'], False)
+    body['unknown'] = True
+    add('structure before evidence and unsupported', body, ['WIST4-E09'], False, forged=True)
+    add('unsupported and forged', changed('wist_version', '2.0.0'),
+        ['WIST4-E01', 'WIST4-E10'], False, forged=True)
+    add('semantic evidence', allowed=['WIST4-E02'], semantic_evidence_error=True)
+    add('semantic evidence and missing duty', allowed=['WIST4-E01', 'WIST4-E02'],
+        discharge=False, semantic_evidence_error=True, duty=False)
+    for context, discharge, label in ((dict(removed=True, duty=False), False, 'removed without duty'),
+                                       (dict(removed=True, forged=True), False, 'removed with forgery'),
+                                       (dict(removed=True, coverage_failure=True), True, 'removed in coverage failure')):
+        add(label, allowed=['WIST4-E01'], discharge=discharge, **context)
+        add('evidence and ' + label, changed('credit_commitment', 'malformed'),
+            ['WIST4-E02'], discharge, **context)
+    add('unknown evidence name at Envelope', allowed=['WIST4-E09'], discharge=False,
+        mutate=lambda doc: doc.update(verdict='consistent'))
+    add('unknown evidence name at signature', allowed=['WIST4-E09'], discharge=False,
+        mutate=lambda doc: doc['sig'].update(verdict='consistent'))
+    for length in (63, 64):
+        add('hostname label ' + str(length), changed('auditor_id', 'a' * length + '.example.net'),
+            [] if length == 63 else ['WIST4-E09'], length == 63)
+    for value in (None, [], 'object', 1):
+        add('root type ' + repr(value), allowed=['WIST4-E09'], discharge=False)
+        cases[-1]['record_json'] = json.dumps(value)
+    add('finite integer outside score range', changed('similarity', 9007199254740992.0), ['WIST4-E02'])
+    cases[-1]['record_json'] = cases[-1]['record_json'].replace('9007199254740992.0', '9007199254740992')
+    add('unknown finite integer outside safe range', allowed=['WIST4-E09'], discharge=False,
+        mutate=lambda doc: doc.update(unknown=9007199254740992))
+    add('decimal rounds into score range', changed('similarity', 1000000.0))
+    cases[-1]['record_json'] = cases[-1]['record_json'].replace('1000000.0', '1000000.00000000001')
+    raw = cases[0]['record_json']
+    wires = (
+        ('duplicate Envelope', raw.replace('"record":', '"record": null, "record":', 1)),
+        ('escaped duplicate verdict', raw.replace('"verdict":', '"\\u0076erdict": "inconsistent", "verdict":', 1)),
+        ('duplicate signature algorithm', raw.replace('"alg":', '"alg": "other", "alg":', 1)),
+        ('nested unknown duplicate', raw[:-1] + ', "unknown": {"x": 0, "\\u0078": 1}}'),
+        ('trailing document', raw + '{}'),
+        ('lone surrogate', raw.replace('audit.example.net', '\\ud800')),
+        ('nonfinite', raw.replace('940000', 'NaN')),
+    )
+    for name, wire in wires:
+        add(name, allowed=['WIST1-E05'], discharge=False)
+        cases[-1]['record_json'] = wire
+    add('escaped unique member')
+    cases[-1]['record_json'] = raw.replace('"verdict":', '"\\u0076erdict":')
+    add('integral exponent')
+    cases[-1]['record_json'] = raw.replace('940000', '9.4e5')
+    return dict(spec='WIST-4 section 10.1; WIST-1 section 4', public_key=b64u(pub_raw),
+                scope='Standing, identity binding, removal, coverage failure and semantic evidence are supplied contexts; signatures and fields are verified. JSON strings preserve raw member spellings. Score bands, reference histories and commitment preimages are outside this field-only corpus.',
+                cases=cases)
+
+
+write_json(WIST4 / 'record-fields.json', record_field_vectors())

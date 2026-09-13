@@ -47,7 +47,8 @@ WIST-1 §4 pins the profile, for every signature the suite defines:
 - **`A` and `R` canonically encoded** — the encoded `y` below
   `p = 2^255 − 19` — and **not of small order**.
 
-A signature failing any of these is `WIST1-E01`. A key in `keys` or
+WIST-1 §4 assigns signature-failure diagnostics, with the Audit Record
+exception defined in WIST-4 §10.1. A key in `keys` or
 `recovery_keys` that is non-canonically encoded or of small order is not
 admitted to the Key Set, and a Delta naming it is `WIST1-E02`: the check
 belongs where the key enters, so the Key Set a Consumer replays is the set

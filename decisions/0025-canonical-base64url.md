@@ -20,7 +20,8 @@ nonzero unused bits, invalid lengths, padding, whitespace and foreign
 alphabet characters. Retain each field's decoded length constraint.
 Decoding and canonical re-encoding must reproduce the input exactly.
 
-Extend `WIST1-E14` to these encoding failures. Validate encoding before
+WIST-1 §2 assigns the encoding diagnostic, with the Audit Record exception
+defined in WIST-4 §10.1. Validate encoding before
 using the field for cryptographic eligibility, authentication or commitment
 verification. Declaration field validation still precedes sequencing,
 conflict comparison and idempotence; malformed unused keys reject the

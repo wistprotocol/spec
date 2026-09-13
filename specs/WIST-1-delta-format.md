@@ -100,15 +100,16 @@ still apply: an Ed25519 `public_key` is 32 octets (43 characters),
 `sig.value` is 64 octets (86 characters), and a Payload `salt` is at least
 16 octets. Empty strings are invalid for these fields.
 
-A malformed base64url field is `WIST1-E14`. Check the encoding before using
-that field for key exclusion, signer resolution, signature or commitment
+A malformed base64url field is `WIST1-E14`, except an Audit Record signature
+field, whose diagnostic and precedence are WIST-4 §10.1's. Check the
+encoding before using that field for key exclusion, signer resolution, signature or commitment
 verification; an unused malformed Declaration key still rejects the whole
 Declaration under §5.1. This is distinct from a canonically encoded public
 key whose point §4 excludes. The signature-field check also applies when
 idempotence would otherwise waive signature verification. Existing
 object-level rejection rules and transport wrappers remain in force;
-`WIST1-E14` identifies the underlying encoding failure, including beneath
-first-contact `WIST2-E04` or invalid-Block-file `WIST3-E03` handling.
+the object's encoding diagnostic identifies the underlying failure, including
+beneath first-contact `WIST2-E04` or invalid-Block-file `WIST3-E03` handling.
 Delta diagnostic precedence is specified in §7; this establishes no
 precedence between unrelated failures in other objects.
 
@@ -596,7 +597,8 @@ fork. This suite pins them, for every signature it defines:
 - `A` and `R` MUST each be canonically encoded — the encoded `y` less than
   `p = 2^255 − 19` — and MUST NOT be a point of small order.
 
-A signature failing any of these is `WIST1-E01`. A `keys` or
+A signature failing any of these is `WIST1-E01`, except an Audit Record
+signature, whose diagnostic and precedence are WIST-4 §10.1's. A `keys` or
 `recovery_keys` entry (§5.1) whose `public_key` is non-canonically encoded
 or of small order is not admitted to the Key Set at all, and a Delta naming
 it is `WIST1-E02`: the check belongs where the key enters, so that a
@@ -1316,7 +1318,7 @@ WIST2-E03 remain required. See
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
-| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url in any protocol field (§2). Canonicalization failure remains WIST1-E05 |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url under §2, except Audit Record signature fields (WIST-4 §10.1). Canonicalization failure remains WIST1-E05 |
 | WIST1-E15 | Delta or Payload major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration

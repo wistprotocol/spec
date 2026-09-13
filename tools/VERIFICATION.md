@@ -35,6 +35,7 @@ cannot enter the vector unnoticed.
 
 | Family | Anchor | Kind | Status |
 |---|---|---|---|
+| wist4 `record-fields.json` | signed original JSON, schema-derived evidence/non-evidence partition, exact patterns, signature verification, version support, precedence and conditional discharge under supplied duty/removal/coverage contexts; raw JSON rejection and unchanged signed values; no authenticated roster/selection/reference reconstruction or live sealing | third-party-lib (schemas/signatures/JCS) + self-consistency (diagnostics/discharge) | partial |
 | wist1 envelope, `delta.canonical`, `id.txt`, `keypair.json` | Ed25519 via `cryptography`, JCS via `rfc8785` | third-party-lib | anchored |
 | wist1 `ed25519-strictness.json` | the §4 profile that certifies it is pinned to the ed25519-speccheck corpus (`ed25519:speccheck-corpus`) | external-KAT | anchored |
 | wist1 `host-canonicalization.json` | flags pinned to §2; A-label structure and Punycode round-trip recomputed; full UTS #46 mapping deliberately not reimplemented here (`requirements.txt`), so byte-level recomputation happens in consumers' independent UTS #46 libraries | structural + external | partial |

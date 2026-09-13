@@ -245,6 +245,7 @@ fetched and published, and what the rejection withholds is the Record's
 weight as evidence, not the fact of its publication. A Record void for
 more than one reason discharges only if every reason is one of these;
 one reason under which no duty existed leaves nothing to discharge.
+Complete field/version eligibility and authenticity conditions are in §10.1.
 
 Aggregator keys are admitted and retired by the `aggregator_key_add` /
 `aggregator_key_remove` actions defined in WIST-3 §3.4; their `details`
@@ -3304,6 +3305,60 @@ record why an action was taken or contested (§12).
 
 ## 10. Error Registry
 
+### 10.1. Audit Record fields, versions and discharge
+
+Every Audit Record validator, including a party checking its own output,
+admission or replay, MUST apply WIST-1 §4's JSON/JCS eligibility before
+the field checks below; failure is `WIST1-E05`. Preserve the original signed object; parsing MUST
+reject duplicate decoded member names, including inside nested objects.
+
+Validate the complete Envelope against `schemas/audit-record.schema.json`.
+The **evidence fields** are `reference_delta`, `fetched_at`, `verdict`,
+`response_commitment`, `credit_commitment`, `ref_extract_commitment`,
+`evidence_commitment`, `similarity`, `link_agreement`, `robots_excluded`
+and `unmeasured`. A missing, malformed or forbidden evidence field, including
+the schema's verdict-dependent relations, is `WIST4-E02`. Any other field
+failure is `WIST4-E09`: this includes missing or unknown Envelope, `record`
+or `sig` members, except missing evidence fields; non-object containers;
+and malformed `wist_version`, `audited_delta`, `auditor_id`, `vrf_proof`,
+`prev_record` or signature fields. Unknown members are E09 regardless of
+their names. E09 takes precedence over E02; field failures take precedence
+over semantic diagnostics. Timestamp fields must denote actual instants under
+WIST-3 §3.1, including year zero. Integer fields use numeric values under
+WIST-1 §4, not JSON token spelling.
+
+`wist_version` MUST contain exactly three dot-separated nonnegative ASCII
+decimal components, without leading zeros except `0` itself, prerelease
+or build suffixes, or a numeric upper bound. Every validator implementing
+this revision supports major `1` and MUST reject another major as
+`WIST4-E10`. A different minor or patch component alone MUST NOT reject;
+every rule of the implemented revision still applies. Never rewrite the
+version or impose a machine-integer range on its components. This is the
+Record's own version check, independent of its audited and reference Deltas.
+
+After field validation, any established applicable semantic diagnostic may
+be reported; there is no order among E01, E02 and E10. A cryptographically
+invalid Record signature or a signature not bound to the claimed
+`auditor_id` under §3 is E01 and discharges nothing. Lexically malformed
+signature fields are E09; malformed proof spelling is E09, while a
+well-formed proof establishing no duty is E01.
+
+A reported diagnostic alone never establishes coverage discharge. To count
+even an E02 Record as a discharge, the validator MUST also establish its
+supported major, valid non-evidence fields, authentic signature and all of
+§3's duty/discharge predicates. E09, E10, failed authenticity or a missing
+duty prevents discharge even when E02 takes diagnostic precedence. Removal
+after the duty Block and coverage failure retain exactly §3's carve-outs.
+Evidence-field rejection grants no reputation weight, confirmation or
+extension trigger. These eligibility results do not waive §4's pull/seal
+obligations. E01, E02, E09 and E10 reject the item, not its containing
+Block; invalid raw Block JSON remains governed by WIST-3 §3.
+
+Rationale and validation scope:
+[ADR-0035](../decisions/0035-audit-record-field-dispositions.md).
+
+### 10.2. Codes
+
 WIST-1, WIST-2 and WIST-3 register the codes their surfaces reject
 with; this section registers WIST-4's. These are replay-side codes: the
 conditions are evaluated by any party replaying the Log (§3, §5, §7,
@@ -3317,14 +3372,16 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| WIST4-E01 | Audit Record void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the `sealed_at` of the Block its duty is anchored to — the audited Block for a VRF selection, *B₁* for an extension (§4) — or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored there; in every other case there was no duty to discharge — a key never admitted at that Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing, whatever else is also true of it. |
-| WIST4-E02 | Audit Record malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2); a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
+| WIST4-E01 | Audit Record signature/authorship failure under §10.1, or void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the `sealed_at` of the Block its duty is anchored to — the audited Block for a VRF selection, *B₁* for an extension (§4) — or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored there; in every other case there was no duty to discharge — a key never admitted at that Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing, whatever else is also true of it. |
+| WIST4-E02 | Audit Record evidence-field failure under §10.1, or malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2); a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
 | WIST4-E03 | Registry Update rejected under §9, including a prospective schedule that fails a combination rule: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, or whose `subject` has none and carries one (§3.1). Ignored as WIST4-E03. |
 | WIST4-E05 | An appeal or ruling violating §7's process identity, eligibility or multiplicity rules; a sanction notice failing §7's activation or evidence contract or notice multiplicity rules; or a governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
 | WIST4-E07 | A roster act rejected by §3.1's simultaneous-batch rules; or a roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` under a key not registered at its Block or naming no Audit Record or `coverage_attestation` (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
 | WIST4-E08 | Canary act rejected (§5.1): a `canary_commitment` past its planter suffix's epoch ration or with `leaves` outside 1 … `canary_leaves_max`; a `canary_reveal` naming no sealed or an already-revealed commitment, an index out of range or repeated, a Delta that is not the canary domain's or was sealed inside the lead, a Delta bound to two leaves, an inclusion proof that fails, or a reveal sealed before the reveal minimum or after the lifetime. Ignored during replay; the commitment stays unrevealed, and nothing scores under it. |
+| WIST4-E09 | Audit Record non-evidence field failure (§10.1). Ignored in replay; no reputation input, confirmation, extension trigger or coverage discharge. |
+| WIST4-E10 | Audit Record major version not implemented by the validator (§10.1). Ignored with the same exclusions as E09. |
 
 ## 11. Security Considerations
 
@@ -3711,6 +3768,8 @@ bound by WIST-3 §6.2's destroy obligation exactly as an Auditor is.
 - [ ] Uses integer arithmetic and the normative decay table only (§6)
 - [ ] Derives `A` and every `t_i` from Block `sealed_at`, never from
       `observed_at` or wall clock time (§6.1)
+- [ ] Applies §10.1's complete Record field/version checks and diagnostic
+      precedence, and separately establishes every coverage-discharge premise
 - [ ] Verifies VRF proofs before counting a Record (§4)
 - [ ] Derives the roster from the Log — one key per `auditor_id` per
       height, read at each Block's `sealed_at` — rejecting the acts

@@ -676,16 +676,18 @@ through reference changes and restart. No schema field changes are required.
 
 ## Audit Record field and version dispositions
 
-`schemas/audit-record.schema.json` constrains the complete Envelope. WIST-4
-§10 assigns WIST4-E02 to enumerated evidence defects but supplies no complete
-diagnostic and coverage-discharge mapping for other schema failures, including
-unknown Envelope members and malformed commitment encodings. WIST-1 §3.1
-requires Consumers to reject unimplemented majors; its detailed version
-spelling, diagnostics and all-validator requirements are Delta/Payload-specific.
-The corresponding Record profile for each role remains undefined.
+WIST-4 §10.1 and draft ADR-0035 define complete field diagnostics, version
+support and conditional coverage discharge. `vectors/wist4/record-fields.json`
+supplies signed original-JSON mutations and explicit standing contexts;
+`tools/validate_examples.py` independently derives schema field categories,
+verifies signatures and checks version/discharge combinations. Raw JSON
+eligibility includes decoded duplicate names, nested objects, trailing input
+and non-JCS values. No schema-valid version bypasses the pinned revision.
 
-Before complete Record admission and replay, define the remaining field/version
-diagnostics, precedence against signature and standing failures, and discharge
-consequences with signed discriminating vectors. Checking evidence-field
-relations alone selects none of those dispositions and establishes no complete
-Record eligibility.
+Integrated roles must independently consume these cases and reconstruct the
+roster, signing bindings, ordinary/extension duty, reference history and
+coverage carve-outs from authenticated Log prefixes. The supplied contexts
+establish none of those histories, live pulling/sealing, reputation exclusion
+or durable restoration. A rejected evidence field alone never establishes
+coverage discharge; full replay must establish every §10.1 premise while
+preserving §4's sealing obligations and the original signed bytes.
