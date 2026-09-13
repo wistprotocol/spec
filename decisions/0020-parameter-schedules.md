@@ -69,6 +69,27 @@ later audit uses a different extraction or verdict profile. This assumes
 availability of the authenticated schedule through each relevant Block;
 a missing prefix cannot be replaced with current defaults.
 
+### Delta clock eligibility
+
+WIST-1 §3.4 fixes both the clock and `clock_skew_seconds` for admission,
+sealing and historical validation. An unsealed attempt freezes its local
+clock and schedule; sealing rechecks against the candidate Block, whose
+clock and allowance every historical validator can reconstruct.
+
+Using replay time would let the same history acquire different eligible
+Deltas and reputation merely by waiting. Using a later allowance could
+invalidate earlier inclusions after a reduction or conceal invalid ones
+after an increase; negative allowances make even old observations vulnerable
+to such reclassification. Using `observed_at` as the anchor would give the
+Publisher control over the bound. Freezing the admission clock permanently
+would require an authenticated receipt absent from the Log.
+
+The committing Block supplies a deterministic clock, not independent proof
+of civil time. A queued Delta may fail after an allowance reduction, and a
+later wall clock cannot repair an invalid sealed inclusion. Exact arithmetic
+preserves signed allowances and fractional endpoints without requiring every
+computed bound to have a four-digit timestamp representation.
+
 ### Cadence transitions
 
 For every constant-map interval, retain its extension publication span,
@@ -122,5 +143,8 @@ cadence transitions, retention, wire bounds and Block-size guarantees,
 including ordering, exact endpoints, pending increases and restoration.
 `vectors/wist1/delta-cap-time.json` adds signed size-cap histories and
 admission/sealing/retrieval probes across increases and decreases.
+`vectors/wist1/delta-clock-time.json` distinguishes frozen attempt clocks,
+sealing rechecks and historical clock/allowance anchors across amendments,
+including signed negative allowances and exact fractional endpoints.
 Live pacing, durable publication and recovery additionally require the
 WIST-3 and WIST-4 role checks.

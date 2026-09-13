@@ -351,7 +351,7 @@ The isolated clock vectors in `vectors/wist1/declaration-fields.json` and
 the diagnostic combinations use the inclusive default 600-second relation.
 WIST-4 §9's signed integer parameter `clock_skew_seconds` controls the active
 allowance, including negative values; the clock relation uses exact signed
-addition at the validator instant.
+addition at the clock selected by WIST-1 §3.4.
 
 ## Delta Publisher attribution
 
@@ -630,12 +630,19 @@ insufficient, and accepted Payload distribution must preserve original bytes.
 
 ## Historical Delta clock parameter time
 
-WIST-1 §3.4 compares `observed_at` with the validator's clock, but WIST-4
-§9 does not select the `clock_skew_seconds` anchor for historical validation.
-WIST-1 §3.6's committing-Block anchor covers size caps only. Resolve whether
-skew reads the validation instant or committing Block, and how replay receives
-the clock, with amendment-boundary vectors before claiming historical clock
-eligibility. Live attempt-clock checks do not establish this replay rule.
+WIST-1 §3.4, WIST-4 §9 and draft ADR-0020 select the committing Block's
+`sealed_at` for both the historical clock and `clock_skew_seconds` anchor.
+Unsealed attempts freeze their clock and accepted schedule; sealing rechecks
+against the candidate Block. Later clocks or amendments cannot repair an
+invalid inclusion or invalidate an earlier valid one.
+
+`vectors/wist1/delta-clock-time.json` supplies signed Deltas and parameter
+candidates with explicit inclusion contexts. Its independent reference checks
+signatures, amendment eligibility for this unbounded parameter, exact rational
+clock comparisons, amendment endpoints, frozen attempts and alternate anchors.
+These supplied contexts establish no Block inclusion, complete Declaration or
+Delta eligibility, live queue behavior or restart conformance. Each role must
+bind the check to authenticated history and exercise sealing and replay.
 
 ## Mirror-list signing-key time
 

@@ -2813,6 +2813,7 @@ whose `effective_at` equals the anchor instant is included.
 | §5.1 scoring and associated serving window | Reveal Block |
 | §5 extraction and verdict-band profile, including §5.2 hard hits | Audited Delta's Block; parameters listed in §5, **The extraction and band profile is fixed per audited Delta** |
 | WIST-1 §§3.2/3.6 sealed Delta and committed Payload size caps | Committing Delta’s Block; unsealed attempts and sealing rechecks follow WIST-1 §3.6, **Size-cap parameter time** |
+| WIST-1 §3.4 Delta clock allowance | Committing Delta's Block, which also supplies the historical validation clock; unsealed attempts and sealing rechecks follow WIST-1 §3.4, **Clock parameter time** |
 | WIST-1 §5.2 recovery window length | Window owner Declaration’s Block; freeze the end through later amendments and in-window recoveries |
 | §7 appeal window and appeal seal allowance | Notice Block |
 | §7 ruling deadline | Accepted appeal's Block |

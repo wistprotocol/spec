@@ -1075,6 +1075,7 @@ SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
 }
 
 SALTED_COMMITMENT_VALUES = {
+    ("vectors/wist1/delta-clock-time.json", "commitment"): "payload:commitment",
     ("vectors/wist1/payload-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/payload-links.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-cap-time.json", "commitment"): "payload:commitment",    # (ROOT-relative file, key) -> proving check
@@ -4731,6 +4732,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/payload-links.json", "public_key"): "the Delta signing public key",
     ("vectors/wist1/payload-links.json", "value"): "an Ed25519 Delta signature",
     ("vectors/wist1/payload-links.json", "salt"): "the Payload commitment salt",
+    ("vectors/wist1/delta-clock-time.json", "public_key"): "the fixture signing key",
+    ("vectors/wist1/delta-clock-time.json", "value"): "signed integer allowance or valid/deliberately invalid signature",
     ("vectors/wist1/delta-cap-time.json", "prev"): "the signed predecessor Delta ID",
     ("vectors/wist1/delta-cap-time.json", "audited_id"): "the audited attestation Delta ID",
     ("vectors/wist1/delta-cap-time.json", "id"): "SHA-256 of a signed Delta",
@@ -9693,5 +9696,70 @@ def _payload_field_vectors():
 
 
 check('vectors:wist1-payload-fields', _payload_field_vectors)
+
+
+def _delta_clock_time_vectors():
+    vector = json.loads((ROOT / 'vectors/wist1/delta-clock-time.json').read_text())
+    original = copy.deepcopy(vector)
+    public = b64u_decode(vector['public_key'])
+    schemas = {name: Draft202012Validator(json.loads((ROOT / f'schemas/{name}.schema.json').read_text()))
+               for name in ('delta', 'registry-update')}
+    accepted = []
+    for index, candidate in enumerate(vector['amendments']):
+        doc = candidate['envelope']
+        schemas['registry-update'].validate(doc)
+        update = doc['update']
+        assert update['action'] == 'parameter_change'
+        assert update['details']['parameter'] == 'clock_skew_seconds'
+        value = update['details']['value']
+        assert isinstance(value, int) and abs(value) <= 9007199254740991
+        try:
+            verify_envelope(doc, 'update', public)
+            valid = True
+        except InvalidSignature:
+            valid = False
+        sealed = log_seconds(candidate['sealed_at'])
+        effective = log_seconds(update['effective_at'])
+        valid = valid and effective >= sealed + 7 * 86400
+        assert valid == candidate['accepted']
+        if valid:
+            accepted.append((effective, index, value))
+
+    def allowance(at):
+        applicable = [change for change in accepted if change[0] <= at]
+        return max(applicable)[2] if applicable else vector['default']
+
+    names = set()
+    alternatives = collections.Counter()
+    for probe in vector['probes']:
+        assert probe['name'] not in names
+        names.add(probe['name'])
+        doc = probe['envelope']
+        schemas['delta'].validate(doc)
+        verify_envelope(doc, 'delta', public)
+        observed = publisher_instant(doc['delta']['observed_at'])
+        clock_field = {'admission': 'started_at', 'sealing': 'candidate_sealed_at',
+                       'historical': 'sealed_at'}[probe['stage']]
+        clock = publisher_instant(probe[clock_field])
+        skew = allowance(clock)
+        assert probe['expected_clock'] == probe[clock_field]
+        assert probe['expected_allowance'] == skew
+        expected = None if observed <= clock + skew else 'WIST1-E06'
+        assert expected == probe['expected'], probe['name']
+        later_field = {'admission': 'completed_at', 'sealing': 'admitted_at',
+                       'historical': 'checked_at'}[probe['stage']]
+        later = publisher_instant(probe[later_field])
+        for label, bound in [('clock', later + skew), ('allowance', clock + allowance(later)),
+                             ('both', later + allowance(later))]:
+            alternative = None if observed <= bound else 'WIST1-E06'
+            alternatives[probe['stage'], label] += alternative != expected
+    assert len(names) == 96
+    for stage in ('admission', 'sealing', 'historical'):
+        for changed in ('clock', 'allowance', 'both'):
+            assert alternatives[stage, changed], (stage, changed)
+    assert vector == original
+
+
+check('vectors:wist1-delta-clock-time', _delta_clock_time_vectors)
 
 sys.exit(1 if failures else 0)

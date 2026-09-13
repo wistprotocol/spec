@@ -253,11 +253,34 @@ content is no longer served.
 
 The instant the Publisher observed the state being described, as a
 **Publisher timestamp** in the profile below. It MUST NOT be more than
-10 minutes in the future relative to the validator's clock (error `WIST1-E06`), and MUST be strictly
+`clock_skew_seconds` beyond the validation clock selected below (default
+600 seconds; error `WIST1-E06`), and MUST be strictly
 greater than the `observed_at` of the Delta referenced by `prev` (error
 `WIST1-E07`). A missing, non-string or malformed `observed_at` is
 `WIST1-E14`; validate its format before comparing it with a clock, predecessor
 or key validity bound.
+
+**Clock parameter time.** For an unsealed Delta, capture the validator's
+clock and the accepted WIST-4 §9 schedule when its validation attempt
+begins. Read `clock_skew_seconds` at that instant and retain both values
+through the attempt, including retrieval and Declaration retries. A new
+attempt takes a new clock and schedule.
+
+Before sealing a queued Delta, the Aggregator MUST repeat this check using
+the candidate Block's `sealed_at` as the clock and the accepted schedule at
+that instant. For a sealed Delta, every validator MUST use its committing
+Block's `sealed_at` for both the clock and the parameter anchor. An amendment
+effective exactly then participates; later amendments, replay time,
+`observed_at` and an Audit Record's or reference Delta's Block do not replace
+either value. Historical clock eligibility therefore requires no supplied
+wall clock. This rule checks the Publisher's timestamp against Log time;
+it does not certify the accuracy of the Aggregator's clock.
+
+The check is `observed_at <= clock + clock_skew_seconds`, with an inclusive
+endpoint and exact arithmetic under the timestamp profile below. Negative
+allowances retain their sign; bounds outside the timestamp spelling range
+are compared arithmetically without clamping or formatting them as dates.
+Field precedence and semantic diagnostic selection follow §7.
 
 **Publisher timestamp profile.** `observed_at` and every Declaration
 `valid_from` (§5.1) MUST use this RFC 3339-derived Gregorian profile:
@@ -284,7 +307,7 @@ unknown local offset and contributes zero, as do `Z`, `z` and `+00:00`.
 Offset subtraction MAY produce an arithmetic instant outside the written
 four-digit year range; it does not invalidate a well-formed field. Compare
 all fractional digits without rounding or truncation, including for the
-inclusive `valid_from` bound and the 600-second skew bound. Preserve the
+inclusive `valid_from` bound and the active skew bound. Preserve the
 original string for JCS, hashing and signatures. For example, the distance
 from 2016-12-31T23:59:59Z to 2017-01-01T00:00:00Z is one second; from
 `10:00:00Z` to `10:00:00.5Z` on the same date it is half a second.
@@ -1285,7 +1308,7 @@ WIST2-E03 remain required. See
 | WIST1-E03 | URL out of scope, not normalized, or not normalizable (host not covered by domain/`subdomain_scope`; `url` not byte-identical to its own Normalized URL; or `url` has no normalization at all — §2) |
 | WIST1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
-| WIST1-E06 | `observed_at` in the future beyond the 10-minute skew allowance |
+| WIST1-E06 | `observed_at` exceeds the clock plus active signed allowance selected by §3.4 |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong Publisher or URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
 | WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
@@ -1473,7 +1496,7 @@ copies already served.
 - [ ] Enforces the scope rule (§3.2) and all Error Registry checks (§7)
 - [ ] Treats identical resubmissions as idempotent (§4)
 - [ ] Rejects Declarations served over plain HTTP (§5.1)
-- [ ] Applies the 10-minute clock-skew allowance to `observed_at` (§3.4)
+- [ ] Applies §3.4's attempt, sealing and historical clock/allowance anchors to `observed_at`, preserving exact endpoints and signed allowances
 - [ ] Validates Publisher timestamps without leap-event data, rejects `:60`
       and compares exact offset-adjusted fractions (§3.4, §5.1)
 - [ ] Checks complete named Delta bindings, filtering usability and time

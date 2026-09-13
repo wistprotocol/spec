@@ -8122,3 +8122,78 @@ def payload_field_vectors():
 
 
 write_json(WIST1 / 'payload-fields.json', payload_field_vectors())
+
+
+def delta_clock_time_vectors():
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+
+    def at(seconds):
+        return (start + datetime.timedelta(seconds=seconds)).isoformat().replace('+00:00', 'Z')
+
+    changes = [(168, 60), (169, 1200), (170, 0), (171, -60),
+               (172, 9007199254740991), (173, -9007199254740991)]
+    amendments = []
+    for hour, value in changes:
+        update = dict(wist_version='1.0.0', action='parameter_change', subject='clock_skew_seconds',
+                      details=dict(parameter='clock_skew_seconds', value=value), effective_at=at(hour * 3600))
+        amendments.append(dict(sealed_at=at(0), envelope=sign_envelope('update', update, 'test-k1'), accepted=True))
+    for label, effective, value in [('bad signature', 168 * 3600, 9000), ('short grace', 3600, 9999)]:
+        update = dict(wist_version='1.0.0', action='parameter_change', subject='clock_skew_seconds',
+                      details=dict(parameter='clock_skew_seconds', value=value), effective_at=at(effective))
+        signed = sign_envelope('update', update, 'test-k1')
+        if label == 'bad signature':
+            signed['sig']['value'] = b64u(bytes(64))
+        amendments.append(dict(sealed_at=at(0), envelope=signed, accepted=False))
+
+    def allowance(seconds):
+        return next((value for hour, value in reversed(changes) if hour * 3600 <= seconds), 600)
+
+    probes = []
+
+    def add(name, stage, clock_s, observed, expected, **context):
+        body = dict(delta, observed_at=observed, url='https://example.com/clock/' + str(len(probes)))
+        probes.append(dict(name=name, stage=stage, envelope=sign_envelope('delta', body, 'test-k1'),
+                           expected_clock=at(clock_s), expected_allowance=allowance(clock_s),
+                           expected=expected, **context))
+
+    for hour, value in changes:
+        for offset in [-3600, 0]:
+            instant = hour * 3600 + offset
+            skew = allowance(instant)
+            if abs(skew) < 10000:
+                boundary = at(instant + skew)
+                observations = [(boundary.replace('Z', '.00000000000000000001Z'), 'WIST1-E06'),
+                                (boundary, None),
+                                (at(instant + skew - 1).replace('Z', '.99999999999999999999Z'), None)]
+            else:
+                observations = [(at(instant), None if skew > 0 else 'WIST1-E06'),
+                                ('0000-01-01T00:00:00+23:59', None if skew > 0 else 'WIST1-E06'),
+                                ('9999-12-31T23:59:59-23:59', None if skew > 0 else 'WIST1-E06')]
+            for index, (observed, expected) in enumerate(observations):
+                add(f'historical {hour} {offset} {index}', 'historical', instant, observed, expected,
+                    sealed_at=at(instant), checked_at=at(174 * 3600))
+                add(f'sealing {hour} {offset} {index}', 'sealing', instant, observed, expected,
+                    candidate_sealed_at=at(instant), admitted_at=at(instant - 1))
+        instant = hour * 3600 - 1
+        skew = allowance(instant)
+        observed_offset = skew if abs(skew) < 10000 else 0
+        for extra in [0, 1]:
+            observed = at(instant + observed_offset)
+            if extra:
+                observed = observed.replace('Z', '.00000000000000000001Z')
+            observed_scaled = observed_offset * 10**20 + extra
+            add(f'admission across {hour} {extra}', 'admission', instant, observed,
+                None if observed_scaled <= skew * 10**20 else 'WIST1-E06',
+                started_at=at(instant), completed_at=at(instant + 2))
+            add(f'new attempt after {hour} {extra}', 'admission', instant + 2, observed,
+                None if observed_scaled <= (2 + allowance(instant + 2)) * 10**20 else 'WIST1-E06',
+                started_at=at(instant + 2), completed_at=at(instant + 3))
+    return dict(description='WIST-1 section 3.4 and WIST-4 section 9. Signed candidates with supplied '
+                'inclusion contexts; amendments share the initial Block in listed order. Only the '
+                'clock_skew_seconds parameter varies. Context timestamps do not prove Block inclusion. '
+                'Clock relation outcomes assume other Delta obligations have passed; each new attempt '
+                'captures its own context. Historical checked_at and sealing admitted_at are distractors.',
+                public_key=b64u(pub_raw), default=600, amendments=amendments, probes=probes)
+
+
+write_json(WIST1 / 'delta-clock-time.json', delta_clock_time_vectors())
