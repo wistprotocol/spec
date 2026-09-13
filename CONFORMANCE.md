@@ -637,6 +637,18 @@ skew reads the validation instant or committing Block, and how replay receives
 the clock, with amendment-boundary vectors before claiming historical clock
 eligibility. Live attempt-clock checks do not establish this replay rule.
 
+## Mirror-list signing-key time
+
+WIST-3 §5 defines a signed `mirrors` Envelope but makes `updated_at`
+descriptive and "compared to nothing". Its list names no Block height,
+while §3.4 defines Log-key validity at a height. Resolve which key state
+authenticates the list across additions/removals and how stale lists are
+handled, with signed rotation vectors before claiming authenticated
+Mirror-list adoption. No time anchor is selected here. WIST-3 §6.1 permits
+Payload retrieval from any source; using list entries as unauthenticated
+location hints establishes no list authorship, Log membership or source
+independence.
+
 ## Audit verdict parameter profiles
 
 WIST-4 §5 fixes extraction and both verdict dimensions at the audited
