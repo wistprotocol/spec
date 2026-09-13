@@ -21,6 +21,12 @@ segments survive merging and removal of dot segments. The link-extraction
 vectors do not exercise these cases. Correct the reference resolver and
 add positive and negative cases without changing the specified algorithm.
 
+The resolver also depends on the interpreter preserving an explicit empty
+query. On Python 3.13, resolving `https://example.org/?` against itself drops
+`?`, failing `vectors/wist1/payload-links.json`'s existing `empty query` case;
+Python 3.14 preserves it. Correct resolution independently of that library
+difference and verify the existing case on both versions.
+
 ## Recovery history resolution
 
 ### Declaration field and key eligibility
@@ -667,3 +673,19 @@ These contexts establish no amendment signatures, complete Record eligibility,
 retrieval, withdrawal, live audit behavior or durable restoration. Integrated
 roles must reconstruct accepted schedules and preserve the audited profile
 through reference changes and restart. No schema field changes are required.
+
+## Audit Record field and version dispositions
+
+`schemas/audit-record.schema.json` constrains the complete Envelope. WIST-4
+§10 assigns WIST4-E02 to enumerated evidence defects but supplies no complete
+diagnostic and coverage-discharge mapping for other schema failures, including
+unknown Envelope members and malformed commitment encodings. WIST-1 §3.1
+requires Consumers to reject unimplemented majors; its detailed version
+spelling, diagnostics and all-validator requirements are Delta/Payload-specific.
+The corresponding Record profile for each role remains undefined.
+
+Before complete Record admission and replay, define the remaining field/version
+diagnostics, precedence against signature and standing failures, and discharge
+consequences with signed discriminating vectors. Checking evidence-field
+relations alone selects none of those dispositions and establishes no complete
+Record eligibility.
