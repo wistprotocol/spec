@@ -122,6 +122,25 @@ comparison, restart, later failures, Page isolation and preservation through
 Declaration changes require integration validation. A restored backup must
 retain the observations needed for the claimed rollback protection.
 
+**Feed/Page `next` interpretation remains unresolved.** WIST-2 §3.2 requires
+an absolute HTTPS URL within Publisher authority and a path under
+`/.well-known/wist/`. It does not identify the Declaration supplying that
+scope for a live Feed or historical Page, particularly after a retry,
+rotation or recovery settlement. Page signing-source selection alone does
+not explicitly determine transport scope.
+
+Unlike Delta `url`, `next` has no explicit Normalized URL requirement.
+Specify the parsing and path-containment profile, including encoded dot
+segments/separators and rejection versus parser repair. Also resolve semantic
+`next` validation order relative to authentication, live-Feed regression and
+termination on empty or already-ingested content. No reading is selected here.
+
+Resolve these choices with signed Feed/Page vectors and live tests proving
+that invalid targets are never fetched, query strings and permitted ports
+survive retrieval, and authenticated scope provenance survives retries and
+restart. A hostname comparison without path containment does not establish
+the existing §3.2 requirement.
+
 **Registry subject diagnostics remain unresolved.** WIST-4 §10's WIST4-E04
 covers `details`/`evidence` contracts,
 WIST4-E03 signatures, and WIST4-E05 process/evidence failures. None assigns a
