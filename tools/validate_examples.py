@@ -8256,6 +8256,47 @@ def _link_agreement_vector():
 
 check("vectors:wist4-link-agreement", _link_agreement_vector)
 
+def _link_verdict_profiles():
+    vector = json.loads((ROOT / "vectors/wist4/link-agreement.json").read_text())["verdict_profiles"]
+    defaults = _registry_table_defaults()
+    assert vector["defaults"] == {name: defaults[name] for name in vector["defaults"]}
+    cases = vector["cases"]
+    assert len(cases) == 8
+    for case in cases:
+        amendment = case["change"]
+        def profile_at(at):
+            profile = dict(vector["defaults"])
+            if at >= amendment["effective_at_s"]:
+                profile[amendment["parameter"]] = amendment["value"]
+            if at >= case["reset"]["effective_at_s"]:
+                profile[amendment["parameter"]] = case["reset"]["value"]
+            return profile
+        def verdict(reading, profile):
+            effective = reading["similarity"]
+            if reading["reference_change"] == "delete":
+                effective = 1_000_000 - effective
+            if effective < profile["similarity_variance_floor"]:
+                return "inconsistent"
+            if effective < profile["similarity_consistent"]:
+                return "dynamic_variance"
+            if reading["reference_change"] != "delete":
+                if reading["link_agreement"] < profile["link_variance_floor"]:
+                    return "link_inconsistent"
+                if reading["link_agreement"] < profile["link_agreement_consistent"]:
+                    return "link_variance"
+            return "consistent"
+        profile = profile_at(case["audited_delta_sealed_at_s"])
+        assert profile == case["expected_profile"], case["label"]
+        expected = [reading["verdict"] for reading in case["readings"]]
+        assert [verdict(reading, profile) for reading in case["readings"]] == expected
+        for name in ("reference_delta_sealed_at_s", "fetched_at_s",
+                     "record_sealed_at_s", "query_sealed_at_s"):
+            wrong = profile_at(case[name])
+            if wrong != profile:
+                assert [verdict(reading, wrong) for reading in case["readings"]] != expected
+
+check("vectors:wist4-link-verdict-profiles", _link_verdict_profiles)
+
 def _link_agreement_twin():
     import link_extraction
     vec = json.loads((ROOT / "vectors" / "wist4" / "link-agreement.json").read_text())

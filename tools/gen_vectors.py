@@ -3049,8 +3049,47 @@ write_json(WIST4 / "audit-commitments.json", {
 # ------------------------------------------------ WIST-4: link agreement
 AGREE_D = CONTENT["links"]["urls"]          # the example Payload's declaration
 AGREE_TOTAL = CONTENT["links"]["total"]     # ditto, its total (WIST-1 §3.6 links.total)
+link_profile_defaults = {"similarity_consistent": 600_000,
+                         "similarity_variance_floor": 300_000,
+                         "link_agreement_consistent": 600_000,
+                         "link_variance_floor": 300_000,
+                         "min_observed_words": 40}
+link_profile_cases = []
+for parameter, amended in [("link_agreement_consistent", 800_000),
+                           ("link_agreement_consistent", 400_000),
+                           ("link_variance_floor", 400_000),
+                           ("link_variance_floor", 200_000)]:
+    for audited_at in (604_800 - 3600, 604_800):
+        profile = dict(link_profile_defaults)
+        if audited_at >= 604_800:
+            profile[parameter] = amended
+        readings = []
+        probes = sorted({0, 1_000_000, 299_999, 300_000, 599_999, 600_000,
+                         amended - 1, amended, amended + 1})
+        for change in ("new", "update", "attest", "delete"):
+            for agreement in probes:
+                verdict = ("consistent" if change == "delete" or agreement >= profile["link_agreement_consistent"]
+                           else "link_variance" if agreement >= profile["link_variance_floor"]
+                           else "link_inconsistent")
+                readings.append({"reference_change": change,
+                                 "similarity": 0 if change == "delete" else 1_000_000,
+                                 "link_agreement": agreement, "verdict": verdict})
+        for similarity, verdict in ((500_000, "dynamic_variance"), (200_000, "inconsistent")):
+            readings.append({"reference_change": "update", "similarity": similarity,
+                             "link_agreement": 0, "verdict": verdict})
+        link_profile_cases.append({
+            "label": f"{parameter}={amended}, audited at {audited_at}",
+            "change": {"parameter": parameter, "value": amended, "effective_at_s": 604_800},
+            "audited_delta_sealed_at_s": audited_at,
+            "reference_delta_sealed_at_s": 691_200,
+            "fetched_at_s": 691_200, "record_sealed_at_s": 694_800,
+            "query_sealed_at_s": 1_296_000,
+            "reset": {"value": link_profile_defaults[parameter], "effective_at_s": 1_296_000},
+            "expected_profile": profile, "readings": readings})
 write_json(WIST4 / "link-agreement.json", {
     "note": "Worked link_agreement cases (WIST-4 §5), integer micro-units.",
+    "verdict_profiles": {"note": "Accepted amendments scheduled at least seven days before effectiveness are premises. The reference and query follow the audited Block; the reset is sealed at the reference Block. Readings have a usable reference and HTML with sufficient observed words. These cases isolate temporal profiles and verdict bands, not Record eligibility or measurement truth.",
+                         "defaults": link_profile_defaults, "cases": link_profile_cases},
     "cases": [
         {"label": "exact-match", "declared_urls": AGREE_D, "declared_total": AGREE_TOTAL,
          "observed_urls": AGREE_D, "observed_total": AGREE_TOTAL,

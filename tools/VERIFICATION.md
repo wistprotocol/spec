@@ -76,6 +76,7 @@ cannot enter the vector unnoticed.
 | multilog `dedup.json` | prose-traced dedup rules | self-consistency | self-consistency-only |
 | wist4 `sampling.json` | ECVRF primitive vs RFC 9381 Appendix B.3 (`ecvrf:rfc9381-b3-vectors`); the sampling rule above the primitive is harness-recomputed only | external-KAT (primitive) | partial |
 | wist4 `extension-proof.json` | ECVRF primitive as above; which Block a proof binds a Record to is harness-recomputed only | external-KAT (primitive) | partial |
+| wist4 `link-agreement.json` verdict profiles | supplied accepted amendments, audited-Block anchors, increasing/decreasing link thresholds, exact boundaries and reference change-type applicability; independent schedule/band recomputation and alternative-anchor rejection, without signed history or complete Record eligibility | self-consistency | partial |
 | wist4 `parameter-in-force.json` | prose-traced in-force rule | self-consistency | self-consistency-only |
 | wist4 `parameter-combinations.json` | the §9 coverage sum checked against simulated §4 counts; prospective schedules, frozen recovery-window anchors over supplied eligible events/accepted amendments, cadence transitions, retention and Block-size/transport traces with negative boundary cases | self-consistency | self-consistency-only |
 | wist4 `unauditable.json` | prose-traced predicate | self-consistency | self-consistency-only |

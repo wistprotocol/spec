@@ -1249,11 +1249,12 @@ the version is a change to this document — after a deployment exists, a
 new major version — because it changes verdicts already sealed.
 
 **The extraction and band profile is fixed per audited Delta.** Read
-`shingle_size`, `min_observed_words`, `similarity_consistent` and
-`similarity_variance_floor` at the `sealed_at` of the audited Delta's
+`shingle_size`, `min_observed_words`, `similarity_consistent`,
+`similarity_variance_floor`, `link_agreement_consistent` and
+`link_variance_floor` at the `sealed_at` of the audited Delta's
 Block (§9). Use that profile both when producing a Record and when
-recomputing its extract similarity or hard hit (§5.2), for ordinary and
-extension audits, admitted Auditors and Observers alike. Neither the
+recomputing its extract similarity, verdict or hard hit (§5.2), for ordinary
+and extension audits, admitted Auditors and Observers alike. Neither the
 reference Delta, fetch instant, Record sealing, covering checkpoint,
 reveal nor later scoring-query Block moves this anchor. The pinned Unicode
 version and the `delete` mirror still apply as stated here.
@@ -1419,9 +1420,9 @@ which is the one thing a verdict table may not do. The extract reading is
 resolved first, and only an extract in the `consistent` band can yield a
 link verdict, because a fabricated page makes every reading of its links
 moot and extract fraud already sanctions harder. The thresholds are
-`link_agreement_consistent` and `link_variance_floor` (Parameter
-Registry), read directly — no mirror applies, the dimension being neutral
-for `delete`.
+`link_agreement_consistent` and `link_variance_floor`, anchored by
+**The extraction and band profile is fixed per audited Delta** above.
+No mirror applies to link agreement; the dimension is neutral for `delete`.
 
 The totality claim extends to the full seven rows the same way. Inside
 the extract-`consistent` band, where the link dimension applies, the
@@ -2810,7 +2811,7 @@ whose `effective_at` equals the anchor instant is included.
 | §5.1 commitment lead, leaf limit and lifetime | Commitment Block; the per-epoch commitment ration reads the epoch's first Block |
 | §5.1 reveal minimum and budget-rotation parameters | Newest bound Delta's Block; S is read there too |
 | §5.1 scoring and associated serving window | Reveal Block |
-| §5 extraction and similarity-band profile, including §5.2 hard hits | Audited Delta's Block: `shingle_size`, `min_observed_words`, `similarity_consistent`, `similarity_variance_floor` |
+| §5 extraction and verdict-band profile, including §5.2 hard hits | Audited Delta's Block; parameters listed in §5, **The extraction and band profile is fixed per audited Delta** |
 | WIST-1 §§3.2/3.6 sealed Delta and committed Payload size caps | Committing Delta’s Block; unsealed attempts and sealing rechecks follow WIST-1 §3.6, **Size-cap parameter time** |
 | WIST-1 §5.2 recovery window length | Window owner Declaration’s Block; freeze the end through later amendments and in-window recoveries |
 | §7 appeal window and appeal seal allowance | Notice Block |

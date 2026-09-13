@@ -1,5 +1,2049 @@
 {
   "note": "Worked link_agreement cases (WIST-4 \u00a75), integer micro-units.",
+  "verdict_profiles": {
+    "note": "Accepted amendments scheduled at least seven days before effectiveness are premises. The reference and query follow the audited Block; the reset is sealed at the reference Block. Readings have a usable reference and HTML with sufficient observed words. These cases isolate temporal profiles and verdict bands, not Record eligibility or measurement truth.",
+    "defaults": {
+      "similarity_consistent": 600000,
+      "similarity_variance_floor": 300000,
+      "link_agreement_consistent": 600000,
+      "link_variance_floor": 300000,
+      "min_observed_words": 40
+    },
+    "cases": [
+      {
+        "label": "link_agreement_consistent=800000, audited at 601200",
+        "change": {
+          "parameter": "link_agreement_consistent",
+          "value": 800000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 601200,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 600000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 600000,
+          "link_variance_floor": 300000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 799999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 799999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 799999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 799999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      },
+      {
+        "label": "link_agreement_consistent=800000, audited at 604800",
+        "change": {
+          "parameter": "link_agreement_consistent",
+          "value": 800000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 604800,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 600000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 800000,
+          "link_variance_floor": 300000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 799999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 799999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 799999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 799999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 800000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 800001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      },
+      {
+        "label": "link_agreement_consistent=400000, audited at 601200",
+        "change": {
+          "parameter": "link_agreement_consistent",
+          "value": 400000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 601200,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 600000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 600000,
+          "link_variance_floor": 300000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 399999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      },
+      {
+        "label": "link_agreement_consistent=400000, audited at 604800",
+        "change": {
+          "parameter": "link_agreement_consistent",
+          "value": 400000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 604800,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 600000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 400000,
+          "link_variance_floor": 300000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 399999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      },
+      {
+        "label": "link_variance_floor=400000, audited at 601200",
+        "change": {
+          "parameter": "link_variance_floor",
+          "value": 400000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 601200,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 300000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 600000,
+          "link_variance_floor": 300000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 399999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      },
+      {
+        "label": "link_variance_floor=400000, audited at 604800",
+        "change": {
+          "parameter": "link_variance_floor",
+          "value": 400000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 604800,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 300000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 600000,
+          "link_variance_floor": 400000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 399999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 400001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 399999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 400001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      },
+      {
+        "label": "link_variance_floor=200000, audited at 601200",
+        "change": {
+          "parameter": "link_variance_floor",
+          "value": 200000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 601200,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 300000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 600000,
+          "link_variance_floor": 300000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 199999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 200000,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 200001,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 199999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 200000,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 200001,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 199999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 200000,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 200001,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 199999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 200000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 200001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      },
+      {
+        "label": "link_variance_floor=200000, audited at 604800",
+        "change": {
+          "parameter": "link_variance_floor",
+          "value": 200000,
+          "effective_at_s": 604800
+        },
+        "audited_delta_sealed_at_s": 604800,
+        "reference_delta_sealed_at_s": 691200,
+        "fetched_at_s": 691200,
+        "record_sealed_at_s": 694800,
+        "query_sealed_at_s": 1296000,
+        "reset": {
+          "value": 300000,
+          "effective_at_s": 1296000
+        },
+        "expected_profile": {
+          "similarity_consistent": 600000,
+          "similarity_variance_floor": 300000,
+          "link_agreement_consistent": 600000,
+          "link_variance_floor": 200000,
+          "min_observed_words": 40
+        },
+        "readings": [
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 199999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 200000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 200001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "new",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 199999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 200000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 200001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 0,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 199999,
+            "verdict": "link_inconsistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 200000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 200001,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 299999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 300000,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 599999,
+            "verdict": "link_variance"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "attest",
+            "similarity": 1000000,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 0,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 199999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 200000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 200001,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 299999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 300000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 599999,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 600000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "delete",
+            "similarity": 0,
+            "link_agreement": 1000000,
+            "verdict": "consistent"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 500000,
+            "link_agreement": 0,
+            "verdict": "dynamic_variance"
+          },
+          {
+            "reference_change": "update",
+            "similarity": 200000,
+            "link_agreement": 0,
+            "verdict": "inconsistent"
+          }
+        ]
+      }
+    ]
+  },
   "cases": [
     {
       "label": "exact-match",

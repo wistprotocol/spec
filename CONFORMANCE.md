@@ -627,3 +627,24 @@ Supplied profiles do not establish accepted parameter schedules, retrieval,
 sealing, historical reference selection, restart or page agreement. Each role
 must adopt these rules independently; typed deserialization alone is
 insufficient, and accepted Payload distribution must preserve original bytes.
+
+## Historical Delta clock parameter time
+
+WIST-1 §3.4 compares `observed_at` with the validator's clock, but WIST-4
+§9 does not select the `clock_skew_seconds` anchor for historical validation.
+WIST-1 §3.6's committing-Block anchor covers size caps only. Resolve whether
+skew reads the validation instant or committing Block, and how replay receives
+the clock, with amendment-boundary vectors before claiming historical clock
+eligibility. Live attempt-clock checks do not establish this replay rule.
+
+## Audit verdict parameter profiles
+
+WIST-4 §5 fixes extraction and both verdict dimensions at the audited
+Delta's Block. `vectors/wist4/link-agreement.json` supplies accepted amendment
+contexts with increases, decreases, inclusive effectiveness, threshold endpoints,
+reference changes and later query instants. The independent reference recomputes
+profiles and verdicts and checks that alternative time anchors change results.
+These contexts establish no amendment signatures, complete Record eligibility,
+retrieval, withdrawal, live audit behavior or durable restoration. Integrated
+roles must reconstruct accepted schedules and preserve the audited profile
+through reference changes and restart. No schema field changes are required.

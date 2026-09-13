@@ -36,16 +36,18 @@ one-penalty-per-Delta rule remain keyed by `audited_delta`.
 
 ### Extraction and scoring profile
 
-Read shingle size, observed-word mass guard and both similarity thresholds
-at the audited Delta's Block for Record production and hard-hit scoring.
+Read the extraction and band parameters listed in WIST-4 §5 at the audited
+Delta's Block for Record production, verdict recomputation and hard-hit scoring.
 This applies to ordinary and extension audits by Auditors and Observers.
 The reference Delta and later publication, checkpoint, reveal and query
-instants cannot move the profile. Observer Records need no individual
-sealing Block to supply this anchor.
+instants cannot move the profile.
 
-An unchanged Record therefore retains its extract-band interpretation after
-a parameter change. The reveal separately anchors its availability and
-scoring-window duration. Unicode interpretation and the delete mirror
+An unchanged Record therefore retains its extract- and link-band interpretation
+after a parameter change. Linking both dimensions to one audited Block keeps
+ordinary and extension Records comparable without requiring an Observer Record
+to have an individual sealing Block. Hard-hit scoring still uses extract bands
+only; adding link thresholds creates no link-based hard hit. The reveal
+separately anchors its availability and scoring-window duration. Unicode interpretation and the delete mirror
 remain the document's fixed rules.
 
 ### Reference availability and fetch limits
@@ -88,6 +90,12 @@ regroup confirmation, extension summons and penalty identity. The chosen
 design preserves one finding identity per selected Delta; a lie served
 while several Deltas are audited can therefore produce several penalties.
 
+**Link thresholds at fetch, Record sealing or recomputation.** These anchors
+can give the same measurements different link verdicts after an amendment.
+Record sealing also supplies no individual anchor for Observer Records.
+The audited Block preserves one interpretation while the reference
+change type continues to determine whether the link dimension applies.
+
 **A mandatory fetch delay.** A Publisher that already controls propagation
 and its Ping can also time a delayed audit. A fixed delay adds a timing
 rule without making every cache settle or establishing honest delivery.
@@ -101,6 +109,7 @@ later Auditors report consistency, which is why contradiction increases
 scrutiny without itself proving misconduct by the original filer.
 
 `vectors/wist4/superseded-audit.json` exercises reference eligibility;
-`canary.json` exercises scoring profiles; `unauditable.json` exercises the
+`canary.json` exercises scoring profiles and `link-agreement.json` exercises
+link-band anchors across amendments; `unauditable.json` exercises the
 observed/reference distinction. Live retrieval, budget exhaustion and
 evidence capture additionally require the WIST-4 role checks.
