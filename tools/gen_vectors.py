@@ -7699,3 +7699,163 @@ def feed_regression_vectors():
 
 
 write_json(ROOT / "vectors/wist2/feed-regression.json", feed_regression_vectors())
+
+def delta_cap_time_vectors():
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+
+    def at(seconds):
+        return (start + datetime.timedelta(seconds=seconds)).isoformat().replace('+00:00', 'Z')
+
+    defaults = dict(url_cap_bytes=2048, extract_cap_bytes=32768,
+                    links_cap_bytes=4096, link_url_cap_bytes=2048, summary_cap_bytes=2048)
+    low = dict(url_cap_bytes=64, extract_cap_bytes=32,
+               links_cap_bytes=256, link_url_cap_bytes=64, summary_cap_bytes=32)
+    high = {key: value * 2 for key, value in low.items()}
+    schedule = [(0, 169, low, False), (1, 169, low, True),
+                (169, 338, high, True), (170, 338, high, False),
+                (338, 507, low, False), (339, 507, low, True)]
+
+    def profile(seconds):
+        return defaults if seconds < 169 * 3600 else low if seconds < 338 * 3600 else high if seconds < 507 * 3600 else low
+
+    def links(size):
+        urls = [f'https://outside.example/{n}' + 'x' * 17 for n in range(5)]
+        value = dict(total=len(urls), urls=urls)
+        urls[-1] += 'x' * (size - len(rfc8785.dumps(value)))
+        assert len(rfc8785.dumps(value)) == size
+        return value
+
+    objects = {}
+    for cohort in ('early', 'later'):
+        for field in (*low, 'derived'):
+            for extra in (0, 1):
+                name = f'{cohort} {field} {extra}'
+                content = dict(extract='', links=dict(total=0, urls=[]), summary=dict(title=''))
+                url = 'https://example.com/' + name.replace(' ', '/')
+                if field == 'url_cap_bytes':
+                    url += 'x' * (low[field] + extra - len(rfc8785.dumps(url)))
+                elif field == 'extract_cap_bytes':
+                    content['extract'] = 'x' * (low[field] - 2 + extra)
+                elif field == 'summary_cap_bytes':
+                    content['summary']['title'] = 'x' * (low[field] - 12 + extra)
+                elif field == 'link_url_cap_bytes':
+                    link = 'https://outside.example/'
+                    link += 'x' * (low[field] + extra - len(rfc8785.dumps(link)))
+                    content['links'] = dict(total=1, urls=[link])
+                elif field == 'links_cap_bytes':
+                    content['links'] = links(low[field] + extra)
+                else:
+                    content = dict(extract='x' * (low['extract_cap_bytes'] - 2 + extra),
+                                   links=links(low['links_cap_bytes']),
+                                   summary=dict(title='x' * (low['summary_cap_bytes'] - 12)))
+                salt = hashlib.sha256(('wist cap fixture ' + name).encode()).digest()[:16]
+                payload = dict(wist_version='1.0.0', salt=b64u(salt), content=content)
+                raw = rfc8785.dumps(content)
+                body = dict(wist_version='1.0.0', publisher='example.com', url=url,
+                            observed_at='2026-08-04T04:00:00+03:00', change_type='new',
+                            meta=dict(lang='en'), payload=dict(
+                                commitment='hmac-sha256:' + hmac.new(salt, raw, hashlib.sha256).hexdigest(),
+                                alg='HMAC-SHA256', bytes=len(raw)))
+                objects[name] = dict(envelope=sign_envelope('delta', body, 'test-k1'), payload=payload,
+                                     id=decl_hash(body), sealed_height=168 if cohort == 'early' else 338)
+
+    anchor = objects['early extract_cap_bytes 1']
+    attestation_body = dict(wist_version='1.0.0', publisher='example.com',
+                            url=anchor['envelope']['delta']['url'], change_type='attest',
+                            observed_at=at(169 * 3600), meta=dict(lang='en'), prev=anchor['id'])
+    attestation = sign_envelope('delta', attestation_body, 'test-k1')
+    replacement = objects['later extract_cap_bytes 1']
+    body = dict(replacement['envelope']['delta'], url=attestation_body['url'], change_type='update',
+                observed_at=at(337 * 3600), prev=decl_hash(attestation_body))
+    replacement.update(envelope=sign_envelope('delta', body, 'test-k1'), id=decl_hash(body))
+
+    ranks = dict(publisher_declaration=0, registry_update=1, publisher_delta=2)
+
+    def block(height, previous, entries):
+        entries = sorted(entries, key=lambda entry: (ranks[entry['type']], leaf_hash(rfc8785.dumps(entry))))
+        hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
+        root = merkle_tree_root(hashes) if hashes else hashlib.sha256(b'\x00').digest()
+        header = dict(wist_version='1.0.0', block_number=height, prev_block_hash=previous,
+                      sealed_at=at(height * 3600), merkle_root='sha256:' + root.hex(), entry_count=len(entries))
+        return dict(sign_envelope('header', header, 'test-log-k1'), entries=entries)
+
+    blocks = []
+    previous = 'sha256:genesis'
+    for height in range(509):
+        entries = []
+        if height == 0:
+            entries.append(dict(type='publisher_declaration', body=sign_envelope('publisher', publisher, 'test-k1')))
+        if height == 169:
+            entries.append(dict(type='publisher_delta', body=attestation))
+        for seal, effective, values, links_only in schedule:
+            if height == seal:
+                for parameter, value in values.items():
+                    if (parameter == 'links_cap_bytes') != links_only:
+                        continue
+                    update = dict(wist_version='1.0.0', action='parameter_change', subject='log.example.net',
+                                  details=dict(parameter=parameter, value=value), effective_at=at(effective * 3600))
+                    entries.append(dict(type='registry_update', body=sign_envelope('update', update, 'test-log-k1')))
+        entries.extend(dict(type='publisher_delta', body=obj['envelope'])
+                       for obj in objects.values() if obj['sealed_height'] == height)
+        current = block(height, previous, entries)
+        blocks.append(current)
+        previous = decl_hash(current['header'])
+
+    def result(obj, caps, with_payload=True):
+        body = obj['envelope']['delta']
+        content = obj['payload']['content']
+        if len(rfc8785.dumps(body['url'])) > caps['url_cap_bytes']:
+            return 'WIST1-E11'
+        if (body['payload']['bytes'] > sum(caps[key] for key in ('extract_cap_bytes', 'links_cap_bytes', 'summary_cap_bytes')) + 32
+                or with_payload and (any(len(rfc8785.dumps(content[field])) > caps[field + '_cap_bytes'] for field in ('extract', 'links', 'summary'))
+                                     or any(len(rfc8785.dumps(url)) > caps['link_url_cap_bytes'] for url in content['links']['urls']))):
+            return 'WIST1-E04'
+        return None
+
+    probes = []
+    for name, obj in objects.items():
+        for boundary in (169, 338, 507):
+            for before in (True, False):
+                begin = boundary * 3600 - int(before)
+                caps = profile(begin)
+                probes.append(dict(name=f'{name} admission {boundary} {before}', object=name,
+                                   stage='admission', prefix_height=boundary - 1, started_at=at(begin),
+                                   completed_at=at(boundary * 3600 + 1), restart=True,
+                                   expected_profile=caps, expected_delta=result(obj, caps, False), expected=result(obj, caps)))
+            caps = profile(boundary * 3600)
+            probes.append(dict(name=f'{name} sealing {boundary}', object=name, stage='sealing',
+                               candidate_height=boundary, admitted_at=at(168 * 3600),
+                               restart=True, expected_profile=caps, expected_delta=result(obj, caps, False), expected=result(obj, caps)))
+        for replay in (obj['sealed_height'], 508):
+            caps = profile(obj['sealed_height'] * 3600)
+            probes.append(dict(name=f'{name} historical {replay}', object=name, stage='historical',
+                               prefix_height=replay, checked_at=at(replay * 3600), restart=True,
+                               expected_profile=caps, expected_delta=result(obj, caps, False), expected=result(obj, caps)))
+
+    reference_probes = []
+    for name, fetched in (('early extract_cap_bytes 1', 169), ('later extract_cap_bytes 1', 508)):
+        obj = objects[name]
+        caps = profile(obj['sealed_height'] * 3600)
+        reference_probes.append(dict(reference=name, audited_id=decl_hash(attestation_body),
+                                     fetched_at=at(fetched * 3600), expected_profile=caps,
+                                     expected=result(obj, caps)))
+
+    invalid_blocks = []
+    for name, obj in objects.items():
+        if name.startswith('later') and name.endswith('1'):
+            body = dict(obj['envelope']['delta'])
+            if body['change_type'] == 'update':
+                body.update(change_type='new', url='https://example.com/invalid/extract',
+                            observed_at='2026-08-04T01:00:00Z')
+                del body['prev']
+            envelope = sign_envelope('delta', body, 'test-k1')
+            candidate = block(169, decl_hash(blocks[168]['header']),
+                              [dict(type='publisher_delta', body=envelope)])
+            invalid_blocks.append(dict(name=name, block=candidate, pinned_head=decl_hash(candidate['header']),
+                                       payload=obj['payload'], expected=result(obj, low)))
+    return dict(note='WIST-1 section 3.6 and WIST-4 section 9. One authenticated hourly history supplies a Declaration, cap amendments and unique content-bearing Deltas. Amendments have at least seven days of grace; lower link caps precede lower aggregate caps, and larger aggregate caps precede larger link caps. Probes independently check caps at each stage, not admission membership or permission to re-admit included IDs; admission probes resume their retained attempt across a boundary, sealing probes recheck objects under a supplied earlier valid cap profile, and historical probes retrieve the committing Delta profile from its actual inclusion. Repeating a probe with restart reconstructs inputs from the pinned prefix, not current defaults. Invalid candidate Blocks branch from height 168. Cap checks, signatures, inclusion and commitments are exercised; live queue mutation, crash durability, HTTP retrieval, complete governance acceptance and audit verdicts are not established.',
+                log_key=dict(key_id='test-log-k1', public_key=b64u(pub_raw)), defaults=defaults,
+                blocks=blocks, pinned_head=previous, objects=objects, probes=probes, reference_probes=reference_probes, invalid_blocks=invalid_blocks)
+
+
+write_json(WIST1 / 'delta-cap-time.json', delta_cap_time_vectors())

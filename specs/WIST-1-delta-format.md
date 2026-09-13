@@ -206,7 +206,8 @@ enclosing quotes and any escapes — MUST NOT exceed `url_cap_bytes`
 (Parameter Registry: 2048). A validator MUST reject a Delta whose `url`
 exceeds the cap with `WIST1-E11`. The schema's `maxLength` counts code
 points and is a structural first pass; this octet bound governs (§3.6
-states the rule once for every cap in this suite).
+states the rule once for every cap in this suite). The temporal profile is
+defined in §3.6, **Size-cap parameter time**.
 
 ### 3.3. `change_type`
 
@@ -377,6 +378,38 @@ A validator MUST reject a Delta whose Payload, once retrieved, does not
 have exactly the declared length, exceeds any of the caps above, or does
 not reproduce `commitment` under the accompanying salt (`WIST1-E04`,
 `WIST1-E10`).
+
+**Size-cap parameter time.** The five caps `url_cap_bytes`,
+`extract_cap_bytes`, `links_cap_bytes`, `link_url_cap_bytes` and
+`summary_cap_bytes`, including the derived commitment bound, use one
+parameter map per validation attempt:
+
+- For admission into a Log where the Delta is not yet sealed, read
+  WIST-4 §9's accepted schedule at the validator clock when that Delta's
+  validation attempt begins. Retain that map through retrieval and
+  validation of its Payload. A separately
+  retrieved predecessor starts its own attempt. A new attempt after restart
+  or rejection reads a new map; resuming the same attempt requires retaining
+  its map or reconstructing it from its clock and authenticated prefix.
+- Before sealing, the Aggregator MUST recheck every candidate Delta and its
+  retrieved Payload against the map in force at the candidate Block's
+  `sealed_at`. Admission does not freeze eligibility for sealing; pending
+  amendments do not constrain a candidate before they become effective.
+  A cap failure retains §3.2/§3.6's diagnostic and prevents inclusion;
+  §3.5 governs successors whose predecessor cannot be included.
+- For a Delta sealed in the Log being verified, every validator MUST use
+  the map in force at its Block's `sealed_at`, reconstructed from the
+  authenticated accepted schedule through that Block. Retain this profile
+  for later Payload retrieval, verification, replay and restart. When an audit uses another
+  Delta's Payload as its reference, that Payload retains its own committing
+  Delta's profile; the audited Delta or Record supplies no replacement cap.
+
+An amendment effective exactly at the selected instant participates.
+`observed_at`, later amendments and a later validator clock MUST NOT change
+a sealed Delta's profile. These rules choose size caps only; they do not
+change signature authority, clock-skew checks, extraction/verdict profiles,
+Payload integrity, availability or withdrawal obligations. See WIST-4 §9
+and [ADR-0020](../decisions/0020-parameter-schedules.md).
 
 **The `links` member.** `urls` carries the page's external links as
 Normalized URLs (§2) in raw-HTML document order, deduplicated (the first

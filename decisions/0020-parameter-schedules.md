@@ -46,6 +46,29 @@ later reference, checkpoint, reveal or scoring instant; see
 [ADR-0016](0016-audit-reference-follows-the-chain.md). Actual sanction
 process retention follows [ADR-0018](0018-confirmation-and-sanctions.md).
 
+### Delta and Payload sizes
+
+WIST-1 §3.6 defines size-cap parameter time for admission, sealing and
+historical verification. Admission needs a locally available clock and
+accepted prefix; sealing supplies the authenticated instant every later
+validator can reconstruct. Retaining an attempt's profile through Payload
+retrieval prevents network delay alone from splitting its checks.
+
+Admission-time permanence would require an additional authenticated receipt
+and make otherwise identical sealed Deltas depend on unpublished state.
+Using `observed_at` would let Publishers select obsolete caps by backdating.
+Using the replay clock would make a reduction invalidate already-sealed
+content and let an increase conceal an invalid inclusion. Applying pending
+reductions early would shorten their announced grace period.
+
+Rechecking at sealing can reject queued content after a reduction. A
+Publisher must produce content that fits the sealing profile; its signature
+and commitment cannot be rewritten by the Aggregator. An old reference
+Payload remains valid under its own committing Delta's profile even when a
+later audit uses a different extraction or verdict profile. This assumes
+availability of the authenticated schedule through each relevant Block;
+a missing prefix cannot be replaced with current defaults.
+
 ### Cadence transitions
 
 For every constant-map interval, retain its extension publication span,
@@ -97,5 +120,7 @@ necessary. Pending reductions constrain production immediately.
 `vectors/wist4/parameter-combinations.json` exercises prospective maps,
 cadence transitions, retention, wire bounds and Block-size guarantees,
 including ordering, exact endpoints, pending increases and restoration.
+`vectors/wist1/delta-cap-time.json` adds signed size-cap histories and
+admission/sealing/retrieval probes across increases and decreases.
 Live pacing, durable publication and recovery additionally require the
 WIST-3 and WIST-4 role checks.

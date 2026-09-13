@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wistprotocol.org/schemas/delta.schema.json",
   "title": "WIST Delta Envelope (WIST-1)",
+  "description": "Size-cap profiles follow WIST-1 section 3.6, Size-cap parameter time; this schema cannot select a validation-stage parameter map.",
   "type": "object",
   "required": ["delta", "sig"],
   "additionalProperties": false,

@@ -573,18 +573,25 @@ Integrated roles must enforce these checks before acceptance, including
 fetched predecessors, duplicate handling and restoration. These Delta cases
 do not establish version support for other objects or complete chain replay.
 
-### Unresolved Delta size-cap temporal anchor
+### Delta size-cap parameter time
 
-WIST-1 §§3.2/3.6 require URL and Payload caps. WIST-4 §9 defines values
-“in force at every instant T” but its “Parameter reads for work already
-begun” table supplies no Delta size-cap anchor. The text does not explicitly
-choose the admission clock, signed `observed_at`, sealing instant or replay
-clock for these checks, or say whether an admitted Delta crossing a cap
-amendment must be rechecked at sealing. These choices can disagree for both
-cap increases and decreases; delayed Payload retrieval also needs a profile.
+WIST-1 §3.6, WIST-4 §9 and ADR-0020 fix admission-attempt, sealing and
+historical cap profiles. `vectors/wist1/delta-cap-time.json` supplies 509
+signed hourly Blocks, 24 signed content-bearing Deltas with complete
+Payloads, one attestation, 264 stage probes, two reference-Payload probes
+and six invalid signed candidate Blocks. The reference verifies Block
+chaining, ordering, signatures, roots and pinned heads; it derives profiles
+from signed amendments and recomputes IDs, commitments and JCS sizes.
+Separate Delta-only and retrieved-Payload results distinguish all five caps
+and the derived bound at exact limits and one octet above, across reductions
+and increases, delayed retrieval and reconstruction after restart.
 
-Resolve this before claiming authenticated historical cap eligibility.
-Add signed amendment-boundary histories covering admission, queued Deltas,
-sealing, delayed Payload retrieval and restart, with discriminating results
-for the competing timestamps. Supplied-cap field vectors establish no
-temporal selection rule; no historical cap interpretation is selected here.
+The fixture checks amendment signatures, grace and the affected size
+combinations; it does not establish complete governance acceptance.
+Restart probes reconstruct supplied inputs in memory, not durable state.
+Integrated roles must independently consume these vectors and enforce
+attempt-profile retention, candidate-Block rechecks, historical inclusion
+profiles and reference-Payload provenance. Live queue rejection and
+successor handling, HTTP retrieval, crash recovery, cross-Log validation
+and complete audit behavior remain unexercised. Supplied-cap field vectors
+alone establish no temporal adoption.

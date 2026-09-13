@@ -1074,7 +1074,8 @@ SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
      "properties/record/properties/credit_commitment"): "audit:commitments",
 }
 
-SALTED_COMMITMENT_VALUES = {    # (ROOT-relative file, key) -> proving check
+SALTED_COMMITMENT_VALUES = {
+    ("vectors/wist1/delta-cap-time.json", "commitment"): "payload:commitment",    # (ROOT-relative file, key) -> proving check
     ("examples/delta.json", "commitment"): "payload:commitment",
     ("examples/block.json", "commitment"): "payload:commitment",
     ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
@@ -1285,6 +1286,12 @@ def _payload_commitment():
     assert expected == delta["payload"]["commitment"], \
         "the Payload does not reproduce the Delta's commitment"
     recomputed = {expected, _multilog_commitment()}
+    cap_vectors = json.loads((ROOT / "vectors/wist1/delta-cap-time.json").read_text())
+    for obj in cap_vectors["objects"].values():
+        content = obj["payload"]
+        actual = _commit(content["salt"], content["content"])
+        assert actual == obj["envelope"]["delta"]["payload"]["commitment"]
+        recomputed.add(actual)
 
     # Every shipped copy of this commitment is recomputed here, not argued for
     # transitively, so that each declaration naming this check is one this check
@@ -4686,6 +4693,15 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/page-bindings.json", "prev_declaration"): "SHA-256 of the previous publisher object",
     ("vectors/wist2/page-bindings.json", "public_key"): "a usable or deliberately excluded Ed25519 point",
     ("vectors/wist2/page-bindings.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/delta-cap-time.json", "prev"): "the signed predecessor Delta ID",
+    ("vectors/wist1/delta-cap-time.json", "audited_id"): "the audited attestation Delta ID",
+    ("vectors/wist1/delta-cap-time.json", "id"): "SHA-256 of a signed Delta",
+    ("vectors/wist1/delta-cap-time.json", "pinned_head"): "the trusted final Block header hash",
+    ("vectors/wist1/delta-cap-time.json", "prev_block_hash"): "SHA-256 of the previous Block header",
+    ("vectors/wist1/delta-cap-time.json", "merkle_root"): "the authenticated Entry Merkle root",
+    ("vectors/wist1/delta-cap-time.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist1/delta-cap-time.json", "value"): "an Ed25519 signature or integer parameter value",
+    ("vectors/wist1/delta-cap-time.json", "salt"): "the Payload commitment salt",
     ("vectors/wist1/delta-fields.json", "prev"): "a supplied predecessor ID or malformed spelling; chain eligibility is not asserted",
     ("vectors/wist1/delta-fields.json", "id"): "SHA-256 of the signed Delta",
     ("vectors/wist1/delta-fields.json", "requested_id"): "a supplied matching or mismatching transport ID",
@@ -9328,5 +9344,162 @@ def _feed_regression_vectors():
 
 
 check("vectors:wist2-feed-regression", _feed_regression_vectors)
+
+
+def _delta_cap_time_vectors():
+    vector = json.loads((ROOT / 'vectors/wist1/delta-cap-time.json').read_text())
+    original = copy.deepcopy(vector)
+    blocks = vector['blocks']
+    permitted = ('publisher_declaration', 'registry_update', 'publisher_delta')
+    _declaration_history_blocks(vector, blocks, vector['pinned_head'], permitted)
+    public = Ed25519PublicKey.from_public_bytes(b64u_decode(vector['log_key']['public_key']))
+    schemas = {name: Draft202012Validator(json.loads((ROOT / f'schemas/{name}.schema.json').read_text()))
+               for name in ('publisher', 'registry-update', 'delta', 'payload')}
+    defaults = dict(url_cap_bytes=2048, extract_cap_bytes=32768, links_cap_bytes=4096,
+                    link_url_cap_bytes=2048, summary_cap_bytes=2048)
+    assert vector['defaults'] == defaults
+    amendments, inclusion = [], {}
+    for height, block in enumerate(blocks):
+        for index, entry in enumerate(block['entries']):
+            doc = entry['body']
+            inner = {'publisher_declaration': 'publisher', 'registry_update': 'update', 'publisher_delta': 'delta'}[entry['type']]
+            schemas['registry-update' if inner == 'update' else inner].validate(doc)
+            public.verify(b64u_decode(doc['sig']['value']), rfc8785.dumps(doc[inner]))
+            if inner == 'publisher':
+                assert height == 0 and doc['publisher']['domain'] == 'example.com'
+                assert doc['publisher']['keys'][0]['public_key'] == vector['log_key']['public_key']
+                assert doc['publisher']['keys'][0]['key_id'] == 'test-k1'
+            elif inner == 'update':
+                update = doc['update']
+                assert doc['sig']['key_id'] == vector['log_key']['key_id']
+                assert update['action'] == 'parameter_change'
+                assert log_seconds(update['effective_at']) >= log_seconds(block['header']['sealed_at']) + 7 * 86400
+                amendments.append((height, index, update))
+            else:
+                ident = 'sha256:' + hashlib.sha256(rfc8785.dumps(doc['delta'])).hexdigest()
+                assert ident not in inclusion
+                inclusion[ident] = height
+
+    def parameters(at, prefix):
+        result, selected = defaults.copy(), {}
+        for height, index, update in amendments:
+            effective = log_seconds(update['effective_at'])
+            if height > prefix or effective > at:
+                continue
+            key = update['details']['parameter']
+            position = (effective, height, index)
+            if key not in selected or position > selected[key]:
+                result[key] = update['details']['value']
+                selected[key] = position
+        return result
+
+    for height, _, update in amendments:
+        for at in {log_seconds(blocks[height]['header']['sealed_at'])} | {
+                log_seconds(candidate['effective_at']) for sealed, _, candidate in amendments if sealed <= height}:
+            caps = parameters(at, height)
+            assert caps['links_cap_bytes'] >= caps['link_url_cap_bytes'] + 21
+            assert caps['extract_cap_bytes'] >= 2 and caps['summary_cap_bytes'] >= 12
+            assert caps['url_cap_bytes'] >= 14 and caps['link_url_cap_bytes'] >= 14
+            assert sum(caps[k] for k in ('extract_cap_bytes', 'links_cap_bytes', 'summary_cap_bytes')) + 32 + 8 * 1024 * 1024 <= 1024 * 1024 * 1024
+
+    def diagnose(obj, caps, with_payload=True):
+        body, payload = obj['envelope']['delta'], obj['payload']
+        content = payload['content']
+        checks = [(len(rfc8785.dumps(body['url'])), caps['url_cap_bytes'], 'WIST1-E11')]
+        if with_payload:
+            checks += [(len(rfc8785.dumps(value)), caps[key + '_cap_bytes'], 'WIST1-E04')
+                       for key, value in content.items()]
+            checks += [(len(rfc8785.dumps(link)), caps['link_url_cap_bytes'], 'WIST1-E04')
+                       for link in content['links']['urls']]
+        checks.append((body['payload']['bytes'], caps['extract_cap_bytes'] + caps['summary_cap_bytes'] + caps['links_cap_bytes'] + 32, 'WIST1-E04'))
+        errors = {code for size, limit, code in checks if size > limit}
+        assert len(errors) <= 1
+        return next(iter(errors), None)
+
+    for name, obj in vector['objects'].items():
+        schemas['delta'].validate(obj['envelope'])
+        schemas['payload'].validate(obj['payload'])
+        body = obj['envelope']['delta']
+        assert obj['envelope']['sig']['key_id'] == 'test-k1'
+        public.verify(b64u_decode(obj['envelope']['sig']['value']), rfc8785.dumps(body))
+        assert obj['id'] == 'sha256:' + hashlib.sha256(rfc8785.dumps(body)).hexdigest()
+        assert body['publisher'] == 'example.com' and body['url'].startswith('https://example.com/')
+        assert publisher_instant(body['observed_at']) <= log_seconds(blocks[obj['sealed_height']]['header']['sealed_at'])
+        assert body['payload']['commitment'] == _commit(obj['payload']['salt'], obj['payload']['content'])
+        assert body['payload']['bytes'] == len(rfc8785.dumps(obj['payload']['content']))
+        assert inclusion[obj['id']] == obj['sealed_height']
+        instant = log_seconds(blocks[obj['sealed_height']]['header']['sealed_at'])
+        assert diagnose(obj, parameters(instant, obj['sealed_height'])) is None, name
+
+    stages, outcomes = collections.Counter(), collections.Counter()
+    for probe in vector['probes']:
+        obj = vector['objects'][probe['object']]
+        if probe['stage'] == 'admission':
+            at, prefix = log_seconds(probe['started_at']), probe['prefix_height']
+            assert log_seconds(probe['completed_at']) >= at
+        elif probe['stage'] == 'sealing':
+            prefix = probe['candidate_height']
+            at = log_seconds(blocks[prefix]['header']['sealed_at'])
+            admission = log_seconds(probe['admitted_at'])
+            assert admission < at
+            assert diagnose(obj, parameters(admission, 168)) is None
+        else:
+            assert probe['stage'] == 'historical'
+            prefix = inclusion[obj['id']]
+            at = log_seconds(blocks[prefix]['header']['sealed_at'])
+            assert probe['prefix_height'] >= prefix and log_seconds(probe['checked_at']) >= at
+        caps = parameters(at, prefix)
+        assert caps == probe['expected_profile'], probe['name']
+        result = diagnose(obj, caps)
+        assert result == probe['expected'], probe['name']
+        assert diagnose(obj, caps, False) == probe['expected_delta'], probe['name']
+        assert probe['restart'] and parameters(at, prefix) == caps
+        stages[probe['stage']] += 1
+        outcomes[result] += 1
+    assert stages == dict(admission=144, sealing=72, historical=48)
+    assert set(outcomes) == {None, 'WIST1-E04', 'WIST1-E11'}
+    for case in vector['invalid_blocks']:
+        candidate = case['block']
+        _declaration_history_blocks(vector, blocks[:169] + [candidate], case['pinned_head'], permitted)
+        doc = candidate['entries'][0]['body']
+        public.verify(b64u_decode(doc['sig']['value']), rfc8785.dumps(doc['delta']))
+        obj = dict(envelope=doc, payload=case['payload'])
+        assert doc['delta']['payload']['commitment'] == _commit(case['payload']['salt'], case['payload']['content'])
+        assert doc['delta']['change_type'] == 'new' and 'prev' not in doc['delta']
+        assert publisher_instant(doc['delta']['observed_at']) <= log_seconds(candidate['header']['sealed_at'])
+        assert all(entry['body']['delta']['url'] != doc['delta']['url']
+                   for block in blocks[:169] for entry in block['entries'] if entry['type'] == 'publisher_delta')
+        cap = parameters(log_seconds(candidate['header']['sealed_at']), 168)
+        assert diagnose(obj, cap) == case['expected'] and case['expected'] is not None
+    deltas = {obj['id']: obj['envelope']['delta'] for obj in vector['objects'].values()}
+    for entry in blocks[169]['entries']:
+        if entry['type'] == 'publisher_delta':
+            body = entry['body']['delta']
+            deltas['sha256:' + hashlib.sha256(rfc8785.dumps(body)).hexdigest()] = body
+    for probe in vector['reference_probes']:
+        obj = vector['objects'][probe['reference']]
+        audited, reference = deltas[probe['audited_id']], obj['envelope']['delta']
+        assert audited['change_type'] == 'attest' and reference['url'] == audited['url']
+        assert audited['prev'] == obj['id'] or reference['prev'] == probe['audited_id']
+        height = inclusion[obj['id']]
+        at = log_seconds(blocks[height]['header']['sealed_at'])
+        assert log_seconds(probe['fetched_at']) >= at
+        caps = parameters(at, height)
+        assert caps == probe['expected_profile']
+        assert diagnose(obj, caps) == probe['expected'] is None
+        assert diagnose(obj, parameters(log_seconds(probe['fetched_at']), 508)) == 'WIST1-E04'
+        assert diagnose(obj, parameters(log_seconds(blocks[inclusion[probe['audited_id']]]['header']['sealed_at']), inclusion[probe['audited_id']])) == 'WIST1-E04'
+    damaged = copy.deepcopy(blocks)
+    damaged[0]['entries'][-1]['body']['update']['details']['value'] += 1
+    try:
+        _declaration_history_blocks(vector, damaged, vector['pinned_head'], permitted)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('unauthenticated cap amendment accepted')
+    assert vector == original
+
+
+check('vectors:wist1-delta-cap-time', _delta_cap_time_vectors)
 
 sys.exit(1 if failures else 0)
