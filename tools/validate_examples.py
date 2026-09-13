@@ -1075,6 +1075,7 @@ SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
 }
 
 SALTED_COMMITMENT_VALUES = {
+    ("vectors/wist1/payload-links.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-cap-time.json", "commitment"): "payload:commitment",    # (ROOT-relative file, key) -> proving check
     ("examples/delta.json", "commitment"): "payload:commitment",
     ("examples/block.json", "commitment"): "payload:commitment",
@@ -1286,6 +1287,12 @@ def _payload_commitment():
     assert expected == delta["payload"]["commitment"], \
         "the Payload does not reproduce the Delta's commitment"
     recomputed = {expected, _multilog_commitment()}
+    link_vectors = json.loads((ROOT / "vectors/wist1/payload-links.json").read_text())
+    for case in link_vectors["cases"]:
+        content = case["payload"]
+        actual = _commit(content["salt"], content["content"])
+        assert actual == case["envelope"]["delta"]["payload"]["commitment"]
+        recomputed.add(actual)
     cap_vectors = json.loads((ROOT / "vectors/wist1/delta-cap-time.json").read_text())
     for obj in cap_vectors["objects"].values():
         content = obj["payload"]
@@ -4693,6 +4700,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/page-bindings.json", "prev_declaration"): "SHA-256 of the previous publisher object",
     ("vectors/wist2/page-bindings.json", "public_key"): "a usable or deliberately excluded Ed25519 point",
     ("vectors/wist2/page-bindings.json", "value"): "an Ed25519 signature",
+    ("vectors/wist1/payload-links.json", "public_key"): "the Delta signing public key",
+    ("vectors/wist1/payload-links.json", "value"): "an Ed25519 Delta signature",
+    ("vectors/wist1/payload-links.json", "salt"): "the Payload commitment salt",
     ("vectors/wist1/delta-cap-time.json", "prev"): "the signed predecessor Delta ID",
     ("vectors/wist1/delta-cap-time.json", "audited_id"): "the audited attestation Delta ID",
     ("vectors/wist1/delta-cap-time.json", "id"): "SHA-256 of a signed Delta",
@@ -9501,5 +9511,40 @@ def _delta_cap_time_vectors():
 
 
 check('vectors:wist1-delta-cap-time', _delta_cap_time_vectors)
+
+
+
+def _payload_link_vectors():
+    import copy
+    import hmac
+    import urllib.parse
+    import link_extraction
+    vector = json.loads((ROOT / 'vectors/wist1/payload-links.json').read_text())
+    original = copy.deepcopy(vector)
+    names = set()
+    for case in vector['cases']:
+        assert case['name'] not in names
+        names.add(case['name'])
+        verify_envelope(case['envelope'], 'delta', b64u_decode(vector['public_key']))
+        body, payload = case['envelope']['delta'], case['payload']
+        content = rfc8785.dumps(payload['content'])
+        assert len(content) == body['payload']['bytes']
+        assert 'hmac-sha256:' + hmac.new(b64u_decode(payload['salt']), content, hashlib.sha256).hexdigest() == body['payload']['commitment']
+        links = payload['content']['links']
+        urls = links['urls']
+        invalid = len(urls) > links['total'] or len(set(urls)) != len(urls)
+        for url in urls:
+            normalized = link_extraction.normalize_url(url, url)
+            if normalized != url:
+                invalid = True
+                continue
+            host = urllib.parse.urlsplit(url).hostname
+            invalid |= host == body['publisher'] or host.endswith('.' + body['publisher'])
+        assert ('WIST1-E12' if invalid else None) == case['expected'], case['name']
+    assert len(names) == 31
+    assert vector == original
+
+
+check('vectors:wist1-payload-links', _payload_link_vectors)
 
 sys.exit(1 if failures else 0)

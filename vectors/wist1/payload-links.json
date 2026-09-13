@@ -1,0 +1,1309 @@
+{
+  "spec": "WIST-1 section 3.6; WIST-2 section 5",
+  "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "cases": [
+    {
+      "name": "empty",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-0",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:4b064d1f1e0c110278edb40b01e4978e9fc25d1089cac0e6d7538ad170137816",
+            "alg": "HMAC-SHA256",
+            "bytes": 79
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "cRztpW695vyZqFSckB6yodd_S4wryBeb39Zscg1wvO64Z0REyqiCDK4FeGyau-sMD9oSdcdCqggNarTXZ8akAA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "UjAmja0cUqSXHFrbUdh9Sg",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "external",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-1",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:da2551e57eb3772699fb903f9682ab693885e9511718271fa94ca3ebba791019",
+            "alg": "HMAC-SHA256",
+            "bytes": 101
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "HZ4J2zZ2d-QkPvDAj8GNQ6y-iVMtVDBsfBAdq6mWWX6f5jhd5wMyafgkIvkeemU5wrnPh2bWdW3u8VNuVYQSBw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "2QoIREPlJFLYZRtXMiz2dA",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "declared remainder",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-2",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:d5ba1201d5488a9f175ccba6833850e14190c66abcad81b0bbdc1e9f5c5f70bf",
+            "alg": "HMAC-SHA256",
+            "bytes": 101
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "wWqhvdLpC7LJmed8NiAYF8NaXqMxceLAOOWaNQwqk0n_DwUMU0QvToG_TwZoMKpIy-5__dvwnCODc3vMbL7tBA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "FzulBeQVZ9LzX-aoROKKdQ",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "empty prefix",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-3",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:65eab00b8fd4921a3016dafb9ae4d7a0767f518d74e74fb91587aa616af3486b",
+            "alg": "HMAC-SHA256",
+            "bytes": 79
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "LECXnIqv0dDkY3arpW814u43A-iMalulWv2htaUUxFO3uJUJTJ1ncX4VNveSV5XDUTg9BUi2OonWfEPO-l7JDA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "MFosmVa6wvj-_nYjsO9pNQ",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "document order",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-4",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:ea151a3f4b8a0f3ed9e10961320d4e26932b48e3334b441474ad6587efa783db",
+            "alg": "HMAC-SHA256",
+            "bytes": 128
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "BhiohyrHVplqCUMvwWb3YFAXAYD5z5T2P6rfE83_HU2J34dTn6MyrKJE9xt-LqfaqUbBzdYGOWVUJRuOsBFtCw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "otD4UUXJt24drSLlFN8I7Q",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://z.example.org/",
+              "https://a.example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "query identity",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-5",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:4a01f918794d218d6982643cc4d4a67e54c72a701fba402f7202eae503fcb503",
+            "alg": "HMAC-SHA256",
+            "bytes": 140
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "k-WZkNM5BFKch9yMQr4KZjVtCpOQu6KEROwIwg9A-LRpqdRX9LTPZ6Lx4uqh2aZZxiRPoooH8AWPgAwauFJXAw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "JhIzlnh2NU5AJEtun2Pkvg",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://example.org/?b=2&a=1",
+              "https://example.org/?a=1&b=2"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "empty query",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-6",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:ab38ccc00f80df99a9a1d76c5d1816e8ffd90353650f1455ab017636a887c909",
+            "alg": "HMAC-SHA256",
+            "bytes": 102
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "uysC2zxT1neqhU8GAATo9DofHHmMGz-ydaV_LNbvSaJObx1IfHn2tIOzYE3bqpmhB8t2-1UhFfDwwKze3yBhDw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "z_9yY5Fnhxup_h6K1vZsPQ",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/?"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "nondefault port",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-7",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:8fa9859393287bb333863c0ddc65c8115f278dd68459fc0957395febe5bc844b",
+            "alg": "HMAC-SHA256",
+            "bytes": 106
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "w348zukc92rFgfg_wB7bzpScCA-j99Alu8rDRxIXlB8u6ytfBOhuPQbIAd-cHjJQgnNaRau9CVavDnEL1uV1DQ"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "4mtAMjalY6c-kVgwjfK3Ug",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org:8443/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "suffix lookalike",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-8",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:3858e0ee575524677651997062c17cb75857bc47bb0331cc184f0b4750a78c77",
+            "alg": "HMAC-SHA256",
+            "bytes": 136
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "cTDeA3nHHnRWF0xWQGt8XEBC4a-WHZXHSKtKy8zUXEdKPqYUPqiQPg11cedv2YKf5_WFyW8PhrOAsG4Nd_mDCw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "-DwddpehX0ueb5wIw43t3w",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://notexample.com/",
+              "https://example.com.evil.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "reserved escape",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-9",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:6a04fe854abc02a0c1ba90bf7f6d3724843f97094055d67463db8b120d93de40",
+            "alg": "HMAC-SHA256",
+            "bytes": 106
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Ort9fT58v993r2aBo8TKJfdo2UFdeUl-8Y2D-9BoRsQwbqL1jobFiOMa23Nq-7rvaa38CJEPNOwA9Lsg_q_DCg"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "CGCjA2liWUnTUUp_LiOyCg",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a%2Fb"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "duplicate",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-10",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:8edcad92ea8057edaf77e326a2373ac05a20734e2a476b99f72e5e4d7b7ad7ab",
+            "alg": "HMAC-SHA256",
+            "bytes": 124
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "AAZoWE_WAAbzgFlbpiV_0n7Mfii-sZCm65BxLCvlIh5Ob_9UNXUNGXlG414fOJFcXvJ7o63V19LqjxXuN1h0Aw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "oBK4nAYBU9R-t0_yA3YgBw",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://example.org/",
+              "https://example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "underdeclared total",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-11",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:6d8026b953599ae6713e2f214a9cacabdfc0919545c73d3370e3badfad0da0c6",
+            "alg": "HMAC-SHA256",
+            "bytes": 101
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "eNGRS57XIPlQriVa5DUajTyC2sKJ4DXBfNX_OT9Klq4cnpLP-77-CtJwnRt4Y2eNZ4oehofT7RArSn0oFvnXCA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "eYCGltPMNUjIL5RW8Mj2KQ",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 0,
+            "urls": [
+              "https://example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "internal domain",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-12",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:6875b4b6e7ccd8e3c74d79dd73c20c647476c44ab0721862e97e515850149c75",
+            "alg": "HMAC-SHA256",
+            "bytes": 101
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "4wh7ugZGdcItrEpgGDFWnNJ3Y1nbkDX__QiZHxtuX0WnTyZbvkWI77V8HHbekftGWrw5HuBoAXyY06AlYKJaBw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "PAXiOTWFHRAlZJS4TaOB5A",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.com/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "internal subdomain",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-13",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:0f920201258442490ad0637485d47b40b69baa80963b24edc304761c2c9109d0",
+            "alg": "HMAC-SHA256",
+            "bytes": 105
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Zl943WxF0HNOz1KoFFUfd3GpMZDJgBm2OIZSpoYfCU0gZNfTBNWxJnBcSINPyeNdBrjfDlqUpGPYuvng9MfhAw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "xbvc_6qQ2ZmYb1zj_H97cA",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://a.b.example.com/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "internal port",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-14",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:a0785e6c8b0ed97aaf95e016516d59321b1ad0d23f19189f2593e9f4a587995f",
+            "alg": "HMAC-SHA256",
+            "bytes": 106
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "edY8ta2pDU7pdvzjS7coOLU3B22mP1T_iaY8c75NuUzva-iO4YOYiluzjEnVaWpJ1dKO-7_YG7iQLyfSdSsxBQ"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "h_eojiIgV3K8RWz099PkfQ",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.com:8443/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "fragment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-15",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:f42ba72f5078289a57d8da07b1c4a6e04a108c5f3be385b80a30a22f85adf0e4",
+            "alg": "HMAC-SHA256",
+            "bytes": 106
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "aMfH06FyVh7kLNYHfyKL3eLnaWe5KRi1fnM2Mnwfh-CvrRs6gAmJ-l9Fhi2nvysDejfkDhfH2DpSg9xEg1NIBQ"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "B0raMafPAxkJyGALazFVcQ",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/#part"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "empty fragment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-16",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:ad71e7bc7883324315aa2b1c2533c697bfcceb5080442e15f15f2274e74e6307",
+            "alg": "HMAC-SHA256",
+            "bytes": 102
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "QJQdKXFJkZKomGUFBPJsEtM2iCY1vaGp9fKdvH5-Tsh4G6ZuYtd07-F2B1QGHZdOoV_JUbggQo0OJtblbX7LBg"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "dWnM7BogdsrAAy7HdkO33Q",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/#"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "insecure scheme",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-17",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:f191b0eec99f7aabf259ee9a39bb8fed8f3b957ac4fc951cd4b56c2681e7b392",
+            "alg": "HMAC-SHA256",
+            "bytes": 100
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "dj-9W1Biv02NKQr4e4d8zAlK-EbLgrxTHBmnG9mWxn5eAbzV6JU75Gcr2oqES-kMLai0HRo4J5VM29Vx0u0DCA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "dPR7lDuaCMHJj0iYr1NYmw",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "http://example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "uppercase host",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-18",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:8c67d997e8db8856f5b33f6d3bbb907f4828f665fd2bd43046ea498fc93a37d3",
+            "alg": "HMAC-SHA256",
+            "bytes": 101
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "T1Is01rA-4Wi5KBMQUs1DHHREbjRsFHDz3_4sqs78QSMI-FaUADego2PG5OUUsFi8JrPfnKUxq5baFGcJf5bBg"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "gQhq88hxNzP1eyb6IgcgUw",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://EXAMPLE.ORG/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "normalization alias",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-19",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:ca27758dc6fed71271b1c4dc99d535f47ab6763a7e0ef54ff177d5a177b319e1",
+            "alg": "HMAC-SHA256",
+            "bytes": 124
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Ly_dKawJNudbpgTu7xowkmCU14l91ptscFsWrFiMJv7YoyH0AgcwFgGk9PhWrHf8XC6u36Yoox4sOS5o3t1tAw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "5efjbjgaiV2jm570nuJzsg",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://example.org/",
+              "https://EXAMPLE.ORG/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "default port",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-20",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:b591dd730cd658c537624cc9514eaee0b633c0f6dd9931f2567d63a8c8c5d15e",
+            "alg": "HMAC-SHA256",
+            "bytes": 105
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "yyVxOc4K1JVqfqItJeQidybifhPbmxs7aY3l26vZtIyPP6eMoaxzA-VOd4KOjUEam0Sa1D8bvFG6o46RiElcAQ"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "nWmwlfDoZ-bU1hSQJMguCA",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org:443/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "empty path",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-21",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:0148fcc359f9b57b8925607ab4bac6cf5f8dd371edfb41a1bd99497aaff05c3d",
+            "alg": "HMAC-SHA256",
+            "bytes": 100
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "0k3D-nRgzk7iNmTMuWidVRIxSKxYvjEuI34XUIOQQCvGUeIlEaFzWaQD5O56wFrab3O1RGUuvXWj4KpjjlS0CQ"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "MzIWckUjUz5UmlifmKAv9A",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "dot segment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-22",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:f81320c11f036fcbc361ec6534e888fa158b7d7cf6b50a546259209b738fb5da",
+            "alg": "HMAC-SHA256",
+            "bytes": 107
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "GoeiSJcCQdUyJuOKIrt0xMFhL0z3CN5wy81TmWlIju2pjPO4UtvhxpFVt7z0FjW3PPqaNvWUX1XLlHq_2tChDw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "h9V45FPG3LvKorzRaCd4-g",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a/../b"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "encoded dot segment",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-23",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:121c8bd2d80147eedbc6ff9720e22ec05b7a35aef5b891999ebc495eb1e40670",
+            "alg": "HMAC-SHA256",
+            "bytes": 111
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "mKDhDOWzs8soODL2c4uegwS5qdVP5zCO9yKm6aVpvbKh4Ahf7Ix-K2-5omomg0gmj-jVk2NNcq4fbj3fP7UxAQ"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "iwPBIaTst6_BJRfTzuhxew",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a/%2E%2E/b"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "unreserved escape",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-24",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:6f53c48b23e6ab027dfa8fbded898d79659ea9fb2d5306bbb81fa3a8acd0e49c",
+            "alg": "HMAC-SHA256",
+            "bytes": 108
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Cn3W9-5nZ3TEI_IuW1d9yPYCjW0YUSu0DvKl06Fju2eztOFd3_KujslkTelCpMgaRH23Ni7JgbklO_S5GcxJAw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "fY2ewXUy9Juzy68sid4dDA",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/%7Ename"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "escape case",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-25",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:3dca2a3ca8d8a0aea59e0ae68330d2ac9916da7d4f3d9f69d53657b3a30c7ac1",
+            "alg": "HMAC-SHA256",
+            "bytes": 106
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "DghRmlU_Hn5mOn6bmaYR2z7_BRpay6bD1AwHRf7URf838BIKaLwkEizVZBqS0A8ML5ZVkxB49--97valJgTzAg"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "H0rItoAcDGqVQw0CJZoG_Q",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a%2fb"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "invalid escape",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-26",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:17ede629503f221e4c95d779bc18740934bb1bb592b8b83c7a5ef72867ed09eb",
+            "alg": "HMAC-SHA256",
+            "bytes": 104
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "QIFn4ijptVjiaeXzWJZk9fagqRwAn-knUkb4FZL1EttSsMwKPxHpOXqEdRiOHwIetbXmpo5vrexIcDNq-GSuDw"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "cgjgeCpoKTg0m-RyQQ48gA",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/%zz"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "userinfo",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-27",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:5ad71000bff9885fe1c8d0d2f2dc8ebb589abf33a53736e25c1c6149dbf8ff9d",
+            "alg": "HMAC-SHA256",
+            "bytes": 106
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "2PKZCHbWwGd1prn9yNwPWM6qk9EjI0ECiIPXyMRV-QzEvwgzS0E5nE1onh0B170L1u4UgnJBL91rB7raEMusDA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "etq7ZoSRsZ3t3EBccsZGYg",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://user@example.org/"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "relative path",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-28",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:4aa81c07b00a005825190218b5303074e91d55c433e8c62d268013a64a697337",
+            "alg": "HMAC-SHA256",
+            "bytes": 90
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "PXxOb0kXu44v0mTz4zYy0_Vcfi5tAZoVd-PqjW1HoYuFiNKQOdLA3xtVcdtCWGBgjcQHyPJa0qh2AjEyqP2yAQ"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "7clyCKo7VMeJbcv9xt5_7w",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "/external"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "empty authority",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-29",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:3b60a82fc7f289137cac910a492ae1ca1bb5f182d204b530fff5bce22e425739",
+            "alg": "HMAC-SHA256",
+            "bytes": 98
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "URij9tJYkndwxLYui1jqCXpgxjAlQn8sPI9OVyWPpcz48VCt10sM2znW3PusGMardjkfUOQk4Ft7YuVcJDe9DA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "GA3A4CSPxFRTn-ktq2ikfg",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https:///external"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    },
+    {
+      "name": "control character",
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/link-case-30",
+          "change_type": "new",
+          "observed_at": "2026-08-09T12:00:00Z",
+          "meta": {
+            "lang": "en"
+          },
+          "payload": {
+            "commitment": "hmac-sha256:dbec1425036e00da2b171391cfa7894bdacf5d70b680ebde935a2498c6eddb75",
+            "alg": "HMAC-SHA256",
+            "bytes": 104
+          }
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Zz38UrKFgJi3XA4DydBRCq4mit4ypvvXXiSGTMVGhcPaLv8XT4Ki0_Kvk-cQ40ziMkksJeogw_ZOBWfygQAgDA"
+        }
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "yiEjjpvRHH-caC4oMRNM_A",
+        "content": {
+          "extract": "Content",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/a\n"
+            ]
+          },
+          "summary": {
+            "title": "Title"
+          }
+        }
+      },
+      "expected": "WIST1-E12"
+    }
+  ]
+}

@@ -595,3 +595,34 @@ profiles and reference-Payload provenance. Live queue rejection and
 successor handling, HTTP retrieval, crash recovery, cross-Log validation
 and complete audit behavior remain unexercised. Supplied-cap field vectors
 alone establish no temporal adoption.
+
+## Payload link validation
+
+`vectors/wist1/payload-links.json` isolates WIST-1 §3.6's WIST1-E12
+checks in 31 signed, correctly committed candidates. It covers duplicates,
+exact URL normalization, internal hosts, count bounds, ports, query identity
+and permitted incomplete prefixes. The reference verifies signatures and
+commitments independently; its normalization coverage retains the URL
+resolution limits above. These cases do not establish live admission,
+source retrieval, sealing, restart, full Payload fields or the correctness
+of a declared prefix against the page. Role adoption and those obligations
+remain required.
+
+## Payload field and version eligibility
+
+WIST-3 §6.1 requires the Payload schema and refers `wist_version` to WIST-1
+§3.1, whose exact release spelling and all-validator major requirement are
+Delta-specific. The Payload schema retains `^\d+\.\d+\.\d+$`; the Python
+schema reference accepts Unicode decimal characters, leading zeros and a
+final newline. Define the intended release spelling and each role's
+major-version policy before claiming complete Payload validation.
+
+WIST-1 §7 assigns WIST1-E14 to Declaration/Delta fields and malformed
+base64url, but specifies no general malformed-Payload or unsupported-major
+diagnostic. WIST-2 §5 rejects malformed pull Payloads with WIST2-E03; this
+wrapper supplies no standalone precedence among field, cap, commitment and
+link failures. Resolve these diagnoses with discriminating vectors. Include
+optional nulls, JSON numeric-value integers such as `links.total = 1.0`,
+and schema string bounds versus active octet caps; typed deserialization
+alone does not establish field conformance. The existing WIST1-E12 link
+rules remain determined independently.

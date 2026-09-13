@@ -7859,3 +7859,53 @@ def delta_cap_time_vectors():
 
 
 write_json(WIST1 / 'delta-cap-time.json', delta_cap_time_vectors())
+
+
+def payload_link_vectors():
+    candidates = [
+        ('empty', [], 0, None),
+        ('external', ['https://example.org/'], 1, None),
+        ('declared remainder', ['https://example.org/'], 2, None),
+        ('empty prefix', [], 1, None),
+        ('document order', ['https://z.example.org/', 'https://a.example.org/'], 2, None),
+        ('query identity', ['https://example.org/?b=2&a=1', 'https://example.org/?a=1&b=2'], 2, None),
+        ('empty query', ['https://example.org/?'], 1, None),
+        ('nondefault port', ['https://example.org:8443/'], 1, None),
+        ('suffix lookalike', ['https://notexample.com/', 'https://example.com.evil.org/'], 2, None),
+        ('reserved escape', ['https://example.org/a%2Fb'], 1, None),
+        ('duplicate', ['https://example.org/', 'https://example.org/'], 2, 'WIST1-E12'),
+        ('underdeclared total', ['https://example.org/'], 0, 'WIST1-E12'),
+        ('internal domain', ['https://example.com/'], 1, 'WIST1-E12'),
+        ('internal subdomain', ['https://a.b.example.com/'], 1, 'WIST1-E12'),
+        ('internal port', ['https://example.com:8443/'], 1, 'WIST1-E12'),
+        ('fragment', ['https://example.org/#part'], 1, 'WIST1-E12'),
+        ('empty fragment', ['https://example.org/#'], 1, 'WIST1-E12'),
+        ('insecure scheme', ['http://example.org/'], 1, 'WIST1-E12'),
+        ('uppercase host', ['https://EXAMPLE.ORG/'], 1, 'WIST1-E12'),
+        ('normalization alias', ['https://example.org/', 'https://EXAMPLE.ORG/'], 2, 'WIST1-E12'),
+        ('default port', ['https://example.org:443/'], 1, 'WIST1-E12'),
+        ('empty path', ['https://example.org'], 1, 'WIST1-E12'),
+        ('dot segment', ['https://example.org/a/../b'], 1, 'WIST1-E12'),
+        ('encoded dot segment', ['https://example.org/a/%2E%2E/b'], 1, 'WIST1-E12'),
+        ('unreserved escape', ['https://example.org/%7Ename'], 1, 'WIST1-E12'),
+        ('escape case', ['https://example.org/a%2fb'], 1, 'WIST1-E12'),
+        ('invalid escape', ['https://example.org/%zz'], 1, 'WIST1-E12'),
+        ('userinfo', ['https://user@example.org/'], 1, 'WIST1-E12'),
+        ('relative path', ['/external'], 1, 'WIST1-E12'),
+        ('empty authority', ['https:///external'], 1, 'WIST1-E12'),
+        ('control character', ['https://example.org/a\n'], 1, 'WIST1-E12'),
+    ]
+    cases = []
+    for i, (name, urls, total, expected) in enumerate(candidates):
+        content = dict(extract='Content', links=dict(total=total, urls=urls), summary=dict(title='Title'))
+        salt = hashlib.sha256(f'payload link fixture {i}'.encode()).digest()[:16]
+        payload = dict(wist_version='1.0.0', salt=b64u(salt), content=content)
+        body = dict(wist_version='1.0.0', publisher='example.com', url=f'https://example.com/link-case-{i}',
+                    change_type='new', observed_at='2026-08-09T12:00:00Z', meta=dict(lang='en'),
+                    payload=dict(commitment='hmac-sha256:' + hmac.new(salt, rfc8785.dumps(content), hashlib.sha256).hexdigest(),
+                                 alg='HMAC-SHA256', bytes=len(rfc8785.dumps(content))))
+        cases.append(dict(name=name, envelope=sign_envelope('delta', body, 'test-k1'), payload=payload, expected=expected))
+    return dict(spec='WIST-1 section 3.6; WIST-2 section 5', public_key=b64u(pub_raw), cases=cases)
+
+
+write_json(WIST1 / 'payload-links.json', payload_link_vectors())
