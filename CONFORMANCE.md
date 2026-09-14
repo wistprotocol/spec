@@ -147,15 +147,17 @@ survive retrieval, and authenticated scope provenance survives retries and
 restart. A hostname comparison without path containment does not establish
 the existing §3.2 requirement.
 
-**Registry subject diagnostics remain unresolved.** WIST-4 §10's WIST4-E04
-covers `details`/`evidence` contracts,
-WIST4-E03 signatures, and WIST4-E05 process/evidence failures. None assigns a
-general malformed Publisher `subject` diagnostic. WIST-1 §5.1's host-field
-WIST1-E14 applies to Declarations; it does not extend that code to governance.
-Define the subject-field diagnostic and precedence relative to unavailable
-process authority and signature failure, preserving the applicable ignored-act
-disposition, with signed Registry Update cases before authenticated governance
-admission/replay. Schema-field checks do not establish this result.
+**Publisher-signed Registry subjects.** WIST-4 §9.1 and draft
+[ADR-0036](decisions/0036-registry-update-eligibility.md) assign a `subject`
+outside its action's contract shape WIST4-E04, other field failures
+WIST4-E11, and place both before authenticity and process diagnostics; an
+act whose `subject` selects no Key Set or notice-era authority fails
+authentication (WIST4-E11, or the code §7 names for an `appeal`). Only
+roster acts are exercised by `vectors/wist4/roster-acts.json`. Signed
+`canary_commitment`, `canary_reveal`, `payload_withdrawal` and process
+cases must still show the schema's Canonical Host format, Key Set
+selection at the sealing Block and the E04/E11/E05 precedence before
+authenticated governance admission/replay of those acts.
 
 **Publisher timestamp eligibility** follows WIST-1 §3.4 and
 [ADR-0026](decisions/0026-publisher-timestamp-profile.md).
@@ -661,6 +663,29 @@ Mirror-list adoption. No time anchor is selected here. WIST-3 §6.1 permits
 Payload retrieval from any source; using list entries as unauthenticated
 location hints establishes no list authorship, Log membership or source
 independence.
+
+## Registry Update eligibility and roster replay timing
+
+WIST-4 §9.1 and draft [ADR-0036](decisions/0036-registry-update-eligibility.md)
+define the Registry Update gate: raw JSON eligibility, schema-partitioned
+field diagnostics (WIST4-E11 general, WIST4-E04 contract), version support
+and authenticity under each action's signing rule, in that precedence, with
+rejected acts excluded from §3.1's batch. WIST-4 §§3, 3.1 and draft
+[ADR-0037](decisions/0037-roster-replay-inputs.md) fix checkpoint `head`
+checks to spelling, read a checkpoint's key after its Block's batch, read an
+admission's Observer history and citable checkpoints below its Block, and
+admit an unusable `public_key` as a string that fails every verification.
+`vectors/wist4/roster-acts.json` supplies 70 signed histories;
+`tools/validate_examples.py` independently derives the E11/E04 partition from
+the schema, verifies signatures, replays the batch and flips each ruled-out
+reading.
+
+The histories are unsigned Block contexts sealed by the consumer. They
+establish no live pulling, Declaration verification before sealing,
+scoreboard derivation, epoch budgeting, Publisher-signed acts, durable
+restoration or Record standing beyond the one small-order probe. Integrated
+roles must apply the gate before sealing and in replay, and must seal the
+same histories under their own Log keys to reproduce every outcome.
 
 ## Audit verdict parameter profiles
 

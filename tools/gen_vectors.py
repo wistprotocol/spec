@@ -5361,6 +5361,493 @@ write_json(WIST4 / "roster.json", spaced_labels({
 }))
 print("wist4 roster vector: %d cases" % len(roster_cases))
 
+# ------------------- WIST-4 §§3, 3.1, 9.1: signed roster acts and their timing
+# Every Entry is checked as a Registry Update under §9.1 — raw JSON, fields,
+# version, authenticity, in that precedence — before §3.1's batch, so an
+# ineligible act is no candidate there; an admission reads Observer history
+# and citable checkpoints below its Block; a checkpoint reads the
+# registrations in force after its Block's batch; an admitted public_key is
+# a string until a Record or proof under it is verified (§3).
+ACTS_LOG_ID = "log.example.org"
+ACTS_LOG_KEY_ID = "test-agg-k1"
+ACTS_SMALL_ORDER = bytes.fromhex("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a")
+ACTS_A, ACTS_B, ACTS_C = "watch.alpha.test", "watch.beta.test", "checker.gamma.test"
+ACTS_HOSTNAME = re.compile(r"[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+")
+ACTS_VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
+ACTS_B64U_64 = re.compile(r"[A-Za-z0-9_-]{85}[AQgw]")
+ACTS_B64U_32 = re.compile(r"[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]")
+ACTS_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+ACTS_INSTANT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z")
+
+
+def acts_key(label):
+    seed = hashlib.sha256(b"roster-acts:" + label.encode()).digest()
+    return Ed25519PrivateKey.from_private_bytes(seed)
+
+
+ACTS_PRIV = {k: acts_key(k) for k in ("obs-a1", "obs-a2", "obs-b1", "aud-a", "aud-a2", "aud-b", "stranger")}
+ACTS_PUB = {k: b64u(raw_public(v)) for k, v in ACTS_PRIV.items()}
+ACTS_PUB["small-order"] = b64u(ACTS_SMALL_ORDER)
+
+
+def acts_update(action, subject, details=None, evidence=None, version="1.0.0",
+                effective="2026-08-05T12:00:00Z"):
+    update = {"wist_version": version, "action": action, "subject": subject,
+              "effective_at": effective}
+    if details is not None:
+        update["details"] = details
+    if evidence is not None:
+        update["evidence"] = evidence
+    return update
+
+
+def acts_admit(subject, key, track_record=None, **kw):
+    details = {"key_id": key, "alg": "Ed25519", "public_key": ACTS_PUB[key]}
+    if track_record is not None:
+        details["track_record"] = track_record
+    return acts_update("auditor_admit", subject, details, **kw)
+
+
+def acts_remove(subject, key, evidence=None, **kw):
+    return acts_update("auditor_remove", subject, {"key_id": key}, evidence, **kw)
+
+
+def acts_register(subject, key, **kw):
+    return acts_update("observer_register", subject,
+                       {"key_id": key, "alg": "Ed25519", "public_key": ACTS_PUB[key]}, **kw)
+
+
+def acts_checkpoint(subject, head, **kw):
+    return acts_update("observer_checkpoint", subject, {"head": head}, **kw)
+
+
+def acts_log_signed(update):
+    return sign_envelope("update", update, ACTS_LOG_KEY_ID)
+
+
+def acts_self_signed(update, key, key_id=None):
+    return sign_envelope_with(ACTS_PRIV[key], "update", update, key_id or key)
+
+
+def acts_id(update):
+    return "sha256:" + sha256_hex(rfc8785.dumps(update))
+
+
+def acts_track(checkpoint_update):
+    return {"checkpoint": acts_id(checkpoint_update),
+            "scoreboard": {t: [0, 0, 0] for t in ("provisional", "standing", "mature")}}
+
+
+def acts_entry(envelope, expect, why):
+    text = envelope if isinstance(envelope, str) else json.dumps(envelope)
+    return {"envelope_json": text, "expect": expect, "why": why}
+
+
+def acts_tampered(envelope):
+    """A well-formed signature over other bytes: the field checks pass and
+    only verification fails."""
+    other = dict(envelope["update"], effective_at="2026-08-05T12:00:01Z")
+    forged = dict(envelope, sig=dict(envelope["sig"]))
+    forged["sig"]["value"] = sign_envelope("update", other, ACTS_LOG_KEY_ID)["sig"]["value"]
+    return forged
+
+
+def acts_eligibility(text):
+    """§9.1 raw JSON, field and version checks, before authentication."""
+    def unique(pairs):
+        result = {}
+        for k, v in pairs:
+            if k in result:
+                raise ValueError("duplicate member")
+            result[k] = v
+        return result
+    try:
+        doc = json.loads(text, object_pairs_hook=unique)
+        rfc8785.dumps(doc)
+    except (ValueError, rfc8785.CanonicalizationError):
+        return "WIST1-E05", None
+    u, s = doc.get("update"), doc.get("sig")
+    general = (isinstance(doc, dict) and set(doc) == {"update", "sig"}
+               and isinstance(u, dict) and isinstance(s, dict)
+               and set(s) == {"key_id", "alg", "value"}
+               and isinstance(s["key_id"], str) and len(s["key_id"]) <= 64
+               and s["alg"] == "Ed25519"
+               and isinstance(s["value"], str) and ACTS_B64U_64.fullmatch(s["value"])
+               and {"wist_version", "action", "subject", "effective_at"} <= set(u)
+               and set(u) <= {"wist_version", "action", "subject", "effective_at", "details", "evidence"}
+               and isinstance(u["wist_version"], str) and ACTS_VERSION.fullmatch(u["wist_version"])
+               and u["action"] in ("auditor_admit", "auditor_remove", "observer_register", "observer_checkpoint")
+               and isinstance(u["subject"], str) and len(u["subject"]) <= 256
+               and isinstance(u["effective_at"], str) and ACTS_INSTANT.fullmatch(u["effective_at"]))
+    if general:
+        try:
+            datetime.datetime.strptime(u["effective_at"], "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            general = False
+    if not general:
+        return "WIST4-E11", None
+    d = u.get("details")
+    contract = isinstance(u["subject"], str) and ACTS_HOSTNAME.fullmatch(u["subject"]) and len(u["subject"]) <= 253
+    if u["action"] in ("auditor_admit", "observer_register"):
+        contract = (contract and isinstance(d, dict) and {"key_id", "alg", "public_key"} <= set(d)
+                    and isinstance(d["key_id"], str) and len(d["key_id"]) <= 64 and d["alg"] == "Ed25519"
+                    and isinstance(d["public_key"], str) and ACTS_B64U_32.fullmatch(d["public_key"]))
+        if contract and "track_record" in d:
+            t = d["track_record"]
+            contract = (isinstance(t, dict) and set(t) == {"checkpoint", "scoreboard"}
+                        and isinstance(t["checkpoint"], str) and ACTS_DIGEST.fullmatch(t["checkpoint"])
+                        and isinstance(t["scoreboard"], dict) and set(t["scoreboard"]) == {"provisional", "standing", "mature"}
+                        and all(isinstance(row, list) and len(row) == 3 and all(isinstance(n, int) and n >= 0 for n in row)
+                                for row in t["scoreboard"].values()))
+    elif u["action"] == "auditor_remove":
+        contract = contract and isinstance(d, dict) and isinstance(d.get("key_id"), str) and len(d["key_id"]) <= 64
+        if "evidence" in u:
+            e = u["evidence"]
+            contract = contract and isinstance(e, list) and len(e) >= 1 and all(isinstance(x, str) and len(x) <= 256 for x in e)
+    else:
+        contract = contract and isinstance(d, dict) and isinstance(d.get("head"), str) and ACTS_DIGEST.fullmatch(d["head"])
+    if not contract:
+        return "WIST4-E04", None
+    if u["wist_version"].split(".")[0] != "1":
+        return "WIST4-E11", None
+    return None, doc
+
+
+def acts_verifies(doc, public_key_b64u):
+    try:
+        key = Ed25519PublicKey_from_raw(base64.urlsafe_b64decode(public_key_b64u + "="))
+        key.verify(base64.urlsafe_b64decode(doc["sig"]["value"] + "=="), rfc8785.dumps(doc["update"]))
+        return True
+    except Exception:
+        return False
+
+
+def Ed25519PublicKey_from_raw(raw):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    return Ed25519PublicKey.from_public_bytes(raw)
+
+
+def acts_replay(blocks):
+    """Outcomes per Entry and the roster after the last Block, by §9.1's
+    eligibility gate, §3.1's batch and its post-batch checkpoint rule."""
+    auditors, observers = {}, {}          # subject -> (key_id, public_key)
+    retired, barred = set(), set()
+    registered_below, checkpoints = set(), []   # subjects; (subject, height, id)
+    outcomes = []
+    for block in blocks:
+        height = block["height"]
+        codes = [None] * len(block["entries"])
+        docs = [None] * len(block["entries"])
+        for i, entry in enumerate(block["entries"]):
+            code, doc = acts_eligibility(entry["envelope_json"])
+            if code:
+                codes[i] = code
+                continue
+            u = doc["update"]
+            if u["action"] in ("auditor_admit", "auditor_remove"):
+                if not (doc["sig"]["key_id"] == ACTS_LOG_KEY_ID and acts_verifies(doc, b64u(pub_raw))):
+                    codes[i] = "WIST4-E11"
+                    continue
+            elif u["action"] == "observer_register":
+                if not (doc["sig"]["key_id"] == u["details"]["key_id"] and acts_verifies(doc, u["details"]["public_key"])):
+                    codes[i] = "WIST4-E11"
+                    continue
+            docs[i] = doc
+        acts = [i for i, d in enumerate(docs) if d and d["update"]["action"] != "observer_checkpoint"]
+        incumbent = dict(auditors)
+        for i in acts:
+            u = docs[i]["update"]
+            if u["action"] != "auditor_remove":
+                continue
+            held = incumbent.get(u["subject"])
+            if held is None or held[0] != u["details"]["key_id"]:
+                codes[i] = "WIST4-E07"
+                continue
+            auditors.pop(u["subject"], None)
+            retired.update(held)
+            if u.get("evidence"):
+                barred.add(u["subject"])
+            codes[i] = "accepted"
+        candidates = [i for i in acts if docs[i]["update"]["action"] != "auditor_remove"]
+        live = set(candidates)
+        for i in candidates:
+            u = docs[i]["update"]
+            if sum(1 for j in candidates if docs[j]["update"]["action"] == u["action"]
+                   and docs[j]["update"]["subject"] == u["subject"]) > 1:
+                codes[i] = "WIST4-E07"
+                live.discard(i)
+        for i in sorted(live):
+            u = docs[i]["update"]
+            key = (u["details"]["key_id"], u["details"]["public_key"])
+            held_elsewhere = any(subject != u["subject"] and (k[0] == key[0] or k[1] == key[1])
+                                 for mapping in (auditors, observers) for subject, k in mapping.items())
+            if (not independent(u["subject"], ACTS_LOG_ID) or u["subject"] in auditors
+                    or (u["action"] == "auditor_admit" and u["subject"] in barred)
+                    or key[0] in retired or key[1] in retired or held_elsewhere):
+                codes[i] = "WIST4-E07"
+                live.discard(i)
+                continue
+            if u["action"] == "auditor_admit":
+                history = u["subject"] in registered_below
+                cited = u["details"].get("track_record")
+                newest = max((c for c in checkpoints if c[0] == u["subject"] and c[1] < height),
+                             key=lambda c: (c[1], c[2].encode()), default=None)
+                ok = (cited is None) if not history else (cited is not None and newest is not None
+                                                          and cited["checkpoint"] == newest[2])
+                if not ok:
+                    codes[i] = "WIST4-E04"
+                    live.discard(i)
+        admitting = {docs[i]["update"]["subject"] for i in live if docs[i]["update"]["action"] == "auditor_admit"}
+        for i in sorted(live):
+            u = docs[i]["update"]
+            if u["action"] == "observer_register" and u["subject"] in admitting:
+                codes[i] = "WIST4-E07"
+                live.discard(i)
+        for i in sorted(live):
+            u = docs[i]["update"]
+            for j in live:
+                v = docs[j]["update"]
+                if v["subject"] != u["subject"] and (v["details"]["key_id"] == u["details"]["key_id"]
+                                                     or v["details"]["public_key"] == u["details"]["public_key"]):
+                    codes[i] = "WIST4-E07"
+        live = {i for i in live if codes[i] is None}
+        for i in live:
+            u = docs[i]["update"]
+            key = (u["details"]["key_id"], u["details"]["public_key"])
+            if u["action"] == "auditor_admit":
+                auditors[u["subject"]] = key
+                observers.pop(u["subject"], None)
+            else:
+                observers[u["subject"]] = key
+            codes[i] = "accepted"
+        for i, d in enumerate(docs):
+            if not d or d["update"]["action"] != "observer_checkpoint":
+                continue
+            u = d["update"]
+            registered = observers.get(u["subject"])
+            if registered and d["sig"]["key_id"] == registered[0] and acts_verifies(d, registered[1]):
+                checkpoints.append((u["subject"], height, acts_id(u)))
+                codes[i] = "accepted"
+            else:
+                codes[i] = "WIST4-E07"
+        registered_below.update(observers)
+        outcomes.append(codes)
+    return outcomes, {"auditors": {s: k[0] for s, k in auditors.items()},
+                      "observers": {s: k[0] for s, k in observers.items()},
+                      "checkpoints": [c[2] for c in sorted(checkpoints, key=lambda c: (c[1], c[2].encode()))]}
+
+
+def acts_case(label, *blocks):
+    """blocks: lists of (envelope, expect, why) tuples, one list per Block,
+    sealed at heights 1, 2, …"""
+    case = {"label": label, "blocks": [{"height": h, "entries": [acts_entry(*e) for e in entries]}
+                                        for h, entries in enumerate(blocks, 1)]}
+    outcomes, state = acts_replay(case["blocks"])
+    expected = [[e["expect"] for e in b["entries"]] for b in case["blocks"]]
+    assert outcomes == expected, (label, outcomes, expected)
+    case.update(auditors_after=state["auditors"], observers_after=state["observers"],
+                checkpoints_after=state["checkpoints"])
+    return case
+
+
+def acts_json_mutation(envelope, old, new):
+    text = json.dumps(envelope)
+    assert text.count(old) == 1, old
+    return text.replace(old, new)
+
+
+UNSEALED_HEAD = "sha256:" + sha256_hex(b"an ID no Entry carries")
+roster_act_cases = []
+admit_a = acts_admit(ACTS_A, "aud-a")
+signed_admit_a = acts_log_signed(admit_a)
+valid_admit = (signed_admit_a, "accepted", "Log-signed admission with complete fields")
+noncanonical_sig = dict(signed_admit_a, sig=dict(signed_admit_a["sig"], value=signed_admit_a["sig"]["value"][:-1] + "B"))
+for label, envelope, expect, why in (
+    ("valid admission", signed_admit_a, "accepted", "complete fields, supported version, Log signature"),
+    ("unknown envelope member", dict(signed_admit_a, extra=1), "WIST4-E11", "an unknown Envelope member is a general field failure"),
+    ("unknown update member", acts_log_signed(dict(admit_a, note="x")), "WIST4-E11", "signed over the unknown member, so only the field fails"),
+    ("unknown sig member", dict(signed_admit_a, sig=dict(signed_admit_a["sig"], note="x")), "WIST4-E11", "the signature block admits no unknown member"),
+    ("signature alg spelling", dict(signed_admit_a, sig=dict(signed_admit_a["sig"], alg="ed25519")), "WIST4-E11", "alg is the exact constant Ed25519"),
+    ("signature value non canonical", noncanonical_sig, "WIST4-E11", "nonzero trailing base64url bits fail the exact pattern"),
+    ("signature value trailing newline", acts_json_mutation(signed_admit_a, signed_admit_a["sig"]["value"] + '"', signed_admit_a["sig"]["value"] + '\\n"'), "WIST4-E11", "exact whole-string patterns reject a trailing newline"),
+    ("version leading zero", acts_log_signed(acts_admit(ACTS_A, "aud-a", version="01.0.0")), "WIST4-E11", "components carry no leading zero"),
+    ("version trailing newline", acts_log_signed(acts_admit(ACTS_A, "aud-a", version="1.0.0\n")), "WIST4-E11", "signed over the malformed spelling, so only the field fails"),
+    ("version unsupported major", acts_log_signed(acts_admit(ACTS_A, "aud-a", version="2.0.0")), "WIST4-E11", "a major other than 1 is not implemented"),
+    ("version later minor accepted", acts_log_signed(acts_admit(ACTS_A, "aud-a", version="1.7.3")), "accepted", "a different minor or patch alone never rejects"),
+    ("effective at leap second", acts_log_signed(acts_admit(ACTS_A, "aud-a", effective="2026-08-05T12:00:60Z")), "WIST4-E11", "a leap second is rejected, never normalized"),
+    ("effective at no instant", acts_log_signed(acts_admit(ACTS_A, "aud-a", effective="2026-02-30T12:00:00Z")), "WIST4-E11", "the pattern passes but the calendar has no such day"),
+    ("effective at offset form", acts_log_signed(acts_admit(ACTS_A, "aud-a", effective="2026-08-05T12:00:00+00:00")), "WIST4-E11", "only the whole-second literal-Z form compares against sealed_at"),
+    ("details missing public key", acts_log_signed(acts_update("auditor_admit", ACTS_A, {"key_id": "aud-a", "alg": "Ed25519"})), "WIST4-E04", "a REQUIRED details member is missing"),
+    ("details public key non canonical", acts_log_signed(acts_update("auditor_admit", ACTS_A, {"key_id": "aud-a", "alg": "Ed25519", "public_key": ACTS_PUB["aud-a"][:-1] + "B"})), "WIST4-E04", "the key pattern is exact and canonical"),
+    ("details key id too long", acts_log_signed(acts_update("auditor_admit", ACTS_A, {"key_id": "k" * 65, "alg": "Ed25519", "public_key": ACTS_PUB["aud-a"]})), "WIST4-E04", "key_id exceeds the contract's bound"),
+    ("subject one label", acts_log_signed(acts_admit("localhost", "aud-a")), "WIST4-E04", "an auditor_id has at least two labels"),
+    ("subject uppercase", acts_log_signed(acts_admit("Watch.Alpha.Test", "aud-a")), "WIST4-E04", "the contract fixes lowercase hostname shape"),
+    ("subject dependent on log id", acts_log_signed(acts_admit("audit.example.org", "aud-a")), "WIST4-E07", "eligible fields, then the roster's independence rule"),
+    ("signature tampered", acts_tampered(signed_admit_a), "WIST4-E11", "well-formed signature over other bytes"),
+    ("signed by a non Log key", acts_self_signed(admit_a, "stranger"), "WIST4-E11", "an admission verifies only under a Log key valid at its Block"),
+    ("unknown member precedes details", dict(acts_log_signed(acts_update("auditor_admit", ACTS_A, {"key_id": "aud-a", "alg": "Ed25519"})), extra=1), "WIST4-E11", "E11 takes precedence over E04"),
+    ("details precede signature", acts_tampered(acts_log_signed(acts_update("auditor_admit", ACTS_A, {"key_id": "aud-a", "alg": "Ed25519"}))), "WIST4-E04", "field failures take precedence over authenticity"),
+    ("unknown member precedes signature", dict(acts_tampered(signed_admit_a), extra=1), "WIST4-E11", "field failures take precedence over authenticity"),
+    ("fields precede roster rule", dict(acts_log_signed(acts_admit("audit.example.org", "aud-a")), extra=1), "WIST4-E11", "an ineligible act reaches no roster rule"),
+    ("duplicate member", acts_json_mutation(signed_admit_a, '"subject": "watch.alpha.test"', '"subject": "watch.alpha.test", "subject": "watch.alpha.test"'), "WIST1-E05", "duplicate decoded member names fail JSON eligibility"),
+    ("nested duplicate member", acts_json_mutation(signed_admit_a, '"alg": "Ed25519", "public_key"', '"alg": "Ed25519", "alg": "Ed25519", "public_key"'), "WIST1-E05", "duplicates inside details fail the same way"),
+):
+    roster_act_cases.append(acts_case("admission " + label, [(envelope, expect, why)]))
+
+remove_a = acts_remove(ACTS_A, "aud-a")
+signed_remove_a = acts_log_signed(remove_a)
+for label, envelope, expect, why in (
+    ("valid removal", signed_remove_a, "accepted", "the subject holds the named key before the Block"),
+    ("empty evidence", acts_log_signed(acts_remove(ACTS_A, "aud-a", evidence=[])), "WIST4-E04", "evidence, where present, names at least one ID"),
+    ("subject one label", acts_log_signed(acts_remove("localhost", "aud-a")), "WIST4-E04", "the removal names an auditor_id in hostname shape"),
+    ("unknown member", dict(signed_remove_a, extra=1), "WIST4-E11", "general field failure"),
+    ("tampered signature", acts_tampered(signed_remove_a), "WIST4-E11", "authenticity fails under the Log key"),
+    ("unheld key", acts_log_signed(acts_remove(ACTS_A, "aud-b")), "WIST4-E07", "eligible fields, then the roster rule"),
+    ("fields precede roster rule", dict(acts_log_signed(acts_remove(ACTS_A, "aud-b")), extra=1), "WIST4-E11", "an ineligible act reaches no roster rule"),
+):
+    roster_act_cases.append(acts_case("removal " + label, [valid_admit], [(envelope, expect, why)]))
+roster_act_cases.append(acts_case("removal for cause bars the subject", [valid_admit],
+    [(acts_log_signed(acts_remove(ACTS_A, "aud-a", evidence=[admission_head])), "accepted", "evidence makes the removal for cause")],
+    [(acts_log_signed(acts_admit(ACTS_A, "aud-a2")), "WIST4-E07", "a barred subject is not re-admitted")]))
+
+register_b = acts_register(ACTS_B, "obs-b1")
+signed_register_b = acts_self_signed(register_b, "obs-b1")
+small_order_register = acts_update("observer_register", ACTS_B, {"key_id": "small-order", "alg": "Ed25519", "public_key": ACTS_PUB["small-order"]})
+for label, envelope, expect, why in (
+    ("valid registration", signed_register_b, "accepted", "self-signed under the key it registers"),
+    ("signed under another identifier", acts_self_signed(register_b, "obs-b1", key_id="obs-b2"), "WIST4-E11", "sig.key_id must be the very key_id the details name"),
+    ("signed by the Log key", sign_envelope("update", register_b, "obs-b1"), "WIST4-E11", "the signature verifies under no key the rule admits"),
+    ("under a small order key", acts_self_signed(small_order_register, "stranger", key_id="small-order"), "WIST4-E11", "nothing verifies under an unusable point"),
+    ("unknown member", dict(signed_register_b, extra=1), "WIST4-E11", "general field failure"),
+    ("subject one label", acts_self_signed(acts_register("localhost", "obs-b1"), "obs-b1"), "WIST4-E04", "an observer_id has at least two labels"),
+    ("version unsupported major", acts_self_signed(acts_register(ACTS_B, "obs-b1", version="2.0.0"), "obs-b1"), "WIST4-E11", "the act's own version check"),
+    ("dependent on log id", acts_self_signed(acts_register("watch.example.org", "obs-b1"), "obs-b1"), "WIST4-E07", "eligible fields, then the independence rule"),
+):
+    roster_act_cases.append(acts_case("registration " + label, [(envelope, expect, why)]))
+
+register_a = acts_register(ACTS_A, "obs-a1")
+valid_register = (acts_self_signed(register_a, "obs-a1"), "accepted", "self-signed registration")
+checkpoint_a = acts_checkpoint(ACTS_A, admission_head)
+signed_checkpoint_a = acts_self_signed(checkpoint_a, "obs-a1")
+for label, envelope, expect, why in (
+    ("valid checkpoint", signed_checkpoint_a, "accepted", "signed by the key registered at its Block"),
+    ("head malformed", acts_self_signed(acts_checkpoint(ACTS_A, "sha256:notahash"), "obs-a1"), "WIST4-E04", "head is a REQUIRED details member checked by spelling"),
+    ("head names a Delta", acts_self_signed(acts_checkpoint(ACTS_A, delta_id), "obs-a1"), "accepted", "replay reads spelling only; the scoreboard resolves what it covers"),
+    ("head names no sealed entry", acts_self_signed(acts_checkpoint(ACTS_A, UNSEALED_HEAD), "obs-a1"), "accepted", "no sealed Entry is required under a head"),
+    ("under an unregistered key", acts_self_signed(checkpoint_a, "stranger"), "WIST4-E07", "the key is not registered for the subject"),
+    ("under the Log key", sign_envelope("update", checkpoint_a, ACTS_LOG_KEY_ID), "WIST4-E07", "an Aggregator key registers nothing"),
+    ("for an unregistered subject", acts_self_signed(acts_checkpoint(ACTS_B, admission_head), "obs-a1"), "WIST4-E07", "the subject holds no registered key"),
+    ("tampered signature", dict(signed_checkpoint_a, sig=dict(signed_checkpoint_a["sig"], value=acts_self_signed(acts_checkpoint(ACTS_A, UNSEALED_HEAD), "obs-a1")["sig"]["value"])), "WIST4-E07", "not authenticated under the registered key"),
+    ("unknown member", dict(signed_checkpoint_a, extra=1), "WIST4-E11", "general field failure"),
+    ("fields precede key rule", dict(acts_self_signed(checkpoint_a, "stranger"), extra=1), "WIST4-E11", "an ineligible act reaches no key rule"),
+    ("version unsupported major", acts_self_signed(acts_checkpoint(ACTS_A, admission_head, version="2.0.0"), "obs-a1"), "WIST4-E11", "the act's own version check"),
+):
+    roster_act_cases.append(acts_case("checkpoint " + label, [valid_register], [(envelope, expect, why)]))
+
+admit_a2 = acts_admit(ACTS_A, "aud-a2")
+roster_act_cases.append(acts_case("ineligible admission forms no group", [
+    valid_admit,
+    (dict(acts_log_signed(admit_a2), extra=1), "WIST4-E11", "no candidate, so no same-subject group")]))
+roster_act_cases.append(acts_case("two eligible admissions form a group", [
+    (signed_admit_a, "WIST4-E07", "same-subject group of two"),
+    (acts_log_signed(admit_a2), "WIST4-E07", "same-subject group of two")]))
+roster_act_cases.append(acts_case("malformed details form no group", [
+    valid_admit,
+    (acts_log_signed(acts_update("auditor_admit", ACTS_A, {"key_id": "aud-a2", "alg": "Ed25519"})), "WIST4-E04", "rejected before the batch")]))
+roster_act_cases.append(acts_case("unauthenticated admission holds no key", [
+    valid_admit,
+    (acts_self_signed(acts_admit(ACTS_B, "aud-a"), "stranger"), "WIST4-E11", "no candidate, so no cross-subject key conflict")]))
+checkpoint_1 = acts_self_signed(checkpoint_a, "obs-a1")
+roster_act_cases.append(acts_case("evidence rule is inside the batch",
+    [valid_register, (checkpoint_1, "accepted", "checkpoint beside its own registration")],
+    [(acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_a))), "WIST4-E07", "stage 1 sees both admissions"),
+     (acts_log_signed(admit_a2), "WIST4-E07", "the missing track_record is a stage 2 question never reached")]))
+roster_act_cases.append(acts_case("roster rule precedes evidence rule",
+    [valid_register, (checkpoint_1, "accepted", "checkpoint beside its own registration")],
+    [(acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_a))), "accepted", "cites the newest checkpoint below")],
+    [(acts_log_signed(acts_remove(ACTS_A, "aud-a", evidence=[admission_head])), "accepted", "removal for cause")],
+    [(acts_log_signed(admit_a2), "WIST4-E07", "barred subject; the missing track_record is not reached")]))
+
+roster_act_cases.append(acts_case("registration beside admission establishes no history", [
+    (acts_self_signed(register_a, "obs-a1"), "WIST4-E07", "stage 3 rejects the registration beside the accepted admission"),
+    (signed_admit_a, "accepted", "no accepted registration below the Block, so no track_record is due")]))
+assert roster_act_cases[-1]["auditors_after"] == {ACTS_A: "aud-a"} and roster_act_cases[-1]["observers_after"] == {}
+roster_act_cases.append(acts_case("admission citing a same Block registration", [
+    valid_register,
+    (acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_a))), "WIST4-E04", "no Observer history below the Block, yet a citation")]))
+assert roster_act_cases[-1]["observers_after"] == {ACTS_A: "obs-a1"}
+rotation_a = acts_self_signed(acts_register(ACTS_A, "obs-a2"), "obs-a2")
+roster_act_cases.append(acts_case("rotation beside admission",
+    [valid_register], [(checkpoint_1, "accepted", "checkpoint under the registered key")],
+    [(rotation_a, "WIST4-E07", "stage 3 rejects the rotation beside the accepted admission"),
+     (acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_a))), "accepted", "cites the newest checkpoint below")]))
+assert roster_act_cases[-1]["auditors_after"] == {ACTS_A: "aud-a"} and roster_act_cases[-1]["observers_after"] == {}
+checkpoint_later = acts_checkpoint(ACTS_A, admission_head, effective="2026-08-06T12:00:00Z")
+roster_act_cases.append(acts_case("same Block rotation and checkpoints",
+    [valid_register],
+    [(rotation_a, "accepted", "rotation to obs-a2"),
+     (acts_self_signed(checkpoint_a, "obs-a1"), "WIST4-E07", "the old key is not registered after the Block's batch"),
+     (acts_self_signed(checkpoint_later, "obs-a2"), "accepted", "the new key is registered from this Block's sealed_at")]))
+assert roster_act_cases[-1]["checkpoints_after"] == [acts_id(checkpoint_later)]
+roster_act_cases.append(acts_case("checkpoint beside its registration", [
+    valid_register, (checkpoint_1, "accepted", "registered from this Block's sealed_at")]))
+roster_act_cases.append(acts_case("checkpoint beside the admission of its subject",
+    [valid_register], [(checkpoint_1, "accepted", "checkpoint below the admission")],
+    [(acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_a))), "accepted", "cites the newest checkpoint below"),
+     (acts_self_signed(checkpoint_later, "obs-a1"), "WIST4-E07", "the subject holds no registered key once admitted in this Block")]))
+assert roster_act_cases[-1]["checkpoints_after"] == [acts_id(checkpoint_a)]
+roster_act_cases.append(acts_case("citation of a same Block checkpoint",
+    [valid_register], [(checkpoint_1, "accepted", "checkpoint below the admission")],
+    [(acts_self_signed(checkpoint_later, "obs-a1"), "accepted", "the admission is rejected, so the registration continues"),
+     (acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_later))), "WIST4-E04", "a same-Block checkpoint is never citable; the newest below is the earlier one")]))
+assert roster_act_cases[-1]["observers_after"] == {ACTS_A: "obs-a1"}
+assert roster_act_cases[-1]["checkpoints_after"] == [acts_id(checkpoint_a), acts_id(checkpoint_later)]
+checkpoint_b = acts_checkpoint(ACTS_B, admission_head)
+roster_act_cases.append(acts_case("rejected admission keeps the registration for its checkpoint",
+    [valid_register, (acts_self_signed(register_b, "obs-b1"), "accepted", "second Observer"),
+     (checkpoint_1, "accepted", "beside its registration"),
+     (acts_self_signed(checkpoint_b, "obs-b1"), "accepted", "beside its registration")],
+    [(acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_a))), "WIST4-E07", "cross-subject key conflict at stage 4"),
+     (acts_log_signed(acts_admit(ACTS_B, "aud-a", acts_track(checkpoint_b))), "WIST4-E07", "cross-subject key conflict at stage 4"),
+     (acts_self_signed(checkpoint_later, "obs-a1"), "accepted", "the registration outlives the rejected admission")]))
+assert roster_act_cases[-1]["observers_after"] == {ACTS_A: "obs-a1", ACTS_B: "obs-b1"} and roster_act_cases[-1]["auditors_after"] == {}
+
+small_order_admit = acts_update("auditor_admit", ACTS_A, {"key_id": "small-order", "alg": "Ed25519", "public_key": ACTS_PUB["small-order"]})
+roster_act_cases.append(acts_case("small order key is admitted as a string",
+    [(acts_log_signed(small_order_admit), "accepted", "the admission checks spelling; replay reads no point validity")],
+    [(acts_log_signed(acts_update("auditor_admit", ACTS_B, {"key_id": "other-id", "alg": "Ed25519", "public_key": ACTS_PUB["small-order"]})), "WIST4-E07", "the public_key is held by another subject"),
+     (acts_log_signed(acts_update("auditor_admit", ACTS_C, {"key_id": "small-order", "alg": "Ed25519", "public_key": ACTS_PUB["aud-b"]})), "WIST4-E07", "the key_id is held by another subject")],
+    [(acts_log_signed(acts_remove(ACTS_A, "small-order")), "accepted", "retires like any key")],
+    [(acts_log_signed(acts_admit(ACTS_A, "aud-a")), "accepted", "a fresh key after the exit")]))
+assert roster_act_cases[-1]["auditors_after"] == {ACTS_A: "aud-a"}
+small_order_record = dict(audit_record, auditor_id=ACTS_A,
+                          credit_commitment=audit_commit(RESPONSE_BODY + ACTS_A.encode()))
+small_order_probe = sign_envelope_with(ACTS_PRIV["stranger"], "record", small_order_record, "small-order")
+
+assert len(roster_act_cases) == len({c["label"] for c in roster_act_cases})
+write_json(WIST4 / "roster-acts.json", spaced_labels({
+    "spec": "WIST-4 sections 3, 3.1, 9.1, 10.2",
+    "note": ("Signed roster-act histories: Blocks at heights 1, 2, ... in Log order, each Entry a Registry "
+             "Update Envelope as raw JSON with its replay outcome. Eligibility follows section 9.1 in "
+             "precedence: raw JSON (WIST1-E05), general fields and version (WIST4-E11), the action's "
+             "details/evidence/subject contract (WIST4-E04), then authenticity (WIST4-E11; a checkpoint "
+             "under an unregistered key is WIST4-E07); only eligible acts enter section 3.1's batch, where "
+             "roster rules are WIST4-E07 and the evidence rule is WIST4-E04. An admission reads Observer "
+             "history and citable checkpoints below its Block; a checkpoint reads the registrations after "
+             "its Block's batch; an admitted public_key is a string at replay. Blocks are unsigned "
+             "contexts here: consumers seal them under their own Log key at their own strictly increasing "
+             "instants. The auditors, observers and accepted checkpoint IDs after the last Block are listed per "
+             "case, checkpoints ordered by height then ID octets, since Entry position within a Block carries no meaning."),
+    "log_id": ACTS_LOG_ID,
+    "log_key": {"key_id": ACTS_LOG_KEY_ID, "public_key": b64u(pub_raw)},
+    "keys": [{"key_id": k, "public_key": v} for k, v in sorted(ACTS_PUB.items())],
+    "record_probe": {"note": ("A Record under the admitted small-order key: the roster holds the key as a string, "
+                              "and every signature and proof under it fails verification."),
+                     "envelope": small_order_probe, "expect": "WIST4-E01"},
+    "cases": roster_act_cases,
+}))
+print("wist4 roster acts vector: %d cases" % len(roster_act_cases))
+
 # ------------------------------------- WIST-4 §4: the Block's selection domain
 # The VRF test runs over the Deltas of a Block that WIST-3 §7's one-URL,
 # one-Publisher rule does not exclude at the Block's height: a parent's Delta

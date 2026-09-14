@@ -103,6 +103,8 @@ family, the independent anchor its verification rests on.
 - [ADR-0030](decisions/0030-delta-version-eligibility.md) — Delta and Payload version eligibility and diagnostics
 
 - [ADR-0034](decisions/0034-payload-field-diagnostics.md) — Payload field diagnostics and size-bound interpretation
+- [ADR-0036](decisions/0036-registry-update-eligibility.md) — Registry Update field, version and authenticity dispositions
+- [ADR-0037](decisions/0037-roster-replay-inputs.md) — Roster replay reads sealed strings and post-batch tenures
 
 ## Licenses
 

@@ -11,7 +11,7 @@
       "required": ["wist_version", "action", "subject", "effective_at"],
       "additionalProperties": false,
       "properties": {
-        "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "wist_version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$(?![\\s\\S])"},
         "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal", "pull_attestation", "observer_register", "observer_checkpoint", "canary_commitment", "canary_reveal"]},
         "subject": {"type": "string", "maxLength": 256},
         "details": {"type": "object"},
@@ -19,7 +19,7 @@
         "effective_at": {
           "type": "string",
           "format": "date-time",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$(?![\\s\\S])",
           "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (WIST-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the §9 grace period above all — so the two are written in one form and compare without normalization. It is descriptive of when the act takes effect and never the anchor of a window: WIST-4 §7 runs the appeal window, and WIST-1 §5.2 the recovery window, from the `sealed_at` of the Block sealing the Entry."
         }
       }
@@ -89,13 +89,13 @@
                 "properties": {
                   "level": {"type": "integer", "minimum": 1, "maximum": 4},
                   "severity": {"type": "integer", "minimum": 1, "maximum": 3},
-                  "finding": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+                  "finding": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}
                 }
               },
               "evidence": {
                 "type": "array",
                 "minItems": 2,
-                "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+                "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}
               }
             }
           }
@@ -115,12 +115,12 @@
                 "properties": {
                   "kind": {"enum": ["sanction", "recovery"]},
                   "level": {"type": "integer", "enum": [3, 4]},
-                  "activation": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                  "activation": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"},
                   "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
                   "appeal_deadline": {
                     "type": "string",
                     "format": "date-time",
-                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$",
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$(?![\\s\\S])",
                     "description": "The instant WIST-4 §7's appeal window closes, restated for the Publisher's convenience: the `sealed_at` of the Block sealing this notice plus `appeal_window_days`. It is descriptive — every party derives the same deadline from the Block — and carries the whole-second-plus-Z form so that the restatement and the Block value it is computed from compare without normalization."
                   }
                 },
@@ -145,7 +145,7 @@
                 "type": "object",
                 "required": ["notice", "outcome", "reasoning"],
                 "properties": {
-                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (WIST-4 §7) of the `notice` whose process this ruling closes. Required because the ruling deadline and the void rule of §7 are evaluated per notice: a ruling that named none would close every open process of that domain at once, or none of them."},
+                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID (WIST-4 §7) of the `notice` whose process this ruling closes. Required because the ruling deadline and the void rule of §7 are evaluated per notice: a ruling that named none would close every open process of that domain at once, or none of them."},
                   "outcome": {"enum": ["upheld", "overturned", "unappealed"]},
                   "reasoning": {"type": "string", "minLength": 1, "maxLength": 1024}
                 }
@@ -400,7 +400,7 @@
                 "type": "object",
                 "required": ["delta_id", "legal_basis", "jurisdiction"],
                 "properties": {
-                  "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                  "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"},
                   "legal_basis": {"type": "string", "minLength": 1, "maxLength": 1024},
                   "jurisdiction": {"type": "string", "minLength": 1, "maxLength": 128}
                 }
@@ -417,7 +417,7 @@
         "properties": {
           "update": {
             "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253}
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253}
             }
           }
         }
@@ -435,7 +435,7 @@
                 "type": "object",
                 "required": ["notice"],
                 "properties": {
-                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (WIST-4 §7) of the `notice` being appealed."}
+                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID (WIST-4 §7) of the `notice` being appealed."}
                 }
               }
             }
@@ -451,13 +451,13 @@
           "update": {
             "required": ["details"],
             "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
               "details": {
                 "type": "object",
                 "required": ["block", "found"],
                 "properties": {
-                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The audited Block's Block Hash — the same value that names the Auditor's well-known records file (WIST-4 §4)."},
-                  "found": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "description": "The Record and coverage_attestation IDs the pull returned. Empty is a claim like any other: it is what a third party who fetched the same path during the window can contradict."}
+                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The audited Block's Block Hash — the same value that names the Auditor's well-known records file (WIST-4 §4)."},
+                  "found": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}, "description": "The Record and coverage_attestation IDs the pull returned. Empty is a claim like any other: it is what a third party who fetched the same path during the window can contradict."}
                 }
               }
             }
@@ -473,14 +473,14 @@
           "update": {
             "required": ["details"],
             "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
               "details": {
                 "type": "object",
                 "required": ["block", "vrf_proof", "prev_record"],
                 "properties": {
-                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The audited Block's Block Hash — the Block whose selection was empty, and the input the vrf_proof verifies against (WIST-4 §4)."},
-                  "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$", "description": "The §4 VRF Proof for the Block whose selection was empty, 80 octets as 160 lowercase hex characters — the same form audit-record.schema.json fixes. An attestation without it claims an empty draw and proves nothing."},
-                  "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, {"type": "null"}]}
+                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The audited Block's Block Hash — the Block whose selection was empty, and the input the vrf_proof verifies against (WIST-4 §4)."},
+                  "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$(?![\\s\\S])", "description": "The §4 VRF Proof for the Block whose selection was empty, 80 octets as 160 lowercase hex characters — the same form audit-record.schema.json fixes. An attestation without it claims an empty draw and proves nothing."},
+                  "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}, {"type": "null"}]}
                 }
               }
             }
@@ -509,7 +509,7 @@
           "update": {
             "required": ["details"],
             "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
               "details": {
                 "type": "object",
                 "required": ["key_id", "alg", "public_key"],
@@ -532,12 +532,12 @@
           "update": {
             "required": ["details"],
             "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253},
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
               "details": {
                 "type": "object",
                 "required": ["head"],
                 "properties": {
-                  "head": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The ID of the Observer's newest Audit Record or coverage_attestation for this Log — the head of its prev_record chain (WIST-4 §3.1); an object that carries only commitments."}
+                  "head": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The ID of the Observer's newest Audit Record or coverage_attestation for this Log — the head of its prev_record chain (WIST-4 §3.1); an object that carries only commitments."}
                 }
               }
             }
@@ -558,7 +558,7 @@
                 "type": "object",
                 "required": ["root", "leaves"],
                 "properties": {
-                  "root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "WIST-3 §4's Merkle root over the leaves, each SHA-256(0x00 || served bytes) where the served bytes carry a fresh nonce of at least 16 octets (WIST-4 §5.1): a keyed commitment under that nonce, not a bare digest of content."},
+                  "root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "WIST-3 §4's Merkle root over the leaves, each SHA-256(0x00 || served bytes) where the served bytes carry a fresh nonce of at least 16 octets (WIST-4 §5.1): a keyed commitment under that nonce, not a bare digest of content."},
                   "leaves": {"type": "integer", "minimum": 1, "description": "The leaf count, the tree size every inclusion proof in the reveal reads; bounded above by canary_leaves_max in prose (WIST-4 §5.1)."}
                 }
               }
@@ -580,7 +580,7 @@
                 "type": "object",
                 "required": ["commitment", "leaves"],
                 "properties": {
-                  "commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID (WIST-4 §7) of the canary_commitment revealed — an object carrying a root and a count, no content."},
+                  "commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID (WIST-4 §7) of the canary_commitment revealed — an object carrying a root and a count, no content."},
                   "leaves": {
                     "type": "array",
                     "minItems": 1,
@@ -590,9 +590,9 @@
                       "additionalProperties": false,
                       "properties": {
                         "index": {"type": "integer", "minimum": 0},
-                        "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-                        "leaf_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "SHA-256(0x00 || served bytes), including the embedded nonce; the starting hash for Log-only membership verification (WIST-4 §5.1)."},
-                        "path": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "description": "The leaf's Inclusion Proof siblings (WIST-3 §4), leaf level first: nodes over canary leaves, each keyed by its leaf's nonce (WIST-4 §5.1)."}
+                        "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"},
+                        "leaf_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "SHA-256(0x00 || served bytes), including the embedded nonce; the starting hash for Log-only membership verification (WIST-4 §5.1)."},
+                        "path": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}, "description": "The leaf's Inclusion Proof siblings (WIST-3 §4), leaf level first: nodes over canary leaves, each keyed by its leaf's nonce (WIST-4 §5.1)."}
                       }
                     }
                   }
@@ -617,7 +617,7 @@
                     "required": ["checkpoint", "scoreboard"],
                     "additionalProperties": false,
                     "properties": {
-                      "checkpoint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The Registry Update ID of the newest sealed observer_checkpoint for the subject (WIST-4 §3.1)."},
+                      "checkpoint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID of the newest sealed observer_checkpoint for the subject (WIST-4 §3.1)."},
                       "scoreboard": {
                         "type": "object",
                         "required": ["provisional", "standing", "mature"],
@@ -640,6 +640,19 @@
     {
       "if": {"properties": {"update": {"properties": {"action": {"enum": ["sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "payload_withdrawal", "canary_commitment", "canary_reveal"]}}}}},
       "then": {"properties": {"update": {"properties": {"subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Publisher identity in WIST-1 sections 2 and 5.1 Canonical Host form; validate A-labels under the pinned UTS #46 profile."}}}}}
+    },
+    {
+      "comment": "WIST-4 §9.1: an auditor_remove names the auditor_id whose key it retires, in the hostname shape an auditor_admit requires, so a subject outside it fails the details contract (WIST4-E04) rather than the roster rule. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_remove"}}}}},
+      "then": {
+        "properties": {
+          "update": {
+            "properties": {
+              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253}
+            }
+          }
+        }
+      }
     }
   ]
 }

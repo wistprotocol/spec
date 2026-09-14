@@ -774,7 +774,7 @@ def _wist4_error_registry():
     assert "## 13. Conformance Checklist" in w4
     assert "## 10. Security Considerations" not in w4
     codes = re.findall(r"WIST4-E(\d{2})", w4)
-    assert sorted(set(codes)) == [f"{n:02}" for n in range(1, 11)], sorted(set(codes))
+    assert sorted(set(codes)) == [f"{n:02}" for n in range(1, 12)], sorted(set(codes))
     assert "never invalidates the containing Block" in re.sub(r"\s+", " ", w4)
 
 check("spec:wist4-error-registry", _wist4_error_registry)
@@ -1103,6 +1103,10 @@ SALTED_COMMITMENT_VALUES = {
     ("vectors/wist4/roster.json", "credit_commitment"): "audit:commitments",
     ("vectors/wist4/roster.json", "ref_extract_commitment"): "audit:commitments",
     ("vectors/wist4/roster.json", "evidence_commitment"): "audit:commitments",
+    ("vectors/wist4/roster-acts.json", "response_commitment"): "audit:commitments",
+    ("vectors/wist4/roster-acts.json", "credit_commitment"): "audit:commitments",
+    ("vectors/wist4/roster-acts.json", "ref_extract_commitment"): "audit:commitments",
+    ("vectors/wist4/roster-acts.json", "evidence_commitment"): "audit:commitments",
     ("examples/audit-record.json", "response_commitment"): "audit:commitments",
     ("examples/audit-record.json", "ref_extract_commitment"): "audit:commitments",
     ("examples/audit-record.json", "evidence_commitment"): "audit:commitments",
@@ -4286,6 +4290,10 @@ def _dc4_audit_commitments():
     observer_credit = "hmac-sha256:" + hmac.new(salt, observer_body + observer["auditor_id"].encode(), hashlib.sha256).hexdigest()
     assert observer["credit_commitment"] == observer_credit
     recomputed.add(observer_credit)
+    probe = json.loads((ROOT / "vectors" / "wist4" / "roster-acts.json").read_text())["record_probe"]["envelope"]["record"]
+    probe_credit = "hmac-sha256:" + hmac.new(salt, observer_body + probe["auditor_id"].encode(), hashlib.sha256).hexdigest()
+    assert probe["credit_commitment"] == probe_credit
+    recomputed.add(probe_credit)
     covered_values = set()
     for rel, key in _declared_values_for("audit:commitments"):
         values = _values_at(rel, key)
@@ -4568,6 +4576,11 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/roster.json", "checkpoint"): "a Registry Update ID",
     ("vectors/wist4/roster.json", "audited_delta"): "a Delta ID",
     ("vectors/wist4/roster.json", "reference_delta"): "a Delta ID",
+    ("vectors/wist4/roster-acts.json", "public_key"): "an Ed25519 public key, or the small-order point the roster holds as a string",
+    ("vectors/wist4/roster-acts.json", "value"): "an Ed25519 signature",
+    ("vectors/wist4/roster-acts.json", "audited_delta"): "a Delta ID",
+    ("vectors/wist4/roster-acts.json", "reference_delta"): "a Delta ID",
+    ("vectors/wist4/roster-acts.json", "checkpoints_after"): "Registry Update IDs of the accepted checkpoints",
     ("vectors/wist4/sanctions.json", "finding"): "a first confirming Audit Record ID",
     ("vectors/wist4/sanctions.json", "confirming_record"): "a first confirming Audit Record ID",
     ("vectors/wist4/sanctions.json", "id"): "an Audit Record ID",
@@ -5966,10 +5979,12 @@ def _declaration_host_vectors():
         items = branch['prefixItems']
         if items[0].get('const') in kinds:
             fields.append(items[2 if items[0]['const'] == 'canary_commitment' else 1])
-    subject_branch = schemas['registry-update']['allOf'][-1]
-    assert set(subject_branch['if']['properties']['update']['properties']['action']['enum']) == {
-        'sanction', 'sanction_lift', 'notice', 'appeal', 'appeal_ruling', 'payload_withdrawal',
-        'canary_commitment', 'canary_reveal'}
+    publisher_actions = {'sanction', 'sanction_lift', 'notice', 'appeal', 'appeal_ruling',
+                         'payload_withdrawal', 'canary_commitment', 'canary_reveal'}
+    subject_branches = [b for b in schemas['registry-update']['allOf']
+                        if set(b['if']['properties']['update']['properties']['action'].get('enum', [])) == publisher_actions]
+    assert len(subject_branches) == 1
+    subject_branch = subject_branches[0]
     fields.append(subject_branch['then']['properties']['update']['properties']['subject'])
     assert len(fields) == 13
     for case in vector['hosts']:
@@ -9850,5 +9865,265 @@ def _record_field_vectors():
 
 
 check('vectors:wist4-record-fields', _record_field_vectors)
+
+def _roster_acts_vector():
+    return json.loads((ROOT / 'vectors/wist4/roster-acts.json').read_text())
+
+
+def _roster_acts_validator():
+    schema = json.loads((ROOT / 'schemas/registry-update.schema.json').read_text())
+    formats = FormatChecker(formats=[])
+
+    @formats.checks('date-time', raises=(TypeError, ValueError))
+    def instant(value):
+        if isinstance(value, str):
+            log_seconds(value)
+        return True
+
+    return Draft202012Validator(schema, format_checker=formats)
+
+
+def _roster_acts_contract_error(error):
+    """WIST-4 §9.1: a failure in a member the schema constrains per action —
+    details, evidence, or a per-action subject shape — is WIST4-E04; any
+    other field failure is WIST4-E11."""
+    path, schema_path = list(error.absolute_path), list(error.schema_path)
+    if len(path) >= 2 and path[0] == 'update' and path[1] in ('details', 'evidence'):
+        return True
+    if path == ['update'] and error.validator == 'required' and 'then' in schema_path \
+            and set(error.validator_value) & {'details', 'evidence'}:
+        return True
+    return path == ['update', 'subject'] and 'then' in schema_path
+
+
+def _roster_acts_eligibility(text, validator):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate decoded member')
+            result[key] = value
+        return result
+    try:
+        doc = json.loads(text, object_pairs_hook=unique)
+        rfc8785.dumps(doc)
+    except (ValueError, rfc8785.CanonicalizationError):
+        return 'WIST1-E05', None
+    errors = list(validator.iter_errors(doc))
+    if any(not _roster_acts_contract_error(e) for e in errors):
+        return 'WIST4-E11', None
+    if errors:
+        return 'WIST4-E04', None
+    if doc['update']['wist_version'].split('.')[0] != '1':
+        return 'WIST4-E11', None
+    return None, doc
+
+
+def _roster_acts_verifies(doc, public_key):
+    try:
+        raw = canonical_b64u_decode(public_key)
+        signature = canonical_b64u_decode(doc['sig']['value'])
+        Ed25519PublicKey.from_public_bytes(raw).verify(signature, rfc8785.dumps(doc['update']))
+    except (ValueError, InvalidSignature):
+        return False
+    assert _ed25519_profile_verdict(raw, signature, rfc8785.dumps(doc['update']))[0]
+    return True
+
+
+def _roster_acts_replay(case, log_id, log_key, *, ineligible_candidates=False,
+                        checkpoint_keys_before_batch=False, cite_same_block=False,
+                        reject_unusable_admission=False):
+    """§9.1 eligibility, §3.1's batch and the post-batch checkpoint rule,
+    recomputed independently of the generator. The keyword flags select the
+    readings the vector exists to rule out."""
+    validator = _roster_acts_validator()
+    auditors, observers, retired, barred = {}, {}, set(), set()
+    history, checkpoints, outcomes = set(), [], []
+    for block in case['blocks']:
+        height, entries = block['height'], block['entries']
+        code, doc = [None] * len(entries), [None] * len(entries)
+        for i, entry in enumerate(entries):
+            code[i], doc[i] = _roster_acts_eligibility(entry['envelope_json'], validator)
+            if doc[i] is None:
+                continue
+            update, sig = doc[i]['update'], doc[i]['sig']
+            if update['action'] in ('auditor_admit', 'auditor_remove'):
+                authentic = sig['key_id'] == log_key['key_id'] and _roster_acts_verifies(doc[i], log_key['public_key'])
+            elif update['action'] == 'observer_register':
+                authentic = sig['key_id'] == update['details']['key_id'] and _roster_acts_verifies(doc[i], update['details']['public_key'])
+            else:
+                authentic = True
+            if not authentic:
+                code[i], doc[i] = 'WIST4-E11', None
+            elif reject_unusable_admission and update['action'] == 'auditor_admit':
+                if not _ed25519_profile_verdict(canonical_b64u_decode(update['details']['public_key']), bytes(64), b'')[1] in ('accept', 'equation', 's-range'):
+                    code[i], doc[i] = 'WIST4-E04', None
+        acts = {i: doc[i]['update'] for i in range(len(entries)) if doc[i] and doc[i]['update']['action'] != 'observer_checkpoint'}
+        if ineligible_candidates:
+            for i, entry in enumerate(entries):
+                if doc[i] is None and code[i] != 'WIST1-E05':
+                    try:
+                        acts[i] = json.loads(entry['envelope_json'])['update']
+                    except ValueError:
+                        pass
+        before = dict(auditors)
+        same_block = []
+        if cite_same_block:
+            for i in range(len(entries)):
+                if doc[i] and doc[i]['update']['action'] == 'observer_checkpoint':
+                    u, held = doc[i]['update'], observers.get(doc[i]['update']['subject'])
+                    if held and doc[i]['sig']['key_id'] == held['key_id'] and _roster_acts_verifies(doc[i], held['public_key']):
+                        same_block.append((u['subject'], height, 'sha256:' + hashlib.sha256(rfc8785.dumps(u)).hexdigest()))
+        for i, update in acts.items():
+            if update['action'] != 'auditor_remove':
+                continue
+            held = before.get(update['subject'])
+            if held is None or held['key_id'] != update.get('details', {}).get('key_id'):
+                code[i] = 'WIST4-E07'
+                continue
+            auditors.pop(update['subject'])
+            retired |= {held['key_id'], held['public_key']}
+            if update.get('evidence'):
+                barred.add(update['subject'])
+            code[i] = 'accepted'
+        candidates = {i: u for i, u in acts.items() if u['action'] != 'auditor_remove'}
+        groups = collections.Counter((u['action'], u['subject']) for u in candidates.values())
+        live = {i for i, u in candidates.items() if groups[u['action'], u['subject']] == 1}
+        for i in candidates:
+            if i not in live:
+                code[i] = 'WIST4-E07'
+        stage_two = []
+        for i in sorted(live):
+            u = candidates[i]
+            key = u.get('details', {})
+            taken = any(subject != u['subject'] and (held['key_id'] == key.get('key_id') or held['public_key'] == key.get('public_key'))
+                        for mapping in (auditors, observers) for subject, held in mapping.items())
+            if (not _roster_independent(u['subject'], log_id) or u['subject'] in auditors or taken
+                    or (u['action'] == 'auditor_admit' and u['subject'] in barred)
+                    or key.get('key_id') in retired or key.get('public_key') in retired):
+                code[i] = 'WIST4-E07'
+                continue
+            if u['action'] == 'auditor_admit':
+                citable = [c for c in checkpoints + same_block if c[0] == u['subject'] and c[1] < height + bool(cite_same_block)]
+                newest = max(citable, key=lambda c: (c[1], c[2].encode()), default=None)
+                track = key.get('track_record')
+                if (u['subject'] in history) != (track is not None) or (track and (newest is None or newest[2] != track['checkpoint'])):
+                    code[i] = 'WIST4-E04'
+                    continue
+            stage_two.append(i)
+        admitting = {candidates[i]['subject'] for i in stage_two if candidates[i]['action'] == 'auditor_admit'}
+        stage_three = []
+        for i in stage_two:
+            if candidates[i]['action'] == 'observer_register' and candidates[i]['subject'] in admitting:
+                code[i] = 'WIST4-E07'
+            else:
+                stage_three.append(i)
+        survivors = []
+        for i in stage_three:
+            u = candidates[i]
+            if any(candidates[j]['subject'] != u['subject'] and any(candidates[j]['details'][f] == u['details'][f] for f in ('key_id', 'public_key'))
+                   for j in stage_three):
+                code[i] = 'WIST4-E07'
+            else:
+                survivors.append(i)
+        registered_before = dict(observers)
+        for i in survivors:
+            u = candidates[i]
+            key = {f: u['details'][f] for f in ('key_id', 'public_key')}
+            if u['action'] == 'auditor_admit':
+                auditors[u['subject']] = key
+                observers.pop(u['subject'], None)
+            else:
+                observers[u['subject']] = key
+            code[i] = 'accepted'
+        keys_for_checkpoints = registered_before if checkpoint_keys_before_batch else observers
+        for i in range(len(entries)):
+            if doc[i] is None or doc[i]['update']['action'] != 'observer_checkpoint':
+                continue
+            u, held = doc[i]['update'], keys_for_checkpoints.get(doc[i]['update']['subject'])
+            if held and doc[i]['sig']['key_id'] == held['key_id'] and _roster_acts_verifies(doc[i], held['public_key']):
+                checkpoints.append((u['subject'], height, 'sha256:' + hashlib.sha256(rfc8785.dumps(u)).hexdigest()))
+                code[i] = 'accepted'
+            else:
+                code[i] = 'WIST4-E07'
+        history |= set(observers)
+        outcomes.append(code)
+    return outcomes, {'auditors': {s: k['key_id'] for s, k in auditors.items()},
+                      'observers': {s: k['key_id'] for s, k in observers.items()},
+                      'checkpoints': [c[2] for c in sorted(checkpoints, key=lambda c: (c[1], c[2].encode()))]}
+
+
+def _roster_acts_vectors():
+    vector = _roster_acts_vector()
+    original = copy.deepcopy(vector)
+    prose = (ROOT / 'specs/WIST-4-audit-reputation-governance.md').read_text()
+    assert '| WIST4-E11 |' in prose and '**Envelope eligibility and precedence.**' in prose
+    log_id, log_key = vector['log_id'], vector['log_key']
+    assert canonical_b64u_decode(log_key['public_key'])
+    seen, labels = set(), set()
+    for case in vector['cases']:
+        assert case['label'] not in labels, case['label']
+        labels.add(case['label'])
+        assert [b['height'] for b in case['blocks']] == list(range(1, len(case['blocks']) + 1)), case['label']
+        outcomes, state = _roster_acts_replay(case, log_id, log_key)
+        expected = [[e['expect'] for e in b['entries']] for b in case['blocks']]
+        assert outcomes == expected, (case['label'], outcomes, expected)
+        assert state == {'auditors': case['auditors_after'], 'observers': case['observers_after'],
+                         'checkpoints': case['checkpoints_after']}, case['label']
+        seen.update(x for row in outcomes for x in row)
+    assert seen == {'accepted', 'WIST1-E05', 'WIST4-E04', 'WIST4-E07', 'WIST4-E11'}
+    probe = vector['record_probe']['envelope']
+    keys = {k['key_id']: k['public_key'] for k in vector['keys']}
+    public = canonical_b64u_decode(keys[probe['sig']['key_id']])
+    verdict = _ed25519_profile_verdict(public, canonical_b64u_decode(probe['sig']['value']), rfc8785.dumps(probe['record']))
+    assert verdict == (False, 'small-order'), verdict
+    try:
+        Ed25519PublicKey.from_public_bytes(public).verify(canonical_b64u_decode(probe['sig']['value']), rfc8785.dumps(probe['record']))
+        library_accepts = True
+    except (ValueError, InvalidSignature):
+        library_accepts = False
+    assert not library_accepts
+    assert vector['record_probe']['expect'] == 'WIST4-E01'
+    admitted = next(c for c in vector['cases'] if c['label'] == 'small order key is admitted as a string')
+    assert admitted['blocks'][0]['entries'][0]['expect'] == 'accepted'
+    assert json.loads(admitted['blocks'][0]['entries'][0]['envelope_json'])['update']['details']['public_key'] == keys[probe['sig']['key_id']]
+    assert len(vector['cases']) >= 70
+    assert vector == original
+
+
+check('vectors:wist4-roster-acts', _roster_acts_vectors)
+
+
+def _roster_acts_twins():
+    """Each alternative reading the vector rules out flips a named case."""
+    vector = _roster_acts_vector()
+    log_id, log_key = vector['log_id'], vector['log_key']
+    by_label = {c['label']: c for c in vector['cases']}
+
+    def flips(label, **reading):
+        case = by_label[label]
+        expected = [[e['expect'] for e in b['entries']] for b in case['blocks']]
+        assert _roster_acts_replay(case, log_id, log_key)[0] == expected
+        assert _roster_acts_replay(case, log_id, log_key, **reading)[0] != expected, (label, reading)
+
+    flips('ineligible admission forms no group', ineligible_candidates=True)
+    flips('unauthenticated admission holds no key', ineligible_candidates=True)
+    flips('admission fields precede roster rule', ineligible_candidates=True)
+    flips('same Block rotation and checkpoints', checkpoint_keys_before_batch=True)
+    flips('checkpoint beside its registration', checkpoint_keys_before_batch=True)
+    flips('citation of a same Block checkpoint', cite_same_block=True)
+    flips('small order key is admitted as a string', reject_unusable_admission=True)
+    sealed = by_label['checkpoint head names no sealed entry']
+    head = json.loads(sealed['blocks'][1]['entries'][0]['envelope_json'])['update']['details']['head']
+    every_id = {'sha256:' + hashlib.sha256(rfc8785.dumps(json.loads(e['envelope_json'])['update'])).hexdigest()
+                for c in vector['cases'] for b in c['blocks'] for e in b['entries'] if e['expect'] != 'WIST1-E05'}
+    assert head not in every_id and sealed['blocks'][1]['entries'][0]['expect'] == 'accepted'
+    version = by_label['admission version later minor accepted']
+    assert json.loads(version['blocks'][0]['entries'][0]['envelope_json'])['update']['wist_version'] == '1.7.3'
+    unsigned = json.loads(by_label['admission signature tampered']['blocks'][0]['entries'][0]['envelope_json'])
+    assert _roster_acts_validator().is_valid(unsigned) and not _roster_acts_verifies(unsigned, log_key['public_key'])
+
+
+check('negative:wist4-roster-acts', _roster_acts_twins)
 
 sys.exit(1 if failures else 0)

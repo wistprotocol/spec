@@ -156,6 +156,20 @@ and both are the same `auditor_id`'s, by the binding above. Were two keys
 held at once, the Auditor would hold two draws for every Block and could
 publish whichever selected less.
 
+**Admission reads spelling; verification reads points.** An
+`auditor_admit` is checked as a Registry Update (§9.1) and against §3.1's
+batch, and its `public_key` is checked by its 43-character base64url
+spelling alone. A key that decodes to a point WIST-1 §4 makes unusable —
+non-canonically encoded or of small order — is admitted like any other:
+it holds its `auditor_id`'s one slot, bars that `key_id` and `public_key`
+from every other subject, and retires like any other, while every Record
+signature and every proof under it fails verification (`WIST4-E01`, §4).
+Replay MUST NOT read point validity into the roster: the roster is a
+function of sealed strings, and an Aggregator that sealed such a key
+removes it and admits a fresh one. An `observer_register` under such a
+key never seals validly, because it must verify under the key it
+registers (§9.1).
+
 **Windows and admission run on `sealed_at`.** `fetched_at` is
 Auditor-supplied and unverifiable by anyone else, so nothing anchored to it
 is recomputable. Every admission test and every window in this document
@@ -294,6 +308,10 @@ bar its subject if **any** of those removals carries evidence. A removal
 of a key absent from that pre-Block map is `WIST4-E07` and contributes
 neither retirement nor a bar. Thus an exit cannot cancel a simultaneous
 removal for cause by appearing earlier in the Block.
+The Block's candidates are its roster acts that pass §9.1's field,
+version and authenticity checks; an act rejected there is no candidate
+at any stage, so it neither forms a same-subject group nor holds a key
+against another candidate.
 Resolve the Block's admissions and Observer registrations
 against that resulting incumbent map, in these stages:
 
@@ -306,7 +324,9 @@ against that resulting incumbent map, in these stages:
    that incumbent map. A key held by another subject there is unavailable
    throughout this batch, even if that subject also rotates or becomes
    admitted in this Block. Own-subject Observer-to-Auditor admission
-   retains the exception above. Invalid candidates take no further part.
+   retains the exception above. A candidate failing a roster rule is
+   `WIST4-E07`; one failing only the evidence rule (`track_record`, below)
+   is `WIST4-E04`. Invalid candidates take no further part.
 3. If an admission and registration for the same subject both remain,
    reject the registration (`WIST4-E07`). That rejection stands even if
    a cross-subject key conflict subsequently rejects the admission.
@@ -405,17 +425,32 @@ positions. The bound requires the same suffix set and budget throughout
 its span; repeated changes carry no fixed-delay guarantee. §5.1 therefore
 also checks the actual opportunities before a reveal.
 An Aggregator MAY seal checkpoints beyond the budget; what it MUST NOT do
-is leave a budgeted one it fetched unsealed. A checkpoint under a key
-not registered at its Block, or whose `head` is not an Audit Record or
-`coverage_attestation` ID, is `WIST4-E07`.
+is leave a budgeted one it fetched unsealed. A checkpoint not
+authenticated under the key registered for its `subject` at its Block is
+`WIST4-E07`. Which key that is reads the registrations in force after
+the Block's batch above, since a registration holds from the `sealed_at`
+of its own Block: across a same-Block rotation the new key signs a valid
+checkpoint and the old one does not, and a `subject` admitted in that
+Block holds no registered key there. `head` is checked by spelling
+(§9.1, `WIST4-E04` where malformed) and by nothing else at replay.
+Whether it names a Record or attestation the Observer serves is read
+when a scoreboard is derived (§5.2): a `head` naming nothing served
+covers nothing, and replay requires no sealed Entry under it, since an
+Observer's Records need not reach the Log. Replayers holding different
+served histories therefore derive one checkpoint set.
 
 **Admission cites the scoreboard.** An `auditor_admit` whose `subject`
-has a sealed `observer_register` at or below the admit's Block MUST
-carry `details.track_record` (§9.1): the ID of the newest sealed
+has an accepted `observer_register` sealed below the admit's Block MUST
+carry `details.track_record` (§9.1): the ID of the newest accepted
 `observer_checkpoint` for that `subject`, and the scoreboard §5.2
-derives for it at the admit's Block, per tier. Newest means the highest
-sealing height at or below the admit's Block among otherwise-valid
-checkpoints for that subject; if several distinct checkpoint IDs share
+derives for it at the admit's Block, per tier. A registration in the
+admit's own Block establishes no history — stage 3 above rejects it
+beside an accepted admission, and a rejected act contributes nothing —
+and a checkpoint in that Block is never citable: for an accepted
+admission it is `WIST4-E07`, as above, and reading it would make the
+admission's evidence depend on the admission's own outcome. Newest
+therefore means the highest sealing height below the admit's Block
+among accepted checkpoints for that subject; if several distinct checkpoint IDs share
 that height, choose the greatest Registry Update ID (§7) in octet order.
 This tie rule also applies when the checkpoints name the same chain head
 and does not read stored Entry position. A citation of any other ID is
@@ -3177,10 +3212,11 @@ mirroring §7 and §3:
   `auditor_admit`'s `subject` additionally MUST be the Auditor's
   `auditor_id`, a hostname of at least two labels, because §3 anchors an
   Auditor to a domain and a Record's `auditor_id` is what §3's independence
-  and self-audit tests compare. An `auditor_admit` whose `subject` has a
-  sealed `observer_register` at or below its Block MUST also carry
+  and self-audit tests compare. An `auditor_admit` whose `subject` has an
+  accepted `observer_register` below its Block MUST also carry
   `track_record` (§3.1): `checkpoint`, the Registry Update ID of the
-  newest sealed `observer_checkpoint` for that `subject`, and
+  newest accepted `observer_checkpoint` for that `subject` below its
+  Block, and
   `scoreboard`, an object with the members `provisional`, `standing` and
   `mature`, each an array of three integers — encountered, credited, hard
   hits — as §5.2 derives them at the admit's Block. One whose `subject`
@@ -3192,8 +3228,9 @@ mirroring §7 and §3:
   registers, which is what the Declaration §3.1 requires the registrant
   to serve makes falsifiable.
 - `observer_checkpoint`: `head`, the ID of the Observer's newest Audit
-  Record or `coverage_attestation` for this Log (§3.1); `subject` the
-  `observer_id`, signed by its registered key. REQUIRED.
+  Record or `coverage_attestation` for this Log, checked by spelling at
+  replay (§3.1); `subject` the `observer_id`, signed by its registered
+  key. REQUIRED.
 - `canary_commitment`: `root`, the `sha256:`-prefixed Merkle root over
   the leaves (§5.1), and `leaves`, their count as an integer from 1 to
   `canary_leaves_max`; `subject` the planter's domain, signed by its Key
@@ -3206,7 +3243,9 @@ mirroring §7 and §3:
   `sha256:`-prefixed strings, leaf level first); `subject` the canary
   domain, signed by its Key Set (§5.1). All REQUIRED.
 - `aggregator_key_remove`, `auditor_remove`: `key_id`. An
-  `auditor_remove`'s `evidence` (top-level), where present, MUST name at
+  `auditor_remove`'s `subject` is the `auditor_id` whose key it retires,
+  in the hostname shape an `auditor_admit` requires, and its `evidence`
+  (top-level), where present, MUST name at
   least one ID: its presence is what makes the removal for cause (§4),
   and an empty array would be a removal that is neither for cause nor an
   exit.
@@ -3257,6 +3296,54 @@ Record carries `prev_record` (§4), the same Auditor's preceding
 publication for that Log or `null`.
 §4 and §7 govern the rest of their content in prose, not the schema.
 The same is true of any action a future major revision adds.
+
+**Envelope eligibility and precedence.** Every party validating a
+Registry Update — an Aggregator before sealing one, and any party
+replaying the Log — MUST apply WIST-1 §4's JSON/JCS eligibility first;
+failure is `WIST1-E05`. Preserve the original signed object; parsing
+MUST reject duplicate decoded member names, including inside nested
+objects. Then validate the complete Envelope against
+`schemas/registry-update.schema.json`. A failure in a member the schema
+constrains for the act's `action` — `details`, `evidence`, or a
+`subject` outside the shape that action's contract fixes — is
+`WIST4-E04`. Any other field failure is `WIST4-E11`: a missing or
+unknown Envelope, `update` or `sig` member; a non-object container; a
+malformed `wist_version`, `action`, `effective_at` or signature field; a
+`subject` outside the general bound; and a leap second or a timestamp
+denoting no instant (WIST-3 §3.1), year zero included. E11 takes
+precedence over E04; field failures take precedence over authenticity
+and semantic diagnostics.
+
+`wist_version` follows §10.1's spelling and support rule: exactly three
+dot-separated nonnegative ASCII decimal components, without leading
+zeros except `0` itself, suffixes or a numeric upper bound; a major
+other than `1` is `WIST4-E11`, and a different minor or patch component
+alone MUST NOT reject. This is the act's own version check, independent
+of any object it names.
+
+After field validation, authenticate the act under the signing rule its
+`action` fixes: for an act the Aggregator signs, the Log key `sig.key_id`
+names, valid at the act's Block (WIST-3 §3.4); for an
+`observer_register`, the very `key_id` and `public_key` its `details`
+register; for an `observer_checkpoint`, the key registered for its
+`subject` at its Block (§3.1); for a `coverage_attestation`, the key its
+`subject` holds at its Block (§4); for an `appeal`, the notice-era Key
+Set (§7); for a `canary_commitment` or `canary_reveal`, the domain's Key
+Set at the sealing Block (§5.1). Verification uses WIST-1 §4's profile.
+An act whose `sig.key_id` names no key that rule admits, or whose
+signature does not verify under the key it names, is `WIST4-E11`, except
+where its section registers another code: an `observer_checkpoint` under
+a key not registered for its `subject` is `WIST4-E07` (§3.1), and an
+`appeal` keeps `WIST4-E05` for an absent identifier and `WIST1-E01` for a
+failing signature (§7). Authenticity takes precedence over semantic
+diagnostics.
+
+An act rejected under `WIST1-E05`, `WIST4-E11` or `WIST4-E04`, or left
+unauthenticated, is ignored as every §10.2 rejection is: it takes no
+part in §3.1's batch or §7's slot allocation, changes no roster,
+registry, process or canary state, and leaves the containing Block
+valid. The one `WIST4-E04` decided inside §3.1's batch is its evidence
+rule (`track_record`), at stage 2.
 
 **Self-signed acts reach the Log by pull.** A domain serves the Registry
 Updates it signs for itself — `observer_register`, `observer_checkpoint`,
@@ -3375,13 +3462,14 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | WIST4-E01 | Audit Record signature/authorship failure under §10.1, or void for standing: signed by a key not admitted at (or removed at or before) its Block's `sealed_at`; a `vrf_proof` that gives no standing — one verifying over neither the audited Block with `audited_delta` in its selection set nor a Block *B₁* at which §4's extension rule names `audited_delta` for the Auditor; a Delta outside its Block's selection domain (§4); a self-audit (§3); or an Auditor in coverage failure at sealing (§3). Ignored in replay: no reputation input, no Confirmed Inconsistency. Coverage reads it by the §3 carve-out: a Record void only because its key was removed after the `sealed_at` of the Block its duty is anchored to — the audited Block for a VRF selection, *B₁* for an extension (§4) — or because its Auditor is in coverage failure at sealing, still discharges the §4 duty anchored there; in every other case there was no duty to discharge — a key never admitted at that Block, a proof binding the Record to no Block that selected or named `audited_delta` for it, a Delta outside the selection domain, a self-audit — and the Record discharges nothing, whatever else is also true of it. |
 | WIST4-E02 | Audit Record evidence-field failure under §10.1, or malformed as evidence: `fetched_at` outside §3's closed interval; a `reference_delta` outside the audited Delta's chain, before `audited_delta` in it, or sealed after `fetched_at` (§3); `similarity` or `link_agreement` failing §5's condition for its own verdict; a `link_agreement` carried where §5 makes the link dimension neutral; a measured Record without `credit_commitment` (§5.2); a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5). Ignored in replay as a WIST4-E01 Record is: no reputation input, no Confirmed Inconsistency. It discharges the §4 duty it answers (§3): the Auditor held standing, fetched and published, and the defect is in the Record as evidence, not in the duty's discharge. |
 | WIST4-E03 | Registry Update rejected under §9, including a prospective schedule that fails a combination rule: a `parameter_change` naming an identifier §9 does not list, a value outside its §9 bound, or an amendment §8's Invariants or §9's unamendable rows forbid. Ignored during replay; the Registry value in force is unchanged. |
-| WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, or whose `subject` has none and carries one (§3.1). Ignored as WIST4-E03. |
+| WIST4-E04 | Registry Update `details` contract violation (§9.1): a REQUIRED `details` or `evidence` member missing or malformed for its `action`, a `subject` outside the shape that action's contract fixes, a bare content digest, or personal data; an `auditor_admit` whose `subject` has an Observer history and carries no `track_record`, whose `subject` has none and carries one, or whose citation is not the newest accepted checkpoint below its Block (§3.1). Ignored as WIST4-E03. |
 | WIST4-E05 | An appeal or ruling violating §7's process identity, eligibility or multiplicity rules; a sanction notice failing §7's activation or evidence contract or notice multiplicity rules; or a governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E07 | A roster act rejected by §3.1's simultaneous-batch rules; or a roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` under a key not registered at its Block or naming no Audit Record or `coverage_attestation` (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
+| WIST4-E07 | A roster act rejected by §3.1's simultaneous-batch rules; or a roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` not authenticated under the key registered for its `subject` at its Block, read after that Block's batch (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
 | WIST4-E08 | Canary act rejected (§5.1): a `canary_commitment` past its planter suffix's epoch ration or with `leaves` outside 1 … `canary_leaves_max`; a `canary_reveal` naming no sealed or an already-revealed commitment, an index out of range or repeated, a Delta that is not the canary domain's or was sealed inside the lead, a Delta bound to two leaves, an inclusion proof that fails, or a reveal sealed before the reveal minimum or after the lifetime. Ignored during replay; the commitment stays unrevealed, and nothing scores under it. |
 | WIST4-E09 | Audit Record non-evidence field failure (§10.1). Ignored in replay; no reputation input, confirmation, extension trigger or coverage discharge. |
 | WIST4-E10 | Audit Record major version not implemented by the validator (§10.1). Ignored with the same exclusions as E09. |
+| WIST4-E11 | Registry Update Envelope failure under §9.1: a field failure outside the act's `details`, `evidence` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields; a major version the validator does not implement; or an act not authenticated under the signing rule its `action` fixes, where its section registers no other code. Ignored as WIST4-E03: no roster, registry, process or canary state changes, the act is no candidate in §3.1's batch, and the containing Block stays valid. |
 
 ## 11. Security Considerations
 
@@ -3770,6 +3858,11 @@ bound by WIST-3 §6.2's destroy obligation exactly as an Auditor is.
       `observed_at` or wall clock time (§6.1)
 - [ ] Applies §10.1's complete Record field/version checks and diagnostic
       precedence, and separately establishes every coverage-discharge premise
+- [ ] Applies §9.1's Registry Update field, version and authenticity
+      checks and their precedence before any batch, process or canary
+      rule, admits only eligible acts as §3.1 candidates, reads a
+      checkpoint's key after its Block's batch and an admission's
+      Observer history and citable checkpoints below its Block (§3.1, §9.1)
 - [ ] Verifies VRF proofs before counting a Record (§4)
 - [ ] Derives the roster from the Log — one key per `auditor_id` per
       height, read at each Block's `sealed_at` — rejecting the acts

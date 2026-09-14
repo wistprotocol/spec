@@ -1,0 +1,1879 @@
+{
+  "spec": "WIST-4 sections 3, 3.1, 9.1, 10.2",
+  "note": "Signed roster-act histories: Blocks at heights 1, 2, ... in Log order, each Entry a Registry Update Envelope as raw JSON with its replay outcome. Eligibility follows section 9.1 in precedence: raw JSON (WIST1-E05), general fields and version (WIST4-E11), the action's details/evidence/subject contract (WIST4-E04), then authenticity (WIST4-E11; a checkpoint under an unregistered key is WIST4-E07); only eligible acts enter section 3.1's batch, where roster rules are WIST4-E07 and the evidence rule is WIST4-E04. An admission reads Observer history and citable checkpoints below its Block; a checkpoint reads the registrations after its Block's batch; an admitted public_key is a string at replay. Blocks are unsigned contexts here: consumers seal them under their own Log key at their own strictly increasing instants. The auditors, observers and accepted checkpoint IDs after the last Block are listed per case, checkpoints ordered by height then ID octets, since Entry position within a Block carries no meaning.",
+  "log_id": "log.example.org",
+  "log_key": {
+    "key_id": "test-agg-k1",
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+  },
+  "keys": [
+    {
+      "key_id": "aud-a",
+      "public_key": "DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ"
+    },
+    {
+      "key_id": "aud-a2",
+      "public_key": "DQoE-R02q08mHKQk-L2o_UnwDSMv8UvCu15_NlRPeL8"
+    },
+    {
+      "key_id": "aud-b",
+      "public_key": "vUdAF35AXBJzHNWH0oUSoB8K6C-3ZAA8-Ns2MGRv0SE"
+    },
+    {
+      "key_id": "obs-a1",
+      "public_key": "5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU"
+    },
+    {
+      "key_id": "obs-a2",
+      "public_key": "1XFRvTUjLTFompW_CloVie828JAMSCEiLFlkaDI9ebM"
+    },
+    {
+      "key_id": "obs-b1",
+      "public_key": "iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA"
+    },
+    {
+      "key_id": "small-order",
+      "public_key": "xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA3o"
+    },
+    {
+      "key_id": "stranger",
+      "public_key": "_qCuF8d25f9LGbDIwo3JTqZARuf0dsqmi5uTYzNGnqA"
+    }
+  ],
+  "record_probe": {
+    "note": "A Record under the admitted small-order key: the roster holds the key as a string, and every signature and proof under it fails verification.",
+    "envelope": {
+      "record": {
+        "wist_version": "1.0.0",
+        "audited_delta": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
+        "reference_delta": "sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860",
+        "auditor_id": "watch.alpha.test",
+        "fetched_at": "2026-08-02T14:00:00Z",
+        "response_commitment": "hmac-sha256:07ef725032b51ef3fc4bfeb59324ad160f52363df4f165ff63e9473952bf637a",
+        "credit_commitment": "hmac-sha256:033ec11204a85056a129322dddac95783ebe61eaba5549a2bd8f212f86726e12",
+        "ref_extract_commitment": "hmac-sha256:de14592527c52b7349508992a040e2327611fd82be20a4a4b314bac2f99d5f3d",
+        "similarity": 940000,
+        "link_agreement": 1000000,
+        "verdict": "consistent",
+        "evidence_commitment": "hmac-sha256:79922c24d14b5aa634d2a29a440d577c12cba0860700b8f93b11fe2ad9812638",
+        "vrf_proof": "05c6ecc1a397b73133bd160eded515e4833c4bbd5e7a90a0d3231d276b63ad071e30092746899cc13335084bcce9ce695da8a42ac6731662abda8ab2df821372697b648ea4ec66dc4de79018ba7f9c01",
+        "prev_record": null
+      },
+      "sig": {
+        "key_id": "small-order",
+        "alg": "Ed25519",
+        "value": "WQretr4HdasS7tEwjl-gKm_VPcDhiRjYPX7Amks1eh7DLHzMchPoQNedH8Cr_iLclr4Zr_SYngx1ePlFgPt-DQ"
+      }
+    },
+    "expect": "WIST4-E01"
+  },
+  "cases": [
+    {
+      "label": "admission valid admission",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "complete fields, supported version, Log signature"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission unknown envelope member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "an unknown Envelope member is a general field failure"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission unknown update member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}, \"note\": \"x\"}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"L-EP_hvF0n778qByZ-LWtZmKMlF12X_6kjEy3KzbMpo9sFWJkG4ipDfM7Y5iW2IAWz_a84dUuD83qR1Dp4qQDg\"}}",
+              "expect": "WIST4-E11",
+              "why": "signed over the unknown member, so only the field fails"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission unknown sig member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\", \"note\": \"x\"}}",
+              "expect": "WIST4-E11",
+              "why": "the signature block admits no unknown member"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission signature alg spelling",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "WIST4-E11",
+              "why": "alg is the exact constant Ed25519"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission signature value non canonical",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDB\"}}",
+              "expect": "WIST4-E11",
+              "why": "nonzero trailing base64url bits fail the exact pattern"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission signature value trailing newline",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\\n\"}}",
+              "expect": "WIST4-E11",
+              "why": "exact whole-string patterns reject a trailing newline"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission version leading zero",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"01.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"fquRFY0yq4fcND-uCx4nyi9s_Uc2ZjumK7xfJy97snCnwzhcucmttSw3aFeR3St9-f_odkbh5rlXbJWrzXUFAw\"}}",
+              "expect": "WIST4-E11",
+              "why": "components carry no leading zero"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission version trailing newline",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\\n\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"tlU2Ih8WgsXwlSQkhk3B0RCKKD6VaYPK7TL8YW5F6GGfueMdBbmqnm06TPcHVyhiNG883icGrEWzwpef-qzSCw\"}}",
+              "expect": "WIST4-E11",
+              "why": "signed over the malformed spelling, so only the field fails"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission version unsupported major",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"P8ECgqBgdo3FaRAmopWF8G-6Gz9Wo2XHmOhQJu2vs6qMHs_NF1PgfTrII64hYxiweETlrh-1_cwivdY0gr03Dg\"}}",
+              "expect": "WIST4-E11",
+              "why": "a major other than 1 is not implemented"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission version later minor accepted",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.7.3\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"6TycT6PwKLKCDePH-tTAIVkxyy_Bfv7FhfjOAd2uVqgyRK6aypP5eOWYUSA4hqO8hGC1cHgh3kC-IlXFBqEjBw\"}}",
+              "expect": "accepted",
+              "why": "a different minor or patch alone never rejects"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission effective at leap second",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:60Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"00x_IneE_L3eNae5Fs9Mo0M2eoF9SxkwDhAijUjcj1nsXnFU6vdqjLkROXxevpvuoeRt85vjItfZhqjovUxPAQ\"}}",
+              "expect": "WIST4-E11",
+              "why": "a leap second is rejected, never normalized"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission effective at no instant",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-02-30T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_QocHHGSC68J72Z3MGmHubYde_aDxurX5PwDSKu27NQoRSnlzIzMw__FSJF5xvY2rk2l3jPHRdqbgPFFBVNdAg\"}}",
+              "expect": "WIST4-E11",
+              "why": "the pattern passes but the calendar has no such day"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission effective at offset form",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00+00:00\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"GxdGD1n40_8irFRQr7l0rghFlGaY5fH1qs67NHWuoUodl7Zaf5Vyw3PmKpfPQVY1YDh68Q9L0MKA0St9UVZZBw\"}}",
+              "expect": "WIST4-E11",
+              "why": "only the whole-second literal-Z form compares against sealed_at"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission details missing public key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"g7OSHh3t2wy25-2VOrBJrfJiF-2oqNfcRzfpXp6hx1cDY8FXpY1bZ3TYkmJchV7JeR5Y9bhU9fMR-mjP--U-DQ\"}}",
+              "expect": "WIST4-E04",
+              "why": "a REQUIRED details member is missing"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission details public key non canonical",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdB\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"5IBfS6i67QkYSbFZNp0RoRdwyoYm83uguspbyKPMZKR_cWL_1DauFkd7B3nsRv3AcAXgxyORW2sSc5Org5e3Cg\"}}",
+              "expect": "WIST4-E04",
+              "why": "the key pattern is exact and canonical"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission details key id too long",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"OwYgA5d7S_7I3BsNKBm_57EXy64fjQroig4T6JCb3pFg38-Lu-xo1Vty3tcq36xdu3C6IxFSXFJHnoCtEw14CA\"}}",
+              "expect": "WIST4-E04",
+              "why": "key_id exceeds the contract's bound"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission subject one label",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"localhost\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"FI6bxHcXfOcQb9cZ6WZTQMI5zwnqpeoK6ROemca0pGJmxqOVGvxHw7FWJuzepMIxHGbidmW9KFggc5FA14hEAg\"}}",
+              "expect": "WIST4-E04",
+              "why": "an auditor_id has at least two labels"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission subject uppercase",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"Watch.Alpha.Test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"CQZcM4F5dFW01H_cu26FuBzLCpWjxuVr6RvAzz7zow8dX1-yL6XhGESnfV0a6u91IQCCSx2xKCnSF6kHFvDjAQ\"}}",
+              "expect": "WIST4-E04",
+              "why": "the contract fixes lowercase hostname shape"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission subject dependent on log id",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"audit.example.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"AOCqyVmNdr7JHEfhZtK0Y-nn0rHnjlrs89KM25YlLCx1F8dvr0Cn40zQeWOnh-PDFoq23Iqx6vjo14CdEmi0BQ\"}}",
+              "expect": "WIST4-E07",
+              "why": "eligible fields, then the roster's independence rule"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission signature tampered",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"Mghec3QkZkb_HblnRJSe9UxhSRFTzD4Izkhbevr1AbfxR_n_XdH5LeUqSNq_Ot-smbIvGMzy0FeaTdZO6JjACA\"}}",
+              "expect": "WIST4-E11",
+              "why": "well-formed signature over other bytes"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission signed by a non Log key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"stranger\", \"alg\": \"Ed25519\", \"value\": \"n3P85p-3h9nIwBkOLmKdl7B_8dpxEscBZ0vb1cK8KqzUAJDeszxgulalY7cfPIywFGrYzCD1Oh9R1xWGXbmjCg\"}}",
+              "expect": "WIST4-E11",
+              "why": "an admission verifies only under a Log key valid at its Block"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission unknown member precedes details",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"g7OSHh3t2wy25-2VOrBJrfJiF-2oqNfcRzfpXp6hx1cDY8FXpY1bZ3TYkmJchV7JeR5Y9bhU9fMR-mjP--U-DQ\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "E11 takes precedence over E04"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission details precede signature",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"Q7Y-NNatNNLHZ5KY1HaTbY-zMJzAqhhn--nv2Z10ls73MGLe7dJOfzBupcI7pMvnttxgnEJ-EDLPNaNKagamDg\"}}",
+              "expect": "WIST4-E04",
+              "why": "field failures take precedence over authenticity"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission unknown member precedes signature",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"Mghec3QkZkb_HblnRJSe9UxhSRFTzD4Izkhbevr1AbfxR_n_XdH5LeUqSNq_Ot-smbIvGMzy0FeaTdZO6JjACA\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "field failures take precedence over authenticity"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission fields precede roster rule",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"audit.example.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"AOCqyVmNdr7JHEfhZtK0Y-nn0rHnjlrs89KM25YlLCx1F8dvr0Cn40zQeWOnh-PDFoq23Iqx6vjo14CdEmi0BQ\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "an ineligible act reaches no roster rule"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission duplicate member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "WIST1-E05",
+              "why": "duplicate decoded member names fail JSON eligibility"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission nested duplicate member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "WIST1-E05",
+              "why": "duplicates inside details fail the same way"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal valid removal",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"0VZmuTm--e4TabR9HWE-q5MXo4gBy0agpoCvwk2oMF161HTF8zEI99rAAfkjjsbApkrfMHqDbhR_6WgslFCnCw\"}}",
+              "expect": "accepted",
+              "why": "the subject holds the named key before the Block"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal empty evidence",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\"}, \"evidence\": []}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"OsYC5qcqcyEh5YPoIlEO7ojjWvVIgfoSumuGnkHdAKPpOn9kZEohWazs14mPG7mfnaD-5ugbrBdJZzzueomTDw\"}}",
+              "expect": "WIST4-E04",
+              "why": "evidence, where present, names at least one ID"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal subject one label",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"localhost\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"9Z8yeWGVVZkJa7GpWjqrwfqL7b3ZfrETdFd8BFrQvjKtLq0Xe7wifFsJd-KTArWtjmIe5BcK2gXCD5Mn1x7RCg\"}}",
+              "expect": "WIST4-E04",
+              "why": "the removal names an auditor_id in hostname shape"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal unknown member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"0VZmuTm--e4TabR9HWE-q5MXo4gBy0agpoCvwk2oMF161HTF8zEI99rAAfkjjsbApkrfMHqDbhR_6WgslFCnCw\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "general field failure"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal tampered signature",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"Pg0tZCDy1YDSNaFIQ0iNti3iX-BMbyOq41qcA9fMBPW_m7U21QHR6m4GPfdTh_w7E51cVzGrnUYrhOTfaeLhAw\"}}",
+              "expect": "WIST4-E11",
+              "why": "authenticity fails under the Log key"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal unheld key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-b\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"yUABCmT-ZV-zavs3mc1x6k6hVtRtzjoCebzV9Kngpdwf9TE5aacgGWT1uV83Ky6bTNUzS9GgKZd2TemDVvtlBA\"}}",
+              "expect": "WIST4-E07",
+              "why": "eligible fields, then the roster rule"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal fields precede roster rule",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-b\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"yUABCmT-ZV-zavs3mc1x6k6hVtRtzjoCebzV9Kngpdwf9TE5aacgGWT1uV83Ky6bTNUzS9GgKZd2TemDVvtlBA\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "an ineligible act reaches no roster rule"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "removal for cause bars the subject",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\"}, \"evidence\": [\"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"]}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"9oeTNttPW__0SKpvBMScN7hL-KyUxfjSX8uiQhvLEZyROGKaQM0EZQC6eUVknRF85aOwW-rQHb0o638FsOi8Cg\"}}",
+              "expect": "accepted",
+              "why": "evidence makes the removal for cause"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a2\", \"alg\": \"Ed25519\", \"public_key\": \"DQoE-R02q08mHKQk-L2o_UnwDSMv8UvCu15_NlRPeL8\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_DfeUfLtdGyn-ZF64NFgSuxftHBEqaJHfhji_6XNOdyW2iSSZftRxiynoDSxIJrkcelN7SfErKCSKUuLeizBAg\"}}",
+              "expect": "WIST4-E07",
+              "why": "a barred subject is not re-admitted"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration valid registration",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"g9Eqxg3WyMgmUIQgqEuQm7QOh7F07QMffBTwLg4TWTy1KaBwyDKvEi1HO-XeBW3Vs1fKJEvxOe4DgrFuezZLCw\"}}",
+              "expect": "accepted",
+              "why": "self-signed under the key it registers"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.beta.test": "obs-b1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration signed under another identifier",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b2\", \"alg\": \"Ed25519\", \"value\": \"g9Eqxg3WyMgmUIQgqEuQm7QOh7F07QMffBTwLg4TWTy1KaBwyDKvEi1HO-XeBW3Vs1fKJEvxOe4DgrFuezZLCw\"}}",
+              "expect": "WIST4-E11",
+              "why": "sig.key_id must be the very key_id the details name"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration signed by the Log key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"OgjuArGFaxG_afZeVSq1OcriWcJUkr5otJHCZHB2xNglKGNSNyzUV8RtxI9G0SMIqc10gitNqAk1-ChuURBjCg\"}}",
+              "expect": "WIST4-E11",
+              "why": "the signature verifies under no key the rule admits"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration under a small order key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"small-order\", \"alg\": \"Ed25519\", \"public_key\": \"xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA3o\"}}, \"sig\": {\"key_id\": \"small-order\", \"alg\": \"Ed25519\", \"value\": \"zEr5DHlrs9VH4JcNYrHiOrqHVNP_gfI-XnvoZz9YALd8k-KYIEwhuJnn8j4llqNBl1-0ItLZQevt8DsXCMniCg\"}}",
+              "expect": "WIST4-E11",
+              "why": "nothing verifies under an unusable point"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration unknown member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"g9Eqxg3WyMgmUIQgqEuQm7QOh7F07QMffBTwLg4TWTy1KaBwyDKvEi1HO-XeBW3Vs1fKJEvxOe4DgrFuezZLCw\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "general field failure"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration subject one label",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"localhost\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"fK4C4kuaEtp_uUq3VcnMkMFJcwRVbQlhrVErCSJONqGzDBnF1hW_9-b8LbimFx-pxK1fcUGyCx-vLaVXEXpSBg\"}}",
+              "expect": "WIST4-E04",
+              "why": "an observer_id has at least two labels"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration version unsupported major",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"GhSgD9HExNj5kWzgAHPMrbJiB4bh7V20FdpeyZNy6DtO7z-KXWoV9KPq6_eM6-30d0Ky8RDKxf0xWXRKWGt5Cw\"}}",
+              "expect": "WIST4-E11",
+              "why": "the act's own version check"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "registration dependent on log id",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.example.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"Geo1l2Qzt5wnH13dtMO6PM4RBWewXYGwUKYZLj-_KXkel3nYwhFiKzvg5eqFzDgkS6HmUBwI4uM_b2Rr14NZAw\"}}",
+              "expect": "WIST4-E07",
+              "why": "eligible fields, then the independence rule"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint valid checkpoint",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "signed by the key registered at its Block"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899"
+      ]
+    },
+    {
+      "label": "checkpoint head malformed",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:notahash\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"oEbIYbFaamBtRt4Tfzo7HuLYTMVEaR3YmmJfCYUu6aNoAWxtYP0YuamqWsrShLBCWhCJZKRpdOAIZsPON-huBw\"}}",
+              "expect": "WIST4-E04",
+              "why": "head is a REQUIRED details member checked by spelling"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint head names a Delta",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"hh-meYAWsUo4AuWVpT8TVPHUDJbBDf3gIHmOPcpSR0-uFJB0xNraxEOqsGsPHR9jU5ahgiVpW882fsOPlloWAA\"}}",
+              "expect": "accepted",
+              "why": "replay reads spelling only; the scoreboard resolves what it covers"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": [
+        "sha256:83f1553c3ec3ccaa4926e92c45543992659e825ce93de5f3b1fc6d58c474c5bd"
+      ]
+    },
+    {
+      "label": "checkpoint head names no sealed entry",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:e8d3df056702d4d4231c1340a51507c108122c55f0dfbb545d2a3b68651bcac8\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"akp4dyLr_pBmSARwnoL6xbfRtgwuD6S9tDpk-8XCl4Bq6-OdZtm7TPBxlDPV0S6gMcfYRINoE34UJ8HedomhDw\"}}",
+              "expect": "accepted",
+              "why": "no sealed Entry is required under a head"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": [
+        "sha256:5a136f8fe6ddbdcb6b0487658697c60151cb4a159ef3d422779498b2c8f15281"
+      ]
+    },
+    {
+      "label": "checkpoint under an unregistered key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"stranger\", \"alg\": \"Ed25519\", \"value\": \"YSg1ZKqskCbHA3SWFjQYgi7zW8hZZZFXwQ3Nw-9j8RcGth0LYqcx0_pti0U1lNhqn-AI-UVdLQVN5VKs2hsmBQ\"}}",
+              "expect": "WIST4-E07",
+              "why": "the key is not registered for the subject"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint under the Log key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"BisQsBCFjj0PMx6m9te6_3Leb1pM80iQnYXX--PdLU3EnIio7g7q60IlMU1EwK-FVde8lEXjlnQM2JqIWxrPBw\"}}",
+              "expect": "WIST4-E07",
+              "why": "an Aggregator key registers nothing"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint for an unregistered subject",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"qJTYdpbfEOZ7jwfJR1aMA9km-I3qi3p0NAdJqnh2-OUjBWOvCBWL2HoZKrCGiUWwu9yte3emAZOTDGf3YIltDA\"}}",
+              "expect": "WIST4-E07",
+              "why": "the subject holds no registered key"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint tampered signature",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"akp4dyLr_pBmSARwnoL6xbfRtgwuD6S9tDpk-8XCl4Bq6-OdZtm7TPBxlDPV0S6gMcfYRINoE34UJ8HedomhDw\"}}",
+              "expect": "WIST4-E07",
+              "why": "not authenticated under the registered key"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint unknown member",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "general field failure"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint fields precede key rule",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"stranger\", \"alg\": \"Ed25519\", \"value\": \"YSg1ZKqskCbHA3SWFjQYgi7zW8hZZZFXwQ3Nw-9j8RcGth0LYqcx0_pti0U1lNhqn-AI-UVdLQVN5VKs2hsmBQ\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "an ineligible act reaches no key rule"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "checkpoint version unsupported major",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"S4LbAU9wdhiArElEjSKHkAKZXaux2SAHtbPYJooiqsVTN4t3V2w1iAYTvqeChsHbc07aPhLJoIKr8Gz30I3NBQ\"}}",
+              "expect": "WIST4-E11",
+              "why": "the act's own version check"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "ineligible admission forms no group",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a2\", \"alg\": \"Ed25519\", \"public_key\": \"DQoE-R02q08mHKQk-L2o_UnwDSMv8UvCu15_NlRPeL8\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_DfeUfLtdGyn-ZF64NFgSuxftHBEqaJHfhji_6XNOdyW2iSSZftRxiynoDSxIJrkcelN7SfErKCSKUuLeizBAg\"}, \"extra\": 1}",
+              "expect": "WIST4-E11",
+              "why": "no candidate, so no same-subject group"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "two eligible admissions form a group",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "WIST4-E07",
+              "why": "same-subject group of two"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a2\", \"alg\": \"Ed25519\", \"public_key\": \"DQoE-R02q08mHKQk-L2o_UnwDSMv8UvCu15_NlRPeL8\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_DfeUfLtdGyn-ZF64NFgSuxftHBEqaJHfhji_6XNOdyW2iSSZftRxiynoDSxIJrkcelN7SfErKCSKUuLeizBAg\"}}",
+              "expect": "WIST4-E07",
+              "why": "same-subject group of two"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "malformed details form no group",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a2\", \"alg\": \"Ed25519\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"o22msRV1y_hfkDvBZIF5beExF0Py9rgp9A-mpZ6pWyUN8F7bOAEBEDfzs6wvtrxVvb039Rg7OSzyY2dLBwAEDQ\"}}",
+              "expect": "WIST4-E04",
+              "why": "rejected before the batch"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "unauthenticated admission holds no key",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "Log-signed admission with complete fields"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"stranger\", \"alg\": \"Ed25519\", \"value\": \"vjbuxlywirUqVioFM8LapX6yZ-FYe6Yuqr9atuC70WpfG9xa6huQ11wzz9qBSirS8XJ2J1Rwyk3tHla9HpngBg\"}}",
+              "expect": "WIST4-E11",
+              "why": "no candidate, so no cross-subject key conflict"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "evidence rule is inside the batch",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "checkpoint beside its own registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zxPJVtFtOZNzxXynWsz9FAG-vEoBNgkonq5E3YoiGCc7oiPUmM7lksa6muPUo7_dAhH8Id3h-FhQ0Y9WXGlBw\"}}",
+              "expect": "WIST4-E07",
+              "why": "stage 1 sees both admissions"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a2\", \"alg\": \"Ed25519\", \"public_key\": \"DQoE-R02q08mHKQk-L2o_UnwDSMv8UvCu15_NlRPeL8\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_DfeUfLtdGyn-ZF64NFgSuxftHBEqaJHfhji_6XNOdyW2iSSZftRxiynoDSxIJrkcelN7SfErKCSKUuLeizBAg\"}}",
+              "expect": "WIST4-E07",
+              "why": "the missing track_record is a stage 2 question never reached"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899"
+      ]
+    },
+    {
+      "label": "roster rule precedes evidence rule",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "checkpoint beside its own registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zxPJVtFtOZNzxXynWsz9FAG-vEoBNgkonq5E3YoiGCc7oiPUmM7lksa6muPUo7_dAhH8Id3h-FhQ0Y9WXGlBw\"}}",
+              "expect": "accepted",
+              "why": "cites the newest checkpoint below"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\"}, \"evidence\": [\"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"]}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"9oeTNttPW__0SKpvBMScN7hL-KyUxfjSX8uiQhvLEZyROGKaQM0EZQC6eUVknRF85aOwW-rQHb0o638FsOi8Cg\"}}",
+              "expect": "accepted",
+              "why": "removal for cause"
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a2\", \"alg\": \"Ed25519\", \"public_key\": \"DQoE-R02q08mHKQk-L2o_UnwDSMv8UvCu15_NlRPeL8\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_DfeUfLtdGyn-ZF64NFgSuxftHBEqaJHfhji_6XNOdyW2iSSZftRxiynoDSxIJrkcelN7SfErKCSKUuLeizBAg\"}}",
+              "expect": "WIST4-E07",
+              "why": "barred subject; the missing track_record is not reached"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {},
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899"
+      ]
+    },
+    {
+      "label": "registration beside admission establishes no history",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "WIST4-E07",
+              "why": "stage 3 rejects the registration beside the accepted admission"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "no accepted registration below the Block, so no track_record is due"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
+      "label": "admission citing a same Block registration",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zxPJVtFtOZNzxXynWsz9FAG-vEoBNgkonq5E3YoiGCc7oiPUmM7lksa6muPUo7_dAhH8Id3h-FhQ0Y9WXGlBw\"}}",
+              "expect": "WIST4-E04",
+              "why": "no Observer history below the Block, yet a citation"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": []
+    },
+    {
+      "label": "rotation beside admission",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "checkpoint under the registered key"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a2\", \"alg\": \"Ed25519\", \"public_key\": \"1XFRvTUjLTFompW_CloVie828JAMSCEiLFlkaDI9ebM\"}}, \"sig\": {\"key_id\": \"obs-a2\", \"alg\": \"Ed25519\", \"value\": \"fvHQ5x1w1jx42xl5aaSKDnzYU89sm0JQHx8ylnhmKaVmFjSmFgsxeG0UaEHLFqTTrg-1oPVwgn73gA7gm-BnBQ\"}}",
+              "expect": "WIST4-E07",
+              "why": "stage 3 rejects the rotation beside the accepted admission"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zxPJVtFtOZNzxXynWsz9FAG-vEoBNgkonq5E3YoiGCc7oiPUmM7lksa6muPUo7_dAhH8Id3h-FhQ0Y9WXGlBw\"}}",
+              "expect": "accepted",
+              "why": "cites the newest checkpoint below"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899"
+      ]
+    },
+    {
+      "label": "same Block rotation and checkpoints",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a2\", \"alg\": \"Ed25519\", \"public_key\": \"1XFRvTUjLTFompW_CloVie828JAMSCEiLFlkaDI9ebM\"}}, \"sig\": {\"key_id\": \"obs-a2\", \"alg\": \"Ed25519\", \"value\": \"fvHQ5x1w1jx42xl5aaSKDnzYU89sm0JQHx8ylnhmKaVmFjSmFgsxeG0UaEHLFqTTrg-1oPVwgn73gA7gm-BnBQ\"}}",
+              "expect": "accepted",
+              "why": "rotation to obs-a2"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "WIST4-E07",
+              "why": "the old key is not registered after the Block's batch"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-06T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a2\", \"alg\": \"Ed25519\", \"value\": \"fQjRezrQPHes8j24VNjc0wbiWEAi_yskTYtv-705DeynailNTnPFqhp-YWw40AK7EdMw0Ys9ueEpgO3t5u33Cw\"}}",
+              "expect": "accepted",
+              "why": "the new key is registered from this Block's sealed_at"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a2"
+      },
+      "checkpoints_after": [
+        "sha256:b1766e2a5d9819f214237cff9a94d9a477abf52da2a7517f28e4ffd472f2e550"
+      ]
+    },
+    {
+      "label": "checkpoint beside its registration",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "registered from this Block's sealed_at"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899"
+      ]
+    },
+    {
+      "label": "checkpoint beside the admission of its subject",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "checkpoint below the admission"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zxPJVtFtOZNzxXynWsz9FAG-vEoBNgkonq5E3YoiGCc7oiPUmM7lksa6muPUo7_dAhH8Id3h-FhQ0Y9WXGlBw\"}}",
+              "expect": "accepted",
+              "why": "cites the newest checkpoint below"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-06T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"IrtinuPapBkDoBXOeShdktgWCLqTLEiV2YyArG5OS1KwNqGVDJFG5LsFt3c9nN8bIc44e8OhKdWfZtSBOYcnDQ\"}}",
+              "expect": "WIST4-E07",
+              "why": "the subject holds no registered key once admitted in this Block"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899"
+      ]
+    },
+    {
+      "label": "citation of a same Block checkpoint",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "checkpoint below the admission"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-06T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"IrtinuPapBkDoBXOeShdktgWCLqTLEiV2YyArG5OS1KwNqGVDJFG5LsFt3c9nN8bIc44e8OhKdWfZtSBOYcnDQ\"}}",
+              "expect": "accepted",
+              "why": "the admission is rejected, so the registration continues"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:b1766e2a5d9819f214237cff9a94d9a477abf52da2a7517f28e4ffd472f2e550\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"g5yp_zC8iNBIkdrQvtORP424tfxPc3o7F5mfpjyRf8zwRJo4nEIctIvCN2Rf52ykXL833pipcfC8Qq_TaloXCA\"}}",
+              "expect": "WIST4-E04",
+              "why": "a same-Block checkpoint is never citable; the newest below is the earlier one"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899",
+        "sha256:b1766e2a5d9819f214237cff9a94d9a477abf52da2a7517f28e4ffd472f2e550"
+      ]
+    },
+    {
+      "label": "rejected admission keeps the registration for its checkpoint",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"public_key\": \"iuD8YAXiOK3Bb3PkupjmaDQElFBeB5kCoLpqSPynAWA\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"g9Eqxg3WyMgmUIQgqEuQm7QOh7F07QMffBTwLg4TWTy1KaBwyDKvEi1HO-XeBW3Vs1fKJEvxOe4DgrFuezZLCw\"}}",
+              "expect": "accepted",
+              "why": "second Observer"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "beside its registration"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-b1\", \"alg\": \"Ed25519\", \"value\": \"sus0UXESOifOlsOlmJpt8WfHQUi5THhVNFx3cEmBMoK0SHD2QjdTnbiYVIdrkNBuNvDOTTnkuzG8XgvYUaxEBw\"}}",
+              "expect": "accepted",
+              "why": "beside its registration"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zxPJVtFtOZNzxXynWsz9FAG-vEoBNgkonq5E3YoiGCc7oiPUmM7lksa6muPUo7_dAhH8Id3h-FhQ0Y9WXGlBw\"}}",
+              "expect": "WIST4-E07",
+              "why": "cross-subject key conflict at stage 4"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\", \"track_record\": {\"checkpoint\": \"sha256:53aa863cebc9e1e6fe6627efa5d71727b95011518b406b9fdcbf1a113a815a30\", \"scoreboard\": {\"provisional\": [0, 0, 0], \"standing\": [0, 0, 0], \"mature\": [0, 0, 0]}}}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"T5FSb7wak6fEwlpPsOC7f7TK4FfLiqSODEIr-4t44cgmDtx7rE_qNRUDgLXrf9pGWssn0HE7LwB7NcsEtQgrDg\"}}",
+              "expect": "WIST4-E07",
+              "why": "cross-subject key conflict at stage 4"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-06T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"IrtinuPapBkDoBXOeShdktgWCLqTLEiV2YyArG5OS1KwNqGVDJFG5LsFt3c9nN8bIc44e8OhKdWfZtSBOYcnDQ\"}}",
+              "expect": "accepted",
+              "why": "the registration outlives the rejected admission"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1",
+        "watch.beta.test": "obs-b1"
+      },
+      "checkpoints_after": [
+        "sha256:53aa863cebc9e1e6fe6627efa5d71727b95011518b406b9fdcbf1a113a815a30",
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899",
+        "sha256:b1766e2a5d9819f214237cff9a94d9a477abf52da2a7517f28e4ffd472f2e550"
+      ]
+    },
+    {
+      "label": "small order key is admitted as a string",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"small-order\", \"alg\": \"Ed25519\", \"public_key\": \"xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA3o\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"ivuoS-AdZwUSyaJeeUg0TdAoxzhHQggFFPeUf1ev4-Wvcq0IWJwKqVEmvKABgsNf42rM77Hq810vdTb8IwnkCA\"}}",
+              "expect": "accepted",
+              "why": "the admission checks spelling; replay reads no point validity"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.beta.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"other-id\", \"alg\": \"Ed25519\", \"public_key\": \"xxdqcD1N2E-6PAt2DRBnDyogU_osOczGTsf9d5KsA3o\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"1N8aIynX3WwCRnn6LWKnaGtnRT4zJ4Q6ZHS_urJjVgOZpuG3p1LSUa1Ei4BkzoTwp5upMcYgwrbp8Vm4y9BqCw\"}}",
+              "expect": "WIST4-E07",
+              "why": "the public_key is held by another subject"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"checker.gamma.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"small-order\", \"alg\": \"Ed25519\", \"public_key\": \"vUdAF35AXBJzHNWH0oUSoB8K6C-3ZAA8-Ns2MGRv0SE\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"eCNcAHSCgqlHFUgY_AupzZsmOTkpoX8lvB_RUvDcJmoI-rtZ9smsj1FgpkGgzP3WAPjsZb3Z5OsoCwCj7z8ICw\"}}",
+              "expect": "WIST4-E07",
+              "why": "the key_id is held by another subject"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"small-order\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"a3e2wz7joVmx0GysiDGiKlypr7BOc-hJ1kpKG78KYPGrqxfbqAjamC0Sj1Bzx1mbG7qZwqgnVM9YU0G7qEfTBw\"}}",
+              "expect": "accepted",
+              "why": "retires like any key"
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "a fresh key after the exit"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    }
+  ]
+}
