@@ -87,6 +87,16 @@ from that instant. The `sanction_state` tuple carries the derived level and
 the Audit Record IDs of the active rungs' activations; the notice
 prerequisite bounds the Aggregator's own enforcement, not the tuple.
 
+The derived kinds are live by their own sections: `reputation_inputs`
+once an accepted Delta under the current identity exists, `escalation`
+while an escalation is inside its window and carrying the latest
+establishing instant, `coverage_failure` per failed duty Block that still
+counts. Carrying a domain without an accepted Delta would invent a
+first-accepted instant; carrying every escalation would store instants
+that decide nothing once a later one runs longer; carrying failures that
+no longer count would have a resuming Consumer remove an Auditor a
+replaying one keeps.
+
 ### Appeals and rulings
 
 Each notice has one accepted appeal, one merits ruling and one unappealed-

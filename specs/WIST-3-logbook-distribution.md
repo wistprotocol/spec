@@ -1240,7 +1240,17 @@ two-member `[label, instant]` arrays with `label` one of `"appeal"`,
 in ascending octet order of their JCS bytes; `reputation_inputs`'
 penalties are an array of two-member `[confirming sealed_at, severity]`
 arrays in Log order of the confirming Records, and its counted-URL
-digest set is the ascending-octet-ordered array fixed below. The
+digest set is the ascending-octet-ordered array fixed below. Which
+instances of the derived kinds are live at `log_position` follows their
+defining sections: a `reputation_inputs` tuple exists once the domain has
+an accepted Delta under its current identity, since WIST-4 §6.1 dates `A`
+from that Delta's Block and a domain without one has no inputs to carry;
+an `escalation` tuple exists while any escalation against the domain is
+inside WIST-4 §4's escalation window at `log_position`, and carries the
+latest such establishing `sealed_at`, the instant that decides when the
+state lapses; a `coverage_failure` tuple exists for each failed duty
+Block that counts at `log_position` under WIST-4 §4's count window, one
+per Block. The
 schema pins each kind's arity and member types
 ([`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json));
 the table remains the normative inventory, and a state file omitting a

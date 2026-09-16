@@ -5048,6 +5048,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/feed-next.json", "public_key"): "the fixture Declaration public key",
     ("vectors/wist2/feed-next.json", "value"): "valid or deliberately invalid signatures",
     ("vectors/wist4/withdrawal.json", "delta_id"): "fixture Delta IDs; retrieval is not asserted",
+    ("vectors/wist4/recovery-identity.json", "expected_tuples"): "WIST-3 §7 reputation_inputs tuples whose counted-URL digest sets carry fixture URL digests",
     ("vectors/wist4/withdrawal.json", "public_key"): "the fixture Log public key",
     ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
     ("vectors/wist2/declaration-refresh.json", "id"): "SHA-256 of the served Delta",
@@ -6997,6 +6998,7 @@ def _recovery_identity_vectors():
     inputs = vector["projection_inputs"]
     deltas = {d["label"]: d for d in inputs["deltas"]}
     decay = json.loads((ROOT / "vectors/wist4/decay-table.json").read_text())["values"]
+    tuple_shapes = set()
     for case in vector["cases"]:
         states = replay(case["blocks"], case["pinned_head"])
         resets = [height for height, state in enumerate(states)
@@ -7026,6 +7028,16 @@ def _recovery_identity_vectors():
                        "finding_heights": [f["height"] for f in findings],
                        "active_rungs": _transition_rungs({"blocks": transitions})[-1]}
             assert derived == case["expected_projection"][height], (case["name"], height, derived)
+            sealed = lambda h: case["blocks"][h]["header"]["sealed_at"]
+            expected_tuple = None if not eligible else [
+                "reputation_inputs", "example.com", sealed(first), reset, min(len(urls), 500),
+                sorted(hashlib.sha256(rfc8785.dumps("example.com") + rfc8785.dumps(url)).hexdigest()[:32]
+                       for url in urls),
+                [[sealed(f["height"]), f["severity"]] for f in findings]]
+            assert expected_tuple == case["expected_tuples"][height], (case["name"], height, "tuple")
+        tuple_shapes |= {("absent" if t is None else "reset" if t[3] is not None else
+                          "multi" if len(t[5]) > 1 and len(t[6]) > 1 else "plain")
+                         for t in case["expected_tuples"]}
         target = inputs["notice_target"]
         target_state = case["expected_projection"][target["notice_height"]]
         matches = target["activation_height"] in target_state["finding_heights"] and (
@@ -7051,8 +7063,13 @@ def _recovery_identity_vectors():
         opening = case["blocks"][3]["entries"]
         seqs = [entry["body"]["publisher"]["seq"] for entry in opening]
         assert seqs.index(3) < seqs.index(2), "fixture does not reverse owner/competitor storage order"
+    assert tuple_shapes >= {"absent", "reset", "multi"}, tuple_shapes
     preserved, reset_first = vector["cases"]
     assert preserved["expected_resets"] == [172]
+    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "a `reputation_inputs` tuple exists once the domain has an accepted Delta under its current identity" in prose3
+    assert "carries the latest such establishing `sealed_at`" in prose3
+    assert "a `coverage_failure` tuple exists for each failed duty Block that counts at `log_position`" in prose3
     assert reset_first["expected_resets"] == [3, 171]
     rows = preserved["expected_projection"]
     assert rows[3]["active_rungs"] == [1, 3] and rows[3]["finding_heights"] == [2]

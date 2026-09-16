@@ -1756,7 +1756,7 @@ def recovery_identity_vectors():
               "lifts": [9], "notice_target": {"notice_height": 5, "activation_height": 2, "level": 3}}
     decay = json.loads((ROOT / "vectors/wist4/decay-table.json").read_text())["values"]
     for case in cases:
-        rows, active, seen, reset = [], set(), [], None
+        rows, active, seen, reset, tuples = [], set(), [], None, []
         for height in range(len(case["blocks"])):
             if height in case["expected_resets"]:
                 reset, active, seen = height, set(), []
@@ -1783,7 +1783,14 @@ def recovery_identity_vectors():
                          "C": len(urls), "penalty_n": sum(f["severity"] * decay[(height - f["height"]) // 24]
                                                                   for f in seen),
                          "finding_heights": [f["height"] for f in seen], "active_rungs": sorted(active)})
+            sealed = lambda h: case["blocks"][h]["header"]["sealed_at"]
+            tuples.append(None if not eligible else [
+                "reputation_inputs", "example.com", sealed(first), reset, len(urls),
+                sorted(hashlib.sha256(rfc8785.dumps("example.com") + rfc8785.dumps(url)).hexdigest()[:32]
+                       for url in urls),
+                [[sealed(f["height"]), f["severity"]] for f in seen]])
         case["expected_projection"] = rows
+        case["expected_tuples"] = tuples
         case["expected_notice_target_matches_identity"] = case["expected_resets"][0] != 3
     write_json(ROOT / "vectors/wist4/recovery-identity.json", {
         "note": "WIST-1 section 5.2 and WIST-4 section 6.3. Each signed hourly Block history "
