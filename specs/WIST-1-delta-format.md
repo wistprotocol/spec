@@ -1041,7 +1041,13 @@ by what signs it, using the authenticated public key resolved above:
   `recovery_window_days` from the parameter map in force at that opening
   Block, including amendments effective exactly then. Freeze the end at
   that Block’s `sealed_at` plus that many 86,400-second days. Later parameter
-  amendments and in-window recovery rotations MUST NOT move the end.
+  amendments and in-window recovery rotations MUST NOT move the end. An end
+  later than `9999-12-31T23:59:59Z`, the last instant a Log timestamp
+  denotes (WIST-3 §3.1), cannot be frozen: an Aggregator MUST NOT seal a
+  recovery Declaration whose window would end there, and a Block sealing
+  one is rejected as a whole under `WIST1-E08`, exactly as a Block sealing
+  a superseded Declaration; WIST-4 §9 keeps `recovery_window_days`
+  amendments inside that range from their own `effective_at`.
   A Delta is queued
   when it verifies under **either** the Key Set in effect immediately
   before the recovery **or** the recovery Declaration's own — the union,
@@ -1312,7 +1318,7 @@ WIST2-E03 remain required. See
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` exceeds the clock plus active signed allowance selected by §3.4 |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong Publisher or URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z` (§5.2) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |

@@ -3201,6 +3201,15 @@ leave `mirror_retention_days` below their sum, and a party replaying the Log
 MUST reject one that does directly against this sentence, exactly as for the
 combination cases above.
 
+`recovery_window_days` is bounded by the Log's own clock as well: a
+`parameter_change` whose value, in 86,400-second days from the amendment's
+`effective_at`, would end a window opened at that instant after
+`9999-12-31T23:59:59Z` — the last instant a Log timestamp denotes (WIST-3
+§3.1) — MUST be rejected against this sentence (`WIST4-E03`), because a
+window WIST-1 §5.2 cannot freeze cannot open. A window opened later than
+that `effective_at` can still reach past the range; WIST-1 §5.2 then
+withholds the recovery Declaration from sealing.
+
 `coverage_failures_max` carries no identifier and no bound of its own,
 and needs one in combination for the reason this section opens with: it
 counts Blocks, so the cadence decides what it tolerates in wall-clock

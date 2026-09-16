@@ -2896,30 +2896,50 @@ def _prospective_values(defaults, changes, at_s):
 
 def _recovery_parameter_windows():
     vector = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
+    base = vector["recovery_window_base_s"]
+    assert 0 < base <= 253402300799
+    limit = 253402300799 - base
     seen = set()
+    unsealable = rejected = 0
     for case in vector["recovery_window_cases"]:
         windows = []
         for change in case["accepted_amendments"]:
             assert change["parameter"] == "recovery_window_days"
             assert 1 <= change["value"] <= (1 << 53) - 1
             assert change["effective_at_s"] >= change["sealed_at_s"] + 7 * 86400
+            assert change["effective_at_s"] + change["value"] * 86400 <= limit, case["label"]
+        for change in case["rejected_amendments"]:
+            assert change["parameter"] == "recovery_window_days" and change["code"] == "WIST4-E03"
+            assert change["effective_at_s"] + change["value"] * 86400 > limit, case["label"]
+            rejected += 1
         for event in case["eligible_recoveries"]:
             at = event["sealed_at_s"]
             active = next((window for window in windows if window[0] <= at < window[1]), None)
             if active is None:
                 days = _prospective_values({"recovery_window_days": 7},
                                            case["accepted_amendments"], at)["recovery_window_days"]
+                if at + days * 86400 > limit:
+                    assert not event["sealable"] and event["window_end_s"] is None, case["label"]
+                    unsealable += 1
+                    continue
                 active = (at, at + days * 86400)
                 windows.append(active)
+            assert event["sealable"], case["label"]
             assert active == (event["owner_at_s"], int(event["window_end_s"])), case["label"]
+            assert int(event["window_end_s"]) <= limit
         for probe in case["probes"]:
             assert probe["open"] == any(start <= probe["at_s"] < end for start, end in windows), case["label"]
         seen.add(case["label"])
-    assert len(seen) == 7
-    assert any(int(event["window_end_s"]) > (1 << 63) - 1
-               for case in vector["recovery_window_cases"] for event in case["eligible_recoveries"])
+    assert len(seen) == 9 and unsealable == 1 and rejected == 1
+    assert any(limit - 86400 < int(e["window_end_s"]) <= limit
+               for case in vector["recovery_window_cases"] for e in case["eligible_recoveries"]
+               if e["sealable"]), "no window end within a day of the Log timestamp range"
     prose = (ROOT / "specs/WIST-4-audit-reputation-governance.md").read_text()
     assert "| WIST-1 §5.2 recovery window length | Window owner Declaration’s Block;" in prose
+    flat = re.sub(r"\s+", " ", prose)
+    assert "would end a window opened at that instant after `9999-12-31T23:59:59Z`" in flat
+    flat1 = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-delta-format.md").read_text())
+    assert "an Aggregator MUST NOT seal a recovery Declaration whose window would end there" in flat1
 
 
 check("vectors:wist4-recovery-parameter-windows", _recovery_parameter_windows)

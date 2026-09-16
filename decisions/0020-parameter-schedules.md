@@ -27,6 +27,16 @@ field-specific bounds. `provisional_cap_u` is nonnegative. Intermediate
 arithmetic remains exact and may exceed the wire range. Schema acceptance
 does not replace semantic schedule validation.
 
+`recovery_window_days` carries one more bound: from the amendment's
+`effective_at`, the window it would open must end at or before the last
+instant a Log timestamp denotes, or the amendment is `WIST4-E03`. A window
+opened later can still overrun the range, so WIST-1 §5.2 withholds such a
+recovery Declaration from sealing and replay rejects a Block that seals
+one. Snapshot `recovery_window` tuples therefore always carry a
+representable end; intermediate arithmetic stays exact, and only sealed
+state is bounded. Clamping the end would move the exact replay deadline;
+an alternate encoding would give one instant two spellings.
+
 The compound escalation predicates in WIST-4 §7 have no integer encoding.
 `escalation_l2`, `escalation_l3` and `escalation_l4` are not Registry
 identifiers; attempts to amend them reject as `WIST4-E03`. Changing those

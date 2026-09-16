@@ -2003,13 +2003,16 @@
       ]
     }
   ],
+  "recovery_window_base_s": 1800000000,
   "recovery_window_cases": [
     {
       "label": "default exact settlement boundary",
       "accepted_amendments": [],
+      "rejected_amendments": [],
       "eligible_recoveries": [
         {
           "sealed_at_s": 864000,
+          "sealable": true,
           "owner_at_s": 864000,
           "window_end_s": "1468800"
         }
@@ -2037,9 +2040,11 @@
           "effective_at_s": 950400
         }
       ],
+      "rejected_amendments": [],
       "eligible_recoveries": [
         {
           "sealed_at_s": 864000,
+          "sealable": true,
           "owner_at_s": 864000,
           "window_end_s": "1468800"
         }
@@ -2067,9 +2072,11 @@
           "effective_at_s": 950400
         }
       ],
+      "rejected_amendments": [],
       "eligible_recoveries": [
         {
           "sealed_at_s": 864000,
+          "sealable": true,
           "owner_at_s": 864000,
           "window_end_s": "1468800"
         }
@@ -2097,9 +2104,11 @@
           "effective_at_s": 864000
         }
       ],
+      "rejected_amendments": [],
       "eligible_recoveries": [
         {
           "sealed_at_s": 864000,
+          "sealable": true,
           "owner_at_s": 864000,
           "window_end_s": "1036800"
         }
@@ -2127,14 +2136,17 @@
           "effective_at_s": 950400
         }
       ],
+      "rejected_amendments": [],
       "eligible_recoveries": [
         {
           "sealed_at_s": 864000,
+          "sealable": true,
           "owner_at_s": 864000,
           "window_end_s": "1468800"
         },
         {
           "sealed_at_s": 950400,
+          "sealable": true,
           "owner_at_s": 864000,
           "window_end_s": "1468800"
         }
@@ -2162,14 +2174,17 @@
           "effective_at_s": 950400
         }
       ],
+      "rejected_amendments": [],
       "eligible_recoveries": [
         {
           "sealed_at_s": 864000,
+          "sealable": true,
           "owner_at_s": 864000,
           "window_end_s": "1468800"
         },
         {
           "sealed_at_s": 1468800,
+          "sealable": true,
           "owner_at_s": 1468800,
           "window_end_s": "1641600"
         }
@@ -2186,28 +2201,86 @@
       ]
     },
     {
-      "label": "maximum wire days retains exact endpoint",
+      "label": "largest representable window",
       "accepted_amendments": [
         {
           "parameter": "recovery_window_days",
-          "value": 9007199254740991,
+          "value": 2912053,
           "block_height": 0,
           "entry_index": 0,
           "sealed_at_s": 0,
           "effective_at_s": 864000
         }
       ],
+      "rejected_amendments": [],
       "eligible_recoveries": [
         {
           "sealed_at_s": 864000,
+          "sealable": true,
           "owner_at_s": 864000,
-          "window_end_s": "778222015609622486400"
+          "window_end_s": "251602243200"
         }
       ],
       "probes": [
         {
-          "at_s": 863913600,
+          "at_s": 251602243199,
           "open": true
+        },
+        {
+          "at_s": 251602243200,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "amendment past the timestamp range is rejected",
+      "accepted_amendments": [],
+      "rejected_amendments": [
+        {
+          "parameter": "recovery_window_days",
+          "value": 2912054,
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "effective_at_s": 864000,
+          "code": "WIST4-E03"
+        }
+      ],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 864000,
+          "sealable": true,
+          "owner_at_s": 864000,
+          "window_end_s": "1468800"
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 1468799,
+          "open": true
+        },
+        {
+          "at_s": 1468800,
+          "open": false
+        }
+      ]
+    },
+    {
+      "label": "opening near the range end cannot seal",
+      "accepted_amendments": [],
+      "rejected_amendments": [],
+      "eligible_recoveries": [
+        {
+          "sealed_at_s": 251601984000,
+          "sealable": false,
+          "owner_at_s": null,
+          "window_end_s": null
+        }
+      ],
+      "probes": [
+        {
+          "at_s": 251601984001,
+          "open": false
         }
       ]
     }
