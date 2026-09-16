@@ -767,7 +767,8 @@ that height:
   withdrawn Payload's declared links are content and leave distribution
   with it (§7);
 - Auditors record `not_auditable` for that Delta (WIST-4 §5) rather than a
-  verdict derived from content;
+  verdict derived from content; a Record sealed above the withdrawal's
+  Block with another verdict is malformed evidence (WIST-4 §10.2);
 - every party holding the Payload for protocol purposes MUST destroy it,
   its salt, and anything it retained of the content it carried. For an
   Auditor that means the WARC capture it preserved for its Audit Records

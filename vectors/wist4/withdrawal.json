@@ -1,0 +1,172 @@
+{
+  "note": "WIST-4 \u00a79.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and must name a Delta sealed at or below its Block whose signed publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs. WIST-4 \u00a75: a Record sealed above that Block whose reference_delta is the withdrawn Delta is evidence only as not_auditable with unmeasured reference; Records at or below it stand. Acts replay in order.",
+  "log_key": {
+    "key_id": "test-agg-k1",
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+  },
+  "sealed_deltas": [
+    {
+      "delta_id": "sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0",
+      "publisher": "site.sample.net",
+      "height": 1
+    },
+    {
+      "delta_id": "sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541",
+      "publisher": "other.sample.org",
+      "height": 4
+    }
+  ],
+  "act_cases": [
+    {
+      "label": "valid withdrawal",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"czcgUtqOosWA6E0r-LDj0Sdu3G53hrQDU9lSEAXlDqSJ7Mz97uOmkIpiEF297FxEJKKapN7aFJc8atDKkpI4CA\"}}",
+      "code": null,
+      "withdrawn_height": 3
+    },
+    {
+      "label": "signed by an Auditor key",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"receipt-auditor-k1\", \"alg\": \"Ed25519\", \"value\": \"7fGZNr-NJf8-cSZQ7JJAEKmkumnnTtTpHnVx9MPSl_pG0XKC5aC3OkBUl9baHwBw9UbX2q7Kl5UHvUc4MjXuDw\"}}",
+      "code": "WIST4-E11",
+      "withdrawn_height": null
+    },
+    {
+      "label": "unsupported major",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"SwSh8SioZq1cGJNxdJOK1re488KqoOIR1zRilDpTBWnRbcXkC8ueiClgLGIc3q4uenpHbDjjFo9eOLnnyaNzCg\"}}",
+      "code": "WIST4-E11",
+      "withdrawn_height": null
+    },
+    {
+      "label": "unknown member",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}, \"note\": \"x\"}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"SQF5Yc6IvJHLvL65HmfdsJFNwzSa9dFgnOJ0mOkQ1-B_MlYd_e2INDdhITvFUSlhXJOD1-rEAqK0itSLucUTCA\"}}",
+      "code": "WIST4-E11",
+      "withdrawn_height": null
+    },
+    {
+      "label": "delta id not a Delta ID",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:xyz\", \"legal_basis\": \"b\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"335N3nydfE8QgCNMPCghGfYWZ1B_YocDJKQN_iMBwPaXDT2cGSkCCQpb7asb5GwEnS4u8fVhOoeB0OwAt537DA\"}}",
+      "code": "WIST4-E04",
+      "withdrawn_height": null
+    },
+    {
+      "label": "missing legal basis",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"j_xAkXXh3RkxSKMuV65A--fsEuh_1TPyweDCSBM95s36bTIlMFKdTiMeAVOdUjR0gsIZa5lmXcTfir02enwJCw\"}}",
+      "code": "WIST4-E04",
+      "withdrawn_height": null
+    },
+    {
+      "label": "subject not a host",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"not a host!\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"PlY9COFiMSxifBRdjujr9nrk4TWsu0AcjFkA3Ii3TO3-08n3wu-2KHB_VK8gouXhG-88RrzvouuH4SZtdXkXBA\"}}",
+      "code": "WIST4-E04",
+      "withdrawn_height": null
+    },
+    {
+      "label": "subject is another Publisher",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"wNmlQXPW-eIbTyZDgyPOS42SuBjFEqS_z9l2nD1c-Pg45zNBsDZW07QKBwLfBOuqqo0i5uznTcVK2dBq5avGBw\"}}",
+      "code": "WIST4-E04",
+      "withdrawn_height": null
+    },
+    {
+      "label": "Delta sealed above the act",
+      "height": 2,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zmQ7dsJhoCkwfDdfCRM1OH8BqLxOfPrz79dSGENcPaoEPwiID5wGlzJon6S8UG8CqweaIkbBzVRI3Yc7z0aBg\"}}",
+      "code": "WIST4-E04",
+      "withdrawn_height": null
+    },
+    {
+      "label": "Delta sealed in the act's Block",
+      "height": 4,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zmQ7dsJhoCkwfDdfCRM1OH8BqLxOfPrz79dSGENcPaoEPwiID5wGlzJon6S8UG8CqweaIkbBzVRI3Yc7z0aBg\"}}",
+      "code": null,
+      "withdrawn_height": 4
+    },
+    {
+      "label": "repeated withdrawal keeps the first height",
+      "height": 6,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"second order\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"xi119V5-koJjRMxKVtfB6g7BpGIG-BJOWbaYavDvxglc8gmNLqWMOusJJPrZ2zEGEUC8sJlVd26gSwZdHs9ECA\"}}",
+      "code": null,
+      "withdrawn_height": 3
+    }
+  ],
+  "record_cases": [
+    {
+      "label": "measured below the withdrawal",
+      "withdrawal_height": 3,
+      "record_height": 2,
+      "reference_withdrawn": true,
+      "verdict": "consistent",
+      "unmeasured": null,
+      "expected": "evidence"
+    },
+    {
+      "label": "measured in the withdrawal's Block",
+      "withdrawal_height": 3,
+      "record_height": 3,
+      "reference_withdrawn": true,
+      "verdict": "inconsistent",
+      "unmeasured": null,
+      "expected": "evidence"
+    },
+    {
+      "label": "measured above the withdrawal",
+      "withdrawal_height": 3,
+      "record_height": 4,
+      "reference_withdrawn": true,
+      "verdict": "consistent",
+      "unmeasured": null,
+      "expected": "WIST4-E02"
+    },
+    {
+      "label": "inconsistent above the withdrawal",
+      "withdrawal_height": 3,
+      "record_height": 5,
+      "reference_withdrawn": true,
+      "verdict": "inconsistent",
+      "unmeasured": null,
+      "expected": "WIST4-E02"
+    },
+    {
+      "label": "unreachable above the withdrawal",
+      "withdrawal_height": 3,
+      "record_height": 4,
+      "reference_withdrawn": true,
+      "verdict": "unreachable",
+      "unmeasured": null,
+      "expected": "WIST4-E02"
+    },
+    {
+      "label": "not auditable observed above the withdrawal",
+      "withdrawal_height": 3,
+      "record_height": 4,
+      "reference_withdrawn": true,
+      "verdict": "not_auditable",
+      "unmeasured": "observed",
+      "expected": "WIST4-E02"
+    },
+    {
+      "label": "not auditable reference above the withdrawal",
+      "withdrawal_height": 3,
+      "record_height": 4,
+      "reference_withdrawn": true,
+      "verdict": "not_auditable",
+      "unmeasured": "reference",
+      "expected": "evidence"
+    },
+    {
+      "label": "another reference above the withdrawal",
+      "withdrawal_height": 3,
+      "record_height": 4,
+      "reference_withdrawn": false,
+      "verdict": "consistent",
+      "unmeasured": null,
+      "expected": "evidence"
+    }
+  ]
+}

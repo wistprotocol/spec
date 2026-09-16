@@ -28,6 +28,14 @@ state; the containing Block stays valid. The schema's version, timestamp and
 identifier patterns are exact whole-string patterns, and an `auditor_remove`
 subject carries the hostname shape an `auditor_admit` requires.
 
+A `payload_withdrawal` is authenticated under the Log key (WIST4-E11
+otherwise); its `delta_id` must name a Delta sealed at or below the act's
+Block whose signed `publisher` is the `subject`, or the act fails its
+`details` contract (WIST4-E04). Repeated withdrawals of one Delta are
+accepted, the earliest Block governing. Rejecting a withdrawal of an
+unsealed or foreign Delta keeps the act's `subject` truthful and gives every
+replayer one withdrawal height per Delta.
+
 ## Alternatives and consequences
 
 Ignoring such acts without a code leaves implementations no shared

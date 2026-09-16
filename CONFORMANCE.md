@@ -138,6 +138,16 @@ nothing: that an invalid target is never requested, that a query survives
 retrieval and that the fetched Deltas are admitted after a stopped walk
 require live tests against a serving Publisher.
 
+**Withdrawal acts and withdrawn references.** WIST-4 §§5/9.1 and
+`vectors/wist4/withdrawal.json` fix the `payload_withdrawal` contract and
+the replay disposition of Records whose Reference Payload is withdrawn.
+The reference checks each act against the schema and Log key, resolves
+`delta_id` against the supplied sealed Deltas, and derives each Record
+case's disposition from the withdrawal and Record heights, verdict and
+`unmeasured`; a twin shows the same-Block reading differs. Signed Block
+histories, live withdrawal sealing, Payload destruction and Snapshot
+exclusion require integration validation.
+
 **Publisher-signed Registry subjects.** WIST-4 §9.1 and draft
 [ADR-0036](decisions/0036-registry-update-eligibility.md) assign a `subject`
 outside its action's contract shape WIST4-E04, other field failures

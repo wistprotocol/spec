@@ -22,6 +22,16 @@ The Record schema uses exact whole-string ASCII patterns, including version
 spelling without machine-integer limits. Calendar validity and numeric-value
 integer checks retain WIST-3 §3.1 and WIST-1 §4 respectively.
 
+A Record sealed above a `payload_withdrawal`'s Block whose `reference_delta`
+is the withdrawn Delta is evidence only as `not_auditable` with `unmeasured`
+`"reference"`; any other verdict is WIST4-E02. A Record sealed at or below
+that Block stands. Replay reads Blocks and cannot distinguish a same-Block
+Record from one published before the withdrawal was visible; binding it
+would void honest evidence for an act the Auditor could not see. E02 rather
+than E09 or acceptance: the defect is in the verdict as evidence, §5's
+ordering makes the required verdict determinate, and E02 discharges the
+duty the Auditor performed.
+
 ## Alternatives and consequences
 
 Rejecting every field defect without discharge would erase §3's treatment of

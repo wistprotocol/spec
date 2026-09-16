@@ -4983,6 +4983,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/feed-next.json", "seen"): "supplied Delta IDs already seen",
     ("vectors/wist2/feed-next.json", "public_key"): "the fixture Declaration public key",
     ("vectors/wist2/feed-next.json", "value"): "valid or deliberately invalid signatures",
+    ("vectors/wist4/withdrawal.json", "delta_id"): "fixture Delta IDs; retrieval is not asserted",
+    ("vectors/wist4/withdrawal.json", "public_key"): "the fixture Log public key",
     ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
     ("vectors/wist2/declaration-refresh.json", "id"): "SHA-256 of the served Delta",
     ("vectors/wist2/declaration-refresh.json", "prev"): "SHA-256 of the served predecessor",
@@ -10563,6 +10565,68 @@ def _dc4_sanction_identity_scope_twin():
     doc = json.loads(forged["envelope_json"])
     assert _roster_acts_validator().is_valid(doc) and not _roster_acts_verifies(doc, v["lift_log_key"]["public_key"])
 check("negative:wist4-sanction-identity-scope", _dc4_sanction_identity_scope_twin)
+
+def _withdrawal_vector():
+    return json.loads((ROOT / "vectors/wist4/withdrawal.json").read_text())
+
+def _withdrawal_record_disposition(case, inclusive=False):
+    bound = (case["record_height"] >= case["withdrawal_height"] if inclusive
+             else case["record_height"] > case["withdrawal_height"])
+    if case["reference_withdrawn"] and bound and \
+            not (case["verdict"] == "not_auditable" and case["unmeasured"] == "reference"):
+        return "WIST4-E02"
+    return "evidence"
+
+def _dc4_withdrawal():
+    """WIST-4 §§5/9.1: payload_withdrawal acts under the Log key naming a sealed
+    Delta of the subject; Records above the withdrawal's Block are evidence
+    only as not_auditable with unmeasured reference."""
+    v = _withdrawal_vector()
+    validator = _roster_acts_validator()
+    sealed = {d["delta_id"]: d for d in v["sealed_deltas"]}
+    withdrawn = {}
+    seen = set()
+    for case in v["act_cases"]:
+        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
+        if doc is not None:
+            if not (doc["sig"]["key_id"] == v["log_key"]["key_id"] and
+                    _roster_acts_verifies(doc, v["log_key"]["public_key"])):
+                code = "WIST4-E11"
+            else:
+                update = doc["update"]
+                fact = sealed.get(update["details"]["delta_id"])
+                if fact is None or fact["height"] > case["height"] or fact["publisher"] != update["subject"]:
+                    code = "WIST4-E04"
+        assert code == case["code"], (case["label"], code)
+        if code is None:
+            delta_id = doc["update"]["details"]["delta_id"]
+            withdrawn.setdefault(delta_id, case["height"])
+            assert withdrawn[delta_id] == case["withdrawn_height"], case["label"]
+        else:
+            assert case["withdrawn_height"] is None, case["label"]
+        seen.add(code)
+    assert seen == {None, "WIST4-E11", "WIST4-E04"}
+    assert any(c["code"] is None and c["height"] > c["withdrawn_height"] for c in v["act_cases"]), \
+        "no repeated withdrawal keeps the first height"
+    for case in v["record_cases"]:
+        assert _withdrawal_record_disposition(case) == case["expected"], case["label"]
+    assert {c["expected"] for c in v["record_cases"]} == {"evidence", "WIST4-E02"}
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert ("a Record sealed in a Block above the withdrawal's whose `reference_delta` is the withdrawn "
+            "Delta and which is not `not_auditable` with `unmeasured` `\"reference\"` is malformed evidence "
+            "(`WIST4-E02`, §10.2)") in prose, "§5 does not fix the replay disposition"
+    assert "`delta_id` MUST name a Delta sealed at or below the act's Block whose signed `publisher` is `subject`" in prose
+    assert "the earliest accepted withdrawal's Block is the height every rule reads" in prose
+    w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "a Record sealed above the withdrawal's Block with another verdict is malformed evidence (WIST-4 §10.2)" in w3
+check("vectors:wist4-withdrawal", _dc4_withdrawal)
+
+def _dc4_withdrawal_twin():
+    v = _withdrawal_vector()
+    same = next(c for c in v["record_cases"] if c["record_height"] == c["withdrawal_height"])
+    assert _withdrawal_record_disposition(same, inclusive=True) != same["expected"], \
+        "the inclusive reading must differ on the same-Block Record"
+check("negative:wist4-withdrawal", _dc4_withdrawal_twin)
 
 def _instant_level(case, at_s, sealed_only=False):
     latest = max((b for b in case["blocks"] if b <= at_s), default=None)

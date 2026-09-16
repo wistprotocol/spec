@@ -6938,6 +6938,73 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
 }))
 
 
+def withdrawal_vectors():
+    d1 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta one").hexdigest()
+    d2 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta two").hexdigest()
+    sealed = [{"delta_id": d1, "publisher": "site.sample.net", "height": 1},
+              {"delta_id": d2, "publisher": "other.sample.org", "height": 4}]
+
+    def act(label, code, *, height=3, delta_id=d1, subject="site.sample.net", signer=priv,
+            key_id="test-agg-k1", version="1.0.0", extra=None, details=None, withdrawn_height=None):
+        body = ({"delta_id": delta_id, "legal_basis": "court order 12/2026", "jurisdiction": "BR"}
+                if details is None else details)
+        update = {"wist_version": version, "action": "payload_withdrawal", "subject": subject,
+                  "effective_at": "2026-08-05T12:00:00Z", "details": body}
+        if extra:
+            update.update(extra)
+        return {"label": label, "height": height,
+                "envelope_json": json.dumps(sign_envelope_with(signer, "update", update, key_id),
+                                            ensure_ascii=True),
+                "code": code, "withdrawn_height": withdrawn_height}
+
+    acts = [
+        act("valid withdrawal", None, withdrawn_height=3),
+        act("signed by an Auditor key", "WIST4-E11", signer=priv2, key_id="receipt-auditor-k1"),
+        act("unsupported major", "WIST4-E11", version="2.0.0"),
+        act("unknown member", "WIST4-E11", extra={"note": "x"}),
+        act("delta id not a Delta ID", "WIST4-E04",
+            details={"delta_id": "sha256:xyz", "legal_basis": "b", "jurisdiction": "BR"}),
+        act("missing legal basis", "WIST4-E04", details={"delta_id": d1, "jurisdiction": "BR"}),
+        act("subject not a host", "WIST4-E04", subject="not a host!"),
+        act("subject is another Publisher", "WIST4-E04", subject="other.sample.org"),
+        act("Delta sealed above the act", "WIST4-E04", delta_id=d2, subject="other.sample.org", height=2),
+        act("Delta sealed in the act's Block", None, delta_id=d2, subject="other.sample.org", height=4,
+            withdrawn_height=4),
+        act("repeated withdrawal keeps the first height", None, height=6,
+            details={"delta_id": d1, "legal_basis": "second order", "jurisdiction": "BR"},
+            withdrawn_height=3),
+    ]
+
+    def record_case(label, withdrawal_height, record_height, verdict, unmeasured=None,
+                    reference_withdrawn=True):
+        e02 = (reference_withdrawn and record_height > withdrawal_height
+               and not (verdict == "not_auditable" and unmeasured == "reference"))
+        return {"label": label, "withdrawal_height": withdrawal_height, "record_height": record_height,
+                "reference_withdrawn": reference_withdrawn, "verdict": verdict, "unmeasured": unmeasured,
+                "expected": "WIST4-E02" if e02 else "evidence"}
+
+    records = [
+        record_case("measured below the withdrawal", 3, 2, "consistent"),
+        record_case("measured in the withdrawal's Block", 3, 3, "inconsistent"),
+        record_case("measured above the withdrawal", 3, 4, "consistent"),
+        record_case("inconsistent above the withdrawal", 3, 5, "inconsistent"),
+        record_case("unreachable above the withdrawal", 3, 4, "unreachable"),
+        record_case("not auditable observed above the withdrawal", 3, 4, "not_auditable", "observed"),
+        record_case("not auditable reference above the withdrawal", 3, 4, "not_auditable", "reference"),
+        record_case("another reference above the withdrawal", 3, 4, "consistent", reference_withdrawn=False),
+    ]
+    return spaced_labels({
+        "note": ("WIST-4 §9.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and "
+                 "must name a Delta sealed at or below its Block whose signed publisher is the subject "
+                 "(WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs. WIST-4 §5: a Record "
+                 "sealed above that Block whose reference_delta is the withdrawn Delta is evidence only as "
+                 "not_auditable with unmeasured reference; Records at or below it stand. Acts replay in order."),
+        "log_key": ATTESTATION_LOG_KEY, "sealed_deltas": sealed, "act_cases": acts, "record_cases": records})
+
+
+write_json(WIST4 / "withdrawal.json", withdrawal_vectors())
+
+
 # ------------------------ WIST-4 §5.1, §5.2: canary domains, credit, hard hit
 # A planter commits to future served bytes as a Merkle root, the canary
 # domain later binds leaves to its Deltas, and every measured Record's
