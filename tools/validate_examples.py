@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 
 import ecvrf
+import link_extraction
 from block_frames import decode_raw_fixture
 from merkle import audit_path, leaf_hash, merkle_root, node_hash
 
@@ -4978,6 +4979,10 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/feed-fields.json", "deltas"): "supplied Delta IDs or deliberately malformed field probes; retrieval is not asserted",
     ("vectors/wist2/feed-fields.json", "public_key"): "the fixture Declaration public key",
     ("vectors/wist2/feed-fields.json", "value"): "valid or deliberately malformed or invalid signatures",
+    ("vectors/wist2/feed-next.json", "deltas"): "supplied Delta IDs; retrieval is not asserted",
+    ("vectors/wist2/feed-next.json", "seen"): "supplied Delta IDs already seen",
+    ("vectors/wist2/feed-next.json", "public_key"): "the fixture Declaration public key",
+    ("vectors/wist2/feed-next.json", "value"): "valid or deliberately invalid signatures",
     ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
     ("vectors/wist2/declaration-refresh.json", "id"): "SHA-256 of the served Delta",
     ("vectors/wist2/declaration-refresh.json", "prev"): "SHA-256 of the served predecessor",
@@ -9648,6 +9653,79 @@ def _feed_field_vectors():
 
 
 check("vectors:wist2-feed-fields", _feed_field_vectors)
+
+def _feed_next_vectors():
+    vector = json.loads((ROOT / "vectors/wist2/feed-next.json").read_text())
+    original = copy.deepcopy(vector)
+    formats = FormatChecker(formats=[])
+    formats.checks("wist-canonical-host")(_declaration_host_format)
+    formats.checks("date-time")(lambda value: not isinstance(value, str) or
+                               isinstance(log_seconds(value), int))
+    validator = Draft202012Validator(json.loads(
+        (ROOT / "schemas/feed.schema.json").read_text()), format_checker=formats)
+    source = vector["declaration"]
+    key = source["publisher"]["keys"][0]
+    public = canonical_b64u_decode(key["public_key"])
+    assert _ed25519_profile_verdict(public, canonical_b64u_decode(source["sig"]["value"]),
+                                  rfc8785.dumps(source["publisher"]))[0]
+    host = vector["host"]
+    assert source["publisher"]["domain"] == host
+    assert "www." + host in source["publisher"]["subdomain_scope"]
+    prefix = f"https://{host}/.well-known/wist/"
+    retained = log_seconds(vector["retained_generated_at"])
+    w2 = (ROOT / "specs/WIST-2-site-publication.md").read_text()
+    assert "MUST be byte-identical to its own Normalized URL (WIST-1 §2)\nand MUST begin with `https://`, the requested Canonical Host and\n`/.well-known/wist/`" in w2
+    assert "An unread `next` is checked against nothing." in w2
+    assert "the Deltas of the Feed and Pages\nalready fetched proceed under §5" in w2
+    codes = {"fields": "WIST2-E01", "domain": "WIST2-E04", "signature": "WIST2-E04",
+             "regression": "WIST2-E05", "unread": None, "end": None, "target": "WIST2-E01",
+             "followed": None}
+    observed = set()
+    for case in vector["cases"]:
+        doc = case["envelope"]
+        if not validator.is_valid(doc):
+            phase = "fields"
+        else:
+            rfc8785.dumps(doc)
+            feed = doc["feed"]
+            if feed["domain"] != host:
+                phase = "domain"
+            elif (doc["sig"]["key_id"] != key["key_id"] or
+                  not _ed25519_profile_verdict(public, canonical_b64u_decode(doc["sig"]["value"]),
+                                              rfc8785.dumps(feed))[0]):
+                phase = "signature"
+            elif case["live"] and log_seconds(feed["generated_at"]) < retained:
+                phase = "regression"
+            elif all(delta in case["seen"] for delta in feed["deltas"]):
+                phase = "unread"
+            elif feed["next"] is None:
+                phase = "end"
+            else:
+                target = feed["next"]
+                normalized = link_extraction.normalize_url(target, prefix + "feed.json")
+                phase = "followed" if normalized == target and target.startswith(prefix) else "target"
+        assert phase == case["expected"], case["name"]
+        assert case["code"] == codes[phase], case["name"]
+        assert case["next_read"] == (phase in ("end", "target", "followed")), case["name"]
+        assert case["fetch"] == (doc["feed"]["next"] if phase == "followed" else None), case["name"]
+        assert case["deltas_admitted"] == (phase in ("unread", "end", "target", "followed")), case["name"]
+        assert case["declaration_retries"] == int(phase == "signature"), case["name"]
+        observed.add(phase)
+    assert observed == set(codes)
+    by_name = {case["name"]: case for case in vector["cases"]}
+    assert by_name["scope host"]["expected"] == "target"
+    assert by_name["explicit default port"]["expected"] == "target"
+    assert by_name["encoded dot segment"]["expected"] == "target"
+    assert by_name["encoded separator in prefix"]["expected"] == "target"
+    assert by_name["encoded separator inside the layout"]["expected"] == "followed"
+    assert by_name["query preserved"]["fetch"].endswith("?v=2&x=%2F")
+    assert by_name["regressed Page with bad target"]["expected"] == "target"
+    assert by_name["regressed live Feed with bad target"]["expected"] == "regression"
+    assert not by_name["ingested Feed with bad target"]["next_read"]
+    assert vector == original
+
+
+check("vectors:wist2-feed-next", _feed_next_vectors)
 
 def _feed_regression_vectors():
     vector = json.loads((ROOT / "vectors/wist2/feed-regression.json").read_text())

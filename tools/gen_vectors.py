@@ -8681,6 +8681,89 @@ def feed_field_vectors():
 write_json(ROOT / "vectors/wist2/feed-fields.json", feed_field_vectors())
 
 
+def feed_next_vectors():
+    host = "localhost"
+    prefix = f"https://{host}/.well-known/wist/"
+    fresh = "sha256:" + hashlib.sha256(b"feed-next unseen Delta").hexdigest()
+    retained = "2026-08-09T14:00:00Z"
+    base = dict(wist_version="1.0.0", domain=host, generated_at=retained, deltas=[fresh], next=None)
+    codes = {"fields": "WIST2-E01", "domain": "WIST2-E04", "signature": "WIST2-E04",
+             "regression": "WIST2-E05", "unread": None, "end": None, "target": "WIST2-E01",
+             "followed": None}
+    cases = []
+
+    def add(name, next_value, expected, body=None, *, live=True, seen=(), mutate=None):
+        body = dict(base if body is None else body, next=next_value)
+        doc = sign_envelope("feed", body, "test-k1")
+        if mutate:
+            mutate(doc)
+        cases.append(dict(name=name, envelope=doc, live=live, seen=list(seen), expected=expected,
+                          code=codes[expected],
+                          next_read=expected in ("end", "target", "followed"),
+                          fetch=next_value if expected == "followed" else None,
+                          deltas_admitted=expected in ("unread", "end", "target", "followed"),
+                          declaration_retries=int(expected == "signature")))
+
+    add("null next ends the walk", None, "end")
+    add("Page 0 target", prefix + "feed/0.json", "followed")
+    add("query preserved", prefix + "feed/0.json?v=2&x=%2F", "followed")
+    add("empty query preserved", prefix + "feed/0.json?", "followed")
+    add("encoded separator inside the layout", prefix + "feed/a%2Fb.json", "followed")
+    add("uppercase escape of a reserved octet", prefix + "feed/%E2%82%AC.json", "followed")
+    add("regressed Page with valid target", prefix + "feed/0.json", "followed",
+        dict(base, generated_at="2026-08-09T13:00:00Z"), live=False)
+    bad = "https://www.localhost/.well-known/wist/feed/0.json"
+    for name, value in (
+            ("scope host", bad),
+            ("foreign host", "https://other.example/.well-known/wist/feed/0.json"),
+            ("uppercase host", "https://LOCALHOST/.well-known/wist/feed/0.json"),
+            ("explicit default port", "https://localhost:443/.well-known/wist/feed/0.json"),
+            ("other port", "https://localhost:8443/.well-known/wist/feed/0.json"),
+            ("userinfo", "https://user@localhost/.well-known/wist/feed/0.json"),
+            ("no host", "https://"),
+            ("empty path", "https://localhost"),
+            ("layout root without slash", prefix[:-1]),
+            ("prefix elsewhere in the path", "https://localhost/x/.well-known/wist/feed/0.json"),
+            ("doubled slash before the prefix", "https://localhost//.well-known/wist/feed/0.json"),
+            ("sibling layout", "https://localhost/.well-known/wistx/feed/0.json"),
+            ("dot segment", prefix + "feed/../publisher.json"),
+            ("encoded dot segment", prefix + "%2E%2E/secret.json"),
+            ("encoded separator in prefix", "https://localhost/.well-known/wist%2Ffeed/0.json"),
+            ("lowercase escape hex", prefix + "feed/%e2%82%ac.json"),
+            ("encoded unreserved octet", prefix + "feed/%7Ea.json"),
+            ("lowercase escape hex in the query", prefix + "feed/0.json?x=%2f"),
+            ("control octet", prefix + "feed/0.json\n")):
+        add(name, value, "target")
+    for name, value in (("non string", 7), ("array", []),
+                        ("http scheme", "http://localhost/.well-known/wist/feed/0.json"),
+                        ("uppercase scheme", "HTTPS://localhost/.well-known/wist/feed/0.json"),
+                        ("fragment", prefix + "feed/0.json#0"), ("empty string", "")):
+        add(name, value, "fields")
+    add("ingested Feed with bad target", bad, "unread", seen=[fresh])
+    add("empty Feed with bad target", bad, "unread", dict(base, deltas=[]))
+    add("ingested Feed with valid target", prefix + "feed/0.json", "unread", seen=[fresh])
+    add("bad signature with bad target", bad, "signature",
+        mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
+    add("foreign domain with bad target", bad, "domain", dict(base, domain="other.example"))
+    add("regressed live Feed with bad target", bad, "regression",
+        dict(base, generated_at="2026-08-09T13:00:00Z"))
+    add("regressed Page with bad target", bad, "target",
+        dict(base, generated_at="2026-08-09T13:00:00Z"), live=False)
+    source = sign_envelope("publisher", dict(wist_version="1.0.0", domain=host, seq=0,
+        subdomain_scope=["www.localhost"],
+        keys=[dict(key_id="test-k1", alg="Ed25519", public_key=b64u(pub_raw),
+                   valid_from="2026-08-09T00:00:00Z")]), "test-k1")
+    return dict(description="Feed and Page next targets under WIST-2 section 3.2. Each case is the "
+                "object the walk reached, live or sealed, after the supplied Declaration; seen lists "
+                "the Delta IDs already seen and retained_generated_at the durable live-Feed "
+                "observation. fetch is the exact URL a following Aggregator requests; a target "
+                "failure keeps the object's Deltas and fetches nothing.",
+                host=host, retained_generated_at=retained, declaration=source, cases=cases)
+
+
+write_json(ROOT / "vectors/wist2/feed-next.json", feed_next_vectors())
+
+
 def feed_regression_vectors():
     source = feed_field_vectors()["declaration"]
     early = "2026-08-09T13:59:59Z"

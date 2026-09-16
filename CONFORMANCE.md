@@ -128,24 +128,15 @@ comparison, restart, later failures, Page isolation and preservation through
 Declaration changes require integration validation. A restored backup must
 retain the observations needed for the claimed rollback protection.
 
-**Feed/Page `next` interpretation remains unresolved.** WIST-2 §3.2 requires
-an absolute HTTPS URL within Publisher authority and a path under
-`/.well-known/wist/`. It does not identify the Declaration supplying that
-scope for a live Feed or historical Page, particularly after a retry,
-rotation or recovery settlement. Page signing-source selection alone does
-not explicitly determine transport scope.
-
-Unlike Delta `url`, `next` has no explicit Normalized URL requirement.
-Specify the parsing and path-containment profile, including encoded dot
-segments/separators and rejection versus parser repair. Also resolve semantic
-`next` validation order relative to authentication, live-Feed regression and
-termination on empty or already-ingested content. No reading is selected here.
-
-Resolve these choices with signed Feed/Page vectors and live tests proving
-that invalid targets are never fetched, query strings and permitted ports
-survive retrieval, and authenticated scope provenance survives retries and
-restart. A hostname comparison without path containment does not establish
-the existing §3.2 requirement.
+**Feed and Page `next` targets.** WIST-2 §3.2's target rule and
+`vectors/wist2/feed-next.json` fix when `next` is read and which spellings
+are fetched. The reference derives each case's disposition from the
+supplied schema, domain, signature, live-regression and seen-set inputs,
+normalizes the target with `tools/link_extraction.py` and requires
+byte-identity plus the requested host's well-known prefix. It fetches
+nothing: that an invalid target is never requested, that a query survives
+retrieval and that the fetched Deltas are admitted after a stopped walk
+require live tests against a serving Publisher.
 
 **Publisher-signed Registry subjects.** WIST-4 §9.1 and draft
 [ADR-0036](decisions/0036-registry-update-eligibility.md) assign a `subject`
