@@ -1,6 +1,6 @@
 # ADR-0016: The audit reference is the chain tip at fetch
 
-**Status:** draft · **Date:** 2026-08-21
+**Status:** draft, superseded by [ADR-0041](0041-signed-publications.md) (2026-09-16: the Auditor role is removed) · **Date:** 2026-08-21
 
 ## Context
 

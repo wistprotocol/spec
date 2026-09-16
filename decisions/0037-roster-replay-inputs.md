@@ -1,6 +1,6 @@
 # ADR-0037: Roster replay reads sealed strings and post-batch tenures
 
-**Status:** draft · **Date:** 2026-09-14
+**Status:** draft, superseded by [ADR-0041](0041-signed-publications.md) (2026-09-16: the Auditor role is removed) · **Date:** 2026-09-14
 
 ## Context
 

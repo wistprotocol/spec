@@ -1,6 +1,6 @@
 # ADR-0011: Audit effort scales with the roster, by design
 
-**Status:** draft · **Date:** 2026-08-11
+**Status:** draft, superseded by [ADR-0041](0041-signed-publications.md) (2026-09-16: the Auditor role is removed) · **Date:** 2026-08-11
 
 ## Context
 

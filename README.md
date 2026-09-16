@@ -108,6 +108,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0038](decisions/0038-feed-next-target.md) — Feed and Page `next` targets
 - [ADR-0039](decisions/0039-scoped-host-materialization.md) — Scoped-host materialization preference
 - [ADR-0040](decisions/0040-snapshot-recovery-state.md) — Snapshot recovery state carries the floor and the chain head
+- [ADR-0041](decisions/0041-signed-publications.md) — The Payload is the publication, no Auditor role, Labelers as Publishers, ranking at consumption (supersedes ADR-0010, 0011, 0012, 0016, 0018, 0019, 0035, 0037)
 
 ## Licenses
 
