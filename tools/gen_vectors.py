@@ -5525,6 +5525,50 @@ fetch_transport_cases = [{"label": side + " " + limit, "stopped_side": side, "li
     "record": {"verdict": "not_auditable", "unmeasured": "reference"} if side == "reference" else {"verdict": "unreachable"},
     "blocks": False} for side in ("reference", "observed") for limit in ("timeout", "redirect ceiling")]
 
+def exclusion_run(label, block_hours, records):
+    """Height-indexed evaluation of the predicate over hourly Blocks and the
+    excluded-since height of the current unbroken run (WIST-3 §7)."""
+    blocks = [{"height": h, "sealed_at_s": hours * 3600} for h, hours in enumerate(block_hours)]
+    rows, since = [], None
+    for block in blocks:
+        n_s = block["sealed_at_s"]
+        blocking = [dict(r, blocks=True) for r in records if r["sealed_at_s"] <= n_s and record_blocks(r)]
+        others = [r for r in records if r["sealed_at_s"] <= n_s and not record_blocks(r)]
+        excluded = unauditable_at(blocking, others, n_s, UNAUDITABLE_HORIZON_DAYS)
+        since = (since if since is not None else block["height"]) if excluded else None
+        rows.append({"height": block["height"], "unauditable": excluded, "since": since})
+    return {"label": label, "blocks": blocks, "records": records, "expected": rows}
+
+
+RUN_HOURS = [0, 24, 48, 72, 96, 120, 800, 840]
+exclusion_runs = [
+    exclusion_run("armed by the second blocker and cleared by a third auditor", RUN_HOURS, [
+        {"auditor": A1, "sealed_at_s": 0, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A2, "sealed_at_s": 48 * 3600, "verdict": "not_auditable", "unmeasured": "observed"},
+        {"auditor": A3, "sealed_at_s": 96 * 3600, "verdict": "consistent"}]),
+    exclusion_run("re armed after clearing starts a new run", RUN_HOURS, [
+        {"auditor": A1, "sealed_at_s": 0, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A2, "sealed_at_s": 24 * 3600, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A3, "sealed_at_s": 72 * 3600, "verdict": "consistent"},
+        {"auditor": A3, "sealed_at_s": 96 * 3600, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A4, "sealed_at_s": 120 * 3600, "verdict": "unreachable", "robots_excluded": True}]),
+    exclusion_run("pair aging out ends the run", RUN_HOURS, [
+        {"auditor": A1, "sealed_at_s": 0, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A2, "sealed_at_s": 24 * 3600, "verdict": "unreachable", "robots_excluded": True}]),
+    exclusion_run("a later pair inside an unbroken run keeps the first height",
+                  [0, 24, 48, 72, 96, 120, 600, 620, 800, 840], [
+        {"auditor": A1, "sealed_at_s": 0, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A2, "sealed_at_s": 24 * 3600, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A3, "sealed_at_s": 600 * 3600, "verdict": "unreachable", "robots_excluded": True},
+        {"auditor": A4, "sealed_at_s": 620 * 3600, "verdict": "unreachable", "robots_excluded": True}]),
+]
+assert [[r["since"] for r in run["expected"]] for run in exclusion_runs] == [
+    [None, None, 2, 2, None, None, None, None],
+    [None, 1, 1, None, 4, 4, 4, None],
+    [None, 1, 1, 1, 1, 1, None, None],
+    [None, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+], "exclusion runs drifted"
+
 write_json(WIST4 / "unauditable.json", spaced_labels({
     "note": "WIST-4 §5 unauditable predicate at Block N. blocking are the URL's Records that may block — robots_excluded Records and not_auditable Records with their `unmeasured` side, `blocks` saying whether each does — other_records its Records of any other verdict, both as (auditor, sealing instant).",
     "unauditable_horizon_days": UNAUDITABLE_HORIZON_DAYS,
@@ -5534,6 +5578,8 @@ write_json(WIST4 / "unauditable.json", spaced_labels({
     "fetch_transport": {"note": "A reference-side interruption leaves the reference unavailable from every source; observed-side cases already hold a verified nonempty reference. No byte limit or robots exclusion intervenes. These cases isolate outcome classification after the stated transport limit has stopped acquisition.",
         "cases": fetch_transport_cases},
     "cases": unauditable_cases,
+    "exclusion_runs": {"note": "WIST-3 §7 exclusion tuples over hourly Blocks: expected gives, per height, whether the URL is unauditable and the excluded-since height of the current unbroken run, null while materialized. Records list every evidence Record on the URL by auditor and sealing instant.",
+        "cases": exclusion_runs},
 }))
 print("wist4 unauditable vector written")
 

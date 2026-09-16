@@ -2546,6 +2546,22 @@ def _dc4_unauditable():
         got = _unauditable_at(v, case)
         assert got == case["unauditable"], \
             f"{case['label']}: recomputed {got}, vector says {case['unauditable']}"
+    for run in v["exclusion_runs"]["cases"]:
+        since = None
+        for block, expected in zip(run["blocks"], run["expected"]):
+            n_s = block["sealed_at_s"]
+            case = {"blocking": [r for r in run["records"] if r["sealed_at_s"] <= n_s and _record_blocks(r)],
+                    "other_records": [r for r in run["records"] if r["sealed_at_s"] <= n_s and not _record_blocks(r)],
+                    "n_sealed_at_s": n_s}
+            excluded = _unauditable_at(v, case)
+            since = (since if since is not None else block["height"]) if excluded else None
+            assert {"height": block["height"], "unauditable": excluded, "since": since} == expected, \
+                (run["label"], block["height"])
+    shapes = {tuple(r["since"] for r in run["expected"]) for run in v["exclusion_runs"]["cases"]}
+    assert any(len({s for s in shape if s is not None}) > 1 for shape in shapes), "no run restarts"
+    assert any(shape[-1] is None and any(s is not None for s in shape) for shape in shapes), "no run ends by aging"
+    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "excluded-since height is the lowest height from which that predicate has held at every Block through `log_position`" in prose3
     for needed in ("two reference side not auditable records block nothing",
                    "an observed side not auditable record beside a robots exclusion blocks",
                    "a reference side record beside a robots exclusion blocks nothing",

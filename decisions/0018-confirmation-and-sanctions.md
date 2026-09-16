@@ -95,7 +95,10 @@ counts. Carrying a domain without an accepted Delta would invent a
 first-accepted instant; carrying every escalation would store instants
 that decide nothing once a later one runs longer; carrying failures that
 no longer count would have a resuming Consumer remove an Auditor a
-replaying one keeps.
+replaying one keeps. An `exclusion` tuple dates the current unbroken run of
+WIST-4 §5's predicate rather than any one blocking pair, so two replayers
+with different pairs in view still agree on the height, and a Consumer
+resuming at any height inside the run reads the same start.
 
 ### Appeals and rulings
 

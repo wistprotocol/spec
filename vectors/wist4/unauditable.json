@@ -600,5 +600,434 @@
       "n_sealed_at_s": 8640000,
       "unauditable": true
     }
-  ]
+  ],
+  "exclusion_runs": {
+    "note": "WIST-3 \u00a77 exclusion tuples over hourly Blocks: expected gives, per height, whether the URL is unauditable and the excluded-since height of the current unbroken run, null while materialized. Records list every evidence Record on the URL by auditor and sealing instant.",
+    "cases": [
+      {
+        "label": "armed by the second blocker and cleared by a third auditor",
+        "blocks": [
+          {
+            "height": 0,
+            "sealed_at_s": 0
+          },
+          {
+            "height": 1,
+            "sealed_at_s": 86400
+          },
+          {
+            "height": 2,
+            "sealed_at_s": 172800
+          },
+          {
+            "height": 3,
+            "sealed_at_s": 259200
+          },
+          {
+            "height": 4,
+            "sealed_at_s": 345600
+          },
+          {
+            "height": 5,
+            "sealed_at_s": 432000
+          },
+          {
+            "height": 6,
+            "sealed_at_s": 2880000
+          },
+          {
+            "height": 7,
+            "sealed_at_s": 3024000
+          }
+        ],
+        "records": [
+          {
+            "auditor": "audit.example.org",
+            "sealed_at_s": 0,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "checker.example.net",
+            "sealed_at_s": 172800,
+            "verdict": "not_auditable",
+            "unmeasured": "observed"
+          },
+          {
+            "auditor": "verify.example.com",
+            "sealed_at_s": 345600,
+            "verdict": "consistent"
+          }
+        ],
+        "expected": [
+          {
+            "height": 0,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 1,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 2,
+            "unauditable": true,
+            "since": 2
+          },
+          {
+            "height": 3,
+            "unauditable": true,
+            "since": 2
+          },
+          {
+            "height": 4,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 5,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 6,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 7,
+            "unauditable": false,
+            "since": null
+          }
+        ]
+      },
+      {
+        "label": "re armed after clearing starts a new run",
+        "blocks": [
+          {
+            "height": 0,
+            "sealed_at_s": 0
+          },
+          {
+            "height": 1,
+            "sealed_at_s": 86400
+          },
+          {
+            "height": 2,
+            "sealed_at_s": 172800
+          },
+          {
+            "height": 3,
+            "sealed_at_s": 259200
+          },
+          {
+            "height": 4,
+            "sealed_at_s": 345600
+          },
+          {
+            "height": 5,
+            "sealed_at_s": 432000
+          },
+          {
+            "height": 6,
+            "sealed_at_s": 2880000
+          },
+          {
+            "height": 7,
+            "sealed_at_s": 3024000
+          }
+        ],
+        "records": [
+          {
+            "auditor": "audit.example.org",
+            "sealed_at_s": 0,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "checker.example.net",
+            "sealed_at_s": 86400,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "verify.example.com",
+            "sealed_at_s": 259200,
+            "verdict": "consistent"
+          },
+          {
+            "auditor": "verify.example.com",
+            "sealed_at_s": 345600,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "probe.sample.org",
+            "sealed_at_s": 432000,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          }
+        ],
+        "expected": [
+          {
+            "height": 0,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 1,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 2,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 3,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 4,
+            "unauditable": true,
+            "since": 4
+          },
+          {
+            "height": 5,
+            "unauditable": true,
+            "since": 4
+          },
+          {
+            "height": 6,
+            "unauditable": true,
+            "since": 4
+          },
+          {
+            "height": 7,
+            "unauditable": false,
+            "since": null
+          }
+        ]
+      },
+      {
+        "label": "pair aging out ends the run",
+        "blocks": [
+          {
+            "height": 0,
+            "sealed_at_s": 0
+          },
+          {
+            "height": 1,
+            "sealed_at_s": 86400
+          },
+          {
+            "height": 2,
+            "sealed_at_s": 172800
+          },
+          {
+            "height": 3,
+            "sealed_at_s": 259200
+          },
+          {
+            "height": 4,
+            "sealed_at_s": 345600
+          },
+          {
+            "height": 5,
+            "sealed_at_s": 432000
+          },
+          {
+            "height": 6,
+            "sealed_at_s": 2880000
+          },
+          {
+            "height": 7,
+            "sealed_at_s": 3024000
+          }
+        ],
+        "records": [
+          {
+            "auditor": "audit.example.org",
+            "sealed_at_s": 0,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "checker.example.net",
+            "sealed_at_s": 86400,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          }
+        ],
+        "expected": [
+          {
+            "height": 0,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 1,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 2,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 3,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 4,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 5,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 6,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 7,
+            "unauditable": false,
+            "since": null
+          }
+        ]
+      },
+      {
+        "label": "a later pair inside an unbroken run keeps the first height",
+        "blocks": [
+          {
+            "height": 0,
+            "sealed_at_s": 0
+          },
+          {
+            "height": 1,
+            "sealed_at_s": 86400
+          },
+          {
+            "height": 2,
+            "sealed_at_s": 172800
+          },
+          {
+            "height": 3,
+            "sealed_at_s": 259200
+          },
+          {
+            "height": 4,
+            "sealed_at_s": 345600
+          },
+          {
+            "height": 5,
+            "sealed_at_s": 432000
+          },
+          {
+            "height": 6,
+            "sealed_at_s": 2160000
+          },
+          {
+            "height": 7,
+            "sealed_at_s": 2232000
+          },
+          {
+            "height": 8,
+            "sealed_at_s": 2880000
+          },
+          {
+            "height": 9,
+            "sealed_at_s": 3024000
+          }
+        ],
+        "records": [
+          {
+            "auditor": "audit.example.org",
+            "sealed_at_s": 0,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "checker.example.net",
+            "sealed_at_s": 86400,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "verify.example.com",
+            "sealed_at_s": 2160000,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          },
+          {
+            "auditor": "probe.sample.org",
+            "sealed_at_s": 2232000,
+            "verdict": "unreachable",
+            "robots_excluded": true
+          }
+        ],
+        "expected": [
+          {
+            "height": 0,
+            "unauditable": false,
+            "since": null
+          },
+          {
+            "height": 1,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 2,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 3,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 4,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 5,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 6,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 7,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 8,
+            "unauditable": true,
+            "since": 1
+          },
+          {
+            "height": 9,
+            "unauditable": true,
+            "since": 1
+          }
+        ]
+      }
+    ]
+  }
 }

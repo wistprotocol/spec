@@ -983,7 +983,11 @@ have sealed blocking Records inside the unauditable horizon, a
 successful audit by an Auditor independent of both
 since — is excluded for as long as that holds, and returns to
 materialization at the first Snapshot built at or above the height of
-such an audit. The log itself
+such an audit. The `exclusion` tuple's excluded-since height is the
+lowest height from which that predicate has held at every Block through
+`log_position`, the start of the current unbroken exclusion: a clearing
+Record or a pair aging out ends the run, and a later pair starts a new
+one at its own height. The log itself
 retains full history in every case — deletion, withdrawal and
 unauditability shape the materialized present, never the recorded past.
 
