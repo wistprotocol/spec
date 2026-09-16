@@ -7584,9 +7584,10 @@ def canary_act_vectors():
         return leaves
 
     def reveal(label, code, *, leaves=None, subject=CANARY_DOMAIN, signer=priv, key_id="test-k1", extra=None,
-               sealed=True, already_revealed=False, height=reveal_height, deltas=None, reserved=()):
+               sealed=True, already_revealed=False, height=reveal_height, deltas=None, reserved=(),
+               effective_at="2026-08-26T04:00:00Z"):
         update = {"wist_version": "1.0.0", "action": "canary_reveal", "subject": subject,
-                  "effective_at": "2026-08-26T04:00:00Z",
+                  "effective_at": effective_at,
                   "details": {"commitment": canary_commitment_id,
                               "leaves": leaves_of() if leaves is None else leaves}}
         if extra:
@@ -7604,7 +7605,8 @@ def canary_act_vectors():
     reveals = [
         reveal("valid reveal", None),
         reveal("commitment not sealed", "WIST4-E08", sealed=False),
-        reveal("commitment already revealed", "WIST4-E08", already_revealed=True),
+        reveal("commitment already revealed", "WIST4-E08", already_revealed=True,
+               effective_at="2026-08-26T05:00:00Z"),
         reveal("index out of range", "WIST4-E08", leaves=mutated(lambda ls: ls[0].update(index=len(canary_leaves)))),
         reveal("repeated index", "WIST4-E08", leaves=mutated(lambda ls: ls[1].update(index=ls[0]["index"]))),
         reveal("delta of another domain", "WIST4-E08", deltas=foreign),
