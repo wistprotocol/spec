@@ -797,11 +797,34 @@ changes the peers that trigger summons. If two eligible triggers share
 a Block and only one ration slot remains, the earlier Entry spends it;
 the later Record remains valid but summons nobody.
 
+**Only evidence counts.** Throughout the extension rule and the
+contradiction test below, a Record counts — as a trigger, as an earlier
+such Record, as an already-sealed filer and as a member of either
+quorum — only if a validator recomputing reputation does not reject it
+under §3 or §10.1: standing, an admitted key, an authentic signature,
+valid fields and a supported major, a `fetched_at` inside its interval,
+a qualifying `reference_delta`, scores inside their bands and no
+coverage failure at its own Block. A rejected `inconsistent` or
+`link_inconsistent` Record triggers nothing, spends none of its signer's
+ration, suppresses no later trigger for the same Delta and excludes no
+peer as a filer; a rejected `consistent` Record adds no member to the
+`consistent` quorum, and a rejected Record of the trigger's verdict adds
+none to the trigger-containing quorum. This is the reading §3 already
+gives reputation — a Record that enters no `C`, no `penalty_n` and no
+Confirmed Inconsistency decides neither who is summoned nor what a
+closed extension found — and without it a malformed or unauthentic
+filing, which costs nothing and needs no standing, would gate the
+extension path for a whole confirmation window or shrink the summoned
+set by naming filers whose Records weigh nothing. The carve-outs under
+which such a Record still discharges a coverage duty (§3, §10.1) are
+untouched: discharge is a fact about the Auditor's publication, and
+evidence is a fact about the Record's weight.
+
 **Extensions are rationed, and the ration is per triggering Auditor.**
 A triggering Record extends selection sets only while its signing
 Auditor has triggered fewer than `extension_triggers_max` (Parameter
-Registry; default 3) extensions in the 30 whole days ending at *B₁*'s
-`sealed_at`; beyond that the Record is valid, counts toward
+Registry; default 3; read at *B₁*, §9) extensions in the 30 whole days
+ending at *B₁*'s `sealed_at`; beyond that the Record is valid, counts toward
 confirmation if peers happen to audit *d* anyway, and simply summons
 nobody. Without the ration the rule is an amplifier pointed at the
 roster: one Auditor's `inconsistent` costs every independent peer a

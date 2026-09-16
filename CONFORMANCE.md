@@ -716,3 +716,24 @@ establish none of those histories, live pulling/sealing, reputation exclusion
 or durable restoration. A rejected evidence field alone never establishes
 coverage discharge; full replay must establish every §10.1 premise while
 preserving §4's sealing obligations and the original signed bytes.
+
+## Extension evidence eligibility
+
+WIST-4 §4 (**Only evidence counts**) and draft ADR-0019 make the extension
+trigger, the earlier-filing lookback, the already-sealed filer set and both
+contradiction quorums read only Records that §3 and §10.1 do not reject.
+`vectors/wist4/extension.json` `evidence_cases` supply signed Records in Log
+order with per-Auditor keys; `tools/validate_examples.py` derives each
+rejection from the signed bytes (structure, signature and key binding,
+version support, evidence fields and §5 score bands) plus supplied standing,
+removal and coverage-failure contexts, then recomputes eligibility, ration,
+summoned sets and contradiction outcomes over the surviving evidence. Its
+twin recomputes every case under the reading that counts every sealed filing
+and requires the two to disagree.
+
+The supplied contexts establish no VRF or extension standing, roster,
+`fetched_at` interval, reference chain or coverage-failure state; an
+integrated role must derive each of those from its authenticated prefix
+before applying this rule. The vector reads the default band thresholds and
+`extension_triggers_max` at B₁ without a parameter amendment; amendment
+replay is exercised by `parameter-in-force.json` and `link-agreement.json`.

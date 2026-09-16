@@ -4301,6 +4301,185 @@ for label, rows in (
         "roster": [AUD_A, AUD_B, AUD_C], "publisher_domain": "page.publisher.test",
         "eligible": candidates, "summons": outcomes, "summoned_auditors": peers})
 
+# ------------------------------------ WIST-4 §4: only evidence counts
+# A Record §3/§10.1 rejects neither triggers, suppresses, excludes nor joins a
+# quorum. Each case seals signed Records in Log order for one or more Deltas;
+# the checker derives every rejection from the bytes and supplied contexts
+# before replaying the rule over the surviving evidence.
+EVIDENCE_ROSTER = [AUD_A, AUD_A2, AUD_B, AUD_B2, AUD_C]
+EVIDENCE_PUBLISHER = "www.publisher.example"
+EVIDENCE_THRESHOLDS = {"similarity_consistent": 600_000, "similarity_variance_floor": 300_000,
+                       "link_agreement_consistent": 600_000, "link_variance_floor": 300_000}
+
+
+def evidence_private_key(auditor):
+    seed = hashlib.sha256(b"extension-evidence:" + auditor.encode()).digest()
+    return Ed25519PrivateKey.from_private_bytes(seed)
+
+
+EVIDENCE_KEYS = {auditor: {"key_id": auditor + "-k1",
+                           "public_key": b64u(raw_public(evidence_private_key(auditor)))}
+                 for auditor in EVIDENCE_ROSTER}
+
+
+def evidence_delta(label):
+    return "sha256:" + hashlib.sha256(("extension evidence delta " + label).encode()).hexdigest()
+
+
+def evidence_scores_valid(verdict, similarity, link_agreement, th=EVIDENCE_THRESHOLDS):
+    """WIST-4 §5's band table for a `new`/`modify` audit; a mismatch is the
+    §3 malformed-evidence rejection."""
+    if verdict == "consistent":
+        return similarity >= th["similarity_consistent"] and (
+            link_agreement is None or link_agreement >= th["link_agreement_consistent"])
+    if verdict == "inconsistent":
+        return similarity < th["similarity_variance_floor"]
+    if verdict == "dynamic_variance":
+        return th["similarity_variance_floor"] <= similarity < th["similarity_consistent"]
+    if verdict == "link_variance":
+        return similarity >= th["similarity_consistent"] and link_agreement is not None \
+            and th["link_variance_floor"] <= link_agreement < th["link_agreement_consistent"]
+    if verdict == "link_inconsistent":
+        return similarity >= th["similarity_consistent"] and link_agreement is not None \
+            and link_agreement < th["link_variance_floor"]
+    return similarity is None and link_agreement is None
+
+
+def evidence_record(auditor, verdict, delta, hours_after_b1, mutation="none", entry=0):
+    import copy
+    height = B1["height"] + hours_after_b1
+    sealed_at_s = B1["sealed_at_s"] + hours_after_b1 * HOUR_S
+    body = copy.deepcopy(audit_record)
+    body.update(audited_delta=delta, reference_delta=delta, auditor_id=auditor, verdict=verdict,
+                fetched_at=datetime.datetime.fromtimestamp(sealed_at_s, datetime.timezone.utc)
+                .strftime("%Y-%m-%dT%H:%M:%SZ"))
+    body["credit_commitment"] = audit_commit(RESPONSE_BODY + auditor.encode())
+    if verdict == "consistent":
+        body["similarity"], body["link_agreement"] = 940_000, 1_000_000
+    elif verdict == "inconsistent":
+        body["similarity"] = 100_000
+        body.pop("link_agreement")
+    elif verdict == "link_inconsistent":
+        body["similarity"], body["link_agreement"] = 950_000, 100_000
+    context = {"standing": True, "removed": False, "coverage_failure": False}
+    rejected = []
+    if mutation == "mis-scored":
+        body["similarity"] = 940_000 if verdict == "inconsistent" else 250_000
+        rejected = ["WIST4-E02"]
+    elif mutation == "missing-evidence":
+        del body["evidence_commitment"]
+        rejected = ["WIST4-E02"]
+    elif mutation == "unsupported-major":
+        body["wist_version"] = "2.0.0"
+        rejected = ["WIST4-E10"]
+    elif mutation == "no-standing":
+        context["standing"] = False
+        rejected = ["WIST4-E01"]
+    elif mutation in ("removed", "coverage-failure"):
+        context[mutation.replace("-", "_")] = True
+        rejected = ["WIST4-E01"]
+    signer = auditor
+    if mutation == "wrong-signer":
+        signer = next(a for a in EVIDENCE_ROSTER if a != auditor)
+        rejected = ["WIST4-E01"]
+    doc = sign_envelope_with(evidence_private_key(signer), "record", body, EVIDENCE_KEYS[signer]["key_id"])
+    if mutation == "forged":
+        doc["sig"]["value"] = b64u(bytes(64))
+        rejected = ["WIST4-E01"]
+    elif mutation == "unknown-member":
+        doc["unknown"] = True
+        rejected = ["WIST4-E09"]
+    assert mutation == "none" or rejected, mutation
+    assert evidence_scores_valid(verdict, body.get("similarity"), body.get("link_agreement")) \
+        == (mutation != "mis-scored")
+    return {"block_height": height, "entry_index": entry, "sealed_at_s": sealed_at_s,
+            "auditor": auditor, "verdict": verdict, "delta": delta, "mutation": mutation,
+            "record_json": json.dumps(doc, ensure_ascii=True), "context": context,
+            "rejected": rejected}
+
+
+def evidence_replay(records, roster, publisher, window_hours, triggers_max, window_days,
+                    count_rejected=False):
+    """The extension rule over Records in Log order. Only evidence counts;
+    `count_rejected` is the ruled-out reading, present for the twin."""
+    counted = [r for r in records if count_rejected or not r["rejected"]]
+    such = ("inconsistent", "link_inconsistent")
+    summoning, eligible, summons, peers, outcomes = [], [], [], [], []
+    for r in records:
+        counts = count_rejected or not r["rejected"]
+        prior = [e for e in counted if e["delta"] == r["delta"] and e["verdict"] in such
+                 and (e["block_height"], e["entry_index"]) < (r["block_height"], r["entry_index"])]
+        candidate = counts and r["verdict"] in such and not any(
+            r["sealed_at_s"] - e["sealed_at_s"] <= window_hours * HOUR_S for e in prior)
+        spent = sum(1 for auditor, at_s in summoning
+                    if auditor == r["auditor"] and within_days_ending_at(at_s, r["sealed_at_s"], window_days))
+        fires = candidate and spent < triggers_max
+        filers = [e["auditor"] for e in prior] + [r["auditor"]]
+        peers.append([a for a in roster if fires and independent(a, publisher)
+                      and all(independent(a, f) for f in filers)])
+        if fires:
+            summoning.append((r["auditor"], r["sealed_at_s"]))
+        eligible.append(candidate)
+        summons.append(fires)
+        if candidate:
+            later = [e for e in counted if e["delta"] == r["delta"] and e is not r
+                     and e["sealed_at_s"] >= r["sealed_at_s"]]
+            outcomes.append({"record_index": records.index(r),
+                             **contradiction(r, later, CONTRADICTION_GRID, fires, window_hours)})
+    return eligible, summons, peers, outcomes
+
+
+def evidence_case(label, rows):
+    records = [evidence_record(*row) for row in rows]
+    eligible, summons, peers, outcomes = evidence_replay(
+        records, EVIDENCE_ROSTER, EVIDENCE_PUBLISHER, CONFIRM_WINDOW_HOURS,
+        EXTENSION_TRIGGERS_MAX, RATION_WINDOW_DAYS)
+    alternative = evidence_replay(
+        records, EVIDENCE_ROSTER, EVIDENCE_PUBLISHER, CONFIRM_WINDOW_HOURS,
+        EXTENSION_TRIGGERS_MAX, RATION_WINDOW_DAYS, count_rejected=True)
+    assert (eligible, summons, peers, [o["contradicted"] for o in outcomes]) != \
+        (alternative[0], alternative[1], alternative[2], [o["contradicted"] for o in alternative[3]]), label
+    for r, e, s, p in zip(records, eligible, summons, peers):
+        r.update(eligible=e, summons=s, summoned_auditors=p)
+    return {"label": label, "records": records, "triggers": outcomes}
+
+
+D0, D1, D2, D3 = (evidence_delta(x) for x in "wxyz")
+evidence_cases = [
+    evidence_case(f"{mutation}-filing-then-valid-trigger",
+                  [(AUD_A, "inconsistent", D0, 0, mutation), (AUD_B, "inconsistent", D0, 1)])
+    for mutation in ("mis-scored", "missing-evidence", "unsupported-major", "unknown-member",
+                     "forged", "wrong-signer", "no-standing", "removed", "coverage-failure")
+] + [
+    evidence_case("rejected-link-filing-then-valid-trigger",
+                  [(AUD_A, "link_inconsistent", D0, 0, "mis-scored"), (AUD_B, "inconsistent", D0, 1)]),
+    evidence_case("rejected-filer-excludes-no-peer",
+                  [(AUD_A, "inconsistent", D0, 0), (AUD_B, "inconsistent", D0, 50, "mis-scored"),
+                   (AUD_C, "inconsistent", D0, 73)]),
+    evidence_case("rejected-filing-spends-no-ration",
+                  [(AUD_A, "inconsistent", D0, 0, "forged"), (AUD_A, "inconsistent", D1, 1),
+                   (AUD_A, "inconsistent", D2, 2), (AUD_A, "inconsistent", D3, 3)]),
+    evidence_case("rejected-consistent-joins-no-pair",
+                  [(AUD_A, "inconsistent", D0, 0), (AUD_B, "consistent", D0, 40),
+                   (AUD_C, "consistent", D0, 60, "unsupported-major")]),
+    evidence_case("coverage-failure-consistent-joins-no-pair",
+                  [(AUD_A, "inconsistent", D0, 0), (AUD_B, "consistent", D0, 40),
+                   (AUD_C, "consistent", D0, 60, "coverage-failure")]),
+    evidence_case("rejected-confirmation-confirms-nothing",
+                  [(AUD_A, "inconsistent", D0, 0), (AUD_C, "consistent", D0, 40),
+                   (AUD_B, "inconsistent", D0, 50, "mis-scored"), (AUD_B2, "consistent", D0, 60)]),
+    evidence_case("forged-confirmation-confirms-nothing",
+                  [(AUD_A, "inconsistent", D0, 0), (AUD_C, "consistent", D0, 40),
+                   (AUD_B, "inconsistent", D0, 50, "forged"), (AUD_B2, "consistent", D0, 60)]),
+]
+assert [c["records"][1]["summons"] for c in evidence_cases[:10]] == [True] * 10
+assert all(set(c["records"][1]["summoned_auditors"]) == {AUD_A, AUD_A2, AUD_C} for c in evidence_cases[:10])
+by_label = {c["label"]: c for c in evidence_cases}
+assert by_label["rejected-filer-excludes-no-peer"]["records"][2]["summoned_auditors"] == [AUD_B, AUD_B2]
+assert by_label["rejected-filing-spends-no-ration"]["records"][3]["summons"]
+assert [t["contradicted"] for t in by_label["rejected-consistent-joins-no-pair"]["triggers"]] == [False]
+assert [t["contradicted"] for t in by_label["rejected-confirmation-confirms-nothing"]["triggers"]] == [True]
+
 write_json(WIST4 / "extension.json", spaced_labels({
     "note": ("WIST-4 §4 extension rule: trigger, ration, summoned set, and the "
              "contradiction that escalates the audited domain's sampling. A "
@@ -4325,6 +4504,21 @@ write_json(WIST4 / "extension.json", spaced_labels({
     "summons_cases": extension_summons_cases,
     "contradiction_blocks": CONTRADICTION_GRID,
     "contradiction_cases": contradiction_cases,
+    "evidence_note": ("WIST-4 §4, only evidence counts: signed Records in Log order for one or "
+                      "more Deltas, each with its signer's key, the supplied standing/removal/"
+                      "coverage-failure context and the §3/§10.1 rejection a validator derives "
+                      "from the bytes and that context; per Record whether it is an eligible "
+                      "trigger, whether it summons, and whom; per eligible trigger the "
+                      "contradiction outcome over the surviving evidence on contradiction_blocks. "
+                      "fetched_at equals the Record's Block sealed_at and reference_delta the "
+                      "audited Delta, so the interval and chain tests pass by construction and "
+                      "are not exercised; every Record audits a `new` Delta under the default "
+                      "band thresholds with no amendment in force."),
+    "evidence_publisher": EVIDENCE_PUBLISHER,
+    "evidence_roster": EVIDENCE_ROSTER,
+    "evidence_keys": EVIDENCE_KEYS,
+    "evidence_thresholds": EVIDENCE_THRESHOLDS,
+    "evidence_cases": evidence_cases,
 }))
 
 # ------------------------------------ WIST-4 §4: the extension Record's proof

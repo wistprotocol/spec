@@ -3184,6 +3184,201 @@ def _dc4_contradiction_twin():
         "recomputation is blind to whether the trigger summoned"
 check("negative:wist4-contradiction", _dc4_contradiction_twin)
 
+def _audit_record_validators():
+    """WIST-4 §10.1: the structural (non-evidence) and complete schema
+    validators, with Log instants and hostname labels checked exactly."""
+    schema = json.loads((ROOT / 'schemas/audit-record.schema.json').read_text())
+    evidence = {'reference_delta', 'fetched_at', 'verdict', 'response_commitment',
+                'credit_commitment', 'ref_extract_commitment', 'evidence_commitment',
+                'similarity', 'link_agreement', 'robots_excluded', 'unmeasured'}
+    structural = copy.deepcopy(schema)
+    del structural['allOf']
+    record_fields = structural['properties']['record']
+    record_fields['required'] = [name for name in record_fields['required'] if name not in evidence]
+    for name in evidence:
+        record_fields['properties'][name] = {}
+    formats = FormatChecker(formats=[])
+
+    @formats.checks('date-time', raises=(TypeError, ValueError))
+    def instant(value):
+        if isinstance(value, str):
+            log_seconds(value)
+        return True
+
+    @formats.checks('hostname')
+    def hostname(value):
+        if not isinstance(value, str):
+            return True
+        return all(1 <= len(label) <= 63 for label in value.split('.'))
+
+    return [Draft202012Validator(s, format_checker=formats) for s in (structural, schema)]
+
+
+def _extension_scores_valid(verdict, similarity, link_agreement, th):
+    """WIST-4 §5's band table for a `new` audit; a Record outside its
+    verdict's band is §3's malformed-evidence rejection."""
+    if verdict == "consistent":
+        return similarity >= th["similarity_consistent"] and (
+            link_agreement is None or link_agreement >= th["link_agreement_consistent"])
+    if verdict == "inconsistent":
+        return similarity < th["similarity_variance_floor"]
+    if verdict == "dynamic_variance":
+        return th["similarity_variance_floor"] <= similarity < th["similarity_consistent"]
+    if verdict == "link_variance":
+        return similarity >= th["similarity_consistent"] and link_agreement is not None \
+            and th["link_variance_floor"] <= link_agreement < th["link_agreement_consistent"]
+    if verdict == "link_inconsistent":
+        return similarity >= th["similarity_consistent"] and link_agreement is not None \
+            and link_agreement < th["link_variance_floor"]
+    return similarity is None and link_agreement is None
+
+def _extension_evidence_rejection(v, record, validators):
+    """WIST-4 §3/§10.1 over the signed bytes and the supplied context: raw
+    JSON, structure, signature under the claimed Auditor's own key, version
+    support, evidence fields, §5 bands, standing, removal and coverage
+    failure. Empty means the Record is evidence."""
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate decoded member")
+            result[key] = value
+        return result
+    try:
+        doc = json.loads(record["record_json"], object_pairs_hook=unique, parse_int=float, parse_float=float)
+        rfc8785.dumps(doc)
+    except (ValueError, rfc8785.CanonicalizationError):
+        return {"WIST1-E05"}
+    structural, complete = validators
+    if not structural.is_valid(doc):
+        return {"WIST4-E09"}
+    body, sig, context = doc["record"], doc["sig"], record["context"]
+    key = v["evidence_keys"].get(body["auditor_id"])
+    authentic = False
+    if key is not None and sig["key_id"] == key["key_id"]:
+        try:
+            Ed25519PublicKey.from_public_bytes(canonical_b64u_decode(key["public_key"])).verify(
+                canonical_b64u_decode(sig["value"]), rfc8785.dumps(body))
+            authentic = True
+        except (ValueError, InvalidSignature):
+            authentic = False
+    if not complete.is_valid(doc):
+        return {"WIST4-E02"}
+    codes = set()
+    if body["wist_version"].split(".")[0] != "1":
+        codes.add("WIST4-E10")
+    if not (authentic and context["standing"]) or context["removed"] or context["coverage_failure"]:
+        codes.add("WIST4-E01")
+    if not _extension_scores_valid(body["verdict"], body.get("similarity"), body.get("link_agreement"),
+                                   v["evidence_thresholds"]):
+        codes.add("WIST4-E02")
+    return codes
+
+def _extension_evidence_replay(v, case, evidence, count_rejected=False):
+    """WIST-4 §4 over Records in Log order: an eligible trigger has no earlier
+    such evidence Record for its Delta inside the window; it summons while
+    its Auditor's summoning triggers in the ration window are below the
+    ration; peers are independent of the Publisher and of every evidence
+    filer, the trigger included; the contradiction reads evidence only.
+    `count_rejected` is the reading the vector rules out."""
+    such = ("inconsistent", "link_inconsistent")
+    records = case["records"]
+    window_s = v["confirm_window_hours"] * 3600
+    counts = [count_rejected or ok for ok in evidence]
+    summoning, eligible, summons, peers, outcomes = [], [], [], [], []
+    for i, r in enumerate(records):
+        prior = [e for e, ok in zip(records[:i], counts) if ok and e["delta"] == r["delta"] and e["verdict"] in such]
+        candidate = counts[i] and r["verdict"] in such and not any(
+            0 <= r["sealed_at_s"] - e["sealed_at_s"] <= window_s for e in prior)
+        spent = sum(1 for a, t in summoning
+                    if a == r["auditor"] and 0 <= r["sealed_at_s"] - t < v["ration_window_days"] * 86400)
+        fires = candidate and spent < v["extension_triggers_max"]
+        filers = [e["auditor"] for e in prior] + [r["auditor"]]
+        peers.append([a for a in v["evidence_roster"] if fires
+                      and _roster_independent(a, v["evidence_publisher"])
+                      and all(_roster_independent(a, f) for f in filers)])
+        if fires:
+            summoning.append((r["auditor"], r["sealed_at_s"]))
+        eligible.append(candidate)
+        summons.append(fires)
+        if candidate:
+            later = [e for j, e in enumerate(records) if counts[j] and j != i
+                     and e["delta"] == r["delta"] and e["sealed_at_s"] >= r["sealed_at_s"]]
+            closes, confirmed, pair, contradicted = _contradiction_outcome(
+                v, {"trigger": r, "records": later, "summoned": fires})
+            outcomes.append((i, closes, confirmed, pair, contradicted))
+    return eligible, summons, peers, outcomes
+
+def _dc4_extension_evidence():
+    """WIST-4 §4, only evidence counts: a Record §3/§10.1 rejects neither
+    triggers, suppresses, spends ration, excludes a peer nor joins a quorum."""
+    v = _extension_vector()
+    validators = _audit_record_validators()
+    labels, codes_seen, mutations = set(), set(), set()
+    for case in v["evidence_cases"]:
+        label = case["label"]
+        assert label not in labels, label
+        labels.add(label)
+        evidence = []
+        for record in case["records"]:
+            codes = _extension_evidence_rejection(v, record, validators)
+            assert codes == set(record["rejected"]), (label, record["mutation"], codes, record["rejected"])
+            body = json.loads(record["record_json"])["record"]
+            assert (body["auditor_id"], body["verdict"], body["audited_delta"]) == \
+                (record["auditor"], record["verdict"], record["delta"]), label
+            evidence.append(not codes)
+            codes_seen |= codes
+            mutations.add(record["mutation"])
+        eligible, summons, peers, outcomes = _extension_evidence_replay(v, case, evidence)
+        want = ([r["eligible"] for r in case["records"]], [r["summons"] for r in case["records"]],
+                [r["summoned_auditors"] for r in case["records"]])
+        assert (eligible, summons, peers) == want, (label, (eligible, summons, peers), want)
+        assert outcomes == [(t["record_index"], t["closes_at_height"], t["confirmed"],
+                             t["independent_consistent_pair"], t["contradicted"]) for t in case["triggers"]], label
+    assert codes_seen == {"WIST4-E01", "WIST4-E02", "WIST4-E09", "WIST4-E10"}, codes_seen
+    assert mutations >= {"none", "mis-scored", "missing-evidence", "unsupported-major", "unknown-member",
+                         "forged", "wrong-signer", "no-standing", "removed", "coverage-failure"}, mutations
+    for needed in ("rejected filer excludes no peer", "rejected filing spends no ration",
+                   "rejected consistent joins no pair", "rejected confirmation confirms nothing",
+                   "coverage failure consistent joins no pair"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("**Only evidence counts.**",
+                   "spends none of its signer's ration, suppresses no later trigger for the same Delta "
+                   "and excludes no peer as a filer",
+                   "read at *B₁*, §9"):
+        assert marker in prose, f"§4 does not state: {marker!r}"
+check("vectors:wist4-extension-evidence", _dc4_extension_evidence)
+
+def _dc4_extension_evidence_twin():
+    """Every case flips under the reading that counts each sealed filing,
+    and the rejection derivation is not blind to the bytes it reads."""
+    v = _extension_vector()
+    validators = _audit_record_validators()
+    for case in v["evidence_cases"]:
+        evidence = [not _extension_evidence_rejection(v, r, validators) for r in case["records"]]
+        strict = _extension_evidence_replay(v, case, evidence)
+        loose = _extension_evidence_replay(v, case, evidence, count_rejected=True)
+        assert (strict[0], strict[1], strict[2], [o[4] for o in strict[3]]) != \
+            (loose[0], loose[1], loose[2], [o[4] for o in loose[3]]), case["label"]
+    by_label = {c["label"]: c for c in v["evidence_cases"]}
+    forged = by_label["forged filing then valid trigger"]["records"][0]
+    assert validators[1].is_valid(json.loads(forged["record_json"]))
+    honest = dict(forged, context=dict(forged["context"]), record_json=forged["record_json"])
+    assert _extension_evidence_rejection(v, honest, validators) == {"WIST4-E01"}
+    scored = by_label["mis scored filing then valid trigger"]["records"][0]
+    assert _extension_evidence_rejection(v, dict(scored, context=dict(scored["context"], standing=False)),
+                                         validators) == {"WIST4-E01", "WIST4-E02"}
+    valid = by_label["mis scored filing then valid trigger"]["records"][1]
+    for flag in ("removed", "coverage_failure"):
+        assert _extension_evidence_rejection(v, dict(valid, context=dict(valid["context"], **{flag: True})),
+                                             validators) == {"WIST4-E01"}, flag
+    wrong_key = dict(v, evidence_keys=dict(v["evidence_keys"],
+                                            **{valid["auditor"]: v["evidence_keys"][forged["auditor"]]}))
+    assert _extension_evidence_rejection(wrong_key, valid, validators) == {"WIST4-E01"}
+check("negative:wist4-extension-evidence", _dc4_extension_evidence_twin)
+
 def _extension_window_sum(case):
     return ((case["confirm_window_hours"] // 2) * 3600
             + case["record_seal_blocks"] * case["block_cadence_seconds"])
@@ -4555,6 +4750,8 @@ NON_CONTENT_DIGESTS = {
 
 NON_CONTENT_VALUES = {
     ("vectors/wist4/record-fields.json", "public_key"): "the supplied Record signature verification key",
+    ("vectors/wist4/extension.json", "public_key"): "an evidence-case Auditor's Ed25519 public key",
+    ("vectors/wist4/extension.json", "delta"): "a Delta ID",
     ("vectors/wist1/payload-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/payload-fields.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/payload-fields.json", "salt"): "Payload salts and malformed encoding probes",
@@ -9782,31 +9979,7 @@ check('vectors:wist1-delta-clock-time', _delta_clock_time_vectors)
 def _record_field_vectors():
     vector = json.loads((ROOT / 'vectors/wist4/record-fields.json').read_text())
     original = copy.deepcopy(vector)
-    schema = json.loads((ROOT / 'schemas/audit-record.schema.json').read_text())
-    evidence = {'reference_delta', 'fetched_at', 'verdict', 'response_commitment',
-                'credit_commitment', 'ref_extract_commitment', 'evidence_commitment',
-                'similarity', 'link_agreement', 'robots_excluded', 'unmeasured'}
-    structural = copy.deepcopy(schema)
-    del structural['allOf']
-    record_fields = structural['properties']['record']
-    record_fields['required'] = [name for name in record_fields['required'] if name not in evidence]
-    for name in evidence:
-        record_fields['properties'][name] = {}
-    formats = FormatChecker(formats=[])
-
-    @formats.checks('date-time', raises=(TypeError, ValueError))
-    def instant(value):
-        if isinstance(value, str):
-            log_seconds(value)
-        return True
-
-    @formats.checks('hostname')
-    def hostname(value):
-        if not isinstance(value, str):
-            return True
-        return all(1 <= len(label) <= 63 for label in value.split('.'))
-
-    validators = [Draft202012Validator(s, format_checker=formats) for s in (structural, schema)]
+    validators = _audit_record_validators()
     public = canonical_b64u_decode(vector['public_key'])
     names, outcomes = set(), set()
     discharged_errors = set()
