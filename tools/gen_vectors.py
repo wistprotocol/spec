@@ -735,14 +735,23 @@ def recovery_heads_vectors():
                 "highest_accepted_seq": floor,
                 "window_end": timestamp(opened_at + 168) if head else None,
                 "windows_opened": windows}
-    traces = [
-        (0, state(initial, None, 0, windows=0)),
-        (1, state(owner, owner, 1)), (2, state(fresh, owner, 10)),
-        (3, state(follower, follower, 11)), (4, state(fresh_again, follower, 20)),
-        (5, state(recovered, recovered, 21)), (6, state(competitor, recovered, 30)),
-        (168, state(competitor, recovered, 30)), (169, state(after, None, 31)),
-        (170, state(after, None, 31)),
+    heights = {decl_hash(envelope["publisher"]): height for height, envelope in events.items()}
+
+    def tuples(current, head, floor, opened_at=1):
+        declaration = ["declaration", "example.com", current, heights[decl_hash(current["publisher"])], floor]
+        window = None if head is None else [
+            "recovery_window", "example.com", opened_at, timestamp(opened_at + 168), head,
+            heights[decl_hash(head["publisher"])]]
+        return {"declaration": declaration, "recovery_window": window}
+    trace_args = [
+        (0, (initial, None, 0, 1, 0)), (1, (owner, owner, 1, 1, 1)), (2, (fresh, owner, 10, 1, 1)),
+        (3, (follower, follower, 11, 1, 1)), (4, (fresh_again, follower, 20, 1, 1)),
+        (5, (recovered, recovered, 21, 1, 1)), (6, (competitor, recovered, 30, 1, 1)),
+        (168, (competitor, recovered, 30, 1, 1)), (169, (after, None, 31, 1, 1)),
+        (170, (after, None, 31, 1, 1)),
     ]
+    traces = [(height, state(*args)) for height, args in trace_args]
+    snapshot_tuples = [dict(height=height, **tuples(*args[:4])) for height, args in trace_args]
     probes = []
     def probe(name, prefix, hour, envelope, outcome, expected, branch=None):
         probes.append({"name": name, "prefix_height": prefix,
@@ -821,6 +830,18 @@ def recovery_heads_vectors():
                                     recovery_keys=publisher["recovery_keys"])
     probe("current competitor recovery set cannot replace named head set", 3, 4,
           follows_competitor_set, "WIST1-E08", state(competitor_recovery, owner, 11), branch=0)
+    low_seq_after_restore = signed(recovered, 22, priv3, "test-k2")
+    resume_cases = [
+        {"label": "floor survives a restored lower sequence head",
+         "declaration": ["declaration", "example.com", recovered, 5, 30], "recovery_window": None,
+         "candidate": low_seq_after_restore, "candidate_sealed_at": timestamp(170), "height": 170,
+         "expected_result": "WIST1-E08", "without": "floor", "degraded_result": "ordinary_rotation"},
+        {"label": "chain head authenticates a follower before settlement",
+         "declaration": ["declaration", "example.com", competitor, 6, 30],
+         "recovery_window": ["recovery_window", "example.com", 1, timestamp(169), recovered, 5],
+         "candidate": after, "candidate_sealed_at": timestamp(168), "height": 168,
+         "expected_result": "ordinary_rotation", "without": "head", "degraded_result": "WIST1-E08"},
+    ]
     write_json(WIST1 / "recovery-heads.json", {
         "note": "WIST-1 section 5.2 accepted sequence and recovery heads. The supplied "
                 "Log key and final pinned head authenticate one complete hourly Block chain. "
@@ -834,6 +855,8 @@ def recovery_heads_vectors():
         "branches": [branch],
         "expected_prefix_states": [{"height": height, "state": expected}
                                    for height, expected in traces],
+        "snapshot_tuples": snapshot_tuples,
+        "resume_cases": resume_cases,
         "probes": probes,
     })
 

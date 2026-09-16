@@ -6882,6 +6882,14 @@ def _recovery_binding_vectors():
 
 check("vectors:wist1-recovery-bindings", _recovery_binding_vectors)
 
+def _recovery_state_from_tuples(declaration, window):
+    """WIST-3 §7/§8: the reference state a Consumer resumes from the two tuples."""
+    state = {"current": declaration[2], "chain": None, "floor": declaration[4], "end": None,
+             "windows": 0, "reset_height": None}
+    if window is not None:
+        state["chain"], state["end"] = window[4], window[3]
+    return state
+
 def _recovery_heads_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())
     apply, summary, replay, _ = _recovery_history_reference(vector)
@@ -6907,6 +6915,42 @@ def _recovery_heads_vectors():
         outcomes.add(result)
     assert outcomes == {"ordinary_rotation", "recovery_rotation", "fresh_identity", "idempotent",
                         "WIST1-E01", "WIST1-E08"}
+    expected_by_height = {row["height"]: row["state"] for row in vector["expected_prefix_states"]}
+    compared = ("current_declaration", "recovery_head", "highest_accepted_seq", "window_end")
+    resumed = 0
+    for row in vector["snapshot_tuples"]:
+        declaration, window = row["declaration"], row["recovery_window"]
+        assert declaration[0] == "declaration" and len(declaration) == 5
+        assert vector["blocks"][declaration[3]]["entries"][0]["body"] == declaration[2]
+        if window is not None:
+            assert window[0] == "recovery_window" and len(window) == 6
+            assert vector["blocks"][window[5]]["entries"][0]["body"] == window[4]
+            assert vector["blocks"][window[2]]["entries"], "owner height names an empty Block"
+        state = _recovery_state_from_tuples(declaration, window)
+        derived = summary(state)
+        assert {k: derived[k] for k in compared} == \
+            {k: expected_by_height[row["height"]][k] for k in compared}, row["height"]
+        for probe in vector["probes"]:
+            if "branch" in probe or probe["prefix_height"] != row["height"]:
+                continue
+            state = _recovery_state_from_tuples(declaration, window)
+            result = apply(state, probe["candidate"], log_seconds(probe["candidate_sealed_at"]),
+                           probe["candidate_sealed_at"], probe["prefix_height"] + 1)
+            assert result == probe["expected_result"], ("resume", probe["name"])
+            derived = summary(state)
+            assert {k: derived[k] for k in compared} == \
+                {k: probe["expected_state"][k] for k in compared}, ("resume", probe["name"])
+            resumed += 1
+    assert resumed >= 10, "too few probes resumed from Snapshot tuples"
+    for case in vector["resume_cases"]:
+        state = _recovery_state_from_tuples(case["declaration"], case["recovery_window"])
+        result = apply(state, case["candidate"], log_seconds(case["candidate_sealed_at"]),
+                       case["candidate_sealed_at"], case["height"])
+        assert result == case["expected_result"], case["label"]
+    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "then the highest accepted `seq` — WIST-1 §5.2's sequence floor" in prose3
+    assert "then the recovery-chain head's Declaration Envelope verbatim and its sealing height" in prose3
+    assert "A `recovery_window` tuple makes its head an eligible predecessor beside the current Declaration" in prose3
     for target in ("author", "header", "predecessor", "head", "omission"):
         blocks = copy.deepcopy(vector["blocks"])
         pinned = vector["pinned_head"]
@@ -6930,6 +6974,22 @@ def _recovery_heads_vectors():
 
 
 check("vectors:wist1-recovery-heads", _recovery_heads_vectors)
+
+def _recovery_heads_resume_twin():
+    vector = json.loads((ROOT / "vectors/wist1/recovery-heads.json").read_text())
+    apply, _, _, _ = _recovery_history_reference(vector)
+    for case in vector["resume_cases"]:
+        declaration = list(case["declaration"])
+        window = case["recovery_window"]
+        if case["without"] == "floor":
+            declaration[4] = declaration[2]["publisher"]["seq"]
+        else:
+            window = None
+        state = _recovery_state_from_tuples(declaration, window)
+        result = apply(state, case["candidate"], log_seconds(case["candidate_sealed_at"]),
+                       case["candidate_sealed_at"], case["height"])
+        assert result == case["degraded_result"] != case["expected_result"], case["label"]
+check("negative:wist1-recovery-heads-resume", _recovery_heads_resume_twin)
 
 def _recovery_identity_vectors():
     vector = json.loads((ROOT / "vectors/wist4/recovery-identity.json").read_text())

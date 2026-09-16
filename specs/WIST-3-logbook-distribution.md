@@ -1163,10 +1163,10 @@ value fields are:
 |---|---|---|---|
 | `aggregator_key` | `key_id` | `public_key`, added height, removed height or `null` | §3.4 |
 | `auditor` | `auditor_id`, `key_id` | `public_key`, admitted height, removed height or `null` | WIST-4 §3 |
-| `declaration` | domain | the current Declaration Envelope, its sealing height | WIST-1 §5 |
+| `declaration` | domain | the current Declaration Envelope, its sealing height, the highest accepted `seq` | WIST-1 §5 |
 | `parameter` | identifier, `effective_at` | value | WIST-4 §9 |
 | `sanction_state` | domain | derived level, establishing Audit Record IDs, each open deadline instant | WIST-4 §7 |
-| `recovery_window` | domain | recovery Declaration height, window end | WIST-1 §5.2 |
+| `recovery_window` | domain | owner Declaration height, window end, the recovery-chain head Envelope, its sealing height | WIST-1 §5.2 |
 | `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
 | `coverage_failure` | `auditor_id`, block number | — | WIST-4 §4 |
 | `escalation` | domain | establishing `sealed_at` | WIST-4 §4 |
@@ -1222,7 +1222,15 @@ domains, URLs, `key_id`s, `auditor_id`s and parameter identifiers are
 the strings the sealed Entries carry; keys are raw base64url public
 keys; IDs are `sha256:`-prefixed. Three kinds need more than that:
 `declaration`'s value members are the current Declaration Envelope as
-sealed, verbatim as one JSON object member, then its sealing height;
+sealed, verbatim as one JSON object member, then its sealing height, then
+the highest accepted `seq` — WIST-1 §5.2's sequence floor, which a
+settlement that restores a lower-sequence head leaves above the current
+`seq`; `recovery_window`'s are the owner Declaration's sealing height, the
+window end, then the recovery-chain head's Declaration Envelope verbatim
+and its sealing height — the owner itself until a legitimate follower
+advances the head (WIST-1 §5.2), carried in full because a resuming
+Consumer verifies later followers against the head's Key Set and holds no
+Block to fetch it from;
 `sanction_state`'s level is the derived level of WIST-4 §7, rungs 3 and 4
 included whether or not a notice has sealed; its establishing Audit Record
 IDs — the confirming Records that armed its active rungs — are an
@@ -1315,7 +1323,11 @@ above, treats its coverage as partial.
     validates against state it derived itself: a signature under a key
     the state does not admit, a Delta whose `prev` is not the chain tip
     the state carries, a Record from an Auditor the state shows removed, all fail
-    as they would on full replay.
+    as they would on full replay. A `recovery_window` tuple makes its head an
+    eligible predecessor beside the current Declaration, and the Consumer
+    settles it before applying the first Block at or after its end exactly
+    as WIST-1 §5.2 directs: the head becomes current and the `declaration`
+    tuple's sequence floor stays.
 11. Apply Entries in order to the local index, materializing content only
     from Payloads that verified.
 

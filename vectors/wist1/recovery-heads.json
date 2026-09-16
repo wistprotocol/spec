@@ -3378,6 +3378,935 @@
       }
     }
   ],
+  "snapshot_tuples": [
+    {
+      "height": 0,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k1",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:webmaster@example.com"
+          },
+          "sig": {
+            "key_id": "test-k1",
+            "alg": "Ed25519",
+            "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+          }
+        },
+        0,
+        0
+      ],
+      "recovery_window": null
+    },
+    {
+      "height": 1,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:webmaster@example.com",
+            "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+          },
+          "sig": {
+            "key_id": "test-r1",
+            "alg": "Ed25519",
+            "value": "BgUnT_C_XYRgA_t8AlnJLpI7vpSgZOFhy0hvQSb9n6rJBUXjj6IMFP1qY8XQsXZDMQvaVwL1lpP6pXrGqblZBQ"
+          }
+        },
+        1,
+        1
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:webmaster@example.com",
+            "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+          },
+          "sig": {
+            "key_id": "test-r1",
+            "alg": "Ed25519",
+            "value": "BgUnT_C_XYRgA_t8AlnJLpI7vpSgZOFhy0hvQSb9n6rJBUXjj6IMFP1qY8XQsXZDMQvaVwL1lpP6pXrGqblZBQ"
+          }
+        },
+        1
+      ]
+    },
+    {
+      "height": 2,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 10,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k1",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:webmaster@example.com",
+            "prev_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed"
+          },
+          "sig": {
+            "key_id": "test-k1",
+            "alg": "Ed25519",
+            "value": "Du2H8GJkuliefsbtALG1HtPeLlNqijga2eY_iPD7Gt70KtHr5GdYirUSCMR6bGV5meeGe4GxFHCUqGQcmfRiCw"
+          }
+        },
+        2,
+        10
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:webmaster@example.com",
+            "prev_declaration": "sha256:b6abfec21ac6fa1e5ab418963f3fed9084bfc1db412ed389c0c71e785e1d3004"
+          },
+          "sig": {
+            "key_id": "test-r1",
+            "alg": "Ed25519",
+            "value": "BgUnT_C_XYRgA_t8AlnJLpI7vpSgZOFhy0hvQSb9n6rJBUXjj6IMFP1qY8XQsXZDMQvaVwL1lpP6pXrGqblZBQ"
+          }
+        },
+        1
+      ]
+    },
+    {
+      "height": 3,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 11,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed"
+          },
+          "sig": {
+            "key_id": "test-k2",
+            "alg": "Ed25519",
+            "value": "xbgmaZtQl6pI6uwTCPSuMZ4ZSk5IF8Ogle7PGVz0dUqu8Erqy1nPabsdVDNLUykkZVz9G61OW1NIu9ieQTLvAA"
+          }
+        },
+        3,
+        11
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 11,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed"
+          },
+          "sig": {
+            "key_id": "test-k2",
+            "alg": "Ed25519",
+            "value": "xbgmaZtQl6pI6uwTCPSuMZ4ZSk5IF8Ogle7PGVz0dUqu8Erqy1nPabsdVDNLUykkZVz9G61OW1NIu9ieQTLvAA"
+          }
+        },
+        3
+      ]
+    },
+    {
+      "height": 4,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 20,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k1",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:59c7fdf772ce8066c7aeb2d0cce7967e30751a9dfc2a230f0943c6b149a8713d"
+          },
+          "sig": {
+            "key_id": "test-k1",
+            "alg": "Ed25519",
+            "value": "BD3weQ5dBTPeUGSw6nMSnSQEhK23z2VvfXpvXQ74qjAURkyQfh0FI0_gvZH4IE1vxgWHsqgQUqOd_BV_RZYoCg"
+          }
+        },
+        4,
+        20
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 11,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r2",
+                "alg": "Ed25519",
+                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:20abc09eda5fe1cb9a80614456e5ea5755c0b944af2ce6d0483af5f974d1c6ed"
+          },
+          "sig": {
+            "key_id": "test-k2",
+            "alg": "Ed25519",
+            "value": "xbgmaZtQl6pI6uwTCPSuMZ4ZSk5IF8Ogle7PGVz0dUqu8Erqy1nPabsdVDNLUykkZVz9G61OW1NIu9ieQTLvAA"
+          }
+        },
+        3
+      ]
+    },
+    {
+      "height": 5,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 21,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:59c7fdf772ce8066c7aeb2d0cce7967e30751a9dfc2a230f0943c6b149a8713d"
+          },
+          "sig": {
+            "key_id": "test-r2",
+            "alg": "Ed25519",
+            "value": "2xPkpp8xBInB7M59TvWn29b5uHw4CVtfKjJnKW-zPZllMbdEc13lxsDGhrvPkZBYzRg5vqJwR_KXl7hmC3QqAQ"
+          }
+        },
+        5,
+        21
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 21,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:59c7fdf772ce8066c7aeb2d0cce7967e30751a9dfc2a230f0943c6b149a8713d"
+          },
+          "sig": {
+            "key_id": "test-r2",
+            "alg": "Ed25519",
+            "value": "2xPkpp8xBInB7M59TvWn29b5uHw4CVtfKjJnKW-zPZllMbdEc13lxsDGhrvPkZBYzRg5vqJwR_KXl7hmC3QqAQ"
+          }
+        },
+        5
+      ]
+    },
+    {
+      "height": 6,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 30,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k1",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:4a7811ff1844199751c8b5df0b2f8dc2dbdf728f39cbdf84d43a5ed286d35272"
+          },
+          "sig": {
+            "key_id": "test-k1",
+            "alg": "Ed25519",
+            "value": "KCiEiDo0XcPGo-_JlqhMvx2xpD13V79rXuP_2pa3ZlqNY8h9TnFeUpyX1hrd49rXgzArOD_hWkytMnuky7omBw"
+          }
+        },
+        6,
+        30
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 21,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:59c7fdf772ce8066c7aeb2d0cce7967e30751a9dfc2a230f0943c6b149a8713d"
+          },
+          "sig": {
+            "key_id": "test-r2",
+            "alg": "Ed25519",
+            "value": "2xPkpp8xBInB7M59TvWn29b5uHw4CVtfKjJnKW-zPZllMbdEc13lxsDGhrvPkZBYzRg5vqJwR_KXl7hmC3QqAQ"
+          }
+        },
+        5
+      ]
+    },
+    {
+      "height": 168,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 30,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k1",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:4a7811ff1844199751c8b5df0b2f8dc2dbdf728f39cbdf84d43a5ed286d35272"
+          },
+          "sig": {
+            "key_id": "test-k1",
+            "alg": "Ed25519",
+            "value": "KCiEiDo0XcPGo-_JlqhMvx2xpD13V79rXuP_2pa3ZlqNY8h9TnFeUpyX1hrd49rXgzArOD_hWkytMnuky7omBw"
+          }
+        },
+        6,
+        30
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 21,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:59c7fdf772ce8066c7aeb2d0cce7967e30751a9dfc2a230f0943c6b149a8713d"
+          },
+          "sig": {
+            "key_id": "test-r2",
+            "alg": "Ed25519",
+            "value": "2xPkpp8xBInB7M59TvWn29b5uHw4CVtfKjJnKW-zPZllMbdEc13lxsDGhrvPkZBYzRg5vqJwR_KXl7hmC3QqAQ"
+          }
+        },
+        5
+      ]
+    },
+    {
+      "height": 169,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 31,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:after@example.com",
+            "prev_declaration": "sha256:4a7811ff1844199751c8b5df0b2f8dc2dbdf728f39cbdf84d43a5ed286d35272"
+          },
+          "sig": {
+            "key_id": "test-k2",
+            "alg": "Ed25519",
+            "value": "8fUvufpYD49orQIHmc9NCQJ9RgF9Nq3EWN9egbtjn1uMaR8O_qTzrOObV4dNhdmcPmMB8DfaodjbRJKvNZEPCQ"
+          }
+        },
+        169,
+        31
+      ],
+      "recovery_window": null
+    },
+    {
+      "height": 170,
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 31,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:after@example.com",
+            "prev_declaration": "sha256:4a7811ff1844199751c8b5df0b2f8dc2dbdf728f39cbdf84d43a5ed286d35272"
+          },
+          "sig": {
+            "key_id": "test-k2",
+            "alg": "Ed25519",
+            "value": "8fUvufpYD49orQIHmc9NCQJ9RgF9Nq3EWN9egbtjn1uMaR8O_qTzrOObV4dNhdmcPmMB8DfaodjbRJKvNZEPCQ"
+          }
+        },
+        169,
+        31
+      ],
+      "recovery_window": null
+    }
+  ],
+  "resume_cases": [
+    {
+      "label": "floor survives a restored lower sequence head",
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 21,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:59c7fdf772ce8066c7aeb2d0cce7967e30751a9dfc2a230f0943c6b149a8713d"
+          },
+          "sig": {
+            "key_id": "test-r2",
+            "alg": "Ed25519",
+            "value": "2xPkpp8xBInB7M59TvWn29b5uHw4CVtfKjJnKW-zPZllMbdEc13lxsDGhrvPkZBYzRg5vqJwR_KXl7hmC3QqAQ"
+          }
+        },
+        5,
+        30
+      ],
+      "recovery_window": null,
+      "candidate": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 22,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:owner@example.com",
+          "prev_declaration": "sha256:4a7811ff1844199751c8b5df0b2f8dc2dbdf728f39cbdf84d43a5ed286d35272"
+        },
+        "sig": {
+          "key_id": "test-k2",
+          "alg": "Ed25519",
+          "value": "Hx5X6G7BQtRZTIsUSbrZg88V4MAoeLiv9utol-6JCcQkkrkPpz5IBZlpvYGTE4d7rAmJSHLllnKrYt5TD5JnBw"
+        }
+      },
+      "candidate_sealed_at": "2026-08-11T02:00:00Z",
+      "height": 170,
+      "expected_result": "WIST1-E08",
+      "without": "floor",
+      "degraded_result": "ordinary_rotation"
+    },
+    {
+      "label": "chain head authenticates a follower before settlement",
+      "declaration": [
+        "declaration",
+        "example.com",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 30,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k1",
+                "alg": "Ed25519",
+                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:4a7811ff1844199751c8b5df0b2f8dc2dbdf728f39cbdf84d43a5ed286d35272"
+          },
+          "sig": {
+            "key_id": "test-k1",
+            "alg": "Ed25519",
+            "value": "KCiEiDo0XcPGo-_JlqhMvx2xpD13V79rXuP_2pa3ZlqNY8h9TnFeUpyX1hrd49rXgzArOD_hWkytMnuky7omBw"
+          }
+        },
+        6,
+        30
+      ],
+      "recovery_window": [
+        "recovery_window",
+        "example.com",
+        1,
+        "2026-08-11T01:00:00Z",
+        {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 21,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "key_id": "test-k2",
+                "alg": "Ed25519",
+                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "valid_from": "2026-08-03T12:00:00Z"
+              }
+            ],
+            "recovery_keys": [
+              {
+                "key_id": "test-r1",
+                "alg": "Ed25519",
+                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "valid_from": "2026-08-02T12:00:00Z"
+              }
+            ],
+            "contact": "mailto:owner@example.com",
+            "prev_declaration": "sha256:59c7fdf772ce8066c7aeb2d0cce7967e30751a9dfc2a230f0943c6b149a8713d"
+          },
+          "sig": {
+            "key_id": "test-r2",
+            "alg": "Ed25519",
+            "value": "2xPkpp8xBInB7M59TvWn29b5uHw4CVtfKjJnKW-zPZllMbdEc13lxsDGhrvPkZBYzRg5vqJwR_KXl7hmC3QqAQ"
+          }
+        },
+        5
+      ],
+      "candidate": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 31,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "key_id": "test-k2",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-03T12:00:00Z"
+            }
+          ],
+          "recovery_keys": [
+            {
+              "key_id": "test-r1",
+              "alg": "Ed25519",
+              "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "valid_from": "2026-08-02T12:00:00Z"
+            }
+          ],
+          "contact": "mailto:after@example.com",
+          "prev_declaration": "sha256:4a7811ff1844199751c8b5df0b2f8dc2dbdf728f39cbdf84d43a5ed286d35272"
+        },
+        "sig": {
+          "key_id": "test-k2",
+          "alg": "Ed25519",
+          "value": "8fUvufpYD49orQIHmc9NCQJ9RgF9Nq3EWN9egbtjn1uMaR8O_qTzrOObV4dNhdmcPmMB8DfaodjbRJKvNZEPCQ"
+        }
+      },
+      "candidate_sealed_at": "2026-08-11T00:00:00Z",
+      "height": 168,
+      "expected_result": "ordinary_rotation",
+      "without": "head",
+      "degraded_result": "WIST1-E08"
+    }
+  ],
   "probes": [
     {
       "name": "ordinary follower bypasses fresh competitor",

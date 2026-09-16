@@ -246,6 +246,15 @@ WIST-1 §5.2 and WIST-3 §3.3 select recovery ownership in ascending
 signed Declarations and predecessor links in authenticated Block chains,
 including reversed leaf-hash order. WIST-1 §5.2 separately retains the highest
 accepted sequence through settlement and defines eligible predecessor heads.
+WIST-3 §7 and draft [ADR-0040](decisions/0040-snapshot-recovery-state.md)
+carry the sequence floor in `declaration` and the recovery-chain head in
+`recovery_window`. `snapshot_tuples` and `resume_cases` in
+`vectors/wist1/recovery-heads.json` show a Consumer resuming from those
+tuples reaching every full-replay probe result at the tuple's height, and
+that dropping the floor or the head changes one; live Snapshot production
+from authenticated replay and Consumer adoption of the tuples require
+integration validation.
+
 `vectors/wist1/recovery-heads.json` authenticates a complete hourly Block chain
 and probes ordinary/recovery followers across competitors, stale predecessor
 rejection, named-predecessor classification, the deadline transition and
