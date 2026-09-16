@@ -700,6 +700,22 @@ remains due at the deadline, while the Log records sealing and permits
 asynchronous sealing. Treating a later sealing as proof of late
 publication would assign fault from an instant the Log does not carry.
 
+**What the sealed prefix decides.** The draw is a function of the key
+admitted at the Block and the Block Hash, so any sealed Record or
+`coverage_attestation` of the Auditor whose proof verifies over the Block
+reveals it, whatever else that item fails; a pair for which the prefix
+carries no such proof has failed the duty without the draw being read,
+exactly as an unmet nonempty set fails. The state at a height N reads the
+whole of Block N: the discharges and attestations it seals settle every
+pair before the evidence status of its Records is decided, so a Record
+sealed in Block N can complete a duty and still be rejected for coverage
+failure at N. An attested pair is exempt while the pair-specific
+contradiction below holds, even where the unattested fallback established
+it before the attestation sealed. A successor is this Auditor's
+publication only with valid non-evidence fields (§10.1) and a signature
+authentic under §3's rule for its Block; a Record `WIST4-E09` rejects, or
+one signed under no key the Auditor held, contradicts nothing.
+
 The derived exclusion tracks the predicate rather than outliving it: as
 failures age out of the 30-day window with none replacing them, the Auditor
 is no longer in coverage failure and its later Records count again. A
@@ -921,6 +937,28 @@ attestation is a permanent signed statement that another party who fetched
 the path can contest. Before the fallback, a missing attestation delays
 counting; after it, silence no longer exempts the duty. This keeps the
 count derivable without claiming that absence proves which party failed.
+
+**Attestation eligibility.** Both attestation classes pass §9.1's
+Envelope eligibility first: a field failure outside the `details` and
+`subject` contract, an unsupported major and malformed signature fields
+are `WIST4-E11`; a missing or malformed `details` member or a `subject`
+outside the schema's shape is `WIST4-E04`. Authenticity follows: a
+`pull_attestation` verifies under the Log key, and a `coverage_attestation`
+under the key its `subject` holds at the attestation's own Block or — as
+§3's carve-out reads for a Record — the key admitted at the named Block
+after that key's removal; either failure is `WIST4-E11`. Then the duty:
+each MUST name a Block sealed strictly below its own at whose `sealed_at`
+the `subject` was admitted, or it is `WIST4-E04` and attests nothing. A
+`coverage_attestation` whose `vrf_proof` does not verify over the named
+Block under the key admitted there is `WIST4-E01` and discharges nothing;
+one that verifies reveals the draw and discharges the pair only where the
+duty set — the draw plus the Deltas the extension rule names at that
+Block — is empty. The earliest sealed `pull_attestation` for a pair fixes
+its attested height and the `found` list every later reading consults;
+later ones for the pair are ignored, as §7 reads repeated IDs. Every
+diagnostic here rejects the item, never its Block (§10.2), and the ID of a
+rejected Record or Registry Update still counts as sealed for the
+missing-item test below.
 
 **An attested contradiction is pair-specific.** At height N, a chain
 successor contradicts an unmet `pull_attestation` only when it is this
@@ -2585,7 +2623,11 @@ Process requirements:
   in one Block can reach level 3 and then level 4 in Entry order; one
   finding never counts as its own further finding. A reversal alone,
   or the passage of a Block with no new qualifying finding, rearms
-  nothing. A lift clears rungs, never findings.
+  nothing. A lift clears rungs, never findings. A finding whose Delta is
+  sealed below the identity's most recent reset (§6.3) arms no rung of
+  the fresh identity, whenever its confirming Record seals: it belongs,
+  like its penalty, to the previous identity. A `sanction_lift` is
+  authenticated under the Log key (§9.1); a rejected one clears nothing.
 
   Without a sealed notice, no appeal window opens. Recomputing parties
   still reject void Records (§3) and unsupported severity (§7), removing

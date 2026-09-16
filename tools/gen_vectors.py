@@ -4092,6 +4092,153 @@ for label, found, expected in (
     assert exempt == expected
     suppression_receipt_cases.append({"label": label, "receipt": receipt, "exempt": exempt})
 
+# ------------------------------------ WIST-4 §4: attestation eligibility
+# Signed pull and coverage attestations under supplied duty contexts: the
+# §9.1 Envelope partition, the signing rule each class fixes, the named
+# Block and duty, and the proof a coverage attestation must verify.
+ATTESTATION_LOG_KEY = {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}
+ATTESTATION_AUDITORS = [
+    {"auditor_id": "audit.sample.net", "key_id": "receipt-auditor-k1", "public_key": b64u(pub2_raw)},
+    {"auditor_id": "checker.sample.org", "key_id": "checker-k1", "public_key": b64u(pub3_raw)},
+]
+ATTESTATION_DUTY_BLOCK = block_hash
+ATTESTATION_OTHER_BLOCK = suppression_empty_hash
+
+
+def attestation_case(label, action, code, effect, *, signer=priv2, key_id="receipt-auditor-k1",
+                     subject="audit.sample.net", block=None, found=None, proof_seed=SEED2,
+                     proof_block=None, prev_record=None, version="1.0.0", extra=None,
+                     drop=(), block_sealed_below=True, subject_admitted=True,
+                     key_held_at_block=True, key_held_at_duty_block=False, duty_set_empty=True,
+                     raw=None):
+    block = ATTESTATION_DUTY_BLOCK if block is None else block
+    details = {"block": block}
+    if action == "pull_attestation":
+        details["found"] = [] if found is None else found
+        signer, key_id = priv, ATTESTATION_LOG_KEY["key_id"]
+    else:
+        proof_block = block if proof_block is None else proof_block
+        details["vrf_proof"] = ecvrf.prove(proof_seed, bytes.fromhex(proof_block[7:])).hex()
+        details["prev_record"] = prev_record
+    for name in drop:
+        details.pop(name)
+    update = {"wist_version": version, "action": action, "subject": subject,
+              "effective_at": "2026-08-05T12:00:00Z", "details": details}
+    if extra:
+        update.update(extra)
+    doc = sign_envelope_with(signer, "update", update, key_id)
+    text = json.dumps(doc, ensure_ascii=True) if raw is None else raw(json.dumps(doc, ensure_ascii=True))
+    return {"label": label, "action": action, "envelope_json": text,
+            "context": {"block_sealed_below": block_sealed_below, "subject_admitted_at_block": subject_admitted,
+                        "key_held_at_block": key_held_at_block,
+                        "key_held_at_duty_block": key_held_at_duty_block,
+                        "duty_set_empty": duty_set_empty},
+            "code": code, "effect": effect}
+
+
+attestation_cases = [
+    attestation_case("valid pull attestation", "pull_attestation", None, "attested"),
+    attestation_case("pull signed by an Auditor key", "pull_attestation", "WIST4-E11", "ignored",
+                     raw=lambda s: s),
+    attestation_case("pull unsupported major", "pull_attestation", "WIST4-E11", "ignored", version="2.0.0"),
+    attestation_case("pull unknown member", "pull_attestation", "WIST4-E11", "ignored", extra={"note": "x"}),
+    attestation_case("pull one label subject", "pull_attestation", "WIST4-E04", "ignored", subject="localhost"),
+    attestation_case("pull malformed found ID", "pull_attestation", "WIST4-E04", "ignored", found=["not an id"]),
+    attestation_case("pull missing found", "pull_attestation", "WIST4-E04", "ignored", drop=("found",)),
+    attestation_case("pull names a Block not sealed below", "pull_attestation", "WIST4-E04", "ignored",
+                     block_sealed_below=False),
+    attestation_case("pull for a subject without a duty", "pull_attestation", "WIST4-E04", "ignored",
+                     subject_admitted=False),
+    attestation_case("unauthentic pull naming an unsealed Block", "pull_attestation", "WIST4-E11", "ignored",
+                     block_sealed_below=False, raw=lambda s: s),
+    attestation_case("valid coverage attestation discharges an empty duty set", "coverage_attestation", None,
+                     "discharged"),
+    attestation_case("coverage attestation for a nonempty duty set reveals the draw", "coverage_attestation",
+                     None, "draw", duty_set_empty=False),
+    attestation_case("coverage attestation with a predecessor", "coverage_attestation", None, "discharged",
+                     prev_record="sha256:" + "3" * 64),
+    attestation_case("coverage attestation missing prev_record", "coverage_attestation", "WIST4-E04", "ignored",
+                     drop=("prev_record",)),
+    attestation_case("coverage attestation prev_record not an ID", "coverage_attestation", "WIST4-E04",
+                     "ignored", prev_record="predecessor"),
+    attestation_case("coverage attestation malformed proof", "coverage_attestation", "WIST4-E04", "ignored",
+                     raw=lambda s: s.replace('"vrf_proof": "', '"vrf_proof": "0', 1)),
+    attestation_case("coverage attestation proof under another key", "coverage_attestation", "WIST4-E01",
+                     "ignored", proof_seed=SEED3),
+    attestation_case("coverage attestation proof over another Block", "coverage_attestation", "WIST4-E01",
+                     "ignored", proof_block=ATTESTATION_OTHER_BLOCK),
+    attestation_case("coverage attestation signed by another Auditor", "coverage_attestation", "WIST4-E11",
+                     "ignored", signer=priv3, key_id="checker-k1"),
+    attestation_case("coverage attestation under the duty Block key after removal", "coverage_attestation",
+                     None, "discharged", key_held_at_block=False, key_held_at_duty_block=True),
+    attestation_case("coverage attestation under a key held at neither Block", "coverage_attestation",
+                     "WIST4-E11", "ignored", key_held_at_block=False, key_held_at_duty_block=False),
+    attestation_case("coverage attestation for a subject without a duty", "coverage_attestation", "WIST4-E04",
+                     "ignored", subject_admitted=False),
+    attestation_case("coverage attestation naming a Block not sealed below", "coverage_attestation",
+                     "WIST4-E04", "ignored", block_sealed_below=False),
+    attestation_case("unauthentic coverage attestation with a failing proof", "coverage_attestation",
+                     "WIST4-E11", "ignored", signer=priv3, key_id="checker-k1", proof_seed=SEED3),
+]
+# the two pull cases marked with an identity `raw` are re-signed under the wrong key below
+for case in attestation_cases:
+    if case["label"] in ("pull signed by an Auditor key", "unauthentic pull naming an unsealed Block"):
+        doc = json.loads(case["envelope_json"])
+        case["envelope_json"] = json.dumps(sign_envelope_with(priv2, "update", doc["update"], "receipt-auditor-k1"),
+                                           ensure_ascii=True)
+assert len({c["label"] for c in attestation_cases}) == len(attestation_cases)
+
+
+# ---------------------------------------- WIST-4 §4: what the sealed prefix decides
+def derivation_probe_counts(case, height, *, prefix_before_block=False, exemption_only_if_attested=False,
+                            unauthentic_successor_contradicts=False):
+    """Whether the pair counts at `height` under the chosen reading; the
+    keyword flags select the readings the vector rules out."""
+    established = [h for h in (case.get("pull_height"), case["fallback_height"]) if h is not None]
+    established = min(established) if established else None
+    if established is None or established > height:
+        return False
+    if case.get("complete_at") is not None and case["complete_at"] <= height:
+        return False
+    pull = case.get("pull_height")
+    successor = case.get("successor")
+    if pull is not None and successor is not None and pull <= height and pull <= successor["height"] <= height \
+            and successor["names_found"] and (successor["authentic"] or unauthentic_successor_contradicts) \
+            and not (exemption_only_if_attested and case["fallback_height"] < pull):
+        return False
+    return True
+
+
+derivation_cases = []
+for label, case, probes in (
+    ("silent pair fails without a draw",
+     {"duty_height": 5, "proof_sealed": False, "pull_height": None, "fallback_height": 101, "complete_at": None},
+     [100, 101, 130]),
+    ("fallback then contradicted attestation exempts",
+     {"duty_height": 5, "proof_sealed": False, "pull_height": 105, "fallback_height": 101, "complete_at": None,
+      "successor": {"height": 106, "names_found": True, "authentic": True}},
+     [101, 104, 105, 106, 130]),
+    ("unauthentic successor supplies no exemption",
+     {"duty_height": 5, "proof_sealed": False, "pull_height": 80, "fallback_height": 101, "complete_at": None,
+      "successor": {"height": 81, "names_found": True, "authentic": False}},
+     [79, 80, 90]),
+):
+    derivation_cases.append({"label": label, **case,
+                             "probes": [{"height": h, "counts": derivation_probe_counts(case, h)} for h in probes]})
+assert [[p["counts"] for p in c["probes"]] for c in derivation_cases] == \
+    [[False, True, True], [True, True, True, False, False], [False, True, True]], "derivation cases drifted"
+same_block_case = {
+    "label": "same Block discharge is read before the Block's Records are weighed",
+    "coverage_failures_max": COVERAGE_FAILURES_MAX,
+    "counting_duty_heights_before_block": list(range(0, 25)),
+    "block_height": 121,
+    "completed_in_block": [0, 1],
+    "in_coverage_failure_at_block": False,
+    "in_coverage_failure_under_prior_prefix_reading": True,
+}
+assert len(same_block_case["counting_duty_heights_before_block"]) - len(same_block_case["completed_in_block"]) \
+    <= COVERAGE_FAILURES_MAX < len(same_block_case["counting_duty_heights_before_block"])
+
 write_json(WIST4 / "coverage.json", spaced_labels({
     "note": "WIST-4 §4 coverage-failure counting: pair status, the count at Block N, the coverage-failure state, which void Records (§10) still discharge the duty — `void` lists every reason the Record is void, empty for a standing Record — per anchor case the Block a removal is read against (the audited Block for a draw, B₁ for a Delta the extension rule names), the establishing height from which a failed duty enters the count — the earlier of the attestation's Block and the record_seal_blocks-th Block after the deadline, read from the Log up to N and never from an attestation sealed above it — and the per-(Auditor, Log) `prev_record` chain. A gap alone supplies no exemption. The establishing cases run a one-hour Block cadence and their own `record_seal_blocks` so the Block list stays readable; `chain_gap_under_global_publication_order` is the ruled-out reading, present so a harness can check the two disagree.",
     "coverage_deadline_hours": 72,
@@ -4111,6 +4258,22 @@ write_json(WIST4 / "coverage.json", spaced_labels({
     "chain_scope_cases": coverage_chain_scope_cases,
     "late_discharge_cases": late_discharge_cases,
     "attribution_cases": attribution_cases,
+    "attestation_note": ("WIST-4 §4 attestation eligibility: signed pull and coverage attestations with the "
+                         "Log key, two Auditor keys, the duty Block hash and supplied contexts saying whether "
+                         "the named Block is sealed below the attestation, whether the subject held a duty "
+                         "there, which Blocks the signing key was held at, and whether the duty set is empty; "
+                         "`code` is the §9.1/§10.2 diagnostic and `effect` what an accepted attestation does."),
+    "attestation_log_key": ATTESTATION_LOG_KEY,
+    "attestation_auditors": ATTESTATION_AUDITORS,
+    "attestation_duty_block": ATTESTATION_DUTY_BLOCK,
+    "attestation_cases": attestation_cases,
+    "derivation_note": ("WIST-4 §4 readings of the sealed prefix: a pair with no verifying proof sealed by its "
+                        "Auditor is failed; an attested pair is exempt while contradicted even when the "
+                        "fallback established it first; only an authentic successor contradicts; and the "
+                        "coverage-failure state at a Block reads that Block's own discharges before its "
+                        "Records are weighed."),
+    "derivation_cases": derivation_cases,
+    "same_block_case": same_block_case,
 }))
 
 
@@ -6602,6 +6765,73 @@ for label, rows, accepted_expected, remaining in (
         "accepted_indices": accepted, "current_activation_at_reversal": current,
         "activation_after_reversal": after})
 
+# ------------------------------------ WIST-4 §§6.3/7: ladder inputs and identity
+def identity_scoped_transitions(blocks, count_pre_reset=False, honor_rejected_lifts=False):
+    active, findings, levels = set(), [], []
+    for block in blocks:
+        if block.get("reset"):
+            active.clear()
+            findings.clear()
+        if block["lift"] and (block.get("lift_accepted", True) or honor_rejected_lifts):
+            active.clear()
+        for finding in sorted(block["findings"], key=lambda f: f["entry_index"]):
+            if finding.get("pre_reset") and not count_pre_reset:
+                continue
+            was_three = 3 in active
+            findings.append((block["sealed_at_s"], finding["severity"]))
+            recent = [s for t, s in findings if block["sealed_at_s"] - t < 90 * DAY_S]
+            severe = [s for t, s in findings if block["sealed_at_s"] - t < 180 * DAY_S and s == 3]
+            active.add(1)
+            if len(recent) >= 3:
+                active.add(2)
+            if len(recent) >= 10 or finding["severity"] == 3:
+                active.add(3)
+            if was_three or finding["severity"] == 3 and len(severe) >= 3:
+                active.add(4)
+        levels.append(sorted(active))
+    return levels
+
+
+identity_scope_cases = []
+for label, rows, expected in (
+    ("a pre reset finding arms nothing", [(0, [(3, False)], False, True, False), (5, [(3, True)], True, True, False),
+                                         (6, [(1, False)], False, True, False)], [3, 0, 1]),
+    ("a reset lifts every rung", [(0, [(3, False)], False, True, False), (2, [], True, True, False)], [3, 0]),
+    ("a rejected lift clears nothing", [(0, [(1, False)], False, True, False), (1, [], False, False, True),
+                                       (2, [], False, True, True)], [1, 1, 0]),
+):
+    blocks = []
+    for i, (day, severities, reset, lift_accepted, lift) in enumerate(rows):
+        blocks.append({"height": i, "sealed_at_s": day * DAY_S, "reset": reset, "lift": lift,
+                       "lift_accepted": lift_accepted, "void_levels": [],
+                       "findings": [{"entry_index": j, "severity": severity, "pre_reset": pre}
+                                    for j, (severity, pre) in enumerate(severities)]})
+    active = identity_scoped_transitions(blocks)
+    assert [max(a, default=0) for a in active] == expected, label
+    identity_scope_cases.append({"label": label, "blocks": blocks, "active_rungs": active, "levels": expected})
+assert identity_scoped_transitions(identity_scope_cases[0]["blocks"], count_pre_reset=True)[1] == [1, 3]
+assert identity_scoped_transitions(identity_scope_cases[2]["blocks"], honor_rejected_lifts=True)[1] == []
+
+
+def lift_case(label, code, *, signer=priv, key_id="test-agg-k1", subject="site.sample.net", version="1.0.0",
+              extra=None, details=None):
+    update = {"wist_version": version, "action": "sanction_lift", "subject": subject,
+              "effective_at": "2026-08-05T12:00:00Z", "details": {"reason": "discretionary"} if details is None else details}
+    if extra:
+        update.update(extra)
+    return {"label": label, "envelope_json": json.dumps(sign_envelope_with(signer, "update", update, key_id),
+                                                          ensure_ascii=True), "code": code}
+
+
+lift_cases = [
+    lift_case("valid lift", None),
+    lift_case("lift signed by an Auditor key", "WIST4-E11", signer=priv2, key_id="receipt-auditor-k1"),
+    lift_case("lift unsupported major", "WIST4-E11", version="2.0.0"),
+    lift_case("lift unknown member", "WIST4-E11", extra={"note": "x"}),
+    lift_case("lift subject not a host", "WIST4-E04", subject="not a host!"),
+    lift_case("lift without details", None, details={}),
+]
+
 write_json(WIST4 / "sanctions.json", spaced_labels({
     "note": "WIST-4 §7 ladder state derivation: escalation criteria, accrual, void instants and rungs in force at N.",
     "escalation": {"l2": {"count": 3, "days": 90},
@@ -6618,6 +6848,16 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
     "ladder_cases": sanction_ladder_cases,
     "reversal_cases": sanction_reversal_cases,
     "transition_cases": sanction_transition_cases,
+    "identity_scope_note": ("WIST-4 §§6.3/7: a finding whose Delta is sealed below the identity's most recent "
+                            "reset arms no rung of the fresh identity (`pre_reset`), a reset lifts every rung "
+                            "and clears the findings the counts read, and a rejected `sanction_lift` "
+                            "(`lift_accepted` false) clears nothing."),
+    "identity_scope_cases": identity_scope_cases,
+    "lift_note": ("WIST-4 §9.1: a sanction_lift is authenticated under the Log key; Envelope, version, "
+                  "unknown-member and signature failures are WIST4-E11, a subject outside the Canonical "
+                  "Host shape WIST4-E04."),
+    "lift_log_key": ATTESTATION_LOG_KEY,
+    "lift_cases": lift_cases,
     "notice_target_cases": notice_target_cases,
     "notice_evidence_cases": notice_evidence.cases(),
     "retired_escalation_cases": retired_escalation_cases,

@@ -32,6 +32,28 @@ coverage carve-outs under which a rejected Record still discharges its duty
 are unchanged. The ration reads `extension_triggers_max` at B₁, as WIST-4 §9
 anchors every parameter of that extension.
 
+### Attestation eligibility
+
+Validate both attestation classes under WIST-4 §9.1 first, then their
+signing rule — the Log key for a pull attestation, the subject's key at the
+attestation's Block or the duty Block's carve-out key for a coverage
+attestation — then the named Block and duty, then the coverage proof.
+Field failures are WIST4-E11 or WIST4-E04, authentication failures
+WIST4-E11, an unsealed Block or absent duty WIST4-E04, and a failing proof
+WIST4-E01. A verifying attestation for a nonempty duty set reveals the draw
+and discharges nothing. The earliest pull attestation per pair fixes the
+attested height and `found` list; every sealed act's ID counts as sealed for
+the missing-item test, whatever its validity.
+
+### Reading the sealed prefix
+
+A pair with no verifying proof sealed by its Auditor is failed without a
+draw. The state at a Block reads that Block's discharges and attestations
+before the evidence status of its Records. An attested pair stays exempt
+while contradicted even when the fallback established it first. Only a
+successor with valid non-evidence fields and an authentic signature is the
+Auditor's publication.
+
 ### Completion and late sealing
 
 Read duty completion from the available Log prefix. A complete discharge
@@ -72,6 +94,16 @@ counting keeps the trigger, the summoned set and the closed contradiction
 test on the Record set that reputation reads, so no party can summon or
 block peers without a Record that also counts against it.
 
+Reading the duty before authenticity would let an unauthentic act name a
+Block the prefix lacks and be reported as a duty failure rather than a
+forgery; reading authenticity first keeps the diagnostic honest. Letting a
+malformed Record's signature supply an exemption would let a forged shape
+carry the Aggregator's acknowledgment; requiring valid non-evidence fields
+keeps the successor a publication the Auditor could have made. Settling a
+Block's discharges before its Records' weight lets an Auditor that catches
+up inside one Block regain standing there, while the alternative would
+reject Records the same Block already shows discharging duties.
+
 Keeping every late-sealed failure would confuse permitted transport delay
 with shirking. Accepting unauthenticated predecessor gaps would let a
 shirker manufacture exemptions. Neither choice is compatible with evidence
@@ -80,7 +112,12 @@ limited to what the Log actually authenticates.
 ## Verification
 
 `vectors/wist4/extension.json` and `coverage.json` exercise ordering,
-completion and receipt-backed exemptions. The `evidence_cases` of
+completion and receipt-backed exemptions. `coverage.json`'s
+`attestation_cases` carry signed pull and coverage attestations under
+supplied duty contexts, checked through the schema partition, Ed25519 and
+ECVRF with an authenticity-before-duty twin; its `derivation_cases` and
+`same_block_case` trace the readings above with twins for the ruled-out
+ones. The `evidence_cases` of
 `extension.json` carry signed Records pairing rejected filings with later
 valid ones for the same Delta; their checker derives each rejection from the
 signed bytes, version, score bands and supplied standing, removal and

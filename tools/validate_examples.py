@@ -2620,6 +2620,48 @@ def _dc4_authenticated_coverage_gap():
     assert d["prev_record"] is not None and fabricated["receipt"] is None and not fabricated["exempt"]
 check("vectors:wist4-authenticated-coverage-gap", _dc4_authenticated_coverage_gap)
 
+def _derivation_counts(case, height, *, exemption_only_if_attested=False, unauthentic_successor_contradicts=False):
+    heights = [h for h in (case.get("pull_height"), case["fallback_height"]) if h is not None]
+    if not heights or min(heights) > height:
+        return False
+    if case.get("complete_at") is not None and case["complete_at"] <= height:
+        return False
+    pull, successor = case.get("pull_height"), case.get("successor")
+    if pull is not None and successor is not None and pull <= successor["height"] <= height \
+            and successor["names_found"] and (successor["authentic"] or unauthentic_successor_contradicts) \
+            and not (exemption_only_if_attested and case["fallback_height"] < pull):
+        return False
+    return True
+
+def _dc4_coverage_derivation():
+    """WIST-4 §4, what the sealed prefix decides: silence fails, an attested
+    pair is exempt while contradicted, only an authentic successor
+    contradicts, and a Block's own discharges precede its Records' weight."""
+    v = _coverage_vector()
+    for case in v["derivation_cases"]:
+        for probe in case["probes"]:
+            assert _derivation_counts(case, probe["height"]) == probe["counts"], (case["label"], probe)
+    same = v["same_block_case"]
+    count = len(same["counting_duty_heights_before_block"]) - len(same["completed_in_block"])
+    assert (count > same["coverage_failures_max"]) == same["in_coverage_failure_at_block"]
+    assert (len(same["counting_duty_heights_before_block"]) > same["coverage_failures_max"]) == \
+        same["in_coverage_failure_under_prior_prefix_reading"]
+    assert same["in_coverage_failure_at_block"] != same["in_coverage_failure_under_prior_prefix_reading"]
+    silent = next(c for c in v["derivation_cases"] if c["label"] == "silent pair fails without a draw")
+    assert not silent["proof_sealed"] and silent["probes"][-1]["counts"]
+check("vectors:wist4-coverage-derivation", _dc4_coverage_derivation)
+
+def _dc4_coverage_derivation_twin():
+    v = _coverage_vector()
+    by_label = {c["label"]: c for c in v["derivation_cases"]}
+    exempt = by_label["fallback then contradicted attestation exempts"]
+    assert _derivation_counts(exempt, 106, exemption_only_if_attested=True) and \
+        not next(p["counts"] for p in exempt["probes"] if p["height"] == 106)
+    forged = by_label["unauthentic successor supplies no exemption"]
+    assert not _derivation_counts(forged, 90, unauthentic_successor_contradicts=True) and \
+        next(p["counts"] for p in forged["probes"] if p["height"] == 90)
+check("negative:wist4-coverage-derivation", _dc4_coverage_derivation_twin)
+
 def _establishing_height(case, attestation_overrides=False):
     """WIST-4 §4: the earlier of the two evidence heights the Log carries —
     the attestation's Block, or the record_seal_blocks-th Block sealed after
@@ -4762,6 +4804,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/coverage.json", "pulled_block"): "a Block hash",
     ("vectors/wist4/coverage.json", "prev_record"): "a claimed predecessor ID, fabricated in the negative case",
     ("vectors/wist4/coverage.json", "found"): "a signed acknowledgment of a Record or attestation ID",
+    ("vectors/wist4/coverage.json", "attestation_duty_block"): "a Block hash",
     ("vectors/wist4/sanctions.json", "activation"): "a confirming Audit Record ID",
     ("vectors/wist4/sanctions.json", "record_id"): "an Audit Record ID",
     ("vectors/wist4/sanctions.json", "current_activation_at_reversal"): "a confirming Audit Record ID",
@@ -10298,5 +10341,142 @@ def _roster_acts_twins():
 
 
 check('negative:wist4-roster-acts', _roster_acts_twins)
+
+def _attestation_outcome(case, validator, log_key, auditors, duty_block, *, semantics_before_authenticity=False):
+    """WIST-4 §4/§9.1 attestation eligibility recomputed from the signed
+    bytes and the supplied duty context: the §9.1 partition (E11/E04), the
+    signing rule each class fixes (E11), the named Block and duty (E04),
+    then a coverage attestation's proof (E01). The keyword selects the
+    ruled-out order in which the duty is read before authenticity."""
+    code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
+    if doc is None:
+        return code, "ignored"
+    update, sig, ctx = doc["update"], doc["sig"], case["context"]
+    def authentic():
+        if update["action"] == "pull_attestation":
+            return sig["key_id"] == log_key["key_id"] and _roster_acts_verifies(doc, log_key["public_key"])
+        holder = next((a for a in auditors.values()
+                       if a["key_id"] == sig["key_id"] and a["auditor_id"] == update["subject"]), None)
+        held = holder is not None and (ctx["key_held_at_block"] or ctx["key_held_at_duty_block"])
+        return held and _roster_acts_verifies(doc, holder["public_key"])
+    def duty():
+        return ctx["block_sealed_below"] and ctx["subject_admitted_at_block"] \
+            and update["details"]["block"] == duty_block
+    order = [(duty, "WIST4-E04"), (authentic, "WIST4-E11")] if semantics_before_authenticity \
+        else [(authentic, "WIST4-E11"), (duty, "WIST4-E04")]
+    for check, failure in order:
+        if not check():
+            return failure, "ignored"
+    if update["action"] == "pull_attestation":
+        return None, "attested"
+    key = b64u_decode(auditors[update["subject"]]["public_key"])
+    if not ecvrf.verify(key, bytes.fromhex(update["details"]["block"][7:]),
+                        bytes.fromhex(update["details"]["vrf_proof"])):
+        return "WIST4-E01", "ignored"
+    return None, ("discharged" if ctx["duty_set_empty"] else "draw")
+
+def _dc4_coverage_attestations():
+    """WIST-4 §4, attestation eligibility: every signed case reaches the
+    diagnostic and effect the text fixes."""
+    v = _coverage_vector()
+    validator = _roster_acts_validator()
+    auditors = {a["auditor_id"]: a for a in v["attestation_auditors"]}
+    labels, codes, effects = set(), set(), set()
+    for case in v["attestation_cases"]:
+        assert case["label"] not in labels, case["label"]
+        labels.add(case["label"])
+        got = _attestation_outcome(case, validator, v["attestation_log_key"], auditors, v["attestation_duty_block"])
+        assert got == (case["code"], case["effect"]), (case["label"], got)
+        codes.add(case["code"])
+        effects.add(case["effect"])
+    assert codes == {None, "WIST4-E11", "WIST4-E04", "WIST4-E01"}, codes
+    assert effects == {"ignored", "attested", "discharged", "draw"}, effects
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("**Attestation eligibility.**", "earliest sealed `pull_attestation` for a pair fixes",
+                   "**What the sealed prefix decides.**"):
+        assert marker in prose, f"§4 does not state: {marker!r}"
+check("vectors:wist4-coverage-attestations", _dc4_coverage_attestations)
+
+def _dc4_coverage_attestations_twin():
+    v = _coverage_vector()
+    validator = _roster_acts_validator()
+    auditors = {a["auditor_id"]: a for a in v["attestation_auditors"]}
+    by_label = {c["label"]: c for c in v["attestation_cases"]}
+    unsealed = by_label["unauthentic pull naming an unsealed Block"]
+    assert _attestation_outcome(unsealed, validator, v["attestation_log_key"], auditors, v["attestation_duty_block"],
+                                semantics_before_authenticity=True)[0] == "WIST4-E04" \
+        and unsealed["code"] == "WIST4-E11", "recomputation is blind to authenticity preceding the duty test"
+    carve = by_label["coverage attestation under the duty Block key after removal"]
+    swapped = dict(carve, context=dict(carve["context"], key_held_at_duty_block=False))
+    assert _attestation_outcome(swapped, validator, v["attestation_log_key"], auditors, v["attestation_duty_block"])[0] == "WIST4-E11"
+    draw = by_label["coverage attestation for a nonempty duty set reveals the draw"]
+    assert json.loads(draw["envelope_json"])["update"]["details"]["prev_record"] is None
+    other = by_label["coverage attestation proof under another key"]
+    doc = json.loads(other["envelope_json"])
+    checker = next(a for a in v["attestation_auditors"] if a["auditor_id"] != doc["update"]["subject"])
+    assert ecvrf.verify(b64u_decode(checker["public_key"]), bytes.fromhex(doc["update"]["details"]["block"][7:]),
+                        bytes.fromhex(doc["update"]["details"]["vrf_proof"])), \
+        "the other-key case must carry a proof that verifies under the other key"
+check("negative:wist4-coverage-attestations", _dc4_coverage_attestations_twin)
+
+def _identity_rungs(case, count_pre_reset=False, honor_rejected_lifts=False):
+    """WIST-4 §§6.3/7: a reset lifts every rung and clears the findings the
+    counts read; a finding for a Delta sealed below the reset arms nothing;
+    a rejected lift clears nothing. The keywords select the ruled-out
+    readings."""
+    active, findings, outputs = set(), [], []
+    for block in case["blocks"]:
+        if block.get("reset"):
+            active.clear()
+            findings.clear()
+        if block["lift"] and (block.get("lift_accepted", True) or honor_rejected_lifts):
+            active.clear()
+        active.difference_update(block["void_levels"])
+        for f in sorted(block["findings"], key=lambda f: f["entry_index"]):
+            if f.get("pre_reset") and not count_pre_reset:
+                continue
+            had_three = 3 in active
+            findings.append((block["sealed_at_s"], f["severity"]))
+            total = sum(0 <= block["sealed_at_s"] - t < 90 * 86400 for t, _ in findings)
+            severe = sum(s == 3 and 0 <= block["sealed_at_s"] - t < 180 * 86400 for t, s in findings)
+            for level, met in enumerate((True, total >= 3, total >= 10 or f["severity"] == 3,
+                                         had_three or f["severity"] == 3 and severe >= 3), 1):
+                if met:
+                    active.add(level)
+        outputs.append(sorted(active))
+    return outputs
+
+def _dc4_sanction_identity_scope():
+    v = _sanctions_vector()
+    for case in v["identity_scope_cases"]:
+        active = _identity_rungs(case)
+        assert active == case["active_rungs"], case["label"]
+        assert [max(a, default=0) for a in active] == case["levels"], case["label"]
+    validator = _roster_acts_validator()
+    seen = set()
+    for case in v["lift_cases"]:
+        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
+        if doc is not None:
+            authentic = doc["sig"]["key_id"] == v["lift_log_key"]["key_id"] and \
+                _roster_acts_verifies(doc, v["lift_log_key"]["public_key"])
+            code = None if authentic else "WIST4-E11"
+        assert code == case["code"], (case["label"], code)
+        seen.add(code)
+    assert seen == {None, "WIST4-E11", "WIST4-E04"}
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "arms no rung of the fresh identity" in prose, "§7 does not scope rungs to the identity"
+check("vectors:wist4-sanction-identity-scope", _dc4_sanction_identity_scope)
+
+def _dc4_sanction_identity_scope_twin():
+    v = _sanctions_vector()
+    by_label = {c["label"]: c for c in v["identity_scope_cases"]}
+    pre = by_label["a pre reset finding arms nothing"]
+    assert _identity_rungs(pre, count_pre_reset=True) != pre["active_rungs"]
+    rejected = by_label["a rejected lift clears nothing"]
+    assert _identity_rungs(rejected, honor_rejected_lifts=True) != rejected["active_rungs"]
+    forged = next(c for c in v["lift_cases"] if c["label"] == "lift signed by an Auditor key")
+    doc = json.loads(forged["envelope_json"])
+    assert _roster_acts_validator().is_valid(doc) and not _roster_acts_verifies(doc, v["lift_log_key"]["public_key"])
+check("negative:wist4-sanction-identity-scope", _dc4_sanction_identity_scope_twin)
 
 sys.exit(1 if failures else 0)

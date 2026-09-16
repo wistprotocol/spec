@@ -1229,6 +1229,203 @@
       ]
     }
   ],
+  "identity_scope_note": "WIST-4 \u00a7\u00a76.3/7: a finding whose Delta is sealed below the identity's most recent reset arms no rung of the fresh identity (`pre_reset`), a reset lifts every rung and clears the findings the counts read, and a rejected `sanction_lift` (`lift_accepted` false) clears nothing.",
+  "identity_scope_cases": [
+    {
+      "label": "a pre reset finding arms nothing",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "reset": false,
+          "lift": false,
+          "lift_accepted": true,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3,
+              "pre_reset": false
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 432000,
+          "reset": true,
+          "lift": false,
+          "lift_accepted": true,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3,
+              "pre_reset": true
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 518400,
+          "reset": false,
+          "lift": false,
+          "lift_accepted": true,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1,
+              "pre_reset": false
+            }
+          ]
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ],
+        [],
+        [
+          1
+        ]
+      ],
+      "levels": [
+        3,
+        0,
+        1
+      ]
+    },
+    {
+      "label": "a reset lifts every rung",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "reset": false,
+          "lift": false,
+          "lift_accepted": true,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 3,
+              "pre_reset": false
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 172800,
+          "reset": true,
+          "lift": false,
+          "lift_accepted": true,
+          "void_levels": [],
+          "findings": []
+        }
+      ],
+      "active_rungs": [
+        [
+          1,
+          3
+        ],
+        []
+      ],
+      "levels": [
+        3,
+        0
+      ]
+    },
+    {
+      "label": "a rejected lift clears nothing",
+      "blocks": [
+        {
+          "height": 0,
+          "sealed_at_s": 0,
+          "reset": false,
+          "lift": false,
+          "lift_accepted": true,
+          "void_levels": [],
+          "findings": [
+            {
+              "entry_index": 0,
+              "severity": 1,
+              "pre_reset": false
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at_s": 86400,
+          "reset": false,
+          "lift": true,
+          "lift_accepted": false,
+          "void_levels": [],
+          "findings": []
+        },
+        {
+          "height": 2,
+          "sealed_at_s": 172800,
+          "reset": false,
+          "lift": true,
+          "lift_accepted": true,
+          "void_levels": [],
+          "findings": []
+        }
+      ],
+      "active_rungs": [
+        [
+          1
+        ],
+        [
+          1
+        ],
+        []
+      ],
+      "levels": [
+        1,
+        1,
+        0
+      ]
+    }
+  ],
+  "lift_note": "WIST-4 \u00a79.1: a sanction_lift is authenticated under the Log key; Envelope, version, unknown-member and signature failures are WIST4-E11, a subject outside the Canonical Host shape WIST4-E04.",
+  "lift_log_key": {
+    "key_id": "test-agg-k1",
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+  },
+  "lift_cases": [
+    {
+      "label": "valid lift",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"sanction_lift\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"reason\": \"discretionary\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"xwUxebdDrhFYfQsCJ-Qh5B7pmuFhzPztm8E4n6U-DMX20zuKbcfsdmB7F4nwigHuJEDmjFGKH00vZoYs5GnjDw\"}}",
+      "code": null
+    },
+    {
+      "label": "lift signed by an Auditor key",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"sanction_lift\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"reason\": \"discretionary\"}}, \"sig\": {\"key_id\": \"receipt-auditor-k1\", \"alg\": \"Ed25519\", \"value\": \"W8NrXUi3M3z1G_kAjaB8nWpg2am2JH0q0GbGYky1iHVEgRmVPysEmIgGJ3cUAbVpgRF9VtiNNU_CSURaAo9fCQ\"}}",
+      "code": "WIST4-E11"
+    },
+    {
+      "label": "lift unsupported major",
+      "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"sanction_lift\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"reason\": \"discretionary\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"F_yxrRXhY8k9lS9teJjxVSe5uLToi8LO-X-cLPJRvfV_rf42YVbs6Q-5if_PsNRfBIV6SuKdWYkO1zFtpmwRCg\"}}",
+      "code": "WIST4-E11"
+    },
+    {
+      "label": "lift unknown member",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"sanction_lift\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"reason\": \"discretionary\"}, \"note\": \"x\"}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"UIufp1i73wQC1TulddDrMx6t6ML8MR5wz48yMvz4ww4FvaSO5vsZIUugi51nHXA51C0698oiSwzty8Nr7gwNBA\"}}",
+      "code": "WIST4-E11"
+    },
+    {
+      "label": "lift subject not a host",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"sanction_lift\", \"subject\": \"not a host!\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"reason\": \"discretionary\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"CI4A5cReI0VNmWcuOV1djMHH2MuNtHur0ocp4p7JNodHXwPLFZLMlZ73NOrBY_8SWjjcjLeP78ZlTWZIocAXAg\"}}",
+      "code": "WIST4-E04"
+    },
+    {
+      "label": "lift without details",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"sanction_lift\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"lAG_0fFIb_m5t_Ir6zM5lvNg-5iKd3EU5RR99vHQzOFsitLNtiQX6SS15eZKCAlh4PSC3BREfzKjYkhS_ZTxCw\"}}",
+      "code": null
+    }
+  ],
   "notice_target_cases": [
     {
       "label": "one process survives later notice",

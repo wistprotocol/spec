@@ -737,3 +737,23 @@ integrated role must derive each of those from its authenticated prefix
 before applying this rule. The vector reads the default band thresholds and
 `extension_triggers_max` at B₁ without a parameter amendment; amendment
 replay is exercised by `parameter-in-force.json` and `link-agreement.json`.
+
+## Attestation eligibility and coverage derivation inputs
+
+WIST-4 §4 (**Attestation eligibility**, **What the sealed prefix decides**),
+§7's identity-scoped rung rule and draft ADR-0018/0019 fix the diagnostics
+of pull and coverage attestations and of `sanction_lift`, which sealed items
+reveal a draw, when a Block's own discharges are read, which successors
+contradict an attestation, and which findings arm a fresh identity's rungs.
+`vectors/wist4/coverage.json` `attestation_cases` and
+`vectors/wist4/sanctions.json` `lift_cases` carry signed Envelopes that
+`tools/validate_examples.py` checks through the §9.1 schema partition,
+Ed25519 and ECVRF under supplied contexts; `derivation_cases`,
+`same_block_case` and `identity_scope_cases` are prose-traced semantic
+cases with twins for the ruled-out readings.
+
+The supplied contexts establish no sealed Block, roster tenure, duty set,
+selection or finding; an integrated role derives each from its
+authenticated prefix. No case exercises live pulling, the extension-deadline
+pull, level-3/4 notice processes or the `auditor_remove` a coverage failure
+requires.

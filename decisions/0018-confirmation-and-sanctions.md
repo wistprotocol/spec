@@ -36,7 +36,10 @@ Latch each rung independently until reversal or identity reset. Counting
 windows govern entry, not automatic expiry. A high-rung void clears only
 its activation; lower latched rungs survive aged evidence. A lift clears
 all rungs before the Block's confirming Records. A same-Block finding may
-then rearm a rung, but merely rereading unchanged evidence cannot.
+then rearm a rung, but merely rereading unchanged evidence cannot. A
+finding for a Delta sealed below the identity's most recent reset arms no
+rung of the fresh identity, whenever it confirms; a `sanction_lift` is
+authenticated under the Log key and a rejected one clears nothing.
 
 Evaluate each branch on new qualifying findings in confirming-Record order.
 Keep pre-reversal findings within their counting windows. Level 4's
@@ -150,7 +153,9 @@ profiles and actual process lifetimes avoid those failures.
 ## Verification
 
 `vectors/wist4/confirmation.json`, `extension.json` and `sanctions.json`
-exercise quorums, activation targets, conflicting acts and citation support.
+exercise quorums, activation targets, conflicting acts and citation support;
+`sanctions.json`'s `identity_scope_cases` and signed `lift_cases` cover
+pre-reset findings, resets and rejected lifts.
 `parameter-combinations.json` exercises temporal profiles and retention.
 Live notice publication and acquisition of cited Blocks remain obligations
 of the WIST-3 and WIST-4 role checklists.
