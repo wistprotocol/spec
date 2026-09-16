@@ -487,14 +487,15 @@ traces establish Declaration stages and selected source identity, not full
 Delta eligibility, actual E13 processing, inclusion turns, Payload availability,
 quotas, Snapshot restoration or authenticated Audit Record eligibility.
 
-WIST-1 §3.2 permits an explicitly listed hostname without an ancestor
-restriction. WIST-3 §7's one-URL-one-Publisher rule selects self-declaration
-over a scoped parent, but supplies no winner between multiple scoped
-Publishers when the URL host has no Declaration of its own, including
-nonancestor Publishers. Resolve preference, eligibility or multiplicity with
-vectors before complete materialization and dependent audit selection.
-Signed authorship and separate chains are already determined; the attribution
-vectors choose no materialization winner for these cases.
+WIST-3 §7 and draft [ADR-0039](decisions/0039-scoped-host-materialization.md)
+select one record per URL: the self-declared host's own, else the nearest
+ancestor Publisher's, else the least non-ancestor domain in octet order.
+`vectors/wist3/materialization-preference.json` fixes the outcomes from a
+host, its declaration state and the Publishers holding live records; the
+reference recomputes each case and shows the shortest-ancestor,
+descending-order and raw-suffix readings differ. Which records are live at
+a height, and the exclusion's return when a preferred record leaves,
+require Log-replaying validation.
 
 ## Validation still required
 

@@ -1,0 +1,73 @@
+{
+  "note": "WIST-3 \u00a77, one URL, one Publisher: candidates are the Publishers holding a live record for one URL of host at a height; self_declared says whether the host's own seq-0 Declaration Entry is sealed at or below that height. materialized names the Publisher whose record the Snapshot carries, null when every candidate is excluded. Which records are live is a Log question these cases do not decide.",
+  "cases": [
+    {
+      "label": "self declaration prevails",
+      "host": "a.example.com",
+      "self_declared": true,
+      "candidates": [
+        "example.com",
+        "a.example.com"
+      ],
+      "materialized": "a.example.com"
+    },
+    {
+      "label": "self declaration excludes parents without an own record",
+      "host": "a.example.com",
+      "self_declared": true,
+      "candidates": [
+        "example.com"
+      ],
+      "materialized": null
+    },
+    {
+      "label": "nearest ancestor",
+      "host": "a.b.example.com",
+      "self_declared": false,
+      "candidates": [
+        "example.com",
+        "b.example.com"
+      ],
+      "materialized": "b.example.com"
+    },
+    {
+      "label": "ancestor over non ancestor",
+      "host": "a.example.com",
+      "self_declared": false,
+      "candidates": [
+        "zeta.example",
+        "example.com"
+      ],
+      "materialized": "example.com"
+    },
+    {
+      "label": "non ancestors in octet order",
+      "host": "a.example.com",
+      "self_declared": false,
+      "candidates": [
+        "zeta.example",
+        "alpha.example"
+      ],
+      "materialized": "alpha.example"
+    },
+    {
+      "label": "single scoped publisher",
+      "host": "a.example.com",
+      "self_declared": false,
+      "candidates": [
+        "other.example"
+      ],
+      "materialized": "other.example"
+    },
+    {
+      "label": "label boundary is not a suffix match",
+      "host": "a.notexample.com",
+      "self_declared": false,
+      "candidates": [
+        "example.com",
+        "beta.example"
+      ],
+      "materialized": "beta.example"
+    }
+  ]
+}

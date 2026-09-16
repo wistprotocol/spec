@@ -957,8 +957,18 @@ subdomain's Publisher domain — the parent's records for those URLs are
 excluded from that height, exactly as a `delete` would exclude them,
 and the parent's later Deltas for those URLs are not materialized while
 the subdomain's Declaration stands. Below that height the parent's scope
-governs alone. Every input to the rule — the Declaration Entry, its
-height, the scope — is in the Log, so any two replayers agree; the
+governs alone — and where the host never declares, more than one scoped
+Publisher can hold a live record for the URL, a record no `delete`,
+withdrawal, unauditability or sanction level above excludes. The record
+materialized is then the **nearest ancestor**'s: the Publisher whose domain
+is the longest the host descends from, the host being `<label>.D` or a
+deeper descendant of that domain `D`. A Publisher that is no ancestor of
+the host materializes the URL only while no ancestor holds a live record,
+and among such Publishers the least domain in ascending octet order does.
+The other records are excluded at that height exactly as a parent's are
+under self-declaration, and return when the preferred record leaves.
+Every input to the rule — the Declaration Entry, its
+height, the scope, the domains — is in the Log, so any two replayers agree; the
 parent's excluded Entries remain in the Log like every other superseded
 state.
 
@@ -1472,6 +1482,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       the Delta, the legal basis, and the jurisdiction — and then stops
       serving it, together with any Snapshot artifact still containing its
       content (§6.2, §7)
+- [ ] Materializes one record per URL under §7's one-URL, one-Publisher
+      rule: the self-declared host's own, else the nearest ancestor
+      Publisher's, else the least non-ancestor domain in octet order
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
       materialization rule, the `content_digest`, the state artifact and
       its `state_digest`, per-shard digests where sharded, and an

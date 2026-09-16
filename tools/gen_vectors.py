@@ -2837,6 +2837,44 @@ write_json(WIST3 / "chain-materialization.json", spaced_labels({
              "(publisher, url) afterwards."),
     "cases": chain_cases,
 }))
+
+
+# ------------------------------- WIST-3 §7: one URL, one Publisher
+def materialization_preference(host, self_declared, candidates):
+    """The Publisher whose record a URL materializes: the self-declared host's
+    own, else the nearest ancestor's, else the least non-ancestor domain."""
+    if self_declared:
+        return host if host in candidates else None
+    ancestors = [c for c in candidates if host.endswith("." + c)]
+    if ancestors:
+        return max(ancestors, key=len)
+    return min(candidates) if candidates else None
+
+
+preference_cases = []
+for label, host, self_declared, candidates in (
+    ("self declaration prevails", "a.example.com", True, ["example.com", "a.example.com"]),
+    ("self declaration excludes parents without an own record", "a.example.com", True, ["example.com"]),
+    ("nearest ancestor", "a.b.example.com", False, ["example.com", "b.example.com"]),
+    ("ancestor over non ancestor", "a.example.com", False, ["zeta.example", "example.com"]),
+    ("non ancestors in octet order", "a.example.com", False, ["zeta.example", "alpha.example"]),
+    ("single scoped publisher", "a.example.com", False, ["other.example"]),
+    ("label boundary is not a suffix match", "a.notexample.com", False, ["example.com", "beta.example"]),
+):
+    preference_cases.append({"label": label, "host": host, "self_declared": self_declared,
+                             "candidates": candidates,
+                             "materialized": materialization_preference(host, self_declared, candidates)})
+assert [c["materialized"] for c in preference_cases] == \
+    ["a.example.com", None, "b.example.com", "example.com", "alpha.example", "other.example", "beta.example"], \
+    "materialization preference drifted"
+write_json(WIST3 / "materialization-preference.json", spaced_labels({
+    "note": ("WIST-3 §7, one URL, one Publisher: candidates are the Publishers holding a live record for "
+             "one URL of host at a height; self_declared says whether the host's own seq-0 Declaration "
+             "Entry is sealed at or below that height. materialized names the Publisher whose record the "
+             "Snapshot carries, null when every candidate is excluded. Which records are live is a Log "
+             "question these cases do not decide."),
+    "cases": preference_cases,
+}))
 print("wist3 chain-materialization vector: %d cases" % len(chain_cases))
 
 # ------------------------------------------- WIST-3 §7: the state artifact

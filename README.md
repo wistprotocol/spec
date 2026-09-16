@@ -106,6 +106,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0036](decisions/0036-registry-update-eligibility.md) — Registry Update field, version and authenticity dispositions
 - [ADR-0037](decisions/0037-roster-replay-inputs.md) — Roster replay reads sealed strings and post-batch tenures
 - [ADR-0038](decisions/0038-feed-next-target.md) — Feed and Page `next` targets
+- [ADR-0039](decisions/0039-scoped-host-materialization.md) — Scoped-host materialization preference
 
 ## Licenses
 

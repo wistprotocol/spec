@@ -1680,6 +1680,50 @@ def _dc3_chain_materialization_twin():
     assert _chain_replay(deltas)[0] == [], "recomputation is blind to which Delta sealed first"
 check("negative:wist3-chain-materialization", _dc3_chain_materialization_twin)
 
+def _materialization_preference(host, self_declared, candidates, *, farthest=False, descending=False,
+                                raw_suffix=False):
+    if self_declared:
+        return host if host in candidates else None
+    def ancestor(c):
+        return host.endswith(c) and host != c if raw_suffix else host.endswith("." + c)
+    ancestors = [c for c in candidates if ancestor(c)]
+    if ancestors:
+        return min(ancestors, key=len) if farthest else max(ancestors, key=len)
+    if not candidates:
+        return None
+    return max(candidates) if descending else min(candidates)
+
+def _dc3_materialization_preference():
+    """WIST-3 §7: one record per URL — the self-declared host's own, else the
+    nearest ancestor Publisher's, else the least non-ancestor domain."""
+    v = json.loads((ROOT / "vectors" / "wist3" / "materialization-preference.json").read_text())
+    labels = set()
+    for case in v["cases"]:
+        labels.add(case["label"])
+        assert _materialization_preference(case["host"], case["self_declared"], case["candidates"]) == \
+            case["materialized"], case["label"]
+        assert case["materialized"] is None or case["materialized"] in case["candidates"], case["label"]
+    for needed in ("self declaration prevails", "self declaration excludes parents without an own record",
+                   "nearest ancestor", "ancestor over non ancestor", "non ancestors in octet order",
+                   "label boundary is not a suffix match"):
+        assert needed in labels, f"vector lacks the {needed} case"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "The record materialized is then the **nearest ancestor**'s" in prose
+    assert "among such Publishers the least domain in ascending octet order does" in prose
+    assert "return when the preferred record leaves" in prose
+check("vectors:wist3-materialization-preference", _dc3_materialization_preference)
+
+def _dc3_materialization_preference_twin():
+    v = json.loads((ROOT / "vectors" / "wist3" / "materialization-preference.json").read_text())
+    by_label = {c["label"]: c for c in v["cases"]}
+    for label, flag in (("nearest ancestor", "farthest"), ("non ancestors in octet order", "descending"),
+                        ("label boundary is not a suffix match", "raw_suffix")):
+        case = by_label[label]
+        assert _materialization_preference(case["host"], case["self_declared"], case["candidates"],
+                                           **{flag: True}) != case["materialized"], \
+            f"the {flag} reading must differ on {label}"
+check("negative:wist3-materialization-preference", _dc3_materialization_preference_twin)
+
 def _merkle_empty():
     expected = "sha256:" + hashlib.sha256(b"\x00").hexdigest()
     assert expected == "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", \
