@@ -6058,6 +6058,7 @@ def acts_replay(blocks):
     auditors, observers = {}, {}          # subject -> (key_id, public_key)
     retired, barred = set(), set()
     registered_below, checkpoints = set(), []   # subjects; (subject, height, id)
+    accepted_ids = set()
     outcomes = []
     for block in blocks:
         height = block["height"]
@@ -6069,6 +6070,9 @@ def acts_replay(blocks):
                 codes[i] = code
                 continue
             u = doc["update"]
+            if acts_id(u) in accepted_ids:
+                codes[i] = "idempotent"
+                continue
             if u["action"] in ("auditor_admit", "auditor_remove"):
                 if not (doc["sig"]["key_id"] == ACTS_LOG_KEY_ID and acts_verifies(doc, b64u(pub_raw))):
                     codes[i] = "WIST4-E11"
@@ -6156,6 +6160,8 @@ def acts_replay(blocks):
             else:
                 codes[i] = "WIST4-E07"
         registered_below.update(observers)
+        accepted_ids.update(acts_id(docs[i]["update"]) for i in range(len(codes))
+                            if codes[i] == "accepted" and docs[i])
         outcomes.append(codes)
     return outcomes, {"auditors": {s: k[0] for s, k in auditors.items()},
                       "observers": {s: k[0] for s, k in observers.items()},
@@ -6327,6 +6333,14 @@ roster_act_cases.append(acts_case("citation of a same Block checkpoint",
      (acts_log_signed(acts_admit(ACTS_A, "aud-a", acts_track(checkpoint_later))), "WIST4-E04", "a same-Block checkpoint is never citable; the newest below is the earlier one")]))
 assert roster_act_cases[-1]["observers_after"] == {ACTS_A: "obs-a1"}
 assert roster_act_cases[-1]["checkpoints_after"] == [acts_id(checkpoint_a), acts_id(checkpoint_later)]
+roster_act_cases.append(acts_case("repeated checkpoint counts once",
+    [valid_register, (checkpoint_1, "accepted", "checkpoint under the registered key")],
+    [(checkpoint_1, "idempotent", "the same Registry Update ID sealed again applies nothing")]))
+assert roster_act_cases[-1]["checkpoints_after"] == [acts_id(checkpoint_a)]
+roster_act_cases.append(acts_case("repeated admission is idempotent",
+    [(signed_admit_a, "accepted", "admission")],
+    [(signed_admit_a, "idempotent", "the same admission ID sealed again neither re-admits nor conflicts")]))
+assert roster_act_cases[-1]["auditors_after"] == {ACTS_A: "aud-a"}
 checkpoint_b = acts_checkpoint(ACTS_B, admission_head)
 roster_act_cases.append(acts_case("rejected admission keeps the registration for its checkpoint",
     [valid_register, (acts_self_signed(register_b, "obs-b1"), "accepted", "second Observer"),
@@ -7524,6 +7538,103 @@ for parameter, value, matched, verdict, old_sim, new_sim, old_hit, new_hit in (
             "expected": {"profile": profile, "derived_similarity": expected_sim, "hard_hit": expected_hit}})
 
 score_occurrences = [0, 0, 1, 2, 2, 3, 4, 5, 6]
+def canary_act_vectors():
+    params = {k: CANARY_PARAMS[k] for k in ("canary_leaves_max", "canary_commitments_max",
+                                           "canary_lead_blocks", "canary_reveal_min_blocks",
+                                           "canary_lifetime_blocks")}
+    key_sets = {CANARY_PLANTER: [{"key_id": "test-canary-k1", "alg": "Ed25519", "public_key": b64u(pub_raw)}],
+                CANARY_DOMAIN: [{"key_id": "test-k1", "alg": "Ed25519", "public_key": b64u(pub_raw)}]}
+
+    def commitment(label, code, *, subject=CANARY_PLANTER, root=canary_root, leaves=len(canary_leaves),
+                   signer=priv, key_id="test-canary-k1", extra=None, sealed_this_epoch=0):
+        update = {"wist_version": "1.0.0", "action": "canary_commitment", "subject": subject,
+                  "effective_at": "2026-08-02T12:00:00Z", "details": {"root": root, "leaves": leaves}}
+        if extra:
+            update.update(extra)
+        return {"label": label, "envelope_json": json.dumps(sign_envelope_with(signer, "update", update, key_id),
+                                                            ensure_ascii=True),
+                "suffix_commitments_this_epoch": sealed_this_epoch, "code": code}
+
+    commitments = [
+        commitment("valid commitment", None),
+        commitment("single label planter", "WIST4-E04", subject="planter"),
+        commitment("root not a digest", "WIST4-E04", root="sha256:xyz"),
+        commitment("zero leaves", "WIST4-E04", leaves=0),
+        commitment("leaves above the maximum", "WIST4-E08", leaves=params["canary_leaves_max"] + 1),
+        commitment("unknown member", "WIST4-E11", extra={"note": "x"}),
+        commitment("signed outside the planter key set", "WIST4-E11", signer=priv2),
+        commitment("ninth commitment in the epoch", "WIST4-E08", sealed_this_epoch=params["canary_commitments_max"]),
+    ]
+    revealed = [l for l in canary_leaves if l["revealed"]]
+    commitment_height = 100
+    newest = max(l["delta_height"] for l in revealed)
+    reveal_height = newest + params["canary_reveal_min_blocks"]
+    assert reveal_height <= commitment_height + params["canary_lifetime_blocks"]
+    assert min(l["delta_height"] for l in revealed) == commitment_height + params["canary_lead_blocks"]
+    sealed_deltas = [{"delta_id": l["delta_id"], "publisher": CANARY_DOMAIN, "height": l["delta_height"]}
+                     for l in revealed]
+
+    def leaves_of():
+        return json.loads(json.dumps([{k: l[k] for k in ("index", "delta_id", "leaf_hash", "path")}
+                                      for l in revealed]))
+
+    def mutated(fn):
+        leaves = leaves_of()
+        fn(leaves)
+        return leaves
+
+    def reveal(label, code, *, leaves=None, subject=CANARY_DOMAIN, signer=priv, key_id="test-k1", extra=None,
+               sealed=True, already_revealed=False, height=reveal_height, deltas=None, reserved=()):
+        update = {"wist_version": "1.0.0", "action": "canary_reveal", "subject": subject,
+                  "effective_at": "2026-08-26T04:00:00Z",
+                  "details": {"commitment": canary_commitment_id,
+                              "leaves": leaves_of() if leaves is None else leaves}}
+        if extra:
+            update.update(extra)
+        return {"label": label, "envelope_json": json.dumps(sign_envelope_with(signer, "update", update, key_id),
+                                                            ensure_ascii=True),
+                "commitment_sealed": sealed, "commitment_revealed": already_revealed,
+                "reveal_height": height, "sealed_deltas": sealed_deltas if deltas is None else deltas,
+                "reserved_deltas": list(reserved), "code": code}
+
+    first = revealed[0]["delta_id"]
+    lead_short = [dict(d, height=commitment_height + params["canary_lead_blocks"] - 1) if d["delta_id"] == first else d
+                  for d in sealed_deltas]
+    foreign = [dict(d, publisher="other.example") if d["delta_id"] == first else d for d in sealed_deltas]
+    reveals = [
+        reveal("valid reveal", None),
+        reveal("commitment not sealed", "WIST4-E08", sealed=False),
+        reveal("commitment already revealed", "WIST4-E08", already_revealed=True),
+        reveal("index out of range", "WIST4-E08", leaves=mutated(lambda ls: ls[0].update(index=len(canary_leaves)))),
+        reveal("repeated index", "WIST4-E08", leaves=mutated(lambda ls: ls[1].update(index=ls[0]["index"]))),
+        reveal("delta of another domain", "WIST4-E08", deltas=foreign),
+        reveal("delta inside the lead", "WIST4-E08", deltas=lead_short),
+        reveal("delta bound twice", "WIST4-E08", leaves=mutated(lambda ls: ls[1].update(delta_id=ls[0]["delta_id"]))),
+        reveal("delta reserved by an earlier reveal", "WIST4-E08", reserved=[first]),
+        reveal("inclusion proof fails", "WIST4-E08", leaves=mutated(lambda ls: ls[0]["path"].pop())),
+        reveal("one Block before the reveal minimum", "WIST4-E08", height=reveal_height - 1),
+        reveal("one Block past the lifetime", "WIST4-E08",
+               height=commitment_height + params["canary_lifetime_blocks"] + 1),
+        reveal("exactly at the lifetime", None, height=commitment_height + params["canary_lifetime_blocks"]),
+        reveal("single label canary domain", "WIST4-E04", subject="canary"),
+        reveal("unknown member", "WIST4-E11", extra={"note": "x"}),
+        reveal("signed outside the canary domain key set", "WIST4-E11", key_id="test-canary-k1"),
+    ]
+    return spaced_labels({
+        "note": ("WIST-4 §§5.1/9.1 canary acts. key_sets supply each subject's Key Set at the sealing Block; "
+                 "commitment is the sealed commitment every reveal names; commitment cases carry the count "
+                 "of the planter suffix's commitments already sealed in the epoch; reveal cases carry the "
+                 "sealed Deltas of the canary domain, Deltas reserved by earlier reveals and the reveal's "
+                 "height. Field failures are WIST4-E11 or WIST4-E04, authentication failures WIST4-E11 and "
+                 "§5.1 rejections WIST4-E08; the actual-opportunity test is not exercised."),
+        "parameters": params, "key_sets": key_sets,
+        "commitment": {"id": canary_commitment_id, "height": commitment_height, "root": canary_root,
+                       "leaves": len(canary_leaves)},
+        "commitment_cases": commitments, "reveal_cases": reveals})
+
+
+write_json(WIST4 / "canary-acts.json", canary_act_vectors())
+
 write_json(WIST4 / "canary.json", spaced_labels({
     "note": ("WIST-4 §5.1, §5.2: a canary commitment over five leaves of served bytes "
              "(four revealed, one not), each carrying a nonce, one of them below the "

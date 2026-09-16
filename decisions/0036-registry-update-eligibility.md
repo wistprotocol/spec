@@ -36,6 +36,15 @@ accepted, the earliest Block governing. Rejecting a withdrawal of an
 unsealed or foreign Delta keeps the act's `subject` truthful and gives every
 replayer one withdrawal height per Delta.
 
+Every Registry Update is identified by its ID: a repeated occurrence is
+idempotent for roster acts, checkpoints, attestations and canary acts as
+§7 already made it for process acts, so a re-sealed Entry never re-applies,
+conflicts with itself or scores twice. Canary subjects keep §9.1's two-label
+hostname shape (WIST4-E04 otherwise), matching Observers and Auditors and
+the two-label suffix the epoch ration reads; a `leaves` below 1 is a
+contract failure (WIST4-E04) while one above `canary_leaves_max` is the
+parameter-dependent rejection (WIST4-E08).
+
 ## Alternatives and consequences
 
 Ignoring such acts without a code leaves implementations no shared

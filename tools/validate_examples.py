@@ -4021,6 +4021,7 @@ def _dc4_canary_membership():
         assert case["error"] == (None if valid else "WIST4-E08"), case["label"]
 check("vectors:wist4-canary-membership", _dc4_canary_membership)
 
+
 def _dc4_canary_membership_twin():
     v = _canary_vector()["membership"]
     good = next(c["envelope"] for c in v["cases"] if c["membership_valid"])
@@ -5064,6 +5065,11 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/feed-next.json", "public_key"): "the fixture Declaration public key",
     ("vectors/wist2/feed-next.json", "value"): "valid or deliberately invalid signatures",
     ("vectors/wist4/withdrawal.json", "delta_id"): "fixture Delta IDs; retrieval is not asserted",
+    ("vectors/wist4/canary-acts.json", "public_key"): "the fixture public key",
+    ("vectors/wist4/canary-acts.json", "delta_id"): "fixture canary Delta IDs",
+    ("vectors/wist4/canary-acts.json", "reserved_deltas"): "fixture canary Delta IDs reserved by earlier reveals",
+    ("vectors/wist4/canary-acts.json", "id"): "the fixture commitment's Registry Update ID",
+    ("vectors/wist4/canary-acts.json", "root"): "the fixture commitment's Merkle root",
     ("vectors/wist4/recovery-identity.json", "expected_tuples"): "WIST-3 §7 reputation_inputs tuples whose counted-URL digest sets carry fixture URL digests",
     ("vectors/wist4/withdrawal.json", "public_key"): "the fixture Log public key",
     ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
@@ -10399,12 +10405,16 @@ def _roster_acts_replay(case, log_id, log_key, *, ineligible_candidates=False,
     validator = _roster_acts_validator()
     auditors, observers, retired, barred = {}, {}, set(), set()
     history, checkpoints, outcomes = set(), [], []
+    accepted_ids = set()
     for block in case['blocks']:
         height, entries = block['height'], block['entries']
         code, doc = [None] * len(entries), [None] * len(entries)
         for i, entry in enumerate(entries):
             code[i], doc[i] = _roster_acts_eligibility(entry['envelope_json'], validator)
             if doc[i] is None:
+                continue
+            if 'sha256:' + hashlib.sha256(rfc8785.dumps(doc[i]['update'])).hexdigest() in accepted_ids:
+                code[i], doc[i] = 'idempotent', None
                 continue
             update, sig = doc[i]['update'], doc[i]['sig']
             if update['action'] in ('auditor_admit', 'auditor_remove'):
@@ -10507,6 +10517,8 @@ def _roster_acts_replay(case, log_id, log_key, *, ineligible_candidates=False,
             else:
                 code[i] = 'WIST4-E07'
         history |= set(observers)
+        accepted_ids.update('sha256:' + hashlib.sha256(rfc8785.dumps(doc[i]['update'])).hexdigest()
+                            for i in range(len(entries)) if code[i] == 'accepted' and doc[i])
         outcomes.append(code)
     return outcomes, {'auditors': {s: k['key_id'] for s, k in auditors.items()},
                       'observers': {s: k['key_id'] for s, k in observers.items()},
@@ -10531,7 +10543,8 @@ def _roster_acts_vectors():
         assert state == {'auditors': case['auditors_after'], 'observers': case['observers_after'],
                          'checkpoints': case['checkpoints_after']}, case['label']
         seen.update(x for row in outcomes for x in row)
-    assert seen == {'accepted', 'WIST1-E05', 'WIST4-E04', 'WIST4-E07', 'WIST4-E11'}
+    assert seen == {'accepted', 'idempotent', 'WIST1-E05', 'WIST4-E04', 'WIST4-E07', 'WIST4-E11'}
+    assert 'is idempotent — it applies nothing, rejects nothing' in re.sub(r'\s+', ' ', prose)
     probe = vector['record_probe']['envelope']
     keys = {k['key_id']: k['public_key'] for k in vector['keys']}
     public = canonical_b64u_decode(keys[probe['sig']['key_id']])
@@ -10552,6 +10565,85 @@ def _roster_acts_vectors():
 
 
 check('vectors:wist4-roster-acts', _roster_acts_vectors)
+
+def _canary_reveal_valid(v, case, doc):
+    """WIST-4 §5.1 reveal rules against the supplied commitment, Deltas and height."""
+    details, commitment, params = doc["update"]["details"], v["commitment"], v["parameters"]
+    if details["commitment"] != commitment["id"] or not case["commitment_sealed"] or case["commitment_revealed"]:
+        return False
+    deltas = {d["delta_id"]: d for d in case["sealed_deltas"]}
+    seen_index, seen_delta = set(), set()
+    for leaf in details["leaves"]:
+        index = leaf["index"]
+        if not 0 <= index < commitment["leaves"] or index in seen_index:
+            return False
+        seen_index.add(index)
+        bound = deltas.get(leaf["delta_id"])
+        if bound is None or bound["publisher"] != doc["update"]["subject"] or \
+                bound["height"] < commitment["height"] + params["canary_lead_blocks"]:
+            return False
+        if leaf["delta_id"] in seen_delta or leaf["delta_id"] in case["reserved_deltas"]:
+            return False
+        seen_delta.add(leaf["delta_id"])
+        try:
+            root = _canary_root_from_path(bytes.fromhex(leaf["leaf_hash"][7:]), index, commitment["leaves"],
+                                         [bytes.fromhex(h[7:]) for h in leaf["path"]])
+        except (AssertionError, IndexError, ValueError):
+            return False
+        if "sha256:" + root.hex() != commitment["root"]:
+            return False
+    newest = max(deltas[leaf["delta_id"]]["height"] for leaf in details["leaves"])
+    if case["reveal_height"] - newest < params["canary_reveal_min_blocks"]:
+        return False
+    return case["reveal_height"] - commitment["height"] <= params["canary_lifetime_blocks"]
+
+def _dc4_canary_acts():
+    """WIST-4 §§5.1/9.1: signed canary acts — field, authentication and §5.1 dispositions."""
+    v = json.loads((ROOT / "vectors" / "wist4" / "canary-acts.json").read_text())
+    validator = _roster_acts_validator()
+    params = v["parameters"]
+
+    def authentic(doc):
+        keys = {k["key_id"]: k["public_key"] for k in v["key_sets"].get(doc["update"]["subject"], [])}
+        public = keys.get(doc["sig"]["key_id"])
+        return public is not None and _roster_acts_verifies(doc, public)
+
+    seen = set()
+    for case in v["commitment_cases"]:
+        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
+        if doc is not None:
+            if not authentic(doc):
+                code = "WIST4-E11"
+            elif doc["update"]["details"]["leaves"] > params["canary_leaves_max"] or \
+                    case["suffix_commitments_this_epoch"] >= params["canary_commitments_max"]:
+                code = "WIST4-E08"
+        assert code == case["code"], (case["label"], code)
+        seen.add(code)
+    for case in v["reveal_cases"]:
+        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
+        if doc is not None:
+            code = "WIST4-E11" if not authentic(doc) else (None if _canary_reveal_valid(v, case, doc) else "WIST4-E08")
+        assert code == case["code"], (case["label"], code)
+        seen.add(code)
+    assert seen == {None, "WIST4-E04", "WIST4-E08", "WIST4-E11"}
+    labels = {c["label"] for c in v["commitment_cases"] + v["reveal_cases"]}
+    for needed in ("single label planter", "single label canary domain", "zero leaves", "leaves above the maximum",
+                   "ninth commitment in the epoch", "delta reserved by an earlier reveal", "exactly at the lifetime"):
+        assert needed in labels, needed
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "a one-label domain neither plants nor serves as a canary domain" in prose
+    assert "with `leaves` above `canary_leaves_max` (a `leaves` below 1 fails its `details` contract, `WIST4-E04`)" in prose
+check("vectors:wist4-canary-acts", _dc4_canary_acts)
+
+def _dc4_canary_acts_twin():
+    v = json.loads((ROOT / "vectors" / "wist4" / "canary-acts.json").read_text())
+    valid = next(c for c in v["reveal_cases"] if c["label"] == "valid reveal")
+    doc = json.loads(valid["envelope_json"])
+    early = dict(valid, reveal_height=valid["reveal_height"] - 1)
+    assert _canary_reveal_valid(v, valid, doc) and not _canary_reveal_valid(v, early, doc)
+    late = dict(valid, reveal_height=v["commitment"]["height"] + v["parameters"]["canary_lifetime_blocks"] + 1)
+    assert not _canary_reveal_valid(v, late, doc)
+check("negative:wist4-canary-acts", _dc4_canary_acts_twin)
 
 
 def _roster_acts_twins():

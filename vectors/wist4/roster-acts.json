@@ -1761,6 +1761,73 @@
       ]
     },
     {
+      "label": "repeated checkpoint counts once",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_register\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"public_key\": \"5R6xnbVhiKp-X14r9NKsQeksarJ3LTC6UsW8JGz1oCU\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"emNDF403gLiHDMxpu5HCH92Dk37EPn2D3RUFlTF8_WNh24it7ZQ7FbRzfilVwLO6j6Mx8byqTSsHOV7YopVoBg\"}}",
+              "expect": "accepted",
+              "why": "self-signed registration"
+            },
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "accepted",
+              "why": "checkpoint under the registered key"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"observer_checkpoint\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"head\": \"sha256:a33ad8c4ef72a4d7f7af7d102696852ce699d116ad2f001a21828287e02a654d\"}}, \"sig\": {\"key_id\": \"obs-a1\", \"alg\": \"Ed25519\", \"value\": \"Tk01geXs-ZkOKBl7NBXrycdOtSjTc9jE3b0mrJmf-Hi50qBfYdpctdoH6-0MjS0L0Y0y4cX616taEGZKNte2CQ\"}}",
+              "expect": "idempotent",
+              "why": "the same Registry Update ID sealed again applies nothing"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {},
+      "observers_after": {
+        "watch.alpha.test": "obs-a1"
+      },
+      "checkpoints_after": [
+        "sha256:b44f8ec69e39743fad9373a0e00bcc351a80dccfc93c9e7cb2ef01fcf0680899"
+      ]
+    },
+    {
+      "label": "repeated admission is idempotent",
+      "blocks": [
+        {
+          "height": 1,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "accepted",
+              "why": "admission"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "entries": [
+            {
+              "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_admit\", \"subject\": \"watch.alpha.test\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"aud-a\", \"alg\": \"Ed25519\", \"public_key\": \"DGoMRYu3aIYbqAe-mmSzHMo4-AP5YNuHYfugFLNZrdQ\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"XQo7jmjrS7c8myXvSjv5tAShgIx-BXcLu5DedD8JZkFJQZUb4fPgajGnMxScSW5MRobDdKOEV0f5awoXj5vrDA\"}}",
+              "expect": "idempotent",
+              "why": "the same admission ID sealed again neither re-admits nor conflicts"
+            }
+          ]
+        }
+      ],
+      "auditors_after": {
+        "watch.alpha.test": "aud-a"
+      },
+      "observers_after": {},
+      "checkpoints_after": []
+    },
+    {
       "label": "rejected admission keeps the registration for its checkpoint",
       "blocks": [
         {

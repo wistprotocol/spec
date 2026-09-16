@@ -1754,8 +1754,10 @@ load-bearing: a canary known only to its planter disciplines everyone but
 the planter's own creatures, so canaries planted by the Aggregator alone
 would exempt exactly the party §11 declines to trust.
 
-**The commitment.** A **planter** — any domain holding a Declaration
-(WIST-1 §5.1) — MAY seal a `canary_commitment`: a Registry Update signed
+**The commitment.** A **planter** — any domain of at least two labels
+holding a Declaration (WIST-1 §5.1; a one-label domain neither plants nor
+serves as a canary domain, since §9.1 fixes both subjects in the two-label
+hostname shape, `WIST4-E04` otherwise) — MAY seal a `canary_commitment`: a Registry Update signed
 by its Key Set at the sealing Block (WIST-1 §5.2), `subject` the
 planter's domain, `details.root` a Merkle root and `details.leaves` a
 count *n*, 1 ≤ *n* ≤ `canary_leaves_max` (Parameter Registry; default
@@ -2986,7 +2988,7 @@ existing rather than a recommended setting.
 | `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (WIST-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and WIST-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
 | `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails WIST-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
 | `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (WIST-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
-| `link_url_cap_bytes` | ≥ 14 | below the 14 octets of `JCS("https://a.b/")` — the serialization of the shortest Normalized URL (WIST-1 §2) — no link can ever be declared, which removes the link dimension while leaving its verdicts defined — §5's `link_inconsistent` would then rest on a set nobody can populate |
+| `link_url_cap_bytes` | ≥ 14 | below the 14 octets of `JCS("https://a.b/")` — the shortest Normalized URL under a two-label host; a one-label host's `https://a/` serializes to 12 and stays declarable (WIST-1 §2) — no link under a registrable host can be declared, which removes the link dimension while leaving its verdicts defined — §5's `link_inconsistent` would then rest on a set nobody can populate |
 | `summary_cap_bytes` | ≥ 12 | `JCS({"title":""})` is 12 octets and `title` is REQUIRED (WIST-3 §6.1), so below that no conforming `summary` exists and no content-bearing Delta can ever be sealed |
 | `feed_window` | ≥ 1 | a Feed that can hold no Delta ID leaves nothing discoverable to pull (WIST-2 §3.2) |
 | `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (WIST-1 §5.2, §8) |
@@ -3029,7 +3031,7 @@ existing rather than a recommended setting.
 | `canary_commitments_max` | ≥ 1 | at zero no planter can commit, and the scoreboard has no evidence to read (§5.1) |
 | `canary_reveal_min_blocks` | ≥ 1 | at zero a reveal may share the last leaf's Block, before any Record for it can exist, so every honest Record is a miss (§5.1) |
 | `canary_lifetime_blocks` | ≥ 2 | a lifetime shorter than the lead plus one Block admits no reveal at all, and the combination rule below holds it above the reveal minimum too (§5.1) |
-| `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the serialization of the shortest Normalized URL that can exist — so below it no Delta can name any subject at all (WIST-1 §2, §3.2) |
+| `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the shortest Normalized URL under a two-label host; a one-label host's `https://a/` serializes to 12 and stays nameable — so below it no Delta under a registrable host can name any subject (WIST-1 §2, §3.2) |
 
 Where the rule does not reduce to a fixed bound — a value that is
 individually in range but collapses a mechanism only in combination with
@@ -3418,7 +3420,12 @@ malformed `wist_version`, `action`, `effective_at` or signature field; a
 `subject` outside the general bound; and a leap second or a timestamp
 denoting no instant (WIST-3 §3.1), year zero included. E11 takes
 precedence over E04; field failures take precedence over authenticity
-and semantic diagnostics.
+and semantic diagnostics. Replay identifies every Registry Update by its
+ID (§7): an occurrence of an ID already accepted at a lower Block, or
+earlier in the same Block, is idempotent — it applies nothing, rejects
+nothing, and is neither a new act, checkpoint, attestation nor score, so
+only the earliest sealing Block participates, exactly as §7 states for
+process acts and §5.1 for reveals.
 
 `wist_version` follows §10.1's spelling and support rule: exactly three
 dot-separated nonnegative ASCII decimal components, without leading
@@ -3572,7 +3579,7 @@ would hand any Auditor a veto over every other Entry sealed beside it.
 | WIST4-E05 | An appeal or ruling violating §7's process identity, eligibility or multiplicity rules; a sanction notice failing §7's activation or evidence contract or notice multiplicity rules; or a governance act contradicting its own evidence: a `sanction` whose `details.severity` disagrees with the §7 derivation from the evidence it names, or a `sanction`/`sanction_lift` whose named evidence does not establish it. Ignored; §7's derived ladder governs regardless. |
 | WIST4-E06 | Recomputation divergence: a published reputation, sampling rate, quota, or sanction state that does not equal the replayer's own §4–§7 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
 | WIST4-E07 | A roster act rejected by §3.1's simultaneous-batch rules; or a roster act rejected (§3, §4): an `auditor_admit` naming a retired `key_id` or `public_key`, or a `key_id` or `public_key` another admission holds at its Block, a `subject` barred by a removal for cause, a `subject` holding a key not removed at or before the admit's Block, a `subject` a second `auditor_admit` in the same Block also names (both rejected), or an `auditor_id` failing §3's independence test against `log_id`; an `auditor_remove` naming a key its `subject` does not hold; an `auditor_admit` naming a key an Observer other than its `subject` holds; an `observer_register` whose `subject` fails the independence test, holds an admitted key, or names a key that is retired or held by an admission or another registration; or an `observer_checkpoint` not authenticated under the key registered for its `subject` at its Block, read after that Block's batch (§3.1). Ignored during replay; the roster is unchanged, and no Record signed under a key the rejected act named counts. |
-| WIST4-E08 | Canary act rejected (§5.1): a `canary_commitment` past its planter suffix's epoch ration or with `leaves` outside 1 … `canary_leaves_max`; a `canary_reveal` naming no sealed or an already-revealed commitment, an index out of range or repeated, a Delta that is not the canary domain's or was sealed inside the lead, a Delta bound to two leaves, an inclusion proof that fails, or a reveal sealed before the reveal minimum or after the lifetime. Ignored during replay; the commitment stays unrevealed, and nothing scores under it. |
+| WIST4-E08 | Canary act rejected (§5.1): a `canary_commitment` past its planter suffix's epoch ration or with `leaves` above `canary_leaves_max` (a `leaves` below 1 fails its `details` contract, `WIST4-E04`); a `canary_reveal` naming no sealed or an already-revealed commitment, an index out of range or repeated, a Delta that is not the canary domain's or was sealed inside the lead, a Delta bound to two leaves, an inclusion proof that fails, or a reveal sealed before the reveal minimum or after the lifetime. Ignored during replay; the commitment stays unrevealed, and nothing scores under it. |
 | WIST4-E09 | Audit Record non-evidence field failure (§10.1). Ignored in replay; no reputation input, confirmation, extension trigger or coverage discharge. |
 | WIST4-E10 | Audit Record major version not implemented by the validator (§10.1). Ignored with the same exclusions as E09. |
 | WIST4-E11 | Registry Update Envelope failure under §9.1: a field failure outside the act's `details`, `evidence` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields; a major version the validator does not implement; or an act not authenticated under the signing rule its `action` fixes, where its section registers no other code. Ignored as WIST4-E03: no roster, registry, process or canary state changes, the act is no candidate in §3.1's batch, and the containing Block stays valid. |

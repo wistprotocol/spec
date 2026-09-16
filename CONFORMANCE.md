@@ -98,16 +98,13 @@ validation, discovery, admission, sealing and restoration remain required.
 These host vectors do not establish Publisher timestamp validation or
 Snapshot recovery.
 
-**Single-label eligibility remains unresolved.** Canonical Host and
-Declaration representation impose no two-label minimum, but WIST-4 §5.1
-permits a canary planter to be any domain holding a Declaration while
-rationing by its two-label suffix; the canary subject schemas require two
-labels. That existing minimum is retained while correcting the signed host
-representation. Define single-label canary eligibility and any applicable
-suffix handling with discriminating vectors before claiming canary admission
-conformance. WIST-4 §9's claim that `https://a.b/` is the shortest Normalized
-URL also needs reconciliation with §2's acceptance of single-label hosts.
-No new suffix policy or global host restriction is selected here.
+**Single-label hosts.** Canonical Host and Declaration representation
+impose no two-label minimum, and WIST-4 §9's `url_cap_bytes` and
+`link_url_cap_bytes` rationale names the two-label shortest URL while a
+one-label host's shorter URL stays nameable. WIST-4 §5.1 confines planters
+and canary domains to the two-label hostname shape §9.1 fixes for their
+subjects, so the epoch ration's two-label suffix always exists;
+`vectors/wist4/canary-acts.json` carries the single-label WIST4-E04 twins.
 
 **Feed field diagnostics** follow WIST-2 §5 and
 [ADR-0032](decisions/0032-feed-field-diagnostics.md). Signed
@@ -156,11 +153,14 @@ act whose `subject` selects no Key Set or notice-era authority fails
 authentication (WIST4-E11, or the code §7 names for an `appeal`). Roster
 acts (`vectors/wist4/roster-acts.json`), sanction lifts (the lift cases of
 `vectors/wist4/sanctions.json`), appeals under the notice-era Key Set
-(`vectors/wist4/recovery-appeals.json`) and payload withdrawals
-(`vectors/wist4/withdrawal.json`) are exercised. Signed
-`canary_commitment` and `canary_reveal` cases must still show the schema's
-Canonical Host format, Key Set selection at the sealing Block and the
-E04/E11/E05 precedence before authenticated admission/replay of those acts.
+(`vectors/wist4/recovery-appeals.json`), payload withdrawals
+(`vectors/wist4/withdrawal.json`) and canary commitments and reveals
+(`vectors/wist4/canary-acts.json`, against supplied Key Sets, a sealed
+commitment and sealed Deltas) are exercised. The reveal cases cover the
+numeric minimum and lifetime; §5.1's actual-opportunity test over epochs,
+budgets and cadence needs signed Block histories with registered Observers.
+`vectors/wist4/roster-acts.json` shows a repeated Registry Update ID
+applying nothing, for a checkpoint and for an admission.
 
 **Publisher timestamp eligibility** follows WIST-1 §3.4 and
 [ADR-0026](decisions/0026-publisher-timestamp-profile.md).
