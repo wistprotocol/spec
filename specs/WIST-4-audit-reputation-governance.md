@@ -2904,7 +2904,11 @@ place on either side.
 
 **Validate the prospective schedule at sealing.** Process
 `parameter_change` candidates in ascending Block height and canonical
-Entry index. First apply their individual bounds, identifier and grace
+Entry index. A candidate is an act that passed §9.1's Envelope eligibility
+and precedence; one that fails them — a non-integer `value`, a malformed
+`effective_at` — is rejected there (`WIST4-E04`, `WIST4-E11`), ignored
+whether met before sealing or in a sealed Block, and never reaches these
+checks. First apply their individual bounds, identifier and grace
 requirements. For a remaining candidate, tentatively add it to the
 accepted prefix, including amendments not yet effective. At the sealing
 instant and at every `effective_at` at or after that instant in this

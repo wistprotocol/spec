@@ -218,7 +218,12 @@ paragraph does not name. Because Declarations apply first, the Key Set a
 its own Block with that Block's Declarations already applied: an
 Aggregator MUST NOT seal a Delta that fails it (WIST-1 §5.2), and a
 Consumer that meets one ignores the Entry as it ignores a fork — applied
-to nothing, moving no chain tip (§7).
+to nothing, moving no chain tip (§7). The same disposition covers every
+other WIST-1 §7 Delta check a sealed Entry can fail — field validation,
+§3.1 major support, the caps and clock allowance in force at its Block
+(WIST-1 §3.4, WIST-4 §9) and Normalized URL or authority — none of which
+an Aggregator may seal: the Entry is ignored, the Block stays accepted,
+and a later Delta naming the ignored one as `prev` is ignored with it.
 
 ### 3.4. Aggregator Keys and the Log Anchor
 
@@ -932,7 +937,8 @@ keeps a tip, the `delete` itself, because a chain never restarts (WIST-1
 is not the chain tip the state carries for
 its (Publisher domain, Normalized URL) — a fork of an already-materialized
 chain (WIST-1 §3.5), or a `prev` that no lower Entry sealed — is ignored
-and moves no tip; a chain's first Delta is the one that omits `prev` while
+and moves no tip, and so is a sealed Delta that fails a WIST-1 §7 check
+at its Block (§3.3); a chain's first Delta is the one that omits `prev` while
 the state carries no tip for its key. Sanction levels apply as WIST-4 §7 derives them — from the evidence,
 not from whether an Aggregator sealed a `sanction`: level 2 marks every
 record of that domain reduced-weight; level 3 stops that domain's later

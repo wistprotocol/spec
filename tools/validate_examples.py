@@ -1632,7 +1632,7 @@ def _chain_replay(deltas):
     tips, ignored = {}, []
     for i, d in enumerate(deltas):
         key = (d["publisher"], d["url"])
-        if d["prev"] != tips.get(key):
+        if d.get("eligible", True) is False or d["prev"] != tips.get(key):
             ignored.append(i)
             continue
         tips[key] = d["id"]
@@ -1654,12 +1654,20 @@ def _dc3_chain_materialization():
                 f"{case['label']}: an ignored Delta became a tip"
     for needed in ("linear chain", "fork ignored", "unsealed prev ignored",
                    "successor of an ignored delta ignored", "chain continues through delete",
-                   "second first delta ignored", "publishers chain separately"):
+                   "second first delta ignored", "publishers chain separately",
+                   "ineligible delta ignored with its successor",
+                   "ineligible first delta leaves no tip"):
         assert needed in labels, f"vector lacks the {needed} case"
+    ineligible = [c for c in v["cases"] if any(d.get("eligible") is False for d in c["deltas"])]
+    assert ineligible and all(
+        i in c["ignored_indices"] for c in ineligible
+        for i, d in enumerate(c["deltas"]) if d.get("eligible") is False)
     prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     prose1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
     assert "is not the chain tip the state carries" in prose3, \
         "WIST-3 §7 does not state the tip rule"
+    assert "The same disposition covers every other WIST-1 §7 Delta check" in prose3, \
+        "WIST-3 §3.3 does not state the ineligible-Delta disposition"
     assert "never sealed ahead of the Delta its `prev` names" in prose1, \
         "WIST-1 §3.5 does not state the sealing order"
 check("vectors:wist3-chain-materialization", _dc3_chain_materialization)
@@ -3008,7 +3016,7 @@ def _replay_block_size(default, blocks, restart_after=()):
         for index, change in enumerate(block["amendments"]):
             candidate = dict(change,block_height=height,entry_index=index)
             proposed = trial+[candidate]
-            valid = 1024 <= candidate["value"] <= 9007199254740991 and candidate["effective_at_s"]-block["sealed_at_s"] >= 7*86400
+            valid = isinstance(candidate["value"], int) and 1024 <= candidate["value"] <= 9007199254740991 and candidate["effective_at_s"]-block["sealed_at_s"] >= 7*86400
             if valid and all(cap >= maximum for cap in _block_size_maps(default,proposed,block["sealed_at_s"])):
                 trial = proposed
             else:
@@ -3108,6 +3116,7 @@ def _dc4_parameter_wire_range():
     for case in v["wire_cases"]:
         doc = case["envelope"]
         assert validator.is_valid(doc) == case["schema_valid"], case["label"]
+        assert case["sealed_disposition"] == ("candidate" if case["schema_valid"] else "ignored"), case["label"]
         if case["canonical_integer"]:
             key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
         else:
@@ -3125,6 +3134,14 @@ def _dc4_parameter_wire_range():
         assert holds == case["combinations_hold_at_defaults"], case["label"]
     cap = next(c for c in v["wire_cases"] if c["envelope"]["update"]["details"] == {"parameter": "provisional_cap_u", "value": -1})
     assert min(100000, cap["envelope"]["update"]["details"]["value"]) < 0 and not cap["schema_valid"]
+    spellings = [c for c in v["wire_cases"] if c["envelope"]["update"]["details"]["parameter"] == "block_decompressed_cap_bytes"]
+    assert [(type(c["envelope"]["update"]["details"]["value"]), c["schema_valid"]) for c in spellings] == [(str, False), (float, True)], \
+        "a string value fails the details contract; an integral decimal spelling is the integer it denotes"
+    assert spellings[1]["envelope"]["update"]["details"]["value"] == 4096 and spellings[1]["sealed_disposition"] == "candidate"
+    fractional = next(c for c in v["wire_cases"] if c["envelope"]["update"]["effective_at"].endswith(".5Z"))
+    assert not fractional["schema_valid"] and fractional["sealed_disposition"] == "ignored"
+    prose4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "never reaches these checks" in prose4, "WIST-4 §9 does not exclude schema-invalid acts from schedule candidates"
 check("vectors:wist4-parameter-wire-range", _dc4_parameter_wire_range)
 
 def _dc4_cadence_transitions():

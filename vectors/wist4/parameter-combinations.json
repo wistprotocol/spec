@@ -776,6 +776,51 @@
         }
       ],
       "restart_after": []
+    },
+    {
+      "label": "schema invalid candidate is ignored and its Block stays valid",
+      "blocks": [
+        {
+          "sealed_at_s": 0,
+          "jcs_bytes": 2048,
+          "amendments": [
+            {
+              "value": "4096",
+              "effective_at_s": 604800
+            },
+            {
+              "value": 8192,
+              "effective_at_s": 604800
+            }
+          ]
+        },
+        {
+          "sealed_at_s": 604800,
+          "jcs_bytes": 8192,
+          "amendments": []
+        }
+      ],
+      "expected": [
+        {
+          "rejected_indices": [
+            0
+          ],
+          "sealing_cap": 8192,
+          "block_valid": true,
+          "largest_bytes": 2048,
+          "transport_bound_before": 268435456
+        },
+        {
+          "rejected_indices": [],
+          "sealing_cap": 8192,
+          "block_valid": true,
+          "largest_bytes": 8192,
+          "transport_bound_before": 268435456
+        }
+      ],
+      "restart_after": [
+        0
+      ]
     }
   ],
   "block_transport_cases": [
@@ -2449,7 +2494,8 @@
       },
       "canonical_integer": true,
       "schema_valid": true,
-      "combinations_hold_at_defaults": true
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "candidate"
     },
     {
       "label": "quota_base value  9007199254740991",
@@ -2472,7 +2518,8 @@
       },
       "canonical_integer": true,
       "schema_valid": true,
-      "combinations_hold_at_defaults": true
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "candidate"
     },
     {
       "label": "quota_base value 9007199254740992",
@@ -2495,7 +2542,8 @@
       },
       "canonical_integer": false,
       "schema_valid": false,
-      "combinations_hold_at_defaults": true
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "ignored"
     },
     {
       "label": "quota_base value  9007199254740992",
@@ -2518,7 +2566,8 @@
       },
       "canonical_integer": false,
       "schema_valid": false,
-      "combinations_hold_at_defaults": true
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "ignored"
     },
     {
       "label": "provisional_cap_u value  1",
@@ -2541,7 +2590,8 @@
       },
       "canonical_integer": true,
       "schema_valid": false,
-      "combinations_hold_at_defaults": true
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "ignored"
     },
     {
       "label": "provisional_cap_u value 0",
@@ -2564,7 +2614,8 @@
       },
       "canonical_integer": true,
       "schema_valid": true,
-      "combinations_hold_at_defaults": true
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "candidate"
     },
     {
       "label": "block_cadence_seconds value 86400",
@@ -2587,7 +2638,80 @@
       },
       "canonical_integer": true,
       "schema_valid": true,
-      "combinations_hold_at_defaults": false
+      "combinations_hold_at_defaults": false,
+      "sealed_disposition": "candidate"
+    },
+    {
+      "label": "block_decompressed_cap_bytes value '4096'",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "block_decompressed_cap_bytes",
+            "value": "4096"
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "Lvng60sYtkKt51loiCVjVs_BStyCth0k65mJznFGuy2kk1hWuubpzjoFjDJzNdQ7e-UZP4eGYktjf6OEhzbECA"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": false,
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "ignored"
+    },
+    {
+      "label": "block_decompressed_cap_bytes value 4096.0",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "block_decompressed_cap_bytes",
+            "value": 4096.0
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "fiCoCEb5ZvCqAzJMPN7SrSI14jFYRLzt-ykDK66usCCT4FbT9jGTlA7MjVmB0nNS7slImQ8-F0_F8M0Z21YQBQ"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "candidate"
+    },
+    {
+      "label": "quota_base fractional effective_at",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "log.sample.net",
+          "effective_at": "2026-08-12T00:00:00.5Z",
+          "details": {
+            "parameter": "quota_base",
+            "value": 1
+          }
+        },
+        "sig": {
+          "key_id": "test-process-k1",
+          "alg": "Ed25519",
+          "value": "jluIKYih2byye62tOQIry3XdGgVNe8TAf2x4_6fUhrnl2h6k9ggWr6V5bV-G7l9z5tluR-gs3bLoCfRQAI_cDQ"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": false,
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "ignored"
     }
   ],
   "clock_defaults": {

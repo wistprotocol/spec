@@ -2818,16 +2818,20 @@ write_json(WIST3 / "snapshot-records.json", {
 CHAIN_PUB, CHAIN_URL = "example.com", "https://example.com/a"
 
 
-def chain_delta(id_, prev, change_type="update", publisher=CHAIN_PUB, url=CHAIN_URL):
-    return {"id": id_, "publisher": publisher, "url": url, "prev": prev,
-            "change_type": change_type}
+def chain_delta(id_, prev, change_type="update", publisher=CHAIN_PUB, url=CHAIN_URL,
+                eligible=True):
+    delta = {"id": id_, "publisher": publisher, "url": url, "prev": prev,
+             "change_type": change_type}
+    if not eligible:
+        delta["eligible"] = False
+    return delta
 
 
 def chain_replay(deltas):
     tips, ignored = {}, []
     for i, d in enumerate(deltas):
         key = (d["publisher"], d["url"])
-        if d["prev"] != tips.get(key):
+        if not d.get("eligible", True) or d["prev"] != tips.get(key):
             ignored.append(i)
             continue
         tips[key] = d["id"]
@@ -2853,6 +2857,12 @@ chain_scenarios = [
      [chain_delta("d1", None, "new"),
       chain_delta("e1", None, "new", publisher="www.example.com"),
       chain_delta("e2", "e1", publisher="www.example.com")]),
+    ("ineligible-delta-ignored-with-its-successor",
+     [chain_delta("d1", None, "new"), chain_delta("d2", "d1", eligible=False),
+      chain_delta("d3", "d2")]),
+    ("ineligible-first-delta-leaves-no-tip",
+     [chain_delta("d1", None, "new", eligible=False), chain_delta("d2", "d1"),
+      chain_delta("d3", None, "new")]),
 ]
 chain_cases = []
 for label, deltas in chain_scenarios:
@@ -2860,11 +2870,13 @@ for label, deltas in chain_scenarios:
     chain_cases.append({"label": label, "deltas": deltas,
                         "ignored_indices": ignored, "tips": tips})
 assert [c["ignored_indices"] for c in chain_cases] == \
-    [[], [2], [1], [1, 2], [], [1], []], "chain replay drifted"
+    [[], [2], [1], [1, 2], [], [1], [], [1, 2], [0, 1]], "chain replay drifted"
 write_json(WIST3 / "chain-materialization.json", spaced_labels({
-    "note": ("WIST-3 §7, WIST-1 §3.5: per case the sealed Deltas of one Log in "
+    "note": ("WIST-3 §§3.3/7, WIST-1 §3.5: per case the sealed Deltas of one Log in "
              "Log order, the indices a replayer ignores, and the chain tip per "
-             "(publisher, url) afterwards."),
+             "(publisher, url) afterwards. A Delta marked eligible false fails a "
+             "WIST-1 §7 check at its Block and is ignored like a fork; the Block "
+             "stays accepted."),
     "cases": chain_cases,
 }))
 
@@ -5118,15 +5130,23 @@ for parameter, value, schema_valid, combinations_hold in (
     ("provisional_cap_u", -1, False, True),
     ("provisional_cap_u", 0, True, True),
     ("block_cadence_seconds", 86400, True, False),
+    ("block_decompressed_cap_bytes", "4096", False, True),
+    ("block_decompressed_cap_bytes", 4096.0, True, True),
 ):
-    canonical = abs(value) <= 9007199254740991
+    canonical = isinstance(value, str) or abs(value) <= 9007199254740991
     inner = {"wist_version": "1.0.0", "action": "parameter_change", "subject": "log.sample.net",
         "effective_at": "2026-08-12T00:00:00Z", "details": {"parameter": parameter, "value": value if canonical else 0}}
     envelope = sign_envelope("update", inner, "test-process-k1")
     envelope["update"]["details"]["value"] = value
-    parameter_wire_cases.append({"label": parameter + " value " + str(value), "envelope": envelope,
+    parameter_wire_cases.append({"label": parameter + " value " + repr(value), "envelope": envelope,
         "canonical_integer": canonical, "schema_valid": schema_valid,
-        "combinations_hold_at_defaults": combinations_hold})
+        "combinations_hold_at_defaults": combinations_hold,
+        "sealed_disposition": "candidate" if schema_valid else "ignored"})
+inner = {"wist_version": "1.0.0", "action": "parameter_change", "subject": "log.sample.net",
+    "effective_at": "2026-08-12T00:00:00.5Z", "details": {"parameter": "quota_base", "value": 1}}
+parameter_wire_cases.append({"label": "quota_base fractional effective_at",
+    "envelope": sign_envelope("update", inner, "test-process-k1"), "canonical_integer": True,
+    "schema_valid": False, "combinations_hold_at_defaults": True, "sealed_disposition": "ignored"})
 
 def cadence_transition_safe(profiles):
     for i,p in enumerate(profiles):
@@ -5232,7 +5252,7 @@ def block_cap_trace(blocks):
         for index, amendment in enumerate(block["amendments"]):
             change = dict(amendment, block_height=height, entry_index=index)
             trial = working + [change]
-            if change["value"] < 1024 or change["effective_at_s"] < block["sealed_at_s"] + 7 * DAY_S or block_cap_bounds(trial, block["sealed_at_s"])[0] < tentative_max:
+            if not isinstance(change["value"], int) or change["value"] < 1024 or change["effective_at_s"] < block["sealed_at_s"] + 7 * DAY_S or block_cap_bounds(trial, block["sealed_at_s"])[0] < tentative_max:
                 rejected.append(index)
             else:
                 working = trial
@@ -5264,6 +5284,7 @@ for label, rows, rejected, valid in (
     ("later maximum never revalidates old acceptance", [(0,2048,[(4096,7)]), (1,2048,[(8192,7+1)]), (9,8192,[])], [[],[],[]], [True,True,True]),
     ("verified pending increase permits transport above default", [(0,2048,[(2*BLOCK_CAP_DEFAULT,7)]), (7,BLOCK_CAP_DEFAULT+1,[])], [[],[]], [True,True]),
     ("a fetched Block cannot raise its own bound", [(0,BLOCK_CAP_DEFAULT+1,[(2*BLOCK_CAP_DEFAULT,7)])], [[0]], [False]),
+    ("schema-invalid candidate is ignored and its Block stays valid", [(0,2048,[("4096",7),(8192,7)]), (7,8192,[])], [[0],[]], [True,True]),
 ):
     blocks = [{"sealed_at_s":round(day*DAY_S), "jcs_bytes":size,
         "amendments":[{"value":value,"effective_at_s":effective*DAY_S} for value,effective in amendments]}
