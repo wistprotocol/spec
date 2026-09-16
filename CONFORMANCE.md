@@ -143,12 +143,14 @@ require live tests against a serving Publisher.
 outside its action's contract shape WIST4-E04, other field failures
 WIST4-E11, and place both before authenticity and process diagnostics; an
 act whose `subject` selects no Key Set or notice-era authority fails
-authentication (WIST4-E11, or the code §7 names for an `appeal`). Only
-roster acts are exercised by `vectors/wist4/roster-acts.json`. Signed
-`canary_commitment`, `canary_reveal`, `payload_withdrawal` and process
-cases must still show the schema's Canonical Host format, Key Set
-selection at the sealing Block and the E04/E11/E05 precedence before
-authenticated governance admission/replay of those acts.
+authentication (WIST4-E11, or the code §7 names for an `appeal`). Roster
+acts (`vectors/wist4/roster-acts.json`), sanction lifts (the lift cases of
+`vectors/wist4/sanctions.json`) and appeals under the notice-era Key Set
+(`vectors/wist4/recovery-appeals.json`) are exercised. Signed
+`canary_commitment`, `canary_reveal` and `payload_withdrawal` cases must
+still show the schema's Canonical Host format, Key Set selection at the
+sealing Block and the E04/E11/E05 precedence before authenticated
+admission/replay of those acts.
 
 **Publisher timestamp eligibility** follows WIST-1 §3.4 and
 [ADR-0026](decisions/0026-publisher-timestamp-profile.md).
