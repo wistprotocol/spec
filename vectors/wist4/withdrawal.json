@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a79.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and must name a Delta sealed at or below its Block whose signed publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs. WIST-4 \u00a75: a Record sealed above that Block whose reference_delta is the withdrawn Delta is evidence only as not_auditable with unmeasured reference; Records at or below it stand. Acts replay in order.",
+  "note": "WIST-4 \u00a75.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and must name a Delta sealed at or below its Block whose signed publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs and a later withdrawal of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 \u00a77 withdrawal tuples the replay leaves.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -25,9 +25,9 @@
       "withdrawn_height": 3
     },
     {
-      "label": "signed by an Auditor key",
+      "label": "signed by a key the Log does not hold",
       "height": 3,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"receipt-auditor-k1\", \"alg\": \"Ed25519\", \"value\": \"7fGZNr-NJf8-cSZQ7JJAEKmkumnnTtTpHnVx9MPSl_pG0XKC5aC3OkBUl9baHwBw9UbX2q7Kl5UHvUc4MjXuDw\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-r1\", \"alg\": \"Ed25519\", \"value\": \"7fGZNr-NJf8-cSZQ7JJAEKmkumnnTtTpHnVx9MPSl_pG0XKC5aC3OkBUl9baHwBw9UbX2q7Kl5UHvUc4MjXuDw\"}}",
       "code": "WIST4-E11",
       "withdrawn_height": null
     },
@@ -95,78 +95,18 @@
       "withdrawn_height": 3
     }
   ],
-  "record_cases": [
-    {
-      "label": "measured below the withdrawal",
-      "withdrawal_height": 3,
-      "record_height": 2,
-      "reference_withdrawn": true,
-      "verdict": "consistent",
-      "unmeasured": null,
-      "expected": "evidence"
-    },
-    {
-      "label": "measured in the withdrawal's Block",
-      "withdrawal_height": 3,
-      "record_height": 3,
-      "reference_withdrawn": true,
-      "verdict": "inconsistent",
-      "unmeasured": null,
-      "expected": "evidence"
-    },
-    {
-      "label": "measured above the withdrawal",
-      "withdrawal_height": 3,
-      "record_height": 4,
-      "reference_withdrawn": true,
-      "verdict": "consistent",
-      "unmeasured": null,
-      "expected": "WIST4-E02"
-    },
-    {
-      "label": "inconsistent above the withdrawal",
-      "withdrawal_height": 3,
-      "record_height": 5,
-      "reference_withdrawn": true,
-      "verdict": "inconsistent",
-      "unmeasured": null,
-      "expected": "WIST4-E02"
-    },
-    {
-      "label": "unreachable above the withdrawal",
-      "withdrawal_height": 3,
-      "record_height": 4,
-      "reference_withdrawn": true,
-      "verdict": "unreachable",
-      "unmeasured": null,
-      "expected": "WIST4-E02"
-    },
-    {
-      "label": "not auditable observed above the withdrawal",
-      "withdrawal_height": 3,
-      "record_height": 4,
-      "reference_withdrawn": true,
-      "verdict": "not_auditable",
-      "unmeasured": "observed",
-      "expected": "WIST4-E02"
-    },
-    {
-      "label": "not auditable reference above the withdrawal",
-      "withdrawal_height": 3,
-      "record_height": 4,
-      "reference_withdrawn": true,
-      "verdict": "not_auditable",
-      "unmeasured": "reference",
-      "expected": "evidence"
-    },
-    {
-      "label": "another reference above the withdrawal",
-      "withdrawal_height": 3,
-      "record_height": 4,
-      "reference_withdrawn": false,
-      "verdict": "consistent",
-      "unmeasured": null,
-      "expected": "evidence"
-    }
+  "state_tuples": [
+    [
+      "withdrawal",
+      "sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0",
+      "site.sample.net",
+      3
+    ],
+    [
+      "withdrawal",
+      "sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541",
+      "other.sample.org",
+      4
+    ]
   ]
 }

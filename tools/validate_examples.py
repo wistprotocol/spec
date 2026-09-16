@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 
-import ecvrf
+import ed25519_curve
 import link_extraction
 from block_frames import decode_raw_fixture
 from merkle import audit_path, leaf_hash, merkle_root, node_hash
@@ -93,8 +93,9 @@ def verify_inclusion(block, proof):
     assert "sha256:" + h.hex() == block["header"]["merkle_root"], "root mismatch"
 
 # 1. Schema validation: examples/<stem>.json <-> schemas/<stem>.schema.json
+EXAMPLE_SCHEMA = {"label-feed": "feed"}
 for example in sorted((ROOT / "examples").glob("*.json")):
-    schema_path = ROOT / "schemas" / f"{example.stem}.schema.json"
+    schema_path = ROOT / "schemas" / f"{EXAMPLE_SCHEMA.get(example.stem, example.stem)}.schema.json"
     def _v(example=example, schema_path=schema_path):
         if not schema_path.exists():
             raise FileNotFoundError(f"no schema for {example.name}")
@@ -108,7 +109,7 @@ INNER_KEY = {
     "block.json": None,  # block signs its header only — checked separately
     "checkpoint.json": "checkpoint", "snapshot-manifest.json": "manifest",
     "snapshot-index.json": "index", "snapshot-state.json": "state",
-    "audit-record.json": "record", "registry-update.json": "update",
+    "registry-update.json": "update", "label.json": "label", "label-feed.json": "feed",
     "log-anchor.json": "anchor",
     "mirrors.json": "mirrors",
     "status.json": None,  # not a signed Envelope — plain JSON (WIST-2 §7.1)
@@ -149,20 +150,16 @@ if (wist1 / "envelope.json").exists():
     check("vectors:wist1", _dc1)
 
 def _registry_table_defaults():
-    """WIST-4 §9's Default column, keyed by identifier, as leading integers.
+    """WIST-4 §5's Default column, keyed by identifier, as leading integers.
 
-    A row's Identifier cell may name one identifier or a "`a` / `b`" pair
-    sharing one Default cell (e.g. `similarity_consistent` /
-    `similarity_variance_floor`, or `link_agreement_consistent` /
-    `link_variance_floor`): the Default cell then reads with the same
-    "/"-separated shape, one leading integer per identifier, in the same
-    order. A row is skipped rather than guessed at when that shape does
-    not hold. Compound rules without identifiers are not numeric defaults.
+    A row's Identifier cell names one identifier and its Default cell
+    leads with the integer; a row is skipped rather than guessed at when
+    that shape does not hold.
     """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    spec = (ROOT / "specs" / "WIST-4-governance.md").read_text()
+    section5 = spec.split("## 5. Parameter Registry")[1].split("### 5.1.")[0]
     out = {}
-    for line in section9.splitlines():
+    for line in section5.splitlines():
         if not line.startswith("|"):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
@@ -196,7 +193,7 @@ def _content_wrapper_octets():
 
 def _combined_content_cap():
     """WIST-1 §3.6's combined `bytes` bound, derived from the three field caps
-    in the WIST-4 §9 registry rather than carried as a literal anywhere."""
+    in the WIST-4 §5 registry rather than carried as a literal anywhere."""
     caps = _registry_table_defaults()
     return (caps["extract_cap_bytes"] + caps["links_cap_bytes"]
             + caps["summary_cap_bytes"] + _content_wrapper_octets())
@@ -204,7 +201,7 @@ def _combined_content_cap():
 def _url_bound():
     """WIST-1 §3.2: the subject URL is octet-bounded (url_cap_bytes).
 
-    The bound is read from the WIST-4 §9 registry rather than written here,
+    The bound is read from the WIST-4 §5 registry rather than written here,
     for the reason `_payload_length` derives its own: a `parameter_change`
     amending `url_cap_bytes` moves the schema's `maxLength` with it, and a
     literal in this file would go on asserting the superseded number.
@@ -243,15 +240,15 @@ check("negative:url-octet-bound", _url_bound_twin)
 def _assert_links_valid(payload):
     """WIST-1 §3.6 / WIST-3 §6.1: structural link rules a validator enforces at ingest.
 
-    Caps are read from the WIST-4 §9 registry table (the same source
+    Caps are read from the WIST-4 §5 registry table (the same source
     `_payload_length` derives from), not hard-coded, so the two checks cannot
     disagree after a `parameter_change` amends either one.
 
     What is deliberately NOT checked here: whether the declared `urls` prefix
     is the correct one for the page, and whether an omitted remainder would
     have fit `links_cap_bytes`. Both are checkable only against the live page
-    (WIST-4 §5's link dimension), never from the Payload alone — an ingest
-    validator sees only the already-truncated object.
+    never from the Payload alone — an ingest validator sees only the
+    already-truncated object.
     """
     import link_extraction
     caps = _registry_table_defaults()
@@ -374,7 +371,7 @@ def _link_extraction_vector():
     assert fixture1["expected"] == _FIXTURE1_EXPECTED, \
         "fixture 1's expected member is not the hand-pinned 3-URL set"
     cap = vec["links_cap_bytes"]
-    # WIST-4 §9's `link_url_cap_bytes` floor: `JCS("https://a.b/")`, the
+    # WIST-4 §5's `link_url_cap_bytes` floor: `JCS("https://a.b/")`, the
     # serialization of the shortest Normalized URL that can exist (WIST-1 §2).
     shortest_entry = len(rfc8785.dumps("https://a.b/"))
     assert shortest_entry == 14, "the published shortest-URL floor (14) drifted"
@@ -419,41 +416,14 @@ def _link_extraction_twin():
 check("negative:wist2-link-extraction", _link_extraction_twin)
 
 def _text_extraction_vector():
-    """WIST-2 §12's text extraction and WIST-4 §5's containment similarity:
-    every fixture must be reproduced from its inputs by the reference
-    implementation, and the guard default must match the Registry."""
+    """WIST-2 §12's text extraction: every fixture must be reproduced from
+    its inputs by the recommended derivation."""
     import link_extraction
     vec = json.loads((ROOT / "vectors" / "wist2" / "text-extraction.json").read_text())
-    assert vec["min_observed_words"] == _registry_table_defaults()["min_observed_words"], \
-        "the vector's min_observed_words has drifted from the Parameter Registry default"
+    assert len(vec["extraction"]) >= 2
     for case in vec["extraction"]:
         got = link_extraction.extract_text(bytes.fromhex(case["html_hex"]))
         assert got == case["expected"], f"{case['label']}: {got!r} != {case['expected']!r}"
-    default_shingle = _registry_table_defaults()["shingle_size"]
-    for case in vec["similarity"]:
-        got = link_extraction.similarity(
-            case["reference"], case["observed"], vec["min_observed_words"],
-            case["shingle_size"])
-        assert got == case["similarity"], \
-            f"{case['label']}: {got!r} != {case['similarity']!r}"
-    # §5: one parameter governs the shingle length and the branch
-    # threshold, so an amended value must be able to move a pair across
-    # the branch and change its score.
-    amended = [c for c in vec["similarity"] if c["shingle_size"] != default_shingle]
-    assert amended, "no case amends shingle_size"
-    for case in amended:
-        at_default = link_extraction.similarity(
-            case["reference"], case["observed"], vec["min_observed_words"],
-            default_shingle)
-        assert at_default != case["similarity"], \
-            f"{case['label']}: the amendment changes nothing"
-    # The guard and the branch structure, pinned by shape rather than trust:
-    # one null (mass guard), one short-reference case, one non-trivial
-    # containment strictly between the bands' endpoints.
-    sims = [c["similarity"] for c in vec["similarity"]]
-    assert None in sims, "no mass-guard case in the vector"
-    assert any(s is not None and 0 < s < 1_000_000 for s in sims), \
-        "no partial-containment case in the vector"
 
 check("vectors:wist2-text-extraction", _text_extraction_vector)
 
@@ -531,148 +501,6 @@ def _wist2_page_keyset_twin():
             "recomputation reads the lowest seq of a Block rather than its Key Set"
 check("negative:wist2-page-keyset", _wist2_page_keyset_twin)
 
-def _text_extraction_twin():
-    """Mutation twin: appended visible text must change the extraction, and
-    removing the committed text from the observed side must sink the score."""
-    import link_extraction
-    vec = json.loads((ROOT / "vectors" / "wist2" / "text-extraction.json").read_text())
-    case = vec["extraction"][0]
-    got = link_extraction.extract_text(
-        bytes.fromhex(case["html_hex"]) + b"<p>mutant words</p>")
-    assert got != case["expected"], "appended text changed nothing — extraction is blind"
-    full = next(c for c in vec["similarity"] if c["label"] == "containment-full")
-    sunk = link_extraction.similarity(
-        full["reference"], full["observed"].replace(full["reference"], ""),
-        vec["min_observed_words"], full["shingle_size"])
-    assert sunk == 0, f"removing the committed text left similarity {sunk!r}"
-
-check("negative:wist2-text-extraction", _text_extraction_twin)
-
-def _uax29_conformance():
-    """External known-answer test: the Unicode Consortium's own
-    WordBreakTest.txt and GraphemeBreakTest.txt for the release ADR-0017
-    pins, run in full against tools/segmentation.py. The annex is
-    implemented from its text, so this is what keeps that reading honest."""
-    import segmentation
-    assert segmentation.UNICODE_VERSION == "16.0.0", \
-        f"the tables carry Unicode {segmentation.UNICODE_VERSION}, not the pinned release"
-    ucd = ROOT / "tools" / "ucd"
-
-    def cases(path):
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.split("#")[0].strip()
-            if not line:
-                continue
-            text, expected, current = "", [], ""
-            for token in line.split():
-                if token == "\u00f7":
-                    if current:
-                        expected.append(current)
-                        current = ""
-                elif token != "\u00d7":
-                    ch = chr(int(token, 16))
-                    text += ch
-                    current += ch
-            if current:
-                expected.append(current)
-            yield text, expected
-
-    for name, fn in (("WordBreakTest.txt", segmentation.split_word_bounds),
-                     ("GraphemeBreakTest.txt", segmentation.grapheme_clusters)):
-        total = 0
-        for text, expected in cases(ucd / name):
-            total += 1
-            got = fn(text)
-            assert got == expected, f"{name}: {text!r}: {got!r} != {expected!r}"
-        assert total > 1000, f"{name}: only {total} cases parsed"
-
-check("unicode:uax29-conformance", _uax29_conformance)
-
-def _normalization_twin():
-    """Mutation twin: each normalization case must come out differently under
-    the one reading it exists to rule out, so a fixture that every
-    implementation passes cannot sit in the vector unnoticed."""
-    import unicodedata
-    import segmentation
-    import link_extraction
-    vec = json.loads((ROOT / "vectors" / "wist2" / "text-extraction.json").read_text())
-
-    def scored(reference, observed, guard, shingle, nfc, fold, split, unit):
-        def words(text):
-            text = unicodedata.normalize("NFC", text) if nfc else text
-            text = text.casefold() if fold == "casefold" else text.lower()
-            if split == "whitespace":
-                return text.split(), text
-            kept = [seg for seg in segmentation.split_word_bounds(text)
-                    if any(unicodedata.category(c)[0] in ("L", "N") for c in seg)]
-            return kept, " ".join(kept)
-
-        ref_words, ref_form = words(reference)
-        obs_words, obs_form = words(observed)
-        if not ref_words or len(obs_words) < guard:
-            return None
-        if len(ref_words) >= shingle and len(obs_words) >= shingle:
-            a = link_extraction._shingles(ref_words, shingle)
-            b = link_extraction._shingles(obs_words, shingle)
-        else:
-            units = (list if unit == "codepoint" else segmentation.grapheme_clusters)
-            ref_units, obs_units = units(ref_form), units(obs_form)
-            n = min(shingle, len(ref_units), len(obs_units))
-            a = link_extraction._shingles(ref_units, n)
-            b = link_extraction._shingles(obs_units, n)
-        return (len(a & b) * 1_000_000) // len(a) if a else None
-
-    NORMATIVE = dict(nfc=True, fold="casefold", split="uax29", unit="cluster")
-    # Each case names the single step it rules out, and the reading that
-    # skips that step must score it differently.
-    ruled_out = {
-        "full-case-folding-folds-sharp-s": {"fold": "lower"},
-        "nfc-precomposes-before-comparison": {"nfc": False},
-        "han-segments-per-character": {"split": "whitespace"},
-        "punctuation-segments-are-discarded": {"split": "whitespace"},
-        "short-branch-counts-grapheme-clusters": {"unit": "codepoint"},
-    }
-    by_label = {c["label"]: c for c in vec["similarity"]}
-    for label, difference in ruled_out.items():
-        case = by_label[label]
-        got = scored(case["reference"], case["observed"], vec["min_observed_words"],
-                     case["shingle_size"], **{**NORMATIVE, **difference})
-        assert got != case["similarity"], \
-            f"{label}: {difference} also yields {got!r} — the case discriminates nothing"
-
-check("negative:wist2-normalization", _normalization_twin)
-
-def _snapshot_state_counted_urls():
-    """WIST-3 §7: reputation_inputs carries counted-URL *digests*, never URLs.
-
-    The state artifact is mandatory and unshardable-by-default, so carrying
-    up to c_cap Normalized URLs per domain would make it outgrow the
-    laptop-sized tier it ships beside. The encoding is what bounds it, so
-    the encoding is pinned here rather than left to prose.
-    """
-    state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
-    rows = [e for e in state["entries"] if e[0] == "reputation_inputs"]
-    assert rows, "no reputation_inputs tuple in the state artifact"
-    nonempty = 0
-    for row in rows:
-        counted = row[5]
-        assert isinstance(counted, list), "the counted-URL set is not a list"
-        for d in counted:
-            nonempty += 1
-            assert re.fullmatch(r"[0-9a-f]{32}", d), \
-                f"counted-URL member {d!r} is not a 16-octet digest — a URL here is the size bug"
-        # 16 KiB is the §7 bound at the default c_cap; a tuple already over
-        # it in a two-record vector would mean the encoding drifted.
-        assert len(rfc8785.dumps(counted)) <= 16384, "counted-URL set exceeds the §7 bound"
-    assert nonempty, "no counted URL in any tuple — the digest encoding is untested"
-    # The digest is domain-bound: the same URL under another domain differs.
-    url = "https://example.com/blog/post-1"
-    a = hashlib.sha256(rfc8785.dumps("example.com") + rfc8785.dumps(url)).hexdigest()[:32]
-    b = hashlib.sha256(rfc8785.dumps("other.example") + rfc8785.dumps(url)).hexdigest()[:32]
-    assert a != b, "the counted-URL digest does not bind the Publisher domain"
-
-check("spec:wist3-counted-url-digests", _snapshot_state_counted_urls)
-
 
 def _state_tuple_encoding():
     """WIST-3 §7: the tuple encoding is normative — arity and member types
@@ -688,10 +516,8 @@ def _state_tuple_encoding():
         kinds.add(v["prefixItems"][0]["const"])
         assert all("type" in m or "const" in m or "oneOf" in m or "enum" in m
                    for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
-    expected = {"aggregator_key", "auditor", "declaration", "parameter",
-                "sanction_state", "recovery_window", "exclusion",
-                "coverage_failure", "escalation", "reputation_inputs", "record",
-                "observer", "canary_commitment"}
+    expected = {"aggregator_key", "declaration", "parameter", "recovery_window",
+                "withdrawal", "label", "record"}
     assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
     state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
     digest = "sha256:" + hashlib.sha256(
@@ -735,15 +561,15 @@ check("negative:wist3-state-encoding", _state_tuple_encoding_twin)
 
 
 def _recovery_queue_disposition():
-    """WIST-1 §5.2 / WIST-4 §6.4: the recovery window and the inclusion
+    """WIST-1 §5.2 / WIST-4 §5: the recovery window and the inclusion
     ceiling were two MUSTs one Aggregator could not both keep, and the
     queue's disposition at window end was unstated."""
     w1 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-1-delta-format.md").read_text())
     w4 = re.sub(r"\s+", " ",
-                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+                (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "revalidated against the signing bindings and scope of that chain's newest Declaration" in w1
     assert w1.count("WIST1-E13") >= 2, "E13 must appear in §5.2 and the §7 registry"
-    assert "queued under WIST-1 §5.2" in w4, "§6.4 ceiling needs the recovery carve-out"
+    assert "queued under WIST-1 §5.2" in w4, "the §5 ceiling needs the recovery carve-out"
 
 check("spec:recovery-queue-disposition", _recovery_queue_disposition)
 
@@ -765,17 +591,19 @@ check("spec:service-origin", _service_origin)
 
 
 def _wist4_error_registry():
-    """WIST-4 was the one document without an Error Registry, leaving ~15
-    normative rejection conditions with no codes and the replay effect of a
-    rejected Registry Update unstated."""
-    w4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    assert "## 10. Error Registry" in w4
-    assert "## 11. Security Considerations" in w4
-    assert "## 12. Privacy Considerations" in w4
-    assert "## 13. Conformance Checklist" in w4
-    assert "## 10. Security Considerations" not in w4
-    codes = re.findall(r"WIST4-E(\d{2})", w4)
-    assert sorted(set(codes)) == [f"{n:02}" for n in range(1, 12)], sorted(set(codes))
+    """WIST-4 §7 carries every code the document uses, the retired audit
+    codes are gone, and a rejected act never invalidates its Block."""
+    w4 = (ROOT / "specs" / "WIST-4-governance.md").read_text()
+    assert "## 7. Error Registry" in w4
+    assert "## 8. Security Considerations" in w4
+    assert "## 9. Privacy Considerations" in w4
+    assert "## 10. Conformance Checklist" in w4
+    retired = re.search(r"The codes `WIST4-E01`[^.]*were registered by the Auditor[^.]*\.", w4)
+    assert retired, "§7 no longer records which codes the Auditor role took with it"
+    codes = re.findall(r"WIST4-E(\d{2})", w4.replace(retired.group(0), ""))
+    assert sorted(set(codes)) == ["03", "04", "06", "11"], sorted(set(codes))
+    registry = w4.split("## 7. Error Registry")[1].split("## 8.")[0]
+    assert sorted(set(re.findall(r"\| WIST4-E(\d{2}) ", registry))) == ["03", "04", "06", "11"]
     assert "never invalidates the containing Block" in re.sub(r"\s+", " ", w4)
 
 check("spec:wist4-error-registry", _wist4_error_registry)
@@ -783,19 +611,17 @@ check("spec:wist4-error-registry", _wist4_error_registry)
 
 def _governance_acts_count():
     """WIST-4 §2's prose count of governance acts must equal the schema's
-    action enum, and §5's field enumeration must carry prev_record — the
-    schema requires it, so a §5 reader producing Records without it ships
-    objects that never validate."""
+    action enum, and §3 must name each act the enum carries."""
     w4 = re.sub(r"\s+", " ",
-                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+                (ROOT / "specs" / "WIST-4-governance.md").read_text())
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     action_enum = schema["properties"]["update"]["properties"]["action"]["enum"]
-    words = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen",
-             15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen"}
+    words = {3: "three", 4: "four", 5: "five", 6: "six"}
     assert f"the {words[len(action_enum)]} governance acts" in w4, \
         f"prose count does not match the {len(action_enum)}-action enum"
-    fields = w4.split("## 5. Verdicts")[1][:2400]
-    assert "prev_record" in fields, "§5's field enumeration omits prev_record"
+    acts = w4.split("## 3. Governance Acts")[1].split("## 4.")[0]
+    for action in action_enum:
+        assert f"`{action}`" in acts, f"§3 does not describe {action}"
 
 check("spec:governance-acts-count", _governance_acts_count)
 
@@ -973,7 +799,7 @@ def _walk_schema(node, schema_name, findings, key=None, root=None,
     What neither detector reaches is a field with an innocuous name and no
     pattern at all: an unconstrained string can hold a digest whatever it is
     called. The example and vector scan below covers that for what the suite
-    ships, and WIST-4 §9.1 covers it normatively for what an implementation adds.
+    ships, and WIST-4 §5.1 covers it normatively for what an implementation adds.
     """
     if root is None:
         root = node
@@ -1060,19 +886,11 @@ def _schema_node_at(schema_file, path):
 # Only a check listed in COVERAGE_ASSERTED may be named, because only those
 # make that assertion. Paths are ROOT-relative: `examples/block.json` and
 # `vectors/wist3/block.json` are different locations and are declared separately.
-COVERAGE_ASSERTED = {"payload:commitment", "audit:commitments", "vectors:wist4-canary"}
+COVERAGE_ASSERTED = {"payload:commitment"}
 
 SALTED_COMMITMENTS = {          # (schema file, JSON path) -> proving check
     ("delta.schema.json",
      "properties/delta/properties/payload/properties/commitment"): "payload:commitment",
-    ("audit-record.schema.json",
-     "properties/record/properties/response_commitment"): "audit:commitments",
-    ("audit-record.schema.json",
-     "properties/record/properties/ref_extract_commitment"): "audit:commitments",
-    ("audit-record.schema.json",
-     "properties/record/properties/evidence_commitment"): "audit:commitments",
-    ("audit-record.schema.json",
-     "properties/record/properties/credit_commitment"): "audit:commitments",
 }
 
 SALTED_COMMITMENT_VALUES = {
@@ -1095,26 +913,7 @@ SALTED_COMMITMENT_VALUES = {
     ("vectors/wist1/delta-attribution.json", "commitment"): "payload:commitment",
     ("vectors/wist1/recovery-scope.json", "commitment"): "payload:commitment",
     ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
-    ("vectors/wist3/timestamps.json", "response_commitment"): "audit:commitments",
-    ("vectors/wist3/timestamps.json", "credit_commitment"): "audit:commitments",
-    ("vectors/wist3/timestamps.json", "ref_extract_commitment"): "audit:commitments",
-    ("vectors/wist3/timestamps.json", "evidence_commitment"): "audit:commitments",
     ("vectors/multilog/dedup.json", "commitment"): "payload:commitment",
-    ("vectors/wist4/roster.json", "response_commitment"): "audit:commitments",
-    ("vectors/wist4/roster.json", "credit_commitment"): "audit:commitments",
-    ("vectors/wist4/roster.json", "ref_extract_commitment"): "audit:commitments",
-    ("vectors/wist4/roster.json", "evidence_commitment"): "audit:commitments",
-    ("vectors/wist4/roster-acts.json", "response_commitment"): "audit:commitments",
-    ("vectors/wist4/roster-acts.json", "credit_commitment"): "audit:commitments",
-    ("vectors/wist4/roster-acts.json", "ref_extract_commitment"): "audit:commitments",
-    ("vectors/wist4/roster-acts.json", "evidence_commitment"): "audit:commitments",
-    ("examples/audit-record.json", "response_commitment"): "audit:commitments",
-    ("examples/audit-record.json", "ref_extract_commitment"): "audit:commitments",
-    ("examples/audit-record.json", "evidence_commitment"): "audit:commitments",
-    ("examples/audit-record.json", "credit_commitment"): "audit:commitments",
-    ("vectors/wist4/audit-commitments.json", "value"): "audit:commitments",
-    ("vectors/wist4/canary.json", "credit_commitment"): "vectors:wist4-canary",
-    ("vectors/wist4/canary.json", "response_commitment"): "vectors:wist4-canary",
 }
 
 def _declared_values_for(check_name):
@@ -1465,7 +1264,7 @@ def _block_checks():
         b64u_decode(block["sig"]["value"]), signed_bytes)
 check("blockhash+binding+entrycount", _block_checks)
 
-RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at", "weight"]
+RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at"]
 
 def _content_digest(records):
     """WIST-3 §7: SHA-256 over the ascending-octet-order concatenation of JCS."""
@@ -1539,15 +1338,13 @@ def _snapshot_content_digest():
             f"content reached the content_digest preimage: {text[:32]!r}"
 
     # Every field of the tuple must move the digest, or a rebuild could diverge
-    # on it undetected. `weight` is the WIST-4 §7 level-2 mark and `observed_at`
-    # is what an `attest` moves; both are exactly the cases a record-identity-
-    # only digest would miss.
+    # on it undetected. `observed_at` is what an `attest` moves, exactly the
+    # case a record-identity-only digest would miss.
     import copy
     for field, other in (("url", "https://example.com/blog/post-9"),
                          ("publisher", "other.example.com"),
                          ("delta_id", "sha256:" + "0" * 64),
-                         ("observed_at", "2026-08-02T12:00:01Z"),
-                         ("weight", "reduced")):
+                         ("observed_at", "2026-08-02T12:00:01Z")):
         mutated = copy.deepcopy(records)
         assert mutated[0][field] != other, f"{field}: the mutation changes nothing"
         mutated[0][field] = other
@@ -1557,11 +1354,6 @@ def _snapshot_content_digest():
         "dropping a record leaves the digest unchanged"
     assert _content_digest([]) == "sha256:" + hashlib.sha256(b"").hexdigest(), \
         "an empty live set does not digest the empty octet string (§7)"
-
-    # Both `weight` values are exercised, so the level-2 mark is a case the
-    # vector actually covers rather than one the format merely admits.
-    assert {r["weight"] for r in records} == {"full", "reduced"}, \
-        "the vector does not exercise both weight values"
 
     spec = (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text()
     assert "semantic equivalence" in spec, "WIST-3 §7 no longer states the rebuild rule"
@@ -1801,8 +1593,8 @@ _CT_ROOTS = [
 ]
 
 def _merkle_ct_reference():
-    """External known-answer anchor for tools/merkle.py, in the mold of
-    ecvrf's RFC 9381 B.3 replay: the exhaustive property test above proves
+    """External known-answer anchor for tools/merkle.py: the exhaustive
+    property test above proves
     generation and verification agree with *each other*, but two sides of
     one authorship can share one misreading — only answers published by an
     independent implementation prove the hashes themselves are RFC 6962's.
@@ -1826,512 +1618,11 @@ def _merkle_ct_reference():
             f"MTH(D[{n}]) drifted from the CT reference: {got}"
 check("merkle:ct-reference-vectors", _merkle_ct_reference)
 
-# 4. WIST-4 §4: the ECVRF primitive itself, then the sampling vector built on it.
-# The RFC 9381 Appendix B.3 vectors are the acceptance criterion for ecvrf.py:
-# a VRF that is subtly wrong still *looks* verifiable, so the primitive is
-# re-proved against the RFC on every harness run, not just at authoring time.
-check("ecvrf:rfc9381-b3-vectors", ecvrf.self_test)
-
-def _dc4_sampling():
-    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
-    pk = b64u_decode(v["auditor_public_key"])
-    alpha, pi = bytes.fromhex(v["alpha_hex"]), bytes.fromhex(v["vrf_proof_hex"])
-    # alpha is the 32 raw octets of the Block Hash: the hex digest decoded,
-    # with the "sha256:" prefix NOT part of alpha (WIST-4 §4).
-    block = json.loads((ROOT / "examples" / "block.json").read_text())
-    block_hash = "sha256:" + hashlib.sha256(rfc8785.dumps(block["header"])).hexdigest()
-    assert v["block_hash"] == block_hash, "sampling vector is not bound to the example Block"
-    assert alpha == bytes.fromhex(block_hash.split(":")[1]), "alpha is not the raw Block Hash"
-    assert ecvrf.verify(pk, alpha, pi), "VRF proof does not verify"
-    beta = ecvrf.proof_to_hash(pi)
-    assert beta.hex() == v["beta_hex"], "beta mismatch"
-    d8 = hashlib.sha256(beta + v["delta_id"].encode()).digest()[:8]
-    assert d8.hex() == v["draw_first8_hex"], "draw bytes mismatch"
-    assert int.from_bytes(d8, "big") == v["D"], "D mismatch"
-    # The §4 selection test, recomputed in integers only. Every Delta named
-    # here must be a real Entry of the example Block, and its D must follow
-    # from beta and the Delta ID rather than being asserted.
-    par = v["parameters"]
-    assert (par["floor_1e7"], par["ceiling_1e7"], par["slope_per_micro"]) \
-        == (200_000, 5_000_000, 3), "sampling parameters drifted from §9"
-    seen = set()
-    for c in v["selection"]:
-        entry = block["entries"][c["entry_index"]]
-        did = "sha256:" + hashlib.sha256(rfc8785.dumps(entry["body"]["delta"])).hexdigest()
-        assert did == c["delta_id"], f"{c['label']}: delta_id is not that Entry's ID"
-        first8 = hashlib.sha256(beta + c["delta_id"].encode()).digest()[:8]
-        assert first8.hex() == c["draw_first8_hex"], f"{c['label']}: draw bytes"
-        D = int.from_bytes(first8, "big")
-        assert D == c["D"] and 0 <= D < 2**64, f"{c['label']}: D"
-        p_1e7 = min(max(par["floor_1e7"]
-                        + par["slope_per_micro"] * (1_000_000 - c["reputation_u"]),
-                        par["floor_1e7"]), par["ceiling_1e7"])
-        assert p_1e7 == c["p_1e7"], f"{c['label']}: p_1e7"
-        lhs, rhs = D * 10**7, p_1e7 * 2**64
-        assert (lhs, rhs) == (c["lhs"], c["rhs"]), f"{c['label']}: comparison operands"
-        assert c["selected"] == (lhs < rhs), f"{c['label']}: selection outcome"
-        # The integer test must agree with the rational it renders, at every
-        # published point: D/2^64 < p_1e7/1e7.
-        from fractions import Fraction
-        assert c["selected"] == (Fraction(D, 2**64) < Fraction(p_1e7, 10**7)), \
-            f"{c['label']}: integer test disagrees with the exact rational"
-        seen.add(c["selected"])
-    assert seen == {True, False}, "vector must show both a selected and a rejected Delta"
-    # A proof for a different Block MUST NOT verify against this alpha: this is
-    # what stops an Auditor reusing one draw across Blocks.
-    assert not ecvrf.verify(pk, bytes(32), pi), "proof verified against wrong alpha"
-    # §4 displaces the formula to sampling_ceiling under a level-1 rung or an
-    # escalation and under nothing else; §6.3's account of what a reset buys
-    # names the formula's value at the Provisional cap, not the ceiling.
-    labels = set()
-    for c in v["rate_cases"]:
-        labels.add(c["label"])
-        formula = min(max(par["floor_1e7"] + par["slope_per_micro"] * (1_000_000 - c["reputation_u"]),
-                          par["floor_1e7"]), par["ceiling_1e7"])
-        expect = par["ceiling_1e7"] if c["level1_or_escalation"] else formula
-        assert c["p_1e7"] == expect, f"{c['label']}: p_1e7"
-        assert c["is_ceiling"] == (c["p_1e7"] == par["ceiling_1e7"]), f"{c['label']}: is_ceiling"
-    assert "provisional cap under no rung" in labels, "vector lacks the Provisional-cap rate"
-    signed_twins = 0
-    for c in v["parameter_rate_cases"]:
-        profile = c["parameters"]
-        floor, ceiling, slope = (profile[k] for k in ("floor_1e7", "ceiling_1e7", "slope_per_micro"))
-        assert 1 <= floor <= ceiling <= 9_007_199_254_740_991
-        assert -9_007_199_254_740_991 <= slope <= 9_007_199_254_740_991
-        assert 0 <= c["reputation_u"] <= 1_000_000
-        from fractions import Fraction
-        raw_rate = Fraction(floor, 10**7) + Fraction(slope, 10**7) * (1_000_000 - c["reputation_u"])
-        clamped = min(Fraction(ceiling, 10**7), max(Fraction(floor, 10**7), raw_rate))
-        expected = ceiling if c["level1_or_escalation"] else clamped * 10**7
-        assert c["p_1e7"] == expected, f"signed sampling profile: {c}"
-        if slope < 0 and not c["level1_or_escalation"] and c["reputation_u"] < 1_000_000:
-            unsigned = min(ceiling, max(floor, floor + (slope % 2**64) * (1_000_000 - c["reputation_u"])))
-            assert unsigned != expected, "negative slope case does not discriminate unsigned conversion"
-            signed_twins += 1
-    assert signed_twins == 4
-    cap = next(c for c in v["rate_cases"] if c["label"] == "provisional cap under no rung")
-    assert not cap["is_ceiling"], "the Provisional cap's rate is the formula's, not the ceiling"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "`p_1e7` 2 900 000 at the cap, below the `sampling_ceiling`" in prose, \
-        "§6.3 does not name the formula's value at the Provisional cap"
-check("vectors:wist4-sampling", _dc4_sampling)
-
-def _dc4_sampling_rate_twin():
-    """A harness reading the ceiling at the Provisional cap — the sentence
-    §6.3 used to carry — must disagree with the vector."""
-    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
-    cap = next(c for c in v["rate_cases"] if c["label"] == "provisional cap under no rung")
-    assert v["parameters"]["ceiling_1e7"] != cap["p_1e7"], \
-        "the vector cannot tell the ceiling from the formula at the cap"
-    displaced = next(c for c in v["rate_cases"] if c["label"] == "provisional cap under a level 1 rung")
-    assert displaced["p_1e7"] == v["parameters"]["ceiling_1e7"] and displaced["reputation_u"] == cap["reputation_u"], \
-        "the same reputation under a rung must read the ceiling"
-check("negative:wist4-sampling-rate", _dc4_sampling_rate_twin)
-
-def _dc4_link_agreement_optional():
-    """WIST-4 §5, §13: a measured Record SHOULD carry `link_agreement` where
-    the dimension applies, so the schema admits one without it; a link
-    verdict asserts a reading and cannot omit it; the neutral verdicts
-    cannot carry it."""
-    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
-    validator = Draft202012Validator(schema)
-    example = json.loads((ROOT / "examples" / "audit-record.json").read_text())
-    assert "link_agreement" in example["record"], "the example Record should carry the field"
-    without = copy.deepcopy(example)
-    del without["record"]["link_agreement"]
-    validator.validate(without)
-    for verdict in ("link_variance", "link_inconsistent"):
-        link = copy.deepcopy(without)
-        link["record"]["verdict"] = verdict
-        link["record"]["similarity"] = 1_000_000
-        try:
-            validator.validate(link)
-        except ValidationError:
-            pass
-        else:
-            raise AssertionError(f"a {verdict} Record without link_agreement validated")
-    neutral = copy.deepcopy(example)
-    neutral["record"]["verdict"] = "not_auditable"
-    for field in ("response_commitment", "credit_commitment", "ref_extract_commitment",
-                  "similarity", "evidence_commitment"):
-        neutral["record"].pop(field, None)
-    try:
-        validator.validate(neutral)
-    except ValidationError:
-        pass
-    else:
-        raise AssertionError("a not_auditable Record carrying link_agreement validated")
-    checklist = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "seals the field on the Record as §5 says it SHOULD" in checklist, \
-        "§13's link checklist line does not defer to §5's SHOULD"
-check("schema:wist4-link-agreement-optional", _dc4_link_agreement_optional)
-
-def _dc4_audit_record_proof():
-    """The published Record's vrf_proof must verify for the Block it audits."""
-    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
-    alpha = bytes.fromhex(v["alpha_hex"])
-    assert ecvrf.verify(load_test_pubkey(), alpha, bytes.fromhex(rec["vrf_proof"])), \
-        "audit record vrf_proof does not verify"
-    assert rec["vrf_proof"] == v["vrf_proof_hex"], "record proof differs from vector proof"
-check("vectors:wist4-audit-record-proof", _dc4_audit_record_proof)
-
-def _extension_proof_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "extension-proof.json").read_text())
-
-def _proof_standing(v, case):
-    """WIST-4 §3/§4: the Block a Record's proof gives it standing for.
-
-    A proof over the audited Block gives standing through the draw it
-    determines; a proof over B₁, the Block that sealed the triggering
-    Record, gives standing through the extension rule; any other proof
-    gives none (WIST4-E01).
-    """
-    pk_audited = b64u_decode(case["admitted_at"]["audited_block"])
-    pk_trigger = b64u_decode(case["admitted_at"]["trigger_block"])
-    pi = bytes.fromhex(case["vrf_proof_hex"])
-    audited = bytes.fromhex(v["audited_block"]["alpha_hex"])
-    trigger = bytes.fromhex(v["trigger_block"]["alpha_hex"])
-    if ecvrf.verify(pk_audited, audited, pi):
-        beta = ecvrf.proof_to_hash(pi)
-        D = int.from_bytes(
-            hashlib.sha256(beta + v["audited_delta"].encode()).digest()[:8], "big")
-        p_1e7 = min(max(200_000 + 3 * (1_000_000 - v["reputation_u"]), 200_000), 5_000_000)
-        return ("audited", "selection" if D * 10**7 < p_1e7 * 2**64 else "WIST4-E01")
-    if ecvrf.verify(pk_trigger, trigger, pi):
-        return ("trigger", "extension" if case["named_by_extension"] else "WIST4-E01")
-    return (None, "WIST4-E01")
-
-def _dc4_extension_proof():
-    """WIST-4 §4: an extension Record's vrf_proof is over B₁, not the audited Block."""
-    v = _extension_proof_vector()
-    block = json.loads((ROOT / "examples" / "block.json").read_text())
-    empty = json.loads((ROOT / "vectors" / "wist3" / "empty-block.json").read_text())
-    audited_hash = "sha256:" + hashlib.sha256(rfc8785.dumps(block["header"])).hexdigest()
-    assert v["audited_block"]["block_hash"] == audited_hash, "audited Block is not the example Block"
-    assert v["trigger_block"]["block_hash"] == empty["block_hash"], "B₁ is not the empty Block"
-    for key in ("audited_block", "trigger_block"):
-        assert v[key]["alpha_hex"] == v[key]["block_hash"].split(":")[1], f"{key}: alpha"
-    assert empty["block"]["header"]["block_number"] > block["header"]["block_number"], \
-        "B₁ must be sealed after the audited Block"
-    assert any("sha256:" + hashlib.sha256(rfc8785.dumps(e["body"]["delta"])).hexdigest()
-               == v["audited_delta"] for e in block["entries"]), \
-        "audited_delta is not an Entry of the audited Block"
-    labels = set()
-    standings = set()
-    for case in v["cases"]:
-        labels.add(case["label"])
-        got = _proof_standing(v, case)
-        assert got == (case["proof_block"], case["standing"]), \
-            f"{case['label']}: recomputed {got}, vector says {(case['proof_block'], case['standing'])}"
-        standings.add(case["standing"])
-    for needed in ("extension proof over trigger block", "audited block proof unselected",
-                   "proof over neither block", "trigger proof but not summoned",
-                   "rotated between the blocks proof under the key held at b1",
-                   "rotated between the blocks b1 proof under the audited blocks key",
-                   "rotated between the blocks audited proof under the key held at b1"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    assert standings == {"extension", "WIST4-E01"}, standings
-    assert v["rotated_public_key"] != v["auditor_public_key"], "the rotation admits the same key"
-    assert any(c["admitted_at"]["audited_block"] != c["admitted_at"]["trigger_block"]
-               for c in v["cases"]), "no case rotates between the audited Block and B₁"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "in whose selection set the Auditor holds `audited_delta`" in prose, \
-        "§5 does not state which Block an extension Record's proof is over"
-check("vectors:wist4-extension-proof", _dc4_extension_proof)
-
-def _dc4_extension_proof_twin():
-    """The check above must notice a proof over the wrong Block."""
-    v = _extension_proof_vector()
-    ext = next(c for c in v["cases"] if c["label"] == "extension proof over trigger block")
-    aud = next(c for c in v["cases"] if c["label"] == "audited block proof unselected")
-    assert _proof_standing(v, dict(ext, vrf_proof_hex=aud["vrf_proof_hex"]))[1] == "WIST4-E01", \
-        "recomputation is blind to an extension Record carrying the audited Block's proof"
-    assert _proof_standing(v, dict(ext, named_by_extension=False))[1] == "WIST4-E01", \
-        "recomputation is blind to a proof over B₁ from an Auditor B₁ did not summon"
-    old_key = next(c for c in v["cases"]
-                   if c["label"] == "rotated between the blocks b1 proof under the audited blocks key")
-    steady = dict(old_key, admitted_at={"audited_block": v["auditor_public_key"],
-                                        "trigger_block": v["auditor_public_key"]})
-    assert _proof_standing(v, steady)[1] == "extension", \
-        "recomputation is blind to which key the Auditor held at B₁"
-check("negative:wist4-extension-proof", _dc4_extension_proof_twin)
-
-def _dc4_admission_evidence():
-    v = json.loads((ROOT / "vectors/wist4/roster.json").read_text())["admission"]
-    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
-    keys = {e["key_id"]: Ed25519PublicKey.from_public_bytes(b64u_decode(e["public_key"])) for e in v["keys"]}
-    record = v["record_envelope"]
-    keys[record["sig"]["key_id"]].verify(b64u_decode(record["sig"]["value"]), rfc8785.dumps(record["record"]))
-    head = "sha256:" + hashlib.sha256(rfc8785.dumps(record["record"])).hexdigest()
-    for case in v["cases"]:
-        docs = [e["envelope"] for e in case["history"]] + [case["envelope"]]
-        for doc in docs:
-            validator.validate(doc)
-            keys[doc["sig"]["key_id"]].verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
-        subject = case["envelope"]["update"]["subject"]
-        history = [e for e in case["history"] if e["height"] <= case["admission_height"] and e["envelope"]["update"]["subject"] == subject]
-        was_observer = any(e["envelope"]["update"]["action"] == "observer_register" for e in history)
-        checkpoints = [e for e in history if e["envelope"]["update"]["action"] == "observer_checkpoint"]
-        for e in checkpoints:
-            assert e["envelope"]["update"]["details"]["head"] == head
-        details = case["envelope"]["update"]["details"]
-        track = details.get("track_record")
-        valid = track is None
-        if was_observer:
-            valid = False
-            if track is not None and checkpoints:
-                newest = max(checkpoints, key=lambda e:(e["height"], hashlib.sha256(
-                    rfc8785.dumps(e["envelope"]["update"])).digest()))["envelope"]["update"]
-                ident = "sha256:" + hashlib.sha256(rfc8785.dumps(newest)).hexdigest()
-                valid = track["checkpoint"] == ident
-        assert (None if valid else "WIST4-E04") == case["error"], case["label"]
-        assert (details["key_id"] if valid else None) == case["admitted_key"]
-    disagreement = next(c for c in v["cases"] if c["label"] == "scoreboard disagreement preserves admission")
-    assert disagreement["envelope"]["update"]["details"]["track_record"]["scoreboard"] != disagreement["recomputed_scoreboard"]
-    assert disagreement["admitted_key"] is not None
-check("vectors:wist4-admission-evidence", _dc4_admission_evidence)
-
-def _roster_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "roster.json").read_text())
-
-def _roster_independent(a, b):
-    sa, sb = a.split(".")[-2:], b.split(".")[-2:]
-    return len(sa) < 2 or len(sb) < 2 or sa != sb
-
-def _roster_replay(log_id, entries):
-    """WIST-4 §3/§4 roster derivation, recomputed independently of the
-    generator: at most one admitted key per auditor_id at any height;
-    removes at an instant apply before admits at it; a retired key_id,
-    a subject barred for cause, an overlapping admit, a subject dependent
-    on log_id, and a remove of a key its subject does not hold are all
-    rejected (WIST4-E07)."""
-    holding, retired, barred, rejected = {}, set(), set(), []
-    by_instant = {}
-    for i, e in enumerate(entries):
-        by_instant.setdefault(e["sealed_at_s"], []).append((i, e))
-    for t in sorted(by_instant):
-        acts = by_instant[t]
-        incumbent = dict(holding)
-        for i, e in [x for x in acts if x[1]["action"] == "auditor_remove"]:
-            if incumbent.get(e["auditor_id"], (None,))[0] != e["key_id"]:
-                rejected.append(i)
-                continue
-            retired.add(e["key_id"])
-            retired.add(incumbent[e["auditor_id"]][2])
-            holding[e["auditor_id"]] = (None, t, None)
-            if e.get("evidence"):
-                barred.add(e["auditor_id"])
-        admits = [x for x in acts if x[1]["action"] == "auditor_admit"]
-        for i, e in admits:
-            held = holding.get(e["auditor_id"], (None, None, None))[0]
-            live = {x for k, _, pk in holding.values() if k is not None for x in (k, pk)}
-            twice = sum(1 for _, o in admits if o["auditor_id"] == e["auditor_id"]) > 1
-            if (e["key_id"] in retired or e["public_key"] in retired
-                    or e["key_id"] in live or e["public_key"] in live
-                    or e["auditor_id"] in barred or held is not None
-                    or twice or not _roster_independent(e["auditor_id"], log_id)):
-                rejected.append(i)
-                continue
-            holding[e["auditor_id"]] = (e["key_id"], t, e["public_key"])
-    return sorted(rejected)
-
-def _observer_batch(case, log_id):
-    initial, acts = case["initial_after_removals"], case["acts"]
-    groups = collections.defaultdict(list)
-    for i, a in enumerate(acts):
-        groups[a["action"], a["subject"]].append(i)
-    live = set(range(len(acts))) - {i for g in groups.values() if len(g) > 1 for i in g}
-    for i in list(live):
-        a = acts[i]
-        occupied = any(subject != a["subject"] and any(key[field] == a[field] for field in ("key_id", "public_key"))
-                       for mapping in (initial["auditors"], initial["observers"]) for subject, key in mapping.items())
-        if (occupied or a["subject"] in initial["auditors"]
-                or not _roster_independent(a["subject"], log_id)
-                or a["action"] == "auditor_admit" and a["subject"] in initial["barred"]
-                or a["key_id"] in initial["retired_key_ids"] or a["public_key"] in initial["retired_public_keys"]):
-            live.remove(i)
-    admits = {acts[i]["subject"] for i in live if acts[i]["action"] == "auditor_admit"}
-    live -= {i for i in live if acts[i]["action"] == "observer_register" and acts[i]["subject"] in admits}
-    by_key = collections.defaultdict(list)
-    for i in live:
-        for field in ("key_id", "public_key"):
-            by_key[field, acts[i][field]].append(i)
-    conflicts = {i for group in by_key.values() if len({acts[j]["subject"] for j in group}) > 1 for i in group}
-    live -= conflicts
-    state = {role: copy.deepcopy(initial[role]) for role in ("auditors", "observers")}
-    for i in live:
-        a = acts[i]
-        role = "auditors" if a["action"] == "auditor_admit" else "observers"
-        state[role][a["subject"]] = {k: a[k] for k in ("key_id", "public_key")}
-        if role == "auditors":
-            state["observers"].pop(a["subject"], None)
-    return state | {"rejected_indices": sorted(set(range(len(acts))) - live)}
-
-def _dc4_observer_batches():
-    v = _roster_vector()
-    for case in v["batch_cases"]:
-        assert _observer_batch(case, "log.example.org") == case["expected"], case["label"]
-check("vectors:wist4-observer-batches", _dc4_observer_batches)
-
-def _dc4_observer_batches_twin():
-    for case in _roster_vector()["batch_cases"]:
-        for permutation in itertools.permutations(range(len(case["acts"]))):
-            shuffled = case | {"acts": [case["acts"][i] for i in permutation]}
-            result = _observer_batch(shuffled, "log.example.org")
-            result["rejected_indices"] = sorted(permutation[i] for i in result["rejected_indices"])
-            assert result == case["expected"], case["label"]
-    collision = next(c for c in _roster_vector()["batch_cases"] if c["label"] == "registrations share key id")
-    assert collision["expected"]["rejected_indices"] == [0, 1]
-check("negative:wist4-observer-batches", _dc4_observer_batches_twin)
-
-def _roster_admitted_at(log_id, entries, auditor_id, t):
-    rejected = set(_roster_replay(log_id, entries))
-    key = None
-    for i, e in enumerate(entries):
-        if i in rejected or e["auditor_id"] != auditor_id or e["sealed_at_s"] > t:
-            continue
-        key = e["key_id"] if e["action"] == "auditor_admit" else None
-    return key
-
-def _dc4_roster():
-    """WIST-4 §3, §4: one admitted key per auditor_id per height, and the
-    roster acts a replayer rejects."""
-    v = _roster_vector()
-    labels = set()
-    for case in v["cases"]:
-        labels.add(case["label"])
-        seals = [e["sealed_at_s"] for e in case["entries"]]
-        assert seals == sorted(seals), f"{case['label']}: entries not in Log order"
-        got = _roster_replay(case["log_id"], case["entries"])
-        assert got == case["rejected_indices"], \
-            f"{case['label']}: recomputed rejections {got}, vector says {case['rejected_indices']}"
-        for q in case["admitted_key_at"]:
-            key = _roster_admitted_at(case["log_id"], case["entries"], q["auditor_id"], q["sealed_at_s"])
-            assert key == q["key_id"], \
-                f"{case['label']}: at {q['sealed_at_s']} recomputed {key}, vector says {q['key_id']}"
-    for needed in ("rotation in one block", "overlapping admit rejected",
-                   "retired key id rejected", "barred subject rejected",
-                   "exit then re entry allowed", "removal ends admission at its instant",
-                   "dependent on the log id rejected", "remove of a key not held rejected",
-                   "two admits for one subject in one block both rejected",
-                   "same public key under a fresh key id after exit rejected",
-                   "public key held by another auditor rejected",
-                   "key id held by another auditor rejected",
-                   "retired key id re admitted by another auditor rejected",
-                   "rejected for cause remove bars nothing",
-                   "same block for cause remove and admit rejected"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "at most one admitted key at any height" in prose, "§3 does not pin one key per height"
-    assert "| WIST4-E07 |" in prose, "§10 has no roster row"
-check("vectors:wist4-roster", _dc4_roster)
-
-def _dc4_roster_twin():
-    """The check above must notice a rotation whose removal went missing."""
-    v = _roster_vector()
-    case = next(c for c in v["cases"] if c["label"] == "rotation in one block")
-    entries = [e for e in case["entries"] if e["action"] != "auditor_remove"]
-    assert _roster_replay(case["log_id"], entries) == [1], \
-        "recomputation is blind to a second key admitted beside a live one"
-    case = next(c for c in v["cases"] if c["label"] == "removal ends admission at its instant")
-    remove = next(e for e in case["entries"] if e["action"] == "auditor_remove")
-    assert _roster_admitted_at(case["log_id"], case["entries"], remove["auditor_id"],
-                               remove["sealed_at_s"] - 1) == remove["key_id"], \
-        "recomputation is blind to the instant before a removal"
-    case = next(c for c in v["cases"] if c["label"] == "two admits for one subject in one block both rejected")
-    assert _roster_replay(case["log_id"], case["entries"][:1]) == [], \
-        "recomputation rejects a lone admit as if a second stood beside it"
-    case = next(c for c in v["cases"] if c["label"] == "same public key under a fresh key id after exit rejected")
-    fresh = copy.deepcopy(case["entries"])
-    fresh[2]["public_key"] = "pk-fresh"
-    assert _roster_replay(case["log_id"], fresh) == [3], \
-        "recomputation is blind to the public_key a re-admission names"
-check("negative:wist4-roster", _dc4_roster_twin)
-
-def _dc4_removal_batch():
-    for case in _roster_vector()["cases"]:
-        if case["label"] not in ("exit before cause", "cause before exit"):
-            continue
-        entries = case["entries"]
-        assert _roster_replay(case["log_id"], entries) == [3, 4]
-        without_cause = [e for e in entries if not e.get("evidence")]
-        assert _roster_replay(case["log_id"], without_cause) == [3]
-        for permutation in itertools.permutations(entries[1:4]):
-            shuffled = [entries[0], *permutation, entries[4]]
-            rejected = _roster_replay(case["log_id"], shuffled)
-            assert all((i in rejected) == (e["action"] == "auditor_admit" and i > 0)
-                       for i, e in enumerate(shuffled))
-check("vectors:wist4-removal-batch", _dc4_removal_batch)
-
-def _selection_domain_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "selection-domain.json").read_text())
-
-def _selection_domain_excluded(case):
-    """WIST-4 §4 / WIST-3 §7, recomputed independently of the generator: a
-    Delta is outside the Block's selection domain when its URL host has its
-    own seq-0 Declaration sealed at or below the Block and the Delta's
-    Publisher is not that host."""
-    declared = {d["domain"]: d["seq0_height"] for d in case["declarations"]}
-    return [i for i, e in enumerate(case["entries"])
-            if e["url_host"] != e["publisher"]
-            and declared.get(e["url_host"], case["block_height"] + 1) <= case["block_height"]]
-
-def _dc4_selection_domain():
-    """WIST-4 §4: which Deltas of a Block any Auditor's draw can select."""
-    v = _selection_domain_vector()
-    labels = set()
-    outcomes = set()
-    for case in v["cases"]:
-        labels.add(case["label"])
-        got = _selection_domain_excluded(case)
-        assert got == case["excluded_indices"], \
-            f"{case['label']}: recomputed {got}, vector says {case['excluded_indices']}"
-        outcomes.add(bool(got))
-    for needed in ("own host always selectable", "parent delta before the declaration",
-                   "parent delta at the declaration height", "parent delta after the declaration",
-                   "subdomain own delta selectable", "unrelated declaration excludes nothing",
-                   "mixed block"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    assert outcomes == {True, False}
-    barred = set()
-    for case in v["self_audit_cases"]:
-        got = not _roster_independent(case["auditor_id"], case["publisher"])
-        assert got == case["barred"], \
-            f"{case['label']}: recomputed barred={got}, vector says {case['barred']}"
-        barred.add(got)
-    assert barred == {True, False}, "self_audit_cases must exercise both outcomes"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "inside *B*'s **selection domain**" in prose, "§4 does not define the selection domain"
-    assert "A Delta §3 bars an Auditor from is in none of *that* Auditor's selection sets by either path" in prose, \
-        "§4 does not take a barred Delta out of the Auditor's selection set"
-check("vectors:wist4-selection-domain", _dc4_selection_domain)
-
-def _dc4_selection_domain_twin():
-    """The check above must notice a Declaration moved past the Block."""
-    v = _selection_domain_vector()
-    case = next(c for c in v["cases"] if c["label"] == "parent delta at the declaration height")
-    mutated = json.loads(json.dumps(case))
-    mutated["declarations"][0]["seq0_height"] += 1
-    assert _selection_domain_excluded(mutated) == [], \
-        "recomputation is blind to the Declaration's height"
-    mutated = json.loads(json.dumps(case))
-    mutated["entries"][0]["publisher"] = mutated["entries"][0]["url_host"]
-    assert _selection_domain_excluded(mutated) == [], \
-        "recomputation is blind to whose Delta it is"
-    kin = next(c for c in v["self_audit_cases"] if c["label"] == "publisher under the auditors suffix")
-    assert _roster_independent(kin["auditor_id"], "shop.example.org"), \
-        "recomputation is blind to the Publisher's suffix"
-check("negative:wist4-selection-domain", _dc4_selection_domain_twin)
-
 def _parameter_vector():
     return json.loads((ROOT / "vectors" / "wist4" / "parameter-in-force.json").read_text())
 
 def _value_in_force(default, changes, t_s, inclusive=True):
-    """WIST-4 §9: greatest effective_at at or before t_s, Log order breaking
+    """WIST-4 §5: greatest effective_at at or before t_s, Log order breaking
     an equal pair; the default where nothing is in force."""
     best = None
     for i, c in enumerate(changes):
@@ -2344,7 +1635,7 @@ def _value_in_force(default, changes, t_s, inclusive=True):
     return (default, None) if best is None else (best[2], best[1])
 
 def _dc4_parameter_in_force():
-    """WIST-4 §9: which amendment is in force at an instant."""
+    """WIST-4 §5: which amendment is in force at an instant."""
     v = _parameter_vector()
     labels = set()
     for case in v["cases"]:
@@ -2362,10 +1653,10 @@ def _dc4_parameter_in_force():
                    "equal effective at across blocks", "equal effective at in one block"):
         assert needed in labels, f"vector lacks the {needed} case"
     prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+                   (ROOT / "specs" / "WIST-4-governance.md").read_text())
     for marker in ("in force at every instant T at or after its `effective_at`, the endpoint included",
                    "the one later in Log order (WIST-3 §3.3: ascending Block height, then Entry index) prevails"):
-        assert marker in prose, f"§9 does not state: {marker!r}"
+        assert marker in prose, f"§5 does not state: {marker!r}"
 check("vectors:wist4-parameter-in-force", _dc4_parameter_in_force)
 
 def _dc4_parameter_in_force_twin():
@@ -2386,530 +1677,10 @@ def _dc4_parameter_in_force_twin():
         "recomputation is blind to which of an equal pair sealed later"
 check("negative:wist4-parameter-in-force", _dc4_parameter_in_force_twin)
 
-def _countability_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "parameter-combinations.json").read_text())
 
-def _wist4_section9():
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    return spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
-
-def _coverage_failures_max_default():
-    """The row carries no identifier, so `_registry_table_defaults()` skips
-    it; the rule below needs the published number all the same."""
-    for line in _wist4_section9().splitlines():
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) == 4 and "`coverage_failures_max`" in cells[0]:
-            return int(re.match(r"(\d+)", cells[2]).group(1))
-    raise AssertionError("§9 publishes no coverage_failures_max default")
-
-def _cadence_upper_bound():
-    for line in _wist4_section9().splitlines():
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) == 3 and cells[0] == "`block_cadence_seconds`":
-            return int(re.search(r"\u2264 ([\d ]+)", cells[1]).group(1).replace(" ", ""))
-    raise AssertionError("§9 publishes no block_cadence_seconds ceiling")
-
-def _counts_at_some_height(cadence_s, lag_s, failures_max, window_days=30):
-    """The fact the §9 sum stands for: an Auditor failing every Block on a
-    fully sealed grid, counted at every height, ever passing the tolerance."""
-    window_s = window_days * 86400
-    best = 0
-    for n in range(lag_s // cadence_s + window_s // cadence_s + 3):
-        heights = {h for h in range(n + 1)
-                   if h * cadence_s + lag_s <= n * cadence_s
-                   and (n - h) * cadence_s < window_s}
-        best = max(best, len(heights))
-    return best, best > failures_max
-
-def _countability_sum(case, participants=("record_seal_blocks", "coverage_failures_max")):
-    return (case["coverage_deadline_hours"] * 3600
-            + sum(case[p] for p in participants) * case["block_cadence_seconds"])
-
-def _dc4_coverage_countability():
-    """WIST-4 §9: the sum that keeps a coverage failure countable."""
-    v = _countability_vector()
-    window_s = v["window_days"] * 86400
-    published = _coverage_failures_max_default()
-    labels = set()
-    for case in v["cases"]:
-        labels.add(case["label"])
-        assert case["coverage_failures_max"] == published, \
-            f"{case['label']}: coverage_failures_max is not §9's published default"
-        total = _countability_sum(case)
-        assert total == case["sum_s"], \
-            f"{case['label']}: recomputed sum {total}, vector says {case['sum_s']}"
-        assert (total < window_s) == case["rule_holds"], \
-            f"{case['label']}: the rule's verdict disagrees with the vector"
-        on_grid = (case["coverage_deadline_hours"] * 3600) % case["block_cadence_seconds"] == 0
-        assert on_grid == case["deadline_on_grid"], f"{case['label']}: grid flag wrong"
-        for side, seal_blocks in (("unattested", case["record_seal_blocks"]),
-                                  ("attested_next_block", 1)):
-            lag = ((case["coverage_deadline_hours"] * 3600) // case["block_cadence_seconds"]
-                   + seal_blocks) * case["block_cadence_seconds"]
-            assert lag == case[side]["establishing_lag_s"], \
-                f"{case['label']} {side}: recomputed lag {lag}"
-            reached, fires = _counts_at_some_height(case["block_cadence_seconds"], lag,
-                                                    case["coverage_failures_max"],
-                                                    v["window_days"])
-            assert reached == case[side]["max_counted_at_any_height"], \
-                f"{case['label']} {side}: recomputed {reached} counted, vector says {case[side]['max_counted_at_any_height']}"
-            assert fires == case[side]["predicate_reachable"], \
-                f"{case['label']} {side}: reachability disagrees with the count"
-        if case["deadline_on_grid"]:
-            assert case["rule_holds"] == case["unattested"]["predicate_reachable"], \
-                f"{case['label']}: the rule and the predicate part on the grid"
-        else:
-            assert not case["rule_holds"] or case["unattested"]["predicate_reachable"], \
-                f"{case['label']}: the rule admits an unreachable predicate"
-    maxed = next(c for c in v["cases"]
-                 if c["block_cadence_seconds"] == _cadence_upper_bound()
-                 and c["record_seal_blocks"] == 24 and c["coverage_deadline_hours"] == 72)
-    assert not maxed["rule_holds"] and not maxed["unattested"]["predicate_reachable"] \
-        and maxed["attested_next_block"]["predicate_reachable"], \
-        "the vector no longer shows the ceiling the per-parameter table permits"
-    for needed in ("registry defaults", "one block past it", "a deadline between two blocks"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    prose = re.sub(r"\s+", " ", _wist4_section9())
-    for marker in ("`coverage_deadline_hours` \u00d7 3600 + (`record_seal_blocks` + "
-                   "`coverage_failures_max`) \u00d7 `block_cadence_seconds` MUST be shorter "
-                   "than 30 whole days (2 592 000 seconds)",
-                   "a party replaying the Log MUST reject a `parameter_change` that leaves it otherwise"):
-        assert marker in prose, f"§9 does not state: {marker!r}"
-check("vectors:wist4-coverage-countability", _dc4_coverage_countability)
-
-def _dc4_conservative_countability():
-    cases = _countability_vector()["cases"]
-    reachable = next(c for c in cases if c["label"] == "conservative rejection with twenty five countable failures")
-    unreachable = next(c for c in cases if c["label"] == "one later seal leaves twenty four countable failures")
-    for case, count in ((reachable, 25), (unreachable, 24)):
-        assert case["coverage_failures_max"] == 24
-        assert _countability_sum(case) >= 30 * 86400
-        assert not case["rule_holds"] and not case["deadline_on_grid"]
-        assert case["unattested"]["max_counted_at_any_height"] == count
-        assert case["unattested"]["predicate_reachable"] == (count > 24)
-check("vectors:wist4-conservative-countability", _dc4_conservative_countability)
-
-def _dc4_coverage_countability_twin():
-    """The check above must notice a sum bounded at the endpoint instead of
-    below it, and one that leaves `coverage_failures_max` out."""
-    v = _countability_vector()
-    window_s = v["window_days"] * 86400
-    boundary = next(c for c in v["cases"] if c["sum_s"] == window_s)
-    assert not boundary["unattested"]["predicate_reachable"], \
-        "the boundary case no longer sits where the two readings part"
-    assert (boundary["sum_s"] <= window_s) != boundary["rule_holds"], \
-        "an endpoint-inclusive bound admits a parameter set no history satisfies"
-    dead = next(c for c in v["cases"] if not c["unattested"]["predicate_reachable"]
-                and c["block_cadence_seconds"] == _cadence_upper_bound())
-    assert _countability_sum(dead, ("record_seal_blocks",)) < window_s, \
-        "the twin's failure span no longer changes the verdict"
-check("negative:wist4-coverage-countability", _dc4_coverage_countability_twin)
-
-def _unauditable_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "unauditable.json").read_text())
-
-def _record_blocks(record, every_not_auditable=False):
-    """WIST-4 §5: a robots_excluded Record, or a not_auditable Record whose
-    `unmeasured` side is the observed one. `every_not_auditable` is the
-    ruled-out reading that lets a missing reference block."""
-    if record["verdict"] == "unreachable":
-        return bool(record.get("robots_excluded"))
-    if record["verdict"] != "not_auditable":
-        return False
-    return True if every_not_auditable else record.get("unmeasured") == "observed"
-
-def _unauditable_at(v, case, end_inclusive_start_exclusive=True):
-    """WIST-4 §5: two independent blocking Records inside the horizon
-    ending at N, uncleared by an independent third Record sealed after the
-    later of them and at or below N."""
-    horizon_s = v["unauditable_horizon_days"] * 86400
-    n_s = case["n_sealed_at_s"]
-    def in_window(t):
-        if end_inclusive_start_exclusive:
-            return t <= n_s and n_s - t < horizon_s
-        return t <= n_s and n_s - t <= horizon_s
-    live = [b for b in case["blocking"] if _record_blocks(b) and in_window(b["sealed_at_s"])]
-    for i, b1 in enumerate(live):
-        for b2 in live[i + 1:]:
-            if not _roster_independent(b1["auditor"], b2["auditor"]):
-                continue
-            later = max(b1["sealed_at_s"], b2["sealed_at_s"])
-            if not any(later < c["sealed_at_s"] <= n_s
-                       and c["verdict"] in v["clearing_verdicts"]
-                       and _roster_independent(c["auditor"], b1["auditor"])
-                       and _roster_independent(c["auditor"], b2["auditor"])
-                       for c in case["other_records"]):
-                return True
-    return False
-
-def _dc4_unauditable():
-    """WIST-4 §5: the unauditable predicate, with its horizon measured like
-    every other window."""
-    v = _unauditable_vector()
-    labels = set()
-    for case in v["cases"]:
-        labels.add(case["label"])
-        for b in case["blocking"]:
-            assert _record_blocks(b) == b["blocks"], f"{case['label']}: blocks"
-        got = _unauditable_at(v, case)
-        assert got == case["unauditable"], \
-            f"{case['label']}: recomputed {got}, vector says {case['unauditable']}"
-    for run in v["exclusion_runs"]["cases"]:
-        since = None
-        for block, expected in zip(run["blocks"], run["expected"]):
-            n_s = block["sealed_at_s"]
-            case = {"blocking": [r for r in run["records"] if r["sealed_at_s"] <= n_s and _record_blocks(r)],
-                    "other_records": [r for r in run["records"] if r["sealed_at_s"] <= n_s and not _record_blocks(r)],
-                    "n_sealed_at_s": n_s}
-            excluded = _unauditable_at(v, case)
-            since = (since if since is not None else block["height"]) if excluded else None
-            assert {"height": block["height"], "unauditable": excluded, "since": since} == expected, \
-                (run["label"], block["height"])
-    shapes = {tuple(r["since"] for r in run["expected"]) for run in v["exclusion_runs"]["cases"]}
-    assert any(len({s for s in shape if s is not None}) > 1 for shape in shapes), "no run restarts"
-    assert any(shape[-1] is None and any(s is not None for s in shape) for shape in shapes), "no run ends by aging"
-    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "excluded-since height is the lowest height from which that predicate has held at every Block through `log_position`" in prose3
-    for needed in ("two reference side not auditable records block nothing",
-                   "an observed side not auditable record beside a robots exclusion blocks",
-                   "a reference side record beside a robots exclusion blocks nothing",
-                   "two observed side not auditable records block",
-                   "second blocking exactly thirty days before n",
-                   "second blocking one second inside the horizon",
-                   "cleared by a third independent auditor",
-                   "clearing auditor dependent on a blocker",
-                   "clearing record at the later blocking instant",
-                   "clearing record exactly at n",
-                   "three blockers one pair uncleared"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    assert set(v["clearing_verdicts"]) == {"consistent", "inconsistent", "dynamic_variance",
-                                           "link_variance", "link_inconsistent"}
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert ("sealed inside the 30 whole days (Parameter Registry: `unauditable_horizon_days`) "
-            "ending at Block N's `sealed_at`") in prose, "§5 does not measure the horizon as a window ending at N"
-check("vectors:wist4-unauditable", _dc4_unauditable)
-
-def _dc4_unauditable_twin():
-    """The check above must notice a horizon read end-inclusive at 30."""
-    v = _unauditable_vector()
-    case = next(c for c in v["cases"] if c["label"] == "second blocking exactly thirty days before n")
-    assert _unauditable_at(v, case, end_inclusive_start_exclusive=False) is True, \
-        "the twin's closed horizon did not admit the thirtieth-day Record"
-    assert _unauditable_at(v, case) is False, \
-        "recomputation is blind to the horizon's start"
-    reference = next(c for c in v["cases"]
-                     if c["label"] == "two reference side not auditable records block nothing")
-    assert all(_record_blocks(b, every_not_auditable=True) for b in reference["blocking"]) \
-        and not any(_record_blocks(b) for b in reference["blocking"]), \
-        "recomputation is blind to which side left nothing to measure"
-check("negative:wist4-unauditable", _dc4_unauditable_twin)
-
-def _dc4_unmeasured_field():
-    """WIST-4 §5, audit-record schema: a not_auditable Record names the side
-    that left nothing to measure, and no other verdict carries the field."""
-    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
-    validator = Draft202012Validator(schema)
-    example = json.loads((ROOT / "examples" / "audit-record.json").read_text())
-    neutral = copy.deepcopy(example)
-    neutral["record"]["verdict"] = "not_auditable"
-    for field in ("response_commitment", "credit_commitment", "ref_extract_commitment",
-                  "similarity", "evidence_commitment", "link_agreement"):
-        neutral["record"].pop(field, None)
-    assert list(validator.iter_errors(neutral)), "a not_auditable Record without unmeasured validated"
-    for side in ("observed", "reference"):
-        sided = copy.deepcopy(neutral)
-        sided["record"]["unmeasured"] = side
-        validator.validate(sided)
-    bad = copy.deepcopy(neutral); bad["record"]["unmeasured"] = "mirror"
-    assert list(validator.iter_errors(bad)), "an unknown side validated"
-    measured = copy.deepcopy(example); measured["record"]["unmeasured"] = "observed"
-    assert list(validator.iter_errors(measured)), "a measured Record carrying unmeasured validated"
-    unreachable = copy.deepcopy(neutral); unreachable["record"]["verdict"] = "unreachable"
-    unreachable["record"]["unmeasured"] = "observed"
-    assert list(validator.iter_errors(unreachable)), "an unreachable Record carrying unmeasured validated"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("every `not_auditable` Record carries `unmeasured`",
-                   "a `not_auditable` Record without `unmeasured`, or any other Record carrying it (§5)"):
-        assert marker in prose, f"WIST-4 does not state: {marker!r}"
-check("schema:wist4-unmeasured", _dc4_unmeasured_field)
-
-def _dc4_fetch_budget():
-    v = _unauditable_vector()
-    for case in v["fetch_budget"]["cases"]:
-        remaining = case["daily_budget_bytes"] - case["bytes_already_spent"]
-        delivered_reference = min(remaining, case["reference_bytes_needed"])
-        remaining -= delivered_reference
-        assert remaining < case["observed_bytes_needed"]
-        side = "reference" if delivered_reference < case["reference_bytes_needed"] else "observed"
-        record = {"verdict": "not_auditable", "unmeasured": side}
-        assert record == case["record"], case["label"]
-        assert _record_blocks(record) == case["blocks"]
-        pair = [{"auditor": aid, "sealed_at_s": 0, **record}
-                for aid in ("audit.example.net", "check.sample.org")]
-        probe = {"blocking": pair, "other_records": [], "n_sealed_at_s": 0}
-        assert _unauditable_at(v, probe) == case["two_independent_records_unauditable"]
-        if side == "reference":
-            assert _record_blocks(record, every_not_auditable=True) != case["blocks"]
-check("vectors:wist4-fetch-budget", _dc4_fetch_budget)
-
-def _dc4_fetch_transport():
-    for case in _unauditable_vector()["fetch_transport"]["cases"]:
-        assert case["limit"] in ("timeout", "redirect ceiling")
-        reference_available = case["stopped_side"] != "reference"
-        record = {"verdict": "unreachable"} if reference_available else {
-            "verdict": "not_auditable", "unmeasured": "reference"}
-        assert record == case["record"]
-        assert _record_blocks(record) == case["blocks"]
-check("vectors:wist4-fetch-transport", _dc4_fetch_transport)
-
-def _coverage_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
-
-def _dc4_authenticated_coverage_gap():
-    v = _coverage_vector(); gap = v["authenticated_gap"]
-    keys = {k["key_id"]: b64u_decode(k["public_key"]) for k in gap["keys"]}
-    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
-    def verify(doc):
-        validator.validate(doc)
-        Ed25519PublicKey.from_public_bytes(keys[doc["sig"]["key_id"]]).verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
-    successor = gap["successor"]; verify(successor)
-    d = successor["update"]["details"]
-    assert ecvrf.verify(keys[successor["sig"]["key_id"]], bytes.fromhex(d["block"][7:]), bytes.fromhex(d["vrf_proof"]))
-    for case in gap["cases"]:
-        receipt = case["receipt"]
-        if receipt is not None:
-            verify(receipt)
-        matches = receipt is not None and receipt["update"]["subject"] == successor["update"]["subject"] and receipt["update"]["details"]["block"] == gap["pulled_block"] and d["prev_record"] in receipt["update"]["details"]["found"]
-        assert matches == case["exempt"], case["label"]
-    for case in v["counting_cases"]:
-        counts = case["attestation"] != "unmet-chain-contradicted"
-        assert counts == case["counts"], case["label"]
-    fabricated = gap["cases"][0]
-    assert d["prev_record"] is not None and fabricated["receipt"] is None and not fabricated["exempt"]
-check("vectors:wist4-authenticated-coverage-gap", _dc4_authenticated_coverage_gap)
-
-def _derivation_counts(case, height, *, exemption_only_if_attested=False, unauthentic_successor_contradicts=False):
-    heights = [h for h in (case.get("pull_height"), case["fallback_height"]) if h is not None]
-    if not heights or min(heights) > height:
-        return False
-    if case.get("complete_at") is not None and case["complete_at"] <= height:
-        return False
-    pull, successor = case.get("pull_height"), case.get("successor")
-    if pull is not None and successor is not None and pull <= successor["height"] <= height \
-            and successor["names_found"] and (successor["authentic"] or unauthentic_successor_contradicts) \
-            and not (exemption_only_if_attested and case["fallback_height"] < pull):
-        return False
-    return True
-
-def _dc4_coverage_derivation():
-    """WIST-4 §4, what the sealed prefix decides: silence fails, an attested
-    pair is exempt while contradicted, only an authentic successor
-    contradicts, and a Block's own discharges precede its Records' weight."""
-    v = _coverage_vector()
-    for case in v["derivation_cases"]:
-        for probe in case["probes"]:
-            assert _derivation_counts(case, probe["height"]) == probe["counts"], (case["label"], probe)
-    same = v["same_block_case"]
-    count = len(same["counting_duty_heights_before_block"]) - len(same["completed_in_block"])
-    assert (count > same["coverage_failures_max"]) == same["in_coverage_failure_at_block"]
-    assert (len(same["counting_duty_heights_before_block"]) > same["coverage_failures_max"]) == \
-        same["in_coverage_failure_under_prior_prefix_reading"]
-    assert same["in_coverage_failure_at_block"] != same["in_coverage_failure_under_prior_prefix_reading"]
-    silent = next(c for c in v["derivation_cases"] if c["label"] == "silent pair fails without a draw")
-    assert not silent["proof_sealed"] and silent["probes"][-1]["counts"]
-check("vectors:wist4-coverage-derivation", _dc4_coverage_derivation)
-
-def _dc4_coverage_derivation_twin():
-    v = _coverage_vector()
-    by_label = {c["label"]: c for c in v["derivation_cases"]}
-    exempt = by_label["fallback then contradicted attestation exempts"]
-    assert _derivation_counts(exempt, 106, exemption_only_if_attested=True) and \
-        not next(p["counts"] for p in exempt["probes"] if p["height"] == 106)
-    forged = by_label["unauthentic successor supplies no exemption"]
-    assert not _derivation_counts(forged, 90, unauthentic_successor_contradicts=True) and \
-        next(p["counts"] for p in forged["probes"] if p["height"] == 90)
-check("negative:wist4-coverage-derivation", _dc4_coverage_derivation_twin)
-
-def _establishing_height(case, attestation_overrides=False):
-    """WIST-4 §4: the earlier of the two evidence heights the Log carries —
-    the attestation's Block, or the record_seal_blocks-th Block sealed after
-    the deadline; `attestation_overrides` is the ruled-out reading under
-    which an attestation sealed later moves the height it establishes at."""
-    after = [b["height"] for b in case["blocks"] if b["sealed_at_s"] > case["coverage_deadline_s"]]
-    unattested = after[case["record_seal_blocks"] - 1] if len(after) >= case["record_seal_blocks"] else None
-    attested = case["attestation_height"]
-    if attestation_overrides and attested is not None:
-        return attested
-    evidence = [h for h in (attested, unattested) if h is not None]
-    return min(evidence) if evidence else None
-
-def _dc4_coverage_establishing():
-    """WIST-4 §4: a failed duty enters the count from its establishing height,
-    read from the Log up to N, and counts only while the audited Block is
-    inside the 30 whole days ending at N."""
-    v = _coverage_vector()
-    window_s = v["window_days"] * 86400
-    labels = set()
-    for case in v["establishing_cases"]:
-        labels.add(case["label"])
-        establishing = _establishing_height(case)
-        assert establishing == case["establishing_height"], f"{case['label']}: establishing height"
-        audited_s = case["audited_block"]["sealed_at_s"]
-        for probe in case["counts_at"]:
-            expect = (establishing is not None and establishing <= probe["height"]
-                      and audited_s <= probe["sealed_at_s"] < audited_s + window_s)
-            assert probe["counts"] == expect, f"{case['label']} at {probe['height']}"
-    for needed in ("a later attestation confirms the unattested failure and moves nothing",
-                   "evidence outside the window counts at no height"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "whichever of the two the Log carries first where it carries both" in prose, \
-        "§4 does not say which evidence establishes where the Log carries both"
-check("vectors:wist4-coverage-establishing", _dc4_coverage_establishing)
-
-def _signature_void(case, duty_key_governs=False):
-    """WIST-4 §3, §4: the signature reads the key held at the Record's own
-    Block, the proof the key admitted at the duty's Block. `duty_key_governs`
-    is the ruled-out reading under which the signature too must verify
-    against the duty Block's key."""
-    signed, at_record, duty = case["signed_under"], case["record_block_key"], case["duty_block_key"]
-    if duty_key_governs:
-        return None if signed == duty else "never admitted at anchor block"
-    if signed == at_record:
-        return None
-    return "removed after anchor block" if signed == duty else "never admitted at anchor block"
-
-def _dc4_coverage_signature():
-    """WIST-4 §3, §4: which key a rotated Record signs under, which its proof
-    is under, and what each mismatch does to standing and discharge."""
-    v = _coverage_vector()
-    labels = set()
-    discharging = {"removed after anchor block", "coverage failure at sealing", "malformed as evidence"}
-    for case in v["signature_cases"]:
-        labels.add(case["label"])
-        void = _signature_void(case)
-        assert void == case["void"], f"{case['label']}: void"
-        assert case["proof_under"] == case["duty_block_key"], f"{case['label']}: the proof reads the duty key"
-        assert case["counts"] == (void is None), f"{case['label']}: counts"
-        assert case["discharges"] == (void is None or void in discharging), f"{case['label']}: discharges"
-    for needed in ("rotated record signed under the new key with the old proof",
-                   "rotated record signed under the removed duty key",
-                   "exited auditor signs under the removed duty key"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("carries its `vrf_proof` under the key admitted then",
-                   "The signature is §3's: under the key the Auditor holds at the Record's own Block"):
-        assert marker in prose, f"§4 does not state: {marker!r}"
-check("vectors:wist4-coverage-signature", _dc4_coverage_signature)
-
-def _dc4_coverage_signature_twin():
-    """The check above must notice a signature read against the duty key."""
-    v = _coverage_vector()
-    rotated = next(c for c in v["signature_cases"]
-                   if c["label"] == "rotated record signed under the new key with the old proof")
-    assert _signature_void(rotated, duty_key_governs=True) is not None and rotated["void"] is None, \
-        "recomputation is blind to which Block's key the signature reads"
-check("negative:wist4-coverage-signature", _dc4_coverage_signature_twin)
-
-def _dc4_coverage_establishing_twin():
-    """The check above must notice a future attestation read as suppressing
-    the unattested failure it arrives after."""
-    v = _coverage_vector()
-    case = next(c for c in v["establishing_cases"]
-                if c["label"] == "a later attestation confirms the unattested failure and moves nothing")
-    overriding = _establishing_height(case, attestation_overrides=True)
-    assert overriding == case["attestation_height"] and overriding > case["establishing_height"], \
-        "the twin's reading did not move the establishing height"
-    between = next(p for p in case["counts_at"]
-                   if case["establishing_height"] <= p["height"] < case["attestation_height"])
-    assert between["counts"] and not (overriding <= between["height"]), \
-        "recomputation is blind to an attestation read from above N"
-check("negative:wist4-coverage-establishing", _dc4_coverage_establishing_twin)
-
-def _confirmation_quorum_index(records, window_hours, quorum):
-    for i, candidate in enumerate(records):
-        suffixes = {tuple(r["auditor"].split(".")[-2:]) for r in records[:i + 1]
-                    if 0 <= candidate["sealed_at_s"] - r["sealed_at_s"] <= window_hours * 3600}
-        if len(suffixes) >= quorum:
-            return i
-    return None
-
-def _dc4_confirmation_quorums():
-    v = json.loads((ROOT / "vectors" / "wist4" / "confirmation.json").read_text())
-    for case in v["cases"] + v["quorum_cases"]:
-        got = _confirmation_quorum_index(case["records"], v["confirm_window_hours"],
-                                         case.get("confirm_auditors", 2))
-        assert got == case["confirming_index"], case["label"]
-        severity = None
-        if got is not None:
-            sim = max(r["effective_similarity"] for r in case["records"][:got + 1])
-            severity = 1 if case.get("verdict") == "link_inconsistent" or sim >= 150_000 else 2 if sim >= 50_000 else 3
-        assert severity == case["severity"], case["label"]
-    for case in v["quorum_contradiction_cases"]:
-        trigger = case["trigger"]
-        held = [r for r in case["records"] if trigger["sealed_at_s"] <= r["sealed_at_s"] <=
-                trigger["sealed_at_s"] + v["confirm_window_hours"] * 3600]
-        agreeing = [trigger] + [r for r in held if r["verdict"] == trigger["verdict"]]
-        confirmed = len({tuple(r["auditor"].split(".")[-2:]) for r in agreeing}) >= case["confirm_auditors"]
-        consistent = len({tuple(r["auditor"].split(".")[-2:]) for r in held
-                          if r["verdict"] == "consistent"}) >= case["confirm_auditors"]
-        closed = case["closing_sealed_at_s"] > trigger["sealed_at_s"] + v["confirm_window_hours"] * 3600
-        assert confirmed == case["confirmed"], case["label"]
-        assert (closed and not confirmed and consistent) == case["contradicted"], case["label"]
-check("vectors:wist4-confirmation-quorums", _dc4_confirmation_quorums)
-
-def _dc4_confirmation_quorums_twin():
-    v = json.loads((ROOT / "vectors" / "wist4" / "confirmation.json").read_text())
-    stale = next(c for c in v["quorum_cases"] if c["label"] == "stale member beside fresh pair inconsistent")
-    assert _confirmation_quorum_index(stale["records"], 72, 2) is not None
-    assert stale["confirming_index"] is None
-    assert len({r["auditor"] for r in stale["records"]}) == stale["confirm_auditors"]
-    pair = next(c for c in v["quorum_contradiction_cases"] if c["label"] == "consistent pair is insufficient inconsistent")
-    assert len(pair["records"]) == 2 and not pair["contradicted"]
-check("negative:wist4-confirmation-quorums", _dc4_confirmation_quorums_twin)
-
-def _dc4_late_discharge():
-    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
-    for case in v["late_discharge_cases"]:
-        for probe in case["probes"]:
-            n = probe["height"]
-            covered = [r["delta"] for r in case["records"] if r["sealed_height"] <= n and not r["void"]]
-            attested = case["coverage_attestation_height"]
-            complete = all(d in covered for d in case["selected"]) if case["selected"] else attested is not None and attested <= n
-            established = n >= case["deadline_height"] + case["record_seal_blocks"] or case["pull_height"] is not None and case["pull_height"] <= n
-            assert complete == probe["complete"], case["label"]
-            assert (established and not complete) == probe["counts"], case["label"]
-check("vectors:wist4-late-discharge", _dc4_late_discharge)
-
-def _dc4_late_discharge_twin():
-    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
-    case = v["late_discharge_cases"][0]
-    before = next(p for p in case["probes"] if p["height"] == 99)
-    after = next(p for p in case["probes"] if p["height"] == 100)
-    assert before["counts"] and not after["counts"]
-    assert case["pull_height"] < after["height"] and after["complete"]
-check("negative:wist4-late-discharge", _dc4_late_discharge_twin)
-
-def _dc4_suppression_attribution():
-    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
-    for case in v["attribution_cases"]:
-        pull, successor = case["pull"], case["successor"]
-        n, arrived = case["n_height"], case["predecessor_sealed_height"]
-        proof = all((pull["height"] <= successor["height"] <= n,
-                     successor["auditor"] == case["auditor"], successor["log"] == case["log"],
-                     successor["prev_record"] in pull["found"],
-                     arrived is None or arrived > n))
-        assert proof == case["chain_contradicts"], case["label"]
-check("vectors:wist4-suppression-attribution", _dc4_suppression_attribution)
-
-def _dc4_suppression_attribution_twin():
-    v = json.loads((ROOT / "vectors" / "wist4" / "coverage.json").read_text())
-    unrelated = next(c for c in v["attribution_cases"] if c["label"] == "unrelated missing predecessor")
-    assert unrelated["predecessor_sealed_height"] is None and not unrelated["chain_contradicts"]
-    related = next(c for c in v["attribution_cases"] if c["label"] == "related missing predecessor")
-    assert related["successor"] == unrelated["successor"] and related["chain_contradicts"]
-check("negative:wist4-suppression-attribution", _dc4_suppression_attribution_twin)
+def _combinations_hold(values):
+    return (values["links_cap_bytes"] >= values["link_url_cap_bytes"] + 21
+            and values["mirror_retention_days"] * 6 >= values["payload_window_days"])
 
 def _prospective_values(defaults, changes, at_s):
     values = dict(defaults)
@@ -2958,8 +1729,8 @@ def _recovery_parameter_windows():
     assert any(limit - 86400 < int(e["window_end_s"]) <= limit
                for case in vector["recovery_window_cases"] for e in case["eligible_recoveries"]
                if e["sealable"]), "no window end within a day of the Log timestamp range"
-    prose = (ROOT / "specs/WIST-4-audit-reputation-governance.md").read_text()
-    assert "| WIST-1 §5.2 recovery window length | Window owner Declaration’s Block;" in prose
+    prose = (ROOT / "specs/WIST-4-governance.md").read_text()
+    assert "| WIST-1 §5.2 recovery window length | Window owner Declaration's Block;" in prose
     flat = re.sub(r"\s+", " ", prose)
     assert "would end a window opened at that instant after `9999-12-31T23:59:59Z`" in flat
     flat1 = re.sub(r"\s+", " ", (ROOT / "specs/WIST-1-delta-format.md").read_text())
@@ -2979,24 +1750,32 @@ def _dc4_prospective_parameters():
             candidate = accepted + [c]
             instants = sorted({c["sealed_at_s"]} | {a["effective_at_s"] for a in candidate if a["effective_at_s"] >= c["sealed_at_s"]})
             maps = [_prospective_values(v["prospective_defaults"], candidate, t) for t in instants]
-            if (c["value"] < 1 or c["effective_at_s"] - c["sealed_at_s"] < 7 * 86400
-                    or any(m["sampling_floor"] > m["sampling_ceiling"] for m in maps)):
+            if (c["value"] < v["prospective_floors"][c["parameter"]]
+                    or c["effective_at_s"] - c["sealed_at_s"] < 7 * 86400
+                    or not all(_combinations_hold(m) for m in maps)):
                 rejected.append(i)
             else:
                 accepted.append(c)
         assert sorted(rejected) == case["rejected_indices"], case["label"]
         for probe in case["maps"]:
             assert _prospective_values(v["prospective_defaults"], accepted, probe["at_s"]) == probe["values"], case["label"]
+    labels = {c["label"] for c in v["prospective_cases"]}
+    for needed in ("retention below a sixth of the window", "retention exactly a sixth of the window",
+                   "aggregate cap exactly the link cap plus its structure", "canonical same Block order"):
+        assert needed in labels, needed
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
+    assert "`links_cap_bytes` MUST NOT be below `link_url_cap_bytes` + 21" in prose
+    assert "`mirror_retention_days` MUST NOT be below `payload_window_days` divided by 6" in prose
 check("vectors:wist4-prospective-parameters", _dc4_prospective_parameters)
 
 def _dc4_prospective_parameters_twin():
     v = json.loads((ROOT / "vectors" / "wist4" / "parameter-combinations.json").read_text())
-    case = next(c for c in v["prospective_cases"] if c["label"] == "pending floor then incompatible ceiling")
+    case = next(c for c in v["prospective_cases"] if c["label"] == "pending link cap then incompatible aggregate cap")
     now = _prospective_values(v["prospective_defaults"], case["changes"], case["changes"][-1]["sealed_at_s"])
-    assert now["sampling_floor"] <= now["sampling_ceiling"]
+    assert _combinations_hold(now)
     assert case["rejected_indices"] == [1]
     future = _prospective_values(v["prospective_defaults"], case["changes"], 11 * 86400)
-    assert future["sampling_floor"] > future["sampling_ceiling"]
+    assert not _combinations_hold(future)
 check("negative:wist4-prospective-parameters", _dc4_prospective_parameters_twin)
 
 def _block_size_maps(default, accepted, instant):
@@ -3094,19 +1873,11 @@ def _dc4_parameter_clocks():
         value = at(case["parameter"], case["anchor_s"], case["changes"])
         assert value == case["selected_value"], case["label"]
         assert case["start"] + value * case["unit_scale"] == case["endpoint"], case["label"]
-    for case in v["confirmation_clock_cases"]:
-        successes = []
-        for i, t in enumerate(case["record_times_s"]):
-            window = at("confirm_window_hours", t, case["changes"]) * 3600
-            quorum = at("confirm_auditors", t, case["changes"])
-            members = [u for u in case["record_times_s"][:i + 1] if u >= t - window]
-            if len(members) >= quorum:
-                successes.append(i)
-        assert (min(successes) if successes else None) == case["confirming_index"], case["label"]
-    fixed = next(c for c in v["clock_cases"] if c["label"] == "coverage retains deadline")
+    fixed = next(c for c in v["clock_cases"] if c["label"] == "discovery retains seal count")
     assert at(fixed["parameter"], fixed["query_s"], fixed["changes"]) != fixed["selected_value"]
-    raised = v["confirmation_clock_cases"][0]
-    assert raised["confirming_index"] == 2 and v["clock_defaults"]["confirm_auditors"] == 2
+    included = next(c for c in v["clock_cases"] if c["label"] == "effective at anchor is included")
+    assert included["anchor_s"] == included["changes"][0]["effective_at_s"]
+    assert included["selected_value"] == included["changes"][0]["value"]
 check("vectors:wist4-parameter-clocks", _dc4_parameter_clocks)
 
 def _dc4_parameter_wire_range():
@@ -3127,1634 +1898,24 @@ def _dc4_parameter_wire_range():
             else:
                 raise AssertionError(case["label"])
         d = doc["update"]["details"]
-        cadence = d["value"] if d["parameter"] == "block_cadence_seconds" else 3600
-        holds = (36 * 3600 + 24 * cadence <= 72 * 3600
-            and 168 * cadence >= 72 * 3600 + 72 * cadence
-            and 72 * 3600 + 48 * cadence < 30 * 86400)
-        assert holds == case["combinations_hold_at_defaults"], case["label"]
-    cap = next(c for c in v["wire_cases"] if c["envelope"]["update"]["details"] == {"parameter": "provisional_cap_u", "value": -1})
-    assert min(100000, cap["envelope"]["update"]["details"]["value"]) < 0 and not cap["schema_valid"]
+        assert doc["update"]["subject"] == d["parameter"]
+        values = dict(v["prospective_defaults"])
+        if d["parameter"] in values and isinstance(d["value"], int):
+            values[d["parameter"]] = d["value"]
+        assert _combinations_hold(values) == case["combinations_hold_at_defaults"], case["label"]
+    floor = next(c for c in v["wire_cases"] if c["envelope"]["update"]["details"] == {"parameter": "payload_window_days", "value": 29})
+    assert not floor["schema_valid"] and floor["sealed_disposition"] == "ignored"
+    assert next(c for c in v["wire_cases"] if c["envelope"]["update"]["details"] == {"parameter": "payload_window_days", "value": 30})["schema_valid"]
     spellings = [c for c in v["wire_cases"] if c["envelope"]["update"]["details"]["parameter"] == "block_decompressed_cap_bytes"]
     assert [(type(c["envelope"]["update"]["details"]["value"]), c["schema_valid"]) for c in spellings] == [(str, False), (float, True)], \
         "a string value fails the details contract; an integral decimal spelling is the integer it denotes"
     assert spellings[1]["envelope"]["update"]["details"]["value"] == 4096 and spellings[1]["sealed_disposition"] == "candidate"
     fractional = next(c for c in v["wire_cases"] if c["envelope"]["update"]["effective_at"].endswith(".5Z"))
     assert not fractional["schema_valid"] and fractional["sealed_disposition"] == "ignored"
-    prose4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "never reaches these checks" in prose4, "WIST-4 §9 does not exclude schema-invalid acts from schedule candidates"
+    prose4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
+    assert "never reaches these checks" in prose4, "WIST-4 §5 does not exclude schema-invalid acts from schedule candidates"
 check("vectors:wist4-parameter-wire-range", _dc4_parameter_wire_range)
 
-def _dc4_cadence_transitions():
-    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
-    for case in v["cadence_transition_cases"]:
-        profiles = case["profiles"]; invalid = False
-        for i,p in enumerate(profiles):
-            end = profiles[i+1]["from_s"] if i+1 < len(profiles) else None
-            for q in profiles[i:]:
-                if end is None or q["from_s"] < end+p["confirm_window_hours"]*3600:
-                    remaining = (p["confirm_window_hours"] - p["confirm_window_hours"]//2)*3600
-                    invalid |= p["record_seal_blocks"]*q["block_cadence_seconds"] > remaining
-        assert (not invalid) == case["transition_valid"], case["label"]
-        t = case["anchor_s"]; sealed = 0
-        while sealed < 24:
-            cadence = profiles[0]["block_cadence_seconds"]
-            for p in profiles:
-                if p["from_s"] <= t:
-                    cadence = p["block_cadence_seconds"]
-            t += cadence - t % cadence
-            if t > case["pull_s"]:
-                sealed += 1
-        assert t == case["latest_seal_s"]
-        assert (t <= case["window_end_s"]) == case["actual_seal_inside_window"]
-    assert not v["cadence_transition_cases"][0]["transition_valid"]
-    assert all((p["confirm_window_hours"]//2)*3600 + p["record_seal_blocks"]*p["block_cadence_seconds"] <= p["confirm_window_hours"]*3600 for p in v["cadence_transition_cases"][0]["profiles"])
-check("vectors:wist4-cadence-transitions", _dc4_cadence_transitions)
-
-def _dc4_process_retention():
-    v = json.loads((ROOT / "vectors/wist4/parameter-combinations.json").read_text())
-    profiles = v["retention_profiles"]
-    def param(at_s, name):
-        eligible = [p for p in profiles if p["from_s"]<=at_s]
-        return eligible[-1][name]
-    for p in profiles:
-        assert p["mirror_retention_days"] >= p["appeal_window_days"]+p["appeal_seal_days"]+p["ruling_deadline_days"]
-    for case in v["retention_cases"]:
-        floor_end = case["evidence_first_served_s"] + param(case["evidence_first_served_s"], "mirror_retention_days") * 86400
-        for probe in case["probes"]:
-            n = probe["n_s"]; ends = []
-            for notice in case["notices"]:
-                opened = notice["sealed_at_s"]
-                if not notice["accepted"] or opened > n:
-                    continue
-                t = opened+(param(opened,"appeal_window_days")+param(opened,"appeal_seal_days"))*86400
-                a,r = notice["appeal_s"],notice["merits_ruling_s"]
-                ends.append(t)
-                if a is not None and opened <= a <= t and a <= n:
-                    deadline = a+param(a,"ruling_deadline_days")*86400
-                    ends[-1] = r if r is not None and a <= r <= deadline and r <= n else deadline
-            assert ends == probe["process_ends_s"]
-            assert (n < floor_end or any(e>=n for e in ends)) == probe["must_serve"], (case["label"],n)
-    mixed = v["retention_cases"][0]
-    late = next(p for p in mixed["probes"] if p["n_s"] == 119*86400)
-    assert late["must_serve"] and late["n_s"] > 77*86400
-    before_appeal = next(p for p in mixed["probes"] if p["n_s"] == 55*86400)
-    assert before_appeal["process_ends_s"] == [61*86400]
-check("vectors:wist4-process-retention", _dc4_process_retention)
-
-def _extension_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "extension.json").read_text())
-
-def _extension_order(case, reverse=False):
-    records = sorted(case["records"], key=lambda r: (r["block_height"], r["entry_index"]), reverse=reverse)
-    history = list(case["prior_triggers"])
-    seen, eligible, summons, peers = {}, [], [], []
-    for r in records:
-        prior = seen.get(r["delta"], [])
-        candidate = not any(0 <= r["sealed_at_s"] - e["sealed_at_s"] <= 72 * 3600 for e in prior)
-        used = sum(a == r["auditor"] and 0 <= r["sealed_at_s"] - t < 30 * 86400 for a, t in history)
-        fires = candidate and used < 3
-        eligible.append(candidate)
-        summons.append(fires)
-        peers.append([a for a in case["roster"] if fires
-                      and _roster_independent(a, case["publisher_domain"])
-                      and all(_roster_independent(a, e["auditor"]) for e in prior + [r])])
-        if fires:
-            history.append((r["auditor"], r["sealed_at_s"]))
-        seen.setdefault(r["delta"], []).append(r)
-    return eligible, summons, peers
-
-def _dc4_extension_order():
-    for case in _extension_vector()["order_cases"]:
-        assert _extension_order(case) == (case["eligible"], case["summons"], case["summoned_auditors"]), case["label"]
-check("vectors:wist4-extension-order", _dc4_extension_order)
-
-def _dc4_extension_order_twin():
-    cases = _extension_vector()["order_cases"]
-    first = cases[0]
-    reversed_result = _extension_order(first, reverse=True)
-    assert list(reversed(reversed_result[1])) != first["summons"]
-    peer = next(c for c in cases if c["label"] == "later peer does not cancel summons")
-    assert peer["records"][1]["auditor"] in peer["summoned_auditors"][0]
-    assert peer["eligible"] == [True, False]
-check("negative:wist4-extension-order", _dc4_extension_order_twin)
-
-def _contradiction_outcome(v, case, endpoint_inclusive=True):
-    """WIST-4 §4: a summoning Record is contradicted when its extension closes
-    — the first Block sealed more than confirm_window_hours after B₁ — with
-    no confirmation and an independent consistent pair sealed inside the
-    window, the endpoint included."""
-    window_s = v["confirm_window_hours"] * 3600
-    trigger = case["trigger"]
-    b1_s = trigger["sealed_at_s"]
-    def inside(t):
-        return b1_s <= t <= b1_s + window_s if endpoint_inclusive else b1_s <= t < b1_s + window_s
-    held = [r for r in case["records"] if inside(r["sealed_at_s"])]
-    confirmed = any(r["verdict"] == trigger["verdict"]
-                    and _roster_independent(r["auditor"], trigger["auditor"]) for r in held)
-    consistent = [r for r in held if r["verdict"] == "consistent"]
-    pair = any(_roster_independent(a["auditor"], b["auditor"])
-               for i, a in enumerate(consistent) for b in consistent[i + 1:])
-    closes = next((b["height"] for b in v["contradiction_blocks"]
-                   if b["sealed_at_s"] > b1_s + window_s), None)
-    contradicted = case["summoned"] and not confirmed and pair and closes is not None
-    return closes, confirmed, pair, contradicted
-
-def _dc4_contradiction():
-    """WIST-4 §4: the instant an extension closes, the contradiction it
-    settles, and the escalated sampling that follows for the domain."""
-    v = _extension_vector()
-    assert "contradictions_max" not in v, "the vector still carries the retired divergence threshold"
-    window_s = v["escalation_window_days"] * 86400
-    labels = set()
-    for case in v["contradiction_cases"]:
-        labels.add(case["label"])
-        got = _contradiction_outcome(v, case)
-        want = (case["closes_at_height"], case["confirmed"],
-                case["independent_consistent_pair"], case["contradicted"])
-        assert got == want, f"{case['label']}: recomputed {got}, vector says {want}"
-        establishing = case["establishing_height"]
-        assert establishing == (case["closes_at_height"] if case["contradicted"] else None), \
-            f"{case['label']}: a contradiction is dated where the extension closes"
-        est_s = None if establishing is None else next(
-            b["sealed_at_s"] for b in v["contradiction_blocks"] if b["height"] == establishing)
-        for probe in case["escalation_at"]:
-            expect = (establishing is not None and establishing <= probe["height"]
-                      and probe["sealed_at_s"] - est_s < window_s)
-            assert expect == probe["in_force"], \
-                f"{case['label']} at {probe['height']}: recomputed {expect}, vector says {probe['in_force']}"
-    for needed in ("two independent consistent inside the window", "confirmed inside the window",
-                   "consistent pair not independent", "second consistent after the window",
-                   "consistent exactly at the window end",
-                   "confirming record exactly at the window end",
-                   "confirming record one block past the window",
-                   "rationed out trigger cannot be contradicted", "consistent sealed in b1 counts"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    contradicted = [c for c in v["contradiction_cases"] if c["contradicted"]]
-    assert contradicted and any(p["in_force"] for c in contradicted for p in c["escalation_at"]) \
-        and any(not p["in_force"] for c in contradicted for p in c["escalation_at"]), \
-        "no case shows escalation both in force and aged out"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("The extension closes at the first Block whose `sealed_at` is more than "
-                   "its fixed window after *B₁*.",
-                   "`domain(d)` is under **escalated sampling**",
-                   "no mark on the filer"):
-        assert marker in prose, f"§4 does not state: {marker!r}"
-    assert "contradictions_max" not in prose, "§4 or §9 still names the retired divergence threshold"
-    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
-    assert "contradictions_max" not in json.dumps(schema), "the schema still lists contradictions_max"
-check("vectors:wist4-contradiction", _dc4_contradiction)
-
-def _dc4_contradiction_twin():
-    """The check above must notice a window read endpoint-exclusive, in both
-    directions: a consistent Record at the endpoint stops counting, and a
-    confirming Record at the endpoint stops confirming."""
-    v = _extension_vector()
-    at_end = next(c for c in v["contradiction_cases"]
-                  if c["label"] == "consistent exactly at the window end")
-    assert _contradiction_outcome(v, at_end, endpoint_inclusive=False)[3] is False \
-        and at_end["contradicted"] is True, "recomputation is blind to the window's endpoint"
-    confirming = next(c for c in v["contradiction_cases"]
-                      if c["label"] == "confirming record exactly at the window end")
-    assert _contradiction_outcome(v, confirming, endpoint_inclusive=False)[3] is True \
-        and confirming["contradicted"] is False, "recomputation is blind to a confirmation at the endpoint"
-    rationed = next(c for c in v["contradiction_cases"]
-                    if c["label"] == "rationed out trigger cannot be contradicted")
-    assert _contradiction_outcome(v, dict(rationed, summoned=True))[3] is True, \
-        "recomputation is blind to whether the trigger summoned"
-check("negative:wist4-contradiction", _dc4_contradiction_twin)
-
-def _audit_record_validators():
-    """WIST-4 §10.1: the structural (non-evidence) and complete schema
-    validators, with Log instants and hostname labels checked exactly."""
-    schema = json.loads((ROOT / 'schemas/audit-record.schema.json').read_text())
-    evidence = {'reference_delta', 'fetched_at', 'verdict', 'response_commitment',
-                'credit_commitment', 'ref_extract_commitment', 'evidence_commitment',
-                'similarity', 'link_agreement', 'robots_excluded', 'unmeasured'}
-    structural = copy.deepcopy(schema)
-    del structural['allOf']
-    record_fields = structural['properties']['record']
-    record_fields['required'] = [name for name in record_fields['required'] if name not in evidence]
-    for name in evidence:
-        record_fields['properties'][name] = {}
-    formats = FormatChecker(formats=[])
-
-    @formats.checks('date-time', raises=(TypeError, ValueError))
-    def instant(value):
-        if isinstance(value, str):
-            log_seconds(value)
-        return True
-
-    @formats.checks('hostname')
-    def hostname(value):
-        if not isinstance(value, str):
-            return True
-        return all(1 <= len(label) <= 63 for label in value.split('.'))
-
-    return [Draft202012Validator(s, format_checker=formats) for s in (structural, schema)]
-
-
-def _extension_scores_valid(verdict, similarity, link_agreement, th):
-    """WIST-4 §5's band table for a `new` audit; a Record outside its
-    verdict's band is §3's malformed-evidence rejection."""
-    if verdict == "consistent":
-        return similarity >= th["similarity_consistent"] and (
-            link_agreement is None or link_agreement >= th["link_agreement_consistent"])
-    if verdict == "inconsistent":
-        return similarity < th["similarity_variance_floor"]
-    if verdict == "dynamic_variance":
-        return th["similarity_variance_floor"] <= similarity < th["similarity_consistent"]
-    if verdict == "link_variance":
-        return similarity >= th["similarity_consistent"] and link_agreement is not None \
-            and th["link_variance_floor"] <= link_agreement < th["link_agreement_consistent"]
-    if verdict == "link_inconsistent":
-        return similarity >= th["similarity_consistent"] and link_agreement is not None \
-            and link_agreement < th["link_variance_floor"]
-    return similarity is None and link_agreement is None
-
-def _extension_evidence_rejection(v, record, validators):
-    """WIST-4 §3/§10.1 over the signed bytes and the supplied context: raw
-    JSON, structure, signature under the claimed Auditor's own key, version
-    support, evidence fields, §5 bands, standing, removal and coverage
-    failure. Empty means the Record is evidence."""
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise ValueError("duplicate decoded member")
-            result[key] = value
-        return result
-    try:
-        doc = json.loads(record["record_json"], object_pairs_hook=unique, parse_int=float, parse_float=float)
-        rfc8785.dumps(doc)
-    except (ValueError, rfc8785.CanonicalizationError):
-        return {"WIST1-E05"}
-    structural, complete = validators
-    if not structural.is_valid(doc):
-        return {"WIST4-E09"}
-    body, sig, context = doc["record"], doc["sig"], record["context"]
-    key = v["evidence_keys"].get(body["auditor_id"])
-    authentic = False
-    if key is not None and sig["key_id"] == key["key_id"]:
-        try:
-            Ed25519PublicKey.from_public_bytes(canonical_b64u_decode(key["public_key"])).verify(
-                canonical_b64u_decode(sig["value"]), rfc8785.dumps(body))
-            authentic = True
-        except (ValueError, InvalidSignature):
-            authentic = False
-    if not complete.is_valid(doc):
-        return {"WIST4-E02"}
-    codes = set()
-    if body["wist_version"].split(".")[0] != "1":
-        codes.add("WIST4-E10")
-    if not (authentic and context["standing"]) or context["removed"] or context["coverage_failure"]:
-        codes.add("WIST4-E01")
-    if not _extension_scores_valid(body["verdict"], body.get("similarity"), body.get("link_agreement"),
-                                   v["evidence_thresholds"]):
-        codes.add("WIST4-E02")
-    return codes
-
-def _extension_evidence_replay(v, case, evidence, count_rejected=False):
-    """WIST-4 §4 over Records in Log order: an eligible trigger has no earlier
-    such evidence Record for its Delta inside the window; it summons while
-    its Auditor's summoning triggers in the ration window are below the
-    ration; peers are independent of the Publisher and of every evidence
-    filer, the trigger included; the contradiction reads evidence only.
-    `count_rejected` is the reading the vector rules out."""
-    such = ("inconsistent", "link_inconsistent")
-    records = case["records"]
-    window_s = v["confirm_window_hours"] * 3600
-    counts = [count_rejected or ok for ok in evidence]
-    summoning, eligible, summons, peers, outcomes = [], [], [], [], []
-    for i, r in enumerate(records):
-        prior = [e for e, ok in zip(records[:i], counts) if ok and e["delta"] == r["delta"] and e["verdict"] in such]
-        candidate = counts[i] and r["verdict"] in such and not any(
-            0 <= r["sealed_at_s"] - e["sealed_at_s"] <= window_s for e in prior)
-        spent = sum(1 for a, t in summoning
-                    if a == r["auditor"] and 0 <= r["sealed_at_s"] - t < v["ration_window_days"] * 86400)
-        fires = candidate and spent < v["extension_triggers_max"]
-        filers = [e["auditor"] for e in prior] + [r["auditor"]]
-        peers.append([a for a in v["evidence_roster"] if fires
-                      and _roster_independent(a, v["evidence_publisher"])
-                      and all(_roster_independent(a, f) for f in filers)])
-        if fires:
-            summoning.append((r["auditor"], r["sealed_at_s"]))
-        eligible.append(candidate)
-        summons.append(fires)
-        if candidate:
-            later = [e for j, e in enumerate(records) if counts[j] and j != i
-                     and e["delta"] == r["delta"] and e["sealed_at_s"] >= r["sealed_at_s"]]
-            closes, confirmed, pair, contradicted = _contradiction_outcome(
-                v, {"trigger": r, "records": later, "summoned": fires})
-            outcomes.append((i, closes, confirmed, pair, contradicted))
-    return eligible, summons, peers, outcomes
-
-def _dc4_extension_evidence():
-    """WIST-4 §4, only evidence counts: a Record §3/§10.1 rejects neither
-    triggers, suppresses, spends ration, excludes a peer nor joins a quorum."""
-    v = _extension_vector()
-    validators = _audit_record_validators()
-    labels, codes_seen, mutations = set(), set(), set()
-    for case in v["evidence_cases"]:
-        label = case["label"]
-        assert label not in labels, label
-        labels.add(label)
-        evidence = []
-        for record in case["records"]:
-            codes = _extension_evidence_rejection(v, record, validators)
-            assert codes == set(record["rejected"]), (label, record["mutation"], codes, record["rejected"])
-            body = json.loads(record["record_json"])["record"]
-            assert (body["auditor_id"], body["verdict"], body["audited_delta"]) == \
-                (record["auditor"], record["verdict"], record["delta"]), label
-            evidence.append(not codes)
-            codes_seen |= codes
-            mutations.add(record["mutation"])
-        eligible, summons, peers, outcomes = _extension_evidence_replay(v, case, evidence)
-        want = ([r["eligible"] for r in case["records"]], [r["summons"] for r in case["records"]],
-                [r["summoned_auditors"] for r in case["records"]])
-        assert (eligible, summons, peers) == want, (label, (eligible, summons, peers), want)
-        assert outcomes == [(t["record_index"], t["closes_at_height"], t["confirmed"],
-                             t["independent_consistent_pair"], t["contradicted"]) for t in case["triggers"]], label
-    assert codes_seen == {"WIST4-E01", "WIST4-E02", "WIST4-E09", "WIST4-E10"}, codes_seen
-    assert mutations >= {"none", "mis-scored", "missing-evidence", "unsupported-major", "unknown-member",
-                         "forged", "wrong-signer", "no-standing", "removed", "coverage-failure"}, mutations
-    for needed in ("rejected filer excludes no peer", "rejected filing spends no ration",
-                   "rejected consistent joins no pair", "rejected confirmation confirms nothing",
-                   "coverage failure consistent joins no pair"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("**Only evidence counts.**",
-                   "spends none of its signer's ration, suppresses no later trigger for the same Delta "
-                   "and excludes no peer as a filer",
-                   "read at *B₁*, §9"):
-        assert marker in prose, f"§4 does not state: {marker!r}"
-check("vectors:wist4-extension-evidence", _dc4_extension_evidence)
-
-def _dc4_extension_evidence_twin():
-    """Every case flips under the reading that counts each sealed filing,
-    and the rejection derivation is not blind to the bytes it reads."""
-    v = _extension_vector()
-    validators = _audit_record_validators()
-    for case in v["evidence_cases"]:
-        evidence = [not _extension_evidence_rejection(v, r, validators) for r in case["records"]]
-        strict = _extension_evidence_replay(v, case, evidence)
-        loose = _extension_evidence_replay(v, case, evidence, count_rejected=True)
-        assert (strict[0], strict[1], strict[2], [o[4] for o in strict[3]]) != \
-            (loose[0], loose[1], loose[2], [o[4] for o in loose[3]]), case["label"]
-    by_label = {c["label"]: c for c in v["evidence_cases"]}
-    forged = by_label["forged filing then valid trigger"]["records"][0]
-    assert validators[1].is_valid(json.loads(forged["record_json"]))
-    honest = dict(forged, context=dict(forged["context"]), record_json=forged["record_json"])
-    assert _extension_evidence_rejection(v, honest, validators) == {"WIST4-E01"}
-    scored = by_label["mis scored filing then valid trigger"]["records"][0]
-    assert _extension_evidence_rejection(v, dict(scored, context=dict(scored["context"], standing=False)),
-                                         validators) == {"WIST4-E01", "WIST4-E02"}
-    valid = by_label["mis scored filing then valid trigger"]["records"][1]
-    for flag in ("removed", "coverage_failure"):
-        assert _extension_evidence_rejection(v, dict(valid, context=dict(valid["context"], **{flag: True})),
-                                             validators) == {"WIST4-E01"}, flag
-    wrong_key = dict(v, evidence_keys=dict(v["evidence_keys"],
-                                            **{valid["auditor"]: v["evidence_keys"][forged["auditor"]]}))
-    assert _extension_evidence_rejection(wrong_key, valid, validators) == {"WIST4-E01"}
-check("negative:wist4-extension-evidence", _dc4_extension_evidence_twin)
-
-def _extension_window_sum(case):
-    return ((case["confirm_window_hours"] // 2) * 3600
-            + case["record_seal_blocks"] * case["block_cadence_seconds"])
-
-def _latest_extension_seal(case):
-    """The fact the §9 sum stands for: on a fully sealed grid, the Record
-    published at the extension deadline seals at the record_seal_blocks-th
-    Block after the pull, the next Block being the first."""
-    cadence = case["block_cadence_seconds"]
-    deadline = (case["confirm_window_hours"] // 2) * 3600
-    return (deadline // cadence + 1) * cadence + (case["record_seal_blocks"] - 1) * cadence
-
-def _dc4_extension_window():
-    """WIST-4 §9: the sum that keeps an extension Record sealable inside the
-    confirmation window it serves."""
-    v = _countability_vector()
-    labels = set()
-    for case in v["extension_window_cases"]:
-        labels.add(case["label"])
-        total = _extension_window_sum(case)
-        assert total == case["sum_s"], f"{case['label']}: recomputed sum {total}"
-        assert case["window_s"] == case["confirm_window_hours"] * 3600
-        assert (total <= case["window_s"]) == case["rule_holds"], \
-            f"{case['label']}: the rule's verdict disagrees with the vector"
-        latest = _latest_extension_seal(case)
-        assert latest == case["latest_seal_s"], f"{case['label']}: recomputed latest seal {latest}"
-        assert (latest <= case["window_s"]) == case["seals_inside_window"]
-        if case["extension_deadline_s"] % case["block_cadence_seconds"] == 0:
-            assert case["rule_holds"] == case["seals_inside_window"], \
-                f"{case['label']}: the rule and the seal part on the grid"
-        else:
-            assert not case["rule_holds"] or case["seals_inside_window"], \
-                f"{case['label']}: the rule admits a Record that seals late"
-    for needed in ("registry defaults", "cadence at the tables maximum",
-                   "the last seal deadline the rule admits", "one block past it",
-                   "a deadline between two blocks"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    maxed = next(c for c in v["extension_window_cases"]
-                 if c["block_cadence_seconds"] == _cadence_upper_bound())
-    assert not maxed["rule_holds"] and not maxed["seals_inside_window"], \
-        "the vector no longer shows the cadence ceiling defeating the extension rule"
-    prose = re.sub(r"\s+", " ", _wist4_section9())
-    for marker in ("`confirm_window_hours / 2` × 3600 + `record_seal_blocks` × "
-                   "`block_cadence_seconds` MUST NOT exceed `confirm_window_hours` × 3600",):
-        assert marker in prose, f"§9 does not state: {marker!r}"
-    w4 = re.sub(r"\s+", " ",
-                (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "MUST also fetch that path once the extension deadline passes and before it seals its next Block" in w4, \
-        "§4 does not require the extension pull"
-check("vectors:wist4-extension-window", _dc4_extension_window)
-
-def _dc4_extension_window_twin():
-    """The check above must notice a bound written strictly instead of at
-    the endpoint, and one that leaves record_seal_blocks out."""
-    v = _countability_vector()
-    boundary = next(c for c in v["extension_window_cases"] if c["sum_s"] == c["window_s"])
-    assert boundary["rule_holds"] and boundary["seals_inside_window"], \
-        "the boundary case no longer sits where the two readings part"
-    assert (boundary["sum_s"] < boundary["window_s"]) != boundary["rule_holds"], \
-        "a strict bound rejects a parameter set under which the Record seals in time"
-    late = next(c for c in v["extension_window_cases"] if c["label"] == "one block past it")
-    assert (late["confirm_window_hours"] // 2) * 3600 <= late["window_s"] and not late["rule_holds"], \
-        "the twin's missing term no longer changes the verdict"
-check("negative:wist4-extension-window", _dc4_extension_window_twin)
-
-def _sanctions_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "sanctions.json").read_text())
-
-def _sanction_void_at(v, case, service_inside_window=None):
-    """WIST-4 §7: when a level-3/4 state voids on recomputation — nothing by
-    T, a ruling deadline lapsing, an overturned ruling — read from Block
-    sealed_at values alone. `service_inside_window` is the ruled-out
-    reading under which an appeal sealed by T discharges it only if the
-    file was served inside the window, an instant no Log carries."""
-    day = 86400
-    notice = case["notice_sealed_at_s"]
-    if notice is None:
-        return None
-    window_close = notice + v["appeal_window_days"] * day
-    t = window_close + v["appeal_seal_days"] * day
-    appeal = case["appeal_sealed_at_s"]
-    appeal_by_t = appeal if appeal is not None and appeal <= t else None
-    if service_inside_window is not None and appeal_by_t is not None and not service_inside_window:
-        appeal_by_t = None
-    ruling = case["ruling"]
-    valid_unappealed = ruling is not None and ruling[0] == "unappealed" and window_close <= ruling[1] <= t
-    if appeal_by_t is None and not valid_unappealed:
-        return t
-    if appeal_by_t is None:
-        return None
-    due = appeal_by_t + v["ruling_deadline_days"] * day
-    if ruling is not None and ruling[1] <= due:
-        if ruling[0] == "overturned":
-            return ruling[1]
-        if ruling[0] == "upheld":
-            return None
-    return due
-
-def _process_prefix(process, case, n_s, reverse=False):
-    notice = case.get("notice", process["notice"])["update"]
-    if notice["details"]["kind"] != "sanction":
-        return {"appeal_index": None, "merits_index": None, "unappealed_index": None, "void_at_s": None}
-    notice_id = "sha256:" + hashlib.sha256(rfc8785.dumps(notice)).hexdigest()
-    start = process["notice_sealed_at_s"]
-    t = start + 21 * 86400
-    slots, seen = {}, set()
-    groups = collections.defaultdict(list)
-    for i, act in enumerate(case["acts"]):
-        if start <= act["sealed_at_s"] <= n_s:
-            groups[act["sealed_at_s"]].append((i, act["envelope"]["update"]))
-    for instant in sorted(groups):
-        unseen = []
-        for i, inner in sorted(groups[instant], reverse=reverse):
-            rid = hashlib.sha256(rfc8785.dumps(inner)).digest()
-            if rid in seen:
-                continue
-            seen.add(rid)
-            if (notice["details"]["kind"] == "sanction" and inner["subject"] == notice["subject"]
-                    and inner["details"]["notice"] == notice_id):
-                unseen.append((i, inner))
-        proposals = [e for e in unseen if e[1]["action"] == "appeal"]
-        if "appeal" not in slots and len(proposals) == 1:
-            slots["appeal"] = (proposals[0][0], instant, proposals[0][1])
-        appeal = slots.get("appeal")
-        timely = appeal is not None and appeal[1] <= t
-        for slot in ("merits", "unappealed"):
-            if slot in slots:
-                continue
-            candidates = []
-            for i, inner in unseen:
-                if inner["action"] != "appeal_ruling":
-                    continue
-                outcome = inner["details"]["outcome"]
-                eligible = (outcome in ("upheld", "overturned") and timely
-                            and instant > case.get("activation_sealed_at_s", -1)
-                            and instant <= appeal[1] + 30 * 86400) if slot == "merits" else (
-                            outcome == "unappealed" and start + 14 * 86400 <= instant <= t and not timely)
-                if eligible:
-                    candidates.append((i, instant, inner))
-            if len(candidates) == 1:
-                slots[slot] = candidates[0]
-    appeal = slots.get("appeal")
-    merits = slots.get("merits")
-    void = None
-    if appeal is None or appeal[1] > t:
-        if "unappealed" not in slots and n_s >= t:
-            void = t
-    elif merits is not None:
-        if merits[2]["details"]["outcome"] == "overturned":
-            void = merits[1]
-    elif n_s >= appeal[1] + 30 * 86400:
-        void = appeal[1] + 30 * 86400
-    return {name + "_index": slots[name][0] if name in slots else None
-            for name in ("appeal", "merits", "unappealed")} | {"void_at_s": void}
-
-def _dc4_appeal_process():
-    process = _sanctions_vector()["process"]
-    pub = Ed25519PublicKey.from_public_bytes(b64u_decode(process["public_key"]))
-    validator = Draft202012Validator(json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text()))
-    for envelope in [process["notice"]] + [c["notice"] for c in process["cases"] if "notice" in c] + [a["envelope"] for c in process["cases"] for a in c["acts"]]:
-        validator.validate(envelope)
-        pub.verify(b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(envelope["update"]))
-    for case in process["cases"]:
-        for probe in case["probes"]:
-            assert _process_prefix(process, case, probe["n_s"]) == probe["expected"], case["label"]
-check("vectors:wist4-appeal-process", _dc4_appeal_process)
-
-def _dc4_appeal_process_twin():
-    process = _sanctions_vector()["process"]
-    for case in process["cases"]:
-        for probe in case["probes"]:
-            reversed_result = _process_prefix(process, case, probe["n_s"], reverse=True)
-            for slot in ("appeal", "merits", "unappealed"):
-                key = slot + "_index"
-                actual, expected = reversed_result[key], probe["expected"][key]
-                if actual != expected:
-                    assert actual is not None and expected is not None
-                    assert case["acts"][actual]["envelope"]["update"] == case["acts"][expected]["envelope"]["update"]
-            assert reversed_result["void_at_s"] == probe["expected"]["void_at_s"]
-    conflict = next(c for c in process["cases"] if c["label"] == "same Block conflicting rulings both rejected")
-    assert conflict["probes"][-1]["expected"]["merits_index"] is None
-    assert conflict["probes"][-1]["expected"]["void_at_s"] == 31 * 86400
-check("negative:wist4-appeal-process", _dc4_appeal_process_twin)
-
-def _dc4_sanction_voids():
-    """WIST-4 §7: the void instants of a level-3/4 state, recomputed from the
-    notice, the appeal's Block and the ruling."""
-    v = _sanctions_vector()
-    labels = set()
-    for case in v["void_cases"]:
-        labels.add(case["label"])
-        assert _sanction_void_at(v, case) == case["void_at_s"], f"{case['label']}: void instant"
-    for needed in ("appeal sealed at t discharges", "appeal sealed after the window by t discharges",
-                   "appeal after t does not discharge", "early unappealed is absent"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("**Recomputation reads the Block, never the service.**",
-                   "An `appeal` sealed in a Block whose `sealed_at` is at or before T discharges T"):
-        assert marker in prose, f"§7 does not state: {marker!r}"
-check("vectors:wist4-sanction-voids", _dc4_sanction_voids)
-
-def _dc4_sanction_voids_twin():
-    """The check above must notice a discharge conditioned on the service
-    instant, which the Log does not carry."""
-    v = _sanctions_vector()
-    late = next(c for c in v["void_cases"] if c["label"] == "appeal sealed after the window by t discharges")
-    day = 86400
-    t = late["notice_sealed_at_s"] + (v["appeal_window_days"] + v["appeal_seal_days"]) * day
-    assert _sanction_void_at(v, late, service_inside_window=False) == t != late["void_at_s"], \
-        "recomputation is blind to a service-time condition"
-check("negative:wist4-sanction-voids", _dc4_sanction_voids_twin)
-
-def _ladder_levels_from_findings(v, findings, lifts, lift_erases_findings=False):
-    """WIST-4 §7 rung derivation from findings and lifts, recomputed
-    independently of the generator: count criteria over whole-day windows
-    ending at each finding, level 3 on any severity 3, level 4 by the
-    three-severity-3 count or by accrual on a level-3 domain, and a lift
-    clearing every rung at its instant while leaving every finding counted."""
-    esc = v["escalation"]
-    def met(count, span_days, min_sev):
-        out = []
-        for k, f in enumerate(findings):
-            if f["severity"] < min_sev:
-                continue
-            earlier = [g for g in findings[:k + 1] if g["severity"] >= min_sev
-                       and (span_days is None
-                            or (f["sealed_at_s"] - g["sealed_at_s"]) // 86400 < span_days)]
-            if lift_erases_findings:
-                last_lift = max((l for l in lifts if l <= f["sealed_at_s"]), default=None)
-                if last_lift is not None:
-                    earlier = [g for g in earlier if g["sealed_at_s"] > last_lift]
-            if len(earlier) >= count:
-                out.append(f["sealed_at_s"])
-        return out
-    def in_force_before(times, t):
-        last_met = max((m for m in times if m < t), default=None)
-        last_clear = max((c for c in lifts if c < t), default=None)
-        return last_met is not None and (last_clear is None or last_clear < last_met)
-    l1 = met(1, None, 0)
-    l2 = met(esc["l2"]["count"], esc["l2"]["days"], 0)
-    l3 = sorted(set(met(esc["l3_count"]["count"], esc["l3_count"]["days"], 0)
-                    + met(1, None, esc["l3_severity"])))
-    l4_count = met(esc["l4_sev3"]["count"], esc["l4_sev3"]["days"], esc["l3_severity"])
-    l4_accrual = [f["sealed_at_s"] for f in findings if in_force_before(l3, f["sealed_at_s"])]
-    levels = [l1, l2, l3, sorted(set(l4_count + l4_accrual))]
-    def level_at(n_s):
-        for i in range(3, -1, -1):
-            last_met = max((m for m in levels[i] if m <= n_s), default=None)
-            last_clear = max((c for c in lifts if c <= n_s), default=None)
-            if last_met is not None and (last_clear is None or last_clear < last_met):
-                return i + 1
-        return 0
-    return levels, l4_count, l4_accrual, level_at
-
-def _transition_rungs(case, expiry=False, lift_after=False):
-    raised, cleared, findings, outputs = {}, {}, [], []
-    for block in case["blocks"]:
-        clear = (block["height"], -1)
-        for level in range(1, 5):
-            if block["lift"] and not lift_after or level in block["void_levels"]:
-                cleared[level] = clear
-        for f in sorted(block["findings"], key=lambda f: f["entry_index"]):
-            pos = (block["height"], f["entry_index"])
-            had_three = raised.get(3, (-1, -1)) > cleared.get(3, (-1, -1))
-            findings.append((block["sealed_at_s"], f["severity"]))
-            total = sum(0 <= block["sealed_at_s"] - t < 90 * 86400 for t, severity in findings)
-            severe = sum(severity == 3 and 0 <= block["sealed_at_s"] - t < 180 * 86400 for t, severity in findings)
-            predicates = (True, total >= 3, total >= 10 or f["severity"] == 3,
-                          had_three or f["severity"] == 3 and severe >= 3)
-            for level, met in enumerate(predicates, 1):
-                if met:
-                    raised[level] = pos
-        if block["lift"] and lift_after:
-            for level in range(1, 5):
-                cleared[level] = (block["height"], 10**9)
-        active = [level for level in range(1, 5)
-                  if raised.get(level, (-1, -1)) > cleared.get(level, (-1, -1))]
-        if expiry and sum(0 <= block["sealed_at_s"] - t < 90 * 86400 for t, severity in findings) < 3:
-            active = [level for level in active if level != 2]
-        outputs.append(active)
-    return outputs
-
-def _dc4_sanction_transitions():
-    for case in _sanctions_vector()["transition_cases"]:
-        active = _transition_rungs(case)
-        assert active == case["active_rungs"], case["label"]
-        assert [max(a, default=0) for a in active] == case["levels"], case["label"]
-check("vectors:wist4-sanction-transitions", _dc4_sanction_transitions)
-
-def _dc4_activation_block_rulings():
-    process = _sanctions_vector()["process"]
-    for case in process["cases"]:
-        if "activation_sealed_at_s" not in case:
-            continue
-        blocks = []
-        for height, probe in enumerate(case["probes"]):
-            state = _process_prefix(process, case, probe["n_s"])
-            assert _process_prefix(process, case, probe["n_s"], reverse=True) == state
-            blocks.append({"height": height, "sealed_at_s": probe["n_s"], "lift": False,
-                "void_levels": [3] if state["void_at_s"] == probe["n_s"] else [],
-                "findings": [{"entry_index": 0, "severity": case["activation_severity"]}] if height == 0 else []})
-        levels = [max(a, default=0) for a in _transition_rungs({"blocks": blocks})]
-        assert levels == case["levels"], case["label"]
-        assert case["same_block_ruling_error"] == "WIST4-E05"
-        assert _process_prefix(process, case, 0)["merits_index"] is None
-        older = case | {"activation_sealed_at_s": -3600}
-        assert _process_prefix(process, older, 0)["merits_index"] == 1
-check("vectors:wist4-activation-block-rulings", _dc4_activation_block_rulings)
-
-def _dc4_retired_escalations():
-    v = _sanctions_vector()
-    schema = json.loads((ROOT / "schemas/registry-update.schema.json").read_text())
-    validator = Draft202012Validator(schema)
-    key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["process"]["public_key"]))
-    for case in v["retired_escalation_cases"]:
-        doc = case["envelope"]
-        key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
-        assert list(validator.iter_errors(doc)) and case["error"] == "WIST4-E03"
-        assert _transition_rungs(case) == case["active_rungs"], case["label"]
-        valid = copy.deepcopy(doc)
-        valid["update"]["details"] = {"parameter": "confirm_auditors", "value": 2}
-        validator.validate(valid)
-    assert v["retired_escalation_cases"][0]["levels"] == [1, 1, 2]
-check("vectors:wist4-retired-escalations", _dc4_retired_escalations)
-
-def _dc4_sanction_primary():
-    v = _sanctions_vector()
-    schema = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
-    key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["process"]["public_key"]))
-    findings = {f["confirming_record"]: f for f in v["primary"]["findings"]}
-    all_ids = {r["id"] for f in findings.values() for r in f["records"]} | set(v["primary"]["rejected_available_ids"])
-    assert any(not c["noticed"] and c["error"] is None for c in v["primary"]["cases"]), \
-        "an unnoticed sanction must be recorded, not rejected"
-    assert any(set(c["envelope"]["update"]["evidence"]) & set(v["primary"]["rejected_available_ids"]) and c["error"] is None
-               for c in v["primary"]["cases"]), "a rejected Record must be available to cite"
-    for case in v["primary"]["cases"]:
-        doc = case["envelope"]
-        key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
-        error = None
-        if not schema.is_valid(doc):
-            error = "WIST4-E04"
-        else:
-            u = doc["update"]; f = findings.get(u["details"]["finding"])
-            evidence = set(u["evidence"])
-            if (f is None or f["subject"] != u["subject"] or not evidence <= all_ids
-                    or not {r["id"] for r in f["records"]} <= evidence):
-                error = "WIST4-E05"
-            else:
-                levels = [1 if r["effective_similarity"] >= 150000 else 2 if r["effective_similarity"] >= 50000 else 3 for r in f["records"]]
-                if u["details"]["severity"] != min(levels):
-                    error = "WIST4-E05"
-        assert error == case["error"], case["label"]
-    assert v["primary"]["cases"][0]["error"] is None
-    assert len({min(1 if r["effective_similarity"] >= 150000 else 2 if r["effective_similarity"] >= 50000 else 3 for r in f["records"]) for f in findings.values()}) == 2
-check("vectors:wist4-sanction-primary", _dc4_sanction_primary)
-
-def _dc4_notice_targets():
-    v = _sanctions_vector()
-    schema = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
-    key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["process"]["public_key"]))
-    for case in v["notice_target_cases"]:
-        target = case["activation"]
-        seen, candidates = set(), collections.defaultdict(list)
-        for i,n in sorted(enumerate(case["notices"]), key=lambda p:p[1]["height"]):
-            doc = n["envelope"]; u = doc["update"]; encoded = rfc8785.dumps(u)
-            key.verify(b64u_decode(doc["sig"]["value"]), encoded)
-            if encoded in seen:
-                continue
-            seen.add(encoded)
-            d = u["details"]
-            if (schema.is_valid(doc) and u["subject"] == target["subject"] and d["level"] == target["level"]
-                    and d["activation"] == target["record_id"] and target["height"] <= n["height"]
-                    and (target["cleared_height"] is None or n["height"] < target["cleared_height"])):
-                candidates[n["height"]].append(i)
-        chosen = next((ids for h,ids in sorted(candidates.items()) if len(ids) == 1), [])
-        assert chosen == case["accepted_indices"], case["label"]
-        current = case["current_activation_at_reversal"]
-        after = None if chosen and current == target["record_id"] else current
-        assert after == case["activation_after_reversal"], case["label"]
-    stale = next(c for c in v["notice_target_cases"] if c["label"] == "old reversal leaves rearmed rung")
-    assert stale["accepted_indices"] and stale["activation_after_reversal"] is not None
-check("vectors:wist4-notice-targets", _dc4_notice_targets)
-
-def _dc4_notice_evidence():
-    from notice_evidence import evaluate
-    for case in _sanctions_vector()["notice_evidence_cases"]:
-        assert evaluate(case) == case["error"], case["label"]
-check("vectors:wist4-notice-evidence", _dc4_notice_evidence)
-
-
-def _dc4_sanction_transitions_twin():
-    cases = _sanctions_vector()["transition_cases"]
-    aging = next(c for c in cases if c["label"] == "level two survives evidence aging")
-    same = next(c for c in cases if c["label"] == "lift precedes same Block finding")
-    assert _transition_rungs(aging, expiry=True) != aging["active_rungs"]
-    assert _transition_rungs(same, lift_after=True) != same["active_rungs"]
-check("negative:wist4-sanction-transitions", _dc4_sanction_transitions_twin)
-
-def _dc4_ladder_reversals():
-    """WIST-4 §7: a lift clears rungs and never findings, and level 4's
-    three-severity-3 branch is first to fire only across reversals."""
-    v = _sanctions_vector()
-    labels = set()
-    for case in v["reversal_cases"]:
-        labels.add(case["label"])
-        levels, l4_count, l4_accrual, level_at = _ladder_levels_from_findings(
-            v, case["findings"], case["lift_times_s"])
-        assert levels == case["met_times_s"], f"{case['label']}: recomputed met times {levels}"
-        assert l4_count == case["l4_count_branch_times_s"]
-        assert l4_accrual == case["l4_accrual_branch_times_s"]
-        for probe in case["probes"]:
-            got = level_at(probe["n_s"])
-            assert got == probe["level"], \
-                f"{case['label']} at {probe['n_s']}: recomputed level {got}, vector says {probe['level']}"
-    for needed in ("three severity 3 across two lifts reach level 4 by the count branch",
-                   "without the lifts the second finding reaches level 4 by accrual",
-                   "a lift clears rungs not findings"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    across = next(c for c in v["reversal_cases"] if "across two lifts" in c["label"])
-    assert across["l4_accrual_branch_times_s"] == [] and across["l4_count_branch_times_s"], \
-        "the count branch is no longer the only path to level 4 in the reversal case"
-    assert any(p["level"] == 4 for p in across["probes"])
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "A lift clears rungs, never findings" in prose, \
-        "§7 no longer preserves pre-lift findings"
-    rationale = re.sub(r"\s+", " ",
-                       (ROOT / "decisions" / "0018-confirmation-and-sanctions.md").read_text())
-    assert ("a third severity-3 finding is the first to meet that branch only where "
-            "the level-3 state was cleared in between") in rationale, \
-        "ADR-0018 no longer explains the count branch across reversals"
-check("vectors:wist4-ladder-reversals", _dc4_ladder_reversals)
-
-def _dc4_ladder_reversals_twin():
-    """The check above must notice a lift read as erasing the findings
-    before it, and a ladder without the count branch."""
-    v = _sanctions_vector()
-    case = next(c for c in v["reversal_cases"] if c["label"] == "a lift clears rungs not findings")
-    _, _, _, level_at = _ladder_levels_from_findings(
-        v, case["findings"], case["lift_times_s"], lift_erases_findings=True)
-    last = case["probes"][-1]
-    assert level_at(last["n_s"]) != last["level"], \
-        "recomputation is blind to whether a lift erases findings"
-    across = next(c for c in v["reversal_cases"] if "across two lifts" in c["label"])
-    levels, _, l4_accrual, _ = _ladder_levels_from_findings(
-        v, across["findings"], across["lift_times_s"])
-    without_count = [levels[0], levels[1], levels[2], sorted(l4_accrual)]
-    def level_without_count(n_s):
-        for i in range(3, -1, -1):
-            last_met = max((m for m in without_count[i] if m <= n_s), default=None)
-            last_clear = max((c for c in across["lift_times_s"] if c <= n_s), default=None)
-            if last_met is not None and (last_clear is None or last_clear < last_met):
-                return i + 1
-        return 0
-    final = across["probes"][-1]
-    assert level_without_count(final["n_s"]) != final["level"], \
-        "recomputation is blind to the three-severity-3 branch"
-check("negative:wist4-ladder-reversals", _dc4_ladder_reversals_twin)
-
-def _canary_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "canary.json").read_text())
-
-def _canary_credit(key, body, auditor_id, append_signer=True):
-    msg = body + (auditor_id.encode() if append_signer else b"")
-    return "hmac-sha256:" + hmac.new(key, msg, hashlib.sha256).hexdigest()
-
-def _canary_root_from_path(leaf, index, size, path):
-    """WIST-3 §4's fn/sn walk over a canary leaf's Inclusion Proof — the
-    verifier's algorithm, not the generator's PATH construction."""
-    h = leaf
-    fn, sn, k = index, size - 1, 0
-    while sn > 0:
-        if fn % 2 == 1:
-            h = hashlib.sha256(b"\x01" + path[k] + h).digest(); k += 1
-        elif fn < sn:
-            h = hashlib.sha256(b"\x01" + h + path[k]).digest(); k += 1
-        fn //= 2; sn //= 2
-    assert k == len(path), "path elements left unconsumed"
-    return h
-
-def _canary_membership(commitment, envelope):
-    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
-    if list(Draft202012Validator(schema).iter_errors(envelope)):
-        return False
-    details = envelope["update"]["details"]
-    expected_id = "sha256:" + hashlib.sha256(rfc8785.dumps(commitment["update"])).hexdigest()
-    if details["commitment"] != expected_id:
-        return False
-    tree = commitment["update"]["details"]
-    seen = set()
-    for leaf in details["leaves"]:
-        index = leaf["index"]
-        if not 0 <= index < tree["leaves"] or index in seen:
-            return False
-        seen.add(index)
-        try:
-            root = _canary_root_from_path(bytes.fromhex(leaf["leaf_hash"][7:]),
-                                         index, tree["leaves"],
-                                         [bytes.fromhex(h[7:]) for h in leaf["path"]])
-        except (AssertionError, IndexError):
-            return False
-        if "sha256:" + root.hex() != tree["root"]:
-            return False
-    return True
-
-def _dc4_canary_membership():
-    v = _canary_vector()["membership"]
-    pub = Ed25519PublicKey.from_public_bytes(b64u_decode(v["public_key"]))
-    commitment = v["commitment_envelope"]
-    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
-    Draft202012Validator(schema).validate(commitment)
-    for envelope in [commitment] + [c["envelope"] for c in v["cases"]]:
-        pub.verify(b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(envelope["update"]))
-    for case in v["cases"]:
-        valid = _canary_membership(commitment, case["envelope"])
-        assert valid == case["membership_valid"], case["label"]
-        assert case["error"] == (None if valid else "WIST4-E08"), case["label"]
-check("vectors:wist4-canary-membership", _dc4_canary_membership)
-
-
-def _dc4_canary_membership_twin():
-    v = _canary_vector()["membership"]
-    good = next(c["envelope"] for c in v["cases"] if c["membership_valid"])
-    bad = copy.deepcopy(good)
-    for leaf in bad["update"]["details"]["leaves"]:
-        leaf["leaf_hash"] = v["commitment_envelope"]["update"]["details"]["root"]
-    assert not _canary_membership(v["commitment_envelope"], bad)
-    assert any(not c["membership_valid"] and
-               not list(Draft202012Validator(json.loads((ROOT / "schemas" /
-                   "registry-update.schema.json").read_text())).iter_errors(c["envelope"]))
-               for c in v["cases"])
-check("negative:wist4-canary-membership", _dc4_canary_membership_twin)
-
-def _dc4_canary_bindings():
-    v = _canary_vector()
-    public = Ed25519PublicKey.from_public_bytes(b64u_decode(v["membership"]["public_key"]))
-    commitments = {"sha256:" + hashlib.sha256(rfc8785.dumps(e["update"])).hexdigest(): e
-        for e in v["binding"]["commitment_envelopes"]}
-    for e in commitments.values():
-        public.verify(b64u_decode(e["sig"]["value"]), rfc8785.dumps(e["update"]))
-    for case in v["binding"]["cases"]:
-        seen, reservations, revealed, accepted = set(), {}, set(), []
-        batches = collections.defaultdict(list)
-        for i,e in enumerate(case["events"]):
-            doc = e["envelope"]
-            public.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
-            batches[e["height"]].append((i,doc))
-        for height, batch in sorted(batches.items()):
-            pending, owners = {}, collections.defaultdict(set)
-            for i,doc in batch:
-                ident = hashlib.sha256(rfc8785.dumps(doc["update"])).digest()
-                if ident in seen:
-                    continue
-                seen.add(ident)
-                d = doc["update"]["details"]
-                deltas = {l["delta_id"] for l in d["leaves"]}
-                if d["commitment"] in revealed or any(x in reservations for x in deltas):
-                    continue
-                if not _canary_membership(commitments[d["commitment"]], doc):
-                    continue
-                pending[i] = d
-                for token in [d["commitment"]] + list(deltas):
-                    owners[token].add(i)
-            rejected = set().union(*(ids for ids in owners.values() if len(ids) > 1)) if owners else set()
-            for i,d in pending.items():
-                if i in rejected:
-                    continue
-                accepted.append(i)
-                revealed.add(d["commitment"])
-                reservations.update({l["delta_id"]: height for l in d["leaves"]})
-        assert accepted == case["accepted_indices"], case["label"]
-    assert len(v["binding"]["record_occurrences"]) > len(set(v["binding"]["record_occurrences"]))
-check("vectors:wist4-canary-bindings", _dc4_canary_bindings)
-
-def _scoring_profile_result(v, case, anchor):
-    import link_extraction
-    profile = dict(v["defaults"])
-    change = case["change"]
-    if change["effective_at_s"] <= anchor:
-        profile[change["parameter"]] = change["value"]
-    observed = link_extraction.extract_text(bytes.fromhex(case["served_bytes_hex"]))
-    sim = link_extraction.similarity(case["reference_extract"], observed,
-        min_observed_words=profile["min_observed_words"], shingle_size=profile["shingle_size"])
-    hit = sim is not None and case["credit_reproduces"] and (
-        case["verdict"] == "consistent" and sim < profile["similarity_variance_floor"]
-        or case["verdict"] == "inconsistent" and sim >= profile["similarity_consistent"])
-    return {"profile": profile, "derived_similarity": sim, "hard_hit": hit}
-
-def _dc4_scoring_profile():
-    v = _canary_vector()["scoring_profile"]
-    for case in v["cases"]:
-        for query in case["queries_s"]:
-            assert case["record_fixed_at_s"] < case["reveal_sealed_at_s"] <= query
-            got = _scoring_profile_result(v, case, case["audited_delta_sealed_at_s"])
-            assert got == case["expected"], case["label"]
-            if case["audited_delta_sealed_at_s"] < case["change"]["effective_at_s"]:
-                assert _scoring_profile_result(v, case, query)["hard_hit"] != got["hard_hit"]
-check("vectors:wist4-scoring-profile", _dc4_scoring_profile)
-
-def _canary_band(v, similarity):
-    p = v["parameters"]
-    if similarity >= p["similarity_consistent"]:
-        return "consistent"
-    if similarity >= p["similarity_variance_floor"]:
-        return "dynamic_variance"
-    return "inconsistent"
-
-def _canary_hard_hit(v, reproduces, verdict, derived, bands_apart=2):
-    p = v["parameters"]
-    if not reproduces or derived is None:
-        return False
-    if bands_apart == 2:
-        return ((verdict == "consistent" and derived < p["similarity_variance_floor"])
-                or (verdict == "inconsistent" and derived >= p["similarity_consistent"]))
-    return verdict != _canary_band(v, derived) and verdict in ("consistent", "inconsistent")
-
-def _canary_timing(v, case, literal_rotation=False):
-    p = v["parameters"]
-    turns = -(-case["suffixes_registered"] // p["observer_checkpoint_budget"])
-    rotation = ((turns if literal_rotation else max(turns, 1)) - 1) * p["epoch_blocks"]
-    earliest = max(case["delta_heights"]) + p["canary_reveal_min_blocks"] + rotation
-    latest = case["commitment_height"] + p["canary_lifetime_blocks"]
-    lead_ok = all(h >= case["commitment_height"] + p["canary_lead_blocks"] for h in case["delta_heights"])
-    return earliest, latest, lead_ok, lead_ok and earliest <= case["reveal_height"] <= latest
-
-def _canary_window_open(case, end_inclusive_start_exclusive=True):
-    """WIST-4 §5.1: the scoring window is open at N while the whole days from
-    the reveal's Block to N are fewer than payload_window_days."""
-    span = case["n_sealed_at_s"] - case["reveal_sealed_at_s"]
-    if span < 0:
-        return False
-    whole = span // 86400
-    return whole < case["payload_window_days"] if end_inclusive_start_exclusive \
-        else whole <= case["payload_window_days"]
-
-def _dc4_canary():
-    import link_extraction
-    """WIST-4 §5.1, §5.2: leaves hash to the committed root under their
-    nonces, credit is byte possession bound to the signer, the hard hit is a
-    verdict two bands from the bytes, the reveal timing composes with the
-    checkpoint budget, and the scoreboard counts per tier."""
-    v = _canary_vector()
-    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    salt = b64u_decode(payload["salt"])
-    assert v["reference_extract"] == payload["content"]["extract"], "the leaves are not measured against the example Payload"
-    size = v["commitment"]["leaves"]
-    root = bytes.fromhex(v["commitment"]["root"].split(":")[1])
-    bodies, nonces = {}, set()
-    for leaf in v["leaves"]:
-        body = bytes.fromhex(leaf["served_bytes_hex"])
-        bodies[leaf["index"]] = body
-        nonce = bytes.fromhex(leaf["nonce_hex"])
-        assert len(nonce) >= 16 and nonce not in nonces and nonce.hex().encode() in body, \
-            f"leaf {leaf['index']}: nonce absent, short or reused"
-        nonces.add(nonce)
-        lh = hashlib.sha256(b"\x00" + body).digest()
-        assert "sha256:" + lh.hex() == leaf["leaf_hash"], f"leaf {leaf['index']}: leaf hash"
-        if not leaf["revealed"]:
-            assert "path" not in leaf and "delta_id" not in leaf
-            continue
-        path = [bytes.fromhex(p.split(":")[1]) for p in leaf["path"]]
-        assert _canary_root_from_path(lh, leaf["index"], size, path) == root, \
-            f"leaf {leaf['index']}: inclusion proof does not reach the root"
-        observed = link_extraction.extract_text(body)
-        sim = link_extraction.similarity(v["reference_extract"], observed,
-                                         v["parameters"]["min_observed_words"])
-        assert sim == leaf["derived_similarity"], f"leaf {leaf['index']}: recomputed similarity {sim}"
-        if sim is None:
-            assert leaf["derived_verdict"] == "not_auditable", f"leaf {leaf['index']}: no band, no verdict but not_auditable"
-        else:
-            assert _canary_band(v, sim) == leaf["derived_verdict"]
-        if leaf["class"] == "watermark":
-            assert sim == 1_000_000 and link_extraction.extract_text(body) == \
-                link_extraction.extract_text(bytes.fromhex(v["payload_page_hex"])), \
-                "a watermark must leave the extracted text untouched"
-        tier = ("provisional" if leaf["domain_provisional"] else
-                "mature" if leaf["domain_reputation_u"] >= v["parameters"]["latency_threshold_u"]
-                else "standing")
-        assert tier == leaf["tier"], f"leaf {leaf['index']}: tier"
-    assert {l["class"] for l in v["leaves"]} == {"watermark", "fraud", "dynamic", "unrevealed", "thin"}
-    bound = [l["delta_id"] for l in v["leaves"] if l["revealed"]]
-    assert len(bound) == len(set(bound)), "a Delta is bound to two leaves"
-    recomputed, labels = set(), set()
-    other_salt = bytes.fromhex(v["alternate_inputs"]["other_salt_hex"])
-    assert other_salt != salt
-    for case in v["credit_cases"]:
-        labels.add(case["label"])
-        leaf = next(l for l in v["leaves"] if l["index"] == case["leaf_index"])
-        held = {"leaf": bodies[case["leaf_index"]],
-                "payload_page": bytes.fromhex(v["payload_page_hex"]),
-                "other_nonce": bytes.fromhex(v["alternate_inputs"]["other_nonce_body_hex"])}.get(case["held"])
-        key = salt if case["salt"] == "reference" else other_salt
-        if case["held"] is None:
-            # §5: a not_auditable Record carries no commitment — an encounter
-            # without credit, and nothing for a hit to read.
-            assert case["verdict"] == "not_auditable" and case["credit_commitment"] is None \
-                and case["response_commitment"] is None, f"{case['label']}: a neutral Record commits to nothing"
-            assert case["reproduces"] is False and case["hard_hit"] is False
-            assert leaf["derived_similarity"] is None, f"{case['label']}: the honest verdict below the guard"
-            continue
-        signer = case["copied_from"] or case["auditor_id"]
-        sealed = _canary_credit(key, held, signer)
-        assert sealed == case["credit_commitment"], f"{case['label']}: sealed credit"
-        assert "hmac-sha256:" + hmac.new(key, held, hashlib.sha256).hexdigest() == case["response_commitment"]
-        recomputed.update({sealed, case["response_commitment"]})
-        reproduces = sealed == _canary_credit(salt, bodies[case["leaf_index"]], case["auditor_id"])
-        assert reproduces == case["reproduces"], f"{case['label']}: reproduces"
-        assert _canary_hard_hit(v, reproduces, case["verdict"], leaf["derived_similarity"]) == case["hard_hit"], \
-            f"{case['label']}: hard hit"
-    for needed in ("fetcher credits the watermark", "payload bytes earn no credit",
-                   "a copied credit value is worthless", "consistent on the fraud leaf is a hard hit",
-                   "inconsistent on the fraud leaf credits", "inconsistent on the watermark is a hard hit",
-                   "consistent in the buffer band is no hit", "inconsistent in the buffer band is no hit",
-                   "a cloaked fetch misses", "the wrong salt reproduces nothing",
-                   "a measured verdict on a thin leaf credits and is no hit",
-                   "the honest record on a thin leaf is not auditable without credit"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    thin = next(c for c in v["credit_cases"] if c["label"] == "a measured verdict on a thin leaf credits and is no hit")
-    assert thin["reproduces"] and not thin["hard_hit"] and thin["verdict"] == "consistent", \
-        "the thin leaf's measured verdict must credit and never hit"
-    for case in v["scoring_window_cases"]:
-        labels.add(case["label"])
-        whole = (case["n_sealed_at_s"] - case["reveal_sealed_at_s"]) // 86400
-        assert whole == case["whole_days"], f"{case['label']}: whole days"
-        assert case["payload_window_days"] == v["parameters"]["payload_window_days"]
-        assert _canary_window_open(case) == case["open"], f"{case['label']}: open"
-    for needed in ("open at the reveals own block", "open at the last block inside the window",
-                   "lapsed at the first block a whole window later"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert ("it is **open** at a Block N when the whole days (§6.1) from the reveal's Block "
-            "`sealed_at` to N's are fewer than `payload_window_days`") in prose, \
-        "§5.1 does not fix the scoring window's endpoints"
-    for case in v["timing_cases"]:
-        got = _canary_timing(v, case)
-        want = (case["earliest_reveal_height"], case["latest_reveal_height"],
-                case["lead_respected"], case["valid"])
-        assert got == want, f"{case['label']}: recomputed {got}, vector says {want}"
-    assert any(c["suffixes_registered"] > v["parameters"]["observer_checkpoint_budget"] and c["valid"]
-               for c in v["timing_cases"]), "no case shows the rotation term absorbed"
-    none = [c for c in v["timing_cases"] if c["suffixes_registered"] == 0]
-    one = next(c for c in v["timing_cases"] if c["suffixes_registered"] == 1)
-    assert none and all(c["earliest_reveal_height"] == one["earliest_reveal_height"] for c in none), \
-        "an empty Observer roster must leave the minimum where one suffix leaves it"
-    assert "`(max(⌈S / observer_checkpoint_budget⌉, 1) − 1) × epoch_blocks`" in prose, \
-        "§5.1 does not clamp the rotation term at no registered suffix"
-    for record in v["scoreboard_records"]:
-        if record["held"] is None:
-            assert record["credit_commitment"] is None and record["verdict"] in ("unreachable", "not_auditable")
-            continue
-        held = {"leaf": bodies[record["leaf_index"]], "payload_page": bytes.fromhex(v["payload_page_hex"])}[record["held"]]
-        sealed = _canary_credit(salt, held, record["auditor_id"])
-        assert sealed == record["credit_commitment"]
-        recomputed.add(sealed)
-    for auditor_id, board in v["scoreboards"].items():
-        mine = {t: [0, 0, 0] for t in ("provisional", "standing", "mature")}
-        for record_index in dict.fromkeys(v["binding"]["record_occurrences"]):
-            record = v["scoreboard_records"][record_index]
-            if record["auditor_id"] != auditor_id or not record["fixed_before_reveal"]:
-                continue
-            leaf = next(l for l in v["leaves"] if l["index"] == record["leaf_index"])
-            row = mine[leaf["tier"]]
-            reproduces = record["credit_commitment"] is not None and \
-                record["credit_commitment"] == _canary_credit(salt, bodies[leaf["index"]], auditor_id)
-            row[0] += 1; row[1] += reproduces
-            row[2] += _canary_hard_hit(v, reproduces, record["verdict"], leaf["derived_similarity"])
-        assert mine == board == v["binding"]["scoreboards"][auditor_id], f"{auditor_id}: recomputed scoreboard {mine}, vector says {board}"
-    occurrences = [v["scoreboard_records"][i] for i in v["binding"]["record_occurrences"]]
-    assert sum(r["fixed_before_reveal"] for r in occurrences) > sum(row[0] for board in v["scoreboards"].values() for row in board.values())
-    # The example Record's credit commitment is the same construction.
-    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    ac = json.loads((ROOT / "vectors" / "wist4" / "audit-commitments.json").read_text())["commitments"]
-    body = bytes.fromhex(ac["response_commitment"]["message_hex"])
-    assert rec["credit_commitment"] == _canary_credit(salt, body, rec["auditor_id"]), \
-        "the example Record's credit_commitment is not salt over body || auditor_id"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("message = <raw response body> ‖ <auditor_id as UTF-8>",
-                   "a hard hit is a verdict two bands from the bytes its signer proved it held",
-                   "there is no hard hit on any verdict",
-                   "a party recomputing the scoreboard MUST NOT infer one",
-                   "`leaf = SHA-256(0x00 ‖ served bytes)`",
-                   "https://<domain>/.well-known/wist/canary/<commitment-id-hex>/<index>"):
-        assert marker in prose, f"§5.1/§5.2 does not state: {marker!r}"
-    covered_values = _locate_values(lambda x: x in recomputed)
-    _assert_coverage("vectors:wist4-canary", covered_values, _locate_schema_fields("vectors:wist4-canary"))
-check("vectors:wist4-canary", _dc4_canary)
-
-def _dc4_canary_twin():
-    """The check above must notice a credit that omits the signer, a hard hit
-    read one band away, and a proof under the wrong index."""
-    v = _canary_vector()
-    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    salt = b64u_decode(payload["salt"])
-    copier = next(c for c in v["credit_cases"] if c["label"] == "a copied credit value is worthless")
-    body = bytes.fromhex(v["leaves"][copier["leaf_index"]]["served_bytes_hex"])
-    assert _canary_credit(salt, body, copier["copied_from"], append_signer=False) == \
-        _canary_credit(salt, body, copier["auditor_id"], append_signer=False), \
-        "without the signer in the message, the twin cannot show the copier being caught"
-    assert copier["reproduces"] is False
-    buffer = next(c for c in v["credit_cases"] if c["label"] == "consistent in the buffer band is no hit")
-    leaf = v["leaves"][buffer["leaf_index"]]
-    assert _canary_hard_hit(v, True, buffer["verdict"], leaf["derived_similarity"], bands_apart=1) is True \
-        and buffer["hard_hit"] is False, "recomputation is blind to the buffer band"
-    size = v["commitment"]["leaves"]
-    root = bytes.fromhex(v["commitment"]["root"].split(":")[1])
-    revealed = [l for l in v["leaves"] if l["revealed"]]
-    a, b = revealed[0], revealed[1]
-    lh = bytes.fromhex(a["leaf_hash"].split(":")[1])
-    path = [bytes.fromhex(p.split(":")[1]) for p in a["path"]]
-    assert _canary_root_from_path(lh, b["index"], size, path) != root, \
-        "recomputation is blind to the leaf's index"
-    early = next(c for c in v["timing_cases"] if c["label"] == "reveal one block early")
-    assert _canary_timing(v, dict(early, reveal_height=early["reveal_height"] + 1))[3] is True
-    lapsed = next(c for c in v["scoring_window_cases"]
-                  if c["label"] == "lapsed at the first block a whole window later")
-    assert _canary_window_open(lapsed, end_inclusive_start_exclusive=False) is True \
-        and _canary_window_open(lapsed) is False, \
-        "recomputation is blind to the window's closing endpoint"
-    empty = next(c for c in v["timing_cases"]
-                 if c["label"] == "no observer registered reveal one block early")
-    assert _canary_timing(v, empty, literal_rotation=True)[3] is True and _canary_timing(v, empty)[3] is False, \
-        "recomputation is blind to the literal minus-one-rotation at no suffix"
-    thin = next(l for l in v["leaves"] if l["class"] == "thin")
-    assert thin["derived_similarity"] is None and \
-        _canary_hard_hit(v, True, "consistent", 0) is True and \
-        _canary_hard_hit(v, True, "consistent", thin["derived_similarity"]) is False, \
-        "recomputation reads a missing band as the inconsistent band"
-check("negative:wist4-canary", _dc4_canary_twin)
-
-def _observer_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "observer-checkpoints.json").read_text())
-
-def _epoch_priority(epoch, name):
-    return hashlib.sha256(epoch.to_bytes(8, "big") + name.encode()).hexdigest()
-
-def _suffix_groups(observers):
-    groups = {}
-    for o in observers:
-        groups.setdefault(".".join(o.split(".")[-2:]), []).append(o)
-    return groups
-
-def _epoch_budget(observers, epoch, budget, walk=True, sort_keys=None):
-    """WIST-4 §3.1: suffixes in a fixed order by SHA-256(suffix); the epoch's
-    window of one budget starts at position epoch × budget mod S; within a
-    suffix, the Observer least by SHA-256(be64(epoch) ‖ observer_id).
-    `walk=False` is a static queue that never advances, the starving
-    reading the section rules out."""
-    groups = _suffix_groups(observers)
-    suffix_hashes = {s: hashlib.sha256(s.encode()).hexdigest() for s in groups} if sort_keys is None else sort_keys["suffixes"]
-    observer_hashes = {o: _epoch_priority(epoch, o) for o in observers} if sort_keys is None else sort_keys["observers"]
-    order = sorted(groups, key=lambda s: (suffix_hashes[s], s.encode()))
-    size = len(order)
-    start = (epoch * budget) % size if (walk and size) else 0
-    positions = [(start + k) % size for k in range(min(budget, size))] if size else []
-    pick = lambda sfx: min(groups[sfx], key=lambda o: (observer_hashes[o], o.encode()))
-    return order, positions, [pick(order[p]) for p in positions]
-
-def _dc4_observer_ordering_boundary():
-    for case in _observer_vector()["ordering_boundary"]["cases"]:
-        keys = {kind: {row["name"]: row["sort_key_hex"] for row in rows}
-                for kind, rows in case["sort_keys"].items()}
-        for permutation in itertools.permutations(case["registered"]):
-            for epoch in case["epochs"]:
-                result = _epoch_budget(permutation, epoch["epoch"], case["budget"], sort_keys=keys)
-                assert result == (epoch["suffix_order"], epoch["positions"], epoch["budgeted"]), case["label"]
-check("vectors:wist4-observer-ordering-boundary", _dc4_observer_ordering_boundary)
-
-def _epoch_budget_rehashed(observers, epoch, budget):
-    """The ruled-out reading: an order drawn afresh each epoch."""
-    groups = _suffix_groups(observers)
-    order = sorted(groups, key=lambda s: _epoch_priority(epoch, s))
-    return [min(groups[sfx], key=lambda o: _epoch_priority(epoch, o)) for sfx in order[:budget]]
-
-def _epoch_of_block(v, block, per_first_block=True):
-    changes = v["epoch_changes"]
-    def in_force(t_s):
-        live = [c for c in changes if c["effective_at_s"] <= t_s]
-        return max(live, key=lambda c: c["effective_at_s"])["value"] if live else v["epoch_blocks_default"]
-    if not per_first_block:
-        length = in_force(block * 3600)
-        return block // length
-    start, index = 0, 0
-    while True:
-        length = in_force(start * 3600)
-        if block < start + length:
-            return index
-        start += length
-        index += 1
-
-def _covered_before(v, item, reveal_height):
-    for cp in v["checkpoints"]:
-        if cp["height"] >= reveal_height:
-            continue
-        cursor = cp["head"]
-        while cursor is not None:
-            if cursor == item:
-                return True
-            cursor = v["prev_record"][cursor]
-    return False
-
-def _dc4_observer_checkpoints():
-    """WIST-4 §3.1: the epoch budget's derivable allocation, the epoch a Block
-    belongs to, and what a sealed checkpoint fixes before a reveal."""
-    v = _observer_vector()
-    labels = set()
-    for case in v["budget_cases"]:
-        labels.add(case["label"])
-        suffixes = len(_suffix_groups(case["registered"]))
-        assert case["suffixes"] == suffixes
-        bound = -(-suffixes // case["budget"]) if suffixes else 0
-        assert case["bound_epochs"] == bound, f"{case['label']}: bound"
-        for e in case["epochs"]:
-            order, positions, chosen = _epoch_budget(case["registered"], e["epoch"], case["budget"])
-            assert order == e["suffix_order"], f"{case['label']} epoch {e['epoch']}: suffix order"
-            assert positions == e["positions"], f"{case['label']} epoch {e['epoch']}: positions"
-            assert chosen == e["budgeted"], f"{case['label']} epoch {e['epoch']}: recomputed {chosen}"
-            assert len(chosen) == min(case["budget"], len(order))
-            if "budgeted_under_per_epoch_rehash" in e:
-                assert _epoch_budget_rehashed(case["registered"], e["epoch"], case["budget"]) == \
-                    e["budgeted_under_per_epoch_rehash"], f"{case['label']} epoch {e['epoch']}: rehash reading"
-        # The bound: every suffix inside any bound_epochs consecutive epochs.
-        first = case["epochs"][0]["epoch"]
-        for start in range(first, first + bound):
-            seen = set()
-            for e in range(start, start + bound):
-                seen.update(".".join(o.split(".")[-2:])
-                            for o in _epoch_budget(case["registered"], e, case["budget"])[2])
-            assert len(seen) == suffixes, f"{case['label']}: a suffix waits past the bound from epoch {start}"
-    for needed in ("under budget every suffix budgeted", "over budget rotates across epochs",
-                   "a crowd under one suffix shares one slot", "two suffixes and one slot alternate"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    for case in v["epoch_cases"]:
-        got = _epoch_of_block(v, case["block"])
-        assert got == case["epoch"], f"block {case['block']}: recomputed epoch {got}"
-        assert case["epoch_first_block"] <= case["block"] < case["epoch_first_block"] + case["epoch_length"]
-    for case in v["coverage_cases"]:
-        for item, fixed in case["fixed_before_reveal"].items():
-            assert _covered_before(v, item, case["reveal_height"]) == fixed, \
-                f"{case['label']}: {item}"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("order the S suffixes by ascending octet order of `SHA-256(suffix)`",
-                   "`(epoch number × observer_checkpoint_budget + k) mod S`",
-                   "across any `⌈S / observer_checkpoint_budget⌉` consecutive epochs at whose first Blocks "
-                   "the same S suffixes are registered and the same budget applies, every one of them is budgeted at least once",
-                   "spans the `epoch_blocks` (Parameter Registry; default 24) in force at its first Block's `sealed_at`",
-                   "only if a checkpoint covering it was sealed in a Block below the reveal's"):
-        assert marker in prose, f"§3.1 does not state: {marker!r}"
-check("vectors:wist4-observer-checkpoints", _dc4_observer_checkpoints)
-
-def _dc4_canary_opportunities():
-    for case in _observer_vector()["opportunity_cases"]:
-        times = case["block_times_s"]
-        for h in range(1, len(times)):
-            cadence = 3600
-            for c in case["changes"]:
-                if c["height"] < h:
-                    cadence = c.get("block_cadence_seconds", cadence)
-            assert times[h] == (times[h-1] // cadence + 1) * cadence
-        for c in case["changes"]:
-            if "amendment_sealed_height" in c:
-                assert times[c["height"]] - times[c["amendment_sealed_height"]] >= 7 * 86400
-        original = {".".join(o.split(".")[-2:]) for o in case["initial_registered"]}
-        epochs = case["epochs"]
-        for i,e in enumerate(epochs):
-            roster, budget, length = case["initial_registered"], case["initial_budget"], 24
-            for c in case["changes"]:
-                if c["height"] <= e["first"]:
-                    roster = c.get("registered", roster); budget = c.get("observer_checkpoint_budget", budget)
-                    length = c.get("epoch_blocks", length)
-            assert e["first"] == (0 if i == 0 else epochs[i-1]["last"]+1)
-            assert e["last"] == e["first"]+length-1 and e["number"] == i
-            suffixes = sorted({".".join(o.split(".")[-2:]) for o in roster}, key=lambda x:hashlib.sha256(x.encode()).digest())
-            chosen = {suffixes[(i*budget+k)%len(suffixes)] for k in range(min(budget,len(suffixes)))}
-            assert chosen == set(e["budgeted_suffixes"])
-        after = [h for h,t in enumerate(times) if t > case["coverage_deadline_s"]]
-        coverage_end = after[case["record_seal_blocks"]-1]
-        for probe in case["probes"]:
-            n = probe["height"]; roster = case["initial_registered"]
-            for c in case["changes"]:
-                if c["height"] <= n:
-                    roster = c.get("registered", roster)
-            needed = original & {".".join(o.split(".")[-2:]) for o in roster}
-            satisfied = set()
-            for e,nxt in zip(epochs,epochs[1:]):
-                if nxt["last"] < n and nxt["last"] + e["seal_blocks"] <= n and times[e["last"]] >= case["coverage_deadline_s"]:
-                    satisfied.update(e["budgeted_suffixes"])
-            valid = n >= case["numeric_minimum"] and n > coverage_end and needed <= satisfied
-            assert valid == probe["valid"], (case["label"], n)
-        assert case["probes"][-1]["height"] == case["earliest_reveal_height"] and case["probes"][-1]["valid"]
-    growth = _observer_vector()["opportunity_cases"][0]
-    assert next(p for p in growth["probes"] if p["height"] == growth["numeric_minimum"])["valid"] is False
-check("vectors:wist4-canary-opportunities", _dc4_canary_opportunities)
-
-def _dc4_observer_checkpoints_twin():
-    """The check above must notice a static queue and an epoch read from the
-    value in force at the Block rather than at the epoch's first Block."""
-    v = _observer_vector()
-    rotating = next(c for c in v["budget_cases"] if c["label"] == "over budget rotates across epochs")
-    suffixes_of = lambda chosen: tuple(".".join(o.split(".")[-2:]) for o in chosen)
-    static = {suffixes_of(_epoch_budget(rotating["registered"], e["epoch"], rotating["budget"], walk=False)[2])
-              for e in rotating["epochs"]}
-    assert len(static) == 1 and len({suffixes_of(e["budgeted"]) for e in rotating["epochs"]}) > 1, \
-        "a static order would starve the same suffixes every epoch, and the twin cannot see it"
-    alternate = next(c for c in v["budget_cases"] if c["label"] == "two suffixes and one slot alternate")
-    rehashed = [e["budgeted_under_per_epoch_rehash"] for e in alternate["epochs"]]
-    walked = [e["budgeted"] for e in alternate["epochs"]]
-    assert rehashed != walked and len({tuple(r) for r in rehashed[:3]}) == 1, \
-        "the ruled-out fresh draw must repeat a winner where the walk alternates"
-    assert any(_epoch_of_block(v, c["block"], per_first_block=False) != c["epoch"] for c in v["epoch_cases"]), \
-        "recomputation is blind to which Block's value governs an epoch"
-    at_height = next(c for c in v["coverage_cases"] if c["label"] == "reveal at the first checkpoints height")
-    assert not any(at_height["fixed_before_reveal"].values()), \
-        "a checkpoint sealed at the reveal's own height must fix nothing"
-check("negative:wist4-observer-checkpoints", _dc4_observer_checkpoints_twin)
-
-def _dc4_observer_and_canary_acts():
-    """WIST-4 §3.1, §5.1, §9.1: the four self-signed acts and the admission
-    track record validate with their REQUIRED members and fail without them."""
-    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
-    validator = Draft202012Validator(schema)
-    actions = schema["properties"]["update"]["properties"]["action"]["enum"]
-    for a in ("observer_register", "observer_checkpoint", "canary_commitment", "canary_reveal"):
-        assert a in actions, f"action enum lacks {a}"
-    sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
-    canary = _canary_vector()
-    leaf = next(l for l in canary["leaves"] if l["revealed"])
-    pub = json.loads((ROOT / "examples" / "registry-update.json").read_text())["update"]["details"]["public_key"]
-    acts = {
-        "observer_register": ("watch.sample.net", {"key_id": "test-obs-k1", "alg": "Ed25519", "public_key": pub}),
-        "observer_checkpoint": ("watch.sample.net", {"head": "sha256:" + "0" * 64}),
-        "canary_commitment": (canary["planter"], {"root": canary["commitment"]["root"],
-                                                  "leaves": canary["commitment"]["leaves"]}),
-        "canary_reveal": (canary["canary_domain"], {"commitment": "sha256:" + "1" * 64,
-                                                    "leaves": [{"index": leaf["index"], "delta_id": leaf["delta_id"],
-                                                                "leaf_hash": leaf["leaf_hash"], "path": leaf["path"]}]}),
-    }
-    for action, (subject, details) in acts.items():
-        doc = {"update": {"wist_version": "1.0.0", "action": action, "subject": subject,
-                          "details": details, "effective_at": "2026-08-02T16:00:00Z"}, "sig": sig}
-        validator.validate(doc)
-        for missing in details:
-            bad = copy.deepcopy(doc)
-            del bad["update"]["details"][missing]
-            assert list(validator.iter_errors(bad)), f"{action} without {missing} validated"
-        bad = copy.deepcopy(doc)
-        bad["update"]["subject"] = "not a hostname"
-        assert list(validator.iter_errors(bad)), f"{action} under a non-hostname subject validated"
-    bad = copy.deepcopy(acts["canary_reveal"][1]); bad["leaves"] = []
-    doc = {"update": {"wist_version": "1.0.0", "action": "canary_reveal", "subject": canary["canary_domain"],
-                      "details": bad, "effective_at": "2026-08-02T16:00:00Z"}, "sig": sig}
-    assert list(validator.iter_errors(doc)), "a reveal of no leaves validated"
-    admit = json.loads((ROOT / "examples" / "registry-update.json").read_text())
-    validator.validate(admit)
-    with_record = copy.deepcopy(admit)
-    with_record["update"]["details"]["track_record"] = {
-        "checkpoint": "sha256:" + "2" * 64,
-        "scoreboard": {"provisional": [1, 1, 0], "standing": [1, 1, 1], "mature": [1, 1, 0]}}
-    validator.validate(with_record)
-    for mutate in (lambda d: d["scoreboard"].pop("mature"),
-                   lambda d: d["scoreboard"]["mature"].append(0),
-                   lambda d: d.pop("checkpoint"),
-                   lambda d: d["scoreboard"].update({"provisional": [1, -1, 0]})):
-        bad = copy.deepcopy(with_record)
-        mutate(bad["update"]["details"]["track_record"])
-        assert list(validator.iter_errors(bad)), "a malformed track_record validated"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "https://<domain>/.well-known/wist/registry.json" in prose, "§9.1 fixes no submissions path"
-    w2 = (ROOT / "specs" / "WIST-2-site-publication.md").read_text()
-    assert "/.well-known/wist/registry.json" in w2 and "/.well-known/wist/canary/<c>/<i>" in w2, \
-        "WIST-2 §3's layout omits the new paths"
-check("schema:wist4-observer-and-canary-acts", _dc4_observer_and_canary_acts)
-
-def _dc4_audit_commitments():
-    """Every content-derived value in an Audit Record is salted (WIST-4 §5).
-
-    Moving extracts out of the Log achieves nothing if the Log keeps bare
-    digests of the same text: a party holding a copy could recompute one and
-    confirm the text was there, which is precisely the confirmability the
-    Payload salt exists to destroy. So the Auditor's three content-derived
-    values are committed under that same salt, and this recomputes all three
-    from their preimages.
-    """
-    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    v = json.loads((ROOT / "vectors" / "wist4" / "audit-commitments.json").read_text())
-    salt = b64u_decode(payload["salt"])
-    assert v["audited_delta"] == rec["audited_delta"], \
-        "the commitment vector does not describe the example Record"
-    for field, entry in v["commitments"].items():
-        expected = "hmac-sha256:" + hmac.new(
-            salt, bytes.fromhex(entry["message_hex"]), hashlib.sha256).hexdigest()
-        assert expected == entry["value"], f"{field}: vector value is not HMAC(salt, message)"
-        assert rec[field] == expected, f"{field}: the Record does not carry that commitment"
-    # The Auditor's reference extraction in a `consistent` audit is the Payload's
-    # own extract, so this one is recomputable from the Payload alone — which is
-    # what ties the Record's key to the Delta's key rather than to a second salt.
-    assert rec["ref_extract_commitment"] == "hmac-sha256:" + hmac.new(
-        salt, payload["content"]["extract"].encode(), hashlib.sha256).hexdigest(), \
-        "ref_extract_commitment is not keyed by the audited Payload's salt"
-
-    # Coverage, proved in this direction rather than assumed: every location
-    # declaring this check must be one whose value was just recomputed above.
-    recomputed = {e["value"] for e in v["commitments"].values()}
-    observer = _roster_vector()["admission"]["record_envelope"]["record"]
-    observer_body = bytes.fromhex(v["commitments"]["response_commitment"]["message_hex"])
-    observer_credit = "hmac-sha256:" + hmac.new(salt, observer_body + observer["auditor_id"].encode(), hashlib.sha256).hexdigest()
-    assert observer["credit_commitment"] == observer_credit
-    recomputed.add(observer_credit)
-    probe = json.loads((ROOT / "vectors" / "wist4" / "roster-acts.json").read_text())["record_probe"]["envelope"]["record"]
-    probe_credit = "hmac-sha256:" + hmac.new(salt, observer_body + probe["auditor_id"].encode(), hashlib.sha256).hexdigest()
-    assert probe["credit_commitment"] == probe_credit
-    recomputed.add(probe_credit)
-    covered_values = set()
-    for rel, key in _declared_values_for("audit:commitments"):
-        values = _values_at(rel, key)
-        assert values, f"{rel}: no {key!r} to recompute, but it is declared here"
-        for got in values:
-            assert got in recomputed, \
-                f"{rel}: {key} = {got[:28]}… is not one of the recomputed commitments"
-    covered_values = _locate_values(lambda v: v in recomputed)
-
-    _assert_schema_instances("audit:commitments", recomputed)
-    covered_schema = _locate_schema_fields("audit:commitments")
-
-    _assert_coverage("audit:commitments", covered_values, covered_schema)
-check("audit:commitments", _dc4_audit_commitments)
-
-def _dc4_audit_commitment_tamper():
-    """One mutated octet, or the wrong salt, MUST break each commitment.
-
-    Binding must hold for the Auditor's values exactly as it does for the
-    Publisher's: a Record must not be able to stand for a capture other than
-    the one it was computed over. And keying MUST be to the Payload's salt,
-    not to any salt the Auditor could retain past a withdrawal.
-    """
-    payload = json.loads((ROOT / "examples" / "payload.json").read_text())
-    v = json.loads((ROOT / "vectors" / "wist4" / "audit-commitments.json").read_text())
-    salt = b64u_decode(payload["salt"])
-    other_salt = bytes(b ^ 0x01 for b in salt)
-    assert other_salt != salt, "the alternative salt is not different"
-    for field, entry in v["commitments"].items():
-        msg = bytearray(bytes.fromhex(entry["message_hex"]))
-        assert msg, f"{field}: empty preimage proves nothing"
-        mutated = bytearray(msg)
-        mutated[-1] ^= 0x01
-        assert bytes(mutated) != bytes(msg), f"{field}: the mutation changed nothing"
-        assert "hmac-sha256:" + hmac.new(
-            salt, bytes(mutated), hashlib.sha256).hexdigest() != entry["value"], \
-            f"{field}: a mutated preimage still reproduces the commitment"
-        assert "hmac-sha256:" + hmac.new(
-            other_salt, bytes(msg), hashlib.sha256).hexdigest() != entry["value"], \
-            f"{field}: the commitment does not depend on the salt"
-check("negative:audit-commitment-tamper", _dc4_audit_commitment_tamper)
-
-def _reference_vector():
-    return json.loads((ROOT / "vectors" / "wist4" / "superseded-audit.json").read_text())
-
-def _reference_recompute(chain, other, case):
-    """Independent recomputation of WIST-4 §5's reference_delta rules."""
-    ids = [d["id"] for d in chain]
-    def sealed(i): return chain[i]["sealed_at_s"]
-    tip = None
-    for d in chain:
-        if d["sealed_at_s"] <= case["fetched_at_s"]:
-            tip = d["id"]
-    ref, aud = case["reference"], case["audited"]
-    if ref not in ids:
-        return ("WIST4-E02", tip, None, None, None, None)
-    ri, ai = ids.index(ref), ids.index(aud)
-    if ri < ai or sealed(ri) > case["fetched_at_s"]:
-        return ("WIST4-E02", tip, None, None, None, None)
-    change = chain[ri]["change"]
-    anchor = next((chain[j]["payload"] for j in range(ri, -1, -1)
-                   if chain[j]["change"] in ("new", "update")), None)
-    if "similarity" not in case:
-        return (True, tip, anchor, change, None, None)
-    eff = 1_000_000 - case["similarity"] if change == "delete" else case["similarity"]
-    verdict = ("consistent" if eff >= 600_000 else
-               "dynamic_variance" if eff >= 300_000 else "inconsistent")
-    return (True, tip, anchor, change, verdict,
-            verdict == "consistent" and change in ("new", "update"))
-
-def _dc4_superseded_audit():
-    """WIST-4 §5: reference_delta, the anchor as of it, and §3's rejections."""
-    v = _reference_vector()
-    assert v["similarity_consistent"] == 600_000 and v["similarity_variance_floor"] == 300_000
-    heights = [d["height"] for d in v["chain"]]
-    assert heights == sorted(heights), "chain not in Log order"
-    labels = set()
-    for case in v["cases"]:
-        labels.add(case["label"])
-        assert case["record_sealed_at_s"] >= case["fetched_at_s"], case["label"]
-        audited_delta = next(d for d in v["chain"] if d["id"] == case["audited"])
-        assert case["fetched_at_s"] >= audited_delta["sealed_at_s"], case["label"]
-        got = _reference_recompute(v["chain"], v["other_chain"], case)
-        exp = (case["valid"], case["expected_reference"], case["resolved_payload"],
-               case["reading_change"], case.get("verdict"), case.get("counts_toward_c"))
-        assert got == exp, f"{case['label']}: recomputed {got}, vector says {exp}"
-        if case["valid"] is True and "similarity" in case:
-            assert case["effective_similarity"] == (
-                1_000_000 - case["similarity"] if case["reading_change"] == "delete"
-                else case["similarity"]), case["label"]
-    for needed in ("honest-rewrite", "reactive-truth-after-fetch",
-                   "stale-reference-not-decidable", "reference-before-audited",
-                   "reference-from-another-chain", "attest-after-rewrite",
-                   "boundary-sealed-at-equals-fetched-at"):
-        assert needed in labels, f"vector lacks the {needed} case"
-    assert len(heights) > len(set(heights)), \
-        "the chain shares no Block, so §5's intra-Block tiebreak is unexercised"
-    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    assert rec["reference_delta"] == rec["audited_delta"], \
-        "the example chain has one Delta, so its tip is the audited Delta"
-    schema = json.loads((ROOT / "schemas" / "audit-record.schema.json").read_text())
-    assert "reference_delta" in schema["properties"]["record"]["required"]
-check("vectors:wist4-superseded-audit", _dc4_superseded_audit)
-
-def _dc4_superseded_audit_twin():
-    """The check above must notice a reference moved one Delta later."""
-    v = _reference_vector()
-    case = next(c for c in v["cases"] if c["label"] == "honest-rewrite")
-    mutated = dict(case, reference="d1")
-    got = _reference_recompute(v["chain"], v["other_chain"], mutated)
-    assert got[2] == "P1" and got[2] != case["resolved_payload"], \
-        "recomputation is blind to the reference"
-    mutated = dict(case, fetched_at_s=3_600)
-    assert _reference_recompute(v["chain"], v["other_chain"], mutated)[0] == "WIST4-E02", \
-        "recomputation is blind to a reference sealed after the fetch"
-    delete_case = next(c for c in v["cases"] if c["label"] == "audited-attest-tip-delete")
-    mutated = dict(delete_case, similarity=1_000_000)
-    got = _reference_recompute(v["chain"], v["other_chain"], mutated)
-    assert got[4] == "inconsistent" and got[5] is False, \
-        "recomputation is blind to the delete mirror"
-check("negative:wist4-superseded-audit", _dc4_superseded_audit_twin)
 
 # WIST-3 §6.2: after a withdrawal the Log retains no unsalted digest of the
 # withdrawn content. That sentence is a claim about every object format in the
@@ -4770,45 +1931,7 @@ NON_CONTENT_DIGESTS = {
     ('delta.schema.json', 'properties/delta/properties/publisher'): 'the signed Canonical Host of the Publisher, not a content digest',
     ('publisher.schema.json', 'properties/publisher/properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
     ('publisher.schema.json', 'properties/publisher/properties/subdomain_scope/items'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('registry-update.schema.json', 'allOf[17]/then/properties/update/properties/subject'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[2]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[4]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[5]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[6]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[8]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[9]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[10]/prefixItems[1]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ('snapshot-state.schema.json', 'properties/state/properties/entries/items/oneOf[12]/prefixItems[2]'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
     ('status.schema.json', 'properties/domain'): "a Canonical Host identifying a Publisher or its declared scope, not a content digest",
-    ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/details/properties/activation"): "a confirming Audit Record ID identifying one rung activation",
-    ("registry-update.schema.json", "allOf[2]/then/properties/update/properties/details/properties/finding"): "an Audit Record ID identifying a primary finding",
-    ("registry-update.schema.json",
-     "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/leaf_hash"):
-        "SHA-256 over served bytes carrying a fresh secret nonce (WIST-4 §5.1)",
-    ("registry-update.schema.json",
-     "allOf[13]/then/properties/update/properties/details/properties/head"):
-        "an Audit Record or coverage_attestation ID — the Observer's chain head (WIST-4 §3.1); objects that carry only commitments",
-    ("registry-update.schema.json",
-     "allOf[14]/then/properties/update/properties/details/properties/root"):
-        "a Merkle root over canary leaves, each SHA-256 over served bytes carrying a fresh nonce no Payload carries — a keyed commitment under the nonce (WIST-4 §5.1, §9.1)",
-    ("registry-update.schema.json",
-     "allOf[15]/then/properties/update/properties/details/properties/commitment"):
-        "a Registry Update ID: SHA-256 over a canary_commitment's inner object, which carries a root and a count (WIST-4 §5.1)",
-    ("registry-update.schema.json",
-     "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/delta_id"):
-        "a Delta ID",
-    ("registry-update.schema.json",
-     "allOf[15]/then/properties/update/properties/details/properties/leaves/items/properties/path/items"):
-        "Merkle siblings over canary leaves, each keyed by its leaf's nonce (WIST-4 §5.1, §9.1)",
-    ("registry-update.schema.json",
-     "allOf[16]/then/properties/update/properties/details/properties/track_record/properties/checkpoint"):
-        "a Registry Update ID: SHA-256 over an observer_checkpoint's inner object, which carries a chain-head ID (WIST-4 §3.1)",
-    ("snapshot-state.schema.json",
-     "properties/state/properties/entries/items/oneOf[12]/prefixItems[1]"):
-        "a Registry Update ID (a live canary_commitment's, WIST-3 §7)",
-    ("snapshot-state.schema.json",
-     "properties/state/properties/entries/items/oneOf[12]/prefixItems[3]"):
-        "the canary_commitment's Merkle root over nonce-keyed leaves (WIST-4 §5.1)",
     ("delta.schema.json", "properties/delta/properties/prev"):
         "a Delta ID: SHA-256 of Canonical Bytes, which carry the salted commitment and no content",
     ("publisher.schema.json", "properties/publisher/properties/prev_declaration"):
@@ -4824,47 +1947,8 @@ NON_CONTENT_DIGESTS = {
         "root over Entries, which carry commitments and no content",
     ("checkpoint.schema.json", "properties/checkpoint/properties/block_hash"):
         "SHA-256 of a Block header",
-    ("audit-record.schema.json", "properties/record/properties/audited_delta"):
-        "a Delta ID",
-    ("audit-record.schema.json", "properties/record/properties/reference_delta"):
-        "a Delta ID",
-    ("audit-record.schema.json", "properties/record/properties/prev_record/oneOf[0]"):
-        "an Audit Record or coverage_attestation ID: SHA-256 over an object that carries only commitments (WIST-4 §4's per-auditor chain)",
-    ("registry-update.schema.json",
-     "allOf[9]/then/properties/update/properties/details/properties/block"):
-        "SHA-256 of a Block header (the audited Block a pull_attestation names, WIST-4 §4)",
-    ("registry-update.schema.json",
-     "allOf[9]/then/properties/update/properties/details/properties/found/items"):
-        "Audit Record and coverage_attestation IDs a pull returned (WIST-4 §4) — objects that carry only commitments",
-    ("registry-update.schema.json",
-     "allOf[10]/then/properties/update/properties/details/properties/block"):
-        "SHA-256 of a Block header (the Block whose selection was empty, WIST-4 §4)",
-    ("registry-update.schema.json",
-     "allOf[10]/then/properties/update/properties/details/properties/prev_record/oneOf[0]"):
-        "the same per-auditor chain ID an Audit Record's prev_record carries (WIST-4 §4)",
-    ("registry-update.schema.json",
-     "allOf[2]/then/properties/update/properties/evidence/items"):
-        "Audit Record IDs: SHA-256 over Records that themselves carry only commitments",
-    ("registry-update.schema.json",
-     "allOf[6]/then/properties/update/properties/details/properties/delta_id"):
-        "a Delta ID",
-    ("registry-update.schema.json",
-     "allOf[4]/then/properties/update/properties/details/properties/notice"):
-        "a Registry Update ID: SHA-256 over a `notice`'s inner object, which carries a kind, a reason, a deadline and Audit Record IDs — no page content",
-    ("registry-update.schema.json",
-     "allOf[8]/then/properties/update/properties/details/properties/notice"):
-        "the same Registry Update ID, named by the `appeal` that answers that notice",
     ("status.schema.json", "properties/rejections/items/properties/delta_id"):
         "a Delta ID",
-    ("snapshot-state.schema.json",
-     "properties/state/properties/entries/items/oneOf[4]/prefixItems[3]/items"):
-        "Registry Update IDs establishing a sanction_state tuple (WIST-3 §7) — objects that carry only commitments",
-    ("snapshot-state.schema.json",
-     "properties/state/properties/entries/items/oneOf[8]/prefixItems[5]/items"):
-        "counted-URL digests (WIST-3 §7): domain and Normalized URL, both of which the Log carries in the clear; no page content",
-    ("snapshot-state.schema.json",
-     "properties/state/properties/entries/items/oneOf[9]/prefixItems[3]"):
-        "a Delta ID (a record tuple's chain tip, WIST-3 §7)",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/files/items/properties/sha256"):
         "a whole tier file, not any one record (WIST-3 §7); and a manifest is a static artifact, not a Log Entry",
@@ -4873,7 +1957,7 @@ NON_CONTENT_DIGESTS = {
         "SHA-256 of a Block header",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/content_digest"):
-        "a digest over the record tuples of WIST-3 §7 — url, publisher, delta_id, observed_at, weight — every one of which the Log already carries in the clear; no page content is in its preimage",
+        "a digest over the record tuples of WIST-3 §7 — url, publisher, delta_id, observed_at — every one of which the Log already carries in the clear; no page content is in its preimage",
     ("snapshot-manifest.schema.json",
      "properties/manifest/properties/state/properties/sha256"):
         "the whole state file, a Log-derived artifact (WIST-3 §7); transport integrity, same as any files[] sha256",
@@ -4891,64 +1975,29 @@ NON_CONTENT_DIGESTS = {
         "the same WIST-3 §7 record-tuple digest the manifest declares, restated by the index",
     ("payload.schema.json", "properties/salt"):
         "the salt itself: drawn from a CSPRNG, never derived from the content it keys (WIST-1 §3.6)",
+    ("label.schema.json", "properties/label/properties/labeler"): "the signed Canonical Host of the Labeler, not a content digest",
+    ("label.schema.json", "properties/label/properties/subject"): "a Normalized URL or Canonical Host the Label is about (WIST-2 §3.3), which the Log carries in the clear; no page content",
+    ("label.schema.json", "properties/label/properties/name"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[3]"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
+    ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/subject"): "a Canonical Host identifying a Publisher, not a content digest",
+    ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/details/properties/delta_id"): "a Delta ID: SHA-256 over a Delta that itself carries only a salted commitment (WIST-1 §3.6)",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[1]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[3]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[4]/prefixItems[1]"): "a withdrawn Delta's ID: SHA-256 over a Delta that carries only a salted commitment (WIST-3 §6.2)",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[4]/prefixItems[2]"): "a Canonical Host identifying a Publisher, not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[1]"): "a Canonical Host identifying a Labeler, not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[3]"): "a chain-tip Delta ID: SHA-256 over a Delta that carries only a salted commitment (WIST-3 §7)",
 }
 
 NON_CONTENT_VALUES = {
-    ("vectors/wist4/record-fields.json", "public_key"): "the supplied Record signature verification key",
-    ("vectors/wist4/extension.json", "public_key"): "an evidence-case Auditor's Ed25519 public key",
-    ("vectors/wist4/extension.json", "delta"): "a Delta ID",
     ("vectors/wist1/payload-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/payload-fields.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/payload-fields.json", "salt"): "Payload salts and malformed encoding probes",
 
-    ("vectors/wist4/coverage.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist4/coverage.json", "value"): "an Ed25519 signature",
-    ("vectors/wist4/coverage.json", "block"): "a Block hash",
-    ("vectors/wist4/coverage.json", "pulled_block"): "a Block hash",
-    ("vectors/wist4/coverage.json", "prev_record"): "a claimed predecessor ID, fabricated in the negative case",
-    ("vectors/wist4/coverage.json", "found"): "a signed acknowledgment of a Record or attestation ID",
-    ("vectors/wist4/coverage.json", "attestation_duty_block"): "a Block hash",
-    ("vectors/wist4/coverage.json", "block_hash"): "a failed duty Block's hash",
-    ("vectors/wist4/coverage.json", "record_id_twin"): "a Record ID the removal test rejects",
-    ("vectors/wist4/sanctions.json", "rejected_available_ids"): "Audit Record IDs of rejected but sealed Records",
-    ("vectors/wist4/sanctions.json", "activation"): "a confirming Audit Record ID",
-    ("vectors/wist4/sanctions.json", "record_id"): "an Audit Record ID",
-    ("vectors/wist4/sanctions.json", "current_activation_at_reversal"): "a confirming Audit Record ID",
-    ("vectors/wist4/sanctions.json", "activation_after_reversal"): "a confirming Audit Record ID",
-    ("vectors/wist4/canary.json", "other_salt_hex"): "an alternate test salt, not content-derived",
-    ("vectors/wist4/roster.json", "public_key"): "an Ed25519 public key when opaque",
-    ("vectors/wist4/roster.json", "value"): "an Ed25519 signature",
-    ("vectors/wist4/roster.json", "head"): "an Audit Record ID",
-    ("vectors/wist4/roster.json", "checkpoint"): "a Registry Update ID",
-    ("vectors/wist4/roster.json", "audited_delta"): "a Delta ID",
-    ("vectors/wist4/roster.json", "reference_delta"): "a Delta ID",
-    ("vectors/wist4/roster-acts.json", "public_key"): "an Ed25519 public key, or the small-order point the roster holds as a string",
-    ("vectors/wist4/roster-acts.json", "value"): "an Ed25519 signature",
-    ("vectors/wist4/roster-acts.json", "audited_delta"): "a Delta ID",
-    ("vectors/wist4/roster-acts.json", "reference_delta"): "a Delta ID",
-    ("vectors/wist4/roster-acts.json", "checkpoints_after"): "Registry Update IDs of the accepted checkpoints",
-    ("vectors/wist4/sanctions.json", "finding"): "a first confirming Audit Record ID",
-    ("vectors/wist4/sanctions.json", "confirming_record"): "a first confirming Audit Record ID",
-    ("vectors/wist4/sanctions.json", "id"): "an Audit Record ID",
     ("vectors/wist4/parameter-combinations.json", "wire_public_key"): "an Ed25519 public key",
     ("vectors/wist4/parameter-combinations.json", "value"): "an Ed25519 signature when opaque",
-    ("vectors/wist4/parameter-combinations.json", "parameter"): "a Parameter Registry identifier",
-    ("vectors/wist4/sanctions.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist4/sanctions.json", "value"): "an Ed25519 signature",
-    ("vectors/wist4/sanctions.json", "notice"): "a Registry Update ID",
-    ("vectors/wist4/sanctions.json", "evidence"): "an Audit Record ID",
-    ("vectors/wist4/canary.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist4/canary.json", "value"): "an Ed25519 signature",
-    ("vectors/wist4/canary.json", "commitment"): "a Registry Update ID over a root and leaf count",
-    ("vectors/wist4/canary.json", "root"): "a Merkle root over nonce-keyed canary leaves (WIST-4 §5.1)",
-    ("vectors/wist4/canary.json", "leaf_hash"): "SHA-256 over served bytes carrying a fresh nonce (WIST-4 §5.1)",
-    ("vectors/wist4/canary.json", "path"): "Merkle siblings over nonce-keyed canary leaves (WIST-4 §5.1)",
-    ("vectors/wist4/canary.json", "delta_id"): "a Delta ID",
-    ("vectors/wist4/canary.json", "nonce_hex"): "the nonce: from a CSPRNG in production, the unguessable part of a leaf's served bytes (WIST-4 §5.1)",
-    ("examples/audit-record.json", "audited_delta"): "a Delta ID",
-    ("examples/audit-record.json", "reference_delta"): "a Delta ID",
-        ("examples/audit-record.json", "value"): "an Ed25519 signature",
-        ("examples/block.json", "merkle_root"): "root over Entries, which carry commitments only",
+    ("examples/block.json", "merkle_root"): "root over Entries, which carry commitments only",
     ("examples/block.json", "prev"): "a Delta ID",
     ("examples/block.json", "value"): "an Ed25519 signature",
     ("examples/checkpoint.json", "block_hash"): "SHA-256 of a Block header",
@@ -4962,12 +2011,11 @@ NON_CONTENT_VALUES = {
     ("examples/payload.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("examples/publisher.json", "public_key"): "an Ed25519 public key",
     ("examples/publisher.json", "value"): "an Ed25519 signature",
-    ("examples/registry-update.json", "public_key"): "an Ed25519 public key",
     ("examples/registry-update.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-manifest.json", "sha256"): "a whole tier file, not any one record (WIST-3 §7)",
     ("examples/snapshot-manifest.json", "anchor_block_hash"): "SHA-256 of a Block header",
     ("examples/snapshot-manifest.json", "content_digest"):
-        "WIST-3 §7's record-tuple digest: url, publisher, delta_id, observed_at, weight — no content in the preimage",
+        "WIST-3 §7's record-tuple digest: url, publisher, delta_id, observed_at — no content in the preimage",
     ("examples/snapshot-manifest.json", "value"): "an Ed25519 signature",
     ("examples/snapshot-manifest.json", "state_digest"):
         "WIST-3 §7's digest construction over state tuples — every field Log-derived, no content in the preimage",
@@ -4995,12 +2043,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/timestamps.json", "prev"): "a Delta ID",
     ("vectors/wist3/timestamps.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/timestamps.json", "block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist3/timestamps.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist3/timestamps.json", "audited_delta"): "a Delta ID",
-    ("vectors/wist3/timestamps.json", "reference_delta"): "a Delta ID",
-    ("vectors/wist3/timestamps.json", "activation"): "an Audit Record ID used by a schema fixture",
-    ("vectors/wist3/timestamps.json", "evidence"): "Audit Record IDs used by a schema fixture",
-    ("vectors/wist3/timestamps.json", "entries"): "Snapshot state tuples of Log-derived identifiers",
     ("vectors/wist3/timestamps.json", "deltas"): "Delta IDs in the Feed schema fixture",
     ("vectors/wist3/empty-block.json", "prev_block_hash"): "SHA-256 of a Block header",
     ("vectors/wist3/empty-block.json", "block_hash"): "SHA-256 of a Block header",
@@ -5010,20 +2052,7 @@ NON_CONTENT_VALUES = {
         "the RFC 6962 empty-tree constant this suite deviates from, published so the deviation is checkable (WIST-3 §4)",
     ("vectors/wist3/empty-block.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
-    ("vectors/wist4/sampling.json", "block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist4/sampling.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
-    ("vectors/wist4/observer-checkpoints.json", "sort_key_hex"): "counterfactual non-content sort keys for the digest-equality boundary, not SHA-256 preimages",
-    ("vectors/wist4/sampling.json", "beta_hex"): "the VRF output",
-        ("vectors/wist4/sampling.json", "delta_id"): "a Delta ID",
-    ("vectors/wist4/sampling.json", "auditor_public_key"): "an Ed25519 public key",
-    ("vectors/wist4/extension-proof.json", "block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist4/extension-proof.json", "alpha_hex"): "the Block Hash's raw octets, the VRF input",
-    ("vectors/wist4/extension-proof.json", "audited_delta"): "a Delta ID",
-    ("vectors/wist4/extension-proof.json", "auditor_public_key"): "an Ed25519 public key",
-    ("vectors/wist4/extension-proof.json", "rotated_public_key"): "an Ed25519 public key",
-    ("vectors/wist4/extension-proof.json", "audited_block"): "the Ed25519 public key the Auditor held at the audited Block",
-    ("vectors/wist4/extension-proof.json", "trigger_block"): "the Ed25519 public key the Auditor held at B₁",
-    ("vectors/multilog/dedup.json", "block_hash"): "SHA-256 of a Block header",
+        ("vectors/multilog/dedup.json", "block_hash"): "SHA-256 of a Block header",
     ("vectors/multilog/dedup.json", "prev_block_hash"): "SHA-256 of a Block header",
     ("vectors/multilog/dedup.json", "merkle_root"): "root over Entries, which carry commitments only",
     ("vectors/multilog/dedup.json", "delta_id"): "a Delta ID",
@@ -5031,23 +2060,6 @@ NON_CONTENT_VALUES = {
     ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
-    ("vectors/wist4/recovery-identity.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist4/recovery-identity.json", "value"): "an Ed25519 signature",
-    ("vectors/wist4/recovery-identity.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
-    ("vectors/wist4/recovery-identity.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist4/recovery-identity.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist4/recovery-identity.json", "merkle_root"): "the Merkle root of Declaration Entries",
-    ("vectors/wist4/recovery-appeals.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist4/recovery-appeals.json", "value"): "an Ed25519 signature",
-    ("vectors/wist4/recovery-appeals.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
-    ("vectors/wist4/recovery-appeals.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist4/recovery-appeals.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist4/recovery-appeals.json", "merkle_root"): "the Merkle root of Declaration and notice Entries",
-    ("vectors/wist4/recovery-appeals.json", "activation"): "an abstract activation input identifier, not proven evidence",
-    ("vectors/wist4/recovery-appeals.json", "evidence"): "an abstract finding input identifier, not proven evidence",
-    ("vectors/wist4/recovery-appeals.json", "assumed_eligible_notices"): "Registry Update IDs supplied as eligible notice inputs",
-    ("vectors/wist4/recovery-appeals.json", "declaration"): "SHA-256 of the selected publisher object",
-    ("vectors/wist4/recovery-appeals.json", "notice"): "a signed appeal's notice identifier",
     ("vectors/wist1/declaration-hosts.json", 'author_key'): 'the fixture author public key',
     ("vectors/wist1/declaration-hosts.json", 'public_key'): 'an Ed25519 public key',
     ("vectors/wist1/declaration-hosts.json", 'value'): 'an Ed25519 signature',
@@ -5064,8 +2076,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/base64url.json", "prev_block_hash"): "the previous Block header hash",
     ("vectors/wist1/base64url.json", "merkle_root"): "the Merkle root of original Declaration Entries",
     ("vectors/wist1/declaration-binding.json", "public_key"): "an Ed25519 public key",
-    ("vectors/wist1/declaration-key-eligibility.json", "accepted_notice"): "a conditionally supplied eligible sanction notice identifier",
-    ("vectors/wist1/declaration-key-eligibility.json", "notice"): "a conditionally supplied eligible sanction notice identifier",
     ("vectors/wist1/declaration-key-eligibility.json", "public_key"): "an Ed25519 public key or excluded public point encoding",
     ("vectors/wist1/declaration-key-eligibility.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-key-eligibility.json", "author_key"): "the fixture author public key",
@@ -5082,12 +2092,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/feed-next.json", "public_key"): "the fixture Declaration public key",
     ("vectors/wist2/feed-next.json", "value"): "valid or deliberately invalid signatures",
     ("vectors/wist4/withdrawal.json", "delta_id"): "fixture Delta IDs; retrieval is not asserted",
-    ("vectors/wist4/canary-acts.json", "public_key"): "the fixture public key",
-    ("vectors/wist4/canary-acts.json", "delta_id"): "fixture canary Delta IDs",
-    ("vectors/wist4/canary-acts.json", "reserved_deltas"): "fixture canary Delta IDs reserved by earlier reveals",
-    ("vectors/wist4/canary-acts.json", "id"): "the fixture commitment's Registry Update ID",
-    ("vectors/wist4/canary-acts.json", "root"): "the fixture commitment's Merkle root",
-    ("vectors/wist4/recovery-identity.json", "expected_tuples"): "WIST-3 §7 reputation_inputs tuples whose counted-URL digest sets carry fixture URL digests",
     ("vectors/wist4/withdrawal.json", "public_key"): "the fixture Log public key",
     ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
     ("vectors/wist2/declaration-refresh.json", "id"): "SHA-256 of the served Delta",
@@ -5107,7 +2111,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/delta-clock-time.json", "public_key"): "the fixture signing key",
     ("vectors/wist1/delta-clock-time.json", "value"): "signed integer allowance or valid/deliberately invalid signature",
     ("vectors/wist1/delta-cap-time.json", "prev"): "the signed predecessor Delta ID",
-    ("vectors/wist1/delta-cap-time.json", "audited_id"): "the audited attestation Delta ID",
     ("vectors/wist1/delta-cap-time.json", "id"): "SHA-256 of a signed Delta",
     ("vectors/wist1/delta-cap-time.json", "pinned_head"): "the trusted final Block header hash",
     ("vectors/wist1/delta-cap-time.json", "prev_block_hash"): "SHA-256 of the previous Block header",
@@ -5210,6 +2213,14 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-binding.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 section 5.2)",
     ("vectors/wist1/declaration-sequence.json", "public_key"): "an Ed25519 public key",
+    ("vectors/wist2/labels.json", "public_key"): "the example Declaration's Ed25519 public keys",
+    ("vectors/wist2/labels.json", "value"): "an Ed25519 signature over a Label",
+    ("vectors/wist2/labels.json", "current"): "the current Label's ID after replay (WIST-2 §3.3)",
+    ("vectors/wist4/withdrawal.json", "state_tuples"): "fixture Delta IDs inside WIST-3 §7 withdrawal tuples",
+    ("vectors/wist2/labels.json", "label_id"): "a Label ID: SHA-256 over a Label, which carries a subject, a registry name and an integer — no page content (WIST-2 §3.3)",
+    ("examples/label.json", "value"): "an Ed25519 signature over the example Label",
+    ("examples/label-feed.json", "value"): "an Ed25519 signature over the example Label Feed",
+    ("examples/label-feed.json", "deltas"): "the example Label's ID (WIST-2 §3.3): SHA-256 over an object carrying no page content",
     ("vectors/wist1/ed25519-strictness.json", "public_key_hex"):
         "an Ed25519 public key (WIST-1 §4's verification profile), canonical, non-canonical and small-order alike",
     ("vectors/wist1/ed25519-strictness.json", "signature_hex"):
@@ -5217,9 +2228,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-sequence.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-sequence.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 §5.2) — keys, domain and scope, no page content",
-    ("vectors/wist4/audit-commitments.json", "audited_delta"): "a Delta ID",
-    ("vectors/wist4/audit-commitments.json", "reference_delta"): "a Delta ID",
-    ("vectors/wist4/audit-commitments.json", "message_hex"): "a published preimage of this vector's commitments; the vector's content is placeholder text, not page content",
 }
 
 
@@ -5234,15 +2242,8 @@ def _spec_derived_constants():
     canonical = (ROOT / "vectors" / "wist1" / "delta.canonical").read_bytes()
     out.add(canonical.hex())                      # WIST-1 App A quotes leading chunks
     out.add(hashlib.sha256(b"\x00").hexdigest())  # WIST-3 §4's empty-tree constant
-    out.add(hashlib.sha256(
-        (ROOT / "vectors" / "wist4" / "decay-table.json").read_bytes()).hexdigest())
     payload = json.loads((ROOT / "examples" / "payload.json").read_text())
     out.add(b64u_decode(payload["salt"]).hex())   # WIST-1 App A shows the salt in hex
-    # The 160-hex ECVRF proof: longer than any digest, so the value sweep's
-    # digest lengths never reach it, but WIST-4 App A wraps it into 64-char cells
-    # that are digest-shaped on their own.
-    out.add(json.loads(
-        (ROOT / "vectors" / "wist4" / "sampling.json").read_text())["vrf_proof_hex"])
     wist3 = json.loads((ROOT / "vectors" / "wist3" / "block.json").read_text())
     leaves = [leaf_hash(rfc8785.dumps(e)) for e in wist3["entries"]]
     out.update(h.hex() for h in leaves)           # WIST-3 App A's leaf and node figures
@@ -5315,7 +2316,7 @@ def _no_unsalted_content_digest():
 
     # Values, not just declarations: `registry-update`'s `details` is
     # `{"type": "object"}` for several actions, so a bare digest there would
-    # satisfy every schema in the suite (WIST-4 §9.1). Vectors are swept too — a
+    # satisfy every schema in the suite (WIST-4 §5.1). Vectors are swept too — a
     # digest parked in vectors/ is as published as one in examples/.
     published, encountered = set(), set()
 
@@ -5381,90 +2382,15 @@ def _no_unsalted_content_digest():
         + "\n  ".join(spec_hits)
 check("repo:no-unsalted-content-digest", _no_unsalted_content_digest)
 
-def _dc4_coverage_attestation():
-    """§4's in-band coverage proof must be expressible as a Registry Update.
-
-    An Auditor whose VRF selects nothing in a Block publishes a
-    `coverage_attestation` carrying that Block's vrf_proof, so the proof
-    supplies evidence even for an empty draw. Missing discharge is counted
-    under §4; absence alone does not identify who withheld the evidence.
-    """
-    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
-    actions = schema["properties"]["update"]["properties"]["action"]["enum"]
-    assert "coverage_attestation" in actions, "action enum lacks coverage_attestation"
-    # The enum is append-only. Reordering it would silently reinterpret nothing
-    # in the Log (actions are strings), but it invites an implementation to key
-    # on position; pinning the established prefix leaves appends the only edit.
-    established = ["aggregator_key_add", "aggregator_key_remove", "auditor_admit",
-                   "auditor_remove", "sanction", "sanction_lift", "notice", "appeal",
-                   "appeal_ruling", "parameter_change", "coverage_attestation"]
-    assert actions[:len(established)] == established, \
-        "the action enum was reordered rather than appended to"
-    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
-    attestation = {
-        "update": {
-            "wist_version": "1.0.0",
-            "action": "coverage_attestation",
-            "subject": "audit.example.net",
-            "details": {"block": v["block_hash"], "vrf_proof": v["vrf_proof_hex"],
-                        "prev_record": None},
-            "effective_at": "2026-08-02T16:00:00Z",
-        },
-        "sig": json.loads(
-            (ROOT / "examples" / "registry-update.json").read_text())["sig"],
-    }
-    Draft202012Validator(schema).validate(attestation)
-    # §4 requires the proof, and the whole coverage duty is derived from it:
-    # an attestation without one claims an empty draw and proves nothing.
-    for missing in ("block", "vrf_proof", "prev_record"):
-        bad = copy.deepcopy(attestation)
-        del bad["update"]["details"][missing]
-        try:
-            Draft202012Validator(schema).validate(bad)
-        except ValidationError:
-            continue
-        raise AssertionError(f"coverage_attestation without {missing} validated")
-check("schema:wist4-coverage-attestation", _dc4_coverage_attestation)
-
-def _dc4_auditor_remove_evidence():
-    """WIST-4 §4, §9.1: an auditor_remove is for cause exactly when it carries
-    evidence, so an empty `evidence` array — a removal neither for cause nor
-    an exit — is not a valid Registry Update."""
-    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
-    sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
-    def remove(**over):
-        update = {"wist_version": "1.0.0", "action": "auditor_remove",
-                  "subject": "audit.example.net", "details": {"key_id": "test-aud-k1"},
-                  "effective_at": "2026-08-02T16:00:00Z"}
-        update.update(over)
-        return {"update": update, "sig": sig}
-    Draft202012Validator(schema).validate(remove())
-    Draft202012Validator(schema).validate(remove(evidence=["sha256:" + "0" * 64]))
-    try:
-        Draft202012Validator(schema).validate(remove(evidence=[]))
-    except ValidationError:
-        pass
-    else:
-        raise AssertionError("an auditor_remove with an empty evidence array validated")
-    v = _roster_vector()
-    removes = [e for c in v["cases"] for e in c["entries"] if e["action"] == "auditor_remove"]
-    assert all(e["evidence"] for e in removes if "evidence" in e), \
-        "a roster vector remove carries an empty evidence array"
-    assert any("evidence" in e for e in removes) and any("evidence" not in e for e in removes), \
-        "the roster vector must carry both a removal for cause and an exit"
-    prose = re.sub(r"\s+", " ",
-                   (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "an `evidence` member naming at least one ID" in prose, "§4 does not pin what carrying evidence means"
-check("schema:wist4-auditor-remove-evidence", _dc4_auditor_remove_evidence)
 
 def _dc3_parameter_tuple_effective_at():
     """WIST-3 §7: a `parameter` tuple's `effective_at` is the instant the
     Registry Update carries, not a height.
 
     Every window `effective_at` takes part in is compared against a Block
-    `sealed_at` (WIST-4 §9.1), so a state artifact restating it as an integer
+    `sealed_at` (WIST-4 §5.1), so a state artifact restating it as an integer
     would make a resuming Consumer compare a height against an instant — and
-    the §9 grace period is exactly such a comparison.
+    the §5 grace period is exactly such a comparison.
     """
     schema = json.loads((ROOT / "schemas" / "snapshot-state.schema.json").read_text())
     validator = Draft202012Validator(schema)
@@ -5507,8 +2433,8 @@ def _dc2_feed_domain_mismatch_code():
         "the WIST2-E04 row does not name the mismatch case §4 assigns to it"
     # §4's noise set stays closed at E02/E04, so the mismatch counts as noise
     # by inheritance rather than by a second rule.
-    assert ("Only pings resolving to `WIST2-E02` or `WIST2-E04` count against "
-            "the domain's daily quota Q") in prose, "the noise set moved"
+    assert "Only pings resolving to `WIST2-E02` or `WIST2-E04` count against it" in prose, \
+        "the noise set moved"
 check("spec:wist2-feed-domain-mismatch", _dc2_feed_domain_mismatch_code)
 
 def _wist3_empty_block():
@@ -5615,19 +2541,19 @@ def _ed25519_profile_verdict(a_bytes: bytes, sig: bytes, msg: bytes):
     this one implementation, so they anchor the same profile.
     """
     r_bytes, s_bytes = sig[:32], sig[32:]
-    if ecvrf.string_to_int(s_bytes) >= ecvrf.Q:
+    if ed25519_curve.string_to_int(s_bytes) >= ed25519_curve.Q:
         return False, "s-range"
     try:
-        a_pt = ecvrf.string_to_point(a_bytes)
-        r_pt = ecvrf.string_to_point(r_bytes)
-    except ecvrf.InvalidProof:
+        a_pt = ed25519_curve.string_to_point(a_bytes)
+        r_pt = ed25519_curve.string_to_point(r_bytes)
+    except ed25519_curve.InvalidProof:
         return False, "decode"
-    if ecvrf._is_identity(ecvrf._mul(8, a_pt)) or \
-            ecvrf._is_identity(ecvrf._mul(8, r_pt)):
+    if ed25519_curve._is_identity(ed25519_curve._mul(8, a_pt)) or \
+            ed25519_curve._is_identity(ed25519_curve._mul(8, r_pt)):
         return False, "small-order"
-    k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
-    lhs = ecvrf._mul(ecvrf.string_to_int(s_bytes), ecvrf.BASE)
-    if ecvrf._equal(lhs, ecvrf._add(r_pt, ecvrf._mul(k, a_pt))):
+    k = ed25519_curve.string_to_int(ed25519_curve._sha512(r_bytes, a_bytes, msg)) % ed25519_curve.Q
+    lhs = ed25519_curve._mul(ed25519_curve.string_to_int(s_bytes), ed25519_curve.BASE)
+    if ed25519_curve._equal(lhs, ed25519_curve._add(r_pt, ed25519_curve._mul(k, a_pt))):
         return True, "accept"
     return False, "equation"
 
@@ -5645,14 +2571,14 @@ def _wist1_verification_profile():
     def cofactored_accepts(a_bytes, sig):
         r_bytes, s_bytes = sig[:32], sig[32:]
         try:
-            a_pt = ecvrf.string_to_point(a_bytes)
-            r_pt = ecvrf.string_to_point(r_bytes)
-        except ecvrf.InvalidProof:
+            a_pt = ed25519_curve.string_to_point(a_bytes)
+            r_pt = ed25519_curve.string_to_point(r_bytes)
+        except ed25519_curve.InvalidProof:
             return False
-        k = ecvrf.string_to_int(ecvrf._sha512(r_bytes, a_bytes, msg)) % ecvrf.Q
-        lhs = ecvrf._mul(8, ecvrf._mul(ecvrf.string_to_int(s_bytes) % ecvrf.Q, ecvrf.BASE))
-        rhs = ecvrf._mul(8, ecvrf._add(r_pt, ecvrf._mul(k, a_pt)))
-        return ecvrf._equal(lhs, rhs)
+        k = ed25519_curve.string_to_int(ed25519_curve._sha512(r_bytes, a_bytes, msg)) % ed25519_curve.Q
+        lhs = ed25519_curve._mul(8, ed25519_curve._mul(ed25519_curve.string_to_int(s_bytes) % ed25519_curve.Q, ed25519_curve.BASE))
+        rhs = ed25519_curve._mul(8, ed25519_curve._add(r_pt, ed25519_curve._mul(k, a_pt)))
+        return ed25519_curve._equal(lhs, rhs)
 
     seen_accept = seen_reject = False
     for case in v["cases"]:
@@ -5745,7 +2671,7 @@ _SPECCHECK_CASES = [
 ]
 
 def _ed25519_speccheck_corpus():
-    """External corpus anchor for the §4 profile, in the ecvrf B.3 mold.
+    """External corpus anchor for the §4 profile, an external known-answer corpus.
 
     The strictness vector's cases were authored alongside this suite; a
     misreading of §4 could shape both. The speccheck corpus was authored
@@ -5947,10 +2873,10 @@ def _declaration_key_eligibility_vectors():
     def usable(key):
         raw = canonical_bytes(key["public_key"])
         try:
-            point = ecvrf.string_to_point(raw)
-        except ecvrf.InvalidProof:
+            point = ed25519_curve.string_to_point(raw)
+        except ed25519_curve.InvalidProof:
             return False
-        return not ecvrf._is_identity(ecvrf._mul(8, point))
+        return not ed25519_curve._is_identity(ed25519_curve._mul(8, point))
 
     def signature(key, envelope):
         return _ed25519_profile_verdict(canonical_bytes(key["public_key"]),
@@ -6000,25 +2926,6 @@ def _declaration_key_eligibility_vectors():
             signature_invalid = copy.deepcopy(env)
             signature_invalid["sig"]["value"] = base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode()
             assert result(old, signature_invalid) == "WIST1-E01", case["name"]
-    declarations = {case["name"]: case for case in vector["cases"]}
-    appeal_validator = Draft202012Validator(json.loads(
-        (ROOT / "schemas/registry-update.schema.json").read_text()))
-    appeal_outcomes = set()
-    for probe in vector["appeal_cases"]:
-        case = declarations[probe["declaration_case"]]
-        assert result(case["stored"], case["fetched"]) in {"initial", "ordinary_rotation"}
-        env = probe["appeal"]
-        appeal_validator.validate(env)
-        assert env["update"]["details"]["notice"] == probe["accepted_notice"]
-        assert env["update"]["subject"] == case["fetched"]["publisher"]["domain"]
-        frozen = [key for key in case["fetched"]["publisher"]["keys"] if usable(key)]
-        key = next((key for key in frozen if key["key_id"] == env["sig"]["key_id"]), None)
-        actual = "WIST4-E05" if key is None else "signature_valid" if _ed25519_profile_verdict(
-            canonical_bytes(key["public_key"]), canonical_bytes(env["sig"]["value"]),
-            rfc8785.dumps(env["update"]))[0] else "WIST1-E01"
-        assert actual == probe["expected"], probe["declaration_case"]
-        appeal_outcomes.add(actual)
-    assert appeal_outcomes == {"WIST4-E05", "WIST1-E01", "signature_valid"}
     assert len(excluded_public) == 5 and retained > 0 and immutable_hash > 0
     assert outcomes == {"initial", "ordinary_rotation", "recovery_rotation", "fresh_identity",
                         "WIST1-E01", "WIST1-E02", "WIST1-E08"}
@@ -6118,7 +3025,7 @@ def _declaration_history_blocks(vector, blocks, pinned, entry_types=("publisher_
         assert header["entry_count"] == len(entries)
         hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
         ranks = {name: rank for rank, name in enumerate(
-            ("publisher_declaration", "registry_update", "publisher_delta", "audit_record"))}
+            ("publisher_declaration", "registry_update", "publisher_delta", "label"))}
         positions = [(ranks[entry["type"]], hashed) for entry, hashed in zip(entries, hashes)]
         assert positions == sorted(positions)
         root = merkle_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
@@ -6297,7 +3204,6 @@ def _declaration_conflict_vectors():
 check("vectors:wist1-declaration-conflicts", _declaration_conflict_vectors)
 
 
-
 def _declaration_host_format(value):
     if not isinstance(value, str):
         return True
@@ -6325,26 +3231,24 @@ def _declaration_host_vectors():
     formats = FormatChecker(formats=[])
     formats.checks('wist-canonical-host')(_declaration_host_format)
     schemas = {name: json.loads((ROOT / f'schemas/{name}.schema.json').read_text())
-               for name in ('publisher', 'feed', 'status', 'snapshot-state', 'registry-update')}
+               for name in ('publisher', 'feed', 'status', 'snapshot-state', 'registry-update', 'label')}
     validator = Draft202012Validator(schemas['publisher'], format_checker=formats)
     fields = [schemas['publisher']['properties']['publisher']['properties']['domain'],
               schemas['publisher']['properties']['publisher']['properties']['subdomain_scope']['items'],
               schemas['feed']['properties']['feed']['properties']['domain'],
-              schemas['status']['properties']['domain']]
-    kinds = {'declaration', 'sanction_state', 'recovery_window', 'exclusion',
-             'reputation_inputs', 'record', 'escalation', 'canary_commitment'}
+              schemas['status']['properties']['domain'],
+              schemas['label']['properties']['label']['properties']['labeler']]
+    kinds = {'declaration', 'recovery_window', 'withdrawal', 'label', 'record'}
     for branch in schemas['snapshot-state']['properties']['state']['properties']['entries']['items']['oneOf']:
         items = branch['prefixItems']
         if items[0].get('const') in kinds:
-            fields.append(items[2 if items[0]['const'] == 'canary_commitment' else 1])
-    publisher_actions = {'sanction', 'sanction_lift', 'notice', 'appeal', 'appeal_ruling',
-                         'payload_withdrawal', 'canary_commitment', 'canary_reveal'}
+            fields.append(items[2 if items[0]['const'] == 'withdrawal' else 1])
     subject_branches = [b for b in schemas['registry-update']['allOf']
-                        if set(b['if']['properties']['update']['properties']['action'].get('enum', [])) == publisher_actions]
+                        if b['if']['properties']['update']['properties']['action'].get('const') == 'payload_withdrawal']
     assert len(subject_branches) == 1
     subject_branch = subject_branches[0]
     fields.append(subject_branch['then']['properties']['update']['properties']['subject'])
-    assert len(fields) == 13
+    assert len(fields) == 11
     for case in vector['hosts']:
         expected = case['expected'] == 'well_formed'
         assert _declaration_host_format(case['input']) == expected, case['name']
@@ -6354,14 +3258,6 @@ def _declaration_host_vectors():
             assert Draft202012Validator(field, format_checker=formats).is_valid(case['input']) == expected, case['name']
         if case['canonical'] is not None:
             assert _declaration_host_format(case['canonical']), case['name']
-    for branch in schemas['registry-update']['allOf']:
-        action = branch.get('if', {}).get('properties', {}).get('update', {}).get('properties', {}).get('action', {}).get('const')
-        if action in {'canary_commitment', 'canary_reveal'}:
-            field = branch['then']['properties']['update']['properties']['subject']
-            assert field['format'] == 'wist-canonical-host'
-            for case in vector['hosts']:
-                expected = case['expected'] == 'well_formed' and '.' in case['input']
-                assert Draft202012Validator(field, format_checker=formats).is_valid(case['input']) == expected, case['name']
     author = Ed25519PublicKey.from_public_bytes(b64u_decode(vector['author_key']))
 
     def field_error(env):
@@ -6609,7 +3505,7 @@ def _base64url_vectors():
 
     for path in (ROOT / "schemas").glob("*.json"):
         visit(json.loads(path.read_text()), path.name)
-    assert {kind: len(items) for kind, items in nodes.items()} == {"public_key": 8, "signature": 12, "salt": 1}
+    assert {kind: len(items) for kind, items in nodes.items()} == {"public_key": 5, "signature": 12, "salt": 1}
 
     def encoding_result(value, kind):
         try:
@@ -6824,10 +3720,10 @@ def _recovery_binding_vectors():
         raw = canonical_b64u_decode(key["public_key"])
         assert len(raw) == 32
         try:
-            point = ecvrf.string_to_point(raw)
-        except ecvrf.InvalidProof:
+            point = ed25519_curve.string_to_point(raw)
+        except ed25519_curve.InvalidProof:
             return False
-        return not ecvrf._is_identity(ecvrf._mul(8, point))
+        return not ed25519_curve._is_identity(ed25519_curve._mul(8, point))
 
     def verifies(key, envelope, inner):
         return _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
@@ -7031,251 +3927,9 @@ def _recovery_heads_resume_twin():
         assert result == case["degraded_result"] != case["expected_result"], case["label"]
 check("negative:wist1-recovery-heads-resume", _recovery_heads_resume_twin)
 
-def _recovery_identity_vectors():
-    vector = json.loads((ROOT / "vectors/wist4/recovery-identity.json").read_text())
-    apply, _, replay, _ = _recovery_history_reference(vector)
-    inputs = vector["projection_inputs"]
-    deltas = {d["label"]: d for d in inputs["deltas"]}
-    decay = json.loads((ROOT / "vectors/wist4/decay-table.json").read_text())["values"]
-    tuple_shapes = set()
-    for case in vector["cases"]:
-        states = replay(case["blocks"], case["pinned_head"])
-        resets = [height for height, state in enumerate(states)
-                  if state["reset_height"] == height]
-        assert resets == case["expected_resets"], case["name"]
-        assert len(case["expected_projection"]) == len(states)
-        for height, state in enumerate(states):
-            reset = state["reset_height"]
-            lower = reset if reset is not None else 0
-            eligible = {label for label, d in deltas.items() if lower <= d["height"] <= height}
-            findings = [f for f in inputs["findings"]
-                        if f["height"] <= height and f["delta"] in eligible]
-            urls = {deltas[r["delta"]]["url"] for r in inputs["consistent"]
-                    if r["height"] <= height and r["delta"] in eligible}
-            first = min((deltas[label]["height"] for label in eligible), default=height)
-            elapsed = log_seconds(case["blocks"][height]["header"]["sealed_at"]) - log_seconds(
-                case["blocks"][first]["header"]["sealed_at"])
-            transitions = [{"height": h, "sealed_at_s": h * 3600,
-                            "lift": h in inputs["lifts"], "void_levels": [],
-                            "findings": [{"entry_index": index, "severity": f["severity"]}
-                                         for index, f in enumerate(findings) if f["height"] == h]}
-                           for h in range(lower, height + 1)]
-            derived = {"height": height, "reset_height": reset, "A": elapsed // 86400,
-                       "C": min(len(urls), 500),
-                       "penalty_n": sum(f["severity"] * decay[((height - f["height"]) * 3600) // 86400]
-                                        for f in findings),
-                       "finding_heights": [f["height"] for f in findings],
-                       "active_rungs": _transition_rungs({"blocks": transitions})[-1]}
-            assert derived == case["expected_projection"][height], (case["name"], height, derived)
-            sealed = lambda h: case["blocks"][h]["header"]["sealed_at"]
-            expected_tuple = None if not eligible else [
-                "reputation_inputs", "example.com", sealed(first), reset, min(len(urls), 500),
-                sorted(hashlib.sha256(rfc8785.dumps("example.com") + rfc8785.dumps(url)).hexdigest()[:32]
-                       for url in urls),
-                [[sealed(f["height"]), f["severity"]] for f in findings]]
-            assert expected_tuple == case["expected_tuples"][height], (case["name"], height, "tuple")
-        tuple_shapes |= {("absent" if t is None else "reset" if t[3] is not None else
-                          "multi" if len(t[5]) > 1 and len(t[6]) > 1 else "plain")
-                         for t in case["expected_tuples"]}
-        target = inputs["notice_target"]
-        target_state = case["expected_projection"][target["notice_height"]]
-        matches = target["activation_height"] in target_state["finding_heights"] and (
-            target["level"] in target_state["active_rungs"])
-        assert matches == case["expected_notice_target_matches_identity"]
-        for height in (2, 3, 4, 5, 6, 7, 8, 9, 24, 170, 171, 172, 173, 174):
-            blocks = case["blocks"][:height + 1]
-            pinned = "sha256:" + hashlib.sha256(rfc8785.dumps(blocks[-1]["header"])).hexdigest()
-            prefix = replay(blocks, pinned)
-            assert prefix == states[:height + 1], (case["name"], height, "prefix depends on future")
-        for probe in case["probes"]:
-            state = copy.deepcopy(states[probe["prefix_height"]])
-            instant = log_seconds(probe["candidate_sealed_at"])
-            assert instant > log_seconds(case["blocks"][probe["prefix_height"]]["header"]["sealed_at"])
-            result = apply(state, probe["candidate"], instant, probe["candidate_sealed_at"],
-                           probe["prefix_height"] + 1)
-            assert result == probe["expected_result"]
-            if "successor" in probe:
-                result = apply(state, probe["successor"], instant, probe["candidate_sealed_at"],
-                               probe["prefix_height"] + 1)
-                assert result == probe["expected_successor_result"]
-            assert state["reset_height"] == probe["expected_reset"]
-        opening = case["blocks"][3]["entries"]
-        seqs = [entry["body"]["publisher"]["seq"] for entry in opening]
-        assert seqs.index(3) < seqs.index(2), "fixture does not reverse owner/competitor storage order"
-    assert tuple_shapes >= {"absent", "reset", "multi"}, tuple_shapes
-    preserved, reset_first = vector["cases"]
-    assert preserved["expected_resets"] == [172]
-    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "a `reputation_inputs` tuple exists once the domain has an accepted Delta under its current identity" in prose3
-    assert "carries the latest such establishing `sealed_at`" in prose3
-    assert "a `coverage_failure` tuple exists for each failed duty Block that counts at `log_position`" in prose3
-    assert reset_first["expected_resets"] == [3, 171]
-    rows = preserved["expected_projection"]
-    assert rows[3]["active_rungs"] == [1, 3] and rows[3]["finding_heights"] == [2]
-    assert rows[7]["C"] == 2 and rows[8]["active_rungs"] == [1, 3, 4]
-    assert rows[9]["active_rungs"] == rows[171]["active_rungs"] == []
-    assert rows[171]["A"] == 7 and rows[171]["penalty_n"] < rows[8]["penalty_n"]
-    assert rows[172]["finding_heights"] == [] and rows[173]["finding_heights"] == [173]
-    assert reset_first["expected_projection"][7]["C"] == 0
-
-
-check("vectors:wist4-recovery-identity", _recovery_identity_vectors)
-
-
-def _recovery_appeal_vectors():
-    vector = json.loads((ROOT / "vectors/wist4/recovery-appeals.json").read_text())
-    _, _, _, apply_block = _recovery_history_reference(vector)
-    validator = Draft202012Validator(json.loads(
-        (ROOT / "schemas/registry-update.schema.json").read_text()))
-    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
-
-    def digest(inner):
-        return "sha256:" + hashlib.sha256(rfc8785.dumps(inner)).hexdigest()
-
-    def authority_prefixes(case, blocks, pinned):
-        authenticated = _declaration_history_blocks(
-            vector, blocks, pinned, ("publisher_declaration", "registry_update"))
-        states, authorities, prefixes = {}, {}, []
-        for block, (header, candidates) in zip(blocks, authenticated):
-            outcome, states = apply_block(states, header, candidates)
-            assert outcome == "accepted"
-            for entry in block["entries"]:
-                if entry["type"] != "registry_update":
-                    continue
-                envelope = entry["body"]
-                validator.validate(envelope)
-                notice = envelope["update"]
-                assert notice["action"] == "notice" and notice["details"]["kind"] == "sanction"
-                if envelope["sig"]["key_id"] != vector["log_key"]["key_id"]:
-                    continue
-                try:
-                    log_key.verify(b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(notice))
-                except InvalidSignature:
-                    continue
-                notice_id = digest(notice)
-                if notice_id not in case["assumed_eligible_notices"]:
-                    continue
-                state = states[notice["subject"]]
-                selected = state["chain"] if state["end"] is not None else state["current"]
-                authorities.setdefault(notice_id, {"height": header["block_number"],
-                                                   "subject": notice["subject"],
-                                                   "declaration": digest(selected["publisher"]),
-                                                   "keys": copy.deepcopy(selected["publisher"]["keys"])})
-            prefixes.append(copy.deepcopy(authorities))
-        return prefixes
-
-    def signature_result(envelope, authorities):
-        validator.validate(envelope)
-        inner = envelope["update"]
-        assert inner["action"] == "appeal"
-        notice = authorities.get(inner["details"]["notice"])
-        if notice is None or notice["subject"] != inner["subject"]:
-            return "WIST4-E05"
-        entry = next((key for key in notice["keys"] if key["key_id"] == envelope["sig"]["key_id"]), None)
-        if entry is None:
-            return "WIST4-E05"
-        try:
-            Ed25519PublicKey.from_public_bytes(b64u_decode(entry["public_key"])).verify(
-                b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(inner))
-        except InvalidSignature:
-            return "WIST1-E01"
-        return "authorized"
-
-    positions, outcomes = set(), set()
-    for case in vector["cases"]:
-        prefixes = authority_prefixes(case, case["blocks"], case["pinned_head"])
-        actual = sorted(({field: binding[field] for field in ("height", "declaration", "keys")}
-                         for binding in prefixes[-1].values()), key=lambda row: row["height"])
-        assert actual == case["expected_authority"], case["name"]
-        assert set(prefixes[-1]) == set(case["assumed_eligible_notices"])
-        for height in (0, 1, 2, 3, 4, 168, 169, 170):
-            blocks = case["blocks"][:height + 1]
-            independent = authority_prefixes(case, blocks, digest(blocks[-1]["header"]))
-            assert independent == prefixes[:height + 1], "notice authority depends on future history"
-        for height in (0, 1, 3, 4, 169, 170):
-            entries = case["blocks"][height]["entries"]
-            notice_index = next(i for i, entry in enumerate(entries) if entry["type"] == "registry_update")
-            assert notice_index == len(entries) - 1
-            notice_hash = leaf_hash(rfc8785.dumps(entries[notice_index]))
-            declaration_hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries[:notice_index]]
-            assert (notice_hash > max(declaration_hashes)) == case["notice_leaf_after_declaration_leaves"]
-            if not case["notice_leaf_after_declaration_leaves"]:
-                assert notice_hash < min(declaration_hashes)
-            positions.add(case["notice_leaf_after_declaration_leaves"])
-        opening = [entry["body"]["publisher"]["seq"] for entry in case["blocks"][1]["entries"]
-                   if entry["type"] == "publisher_declaration"]
-        assert opening == [2, 1], "opening history does not reverse competitor and owner storage order"
-        for probe in case["probes"]:
-            authorities = prefixes[probe["prefix_height"]]
-            outcome = signature_result(probe["appeal"], authorities)
-            assert outcome == probe["expected"], (case["name"], probe["name"], outcome)
-            outcomes.add(outcome)
-            if outcome == "authorized":
-                mutated = copy.deepcopy(probe["appeal"])
-                mutated["update"]["details"]["grounds"] = "Changed after signing"
-                assert signature_result(mutated, authorities) == "WIST1-E01"
-                without_notice = dict(authorities)
-                del without_notice[probe["appeal"]["update"]["details"]["notice"]]
-                assert signature_result(probe["appeal"], without_notice) == "WIST4-E05"
-        future_keys = actual[3]["keys"]
-        assert all(key["valid_from"] > case["blocks"][-1]["header"]["sealed_at"] for key in future_keys)
-        excluded = copy.deepcopy(case)
-        notice_id = case["assumed_eligible_notices"][1]
-        excluded["assumed_eligible_notices"].remove(notice_id)
-        without_notice = authority_prefixes(excluded, case["blocks"], case["pinned_head"])
-        assert all(notice_id not in prefix for prefix in without_notice)
-        for rejection in case["author_rejections"]:
-            blocks = case["blocks"][:1] + [rejection["block"]]
-            _declaration_history_blocks(vector, blocks, rejection["pinned_head"],
-                                        ("publisher_declaration", "registry_update"))
-            if rejection["type"] == "registry_update":
-                accepted = authority_prefixes(case, blocks, rejection["pinned_head"])
-                assert accepted[-1] == prefixes[0], "invalid notice supplied authority"
-            else:
-                try:
-                    authority_prefixes(case, blocks, rejection["pinned_head"])
-                except AssertionError:
-                    pass
-                else:
-                    raise AssertionError("Block signature replaced Declaration author verification")
-        rejection = case["ordering_rejection"]
-        header = rejection["header"]
-        log_key.verify(b64u_decode(rejection["sig"]["value"]), rfc8785.dumps(header))
-        assert header["merkle_root"] == "sha256:" + merkle_root(
-            [leaf_hash(rfc8785.dumps(entry)) for entry in rejection["entries"]]).hex()
-        try:
-            _declaration_history_blocks(vector, case["blocks"][:1] + [rejection], digest(header),
-                                        ("publisher_declaration", "registry_update"))
-        except AssertionError:
-            pass
-        else:
-            raise AssertionError("accepted Registry Update before Declaration group")
-        for corrupted_field in ("declaration", "notice", "block"):
-            corrupted = copy.deepcopy(case["blocks"])
-            target = corrupted[1]
-            if corrupted_field == "block":
-                signature = target["sig"]
-            else:
-                selected_type = "publisher_declaration" if corrupted_field == "declaration" else "registry_update"
-                signature = next(entry["body"]["sig"] for entry in target["entries"]
-                                 if entry["type"] == selected_type)
-            value = bytearray(b64u_decode(signature["value"]))
-            value[0] ^= 1
-            signature["value"] = base64.urlsafe_b64encode(value).rstrip(b"=").decode()
-            try:
-                authority_prefixes(case, corrupted, case["pinned_head"])
-            except Exception:
-                pass
-            else:
-                raise AssertionError(f"accepted tampered {corrupted_field}")
-    assert positions == {False, True}
-    assert outcomes == {"authorized", "WIST1-E01", "WIST4-E05"}
-
-
-check("vectors:wist4-recovery-appeals", _recovery_appeal_vectors)
 
 def _parameter_registry_enum():
-    """WIST-4 §9's table and the `parameter_change` enum must correspond exactly.
+    """WIST-4 §5's table and the `parameter_change` enum must correspond exactly.
 
     The table is what a human reads and the enum is what a validator enforces.
     An identifier in one and not the other means either a parameter nobody can
@@ -7285,10 +3939,10 @@ def _parameter_registry_enum():
     deliberately not amendable must say so with an em dash rather than by
     omitting a cell.
     """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
+    spec = (ROOT / "specs" / "WIST-4-governance.md").read_text()
+    section5 = spec.split("## 5. Parameter Registry")[1].split("### 5.1.")[0]
     ids, rows = set(), 0
-    for line in section9.splitlines():
+    for line in section5.splitlines():
         if not line.startswith("|"):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
@@ -7299,12 +3953,12 @@ def _parameter_registry_enum():
         rows += 1
         found = set(re.findall(r"`([a-z0-9_]+)`", cells[1]))
         assert found or cells[1] == "—", (
-            f"§9 row {cells[0]!r} has an Identifier cell that is neither a "
+            f"§5 row {cells[0]!r} has an Identifier cell that is neither a "
             f"backticked identifier nor an em dash: {cells[1]!r}")
         overlap = ids & found
-        assert not overlap, f"§9 lists {sorted(overlap)} in more than one row"
+        assert not overlap, f"§5 lists {sorted(overlap)} in more than one row"
         ids |= found
-    assert rows >= 30, f"only {rows} Parameter Registry rows parsed; the sweep is not table-wide"
+    assert rows == 20, f"{rows} Parameter Registry rows parsed; the table has twenty"
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     enum = None
     for branch in schema["allOf"]:
@@ -7317,44 +3971,19 @@ def _parameter_registry_enum():
     missing_from_enum = sorted(ids - set(enum))
     missing_from_table = sorted(set(enum) - ids)
     assert not missing_from_enum, \
-        f"§9 publishes identifiers the enum will not accept: {missing_from_enum}"
+        f"§5 publishes identifiers the enum will not accept: {missing_from_enum}"
     assert not missing_from_table, \
-        f"the enum accepts identifiers §9 publishes no row for: {missing_from_table}"
+        f"the enum accepts identifiers §5 publishes no row for: {missing_from_table}"
 check("spec:parameter-registry-enum", _parameter_registry_enum)
 
-def _decay_parameters_twin():
-    """WIST-4 §6.1, §9: the decay constant is fixed by the table's bytes and
-    carries no identifier; the horizon is amendable only down to the table."""
-    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
-    validator = Draft202012Validator(schema)
-    example = json.loads((ROOT / "examples" / "registry-update.json").read_text())
-    def change(parameter, value):
-        doc = copy.deepcopy(example)
-        doc["update"]["action"] = "parameter_change"
-        doc["update"]["details"] = {"parameter": parameter, "value": value}
-        doc["update"]["effective_at"] = "2026-08-12T12:00:00Z"
-        return doc
-    rejected = lambda doc: bool(list(validator.iter_errors(doc)))
-    assert rejected(change("decay_constant_days", 90)), \
-        "the schema still accepts a parameter_change to the decay constant"
-    assert rejected(change("decay_horizon_days", 1826)), \
-        "the schema accepts a horizon past the table's last index"
-    assert not rejected(change("decay_horizon_days", 1825)), \
-        "the schema rejects the table's own horizon"
-    assert not rejected(change("decay_horizon_days", 365)), \
-        "the schema rejects a horizon inside the table"
-    table = json.loads((ROOT / "vectors" / "wist4" / "decay-table.json").read_text())
-    assert table["max_days"] == 1825 and len(table["values"]) == 1826, \
-        "the horizon bound and the table's length disagree"
-check("negative:wist4-decay-parameters", _decay_parameters_twin)
 
 def _parameter_change_bounds():
     """The bounds each `parameter_change` branch imposes, by identifier.
 
     A bound is a (minimum, maximum) pair with `None` for an absent side: some
     parameters are nullified by a value below a floor, some by one above a
-    ceiling, and `similarity_consistent` and `similarity_variance_floor` by
-    both — read them as one shape rather than assuming every bound is a floor.
+    ceiling, and `block_cadence_seconds` by both — read them as one shape
+    rather than assuming every bound is a floor.
     """
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     for branch in schema["allOf"]:
@@ -7371,28 +4000,28 @@ def _parameter_change_bounds():
     raise AssertionError("registry-update.schema.json has no parameter_change branch")
 
 def _parameter_bounds():
-    """Every bound §9 publishes is the bound the schema enforces, and bites.
+    """Every bound §5 publishes is the bound the schema enforces, and bites.
 
     A bound that lives only in prose is an argument, not a constraint: the
     parameters that carry one carry it because a value past it retires a
     mechanism the suite depends on, and nothing but the schema stands between
     a signed `parameter_change` and that outcome. So the two are compared in
     both directions — a published bound the schema does not impose, and a
-    schema bound §9 does not publish, are both failures — and each side of each
+    schema bound §5 does not publish, are both failures — and each side of each
     bound is then exercised at its own boundary rather than assumed to be
     wired up.
 
-    The table is read out of §9 rather than restated here for the same reason
+    The table is read out of §5 rather than restated here for the same reason
     every other check in this file reads its thresholds from the document: a
-    copy kept here would agree with itself while §9 drifted.
+    copy kept here would agree with itself while §5 drifted.
     """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section9 = spec.split("## 9. Parameter Registry")[1].split("### 9.1.")[0]
-    # §9's bounds table is the three-column one: | `parameter` | bound | why |.
+    spec = (ROOT / "specs" / "WIST-4-governance.md").read_text()
+    section5 = spec.split("## 5. Parameter Registry")[1].split("### 5.1.")[0]
+    # §5's bounds table is the three-column one: | `parameter` | bound | why |.
     # The four-column Parameter Registry table is the defaults table and is
     # parsed elsewhere; keying on the column count keeps the two apart.
     published = {}
-    for line in section9.splitlines():
+    for line in section5.splitlines():
         if not line.startswith("|"):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
@@ -7409,14 +4038,14 @@ def _parameter_bounds():
             else:
                 hi = n if op == "≤" else n - 1
         assert lo is not None or hi is not None, \
-            f"§9's bounds table gives {names[0]} no parseable bound: {cells[1]!r}"
-        assert cells[2], f"§9's bounds table gives {names[0]} no stated consequence"
+            f"§5's bounds table gives {names[0]} no parseable bound: {cells[1]!r}"
+        assert cells[2], f"§5's bounds table gives {names[0]} no stated consequence"
         published[names[0]] = (lo, hi)
-    assert len(published) >= 20, \
-        f"only {len(published)} bounds parsed from §9; the table is not being read"
+    assert len(published) == 17, \
+        f"{len(published)} bounds parsed from §5; the table has seventeen"
     enforced = _parameter_change_bounds()
     assert published == enforced, (
-        "§9's published bounds and the schema's differ:\n"
+        "§5's published bounds and the schema's differ:\n"
         f"  published: {dict(sorted(published.items()))}\n"
         f"  enforced:  {dict(sorted(enforced.items()))}")
 
@@ -7427,7 +4056,7 @@ def _parameter_bounds():
     sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
     def change(parameter, value):
         return {"update": {"wist_version": "1.0.0", "action": "parameter_change",
-                           "subject": "log.example.org",
+                           "subject": parameter,
                            "details": {"parameter": parameter, "value": value},
                            "effective_at": "2026-08-12T16:00:00Z"},
                 "sig": sig}
@@ -7455,31 +4084,25 @@ def _parameter_bounds():
             assert not v.is_valid(change(name, hi + 1)), \
                 f"a parameter_change setting {name} to {hi + 1}, above its ceiling, validates"
 
-    # The parameters whose extremes most completely nullify §8 must each be
-    # bounded, by name: a generalization that quietly dropped one of them
-    # would still satisfy every comparison above.
-    for name in ("sampling_floor", "sampling_ceiling", "confirm_window_hours",
-                 "coverage_deadline_hours", "confirm_auditors", "penalty_weight"):
+    # The parameters whose extremes most completely nullify a mechanism must
+    # each be bounded, by name: a generalization that quietly dropped one of
+    # them would still satisfy every comparison above.
+    for name in ("block_cadence_seconds", "domain_block_entries_max", "max_inclusion_blocks",
+                 "quota_base", "feed_window", "record_seal_blocks", "recovery_window_days"):
         assert enforced.get(name, (None, None))[0], \
             f"{name} carries no floor, so a parameter_change may zero it"
         assert not v.is_valid(change(name, 0)), f"{name} may still be set to zero"
+    assert enforced["block_cadence_seconds"][1] == 86400, "the cadence has no ceiling"
 
-    # `mirror_retention_days` is derived, not chosen: it is the longest span
-    # WIST-4 §7's own due process can run, so raising any deadline without
-    # raising it would leave an appellant unable to fetch the Blocks holding
-    # the Audit Records its sanction rests on (WIST-3 §6).
+    # `mirror_retention_days` is bounded by the availability window: a Consumer
+    # resuming from a Snapshot published inside `payload_window_days` must
+    # still find the Blocks above it at a Mirror (WIST-3 §6, §8).
     defaults = _registry_table_defaults()
-    derived = (defaults["appeal_window_days"] + defaults["appeal_seal_days"]
-               + defaults["ruling_deadline_days"])
-    assert enforced["mirror_retention_days"][0] == derived, (
-        f"the mirror retention floor is {enforced['mirror_retention_days'][0]}, but "
-        f"§7's appeal window ({defaults['appeal_window_days']}) plus its sealing "
-        f"deadline ({defaults['appeal_seal_days']}) plus its ruling deadline "
-        f"({defaults['ruling_deadline_days']}) is {derived} days")
-    assert defaults["mirror_retention_days"] >= derived, \
-        "the published mirror retention default is below its own floor"
-    assert str(derived) in section9, \
-        f"§9 does not state the {derived}-day span the floor is derived from"
+    assert enforced["mirror_retention_days"][0] * 6 == defaults["payload_window_days"], (
+        f"the mirror retention floor is {enforced['mirror_retention_days'][0]}, not a sixth of "
+        f"the {defaults['payload_window_days']}-day availability window")
+    assert "`payload_window_days` divided by 6" in re.sub(r"\s+", " ", section5), \
+        "§5 does not state the retention-to-window rule"
 
     # Three of these floors are derived from octet counts this harness can
     # compute, so the published numbers are checked against the artifacts they
@@ -7489,6 +4112,11 @@ def _parameter_bounds():
         "the extract cap floor is not the octet length of JCS of the empty extract"
     assert enforced["summary_cap_bytes"][0] == len(rfc8785.dumps({"title": ""})), \
         "the summary cap floor is not the octet length of the smallest conforming summary"
+    assert enforced["links_cap_bytes"][0] == len(rfc8785.dumps({"total": 0, "urls": []})), \
+        "the links cap floor is not the octet length of the empty links member"
+    for name in ("url_cap_bytes", "link_url_cap_bytes"):
+        assert enforced[name][0] == len(rfc8785.dumps("https://a.b/")), \
+            f"the {name} floor is not the octet length of the shortest two-label Normalized URL"
     empty_block = json.loads((ROOT / "examples" / "block.json").read_text())
     empty_block["entries"] = []
     empty_block["header"]["entry_count"] = 0
@@ -7497,26 +4125,24 @@ def _parameter_bounds():
         "WIST-3 §3.2 requires an Aggregator to be able to seal")
 
     # The catch-all must reach the parameters that exist, not only later ones:
-    # a wording scoped to `confirm_auditors`, `penalty_weight` "and any later
-    # parameter serving the same role" excludes every present parameter it
-    # does not happen to name.
-    assert re.search(r"MUST\s*\n?NOT set \*\*any\*\* parameter", section9), \
-        "§9's nullification rule no longer reaches every present parameter"
-    assert "any later parameter serving the same role" not in section9, \
-        "§9's nullification rule is still scoped to parameters a later revision adds"
+    # a wording scoped to named parameters "and any later parameter serving
+    # the same role" excludes every present parameter it does not happen to
+    # name.
+    assert re.search(r"MUST\s*\n?NOT set \*\*any\*\* parameter", section5), \
+        "§5's nullification rule no longer reaches every present parameter"
+    assert "any later parameter serving the same role" not in section5, \
+        "§5's nullification rule is still scoped to parameters a later revision adds"
 check("spec:parameter-bounds", _parameter_bounds)
 
 def _parameter_change_integer():
     """`parameter_change.value` is the one field that rewrites a constant.
 
-    WIST-4 §6 states that every input to reputation is an integer and §11 that
-    "there is no conforming path that uses `double`"; WIST-4 §4 says the same of
-    the sampling test. Both claims are about the constants as much as the
-    variables, and this field is the only way a constant is ever rewritten — so
-    a `number` here is the one hole through which a rational reaches §6.2's
-    denominator (`penalty_weight`), §4's clamp (`sampling_slope`) or §5's
-    thresholds. Every default §9 publishes is already an integer in its own
-    unit, so nothing conforming is lost by typing it.
+    WIST-4 §5 states that every value the registry carries is an integer, and
+    every window, cap and cadence in the suite is integer arithmetic over
+    those values. This field is the only way a constant is ever rewritten, so
+    a `number` here is the one hole through which a rational reaches a Block
+    grid or a byte cap. Every default §5 publishes is already an integer in
+    its own unit, so nothing conforming is lost by typing it.
     """
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     branch = next(b for b in schema["allOf"]
@@ -7551,32 +4177,31 @@ def _parameter_change_integer():
     sig = json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]
     def change(parameter, value):
         return {"update": {"wist_version": "1.0.0", "action": "parameter_change",
-                           "subject": "log.example.org",
+                           "subject": parameter,
                            "details": {"parameter": parameter, "value": value},
                            "effective_at": "2026-08-12T16:00:00Z"},
                 "sig": sig}
-    for parameter, rational, whole in (("penalty_weight", 1.5, 2),
-                                       ("c_cap", 2.5, 3),
-                                       ("provisional_cap_u", 100000.5, 100000),
-                                       ("sampling_slope", 0.5, 1),
-                                       ("similarity_consistent", 600000.25, 600000),
-                                       ("age_norm_days", 730.5, 730)):
+    for parameter, rational, whole in (("quota_base", 1.5, 2),
+                                       ("block_cadence_seconds", 3600.5, 3600),
+                                       ("payload_window_days", 180.5, 180),
+                                       ("feed_window", 0.5, 1),
+                                       ("extract_cap_bytes", 32768.25, 32768)):
         assert not v.is_valid(change(parameter, rational)), \
             f"a parameter_change setting {parameter} to the rational {rational} validates"
         assert v.is_valid(change(parameter, whole)), \
             f"a parameter_change setting {parameter} to the integer {whole} is rejected"
     # JSON has one number type, so a whole-valued float is the same value as
     # the integer beside it; the guard must not turn on the Python literal.
-    assert v.is_valid(change("penalty_weight", 5.0)), \
+    assert v.is_valid(change("quota_base", 5.0)), \
         "5.0 and 5 are one JSON value, and the schema must not distinguish them"
 
-    # WIST-4 §9 must say so, or an implementer reading prose alone sees a number.
-    section9 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text() \
-        .split("## 9. Parameter Registry")[1]
-    assert "**Every value the registry carries is an integer**" in section9, \
-        "WIST-4 §9 does not state that every registry value is an integer"
-    assert "`value` (a number" not in section9, \
-        "WIST-4 §9.1 still describes `value` as a number"
+    # WIST-4 §5 must say so, or an implementer reading prose alone sees a number.
+    section5 = (ROOT / "specs" / "WIST-4-governance.md").read_text() \
+        .split("## 5. Parameter Registry")[1]
+    assert "**Every value the registry carries is an integer**" in section5, \
+        "WIST-4 §5 does not state that every registry value is an integer"
+    assert "`value` (a number" not in section5, \
+        "WIST-4 §5.1 still describes `value` as a number"
 check("schema:parameter-change-integer", _parameter_change_integer)
 
 def _dc4_payload_withdrawal():
@@ -7616,212 +4241,13 @@ def _dc4_payload_withdrawal():
     assert not v.is_valid(bad), "a withdrawal naming no well-formed Delta ID validates"
 check("schema:wist4-payload-withdrawal", _dc4_payload_withdrawal)
 
-def _dc4_appendix_figures():
-    """WIST-4's worked example must quote the vector, not a remembered figure.
-
-    Figures transcribed into prose drift silently from the vectors that
-    produced them. This pins every published figure to
-    vectors/wist4/sampling.json.
-    """
-    v = json.loads((ROOT / "vectors" / "wist4" / "sampling.json").read_text())
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    flat = spec.replace("`<br>`", "")   # long hex is wrapped inside table cells
-    for field in ("block_hash", "alpha_hex", "vrf_proof_hex", "beta_hex",
-                  "delta_id", "draw_first8_hex", "auditor_public_key"):
-        assert v[field] in flat, f"WIST-4 does not quote sampling.json {field}"
-    for c in v["selection"]:
-        for field in ("delta_id", "draw_first8_hex", "lhs_approx", "rhs_approx"):
-            assert c[field] in flat, \
-                f"WIST-4 does not quote {c['label']} {field} = {c[field]}"
-        for n in (c["D"], c["p_1e7"], c["reputation_u"]):
-            assert str(n) in flat or f"{n:,}".replace(",", " ") in flat, \
-                f"WIST-4 does not quote {c['label']} value {n}"
-        # The Selected? cell itself, pinned to its own row via the
-        # (lhs_approx, rhs_approx) pair — unique per selection entry — so a
-        # hand-edit flipping "yes" to "no" (or vice versa) on the wrong row
-        # cannot pass unnoticed. Bold markers (`**yes**`) are tolerated.
-        word = "yes" if c["selected"] else "no"
-        row = re.escape(f"{c['lhs_approx']} | {c['rhs_approx']} |")
-        assert re.search(row + r"\s*\*{0,2}" + word + r"\*{0,2}\s*\|", flat), \
-            f"WIST-4's Selected? column for {c['label']} does not say {word!r} on its own row"
-    # No floating-point rendering of the sampling rate may survive in §4's
-    # normative text: the integers are the definition, decimals only a reading.
-    section4 = flat.split("## 4. Audit Sampling")[1].split("## 5.")[0]
-    for stale in ("draw(d) <", "0.30 x (1 - reputation)", "clamp(0.02"):
-        assert stale not in section4, f"§4 still specifies sampling in floats: {stale!r}"
-check("spec:wist4-appendix-figures", _dc4_appendix_figures)
-
-# 5. WIST-4 §6: reputation, recomputed from the normative decay table using
-# nothing but integers. A float anywhere in this check would defeat its point.
-WIST4 = ROOT / "vectors" / "wist4"
-
-def _dc4_decay_table():
-    raw = (WIST4 / "decay-table.json").read_bytes()
-    # Structural assertions run BEFORE the digest pin. The digest would catch
-    # any mutation first and report only "digest mismatch", which tells an
-    # implementer nothing about what is wrong with the table it is holding.
-    t = json.loads(raw)
-    assert t["scale"] == 1_000_000_000, "decay scale drifted"
-    assert t["max_days"] == 1825, "decay horizon drifted"
-    v = t["values"]
-    assert len(v) == t["max_days"] + 1, "table length does not match max_days"
-    assert all(isinstance(x, int) and not isinstance(x, bool) for x in v), \
-        "decay table must hold integers, not floats"
-    assert v[0] == 1_000_000_000, "decay(0) must be exactly 1e9"
-    assert all(v[i] > v[i + 1] for i in range(len(v) - 1)), \
-        "decay table must be strictly decreasing"
-    assert v[-1] > 0, "the horizon value must be positive (expiry is the step to 0)"
-    # Only now the byte-level pin, which is what implementations key on.
-    digest = hashlib.sha256(raw).hexdigest()
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    assert digest in spec, f"WIST-4 §6.1 does not pin the decay table digest {digest}"
-check("vectors:wist4-decay-table", _dc4_decay_table)
-
-def _dc4_reputation():
-    """Recompute every published intermediate from §6, in integers only."""
-    r = json.loads((WIST4 / "reputation.json").read_text())
-    table = json.loads((WIST4 / "decay-table.json").read_text())
-    values, scale, max_days = table["values"], table["scale"], table["max_days"]
-    k, micro = r["constants"], r["micro_scale"]
-    assert r["decay_scale"] == scale, "vectors disagree about the decay scale"
-    assert micro == 1_000_000, "reputation resolution drifted"
-
-    def decay(t):
-        return values[t] if t <= max_days else 0
-
-    discriminating = []
-
-    def recompute(case):
-        A, C = case["A"], case["C"]
-        assert C == min(case["distinct_audited_urls"], k["c_cap"]), "C_cap not applied"
-        base = k["base_at_age_0"] + (
-            (micro - k["base_at_age_0"]) * min(A, k["age_normalization_days"])
-        ) // k["age_normalization_days"]
-        assert base == case["base_u"], f"base_u mismatch in {case['label']}"
-        # §6's evaluation-order rule: the division binds to the product before
-        # it and never absorbs the leading constant. The other parse must be
-        # observably wrong at every published row, so an implementation that
-        # reads the rule the other way fails this vector instead of shipping.
-        folded = (k["base_at_age_0"]
-                  + (micro - k["base_at_age_0"]) * min(A, k["age_normalization_days"])
-                  ) // k["age_normalization_days"]
-        assert folded != base, \
-            f"{case['label']}: the mis-parsed base_u coincides here, so this row " \
-            "cannot discriminate the two readings"
-        penalty = 0
-        prev_t = -1
-        for inc in case["inconsistencies"]:
-            assert inc["severity"] in (1, 2, 3), "severity out of range"
-            assert inc["t_days"] >= prev_t, "incidents not in ascending t_i order"
-            prev_t = inc["t_days"]
-            assert inc["decay"] == decay(inc["t_days"]), "decay value not from the table"
-            penalty += inc["severity"] * decay(inc["t_days"])
-        assert penalty == case["penalty_n"], f"penalty_n mismatch in {case['label']}"
-        num = base * (C + 1) * scale
-        den = (C + 1) * scale + k["penalty_weight"] * penalty
-        assert num == case["numerator"] and den == case["denominator"], \
-            f"numerator/denominator mismatch in {case['label']}"
-        formula = max(0, min(micro, num // den))
-        assert formula == case["formula_u"], f"formula_u mismatch in {case['label']}"
-        provisional = A < k["gate_age_days"] or C < k["gate_c"]
-        assert provisional == case["provisional"], f"gate mismatch in {case['label']}"
-        # The cap is a ceiling, never a floor: min(formula, cap).
-        rep = min(formula, k["provisional_cap_u"]) if provisional else formula
-        assert rep == case["reputation_u"], f"reputation_u mismatch in {case['label']}"
-        assert rep <= formula, "the Provisional cap acted as a floor"
-        q = k["quota_base"] + (k["quota_slope"] * rep) // micro
-        assert q == case["Q"], f"Q mismatch in {case['label']}"
-        # Same rule for Q: dividing reputation_u first collapses the slope to
-        # zero for every sub-unit reputation.
-        divided_first = k["quota_base"] + k["quota_slope"] * (rep // micro)
-        if rep < micro:
-            assert divided_first != q, \
-                f"{case['label']}: the mis-parsed Q coincides here"
-            discriminating.append(case["label"])
-        # §4's integer sampling rate for this reputation, recomputed here.
-        p = min(max(200_000 + 3 * (micro - rep), 200_000), 5_000_000)
-        assert p == case["p_1e7"], f"p_1e7 mismatch in {case['label']}"
-        assert case["p_readable"] == "0.%07d" % p, "readable p does not match p_1e7"
-        return rep
-
-    w = r["worked_example"]
-    # A and t_i are Block-derived, not asserted: recompute them from sealed_at.
-    def secs(ts):
-        return log_seconds(ts)
-    s = w["sealed_at"]
-    assert (secs(s["block_n"]) - secs(s["first_delta_block"])) // 86400 == w["A"], \
-        "A is not the whole-day count between the two Block sealed_at values"
-    assert (secs(s["block_n"]) - secs(s["confirming_block"])) // 86400 == \
-        w["inconsistencies"][0]["t_days"], "t_i is not Block-derived"
-    block = json.loads((ROOT / "examples" / "block.json").read_text())
-    assert s["first_delta_block"] == block["header"]["sealed_at"], \
-        "worked example is not anchored to the example Block"
-    recompute(w)
-
-    by_label = {c["label"]: recompute(c) for c in r["boundary"]}
-    # Requirement: reputation MUST NOT decrease solely because a gate lifted.
-    for lo, hi in (("gate-age-below", "gate-age-at"),
-                   ("gate-age-at", "gate-age-above"),
-                   ("gate-age-below-penalized", "gate-age-at-penalized"),
-                   ("gate-c-below", "gate-c-at")):
-        assert by_label[lo] <= by_label[hi], \
-            f"reputation fell crossing the gate: {lo}={by_label[lo]} > {hi}={by_label[hi]}"
-    # The cap is met from below, not jumped past: at A = 0 the ungated formula
-    # equals the cap exactly, which is what removes the graduation cliff.
-    new = next(c for c in r["boundary"] if c["label"] == "new-domain")
-    assert new["formula_u"] == k["provisional_cap_u"] == new["reputation_u"], \
-        "a brand-new domain no longer meets the cap exactly"
-    assert new["Q"] == 1100, "the new-domain quota is not 1100"
-    assert discriminating, "no published row discriminates the two readings of Q"
-check("vectors:wist4-reputation", _dc4_reputation)
-
-def _dc4_evaluation_order():
-    """§6's parenthesization is normative, so the spec must carry it verbatim.
-
-    A wording of the form "that division is its last operation" is literally
-    false for `base_u` and `Q`, both of which add after dividing: read at its
-    word it yields base_u = 136 at A = 0 instead of 100 000, which also
-    destroys the no-cliff property. This pins both the
-    corrected forms and the two counterexample values the spec quotes.
-    """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    forms = ("(seconds(Y) − seconds(X)) / 86 400",
-             "100 000 + ((900 000 × min(A, 730)) / 730)",
-             "(base_u × (C + 1) × 1 000 000 000)",
-             "100 + ((10 000 × reputation_u) / 1 000 000)")
-    for form in forms:
-        assert form in spec, f"WIST-4 §6 no longer writes {form!r} parenthesized"
-    # The stated count and the enumeration must agree, or a reader cannot
-    # tell which divisions the parenthesization rule covers; the divisions
-    # outside §6 are named there too, so the count is not read as exhaustive.
-    assert "The **four** that reputation and\nits consumers perform are tabulated here" in spec, \
-        f"WIST-4 §6 no longer states the division count, which is {len(forms)}"
-    for elsewhere in ("`confirm_window_hours / 2` in §4's extension deadline",
-                      "the two\nlink-agreement quotients in §5"):
-        assert elsewhere in spec, f"WIST-4 §6 no longer names the division {elsewhere!r}"
-    assert "`confirm_window_hours / 2` hours (integer division)" in spec, \
-        "§4 no longer writes the extension deadline's division out"
-    assert "floor(|D ∩ O| × 1 000 000 / |D ∪ O|)" in spec, \
-        "§5 no longer writes the link subset quotient out"
-    table_rows = [ln for ln in spec.splitlines()
-                  if ln.startswith("| ") and ") / " in ln and "§6" in ln]
-    assert len(table_rows) == len(forms), \
-        f"the evaluation-order table lists {len(table_rows)} divisions, not {len(forms)}"
-    # The spec quotes what the wrong parses produce; verify those numbers are
-    # real, so the warning cannot rot into a wrong warning.
-    assert (100_000 + 900_000 * 0) // 730 == 136, "quoted mis-parse of base_u is stale"
-    assert 100 + 10_000 * (359_236 // 1_000_000) == 100, "quoted mis-parse of Q is stale"
-    assert 100_000 + ((900_000 * 0) // 730) == 100_000, "correct base_u parse drifted"
-    for n in ("136", "3 692"):
-        assert n in spec, f"WIST-4 no longer quotes the counterexample value {n}"
-check("spec:wist4-evaluation-order", _dc4_evaluation_order)
 
 def _dc4_sealed_at_precision():
-    """WIST-4 §6.1's day counts are exact only because §6's inputs are exact.
+    """Every window in the suite runs on Block `sealed_at`, in whole seconds.
 
     A Block sealed at `...:00.500Z` or `...+00:00` would make the conversion
     to integer seconds a rounding decision, and one rounded half-second can
-    move a whole-day boundary and with it A, t_i, base_u and the score. The
+    move a grace period or a recovery window across a Block boundary. The
     constraint therefore lives in the Block schema, not in prose downstream.
     """
     import copy
@@ -7851,7 +4277,7 @@ def _dc4_sealed_at_precision():
     assert "whole-second precision" in wist3, "WIST-3 §3.1 does not state the constraint"
 check("schema:wist4-sealed-at-precision", _dc4_sealed_at_precision)
 
-# WIST-4 §3: every window and every admission test in the suite reads a Block
+# WIST-4 §4: every window and every admission test in the suite reads a Block
 # `sealed_at`, and every timestamp compared against one is written in that
 # field's own whole-second-plus-literal-Z form. That is a claim about every
 # `date-time` in every schema, so the guard below enumerates them all rather
@@ -7869,14 +4295,18 @@ TIMESTAMP_FIELDS = {
     ("block.schema.json", "properties/header/properties/sealed_at"): ANCHORED,
     ("checkpoint.schema.json", "properties/checkpoint/properties/sealed_at"): ANCHORED,
     ("feed.schema.json", "properties/feed/properties/generated_at"): ANCHORED,
-    ("audit-record.schema.json", "properties/record/properties/fetched_at"): ANCHORED,
     ("registry-update.schema.json", "properties/update/properties/effective_at"): ANCHORED,
-    ("registry-update.schema.json",
-     "allOf[3]/then/properties/update/properties/details/properties/appeal_deadline"): ANCHORED,
     ("delta.schema.json", "properties/delta/properties/observed_at"):
-        "Publisher-supplied and never compared to a Block: WIST-4 §6.1 excludes it from every "
-        "derived quantity, and its only comparisons are to the `observed_at` of the Delta named "
-        "by `prev` and to the validator's own clock under WIST-1 §3.4's 10-minute skew allowance",
+        "Publisher-supplied and never compared to a Block: its only comparisons are to the "
+        "`observed_at` of the Delta named by `prev` and to the validator's own clock under "
+        "WIST-1 §3.4's 10-minute skew allowance",
+    ("label.schema.json", "properties/label/properties/asserted_at"):
+        "Publisher-supplied and read exactly as a Delta's `observed_at` (WIST-2 §3.3): compared "
+        "to the same Labeler's other Labels of the subject and name, and to the validator's own "
+        "clock under WIST-1 §3.4, never to a Block",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[5]"):
+        "the Label's own `asserted_at`, carried verbatim so a resuming Consumer orders a later "
+        "Label against it (WIST-3 §7); a Publisher timestamp, never compared to a Block",
     ("publisher.schema.json", "properties/publisher/properties/keys/items/properties/valid_from"):
         "compared only to a Delta's own `observed_at` (WIST-1 §5.1), never to a Block",
     ("publisher.schema.json",
@@ -7936,12 +4366,12 @@ def _walk_timestamps(node, schema_name, found, key=None, root=None,
 def _timestamp_anchoring():
     """No window in the suite runs off a timestamp its writer chooses freely.
 
-    WIST-4 §3 states that every window and admission test reads a Block
+    WIST-4 §4 states that every window and admission test reads a Block
     `sealed_at`. A `date-time` field that takes part in such a comparison and
     is not constrained to that field's own form reopens, one field at a time,
     exactly what block.schema.json's pattern closed: an Aggregator writing
-    `effective_at` a month in the past closed an appeal window before the
-    notice existed, and every recomputing party agreed. So this enumerates
+    `effective_at` a month in the past would put a parameter in force before
+    the act existed, and every recomputing party agreed. So this enumerates
     every `date-time` in every schema, in both directions, and requires each
     to be declared either anchored — and then patterned — or unanchored with
     the reason it is.
@@ -7963,8 +4393,9 @@ def _timestamp_anchoring():
                 f"{schema_name}: {spath} is compared against a Block `sealed_at` but carries "
                 f"pattern {pattern!r}, not the whole-second-plus-Z form that field carries")
         else:
-            publisher_field = (schema_name == "delta.schema.json" or
-                               schema_name == "publisher.schema.json")
+            publisher_field = (schema_name in ("delta.schema.json", "publisher.schema.json",
+                                               "label.schema.json")
+                               or spath.endswith("oneOf[5]/prefixItems[5]"))
             assert pattern == (PUBLISHER_TIMESTAMP_PATTERN if publisher_field else None), (
                 f"{schema_name}: {spath} has an unexpected unanchored timestamp pattern")
             assert len(declared) > 40, \
@@ -7976,10 +4407,10 @@ def _timestamp_anchoring():
     assert not stale, ("declarations for date-time fields that do not exist:\n  "
                        + "\n  ".join(f"{f}: {p}" for f, p in stale))
     anchored = {k for k, v in TIMESTAMP_FIELDS.items() if v is ANCHORED}
-    assert len(anchored) >= 6, \
-        f"only {len(anchored)} anchored timestamps; the class is wider than that"
+    assert len(anchored) == 4, \
+        f"{len(anchored)} anchored timestamps; the class has four members"
 
-    # Mutation proof, on the two fields the appeal and grace-period windows read:
+    # Mutation proof, on the field the grace-period window reads:
     # the pattern must reject exactly the forms RFC 3339 permits and WIST-3 §3.1
     # does not, and must still accept what the suite ships.
     v = Draft202012Validator(
@@ -7993,402 +4424,16 @@ def _timestamp_anchoring():
         candidate["update"]["effective_at"] = bad
         assert not v.is_valid(candidate), \
             f"registry-update.schema.json accepts non-exact effective_at {bad!r}"
-    notice = {"update": {"wist_version": "1.0.0", "action": "notice",
-                         "subject": "example.com",
-                         "details": {"kind": "sanction", "level": 3, "activation": "sha256:" + "1" * 64, "reason": "see evidence",
-                                     "appeal_deadline": "2026-08-16T12:00:00Z"},
-                         "evidence": ["sha256:" + "0" * 64],
-                         "effective_at": "2026-08-02T12:00:00Z"},
-              "sig": example["sig"]}
-    assert v.is_valid(notice), "a well-formed sanction notice does not validate"
-    for bad in ("2026-08-16T12:00:00.500Z", "2026-08-16T12:00:00+00:00"):
-        candidate = copy.deepcopy(notice)
-        candidate["update"]["details"]["appeal_deadline"] = bad
-        assert not v.is_valid(candidate), \
-            f"registry-update.schema.json accepts non-exact appeal_deadline {bad!r}"
-
     # And the documents must say which value a window reads, or an implementer
-    # reading prose alone still runs the appeal window off `effective_at`.
-    wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section7 = wist4.split("## 7. Sanctions")[1].split("## 8.")[0]
-    assert re.search(
-        r"appeal window is `appeal_window_days` \(14\) from the `sealed_at` of\s*\n"
-        r"\s*the Block sealing the `notice`, never from its `effective_at`", section7), \
-        "WIST-4 §7 no longer runs the appeal window from the notice's Block `sealed_at`"
+    # reading prose alone still runs a window off `effective_at`.
+    wist4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
+    assert "MUST have `effective_at` ≥ 7 days after the Block's `sealed_at`" in wist4, \
+        "WIST-4 §5 no longer measures the grace period from the Block's `sealed_at`"
     wist1 = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
     assert "opens at the `sealed_at` of the Block" in wist1, \
         "WIST-1 §5.2 no longer anchors the recovery window to the Declaration's own Entry"
 check("schema:timestamp-anchoring", _timestamp_anchoring)
 
-def _dc4_reputation_figures():
-    """WIST-4 §6 and Appendix B must quote the vector, not remembered figures."""
-    r = json.loads((WIST4 / "reputation.json").read_text())
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    table = json.loads((WIST4 / "decay-table.json").read_text())
-    def quoted(n):
-        # The spec groups long numbers with spaces; short ones it writes plain.
-        return str(n) in spec or f"{n:,}".replace(",", " ") in spec
-    for n in (table["values"][0], table["values"][-1]):
-        assert quoted(n), f"WIST-4 does not quote decay value {n}"
-    for case in [r["worked_example"]] + r["boundary"]:
-        for field in ("base_u", "penalty_n", "reputation_u", "Q"):
-            assert quoted(case[field]), \
-                f"WIST-4 does not quote {case['label']}.{field} = {case[field]}"
-    assert quoted(r["worked_example"]["p_1e7"]), "WIST-4 does not quote the worked p_1e7"
-    assert r["worked_example"]["p_readable"] in spec, \
-        "WIST-4 does not show what the worked p_1e7 reads as"
-check("spec:wist4-reputation-figures", _dc4_reputation_figures)
-
-def _dc4_similarity_thresholds(section5=None):
-    """The three extract §5 verdict bands and the two nested link bands,
-    read out of the specification's own table.
-
-    Every check below that needs a threshold reads it here rather than
-    carrying its own copy, so an edit to §5 moves what the checks exercise
-    instead of drifting away from it.
-
-    `section5` is the already-sliced §5 text to parse; the default (None)
-    reads and slices it from the real spec file. A caller may instead pass
-    a perturbed copy — `negative:wist4-link-thresholds` below does, to prove
-    the link-threshold regexes and the registry cross-check actually bind
-    to the table's content rather than passing regardless of it.
-    """
-    if section5 is None:
-        spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-        section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
-    rows = {
-        # Unlike the other two extract rows, `consistent`'s condition cell
-        # carries a second, trailing clause (WIST-4 §5: the link-dimension
-        # qualifier), so this pattern reads the number off the front of the
-        # cell rather than requiring the cell to end right after it.
-        "consistent_at_or_above": r"\|\s*`consistent`\s*\|\s*effective similarity\s*≥\s*([\d ]+)",
-        "variance_at_or_above": r"\|\s*`dynamic_variance`\s*\|\s*([\d ]+?)\s*≤\s*effective similarity",
-        "variance_below": r"\|\s*`dynamic_variance`\s*\|.*?effective similarity\s*<\s*([\d ]+?)\s*\|",
-        "inconsistent_below": r"\|\s*`inconsistent`\s*\|\s*effective similarity\s*<\s*([\d ]+?)\s*\|",
-        # The link dimension's own thresholds: the trailing clause on the
-        # `consistent` row, and the two link-verdict rows nested inside it.
-        # Parsed independently of the extract thresholds above, so a
-        # hand-edit that moves a link number without moving the qualifier
-        # (or vice versa) is caught rather than silently accepted.
-        "link_consistent_at_or_above": r"\|\s*`consistent`\s*\|.*?`link_agreement`\s*≥\s*([\d ]+?)\s*\|",
-        "link_variance_floor_at_or_above": r"\|\s*`link_variance`\s*\|.*?([\d ]+?)\s*≤\s*`link_agreement`",
-        "link_variance_below": r"\|\s*`link_variance`\s*\|.*?`link_agreement`\s*<\s*([\d ]+?)\s*\(",
-        "link_inconsistent_below": r"\|\s*`link_inconsistent`\s*\|.*?`link_agreement`\s*<\s*([\d ]+?)\s*\|",
-    }
-    out = {}
-    for name, pattern in rows.items():
-        m = re.search(pattern, section5)
-        assert m, f"WIST-4 §5 does not state the {name} threshold in the expected form"
-        out[name] = int(m.group(1).replace(" ", "").replace(" ", ""))
-    assert out["consistent_at_or_above"] == out["variance_below"], \
-        "§5's `consistent` floor and `dynamic_variance` ceiling are not the same number"
-    assert out["variance_at_or_above"] == out["inconsistent_below"], \
-        "§5's `dynamic_variance` floor and `inconsistent` ceiling are not the same number"
-    assert out["link_consistent_at_or_above"] == out["link_variance_below"], \
-        "§5's `consistent` link floor and `link_variance` ceiling are not the same number"
-    assert out["link_variance_floor_at_or_above"] == out["link_inconsistent_below"], \
-        "§5's `link_variance` floor and `link_inconsistent` ceiling are not the same number"
-
-    # The two link thresholds are also registered constants (§9): a table
-    # that agrees with itself but not with the Parameter Registry is still
-    # wrong, and a `parameter_change` reads the registry value, never §5's
-    # own prose copy of it.
-    registered = _registry_table_defaults()
-    assert out["link_consistent_at_or_above"] == registered["link_agreement_consistent"], (
-        f"§5's verdict table reads the link consistent floor as "
-        f"{out['link_consistent_at_or_above']}, but §9 registers "
-        f"link_agreement_consistent as {registered['link_agreement_consistent']}")
-    assert out["link_variance_floor_at_or_above"] == registered["link_variance_floor"], (
-        f"§5's verdict table reads the link variance floor as "
-        f"{out['link_variance_floor_at_or_above']}, but §9 registers "
-        f"link_variance_floor as {registered['link_variance_floor']}")
-    return out
-
-def _link_threshold_parser_twin():
-    """A hand-edited link threshold in a *copy* of §5's table must break
-    `_dc4_similarity_thresholds`'s own registry cross-check — proof the
-    link-threshold regexes added above bind to the table's real numbers
-    rather than passing regardless of its content. Both link rows are
-    perturbed to the same wrong value (300 000 → 250 000) so the table
-    still agrees with itself and the failure is specifically the registry
-    comparison, not the self-consistency assert a single-row edit would
-    trip instead; the disk copy is untouched throughout.
-    """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
-    variance_row = re.compile(r"(`link_variance`\s*\|.*?)300 000(\s*≤\s*`link_agreement`)")
-    inconsistent_row = re.compile(r"(`link_inconsistent`\s*\|.*?`link_agreement`\s*<\s*)300 000")
-    assert variance_row.search(section5) and inconsistent_row.search(section5), \
-        "the link threshold rows did not match for the twin to perturb"
-    mutated = variance_row.sub(r"\g<1>250 000\g<2>", section5, count=1)
-    mutated = inconsistent_row.sub(r"\g<1>250 000", mutated, count=1)
-    assert mutated != section5, "the substitution changed nothing"
-
-    try:
-        _dc4_similarity_thresholds(mutated)
-    except AssertionError as e:
-        assert str(e) == (
-            "§5's verdict table reads the link variance floor as 250000, "
-            "but §9 registers link_variance_floor as 300000"), \
-            f"raised for the wrong reason: {e!r}"
-    else:
-        raise AssertionError(
-            "perturbing both link thresholds in a copied table still "
-            "passed _dc4_similarity_thresholds")
-
-check("negative:wist4-link-thresholds", _link_threshold_parser_twin)
-
-
-def _dc4_severity_rows():
-    """§7's severity table as intervals, parsed out of §7's own text.
-
-    Read rather than restated, so that the totality check below tests §5's
-    verdict bands against the severity table the document actually
-    publishes. A copy kept here would agree with itself while §5 and §7
-    drifted apart, which is the failure the check exists to catch.
-    """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
-    rows = []
-    for m in re.finditer(
-            r"\|\s*([\d ]+?)\s*≤\s*`sim`\s*<\s*([\d ]+?)\s*\|\s*(\d)\s*\(", section7):
-        rows.append((int(m.group(1).replace(" ", "")),
-                     int(m.group(2).replace(" ", "")), int(m.group(3))))
-    for m in re.finditer(r"\|\s*`sim`\s*<\s*([\d ]+?)\s*\|\s*(\d)\s*\(", section7):
-        rows.append((0, int(m.group(1).replace(" ", "")), int(m.group(2))))
-    assert len(rows) >= 3, f"WIST-4 §7's severity table did not parse: {rows}"
-    # §7 must state its input as the *effective* similarity: reverting it to
-    # the sealed `similarity` silently un-does the `delete` mirror and leaves
-    # a false `delete` deriving severity from a value in the wrong direction.
-    assert re.search(r"let `sim` be the highest\s+\*\*effective similarity\*\*\s*\(§5\)",
-                     section7), \
-        "WIST-4 §7 does not derive `sim` from the effective similarity (§5)"
-    return rows
-
-
-def _dc4_verdict_totality():
-    """Every permitted pair of texts maps to exactly one verdict (WIST-4 §5),
-    and every verdict that carries a penalty maps to exactly one severity.
-
-    A verdict table with a gap leaves a conforming Auditor with nothing to
-    record, and one with an overlap lets two conforming Auditors record
-    different things about the same page; either way the confirmation rule
-    and the severity ladder rest on a judgement call the specification did
-    not make. `similarity` is an integer in micro-units, so the reachable
-    range is finite and exactly enumerable — every value is checked, for
-    every change type, against the bands §5 states and the severity rows §7
-    states, each parsed from the document rather than restated here. The
-    two must meet exactly: §7's rows must cover [0, §5's `inconsistent`
-    ceiling) and nothing beyond it, or some reachable Confirmed
-    Inconsistency has two severities or none.
-
-    The `delete` direction needs it most: its verdict is read from the
-    mirrored value, and a mirror landing outside §7's domain would leave a
-    false `delete` as a Confirmed Inconsistency with no severity input.
-    """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
-    t = _dc4_similarity_thresholds()
-    CONSISTENT, HIGH = t["consistent_at_or_above"], t["inconsistent_below"]
-    assert 0 < HIGH < CONSISTENT <= 1_000_000, \
-        f"§5's thresholds are not ordered inside the micro-unit range: {t}"
-    LINK_CONSISTENT = t["link_consistent_at_or_above"]
-    LINK_VARIANCE_FLOOR = t["link_variance_floor_at_or_above"]
-    assert 0 < LINK_VARIANCE_FLOOR < LINK_CONSISTENT <= 1_000_000, \
-        f"§5's link thresholds are not ordered inside the micro-unit range: {t}"
-    rows = _dc4_severity_rows()
-
-    # The severity table's domain, computed from §7's rows, must be exactly
-    # the range §5 makes reachable for an `inconsistent` verdict. Widening
-    # §5's ceiling without widening §7's table, or narrowing §7's table
-    # without narrowing §5, fails here rather than in a deployment.
-    top = max(hi for _, hi, _ in rows)
-    bottom = min(lo for lo, _, _ in rows)
-    assert bottom == 0, f"§7's severity table does not reach 0 (lowest bound {bottom})"
-    assert top == HIGH, (
-        f"§7's severity table covers [0, {top}) but §5 makes every effective "
-        f"similarity in [0, {HIGH}) `inconsistent`: "
-        + ("a Confirmed Inconsistency in "
-           f"[{top}, {HIGH}) would have no severity" if top < HIGH else
-           f"§7 grades values in [{HIGH}, {top}) that no verdict can produce"))
-
-    # The mirror itself must be stated, and stated as a reflection about the
-    # full micro-unit range: any other constant would move `delete` verdicts
-    # off the bands the direct reading uses.
-    assert "effective similarity = similarity" in section5, \
-        "§5 does not state the effective similarity for the direct change types"
-    assert re.search(r"=\s*1 000 000\s*−\s*similarity\s*\(delete\)", section5), \
-        "§5 does not state the `delete` mirror as 1 000 000 − similarity"
-
-    def bands(eff, link_agreement=None):
-        """WIST-4 §5's full seven-row model: the three extract bands, with a
-        second partition over `link_agreement` nested inside the extract-
-        `consistent` band alone. `link_agreement=None` models the link
-        dimension being neutral for this audit — a `delete`, a non-HTML
-        representation, or an `unreachable`/`not_auditable` verdict — in
-        which case the result depends on `eff` only, exactly as before
-        this function grew a second parameter.
-        """
-        extract_hit = [name for name, hit in (
-            ("consistent", eff >= CONSISTENT),
-            ("dynamic_variance", HIGH <= eff < CONSISTENT),
-            ("inconsistent", eff < HIGH),
-        ) if hit]
-        if len(extract_hit) != 1 or extract_hit[0] != "consistent" or link_agreement is None:
-            return extract_hit
-        return [name for name, hit in (
-            ("consistent", link_agreement >= LINK_CONSISTENT),
-            ("link_variance", LINK_VARIANCE_FLOOR <= link_agreement < LINK_CONSISTENT),
-            ("link_inconsistent", link_agreement < LINK_VARIANCE_FLOOR),
-        ) if hit]
-
-    def severities(eff):
-        return [s for lo, hi, s in rows if lo <= eff < hi]
-
-    seen, graded = {"new": set(), "delete": set()}, set()
-    for sim in range(0, 1_000_001):
-        for change_type in ("new", "delete"):
-            eff = sim if change_type != "delete" else 1_000_000 - sim
-            assert 0 <= eff <= 1_000_000, \
-                f"{change_type} at similarity {sim} leaves the micro-unit range"
-            hit = bands(eff)
-            assert len(hit) == 1, \
-                f"{change_type} at similarity {sim} matches {len(hit)} verdicts: {hit}"
-            seen[change_type].add(hit[0])
-            if hit[0] == "inconsistent":
-                got = severities(eff)
-                assert len(got) == 1, (
-                    f"a {change_type} Confirmed Inconsistency at similarity {sim} "
-                    f"(effective {eff}) matches {len(got)} severity rows: {got}")
-                graded.add(got[0])
-    for change_type, got in seen.items():
-        assert got == {"consistent", "dynamic_variance", "inconsistent"}, \
-            f"{change_type} audits cannot reach every band: {got}"
-    assert graded == {1, 2, 3}, \
-        f"the reachable `inconsistent` range does not exercise every severity: {graded}"
-
-    # A `delete` whose URL still serves the committed content is the case
-    # the mirror exists for, and it must be `inconsistent` with a severity.
-    assert bands(1_000_000 - 1_000_000)[0] == "inconsistent", \
-        "a `delete` audit finding the committed content served verbatim is not `inconsistent`"
-    assert severities(1_000_000 - 1_000_000) == [max(s for _, _, s in rows)], \
-        "a `delete` audit finding the committed content served verbatim is not the gravest severity"
-    assert bands(1_000_000 - 0)[0] == "consistent", \
-        "a `delete` audit finding none of the committed content is not `consistent`"
-
-    # The link dimension's own partition (WIST-4 §5), nested inside the
-    # extract-`consistent` band alone: every `link_agreement` value is
-    # checked at two representative extract-consistent readings — the
-    # boundary itself and the top of the range — since which consistent-
-    # band `eff` it sits inside cannot move the link partition.
-    seen_link = set()
-    for eff_probe in (CONSISTENT, 1_000_000):
-        for link_agreement in range(0, 1_000_001):
-            hit = bands(eff_probe, link_agreement)
-            assert len(hit) == 1, (
-                f"eff={eff_probe}, link_agreement={link_agreement} matches "
-                f"{len(hit)} link-dimension verdicts: {hit}")
-            seen_link.add(hit[0])
-    assert seen_link == {"consistent", "link_variance", "link_inconsistent"}, \
-        f"the link dimension cannot reach every band: {seen_link}"
-
-    # Exact boundary behaviour at the two link thresholds, the shape §5's
-    # table states ("≥" / "≤ … <" / "<").
-    assert bands(CONSISTENT, LINK_CONSISTENT) == ["consistent"], \
-        "link_agreement at its own consistent floor is not `consistent`"
-    assert bands(CONSISTENT, LINK_CONSISTENT - 1) == ["link_variance"], \
-        "link_agreement one below the consistent floor is not `link_variance`"
-    assert bands(CONSISTENT, LINK_VARIANCE_FLOOR) == ["link_variance"], \
-        "link_agreement at its own variance floor is not `link_variance`"
-    assert bands(CONSISTENT, LINK_VARIANCE_FLOOR - 1) == ["link_inconsistent"], \
-        "link_agreement one below the variance floor is not `link_inconsistent`"
-
-    # The qualifier is vacuous outside the extract-`consistent` band, and
-    # when the dimension does not apply at all (`link_agreement=None`):
-    # neither moves the verdict away from the extract-only reading — the
-    # nested partition can only ever narrow the one band it sits inside.
-    for eff_probe in (0, HIGH - 1, HIGH, CONSISTENT - 1):
-        extract_only = bands(eff_probe)
-        assert bands(eff_probe, None) == extract_only, \
-            f"eff={eff_probe} with no link dimension applied is not the extract-only band"
-        for link_agreement in (0, LINK_VARIANCE_FLOOR, LINK_CONSISTENT, 1_000_000):
-            assert bands(eff_probe, link_agreement) == extract_only, (
-                f"eff={eff_probe} (outside the extract-consistent band) is "
-                f"moved by link_agreement={link_agreement}, but the link "
-                f"dimension must be vacuous there")
-check("spec:wist4-verdict-totality", _dc4_verdict_totality)
-
-def _dc4_severity_bands():
-    """WIST-4 §7's severity table drives `penalty_n` directly (§6.1), so a
-    collapsed or unreachable band silently changes every domain's
-    reputation rather than merely misdocumenting one. Confirms all three
-    severities are reachable from `sim` alone (now an integer, §5), that
-    no row rests on a term needing its own definition (e.g. "wholly
-    absent"), and that the reachable range tracks §5's own `inconsistent`
-    threshold rather than a value copied once and then hardcoded — a
-    mutation of §5's threshold that collapses a band must fail here.
-    """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section5 = spec.split("## 5. Verdicts")[1].split("## 6.")[0]
-    section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
-    for row in ("| 150 000 ≤ `sim` < 300 000 | 1 (minor divergence) |",
-                "| 50 000 ≤ `sim` < 150 000 | 2 (misleading extract) |",
-                "| `sim` < 50 000 | 3 (fabricated content) |"):
-        assert row in section7, f"WIST-4 §7 no longer carries the severity row {row!r}"
-    assert "wholly absent" not in section7, \
-        "WIST-4 §7's severity table still conditions a band on an undefined term"
-
-    # HIGH is read from §5's own `inconsistent` threshold, not copied and
-    # frozen here: a future edit that narrows or widens it must change what
-    # this check exercises, or a collapsed band goes undetected again.
-    HIGH = _dc4_similarity_thresholds()["inconsistent_below"]
-    LOW, MID = 50_000, 150_000   # exactly the §7 table boundaries pinned above
-
-    def severity(sim):
-        assert 0 <= sim < HIGH, f"{sim} is not a valid Confirmed-Inconsistency sim (§5: < {HIGH})"
-        if sim >= MID:
-            return 1
-        if sim >= LOW:
-            return 2
-        return 3
-
-    # Construct a Confirmed Inconsistency's confirming Audit Records (§5:
-    # both `inconsistent`, i.e. similarity < HIGH) at a similarity that
-    # lands the CI's `sim` (the highest of the two) in each band.
-    cases = [
-        ([220_000, 180_000], 1, "minor divergence"),
-        ([120_000, 90_000], 2, "misleading extract"),
-        ([40_000, 10_000], 3, "fabricated content"),
-    ]
-    seen = set()
-    for sims, expected, label in cases:
-        records = [{"similarity": s, "verdict": "inconsistent"} for s in sims]
-        assert all(r["verdict"] == "inconsistent" and r["similarity"] < HIGH
-                   for r in records), f"{label}: constructed records are not valid confirming Records"
-        sim = max(r["similarity"] for r in records)
-        got = severity(sim)
-        assert got == expected, f"{label}: sim={sim} produced severity {got}, expected {expected}"
-        seen.add(got)
-    assert seen == {1, 2, 3}, f"the three worked cases do not cover all three severities: {seen}"
-
-    # No reachable similarity value maps to a band the table cannot
-    # produce: `similarity` is an integer (§5), so the reachable range is
-    # finite and exactly enumerable — every integer in [0, HIGH) is
-    # checked, not a sample. A collapsed table (e.g. severity 3 for nearly
-    # everything, or band 1 emptied by a narrowed HIGH) would still run
-    # without error but never emit a 1.
-    reachable = {severity(sim) for sim in range(HIGH)}
-    assert reachable == {1, 2, 3}, \
-        f"severity table does not produce all three bands across [0, {HIGH}): got {reachable}"
-
-    # Exact boundary behaviour, matching the table's own "≤" / "<" reading.
-    # Pinned to literal integers, not to LOW/MID/HIGH: a mutation of those
-    # variables must be caught here rather than checked against itself.
-    assert severity(150_000) == 1 and severity(149_999) == 2, \
-        "the level 1 / level 2 boundary is not at sim = 150 000"
-    assert severity(50_000) == 2 and severity(49_999) == 3, \
-        "the level 2 / level 3 boundary is not at sim = 50 000"
-check("spec:wist4-severity-bands", _dc4_severity_bands)
 
 def _withdrawal_binds_every_serving_path():
     """A withdrawal reaches every path the Payload is served from, or none.
@@ -8396,15 +4441,13 @@ def _withdrawal_binds_every_serving_path():
     The salt is published in exactly one kind of file, and three parties serve
     it: the Aggregator, every Mirror, and the Publisher's own well-known path
     (WIST-2 §3.1, WIST-3 §6.1). "After withdrawal the Log itself stops helping"
-    (WIST-3 §11) and "the salt is destroyed and that Record's commitments can no
-    longer be checked by anyone" (WIST-4 §5) are false at one fetch if any one of
+    (WIST-3 §11) is false at one fetch if any one of
     the three keeps serving — and WIST-2 separately obliges a Publisher to keep
     its anchor Payload retrievable, so leaving it unbound was not an omission
     but a conflict.
     """
     wist2 = (ROOT / "specs" / "WIST-2-site-publication.md").read_text()
     wist3 = (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text()
-    wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
     withdrawal = wist3.split("### 6.2. Withdrawal")[1].split("## 7.")[0]
     stop = re.search(r"^- the Aggregator[^\n]*(?:\n(?!- ).*)*", withdrawal, re.M)
     assert stop, "WIST-3 §6.2 no longer opens its obligations with the stop-serving rule"
@@ -8441,189 +4484,13 @@ def _withdrawal_binds_every_serving_path():
     checklist = wist2.split("## 10. Conformance Checklist")[1].split("**Aggregator")[0]
     assert "payload_withdrawal" in checklist, \
         "WIST-2's Publisher checklist has no row for stopping service on a withdrawal"
-    assert "appeals/<notice-id>.json" in checklist, \
-        "WIST-2's Publisher checklist has no row for publishing an appeal"
 
     # And the claims that rest on it must still be the claims being made, or
     # this check is guarding a guarantee the suite no longer states.
     assert "the Log itself\nstops helping" in wist3, \
         "WIST-3 §11 no longer claims the Log stops helping after a withdrawal"
-    assert "can no longer be checked by anyone" in wist4, \
-        "WIST-4 §5 no longer claims a withdrawn Record's commitments are uncheckable"
 check("spec:withdrawal-serving-paths", _withdrawal_binds_every_serving_path)
 
-def _rule_ownership():
-    """A rule restated in a second document must be the rule, not an older one.
-
-    WIST-4 §5 owns the unauditable-URL rule: two `robots_excluded` Records from
-    mutually independent Auditors inside the horizon, cleared only by an
-    Auditor independent of both, ageing out when they leave the window. The
-    pre-Task shape — "no successful audit by an independent Auditor since,
-    until one succeeds" — restores exactly the single-permitted-Auditor attack
-    the two-Auditor requirement exists to close, so a restatement carrying it
-    is not a summary but a second, weaker rule.
-    """
-    specs = {p.name: p.read_text() for p in sorted((ROOT / "specs").glob("*.md"))}
-    stale = re.compile(r"by an independent Auditor since|"
-                       r"until an audit succeeds\b|"
-                       r"excluded from\s*\n?\s*materialization until one succeeds")
-    hits = [f"{name}: {m.group(0)!r}"
-            for name, text in specs.items() for m in stale.finditer(text)]
-    assert not hits, ("a document restates the unauditable rule in its "
-                      "single-Auditor form:\n  " + "\n  ".join(hits))
-    # Every site that states the rule states both load-bearing halves.
-    for name, marker in (("WIST-2-site-publication.md", "two Auditors independent of one another"),
-                         ("WIST-3-logbook-distribution.md", "two independent Auditors"),
-                         ("WIST-4-audit-reputation-governance.md", "signed by Auditors independent of one another")):
-        assert marker in specs[name], \
-            f"{name} no longer states that two independent Auditors are needed to exclude a URL"
-        assert "independent of both" in specs[name], \
-            f"{name} no longer states that the clearing audit must come from a third Auditor"
-    # WIST-2 defers rather than legislating: it owns the robots.txt boundary, not
-    # the materialization consequence.
-    dc2_section5 = specs["WIST-2-site-publication.md"].split("## 5. Aggregator Pull Behavior")[1] \
-        .split("## 6.")[0]
-    assert "WIST-4 §5 owns that rule" in dc2_section5, \
-        "WIST-2 §5 no longer defers to the document that owns the rule it summarizes"
-check("spec:rule-ownership", _rule_ownership)
-
-def _derived_not_discretionary():
-    """Consequences the suite derives from the Log may not wait on an Entry.
-
-    Three mechanisms were gated on a discretionary act by the one party the
-    design refuses to trust: an appeal nobody was obliged to seal, a recovery
-    window that opened only on a `notice`, and a coverage failure whose
-    consequence was an `auditor_remove` the Aggregator files. In each the
-    Aggregator's entry must now record the consequence rather than cause it,
-    and the omission must itself have a derived effect.
-    """
-    wist1 = (ROOT / "specs" / "WIST-1-delta-format.md").read_text()
-    wist4 = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section4 = wist4.split("## 4. Audit Sampling")[1].split("## 5.")[0]
-    section7 = wist4.split("## 7. Sanctions")[1].split("## 8.")[0]
-    section10 = wist4.split("## 11. Security Considerations")[1].split("## 12.")[0]
-
-    # I1: the appeal has a path, a deadline, and a consequence for the omission.
-    assert "/.well-known/wist/appeals/" in section7, \
-        "WIST-4 §7 gives an appeal no in-band publication path"
-    for fragment in ("`appeal_seal_days`",
-                     "is void on recomputation from T",
-                     '`"unappealed"`'):
-        assert fragment in section7, f"WIST-4 §7 no longer states {fragment}"
-    assert "appeal_seal_days" in json.loads(
-        (ROOT / "schemas" / "registry-update.schema.json").read_text())["allOf"][5][
-            "then"]["properties"]["update"]["properties"]["details"][
-            "properties"]["parameter"]["enum"], \
-        "the parameter enum does not carry appeal_seal_days"
-
-    # …and §10 no longer defends appeals with an argument that is false.
-    assert "Omission is not equivocation" in section10, \
-        "WIST-4 §11 no longer corrects the claim that suppression is equivocation"
-    assert not re.search(r"suppress a\s*\n?\s*sanction or an appeal: withholding log entries",
-                         section10), \
-        "WIST-4 §11 still answers appeal suppression with the equivocation argument"
-
-    # I3: the recovery window opens on the Declaration's own Entry.
-    recovery = wist1.split("**Compromise recovery.**")[1].split("**Historical verification.**")[0]
-    assert "opens at the `sealed_at` of the Block" in recovery, \
-        "WIST-1 §5.2's recovery window is not anchored to the recovery Declaration's Entry"
-    assert "does not open it" in recovery, \
-        "WIST-1 §5.2 does not say the `notice` describes the window rather than opening it"
-    assert not re.search(r"MUST record a `notice`[^.]*opening a recovery window", recovery), \
-        "WIST-1 §5.2 still has the `notice` open the recovery window"
-
-    # I4: coverage failure withdraws the Records itself.
-    assert "in coverage failure" in section4, \
-        "WIST-4 §4 does not define the derived coverage-failure state"
-    assert "records\nthe consequence and does not create it" in section4, \
-        "WIST-4 §4 does not say `auditor_remove` records the consequence rather than creating it"
-    section3 = wist4.split("## 3. Auditors")[1].split("## 4.")[0]
-    assert "in coverage failure" in section3, \
-        "WIST-4 §3's rejection list does not reach an Auditor in coverage failure"
-
-    # I5: the personal-data rule is general, not a list of three field names.
-    section91 = wist4.split("### 9.1. Registry Update")[1].split("## 10.")[0]
-    assert "no `evidence` element, may\ncarry personal data" in section91, \
-        "WIST-4 §9.1's personal-data rule is not written over the position"
-    assert not re.search(r"The same applies to the free-text fields `legal_basis`, `reason` and",
-                         section91), \
-        "WIST-4 §9.1 still enumerates the fields the personal-data rule covers"
-    # The rule reaches the Publisher-written details, and the authorship it
-    # states matches who seals what: `appeal` is the Publisher's, while
-    # `sanction_lift` is an Aggregator-sealed Registry Update (§7) — text
-    # bracketing the two as both-Publisher would contradict §7.
-    assert "an `appeal`'s `details` are the\nPublisher's" in section91, \
-        "WIST-4 §9.1 does not reach the Publisher-written details the rule was missing"
-    assert "`sanction_lift`'s\n`details` are the Aggregator's" in section91, \
-        "WIST-4 §9.1 misattributes a `sanction_lift`'s `details` (an Aggregator-sealed entry, §7)"
-check("spec:derived-not-discretionary", _derived_not_discretionary)
-
-def _unappealed_ruling_timing():
-    """An `"unappealed"` ruling may not be sealed before the window it reports.
-
-    `"unappealed"` exists so that a Publisher's silence is answered in the Log
-    rather than rewarded, and so that an Aggregator burying an appeal must make
-    a false, dated, public claim to keep the sanction standing. Both properties
-    need the ruling to come *after* the appeal window closes. Unconstrained, it
-    can be sealed in the notice's own Block: T is discharged for every process
-    the moment it opens, burying an appeal costs one Entry, and the derived
-    half of §7's deadline is gone while only the attributable half survives.
-    The rule is a comparison of two Block `sealed_at` values against a
-    parameter, so it is checked here as arithmetic and not only as prose — no
-    schema can express it, the two Blocks being different Entries.
-    """
-    spec = (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text()
-    section7 = spec.split("## 7. Sanctions")[1].split("## 8.")[0]
-    assert '**An `"unappealed"` ruling cannot precede what it reports.**' in section7, \
-        "WIST-4 §7 places no timing constraint on an `unappealed` ruling"
-    assert re.search(
-        r"discharges T only when the Block sealing it has a `sealed_at` at\s*\n"
-        r"\s*or after the close of the appeal window", section7), \
-        "WIST-4 §7 does not require an `unappealed` ruling to follow the window's close"
-    assert re.search(r"party recomputing MUST treat it as absent", section7), \
-        "WIST-4 §7 does not require a recomputing party to ignore an early `unappealed` ruling"
-    checklist = spec.split("**Any party recomputing reputation:**")[1]
-    assert '`appeal_ruling` of `"unappealed"` whose own Block' in checklist, \
-        "WIST-4 §13's recompute checklist has no row for the `unappealed` timing rule"
-
-    # The rule as arithmetic, over the parameters §9 publishes rather than
-    # numbers restated here: an edit to `appeal_window_days` moves what this
-    # exercises instead of leaving it checking a frozen boundary.
-    defaults = _registry_table_defaults()
-    window, seal = defaults["appeal_window_days"], defaults["appeal_seal_days"]
-    day = 86_400
-
-    def discharges(notice_sealed, ruling_sealed):
-        """§7: an `unappealed` ruling counts only from the window's close."""
-        return ruling_sealed >= notice_sealed + window * day
-
-    def state_void_at_T(notice_sealed, ruling_sealed):
-        # T = notice_sealed + (window + seal) days; the state is void there
-        # unless something the Log holds discharges it, and an early ruling
-        # is not something: §7 has a recomputing party treat it as absent.
-        return ruling_sealed is None or not discharges(notice_sealed, ruling_sealed)
-
-    n = 1_000_000
-    # The attack the constraint closes: a ruling batched with its own notice.
-    assert not discharges(n, n), \
-        "a ruling sealed in the notice's own Block discharges T"
-    assert not discharges(n, n + day), \
-        "a ruling sealed one day after the notice discharges T"
-    assert state_void_at_T(n, n + day), \
-        "an early `unappealed` ruling leaves the sanction state standing at T"
-    # The honest path still works, at the boundary and past it.
-    assert discharges(n, n + window * day), \
-        "a ruling sealed exactly at the window's close does not discharge T"
-    assert not state_void_at_T(n, n + window * day), \
-        "a timely `unappealed` ruling does not keep the sanction state in force"
-    assert discharges(n, n + (window + seal) * day), \
-        "a ruling sealed at T itself does not discharge T"
-    assert not discharges(n, n + window * day - 1), \
-        "a ruling one second before the window closes discharges T"
-    # And doing nothing at all still voids the state, or the rule above would
-    # be the only way the deadline ever bites.
-    assert state_void_at_T(n, None), "an unanswered notice leaves the state in force at T"
-check("spec:unappealed-ruling-timing", _unappealed_ruling_timing)
 
 def _negative_index():
     """A proof carrying a falsified index MUST NOT verify (WIST-3 §4)."""
@@ -8714,190 +4581,6 @@ def _single_discovery_channel():
         "ADR-0002 still lists the fallback as part of the accepted decision"
 check("spec:single-discovery-channel", _single_discovery_channel)
 
-def _link_agreement_vector():
-    """WIST-4 §5: recompute every published link_agreement case."""
-    import link_extraction
-    vec = json.loads((ROOT / "vectors" / "wist4" / "link-agreement.json").read_text())
-    for case in vec["cases"]:
-        got = link_extraction.link_agreement(
-            case["declared_urls"], case["declared_total"],
-            case["observed_urls"], case["observed_total"])
-        assert got == case["link_agreement"], f"{case['label']}: {got}"
-
-check("vectors:wist4-link-agreement", _link_agreement_vector)
-
-def _link_verdict_profiles():
-    vector = json.loads((ROOT / "vectors/wist4/link-agreement.json").read_text())["verdict_profiles"]
-    defaults = _registry_table_defaults()
-    assert vector["defaults"] == {name: defaults[name] for name in vector["defaults"]}
-    cases = vector["cases"]
-    assert len(cases) == 8
-    for case in cases:
-        amendment = case["change"]
-        def profile_at(at):
-            profile = dict(vector["defaults"])
-            if at >= amendment["effective_at_s"]:
-                profile[amendment["parameter"]] = amendment["value"]
-            if at >= case["reset"]["effective_at_s"]:
-                profile[amendment["parameter"]] = case["reset"]["value"]
-            return profile
-        def verdict(reading, profile):
-            effective = reading["similarity"]
-            if reading["reference_change"] == "delete":
-                effective = 1_000_000 - effective
-            if effective < profile["similarity_variance_floor"]:
-                return "inconsistent"
-            if effective < profile["similarity_consistent"]:
-                return "dynamic_variance"
-            if reading["reference_change"] != "delete":
-                if reading["link_agreement"] < profile["link_variance_floor"]:
-                    return "link_inconsistent"
-                if reading["link_agreement"] < profile["link_agreement_consistent"]:
-                    return "link_variance"
-            return "consistent"
-        profile = profile_at(case["audited_delta_sealed_at_s"])
-        assert profile == case["expected_profile"], case["label"]
-        expected = [reading["verdict"] for reading in case["readings"]]
-        assert [verdict(reading, profile) for reading in case["readings"]] == expected
-        for name in ("reference_delta_sealed_at_s", "fetched_at_s",
-                     "record_sealed_at_s", "query_sealed_at_s"):
-            wrong = profile_at(case[name])
-            if wrong != profile:
-                assert [verdict(reading, wrong) for reading in case["readings"]] != expected
-
-check("vectors:wist4-link-verdict-profiles", _link_verdict_profiles)
-
-def _link_agreement_twin():
-    import link_extraction
-    vec = json.loads((ROOT / "vectors" / "wist4" / "link-agreement.json").read_text())
-    case = next(c for c in vec["cases"] if c["observed_urls"])
-    got = link_extraction.link_agreement(
-        case["declared_urls"], case["declared_total"],
-        case["observed_urls"][:-1], case["observed_total"] - 1)
-    assert got != case["link_agreement"], "dropping an observed link moved nothing"
-
-check("negative:wist4-link-agreement", _link_agreement_twin)
-
-def _verdict_pair_ok(record, effective_similarity=None):
-    """WIST-4 §5: raise AssertionError when `record`'s (effective similarity,
-    link_agreement, verdict) triple does not satisfy §5's condition for
-    its own verdict — the real predicate behind WIST-4 §3's malformed-
-    evidence rejection, not a copy of it, so both the positive check below
-    and its twin exercise one function rather than one each agreeing with
-    itself. Thresholds are read from the Parameter Registry's own
-    published defaults (`_registry_table_defaults()`), never as literals,
-    so a `parameter_change` to either threshold moves what this checks.
-
-    `effective_similarity` is §5's mirror applied to `record["similarity"]`
-    — the sealed value itself for `new`/`update`/`attest`, `1_000_000 -
-    similarity` for `delete` — and resolving it is the CALLER's job: a
-    Record carries `audited_delta`, not its change type, so this function
-    cannot look the mirror up itself. The default (`None`) falls back to
-    the sealed `similarity` unmirrored, which is correct only for a
-    non-`delete` audit; a caller checking a `delete` Record MUST resolve
-    the change type and pass the mirrored value explicitly, or a
-    perfectly conforming `delete` (similarity 0, effective 1 000 000) is
-    flagged malformed in exactly the direction §5's mirror exists to
-    prevent.
-
-    Only the three verdicts whose condition involves the link dimension
-    are covered — `dynamic_variance`, `inconsistent`, `unreachable` and
-    `not_auditable` are outside this pair-condition's scope and are left
-    unchecked here (WIST-4 §5's full verdict totality is `spec:wist4-verdict-
-    totality`'s job, not this one's).
-    """
-    if effective_similarity is None:
-        effective_similarity = record["similarity"]
-    defaults = _registry_table_defaults()
-    sim_floor = defaults["similarity_consistent"]
-    link_floor = defaults["link_agreement_consistent"]
-    link_variance_floor = defaults["link_variance_floor"]
-    verdict = record["verdict"]
-    if verdict == "consistent":
-        assert effective_similarity >= sim_floor, \
-            "consistent verdict below the extract band"
-        if "link_agreement" in record:
-            assert record["link_agreement"] >= link_floor, \
-                "consistent verdict below the link band"
-    elif verdict == "link_variance":
-        assert effective_similarity >= sim_floor, \
-            "link_variance verdict below the extract band"
-        assert link_variance_floor <= record["link_agreement"] < link_floor, \
-            "link_variance verdict outside the link variance band"
-    elif verdict == "link_inconsistent":
-        assert effective_similarity >= sim_floor, \
-            "link_inconsistent verdict below the extract band"
-        assert record["link_agreement"] < link_variance_floor, \
-            "link_inconsistent verdict at or above the link variance floor"
-
-def _verdict_pair_condition():
-    """WIST-4 §3/§5: the example Record's (similarity, link_agreement) pair
-    satisfies §5's condition for its own verdict. The example Record's
-    audited Delta is change type `new` (`vectors/wist1/id.txt`'s Delta, WIST-1
-    §3.3), so `similarity` needs no §5 mirror and `_verdict_pair_ok` is
-    called with none — a `delete` Record would have to pass one (below)."""
-    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    assert rec["verdict"] == "consistent"
-    _verdict_pair_ok(rec)
-
-check("spec:audit-verdict-pair", _verdict_pair_condition)
-
-def _verdict_pair_twin():
-    """A link_agreement below the floor must not still read as `consistent`
-    (WIST-4 §5). The mutation runs through `_verdict_pair_ok` itself — the
-    same function the positive check calls — rather than re-deriving the
-    boolean inline, and the failure is message-matched to the specific
-    link-band assertion, so a defect in the wrong branch of the checker
-    (or one that stops raising at all) cannot pass this by accident."""
-    rec = json.loads((ROOT / "examples" / "audit-record.json").read_text())["record"]
-    mutated = copy.deepcopy(rec)
-    mutated["verdict"] = "consistent"
-    mutated["link_agreement"] = 299_999
-    try:
-        _verdict_pair_ok(mutated)
-    except AssertionError as e:
-        assert str(e) == "consistent verdict below the link band", \
-            f"raised for the wrong reason: {e!r}"
-    else:
-        raise AssertionError("a link_agreement below the floor still reads as consistent")
-
-check("negative:audit-verdict-pair", _verdict_pair_twin)
-
-def _verdict_pair_delete_mirror():
-    """WIST-4 §5: a `delete` audit's `similarity` is mirrored before any
-    verdict condition ever reads it (`1_000_000 − similarity`), so a
-    conforming `delete` Record scoring `similarity` 0 — full agreement
-    that the committed content is gone — is `consistent` at effective
-    similarity 1 000 000, not malformed evidence. `_verdict_pair_ok`
-    cannot resolve that mirror itself (a Record carries `audited_delta`,
-    not a change type), so the caller passes it explicitly. The Record
-    seals no `link_agreement`: §5 makes the link dimension neutral for a
-    `delete` audit, and §3 rejects a Record carrying one where it is."""
-    rec = {"verdict": "consistent", "similarity": 0}
-    _verdict_pair_ok(rec, effective_similarity=1_000_000)
-
-check("spec:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror)
-
-def _verdict_pair_delete_mirror_twin():
-    """The same Record read through the sealed `similarity` unmirrored —
-    `_verdict_pair_ok`'s default, correct only for a non-`delete` audit —
-    must be flagged malformed: proof the mirror argument is load-bearing
-    and not merely accepted and ignored. This is the bug IMPORTANT-5
-    named: before the `effective_similarity` parameter existed, this
-    exact conforming `delete` Record was rejected as below the extract
-    band."""
-    rec = {"verdict": "consistent", "similarity": 0}
-    try:
-        _verdict_pair_ok(rec)
-    except AssertionError as e:
-        assert str(e) == "consistent verdict below the extract band", \
-            f"raised for the wrong reason: {e!r}"
-    else:
-        raise AssertionError(
-            "a delete Record read without the effective-similarity mirror "
-            "still passed as consistent")
-
-check("negative:audit-verdict-pair-delete-mirror", _verdict_pair_delete_mirror_twin)
 
 def _block_frame_vectors():
     vector = json.loads((ROOT / "vectors/wist3/block-frames.json").read_text())
@@ -8947,7 +4630,7 @@ def _log_timestamp_vectors():
         if case["schema"] == "snapshot-state.schema.json":
             identity += (case["document"]["state"]["entries"][0][0],)
         exercised.add(identity)
-    assert len(exercised) == 12, "all six fields and six Snapshot timestamp positions required"
+    assert len(exercised) == 7, "all four fields and three Snapshot timestamp positions required"
     snapshot = json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text())
     def patterns(node):
         if isinstance(node, dict):
@@ -8958,7 +4641,7 @@ def _log_timestamp_vectors():
         elif isinstance(node, list):
             for child in node:
                 yield from patterns(child)
-    assert len(list(patterns(snapshot))) == 6, "Snapshot timestamp inventory changed"
+    assert len(list(patterns(snapshot))) == 2, "Snapshot timestamp inventory changed"
 
 check("vectors:wist3-timestamps", _log_timestamp_vectors)
 
@@ -9159,10 +4842,10 @@ def _delta_attribution_vectors():
                     continue
                 public = canonical_b64u_decode(key["public_key"])
                 try:
-                    point = ecvrf.string_to_point(public)
+                    point = ed25519_curve.string_to_point(public)
                 except ValueError:
                     continue
-                if ecvrf._is_identity(ecvrf._mul(8, point)):
+                if ed25519_curve._is_identity(ed25519_curve._mul(8, point)):
                     continue
                 if publisher_instant(key["valid_from"]) <= observed:
                     candidates.append(public)
@@ -9267,11 +4950,11 @@ def _delta_attribution_vectors():
         assert actual == probe["expected"], (probe["name"], actual, probe["expected"])
     for case in vector["projection_cases"]:
         states = snapshots[case["at_height"]][0]
-        env = accepted_at[(case["audited_height"], case["publisher"])]
+        env = accepted_at[(case["reference_height"], case["publisher"])]
         domain = env["delta"]["publisher"]
         assert domain == case["publisher"]
         reset = states[domain]["reset_height"]
-        counted = reset is None or case["audited_height"] >= reset
+        counted = reset is None or case["reference_height"] >= reset
         assert counted == case["expected_current_identity"]
         eligible_subjects = {subject for subject in states if counted and subject == domain}
         assert eligible_subjects == ({case["publisher"]} if case["expected_current_identity"] else set())
@@ -9395,10 +5078,10 @@ def _recovery_scope_vectors():
                     continue
                 raw = canonical_b64u_decode(binding["public_key"])
                 try:
-                    point = ecvrf.string_to_point(raw)
+                    point = ed25519_curve.string_to_point(raw)
                 except ValueError:
                     continue
-                if ecvrf._is_identity(ecvrf._mul(8, point)) or publisher_instant(binding["valid_from"]) > observed:
+                if ed25519_curve._is_identity(ed25519_curve._mul(8, point)) or publisher_instant(binding["valid_from"]) > observed:
                     continue
                 eligible.append(binding)
                 if _ed25519_profile_verdict(raw, signature, rfc8785.dumps(inner))[0]:
@@ -9576,9 +5259,9 @@ def _declaration_refresh_vectors():
 
     def usable(encoded):
         try:
-            point = ecvrf.string_to_point(canonical_b64u_decode(encoded))
-            return not ecvrf._is_identity(ecvrf._mul(8, point))
-        except ecvrf.InvalidProof:
+            point = ed25519_curve.string_to_point(canonical_b64u_decode(encoded))
+            return not ed25519_curve._is_identity(ed25519_curve._mul(8, point))
+        except ed25519_curve.InvalidProof:
             return False
 
     def diagnostic(source, doc, kind):
@@ -9721,10 +5404,10 @@ def _page_binding_vectors():
 
     def usable(key):
         try:
-            point = ecvrf.string_to_point(canonical_b64u_decode(key["public_key"]))
-        except ecvrf.InvalidProof:
+            point = ed25519_curve.string_to_point(canonical_b64u_decode(key["public_key"]))
+        except ed25519_curve.InvalidProof:
             return False
-        return not ecvrf._is_identity(ecvrf._mul(8, point))
+        return not ed25519_curve._is_identity(ed25519_curve._mul(8, point))
 
     def verifies(key, doc, inner):
         return _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
@@ -10081,19 +5764,6 @@ def _delta_cap_time_vectors():
         if entry['type'] == 'publisher_delta':
             body = entry['body']['delta']
             deltas['sha256:' + hashlib.sha256(rfc8785.dumps(body)).hexdigest()] = body
-    for probe in vector['reference_probes']:
-        obj = vector['objects'][probe['reference']]
-        audited, reference = deltas[probe['audited_id']], obj['envelope']['delta']
-        assert audited['change_type'] == 'attest' and reference['url'] == audited['url']
-        assert audited['prev'] == obj['id'] or reference['prev'] == probe['audited_id']
-        height = inclusion[obj['id']]
-        at = log_seconds(blocks[height]['header']['sealed_at'])
-        assert log_seconds(probe['fetched_at']) >= at
-        caps = parameters(at, height)
-        assert caps == probe['expected_profile']
-        assert diagnose(obj, caps) == probe['expected'] is None
-        assert diagnose(obj, parameters(log_seconds(probe['fetched_at']), 508)) == 'WIST1-E04'
-        assert diagnose(obj, parameters(log_seconds(blocks[inclusion[probe['audited_id']]]['header']['sealed_at']), inclusion[probe['audited_id']])) == 'WIST1-E04'
     damaged = copy.deepcopy(blocks)
     damaged[0]['entries'][-1]['body']['update']['details']['value'] += 1
     try:
@@ -10106,7 +5776,6 @@ def _delta_cap_time_vectors():
 
 
 check('vectors:wist1-delta-cap-time', _delta_cap_time_vectors)
-
 
 
 def _payload_link_vectors():
@@ -10286,577 +5955,52 @@ def _delta_clock_time_vectors():
 check('vectors:wist1-delta-clock-time', _delta_clock_time_vectors)
 
 
-def _record_field_vectors():
-    vector = json.loads((ROOT / 'vectors/wist4/record-fields.json').read_text())
-    original = copy.deepcopy(vector)
-    validators = _audit_record_validators()
-    public = canonical_b64u_decode(vector['public_key'])
-    names, outcomes = set(), set()
-    discharged_errors = set()
-
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise ValueError('duplicate decoded member')
-            result[key] = value
-        return result
-
-    for case in vector['cases']:
-        name = case['name']
-        assert name not in names, name
-        names.add(name)
-        try:
-            doc = json.loads(case['record_json'], object_pairs_hook=unique, parse_int=float, parse_float=float)
-            rfc8785.dumps(doc)
-        except (ValueError, rfc8785.CanonicalizationError):
-            allowed, discharge = {'WIST1-E05'}, False
-        else:
-            if not validators[0].is_valid(doc):
-                allowed, discharge = {'WIST4-E09'}, False
-            else:
-                body, context = doc['record'], case['context']
-                supported = body['wist_version'].split('.')[0] == '1'
-                signature = canonical_b64u_decode(doc['sig']['value'])
-                authentic = _ed25519_profile_verdict(public, signature, rfc8785.dumps(body))[0]
-                try:
-                    Ed25519PublicKey.from_public_bytes(public).verify(signature, rfc8785.dumps(body))
-                    library_authentic = True
-                except InvalidSignature:
-                    library_authentic = False
-                assert library_authentic == authentic, name
-                discharge = supported and authentic and context['identity'] and context['duty']
-                if not validators[1].is_valid(doc):
-                    allowed = {'WIST4-E02'}
-                else:
-                    allowed = set()
-                    if not supported:
-                        allowed.add('WIST4-E10')
-                    if not (authentic and context['identity'] and context['duty']) or context['removed'] or context['coverage_failure']:
-                        allowed.add('WIST4-E01')
-                    if context['semantic_evidence_error']:
-                        allowed.add('WIST4-E02')
-        assert allowed == set(case['allowed']), (name, allowed, case['allowed'])
-        assert discharge == case['discharge'], (name, discharge)
-        outcomes.update(allowed)
-        if discharge:
-            discharged_errors.update(allowed)
-    assert outcomes == {'WIST1-E05', 'WIST4-E01', 'WIST4-E02', 'WIST4-E09', 'WIST4-E10'}
-    assert discharged_errors == {'WIST4-E01', 'WIST4-E02'}
-    assert len(names) >= 170
-    assert vector == original
-
-
-check('vectors:wist4-record-fields', _record_field_vectors)
-
-def _roster_acts_vector():
-    return json.loads((ROOT / 'vectors/wist4/roster-acts.json').read_text())
-
-
-def _roster_acts_validator():
-    schema = json.loads((ROOT / 'schemas/registry-update.schema.json').read_text())
-    formats = FormatChecker(formats=[])
-
-    @formats.checks('date-time', raises=(TypeError, ValueError))
-    def instant(value):
-        if isinstance(value, str):
-            log_seconds(value)
-        return True
-
-    return Draft202012Validator(schema, format_checker=formats)
-
-
-def _roster_acts_contract_error(error):
-    """WIST-4 §9.1: a failure in a member the schema constrains per action —
-    details, evidence, or a per-action subject shape — is WIST4-E04; any
-    other field failure is WIST4-E11."""
-    path, schema_path = list(error.absolute_path), list(error.schema_path)
-    if len(path) >= 2 and path[0] == 'update' and path[1] in ('details', 'evidence'):
-        return True
-    if path == ['update'] and error.validator == 'required' and 'then' in schema_path \
-            and set(error.validator_value) & {'details', 'evidence'}:
-        return True
-    return path == ['update', 'subject'] and 'then' in schema_path
-
-
-def _roster_acts_eligibility(text, validator):
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise ValueError('duplicate decoded member')
-            result[key] = value
-        return result
-    try:
-        doc = json.loads(text, object_pairs_hook=unique)
-        rfc8785.dumps(doc)
-    except (ValueError, rfc8785.CanonicalizationError):
-        return 'WIST1-E05', None
-    errors = list(validator.iter_errors(doc))
-    if any(not _roster_acts_contract_error(e) for e in errors):
-        return 'WIST4-E11', None
-    if errors:
-        return 'WIST4-E04', None
-    if doc['update']['wist_version'].split('.')[0] != '1':
-        return 'WIST4-E11', None
-    return None, doc
-
-
-def _roster_acts_verifies(doc, public_key):
-    try:
-        raw = canonical_b64u_decode(public_key)
-        signature = canonical_b64u_decode(doc['sig']['value'])
-        Ed25519PublicKey.from_public_bytes(raw).verify(signature, rfc8785.dumps(doc['update']))
-    except (ValueError, InvalidSignature):
-        return False
-    assert _ed25519_profile_verdict(raw, signature, rfc8785.dumps(doc['update']))[0]
-    return True
-
-
-def _roster_acts_replay(case, log_id, log_key, *, ineligible_candidates=False,
-                        checkpoint_keys_before_batch=False, cite_same_block=False,
-                        reject_unusable_admission=False):
-    """§9.1 eligibility, §3.1's batch and the post-batch checkpoint rule,
-    recomputed independently of the generator. The keyword flags select the
-    readings the vector exists to rule out."""
-    validator = _roster_acts_validator()
-    auditors, observers, retired, barred = {}, {}, set(), set()
-    history, checkpoints, outcomes = set(), [], []
-    accepted_ids = set()
-    for block in case['blocks']:
-        height, entries = block['height'], block['entries']
-        code, doc = [None] * len(entries), [None] * len(entries)
-        for i, entry in enumerate(entries):
-            code[i], doc[i] = _roster_acts_eligibility(entry['envelope_json'], validator)
-            if doc[i] is None:
-                continue
-            if 'sha256:' + hashlib.sha256(rfc8785.dumps(doc[i]['update'])).hexdigest() in accepted_ids:
-                code[i], doc[i] = 'idempotent', None
-                continue
-            update, sig = doc[i]['update'], doc[i]['sig']
-            if update['action'] in ('auditor_admit', 'auditor_remove'):
-                authentic = sig['key_id'] == log_key['key_id'] and _roster_acts_verifies(doc[i], log_key['public_key'])
-            elif update['action'] == 'observer_register':
-                authentic = sig['key_id'] == update['details']['key_id'] and _roster_acts_verifies(doc[i], update['details']['public_key'])
-            else:
-                authentic = True
-            if not authentic:
-                code[i], doc[i] = 'WIST4-E11', None
-            elif reject_unusable_admission and update['action'] == 'auditor_admit':
-                if not _ed25519_profile_verdict(canonical_b64u_decode(update['details']['public_key']), bytes(64), b'')[1] in ('accept', 'equation', 's-range'):
-                    code[i], doc[i] = 'WIST4-E04', None
-        acts = {i: doc[i]['update'] for i in range(len(entries)) if doc[i] and doc[i]['update']['action'] != 'observer_checkpoint'}
-        if ineligible_candidates:
-            for i, entry in enumerate(entries):
-                if doc[i] is None and code[i] != 'WIST1-E05':
-                    try:
-                        acts[i] = json.loads(entry['envelope_json'])['update']
-                    except ValueError:
-                        pass
-        before = dict(auditors)
-        same_block = []
-        if cite_same_block:
-            for i in range(len(entries)):
-                if doc[i] and doc[i]['update']['action'] == 'observer_checkpoint':
-                    u, held = doc[i]['update'], observers.get(doc[i]['update']['subject'])
-                    if held and doc[i]['sig']['key_id'] == held['key_id'] and _roster_acts_verifies(doc[i], held['public_key']):
-                        same_block.append((u['subject'], height, 'sha256:' + hashlib.sha256(rfc8785.dumps(u)).hexdigest()))
-        for i, update in acts.items():
-            if update['action'] != 'auditor_remove':
-                continue
-            held = before.get(update['subject'])
-            if held is None or held['key_id'] != update.get('details', {}).get('key_id'):
-                code[i] = 'WIST4-E07'
-                continue
-            auditors.pop(update['subject'])
-            retired |= {held['key_id'], held['public_key']}
-            if update.get('evidence'):
-                barred.add(update['subject'])
-            code[i] = 'accepted'
-        candidates = {i: u for i, u in acts.items() if u['action'] != 'auditor_remove'}
-        groups = collections.Counter((u['action'], u['subject']) for u in candidates.values())
-        live = {i for i, u in candidates.items() if groups[u['action'], u['subject']] == 1}
-        for i in candidates:
-            if i not in live:
-                code[i] = 'WIST4-E07'
-        stage_two = []
-        for i in sorted(live):
-            u = candidates[i]
-            key = u.get('details', {})
-            taken = any(subject != u['subject'] and (held['key_id'] == key.get('key_id') or held['public_key'] == key.get('public_key'))
-                        for mapping in (auditors, observers) for subject, held in mapping.items())
-            if (not _roster_independent(u['subject'], log_id) or u['subject'] in auditors or taken
-                    or (u['action'] == 'auditor_admit' and u['subject'] in barred)
-                    or key.get('key_id') in retired or key.get('public_key') in retired):
-                code[i] = 'WIST4-E07'
-                continue
-            if u['action'] == 'auditor_admit':
-                citable = [c for c in checkpoints + same_block if c[0] == u['subject'] and c[1] < height + bool(cite_same_block)]
-                newest = max(citable, key=lambda c: (c[1], c[2].encode()), default=None)
-                track = key.get('track_record')
-                if (u['subject'] in history) != (track is not None) or (track and (newest is None or newest[2] != track['checkpoint'])):
-                    code[i] = 'WIST4-E04'
-                    continue
-            stage_two.append(i)
-        admitting = {candidates[i]['subject'] for i in stage_two if candidates[i]['action'] == 'auditor_admit'}
-        stage_three = []
-        for i in stage_two:
-            if candidates[i]['action'] == 'observer_register' and candidates[i]['subject'] in admitting:
-                code[i] = 'WIST4-E07'
-            else:
-                stage_three.append(i)
-        survivors = []
-        for i in stage_three:
-            u = candidates[i]
-            if any(candidates[j]['subject'] != u['subject'] and any(candidates[j]['details'][f] == u['details'][f] for f in ('key_id', 'public_key'))
-                   for j in stage_three):
-                code[i] = 'WIST4-E07'
-            else:
-                survivors.append(i)
-        registered_before = dict(observers)
-        for i in survivors:
-            u = candidates[i]
-            key = {f: u['details'][f] for f in ('key_id', 'public_key')}
-            if u['action'] == 'auditor_admit':
-                auditors[u['subject']] = key
-                observers.pop(u['subject'], None)
-            else:
-                observers[u['subject']] = key
-            code[i] = 'accepted'
-        keys_for_checkpoints = registered_before if checkpoint_keys_before_batch else observers
-        for i in range(len(entries)):
-            if doc[i] is None or doc[i]['update']['action'] != 'observer_checkpoint':
-                continue
-            u, held = doc[i]['update'], keys_for_checkpoints.get(doc[i]['update']['subject'])
-            if held and doc[i]['sig']['key_id'] == held['key_id'] and _roster_acts_verifies(doc[i], held['public_key']):
-                checkpoints.append((u['subject'], height, 'sha256:' + hashlib.sha256(rfc8785.dumps(u)).hexdigest()))
-                code[i] = 'accepted'
-            else:
-                code[i] = 'WIST4-E07'
-        history |= set(observers)
-        accepted_ids.update('sha256:' + hashlib.sha256(rfc8785.dumps(doc[i]['update'])).hexdigest()
-                            for i in range(len(entries)) if code[i] == 'accepted' and doc[i])
-        outcomes.append(code)
-    return outcomes, {'auditors': {s: k['key_id'] for s, k in auditors.items()},
-                      'observers': {s: k['key_id'] for s, k in observers.items()},
-                      'checkpoints': [c[2] for c in sorted(checkpoints, key=lambda c: (c[1], c[2].encode()))]}
-
-
-def _roster_acts_vectors():
-    vector = _roster_acts_vector()
-    original = copy.deepcopy(vector)
-    prose = (ROOT / 'specs/WIST-4-audit-reputation-governance.md').read_text()
-    assert '| WIST4-E11 |' in prose and '**Envelope eligibility and precedence.**' in prose
-    log_id, log_key = vector['log_id'], vector['log_key']
-    assert canonical_b64u_decode(log_key['public_key'])
-    seen, labels = set(), set()
-    for case in vector['cases']:
-        assert case['label'] not in labels, case['label']
-        labels.add(case['label'])
-        assert [b['height'] for b in case['blocks']] == list(range(1, len(case['blocks']) + 1)), case['label']
-        outcomes, state = _roster_acts_replay(case, log_id, log_key)
-        expected = [[e['expect'] for e in b['entries']] for b in case['blocks']]
-        assert outcomes == expected, (case['label'], outcomes, expected)
-        assert state == {'auditors': case['auditors_after'], 'observers': case['observers_after'],
-                         'checkpoints': case['checkpoints_after']}, case['label']
-        seen.update(x for row in outcomes for x in row)
-    assert seen == {'accepted', 'idempotent', 'WIST1-E05', 'WIST4-E04', 'WIST4-E07', 'WIST4-E11'}
-    assert 'is idempotent — it applies nothing, rejects nothing' in re.sub(r'\s+', ' ', prose)
-    probe = vector['record_probe']['envelope']
-    keys = {k['key_id']: k['public_key'] for k in vector['keys']}
-    public = canonical_b64u_decode(keys[probe['sig']['key_id']])
-    verdict = _ed25519_profile_verdict(public, canonical_b64u_decode(probe['sig']['value']), rfc8785.dumps(probe['record']))
-    assert verdict == (False, 'small-order'), verdict
-    try:
-        Ed25519PublicKey.from_public_bytes(public).verify(canonical_b64u_decode(probe['sig']['value']), rfc8785.dumps(probe['record']))
-        library_accepts = True
-    except (ValueError, InvalidSignature):
-        library_accepts = False
-    assert not library_accepts
-    assert vector['record_probe']['expect'] == 'WIST4-E01'
-    admitted = next(c for c in vector['cases'] if c['label'] == 'small order key is admitted as a string')
-    assert admitted['blocks'][0]['entries'][0]['expect'] == 'accepted'
-    assert json.loads(admitted['blocks'][0]['entries'][0]['envelope_json'])['update']['details']['public_key'] == keys[probe['sig']['key_id']]
-    assert len(vector['cases']) >= 70
-    assert vector == original
-
-
-check('vectors:wist4-roster-acts', _roster_acts_vectors)
-
-def _canary_reveal_valid(v, case, doc):
-    """WIST-4 §5.1 reveal rules against the supplied commitment, Deltas and height."""
-    details, commitment, params = doc["update"]["details"], v["commitment"], v["parameters"]
-    if details["commitment"] != commitment["id"] or not case["commitment_sealed"] or case["commitment_revealed"]:
-        return False
-    deltas = {d["delta_id"]: d for d in case["sealed_deltas"]}
-    seen_index, seen_delta = set(), set()
-    for leaf in details["leaves"]:
-        index = leaf["index"]
-        if not 0 <= index < commitment["leaves"] or index in seen_index:
-            return False
-        seen_index.add(index)
-        bound = deltas.get(leaf["delta_id"])
-        if bound is None or bound["publisher"] != doc["update"]["subject"] or \
-                bound["height"] < commitment["height"] + params["canary_lead_blocks"]:
-            return False
-        if leaf["delta_id"] in seen_delta or leaf["delta_id"] in case["reserved_deltas"]:
-            return False
-        seen_delta.add(leaf["delta_id"])
-        try:
-            root = _canary_root_from_path(bytes.fromhex(leaf["leaf_hash"][7:]), index, commitment["leaves"],
-                                         [bytes.fromhex(h[7:]) for h in leaf["path"]])
-        except (AssertionError, IndexError, ValueError):
-            return False
-        if "sha256:" + root.hex() != commitment["root"]:
-            return False
-    newest = max(deltas[leaf["delta_id"]]["height"] for leaf in details["leaves"])
-    if case["reveal_height"] - newest < params["canary_reveal_min_blocks"]:
-        return False
-    return case["reveal_height"] - commitment["height"] <= params["canary_lifetime_blocks"]
-
-def _dc4_canary_acts():
-    """WIST-4 §§5.1/9.1: signed canary acts — field, authentication and §5.1 dispositions."""
-    v = json.loads((ROOT / "vectors" / "wist4" / "canary-acts.json").read_text())
-    validator = _roster_acts_validator()
-    params = v["parameters"]
-
-    def authentic(doc):
-        keys = {k["key_id"]: k["public_key"] for k in v["key_sets"].get(doc["update"]["subject"], [])}
-        public = keys.get(doc["sig"]["key_id"])
-        return public is not None and _roster_acts_verifies(doc, public)
-
-    seen = set()
-    for case in v["commitment_cases"]:
-        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
-        if doc is not None:
-            if not authentic(doc):
-                code = "WIST4-E11"
-            elif doc["update"]["details"]["leaves"] > params["canary_leaves_max"] or \
-                    case["suffix_commitments_this_epoch"] >= params["canary_commitments_max"]:
-                code = "WIST4-E08"
-        assert code == case["code"], (case["label"], code)
-        seen.add(code)
-    for case in v["reveal_cases"]:
-        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
-        if doc is not None:
-            code = "WIST4-E11" if not authentic(doc) else (None if _canary_reveal_valid(v, case, doc) else "WIST4-E08")
-        assert code == case["code"], (case["label"], code)
-        seen.add(code)
-    assert seen == {None, "WIST4-E04", "WIST4-E08", "WIST4-E11"}
-    labels = {c["label"] for c in v["commitment_cases"] + v["reveal_cases"]}
-    for needed in ("single label planter", "single label canary domain", "zero leaves", "leaves above the maximum",
-                   "ninth commitment in the epoch", "delta reserved by an earlier reveal", "exactly at the lifetime"):
-        assert needed in labels, needed
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "a one-label domain neither plants nor serves as a canary domain" in prose
-    assert "with `leaves` above `canary_leaves_max` (a `leaves` below 1 fails its `details` contract, `WIST4-E04`)" in prose
-check("vectors:wist4-canary-acts", _dc4_canary_acts)
-
-def _dc4_canary_acts_twin():
-    v = json.loads((ROOT / "vectors" / "wist4" / "canary-acts.json").read_text())
-    valid = next(c for c in v["reveal_cases"] if c["label"] == "valid reveal")
-    doc = json.loads(valid["envelope_json"])
-    early = dict(valid, reveal_height=valid["reveal_height"] - 1)
-    assert _canary_reveal_valid(v, valid, doc) and not _canary_reveal_valid(v, early, doc)
-    late = dict(valid, reveal_height=v["commitment"]["height"] + v["parameters"]["canary_lifetime_blocks"] + 1)
-    assert not _canary_reveal_valid(v, late, doc)
-check("negative:wist4-canary-acts", _dc4_canary_acts_twin)
-
-
-def _roster_acts_twins():
-    """Each alternative reading the vector rules out flips a named case."""
-    vector = _roster_acts_vector()
-    log_id, log_key = vector['log_id'], vector['log_key']
-    by_label = {c['label']: c for c in vector['cases']}
-
-    def flips(label, **reading):
-        case = by_label[label]
-        expected = [[e['expect'] for e in b['entries']] for b in case['blocks']]
-        assert _roster_acts_replay(case, log_id, log_key)[0] == expected
-        assert _roster_acts_replay(case, log_id, log_key, **reading)[0] != expected, (label, reading)
-
-    flips('ineligible admission forms no group', ineligible_candidates=True)
-    flips('unauthenticated admission holds no key', ineligible_candidates=True)
-    flips('admission fields precede roster rule', ineligible_candidates=True)
-    flips('same Block rotation and checkpoints', checkpoint_keys_before_batch=True)
-    flips('checkpoint beside its registration', checkpoint_keys_before_batch=True)
-    flips('citation of a same Block checkpoint', cite_same_block=True)
-    flips('small order key is admitted as a string', reject_unusable_admission=True)
-    sealed = by_label['checkpoint head names no sealed entry']
-    head = json.loads(sealed['blocks'][1]['entries'][0]['envelope_json'])['update']['details']['head']
-    every_id = {'sha256:' + hashlib.sha256(rfc8785.dumps(json.loads(e['envelope_json'])['update'])).hexdigest()
-                for c in vector['cases'] for b in c['blocks'] for e in b['entries'] if e['expect'] != 'WIST1-E05'}
-    assert head not in every_id and sealed['blocks'][1]['entries'][0]['expect'] == 'accepted'
-    version = by_label['admission version later minor accepted']
-    assert json.loads(version['blocks'][0]['entries'][0]['envelope_json'])['update']['wist_version'] == '1.7.3'
-    unsigned = json.loads(by_label['admission signature tampered']['blocks'][0]['entries'][0]['envelope_json'])
-    assert _roster_acts_validator().is_valid(unsigned) and not _roster_acts_verifies(unsigned, log_key['public_key'])
-
-
-check('negative:wist4-roster-acts', _roster_acts_twins)
-
-def _attestation_outcome(case, validator, log_key, auditors, duty_block, *, semantics_before_authenticity=False):
-    """WIST-4 §4/§9.1 attestation eligibility recomputed from the signed
-    bytes and the supplied duty context: the §9.1 partition (E11/E04), the
-    signing rule each class fixes (E11), the named Block and duty (E04),
-    then a coverage attestation's proof (E01). The keyword selects the
-    ruled-out order in which the duty is read before authenticity."""
-    code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
-    if doc is None:
-        return code, "ignored"
-    update, sig, ctx = doc["update"], doc["sig"], case["context"]
-    def authentic():
-        if update["action"] == "pull_attestation":
-            return sig["key_id"] == log_key["key_id"] and _roster_acts_verifies(doc, log_key["public_key"])
-        holder = next((a for a in auditors.values()
-                       if a["key_id"] == sig["key_id"] and a["auditor_id"] == update["subject"]), None)
-        held = holder is not None and (ctx["key_held_at_block"] or ctx["key_held_at_duty_block"])
-        return held and _roster_acts_verifies(doc, holder["public_key"])
-    def duty():
-        return ctx["block_sealed_below"] and ctx["subject_admitted_at_block"] \
-            and update["details"]["block"] == duty_block
-    order = [(duty, "WIST4-E04"), (authentic, "WIST4-E11")] if semantics_before_authenticity \
-        else [(authentic, "WIST4-E11"), (duty, "WIST4-E04")]
-    for check, failure in order:
-        if not check():
-            return failure, "ignored"
-    if update["action"] == "pull_attestation":
-        return None, "attested"
-    key = b64u_decode(auditors[update["subject"]]["public_key"])
-    if not ecvrf.verify(key, bytes.fromhex(update["details"]["block"][7:]),
-                        bytes.fromhex(update["details"]["vrf_proof"])):
-        return "WIST4-E01", "ignored"
-    return None, ("discharged" if ctx["duty_set_empty"] else "draw")
-
-def _dc4_coverage_attestations():
-    """WIST-4 §4, attestation eligibility: every signed case reaches the
-    diagnostic and effect the text fixes."""
-    v = _coverage_vector()
-    validator = _roster_acts_validator()
-    auditors = {a["auditor_id"]: a for a in v["attestation_auditors"]}
-    labels, codes, effects = set(), set(), set()
-    for case in v["attestation_cases"]:
-        assert case["label"] not in labels, case["label"]
-        labels.add(case["label"])
-        got = _attestation_outcome(case, validator, v["attestation_log_key"], auditors, v["attestation_duty_block"])
-        assert got == (case["code"], case["effect"]), (case["label"], got)
-        codes.add(case["code"])
-        effects.add(case["effect"])
-    assert codes == {None, "WIST4-E11", "WIST4-E04", "WIST4-E01"}, codes
-    assert effects == {"ignored", "attested", "discharged", "draw"}, effects
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("**Attestation eligibility.**", "earliest sealed `pull_attestation` for a pair fixes",
-                   "**What the sealed prefix decides.**"):
-        assert marker in prose, f"§4 does not state: {marker!r}"
-check("vectors:wist4-coverage-attestations", _dc4_coverage_attestations)
-
-def _dc4_coverage_attestations_twin():
-    v = _coverage_vector()
-    validator = _roster_acts_validator()
-    auditors = {a["auditor_id"]: a for a in v["attestation_auditors"]}
-    by_label = {c["label"]: c for c in v["attestation_cases"]}
-    unsealed = by_label["unauthentic pull naming an unsealed Block"]
-    assert _attestation_outcome(unsealed, validator, v["attestation_log_key"], auditors, v["attestation_duty_block"],
-                                semantics_before_authenticity=True)[0] == "WIST4-E04" \
-        and unsealed["code"] == "WIST4-E11", "recomputation is blind to authenticity preceding the duty test"
-    carve = by_label["coverage attestation under the duty Block key after removal"]
-    swapped = dict(carve, context=dict(carve["context"], key_held_at_duty_block=False))
-    assert _attestation_outcome(swapped, validator, v["attestation_log_key"], auditors, v["attestation_duty_block"])[0] == "WIST4-E11"
-    draw = by_label["coverage attestation for a nonempty duty set reveals the draw"]
-    assert json.loads(draw["envelope_json"])["update"]["details"]["prev_record"] is None
-    other = by_label["coverage attestation proof under another key"]
-    doc = json.loads(other["envelope_json"])
-    checker = next(a for a in v["attestation_auditors"] if a["auditor_id"] != doc["update"]["subject"])
-    assert ecvrf.verify(b64u_decode(checker["public_key"]), bytes.fromhex(doc["update"]["details"]["block"][7:]),
-                        bytes.fromhex(doc["update"]["details"]["vrf_proof"])), \
-        "the other-key case must carry a proof that verifies under the other key"
-check("negative:wist4-coverage-attestations", _dc4_coverage_attestations_twin)
-
-def _identity_rungs(case, count_pre_reset=False, honor_rejected_lifts=False):
-    """WIST-4 §§6.3/7: a reset lifts every rung and clears the findings the
-    counts read; a finding for a Delta sealed below the reset arms nothing;
-    a rejected lift clears nothing. The keywords select the ruled-out
-    readings."""
-    active, findings, outputs = set(), [], []
-    for block in case["blocks"]:
-        if block.get("reset"):
-            active.clear()
-            findings.clear()
-        if block["lift"] and (block.get("lift_accepted", True) or honor_rejected_lifts):
-            active.clear()
-        active.difference_update(block["void_levels"])
-        for f in sorted(block["findings"], key=lambda f: f["entry_index"]):
-            if f.get("pre_reset") and not count_pre_reset:
-                continue
-            had_three = 3 in active
-            findings.append((block["sealed_at_s"], f["severity"]))
-            total = sum(0 <= block["sealed_at_s"] - t < 90 * 86400 for t, _ in findings)
-            severe = sum(s == 3 and 0 <= block["sealed_at_s"] - t < 180 * 86400 for t, s in findings)
-            for level, met in enumerate((True, total >= 3, total >= 10 or f["severity"] == 3,
-                                         had_three or f["severity"] == 3 and severe >= 3), 1):
-                if met:
-                    active.add(level)
-        outputs.append(sorted(active))
-    return outputs
-
-def _dc4_sanction_identity_scope():
-    v = _sanctions_vector()
-    for case in v["identity_scope_cases"]:
-        active = _identity_rungs(case)
-        assert active == case["active_rungs"], case["label"]
-        assert [max(a, default=0) for a in active] == case["levels"], case["label"]
-    validator = _roster_acts_validator()
-    seen = set()
-    for case in v["lift_cases"]:
-        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
-        if doc is not None:
-            authentic = doc["sig"]["key_id"] == v["lift_log_key"]["key_id"] and \
-                _roster_acts_verifies(doc, v["lift_log_key"]["public_key"])
-            code = None if authentic else "WIST4-E11"
-        assert code == case["code"], (case["label"], code)
-        seen.add(code)
-    assert seen == {None, "WIST4-E11", "WIST4-E04"}
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "arms no rung of the fresh identity" in prose, "§7 does not scope rungs to the identity"
-check("vectors:wist4-sanction-identity-scope", _dc4_sanction_identity_scope)
-
-def _dc4_sanction_identity_scope_twin():
-    v = _sanctions_vector()
-    by_label = {c["label"]: c for c in v["identity_scope_cases"]}
-    pre = by_label["a pre reset finding arms nothing"]
-    assert _identity_rungs(pre, count_pre_reset=True) != pre["active_rungs"]
-    rejected = by_label["a rejected lift clears nothing"]
-    assert _identity_rungs(rejected, honor_rejected_lifts=True) != rejected["active_rungs"]
-    forged = next(c for c in v["lift_cases"] if c["label"] == "lift signed by an Auditor key")
-    doc = json.loads(forged["envelope_json"])
-    assert _roster_acts_validator().is_valid(doc) and not _roster_acts_verifies(doc, v["lift_log_key"]["public_key"])
-check("negative:wist4-sanction-identity-scope", _dc4_sanction_identity_scope_twin)
-
 def _withdrawal_vector():
     return json.loads((ROOT / "vectors/wist4/withdrawal.json").read_text())
 
-def _withdrawal_record_disposition(case, inclusive=False):
-    bound = (case["record_height"] >= case["withdrawal_height"] if inclusive
-             else case["record_height"] > case["withdrawal_height"])
-    if case["reference_withdrawn"] and bound and \
-            not (case["verdict"] == "not_auditable" and case["unmeasured"] == "reference"):
-        return "WIST4-E02"
-    return "evidence"
+def _strict_json(raw):
+    def no_duplicates(pairs):
+        keys = [k for k, _ in pairs]
+        if len(keys) != len(set(keys)):
+            raise ValueError("duplicate member")
+        return dict(pairs)
+    return json.loads(raw, object_pairs_hook=no_duplicates)
+
+def _registry_update_eligibility(raw, validator):
+    """WIST-4 §5.1: JSON/JCS eligibility (WIST1-E05), then the schema, where a
+    failure inside an action's branch is the details contract (WIST4-E04) and
+    any other field failure, the version check included, is WIST4-E11."""
+    try:
+        doc = _strict_json(raw)
+        rfc8785.dumps(doc)
+    except (ValueError, TypeError):
+        return "WIST1-E05", None
+    errors = list(validator.iter_errors(doc))
+    if any("allOf" not in e.absolute_schema_path for e in errors):
+        return "WIST4-E11", None
+    if errors:
+        return "WIST4-E04", None
+    if doc["update"]["wist_version"].partition(".")[0] != "1":
+        return "WIST4-E11", None
+    return None, doc
 
 def _dc4_withdrawal():
-    """WIST-4 §§5/9.1: payload_withdrawal acts under the Log key naming a sealed
-    Delta of the subject; Records above the withdrawal's Block are evidence
-    only as not_auditable with unmeasured reference."""
+    """WIST-4 §5.1: payload_withdrawal acts under the Log key naming a sealed
+    Delta of the subject; the earliest accepted withdrawal's Block governs
+    and the state carries one withdrawal tuple per withdrawn Delta."""
     v = _withdrawal_vector()
-    validator = _roster_acts_validator()
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["log_key"]["public_key"]))
     sealed = {d["delta_id"]: d for d in v["sealed_deltas"]}
     withdrawn = {}
     seen = set()
     for case in v["act_cases"]:
-        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
+        code, doc = _registry_update_eligibility(case["envelope_json"], validator)
         if doc is not None:
-            if not (doc["sig"]["key_id"] == v["log_key"]["key_id"] and
-                    _roster_acts_verifies(doc, v["log_key"]["public_key"])):
+            try:
+                assert doc["sig"]["key_id"] == v["log_key"]["key_id"]
+                log_key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+            except (AssertionError, InvalidSignature):
                 code = "WIST4-E11"
             else:
                 update = doc["update"]
@@ -10866,95 +6010,166 @@ def _dc4_withdrawal():
         assert code == case["code"], (case["label"], code)
         if code is None:
             delta_id = doc["update"]["details"]["delta_id"]
-            withdrawn.setdefault(delta_id, case["height"])
-            assert withdrawn[delta_id] == case["withdrawn_height"], case["label"]
+            withdrawn.setdefault(delta_id, (case["height"], doc["update"]["subject"]))
+            assert withdrawn[delta_id][0] == case["withdrawn_height"], case["label"]
         else:
             assert case["withdrawn_height"] is None, case["label"]
         seen.add(code)
     assert seen == {None, "WIST4-E11", "WIST4-E04"}
     assert any(c["code"] is None and c["height"] > c["withdrawn_height"] for c in v["act_cases"]), \
         "no repeated withdrawal keeps the first height"
-    for case in v["record_cases"]:
-        assert _withdrawal_record_disposition(case) == case["expected"], case["label"]
-    assert {c["expected"] for c in v["record_cases"]} == {"evidence", "WIST4-E02"}
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert ("a Record sealed in a Block above the withdrawal's whose `reference_delta` is the withdrawn "
-            "Delta and which is not `not_auditable` with `unmeasured` `\"reference\"` is malformed evidence "
-            "(`WIST4-E02`, §10.2)") in prose, "§5 does not fix the replay disposition"
+    tuples = sorted(["withdrawal", d, p, h] for d, (h, p) in withdrawn.items())
+    assert tuples == sorted(v["state_tuples"]), "the replay does not leave the vector's withdrawal tuples"
+    state = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
+    envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    envelope["state"]["entries"] = v["state_tuples"]
+    state.validate(envelope)
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "`delta_id` MUST name a Delta sealed at or below the act's Block whose signed `publisher` is `subject`" in prose
     assert "the earliest accepted withdrawal's Block is the height every rule reads" in prose
-    w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "a Record sealed above the withdrawal's Block with another verdict is malformed evidence (WIST-4 §10.2)" in w3
+    assert "E11 takes precedence over E04" in prose
 check("vectors:wist4-withdrawal", _dc4_withdrawal)
 
 def _dc4_withdrawal_twin():
     v = _withdrawal_vector()
-    same = next(c for c in v["record_cases"] if c["record_height"] == c["withdrawal_height"])
-    assert _withdrawal_record_disposition(same, inclusive=True) != same["expected"], \
-        "the inclusive reading must differ on the same-Block Record"
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    valid = next(c for c in v["act_cases"] if c["code"] is None)
+    doc = json.loads(valid["envelope_json"])
+    doc["update"]["details"]["legal_basis"] = 7
+    assert _registry_update_eligibility(json.dumps(doc), validator)[0] == "WIST4-E04"
+    doc = json.loads(valid["envelope_json"])
+    doc["update"]["extra"] = 1
+    assert _registry_update_eligibility(json.dumps(doc), validator)[0] == "WIST4-E11"
+    doc = json.loads(valid["envelope_json"])
+    doc["update"]["subject"] = "Not A Host"
+    doc["update"]["details"] = {}
+    assert _registry_update_eligibility(json.dumps(doc), validator)[0] == "WIST4-E04"
+    del doc["update"]["subject"]
+    assert _registry_update_eligibility(json.dumps(doc), validator)[0] == "WIST4-E11"
+    raw = valid["envelope_json"].replace('"legal_basis"', '"legal_basis": "x", "legal_basis"', 1)
+    assert _registry_update_eligibility(raw, validator)[0] == "WIST1-E05"
 check("negative:wist4-withdrawal", _dc4_withdrawal_twin)
 
-def _instant_level(case, at_s, sealed_only=False):
-    latest = max((b for b in case["blocks"] if b <= at_s), default=None)
-    if latest is None:
-        return 0
-    v = _sanctions_vector()
-    t_s = case["notice_sealed_at_s"] + (v["appeal_window_days"] + v["appeal_seal_days"]) * 86400
-    discharged = case["discharge_sealed_at_s"] is not None and case["discharge_sealed_at_s"] <= latest
-    boundary = latest if sealed_only else at_s
-    return case["fallback_level"] if not discharged and t_s <= boundary else case["level"]
 
-def _dc4_enforcement_instants():
-    """WIST-4 §7: enforcement at an instant reads the latest sealed Block and
-    voids an undischarged sealing deadline at or before the instant."""
-    v = _sanctions_vector()
-    for case in v["instant_cases"]:
-        for probe in case["probes"]:
-            assert _instant_level(case, probe["at_s"]) == probe["level"], (case["label"], probe)
-    silence = next(c for c in v["instant_cases"] if c["label"] == "silence voids between Blocks")
-    between = next(p for p in silence["probes"] if p["at_s"] not in silence["blocks"] and p["level"] == silence["fallback_level"])
-    assert _instant_level(silence, between["at_s"], sealed_only=True) == silence["level"], \
-        "recomputation is blind to the instant between Blocks"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    for marker in ("reads the state derived at the highest Block sealed at or before that instant",
-                   "is not rejected on that ground",
-                   "one sealed at or below it, whatever §3 or §10.1 make of it",
-                   "by Block Hash, every duty Block counting at the removal's Block"):
-        assert marker in prose, f"WIST-4 does not state: {marker!r}"
-    wist3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "derived level, establishing Audit Record IDs" in wist3, "WIST-3 §7 still names Registry Update IDs"
-check("vectors:wist4-enforcement-instants", _dc4_enforcement_instants)
+def _label_vector():
+    return json.loads((ROOT / "vectors/wist2/labels.json").read_text())
 
-def _dc4_coverage_removal():
-    """WIST-4 §4: the coverage-failure removal is Log-signed and its evidence
-    is exactly the counting duty Blocks' hashes in ascending octet order."""
-    v = _coverage_vector()
-    validator = _roster_acts_validator()
-    for case in v["removal_cases"]:
-        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
-        assert code is None and doc is not None, case["label"]
-        assert doc["sig"]["key_id"] == v["removal_log_key"]["key_id"]
-        assert _roster_acts_verifies(doc, v["removal_log_key"]["public_key"]), case["label"]
-        update = doc["update"]
-        assert update["action"] == "auditor_remove" and update["details"]["key_id"] == case["held_key_id"]
-        expected = sorted(b["block_hash"] for b in case["counting_duties"])
-        assert update["evidence"] == expected, case["label"]
-        assert all(b["height"] <= case["head"]["height"] for b in case["counting_duties"])
-        assert case["record_id_twin"] not in expected and _roster_acts_validator().is_valid(
-            {"update": dict(update, evidence=[case["record_id_twin"]]), "sig": doc["sig"]}), \
-            "a Record ID passes the schema and is caught only by the counting test"
-check("vectors:wist4-coverage-removal", _dc4_coverage_removal)
+def _wist_label_terms():
+    w4 = (ROOT / "specs" / "WIST-4-governance.md").read_text()
+    registry = w4.split("## 6. Label Registry")[1].split("## 7.")[0]
+    terms = re.findall(r"^\| `(wist:[a-z0-9-]+)` \|", registry, re.M)
+    assert len(terms) >= 7 and len(terms) == len(set(terms))
+    return set(terms)
 
-def _dc4_derivation_accepted():
-    """WIST-4 §6.1: an accepted Delta excluded from materialization still ages the domain."""
-    v = json.loads((ROOT / "vectors" / "wist4" / "derivation.json").read_text())
-    case = next(c for c in v["cases"] if c["label"] == "excluded first delta still ages")
-    first = min(c["sealed_at_s"] for c in case["accepted"])
-    assert case["expected"]["a_days"] == (case["n"]["sealed_at_s"] - first) // 86400
-    kept = min(c["sealed_at_s"] for c in case["accepted"] if not c["excluded"])
-    assert (case["n"]["sealed_at_s"] - kept) // 86400 != case["expected"]["a_days"], "the excluded Delta must move the age"
-    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
-    assert "An accepted Delta is any Delta the domain signed that a Block seals" in prose
-check("vectors:wist4-derivation-accepted", _dc4_derivation_accepted)
+def _label_disposition(doc, declaration, validator, url_cap_bytes, terms):
+    """WIST-2 §3.3 over one Label Envelope: accepted, fields, self, signature
+    or binding, in the order WIST-2 §3.3 and WIST-1 §7 apply them."""
+    import link_extraction
+    if not validator.is_valid(doc):
+        return "fields"
+    label = doc["label"]
+    if label["wist_version"].partition(".")[0] != "1":
+        return "fields"
+    publisher = declaration["publisher"]
+    if label["labeler"] != publisher["domain"]:
+        return "fields"
+    subject = label["subject"]
+    if subject.startswith("https://"):
+        if link_extraction.normalize_url(subject, subject) != subject:
+            return "fields"
+        host = subject[len("https://"):].split("/", 1)[0]
+    else:
+        if not _declaration_host_format(subject):
+            return "fields"
+        host = subject
+    if len(rfc8785.dumps(subject)) > url_cap_bytes:
+        return "fields"
+    m = re.fullmatch(r"([a-z0-9.-]+):([a-z0-9-]+)", label["name"])
+    if not m or len(label["name"]) > 64:
+        return "fields"
+    prefix = m.group(1)
+    if prefix == "wist":
+        if label["name"] not in terms:
+            return "fields"
+    elif not _declaration_host_format(prefix):
+        return "fields"
+    try:
+        publisher_instant(label["asserted_at"])
+    except ValueError:
+        return "fields"
+    if host == publisher["domain"] or host in publisher.get("subdomain_scope", []):
+        return "self"
+    key = next((k for k in publisher["keys"] if k["key_id"] == doc["sig"]["key_id"]), None)
+    if key is None:
+        return "binding"
+    if not _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
+                                    canonical_b64u_decode(doc["sig"]["value"]),
+                                    rfc8785.dumps(label))[0]:
+        return "signature"
+    return "accepted"
+
+def _label_vectors():
+    """WIST-2 §3.3 and WIST-4 §6: every case's disposition is recomputed over
+    the example Declaration, the accepted Label IDs reproduce, and the
+    current-Label rule leaves the state tuples the vector names."""
+    v = _label_vector()
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/label.schema.json").read_text()))
+    terms = _wist_label_terms()
+    codes = {"accepted": None, "fields": "WIST2-E06", "self": "WIST2-E06",
+             "signature": "WIST1-E01", "binding": "WIST1-E02"}
+    outcomes = set()
+    for case in v["cases"]:
+        got = _label_disposition(case["envelope"], v["declaration"], validator, v["url_cap_bytes"], terms)
+        assert got == case["expected"], (case["name"], got, case["expected"])
+        assert case["code"] == codes[case["expected"]], case["name"]
+        label_id = "sha256:" + hashlib.sha256(rfc8785.dumps(case["envelope"]["label"])).hexdigest()
+        assert case["label_id"] == (label_id if case["expected"] == "accepted" else None), case["name"]
+        outcomes.add(case["expected"])
+    assert outcomes == set(codes)
+    example = json.loads((ROOT / "examples" / "label.json").read_text())
+    assert _label_disposition(example, v["declaration"], validator, v["url_cap_bytes"], terms) == "accepted"
+    feed = json.loads((ROOT / "examples" / "label-feed.json").read_text())
+    assert feed["feed"]["deltas"] == ["sha256:" + hashlib.sha256(rfc8785.dumps(example["label"])).hexdigest()]
+    Draft202012Validator(json.loads((ROOT / "schemas/feed.schema.json").read_text())).validate(feed)
+    state = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
+    envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    for case in v["current_cases"]:
+        ranked = max(case["sealed"], key=lambda s: (publisher_instant(s["label"]["asserted_at"]),
+                                                     s["height"], s["entry_index"]))
+        assert ranked["label_id"] == case["current"], case["name"]
+        expected = None if ranked["label"].get("retracted") else [
+            "label", ranked["label"]["labeler"], ranked["label"]["subject"], ranked["label"]["name"],
+            ranked["label"].get("value"), ranked["label"]["asserted_at"], ranked["height"]]
+        assert case["state_tuple"] == expected, case["name"]
+        if expected is not None:
+            envelope["state"]["entries"] = [expected]
+            state.validate(envelope)
+    assert any(c["state_tuple"] is None for c in v["current_cases"])
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    assert "the sealed Label with the greatest `asserted_at`, and among equal instants the one later in Log order" in prose
+    assert "it is rejected under `WIST2-E06` and never sealed" in prose
+check("vectors:wist2-labels", _label_vectors)
+
+def _label_vectors_twin():
+    """The check above must notice a self-label accepted, a foreign-prefix
+    name rejected and the tie broken the other way."""
+    v = _label_vector()
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/label.schema.json").read_text()))
+    terms = _wist_label_terms()
+    self_case = next(c for c in v["cases"] if c["expected"] == "self")
+    widened = copy.deepcopy(v["declaration"])
+    widened["publisher"]["domain"] = "elsewhere.example"
+    widened["publisher"]["subdomain_scope"] = []
+    doc = copy.deepcopy(self_case["envelope"])
+    doc["label"]["labeler"] = "elsewhere.example"
+    assert _label_disposition(doc, widened, validator, v["url_cap_bytes"], terms) == "signature"
+    foreign = next(c for c in v["cases"] if c["name"] == "name under a Canonical Host prefix")
+    assert _label_disposition(foreign["envelope"], v["declaration"], validator, v["url_cap_bytes"], set()) == "accepted"
+    assert _label_disposition(foreign["envelope"], v["declaration"], validator, 20, terms) == "fields"
+    tie = next(c for c in v["current_cases"] if c["name"] == "equal instants break by Block height")
+    reversed_order = min(tie["sealed"], key=lambda s: (s["height"], s["entry_index"]))
+    assert reversed_order["label_id"] != tie["current"]
+check("negative:wist2-labels", _label_vectors_twin)
+
 
 sys.exit(1 if failures else 0)

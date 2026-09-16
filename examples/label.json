@@ -1,0 +1,14 @@
+{
+  "label": {
+    "wist_version": "1.0.0",
+    "labeler": "example.com",
+    "subject": "https://reduced.example.org/notice",
+    "name": "wist:spam",
+    "asserted_at": "2026-08-02T12:30:00Z"
+  },
+  "sig": {
+    "key_id": "test-k1",
+    "alg": "Ed25519",
+    "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
+  }
+}

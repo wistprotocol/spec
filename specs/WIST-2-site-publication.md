@@ -5,7 +5,8 @@
 ## 1. Introduction
 
 WIST-2 defines **ping + pull** publication: a Publisher serves Deltas
-(WIST-1) under its `.well-known` path and notifies Aggregators to fetch them.
+(WIST-1) and Labels (§3.3) under its `.well-known` path and notifies
+Aggregators to fetch them.
 These Publisher-hosted artifacts permit independent retrieval and verification
 without coupling publication to one Aggregator. Design rationale:
 [ADR-0003](../decisions/0003-ping-plus-pull.md).
@@ -28,6 +29,11 @@ shown here.
 - **Ingest Endpoint**: `POST https://<log_id>/ingest` at the
   Aggregator's Service Origin (WIST-3 §6); a Publisher learns a Log's
   `log_id` from its Log Anchor, obtained out of band (WIST-3 §3.4).
+- **Label**: a Publisher's signed statement about a subject outside its
+  own authority, under a name from WIST-4 §6's Label Registry (§3.3).
+- **Labeler**: a Publisher in its capacity as the signer of Labels.
+- **Label Feed**: the signed list of a Labeler's recent Label IDs, with
+  the shape and rules of the Feed (§3.3).
 
 Terms defined in WIST-1 (Publisher, Aggregator, Delta, Delta ID, Envelope,
 Key Set, Canonical Host, Normalized URL, Payload, Publisher Declaration)
@@ -45,10 +51,13 @@ A conforming Publisher serves, over HTTPS only:
 /.well-known/wist/payloads/<id>.json (one file per content-bearing Delta)
 /.well-known/wist/feed.json          (the Feed)
 /.well-known/wist/feed/<n>.json      (sealed Feed Pages — §3.2)
-/.well-known/wist/appeals/<id>.json  (one file per appeal — §3.3)
-/.well-known/wist/registry.json      (self-signed Registry Updates awaiting sealing — WIST-4 §9.1)
-/.well-known/wist/canary/<c>/<i>     (a revealed canary leaf's served bytes — WIST-4 §5.1)
+/.well-known/wist/labels/<id>.json   (one file per Label — §3.3)
+/.well-known/wist/label-feed.json    (the Label Feed — §3.3)
+/.well-known/wist/label-feed/<n>.json (sealed Label Feed Pages — §3.3)
 ```
+
+The Label paths exist only for a Publisher that labels; a Publisher
+serving none of them is a Publisher with no Labels.
 
 ### 3.1. Delta and Payload Files
 
@@ -74,13 +83,13 @@ the content must be erased.
 **Payload retention.** A Publisher MUST keep retrievable its URL's
 **current anchor Payload** — the Payload of the last content-bearing Delta
 in that URL's chain (WIST-3 §6.1) — for as long as it continues to emit
-`attest` Deltas for that URL, because that Payload is the reference an
-`attest` is audited against (WIST-4 §5). A Publisher that must stop serving
+`attest` Deltas for that URL, because that Payload is the content an
+`attest` still stands on (WIST-3 §6.1). A Publisher that must stop serving
 it re-anchors the chain instead, by publishing an `update` with a fresh
 Payload or a `delete`; what it MUST NOT do is keep attesting to content
 nobody can obtain. Payloads of superseded Deltas carry no such obligation
-on the Publisher; the Aggregator's own retention of them, which is what
-keeps an already-sealed Audit Record verifiable, is WIST-3 §6.1's.
+on the Publisher; the Aggregator's own retention of them is WIST-3
+§6.1's.
 
 **Withdrawal ends that duty and every other reason to serve.** From the
 height a `payload_withdrawal` for a Delta is sealed (WIST-3 §6.2), the
@@ -90,8 +99,8 @@ the two do not compete, and where a Publisher would otherwise still be
 attesting to the withdrawn anchor it re-anchors the chain as above.
 Withdrawal reaching the Aggregator and the Mirrors but not the site that
 first published the content would leave the salt on the open web at a
-well-known path, and with it every commitment the salt keys: the Delta's
-own and the four an Audit Record seals (WIST-1 §3.6, WIST-4 §5). One serving
+well-known path, and with it the commitment the salt keys (WIST-1 §3.6).
+One serving
 path left open is the whole of the guarantee gone, which is why WIST-3 §6.2
 binds all three.
 
@@ -253,43 +262,77 @@ pull that returns `304` is not `WIST2-E02` and MUST NOT count as noise.
 Sealed Pages are immutable and SHOULD instead be served with long-lived
 cache headers, as in §3.1.
 
-### 3.3. Appeals
+### 3.3. Labels
 
-`appeals/<id>.json` contains exactly one `appeal` Registry Update Envelope
-(WIST-4 §7, schema:
-[`schemas/registry-update.schema.json`](../schemas/registry-update.schema.json)),
-where `<id>` is the 64-character hex digest of the Registry Update ID
-(WIST-4 §7) of the `notice` being appealed — the same
-digest-without-the-`sha256:`-prefix naming §3.1 uses for Deltas, and the
-same value the Envelope's own `details.notice` carries. A Publisher that
-appeals a sanction notice publishes the file at that path; the Aggregator
-pulls it, seals it as a `registry_update` Entry (WIST-3 §3.3), and WIST-4 §7
-fixes the deadline by which it MUST.
+A Publisher MAY publish **Labels**: signed statements about subjects
+outside its own authority, each under a name from the Label Registry
+(WIST-4 §6). A Label is an Envelope whose inner object is `label`
+(schema: [`schemas/label.schema.json`](../schemas/label.schema.json)),
+carrying:
 
-**The pull is the Aggregator's duty and needs no Ping.** For every
-`"sanction"` `notice` it seals, an Aggregator MUST fetch that notice's
-appeal path from the sanctioned domain at least once after the appeal
-window closes and before WIST-4 §7's sealing deadline, and SHOULD poll it at
-the baseline interval (§5) throughout the window. It MUST NOT make that
-fetch conditional on a Ping: a domain in Sanctioned Quarantine has its
-Pings answered `403` (§4), so an appeal path polled only on notification
-would be unreachable in exactly the case it exists for. The Publisher MAY
-ping as well, and MUST NOT read a `403` as the appeal having failed to
-arrive — the appeal is served, and what the Log does with it is WIST-4 §7's
-subject.
+- `wist_version` (WIST-1 §3.1);
+- `labeler` — the Labeler's Canonical Host, in the form and with the
+  binding a Delta's `publisher` carries (WIST-1 §3.8): the Label's
+  identity and its signature authority;
+- `subject` — a Normalized URL (WIST-1 §2), byte-identical to its own
+  normalization, or a Canonical Host; in JCS octets it MUST NOT exceed
+  `url_cap_bytes` (WIST-4 §5);
+- `name` — a Label Registry name (WIST-4 §6);
+- `value` — OPTIONAL, an integer in micro-units, 0 … 1 000 000;
+- `asserted_at` — the instant the Labeler asserts the statement for, a
+  Publisher timestamp under WIST-1 §3.4's profile and clock rule, read
+  exactly as a Delta's `observed_at`;
+- `retracted` — OPTIONAL, `true` where the Label withdraws the Labeler's
+  earlier Label of the same `name` on the same `subject`.
 
-The path exists because an appeal is the one Publisher artifact whose
-delivery a level-3 sanction would otherwise block: Sanctioned Quarantine
-rejects that domain's Pings and Feed pulls (§4), and an appeal carried in
-no other way would depend on the goodwill of the party being appealed
-against. Publishing it at a well-known path over HTTPS makes the appeal a
-signed, dated, fetchable artifact from the instant it is served — before
-any Aggregator acts on it, and whether or not one ever does — so a party
-checking whether an appeal was suppressed fetches it and checks the Log,
-rather than taking either party's word. Appeal files are immutable under
-the same rule as Delta files: once published under an `<id>`, the bytes
-MUST NOT change, and a Publisher that wants to say more files nothing here
-— it says it in the appeal it publishes, once.
+Those seven members and no others. The **Label ID** is `"sha256:" +
+hex(SHA-256(JCS(label)))`, the construction WIST-1 §4 uses for a Delta
+ID. A Label is signed under the Labeler's Key Set by the rule a Delta is
+signed under (WIST-1 §5.2), with `asserted_at` in the place of
+`observed_at` for key validity, and WIST-1 §4's profile; `labeler` MUST
+equal the Declaration's `domain` (WIST-1 §3.8).
+
+**Self-labeling is rejected.** A Label whose `subject` is a Normalized
+URL under the Labeler's own authority — its `domain` or a host its
+`subdomain_scope` names (WIST-1 §3.2) — or a Canonical Host equal to that
+domain or to a scoped host, is a statement about the Labeler itself,
+which WIST-4 §4 forbids: it is rejected under `WIST2-E06` and never
+sealed. Everything else is outside the scope rule by design: a Label is
+an opinion about another party, and the Log records who signed it.
+
+**Files and the Label Feed.** `labels/<id>.json` contains exactly one
+Label Envelope, named and served exactly as `deltas/<id>.json` is (§3.1):
+immutable once published, the filename the 64-character hex digest of
+the Label ID. `label-feed.json` is an Envelope whose inner object is
+`feed` with §3.2's schema, `domain`, `generated_at`, `next` and rules —
+the Feed's sealing, page numbering at `label-feed/<n>.json`,
+`generated_at` monotonicity, `feed_window`, retained-observation and Page
+verification rules apply unchanged — except that its `deltas` member
+lists Label IDs in publication order. A Labeler's Label Feed is its own
+sequence, separate from its Feed; the two share a Declaration and a Key
+Set.
+
+**Which Label is current.** For each (labeler, subject, name), the
+Labeler's current Label at a height is the sealed Label with the
+greatest `asserted_at`, and among equal instants the one later in Log
+order (WIST-3 §3.3: ascending Block height, then Entry index). A current
+Label with `retracted` `true` means the Labeler asserts nothing about
+that subject under that name; every earlier Label stays sealed. A Label
+whose `asserted_at` is earlier than the current Label's is sealed and
+applies nothing. Consumers read Labels through their Snapshot tuples and
+`tier1/labels.parquet` (WIST-3 §7) and apply only the Labelers they
+subscribe to (WIST-4 §6).
+
+**Pull.** Whenever an Aggregator pulls a domain's Feed — on a Ping and at
+the baseline interval alike (§5) — it MUST also fetch `label-feed.json`
+where the domain serves one, walk it under §3.2's rules and §5's ingest
+budget, fetch each Label ID it has not sealed, validate the Label under
+this section and WIST-1 §4, and queue it for sealing as a `label` Entry
+(WIST-3 §3.3) under the eligibility and ceiling WIST-4 §5 gives a Delta.
+A Label that fails is `WIST2-E06`, reported at the status endpoint (§7.1)
+with the Label ID, and pulled again on the next pull like a rejected
+Delta (§5). A Label ID an Aggregator has sealed is seen, exactly as a
+Delta ID is.
 
 ## 4. The Ping
 
@@ -316,18 +359,17 @@ subsequent HTTPS pull of the signed Feed and Deltas. Responses:
 |--------|---------------------------------------------------|
 | 202 | Accepted; a pull will follow |
 | 429 | Rate-limited; MUST include `Retry-After` |
-| 403 | Domain in Sanctioned Quarantine or delisted (WIST-4 §7). New and Provisional domains MUST NOT receive 403. It suspends ingestion of that domain's content and nothing else: the Aggregator's duty to fetch the domain's appeal path (§3.3) is independent of any Ping and survives the `403`. |
+| 403 | The Aggregator does not ingest this domain, for a reason outside this suite — an operator's legal obligation is the case foreseen. The refusal MUST be visible as the `refused` state at the status endpoint (§7.1), and WIST-4 §4's invariants still bind: a refusal is not for sale and never a treatment of one Publisher's content against another's. |
 
 On a 5xx, timeout, or connection failure a Publisher SHOULD retry at most
 three times with exponential backoff (1 min, 4 min, 16 min) and then rely
 on the Aggregator's baseline polling; it MUST NOT retry a 4xx other than
 429.
 
-Per-domain Ping quotas are a function of the domain's reputation; the
-quota formula is normative in WIST-4 §6. WIST-2 only fixes the dependency:
-higher reputation ⇒ higher quota. Only pings resolving to `WIST2-E02` or
-`WIST2-E04` count against the domain's daily quota Q (WIST-4 §6); productive
-pings do not. Exceeding Q yields `429` until the UTC-day window resets.
+Every domain's Ping quota Q is `quota_base` Pings per UTC day (WIST-4
+§5), the same for every domain. Only pings resolving to `WIST2-E02` or
+`WIST2-E04` count against it; productive pings do not. Exceeding Q yields
+`429` until the UTC-day window resets.
 
 ## 5. Aggregator Pull Behavior
 
@@ -335,8 +377,8 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
 
 0. **First contact.** If the domain is unknown, the Aggregator MUST fetch
    and verify `publisher.json` (WIST-1 §5.1) before any Feed pull, seal it
-   as a `publisher_declaration` Entry (WIST-3 §3.3), and apply the
-   new-domain quota of WIST-4 §6. A missing or invalid Declaration is a
+   as a `publisher_declaration` Entry (WIST-3 §3.3), and apply the Ping
+   quota of WIST-4 §5. A missing or invalid Declaration is a
    `WIST2-E04` rejection.
 
    **Ingest budget.** §3.2's obligation to walk sealed Pages has no page
@@ -472,7 +514,7 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    unavailable, malformed, or fails that verification at pull time MUST be
    rejected with `WIST2-E03` and MUST NOT be sealed: the Aggregator cannot
    undertake to serve (WIST-3 §6.1) content it never received, and a Delta
-   sealed without its Payload would be permanently unauditable.
+   sealed without its Payload would have nothing to materialize.
 4. Queues accepted Deltas for the next log block (WIST-3 §3), and the
    Payloads it verified for publication alongside the Block that seals
    them (WIST-3 §6.1). A queued Delta is sealed only where it verifies
@@ -480,45 +522,22 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    signing key a Declaration accepted since the pull has retired is
    `WIST1-E02` at sealing, reported (§7.1) and not sealed, and its ID is
    pulled again once the Publisher re-signs it (step 2).
+5. **Labels.** Fetches `label-feed.json` where the domain serves one,
+   under the same walk, budget and seen rules as the Feed, fetches each
+   unseen Label, validates it under §3.3 and queues it for sealing like a
+   Delta; a rejected Label is reported (§7.1) and pulled again on the
+   next pull.
 
 Aggregators MUST also poll known feeds at a low baseline frequency
-(default: every 24 hours, a Parameter Registry value — WIST-4 §9) regardless
+(default: every 24 hours, a Parameter Registry value — WIST-4 §5) regardless
 of Pings. A lost Ping therefore delays ingestion but never loses data.
 
-The `/.well-known/wist/` path is published *for* automated
-consumption by aggregators and auditors; `robots.txt` directives do not
-apply to fetches under this path. Fetches of any other path (e.g. auditor
-re-fetches of content URLs, WIST-4 §5) remain subject to `robots.txt`.
-
-An Auditor's re-fetches MUST carry the product token
-`WIST-Auditor` in `User-Agent`, and it evaluates `robots.txt`
-([RFC 9309]) under that token; the Auditor's `auditor_id` MAY appear
-elsewhere in the header for operator contact, but MUST NOT be the token
-the file is matched on. One token for every Auditor is what keeps the
-choice a Publisher makes a choice about auditing rather than about
-auditors.
-
-A `robots.txt` in force that would grant access to some admitted Auditors
-(WIST-4 §3) and deny it to others — by naming individual Auditors, or by any
-other discrimination between them — MUST be treated by **every** Auditor
-as a prohibition, recorded `unreachable` with `robots_excluded` (WIST-4 §5),
-whatever access it purports to grant that Auditor itself. Selective
-permission is the more dangerous case, not the lesser one: a Publisher
-that admits exactly one Auditor keeps its URL audited on paper while
-ensuring no second independent Auditor can ever see the page, and a
-Confirmed Inconsistency needs two.
-
-A Publisher that forbids those re-fetches keeps that right and pays a
-stated price: a URL that two Auditors independent of one another have been
-turned away from, both exclusions sealed inside the unauditable horizon, is
-excluded from materialization until an Auditor independent of both records
-a successful audit, or until those exclusions age out of the horizon with
-none replacing them. It is not a sanction and touches no reputation —
-declining audits and being materialized are simply not available at the
-same time. WIST-4 §5 owns that rule and states it normatively, including why
-one Auditor's exclusion is not enough and why the clearing audit must come
-from a third: this paragraph is a pointer, and where the two differ WIST-4 §5
-governs (WIST-4 §5, WIST-3 §7).
+The `/.well-known/wist/` path is published *for* automated consumption
+by Aggregators; `robots.txt` directives do not apply to fetches under
+this path. This suite obliges no fetch of any other path: nothing in it
+compares a page with its publication, so a Publisher's `robots.txt`
+governs whatever a Labeler or a Consumer chooses to fetch on its own
+account and nothing the protocol requires.
 
 ## 6. Unsigned Change Hints (Compatibility)
 
@@ -527,19 +546,13 @@ pings, sitemap `<lastmod>` changes, and llms.txt updates.
 
 An unsigned hint MUST NOT produce content attributed to the domain.
 
-A hint MAY advance an Auditor's fetch of a Delta already in its
-selection set (WIST-4 §4) — the hinted URL's Delta, where the Auditor's
-own draw or the extension rule names it — and nothing more. A Record
-for a Delta outside the Auditor's selection set is void (WIST-4 §10,
-`WIST4-E01`) whatever prompted the fetch, so a hint never creates an
-Audit Record; it only times one the Auditor owed. For every other URL,
-with signed Deltas or without, hints only inform the Aggregator's pull
-and audit scheduling — they produce no log entries.
+For every URL, with signed Deltas or without, hints only inform the
+Aggregator's pull scheduling — they produce no log entries.
 
 The signed path always has higher weight and lower latency: signed Deltas
 enter the log directly on the publisher's authority, while hints are
-second-class — at most auditor-attributed, scheduled at the system's
-convenience. This asymmetry is the adoption incentive for WIST-1/WIST-2.
+second-class — unattributed, scheduled at the system's convenience. This
+asymmetry is the adoption incentive for WIST-1/WIST-2.
 
 ## 7. Error Registry
 
@@ -550,6 +563,7 @@ convenience. This asymmetry is the adoption incentive for WIST-1/WIST-2.
 | WIST2-E03 | Delta whose signed `publisher` differs from the authenticated Feed/Page domain (§5), or a Delta referenced in Feed but missing or corrupted at `deltas/<id>.json`, or a content-bearing Delta whose `payloads/<id>.json` is missing, corrupted, or does not reproduce its commitment (WIST-1 §3.6). Typed rejection, visible to the Publisher via the status endpoint (§7.1). |
 | WIST2-E04 | First contact or Feed authentication failure. Three cases, one code, each one of the Feed failing to authenticate as this domain's: a Feed whose signature does not verify against the domain's Key Set even after the one Declaration re-fetch §5 step 1 requires; a Feed whose `feed.domain` differs from the host it was fetched from (§4), which authenticates as some other domain's Feed or as none, whatever key signed it; and a first-contact pull (§5 step 0) whose `publisher.json` is missing, unreachable, malformed, or fails WIST-1 §5.1 verification — the last being the case where no Key Set exists to check the first against. The pull is discarded; counts as noise against the quota. The status endpoint (§7.1) MUST distinguish them in its `detail` field, since a Publisher whose Declaration never loaded, one whose Feed signature is wrong, and one serving a misaddressed Feed take entirely different remedies. |
 | WIST2-E05 | Feed `generated_at` regression. The pull is discarded; it does not count against the quota — §4's noise set is closed at `WIST2-E02`/`WIST2-E04`. |
+| WIST2-E06 | Label rejected (§3.3): a Label referenced in the Label Feed but missing or corrupted at `labels/<id>.json`; a field, version or JSON eligibility failure under WIST-1 §4 and §7's rules read over the `label` object; a `subject` that is not its own Normalized URL or Canonical Host, or exceeds `url_cap_bytes`; a `name` outside the Label Registry's form; an `asserted_at` beyond the clock allowance; a `labeler` other than the Feed's authenticated domain; or a self-labeling Label. A signature or key-binding failure keeps `WIST1-E01`/`WIST1-E02`. Typed rejection, visible to the Labeler via the status endpoint (§7.1) with the Label ID as `delta_id`; not noise. |
 
 ### 7.1. Publisher Status Endpoint
 
@@ -562,15 +576,10 @@ carries `wist_version`, the `domain` it describes, and:
 - `last_pull_at` — the time of the last successful pull, or `null` if the
   Aggregator has never completed one;
 - `quota_remaining` — Pings still available to the domain in the current
-  UTC-day window, against the `Q` of WIST-4 §6;
+  UTC-day window, against the `Q` of WIST-4 §5;
 - `state` — the domain's **ingestion** state: one of `new` (known, not yet
-  successfully pulled), `active`, `sanctioned_quarantine` (WIST-4 §7 level 3)
-  or `delisted` (level 4). The last two are exactly the states §4 answers a
-  Ping with `403` for. Provisional (WIST-4 §6.3) is deliberately absent: it
-  bounds a domain's reputation and never its ingestion, so a Provisional
-  domain reports `active` like any other, and an implementation that
-  reported it here would be advertising a restriction WIST-4 §6.3 forbids it
-  to apply;
+  successfully pulled), `active`, or `refused` (the Aggregator does not
+  ingest the domain — the one state §4 answers a Ping with `403` for);
 - `rejections` — the pending typed rejections, each with its `code` (a
   WIST-1 or WIST-2 error code, §7 and WIST-1 §7), the `at` it was recorded, the
   `delta_id` it concerns where one applies, and a free-text `detail`.
@@ -587,7 +596,7 @@ the Publisher's debugging surface, not an artifact other parties verify.
   walk, whose depth the pinging domain controls — which is why §5's
   per-domain ingest budget, not the Ping's own cheapness, is the
   content-walk bound; Declaration discovery is excluded (§5). Quotas
-  (WIST-4 §6) throttle abusive domains; Ingest Endpoints SHOULD additionally apply source-IP rate limits below the
+  (WIST-4 §5) throttle abusive domains; Ingest Endpoints SHOULD additionally apply source-IP rate limits below the
   per-domain quotas.
 - **Feed replay.** An attacker replaying an old `feed.json` cannot
   regress state: signatures bind content, `generated_at` monotonicity
@@ -604,10 +613,9 @@ the Publisher's debugging surface, not an artifact other parties verify.
   redirect to a URL already fetched in the same chain, and MUST NOT
   follow more than five in one. A resource whose chain exceeds either is
   not retrieved, which is `WIST2-E01` for a Feed like any other failure
-  to fetch. Five is chosen rather than derived: it is the same allowance
-  WIST-4 §9's `audit_redirect_max` gives an Auditor, and a
-  publication path needing a sixth hop to reach its own well-known file
-  is misconfigured rather than unlucky.
+  to fetch. Five is chosen rather than derived: a publication path
+  needing a sixth hop to reach its own well-known file is misconfigured
+  rather than unlucky.
 
 ## 9. Privacy Considerations
 
@@ -639,9 +647,10 @@ adjacent to the layout it walks.
       survive it — and re-anchors the chain rather than keeping the
       withdrawn Payload published in order to go on attesting
       (§3.1, WIST-3 §6.2)
-- [ ] Appeals a sanction notice by publishing a signed `appeal` at
-      `appeals/<notice-id>.json`, immutable once published, naming that
-      notice in `details.notice` (§3.3, WIST-4 §7)
+- [ ] Where it labels, serves each Label at `labels/<id>.json` and lists
+      it in a Label Feed under §3.2's rules, signs it under its Key Set,
+      names a registry `name`, and never labels a subject under its own
+      authority (§3.3)
 - [ ] Seals Pages when `deltas` would exceed 1000 entries — file
       published before cutover, sealing-order numbering, no Delta
       omitted or duplicated across Pages, monotonic `generated_at` (§3.2)
@@ -676,9 +685,9 @@ adjacent to the layout it walks.
 - [ ] Applies the per-domain ingest budget to that walk, suspending and
       resuming across days rather than truncating it (§5)
 - [ ] Runs baseline polling independent of Pings (§5)
-- [ ] Fetches every `"sanction"` notice's appeal path from the sanctioned
-      domain before WIST-4 §7's sealing deadline, independent of any Ping
-      and notwithstanding the `403` that domain's Pings receive (§3.3, §4)
+- [ ] Pulls a domain's Label Feed with its Feed under the same budget,
+      validates each Label under §3.3, seals what verifies and reports
+      `WIST2-E06` for the rest (§3.3, §5, §7)
 - [ ] Never attributes unsigned-hint content to a domain (§6)
 - [ ] Implements the Error Registry behaviors and the status endpoint (§7)
 - [ ] Accounts pings correctly against the domain's quota — only
@@ -689,10 +698,11 @@ adjacent to the layout it walks.
 ## 11. Link Extraction
 
 A Publisher declares its page's external links in the Payload's `links`
-member (WIST-1 §3.6) by one procedure, and an Auditor checking the
-declaration (WIST-4 §5) MUST apply the same procedure to its own fetch —
-the rule is deterministic precisely so that the two runs can disagree
-only when the page did.
+member (WIST-1 §3.6) by the procedure below. The procedure is
+deterministic so that two tools deriving a publication from the same
+page declare the same links, and so that a Labeler or Consumer that
+chooses to compare a page with its publication can apply it too; nothing
+in this suite obliges that comparison.
 
 The procedure operates on the **raw HTML response octets** — never on a
 DOM after script execution, so a link inserted by JavaScript does not
@@ -750,15 +760,13 @@ ignored — is `text/html` or `application/xhtml+xml`. Every other media
 type is not, and neither is a representation served with no
 `Content-Type` at all. A representation that is not HTML has no links
 under this procedure: its Payload MUST declare `{"total": 0, "urls":
-[]}`. Publisher and Auditor MUST decide the question from that header
-alone and MUST NOT sniff the body, because they decide it on two
-separate fetches of the same page and only the header is a declaration
-both can read the same way. The predicate is enumerated rather than left
-to "whatever a browser would parse" for the reason the whole procedure
-is: a Publisher that reads `application/xhtml+xml` as non-HTML declares
-`{"total": 0, "urls": []}` while an Auditor that reads it as HTML
-extracts a set, and the disagreement surfaces as a `link_agreement` of 0
-(WIST-4 §5) with neither party having misdeclared anything.
+[]}`. A Publisher MUST decide the question from that header alone and
+MUST NOT sniff the body, because any party repeating the procedure on
+its own fetch can read only the header the same way. The predicate is
+enumerated rather than left to "whatever a browser would parse" for the
+reason the whole procedure is: two tools that read
+`application/xhtml+xml` differently would declare different sets from
+one page.
 
 `vectors/wist2/link-extraction.json` carries the conformance fixtures: the
 exact input octets and the exact member a conforming implementation
@@ -770,19 +778,19 @@ character reference, an uppercase tag, and an unquoted `href`.
 
 ## 12. Text Extraction
 
-WIST-4 §5's similarity metric compares the Publisher's committed `extract`
-against an **observed text** an Auditor produces from its own fetch, and
-this section pins how that text is produced, for the reason §11 pins
-link extraction: a metric two conforming implementations can compute
-differently is not recomputable, and every verdict, sanction and
-reputation value replays through this one. The Publisher's side is not
-touched — `extract` remains an editorial choice about what the page's
-content *is* — the pinned procedure governs only the observed side, and
-it is deliberately **whole-document**: any rule that tried to isolate
-"main content" would be a boilerplate heuristic, and heuristics are the
-disagreement this section exists to remove. What makes whole-document
-extraction safe for honest Publishers is WIST-4 §5's containment reading,
-not anything here.
+A Publisher's `extract` is an editorial choice about what the page's
+content *is* (WIST-1 §3.6). This section gives the RECOMMENDED procedure
+for deriving an **observed text** from a fetched HTML page — for
+Publisher tooling that derives its publication from the page it serves,
+and for any Labeler or Consumer that chooses to compare a page with a
+publication — pinned for the reason §11 pins link extraction: two
+conforming implementations produce the same text from the same octets.
+The procedure is deliberately **whole-document**: any rule that tried to
+isolate "main content" would be a boilerplate heuristic, and heuristics
+are the disagreement this section exists to remove. A comparison over
+its output should read containment — how much of the published text the
+page carries — since the whole document carries every navigation link
+and footer the page serves.
 
 The procedure operates on the raw HTML response octets — never a DOM,
 the same posture as §11, and shares §11's scan:
@@ -798,7 +806,7 @@ the same posture as §11, and shares §11's scan:
 3. Decode the resulting octet stream as UTF-8, replacing every invalid
    sequence with U+FFFD. The declared charset is never consulted:
    charset sniffing is implementation-divergent, and a non-UTF-8 page
-   degrades identically for every Auditor rather than differently per
+   degrades identically for every implementation rather than differently per
    library.
 4. Decode character references in the text, with exactly §11 step 4's
    repertoire; a reference that is malformed, over-long, or names a
@@ -807,19 +815,17 @@ the same posture as §11, and shares §11's scan:
 5. Collapse every run of ASCII whitespace (tab, LF, FF, CR, space) to
    a single space and trim the ends.
 
-The output is the observed text WIST-4 §5 normalizes and measures. Two
+The output is the observed text. Two
 conforming implementations given the same response octets produce
 identical output; every choice above that deviates from rendering
 fidelity — inline tags becoming word boundaries, undeclared charsets
 ignored — deviates identically for everyone, which is the property that
 matters. `vectors/wist2/text-extraction.json` carries the conformance
-fixtures for this procedure and for WIST-4 §5's metric over its output.
+fixtures for this procedure.
 
 ## References
 
 - [RFC 2119] / [RFC 8174] BCP 14 key words
-- [RFC 9309] Robots Exclusion Protocol — the product-token matching §5's
-  Auditor rule is stated over
 - WIST-1: Delta Format & Identity — Envelope, Delta ID, Key Set, scope rule
 - WIST-3: Logbook & Distribution — block queueing
-- WIST-4: Audit, Reputation & Governance — quotas, sanctions, auditor observations
+- WIST-4: Governance & Parameters — quotas, parameters, the Label Registry

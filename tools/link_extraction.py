@@ -330,18 +330,6 @@ def links_member(urls, total, cap_bytes: int) -> dict:
         f'{{"total": {total}, "urls": []}}; no conforming member exists')
 
 
-def link_agreement(declared_urls, declared_total, observed_urls, observed_total):
-    """WIST-4 §5: min(subset Jaccard, count agreement), integer micro-units."""
-    d, o = set(declared_urls), set(observed_urls)
-    union = d | o
-    subset = 1_000_000 if not union else (len(d & o) * 1_000_000) // len(union)
-    hi = max(declared_total, observed_total)
-    count = 1_000_000 if hi == 0 else (min(declared_total, observed_total) * 1_000_000) // hi
-    return min(subset, count)
-
-
-# --------------------------------------------- WIST-2 §12: text extraction
-
 def _decode_text_entities(s: str) -> str:
     """WIST-2 §12 step 3: the §11 step-4 repertoire, salvage-free.
 
@@ -408,62 +396,3 @@ def extract_text(html: bytes) -> str:
     text = b"".join(out).decode("utf-8", errors="replace")
     text = _decode_text_entities(text)
     return " ".join(text.split())
-
-
-# ----------------------- WIST-4 §5: similarity (reference containment)
-
-import segmentation
-
-
-def _shingles(units, n):
-    return {tuple(units[k:k + n]) for k in range(len(units) - n + 1)}
-
-
-def _normalize(text):
-    """WIST-4 §5's normalization, in the order the section gives: NFC,
-    default full case-folding, untailored UAX #29 word segmentation, then
-    the discard of every segment carrying no General Category L* or N*
-    character. Returns (word sequence, normalized form)."""
-    import unicodedata
-    folded = unicodedata.normalize("NFC", text).casefold()
-    words = [
-        segment
-        for segment in segmentation.split_word_bounds(folded)
-        if any(unicodedata.category(c)[0] in ("L", "N") for c in segment)
-    ]
-    return words, " ".join(words)
-
-
-def similarity(reference: str, observed: str, min_observed_words: int = 40,
-               shingle_size: int = 8):
-    """WIST-4 §5: reference-containment similarity, integer micro-units.
-
-    Returns None where the section rules the audit `not_auditable`: an
-    empty reference text, or an observed text below `min_observed_words`.
-    Otherwise floor(|A ∩ B| × 1e6 / |A|) over `shingle_size`-word
-    shingles, falling to extended-grapheme-cluster shingles of length
-    min(shingle_size, g_A, g_B) when either text has fewer than
-    `shingle_size` words. One parameter governs both the shingle length
-    and the branch threshold.
-
-    Every Unicode property is read from the release ADR-0017 pins, via
-    `segmentation.py` and the standard library's own database, which
-    carries that release.
-    """
-    ref_words, ref_form = _normalize(reference)
-    obs_words, obs_form = _normalize(observed)
-    if not ref_words:
-        return None
-    if len(obs_words) < min_observed_words:
-        return None
-    if len(ref_words) >= shingle_size and len(obs_words) >= shingle_size:
-        a = _shingles(ref_words, shingle_size)
-        b = _shingles(obs_words, shingle_size)
-    else:
-        ref_clusters = segmentation.grapheme_clusters(ref_form)
-        obs_clusters = segmentation.grapheme_clusters(obs_form)
-        n = min(shingle_size, len(ref_clusters), len(obs_clusters))
-        a = _shingles(ref_clusters, n)
-        b = _shingles(obs_clusters, n)
-    assert a, "empty reference reaches similarity(); WIST-4 §5 rules it not_auditable earlier"
-    return (len(a & b) * 1_000_000) // len(a)

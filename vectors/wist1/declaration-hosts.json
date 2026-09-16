@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 sections 2 and 5.1 signed Canonical Host representation. Host cases distinguish canonicalization from signed spelling eligibility. Every Declaration case has a valid author signature but only expected initial cases have valid host fields. Each candidate Block appends to its named authenticated prefix. Rejection preserves all state and the accepted head, including due recovery settlement. These fixtures do not establish full Unicode mapping coverage, RFC 3339 eligibility, discovery, live service validation or Snapshot recovery. Single label host acceptance asserts no canary eligibility or suffix policy.",
+  "note": "WIST-1 sections 2 and 5.1 signed Canonical Host representation. Host cases distinguish canonicalization from signed spelling eligibility. Every Declaration case has a valid author signature but only expected initial cases have valid host fields. Each candidate Block appends to its named authenticated prefix. Rejection preserves all state and the accepted head, including due recovery settlement. These fixtures do not establish full Unicode mapping coverage, RFC 3339 eligibility, discovery, live service validation or Snapshot recovery. Single label host acceptance asserts no suffix policy.",
   "author_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "log_key": {
     "key_id": "test-log-k1",

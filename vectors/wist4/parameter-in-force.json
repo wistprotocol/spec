@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a79 value in force. changes are in Log order with sealing and effective instants; each query gives the value in force at t_s and the index of the amendment it comes from (null for the default).",
+  "note": "WIST-4 \u00a75 value in force. changes are in Log order with sealing and effective instants; each query gives the value in force at t_s and the index of the amendment it comes from (null for the default).",
   "cases": [
     {
       "label": "effective at is inclusive",

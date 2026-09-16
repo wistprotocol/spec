@@ -1,0 +1,16 @@
+{
+  "feed": {
+    "wist_version": "1.0.0",
+    "domain": "example.com",
+    "generated_at": "2026-08-02T12:30:00Z",
+    "deltas": [
+      "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52"
+    ],
+    "next": null
+  },
+  "sig": {
+    "key_id": "test-k1",
+    "alg": "Ed25519",
+    "value": "yL7Qs1NXZPNFUsHQOyiIaCoCastFazSligNU1SNK4wSTcCfPGAVMW1iKgKpTsxnhTXSdew7YPd-dmMWJGIdyBw"
+  }
+}

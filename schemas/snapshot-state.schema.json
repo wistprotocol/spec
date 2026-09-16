@@ -10,7 +10,7 @@
       "type": "object",
       "required": ["wist_version", "log_position", "entries"],
       "additionalProperties": false,
-      "description": "The protocol state at log_position, as one tuple per live item. Each tuple is a JSON array whose first member names its kind; WIST-3 §7's table is the normative inventory of kinds and their fields, in prose, on the pattern WIST-4 §9.1 sets for Registry Update details. Every field is Log-derived — no page content — so the state_digest over these tuples survives any withdrawal.",
+      "description": "The protocol state at log_position, as one tuple per live item. Each tuple is a JSON array whose first member names its kind; WIST-3 §7's table is the normative inventory of kinds and their fields, in prose, on the pattern WIST-4 §5.1 sets for Registry Update details. Every field is Log-derived — no page content — so the state_digest over these tuples survives any withdrawal.",
       "properties": {
         "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "log_position": {"type": "integer", "minimum": 0},
@@ -22,17 +22,6 @@
               {
                 "prefixItems": [
                   {"const": "aggregator_key"},
-                  {"type": "string", "maxLength": 64},
-                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"},
-                  {"type": "integer", "minimum": 0},
-                  {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]}
-                ],
-                "items": false
-              },
-              {
-                "prefixItems": [
-                  {"const": "auditor"},
-                  {"type": "string", "format": "hostname"},
                   {"type": "string", "maxLength": 64},
                   {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"},
                   {"type": "integer", "minimum": 0},
@@ -61,23 +50,6 @@
               },
               {
                 "prefixItems": [
-                  {"const": "sanction_state"},
-                  {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
-                  {"type": "integer", "minimum": 1, "maximum": 4},
-                  {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}},
-                  {"type": "array", "items": {
-                    "type": "array",
-                    "prefixItems": [
-                      {"enum": ["appeal", "appeal_sealing", "ruling"]},
-                      {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"}
-                    ],
-                    "items": false
-                  }}
-                ],
-                "items": false
-              },
-              {
-                "prefixItems": [
                   {"const": "recovery_window"},
                   {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
                   {"type": "integer", "minimum": 0},
@@ -89,37 +61,22 @@
               },
               {
                 "prefixItems": [
-                  {"const": "exclusion"},
+                  {"const": "withdrawal"},
+                  {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
                   {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
-                  {"type": "string"},
                   {"type": "integer", "minimum": 0}
                 ],
                 "items": false
               },
               {
                 "prefixItems": [
-                  {"const": "coverage_failure"},
-                  {"type": "string", "format": "hostname"},
-                  {"type": "integer", "minimum": 0}
-                ],
-                "items": false
-              },
-              {
-                "prefixItems": [
-                  {"const": "reputation_inputs"},
+                  {"const": "label"},
                   {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
-                  {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"},
-                  {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]},
-                  {"type": "integer", "minimum": 0},
-                  {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{32}$"}},
-                  {"type": "array", "items": {
-                    "type": "array",
-                    "prefixItems": [
-                      {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"},
-                      {"type": "integer", "minimum": 1, "maximum": 4}
-                    ],
-                    "items": false
-                  }}
+                  {"type": "string", "minLength": 1, "maxLength": 2048},
+                  {"type": "string", "minLength": 3, "maxLength": 64, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*:[a-z0-9-]+$(?![\\s\\S])"},
+                  {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 1000000}, {"type": "null"}]},
+                  {"type": "string", "format": "wist-publisher-timestamp", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])"},
+                  {"type": "integer", "minimum": 0}
                 ],
                 "items": false
               },
@@ -129,36 +86,6 @@
                   {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
                   {"type": "string"},
                   {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
-                ],
-                "items": false
-              },
-              {
-                "prefixItems": [
-                  {"const": "escalation"},
-                  {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
-                  {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"}
-                ],
-                "items": false
-              },
-              {
-                "prefixItems": [
-                  {"const": "observer"},
-                  {"type": "string", "format": "hostname"},
-                  {"type": "string", "maxLength": 64},
-                  {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"},
-                  {"type": "integer", "minimum": 0},
-                  {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]}
-                ],
-                "items": false
-              },
-              {
-                "prefixItems": [
-                  {"const": "canary_commitment"},
-                  {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-                  {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
-                  {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-                  {"type": "integer", "minimum": 1},
-                  {"type": "integer", "minimum": 0}
                 ],
                 "items": false
               }

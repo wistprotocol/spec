@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 sections 3.1, 3.5 and 3.8, WIST-2 section 5, WIST-3 section 7 and WIST-4 section 6.1. Cases test signed author, key, scope and optional logical Feed association, with current initial Declarations supplied; accepted means those checks only. No live discovery or transport is exercised. The authenticated hourly history uses the default seven-day recovery window and supplies an independently pinned head; its Deltas exercise sealing bindings and chain ownership. Probes run after the named Block's Declaration stage and accepted Deltas, using that prefix's sources/tips; their later observed_at is a supplied test timestamp, not an inclusion claim. Clock, Payload, quotas, audit eligibility and actual notice acceptance remain separate. Conditional identity projections exercise owner/reset attribution, not cryptographic validation of audit evidence. Version cases assume a validator of this exact draft implementing only wire major 1.",
+  "note": "WIST-1 sections 3.1, 3.5 and 3.8, WIST-2 section 5 and WIST-3 section 7. Cases test signed author, key, scope and optional logical Feed association, with current initial Declarations supplied; accepted means those checks only. No live discovery or transport is exercised. The authenticated hourly history uses the default seven-day recovery window and supplies an independently pinned head; its Deltas exercise sealing bindings and chain ownership. Probes run after the named Block's Declaration stage and accepted Deltas, using that prefix's sources/tips; their later observed_at is a supplied test timestamp, not an inclusion claim. Clock, Payload, quotas and Payloads remain separate. Identity projections exercise owner/reset attribution: whether the Publisher identity current at at_height is the one that signed at reference_height. Version cases assume a validator of this exact draft implementing only wire major 1.",
   "cases": [
     {
       "name": "shared keys retain separate authors and IDs",
@@ -6679,31 +6679,31 @@
   "projection_cases": [
     {
       "at_height": 4,
-      "audited_height": 0,
+      "reference_height": 0,
       "publisher": "example.com",
       "expected_current_identity": true
     },
     {
       "at_height": 170,
-      "audited_height": 0,
+      "reference_height": 0,
       "publisher": "example.com",
       "expected_current_identity": true
     },
     {
       "at_height": 171,
-      "audited_height": 0,
+      "reference_height": 0,
       "publisher": "example.com",
       "expected_current_identity": false
     },
     {
       "at_height": 171,
-      "audited_height": 171,
+      "reference_height": 171,
       "publisher": "example.com",
       "expected_current_identity": true
     },
     {
       "at_height": 171,
-      "audited_height": 0,
+      "reference_height": 0,
       "publisher": "child.example.com",
       "expected_current_identity": true
     }

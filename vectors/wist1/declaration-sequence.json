@@ -645,7 +645,7 @@
         }
       },
       "expected": "fresh_identity",
-      "why": "\u00a75.2: signed by neither the previous signing keys nor the previous recovery_keys, which it carries byte-identical \u2014 accepted, with A and C reset to zero (WIST-4 \u00a76)."
+      "why": "\u00a75.2: signed by neither the previous signing keys nor the previous recovery_keys, which it carries byte-identical \u2014 accepted as a fresh identity whose history starts here (WIST-3 \u00a77)."
     },
     {
       "name": "fresh identity inside an open recovery window",

@@ -84,13 +84,12 @@ budget, the Delta caps and the clock rule are unchanged.
 
 A Labeler is a domain that publishes signed Labels about other domains'
 URLs or about domains. A Label names a subject (a Normalized URL or a
-Canonical Host), a label from an open vocabulary under a registered
+Canonical Host), a name from an open vocabulary under a registered
 prefix, an optional integer value in micro-units and the instant the
-Labeler asserts it for. Labels are published at
-`/.well-known/wist/labels.json` as Label Sets with the same structure,
-signing, paging, Ping and pull behavior as Feeds and Deltas, sealed as
-`label` Entries, carried in Snapshots as label tuples and materialized
-in a tier with the records. A Labeler declares itself with an ordinary
+Labeler asserts it for. Labels are published one file per Label and
+listed in a Label Feed with the Feed's structure, signing, paging, Ping
+and pull behavior, sealed as `label` Entries, carried in Snapshots as
+label tuples and materialized in a tier beside the records. A Labeler declares itself with an ordinary
 Declaration; its Labels are outside every scope rule because a Label is
 an opinion about another party, not a publication for it, and the Log
 records who signed it. A Consumer applies only the Labels of Labelers it
@@ -159,7 +158,7 @@ MAY be added as raw data.
 ## Verification
 
 The revision that removes the audit layer regenerates the vector suite
-without the WIST-4 audit vectors and with Label vectors: Label Set
-fields and signing, subject shapes, paging, sealing order, Snapshot
-tuples and Consumer subscription. Integrated validation exercises
+without the WIST-4 audit vectors and with Label vectors: Label fields
+and signing, subject shapes, self-labeling, currency and retraction,
+Snapshot tuples and materialization. Integrated validation exercises
 Publisher, Labeler, Aggregator and Consumer in one run.

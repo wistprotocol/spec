@@ -42,21 +42,17 @@ key-eligibility or live-service conformance.
 Usable-key derivation and original-entry protections are defined by WIST-1
 §4 and [ADR-0023](decisions/0023-declaration-key-binding.md).
 `declaration-key-eligibility.json` anchors curve checks to the strictness
-corpus but assumes valid ordinary fields and canonical base64url. Conditional
-appeal probes supply eligible notices and selected Declaration sources;
-they distinguish excluded-identifier WIST4-E05 from usable-key signature
-WIST1-E01, including future `valid_from` entries. They do not establish
-notice evidence, temporal authority selection or accepted appeal processes.
-Full field/encoding validation, authenticated Delta history, frozen appeal
-authority and durable service adoption remain required.
+corpus but assumes valid ordinary fields and canonical base64url. It does
+not establish temporal authority selection. Full field/encoding validation,
+authenticated Delta history and durable service adoption remain required.
 
 Canonical encoding and its diagnostics are defined by WIST-1 §2 and
 [ADR-0025](decisions/0025-canonical-base64url.md). `base64url.json` checks
 unused bits independently of decoder policy, schema agreement, signed aliases,
 field-before-conflict/idempotence ordering and atomic Block rejection.
 The key-eligibility reference uses this decoder. Complete field formats,
-role admission/replay/sealing/restoration, frozen appeal authority and
-transport-wrapper integration remain unvalidated by this corpus.
+role admission/replay/sealing/restoration and transport-wrapper integration
+remain unvalidated by this corpus.
 
 The `publisher.schema.json` formats `wist-canonical-host` and
 `wist-publisher-timestamp` require checks beyond typed JSON deserialization. Optional fields present as `null`, empty
@@ -82,7 +78,7 @@ agreement; independent role validation must exercise the pinned backend.
 
 Signed host representation is specified by WIST-1 §§2 and 5.1 and
 [ADR-0014](decisions/0014-canonical-host-flag-profile.md), including the
-Publisher reference surfaces and separate Auditor/Observer restrictions.
+Publisher reference surfaces.
 `declaration-hosts.json` exercises signed spelling, identity conflicts and
 atomic rejection through recovery settlement. Its shared schema-field probes
 do not establish object or process eligibility.
@@ -99,12 +95,9 @@ These host vectors do not establish Publisher timestamp validation or
 Snapshot recovery.
 
 **Single-label hosts.** Canonical Host and Declaration representation
-impose no two-label minimum, and WIST-4 §9's `url_cap_bytes` and
+impose no two-label minimum, and WIST-4 §5's `url_cap_bytes` and
 `link_url_cap_bytes` rationale names the two-label shortest URL while a
-one-label host's shorter URL stays nameable. WIST-4 §5.1 confines planters
-and canary domains to the two-label hostname shape §9.1 fixes for their
-subjects, so the epoch ration's two-label suffix always exists;
-`vectors/wist4/canary-acts.json` carries the single-label WIST4-E04 twins.
+one-label host's shorter URL stays nameable.
 
 **Feed field diagnostics** follow WIST-2 §5 and
 [ADR-0032](decisions/0032-feed-field-diagnostics.md). Signed
@@ -135,32 +128,38 @@ nothing: that an invalid target is never requested, that a query survives
 retrieval and that the fetched Deltas are admitted after a stopped walk
 require live tests against a serving Publisher.
 
-**Withdrawal acts and withdrawn references.** WIST-4 §§5/9.1 and
-`vectors/wist4/withdrawal.json` fix the `payload_withdrawal` contract and
-the replay disposition of Records whose Reference Payload is withdrawn.
-The reference checks each act against the schema and Log key, resolves
-`delta_id` against the supplied sealed Deltas, and derives each Record
-case's disposition from the withdrawal and Record heights, verdict and
-`unmeasured`; a twin shows the same-Block reading differs. Signed Block
-histories, live withdrawal sealing, Payload destruction and Snapshot
-exclusion require integration validation.
+**Withdrawal acts.** WIST-4 §5.1 and `vectors/wist4/withdrawal.json` fix
+the `payload_withdrawal` contract. The reference checks each act against
+the schema and Log key, resolves `delta_id` against the supplied sealed
+Deltas, keeps the earliest accepted withdrawal's height and validates the
+resulting WIST-3 §7 `withdrawal` tuples. Signed Block histories, live
+withdrawal sealing, Payload destruction and Snapshot exclusion require
+integration validation.
 
-**Publisher-signed Registry subjects.** WIST-4 §9.1 and draft
+**Registry Update eligibility.** WIST-4 §5.1 and draft
 [ADR-0036](decisions/0036-registry-update-eligibility.md) assign a `subject`
 outside its action's contract shape WIST4-E04, other field failures
-WIST4-E11, and place both before authenticity and process diagnostics; an
-act whose `subject` selects no Key Set or notice-era authority fails
-authentication (WIST4-E11, or the code §7 names for an `appeal`). Roster
-acts (`vectors/wist4/roster-acts.json`), sanction lifts (the lift cases of
-`vectors/wist4/sanctions.json`), appeals under the notice-era Key Set
-(`vectors/wist4/recovery-appeals.json`), payload withdrawals
-(`vectors/wist4/withdrawal.json`) and canary commitments and reveals
-(`vectors/wist4/canary-acts.json`, against supplied Key Sets, a sealed
-commitment and sealed Deltas) are exercised. The reveal cases cover the
-numeric minimum and lifetime; §5.1's actual-opportunity test over epochs,
-budgets and cadence needs signed Block histories with registered Observers.
-`vectors/wist4/roster-acts.json` shows a repeated Registry Update ID
-applying nothing, for a checkpoint and for an admission.
+WIST4-E11, and place both before authenticity and semantic diagnostics.
+The reference derives the E11/E04 partition from the schema: a failure
+inside an action's conditional branch is the contract, any other is a
+field failure. Only `payload_withdrawal` acts are exercised with signed
+Envelopes; `aggregator_key_add`, `aggregator_key_remove` and
+`parameter_change` acts are exercised through the schema and the
+parameter vectors, and a repeated Registry Update ID's idempotence, live
+sealing and durable restoration need integrated validation.
+
+**Labels.** WIST-2 §3.3 and WIST-4 §6 fix the Label object, the Label
+Feed, self-labeling, the registry name form and which Label is current.
+`vectors/wist2/labels.json` carries signed Labels over the example
+Declaration with field, form, cap, self-labeling and signature
+dispositions, and current-Label replays with the WIST-3 §7 tuple each
+leaves; the reference recomputes every disposition, the Label IDs and the
+tuples, and its twins flip the self-labeling scope, the registry term set
+and the tie order. The clock allowance over `asserted_at` is exercised by
+`vectors/wist1/delta-clock-time.json` for Deltas and applies to Labels by
+reference. Live Label Feed pulls, `WIST2-E06` reporting, sealing as
+`label` Entries under the inclusion ceiling, `tier1/labels.parquet` and
+Consumer subscription need integrated validation.
 
 **Publisher timestamp eligibility** follows WIST-1 §3.4 and
 [ADR-0026](decisions/0026-publisher-timestamp-profile.md).
@@ -230,7 +229,7 @@ publication.
 
 ### Authenticated recovery state
 
-WIST-1 §5.2 and WIST-4 §9 freeze each recovery window’s length at its
+WIST-1 §5.2 and WIST-4 §5 freeze each recovery window’s length at its
 owner Block’s in-force parameter map. `recovery_window_cases` in
 `vectors/wist4/parameter-combinations.json` exercises exact effective-time
 and settlement boundaries, later shortening/lengthening, in-window followers,
@@ -272,17 +271,13 @@ signature conflicts, initial and open-window cases, idempotence, independent
 domains and atomic rejection. Service admission and replay must adopt these
 rules; a Block signature alone does not establish Declaration admissibility.
 
-WIST-4 §6.3 preserves the recovery owner's identity from its application
-onward. In-window fresh competitors cause no reset or sanction lift in any
-prefix; settlement does not restore opening values or reverse ordinary
-process effects. A fresh predecessor earlier in the owner's Block resets
-normally, as does a valid fresh replacement after settlement unless a new
-window has opened. `vectors/wist4/recovery-identity.json` authenticates two
-hourly Declaration histories with reversed owner/competitor storage order
-and deadline probes. Its separate abstract projections exercise identity
-scope for age, credit, penalties, findings, rungs and notice targets with
-already-eligible inputs. They do not authenticate or establish eligibility
-of Audit Records, notices, lifts or appeals, or Snapshot resume conformance.
+WIST-1 §5.2 preserves the recovery owner's identity from its application
+onward: in-window fresh competitors cause no reset in any prefix, a fresh
+predecessor earlier in the owner's Block resets normally, and so does a
+valid fresh replacement after settlement unless a new window has opened.
+The identity projections of `vectors/wist1/delta-attribution.json`
+exercise which Publisher identity is current at a height; Snapshot resume
+conformance is not established.
 
 `vectors/wist1/recovery-settlement.json` authenticates seven 170-Block hourly
 histories through the settlement boundary, with admissible fresh competitors,
@@ -322,32 +317,6 @@ parameter restriction is selected here. Implementations must retain exact
 replay arithmetic; rejection before publication does not establish full-range
 serving conformance.
 
-WIST-4 §7 freezes each sanction notice's appeal Key Set after due settlement
-and its Block's complete Declaration stage. An open window selects the
-recovery-chain head; otherwise the current Declaration supplies the keys.
-Later history cannot rewrite the notice's authority. Signing identifiers
-retain their frozen public-key bindings; recovery entries and the Delta
-admission union supply no authority. Appeals have no `valid_from` time filter.
-`vectors/wist4/recovery-appeals.json` authenticates two 172-Block hourly
-Declaration/notice histories, including reversed Declaration sequence/leaf order
-and notice leaf hashes that cannot override canonical type grouping,
-fresh competitors, a follower with future-dated signing aliases, deadline
-rotation, a new recovery window and later identity reset. Independent signed
-appeal probes distinguish missing authority from bad signatures and preserve
-notice bindings across prefixes and repeated notice inclusion. Signed Block
-twins detect invalid author signatures: an invalid Declaration rejects its
-Block, while an invalid notice supplies no authority. A signed ordering twin
-rejects a Registry Update stored before the Declaration group.
-
-The appeal vectors condition key selection on separately supplied eligible
-notice IDs. Their notice evidence and activation identifiers are abstract
-inputs, not authenticated findings; Block inclusion and notice authorship
-alone do not establish §7 notice eligibility. The unsealed appeal probes
-establish signature authority only. Integrated validation must derive notice
-eligibility, reject invalid appeals before slot allocation, preserve frozen
-bindings on restart, and exercise live publication, sealing, deadlines,
-rulings and retention. No Snapshot resume behavior is established.
-
 ## Delta cross-check diagnostics
 
 WIST-1 §7 and [ADR-0027](decisions/0027-delta-diagnostic-selection.md)
@@ -372,7 +341,7 @@ require one semantic diagnostic order. Publisher attribution is specified separa
 
 The isolated clock vectors in `vectors/wist1/declaration-fields.json` and
 the diagnostic combinations use the inclusive default 600-second relation.
-WIST-4 §9's signed integer parameter `clock_skew_seconds` controls the active
+WIST-4 §5's signed integer parameter `clock_skew_seconds` controls the active
 allowance, including negative values; the clock relation uses exact signed
 addition at the clock selected by WIST-1 §3.4.
 
@@ -390,20 +359,19 @@ copied bindings, author tampering, missing/ineligible author sources, literal
 nonancestor scope, canonical host fields, Feed association and exact-draft
 version acceptance. Its signed hourly Block history authenticates ordinary
 rotation, recovery ownership/competition/followers, settlement and fresh reset,
-with scoped chain and binding probes. Conditional projections test which
-Publisher/current identity can receive credit, penalties and notice evidence;
-they do not establish the eligibility of an Audit Record or notice itself.
+with scoped chain and binding probes. Identity projections test which
+Publisher identity is current at a height.
 
 Required independent role adoption remains: emit and validate the signed
 field without synthesizing it into old bytes; select only its authenticated
 Declaration/key history; enforce Publisher/URL predecessors and logical Feed
 association before idempotence; preserve domain-scoped recovery queues and
-chain tips across restart; derive sampling, reference chains, canary ownership,
-reputation and sanction evidence from the same author. Update every dependent
+chain tips across restart; derive Label authorship and materialization
+from the same author. Update every dependent
 ID, signature, Payload path, Block and Snapshot when changing fixture bytes.
 Existing signed objects without the field fail this exact draft, even when
 they say `1.0.0`. Passing supplied-source or conditional projection tests
-establishes neither live discovery nor integrated audit/process conformance.
+establishes neither live discovery nor integrated process conformance.
 
 ### Recovery scope authority and remaining materialization questions
 
@@ -497,7 +465,7 @@ revalidated as copies from the closed window. Exercise capacity-deferred
 Declaration chains and failure/retry before committing a new Block. The signed
 traces establish Declaration stages and selected source identity, not full
 Delta eligibility, actual E13 processing, inclusion turns, Payload availability,
-quotas, Snapshot restoration or authenticated Audit Record eligibility.
+quotas or Snapshot restoration.
 
 WIST-3 §7 and draft [ADR-0039](decisions/0039-scoped-host-materialization.md)
 select one record per URL: the self-declared host's own, else the nearest
@@ -523,21 +491,19 @@ arithmetic checks do not establish live-service behavior.
 | WIST-1 §5.1/§5.2 Delta recovery bindings | Consume `recovery-bindings.json` with independent signature and timestamp implementations. Preserve frozen source provenance and complete bindings in admission, authenticated replay and durable restoration; distinguish E14 fields, E02 absence of eligible authority and E01 failed signatures without borrowing the union for sealing or historical verification. Exercise complete Delta/chain and live-clock eligibility separately. |
 | WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
 | WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
-| WIST-4 §6.3 recovery identity | Consume `recovery-identity.json`; integrate its reset boundaries with authenticated Delta/Audit Record history, candidate-Block parameter profiles, notice evidence and due process. Recovery preserves identity without freezing state or retroactively altering earlier prefixes. Abstract projection inputs do not establish these integrated obligations. |
-| WIST-4 §7 appeal authority | Consume `recovery-appeals.json` with independently established notice eligibility. Preserve notice-era signing bindings across recovery, rotations, resets, repeated notice inclusion and restart; apply signature eligibility before appeal-slot allocation and process replay. Exercise live appeal publication/sealing, deadlines and resulting retention with authenticated finding histories. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
-| WIST-2 §7 and WIST-4 §6.4 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day parameter/reputation anchor and live quota application |
-| WIST-2 §§6, 8 scheduling and redirects | Hints change audit timing without creating a selection duty; redirect termination and authority restrictions under live pulls |
-| WIST-3 §§5–6 publication | Durable Block publication before its Checkpoint; Payload replication before the Block; acquisition of cited evidence before serving a notice |
+| WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label ID, sealing as `label` Entries under the inclusion ceiling and per-domain capacity, `tier1/labels.parquet` and `label` tuples from authenticated Log replay |
+| WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota application |
+| WIST-2 §§6, 8 scheduling and redirects | Hints change pull timing without creating a duty; redirect termination and authority restrictions under live pulls |
+| WIST-3 §§5–6 publication | Durable Block publication before its Checkpoint; Payload replication before the Block |
 | WIST-3 §§3.1, 6 transport parsing | Independent decoding of the Block-frame vectors and general compressed/checksummed frames; rejection of extra frames, skippable data and trailing bytes; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples; the full four-digit Gregorian year range, including late December 9999 independently of library timestamp limits. The raw-frame reference in `tools/block_frames.py` does not implement entropy decoding or checksum verification. |
 | WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Blocks and Checkpoints at the correct height, including rejected keys |
-| WIST-4 §§4–5 audit execution | Small-order VRF key rejection; actual fetch byte, time and redirect limits; reference/observed failures; WARC capture and required evidence retention |
-| WIST-4 §6.4 inclusion | Acceptance and per-domain turn accounting under backlog, overload and recovery; the Log alone does not reveal acceptance time |
-| WIST-4 §§3.1, 5.1–5.2, 7 integration | Observer and canary publication, authenticated admission evidence, accepted notice service and complete appeal processes across the four roles |
+| WIST-4 §5 inclusion | Acceptance and per-domain turn accounting under backlog, overload and recovery; the Log alone does not reveal acceptance time |
+| WIST-4 §§3, 5.1 governance | Key registration and removal, parameter schedules and withdrawals sealed, replayed and restored across the three roles |
 
 These are validation requirements, not assertions that every boundary lacks
 unit coverage. Current vectors already exercise, among other cases,
-normalization, key-set selection, late appeals and notice activation targets.
+normalization, key-set selection and Label dispositions.
 Provide an exact specification commit and the exercised obligations when
 claiming that any row is satisfied.
 
@@ -599,11 +565,11 @@ do not establish version support for other objects or complete chain replay.
 
 ### Delta size-cap parameter time
 
-WIST-1 §3.6, WIST-4 §9 and ADR-0020 fix admission-attempt, sealing and
+WIST-1 §3.6, WIST-4 §5 and ADR-0020 fix admission-attempt, sealing and
 historical cap profiles. `vectors/wist1/delta-cap-time.json` supplies 509
 signed hourly Blocks, 24 signed content-bearing Deltas with complete
-Payloads, one attestation, 264 stage probes, two reference-Payload probes
-and six invalid signed candidate Blocks. The reference verifies Block
+Payloads, one attestation, 264 stage probes and six invalid signed
+candidate Blocks. The reference verifies Block
 chaining, ordering, signatures, roots and pinned heads; it derives profiles
 from signed amendments and recomputes IDs, commitments and JCS sizes.
 Separate Delta-only and retrieved-Payload results distinguish all five caps
@@ -614,10 +580,9 @@ The fixture checks amendment signatures, grace and the affected size
 combinations; it does not establish complete governance acceptance.
 Restart probes reconstruct supplied inputs in memory, not durable state.
 Integrated roles must independently consume these vectors and enforce
-attempt-profile retention, candidate-Block rechecks, historical inclusion
-profiles and reference-Payload provenance. Live queue rejection and
-successor handling, HTTP retrieval, crash recovery, cross-Log validation
-and complete audit behavior remain unexercised. Supplied-cap field vectors
+attempt-profile retention, candidate-Block rechecks and historical
+inclusion profiles. Live queue rejection and successor handling, HTTP
+retrieval, crash recovery and cross-Log validation remain unexercised. Supplied-cap field vectors
 alone establish no temporal adoption.
 
 ## Payload link validation
@@ -654,7 +619,7 @@ insufficient, and accepted Payload distribution must preserve original bytes.
 
 ## Historical Delta clock parameter time
 
-WIST-1 §3.4, WIST-4 §9 and draft ADR-0020 select the committing Block's
+WIST-1 §3.4, WIST-4 §5 and draft ADR-0020 select the committing Block's
 `sealed_at` for both the historical clock and `clock_skew_seconds` anchor.
 Unsealed attempts freeze their clock and accepted schedule; sealing rechecks
 against the candidate Block. Later clocks or amendments cannot repair an
@@ -679,115 +644,3 @@ Mirror-list adoption. No time anchor is selected here. WIST-3 §6.1 permits
 Payload retrieval from any source; using list entries as unauthenticated
 location hints establishes no list authorship, Log membership or source
 independence.
-
-## Registry Update eligibility and roster replay timing
-
-WIST-4 §9.1 and draft [ADR-0036](decisions/0036-registry-update-eligibility.md)
-define the Registry Update gate: raw JSON eligibility, schema-partitioned
-field diagnostics (WIST4-E11 general, WIST4-E04 contract), version support
-and authenticity under each action's signing rule, in that precedence, with
-rejected acts excluded from §3.1's batch. WIST-4 §§3, 3.1 and draft
-[ADR-0037](decisions/0037-roster-replay-inputs.md) fix checkpoint `head`
-checks to spelling, read a checkpoint's key after its Block's batch, read an
-admission's Observer history and citable checkpoints below its Block, and
-admit an unusable `public_key` as a string that fails every verification.
-`vectors/wist4/roster-acts.json` supplies 70 signed histories;
-`tools/validate_examples.py` independently derives the E11/E04 partition from
-the schema, verifies signatures, replays the batch and flips each ruled-out
-reading.
-
-The histories are unsigned Block contexts sealed by the consumer. They
-establish no live pulling, Declaration verification before sealing,
-scoreboard derivation, epoch budgeting, Publisher-signed acts, durable
-restoration or Record standing beyond the one small-order probe. Integrated
-roles must apply the gate before sealing and in replay, and must seal the
-same histories under their own Log keys to reproduce every outcome.
-
-## Audit verdict parameter profiles
-
-WIST-4 §5 fixes extraction and both verdict dimensions at the audited
-Delta's Block. `vectors/wist4/link-agreement.json` supplies accepted amendment
-contexts with increases, decreases, inclusive effectiveness, threshold endpoints,
-reference changes and later query instants. The independent reference recomputes
-profiles and verdicts and checks that alternative time anchors change results.
-These contexts establish no amendment signatures, complete Record eligibility,
-retrieval, withdrawal, live audit behavior or durable restoration. Integrated
-roles must reconstruct accepted schedules and preserve the audited profile
-through reference changes and restart. No schema field changes are required.
-
-## Audit Record field and version dispositions
-
-WIST-4 §10.1 and draft ADR-0035 define complete field diagnostics, version
-support and conditional coverage discharge. `vectors/wist4/record-fields.json`
-supplies signed original-JSON mutations and explicit standing contexts;
-`tools/validate_examples.py` independently derives schema field categories,
-verifies signatures and checks version/discharge combinations. Raw JSON
-eligibility includes decoded duplicate names, nested objects, trailing input
-and non-JCS values. No schema-valid version bypasses the pinned revision.
-
-Integrated roles must independently consume these cases and reconstruct the
-roster, signing bindings, ordinary/extension duty, reference history and
-coverage carve-outs from authenticated Log prefixes. The supplied contexts
-establish none of those histories, live pulling/sealing, reputation exclusion
-or durable restoration. A rejected evidence field alone never establishes
-coverage discharge; full replay must establish every §10.1 premise while
-preserving §4's sealing obligations and the original signed bytes.
-
-## Extension evidence eligibility
-
-WIST-4 §4 (**Only evidence counts**) and draft ADR-0019 make the extension
-trigger, the earlier-filing lookback, the already-sealed filer set and both
-contradiction quorums read only Records that §3 and §10.1 do not reject.
-`vectors/wist4/extension.json` `evidence_cases` supply signed Records in Log
-order with per-Auditor keys; `tools/validate_examples.py` derives each
-rejection from the signed bytes (structure, signature and key binding,
-version support, evidence fields and §5 score bands) plus supplied standing,
-removal and coverage-failure contexts, then recomputes eligibility, ration,
-summoned sets and contradiction outcomes over the surviving evidence. Its
-twin recomputes every case under the reading that counts every sealed filing
-and requires the two to disagree.
-
-The supplied contexts establish no VRF or extension standing, roster,
-`fetched_at` interval, reference chain or coverage-failure state; an
-integrated role must derive each of those from its authenticated prefix
-before applying this rule. The vector reads the default band thresholds and
-`extension_triggers_max` at B₁ without a parameter amendment; amendment
-replay is exercised by `parameter-in-force.json` and `link-agreement.json`.
-
-## Attestation eligibility and coverage derivation inputs
-
-WIST-4 §4 (**Attestation eligibility**, **What the sealed prefix decides**),
-§7's identity-scoped rung rule and draft ADR-0018/0019 fix the diagnostics
-of pull and coverage attestations and of `sanction_lift`, which sealed items
-reveal a draw, when a Block's own discharges are read, which successors
-contradict an attestation, and which findings arm a fresh identity's rungs.
-`vectors/wist4/coverage.json` `attestation_cases` and
-`vectors/wist4/sanctions.json` `lift_cases` carry signed Envelopes that
-`tools/validate_examples.py` checks through the §9.1 schema partition,
-Ed25519 and ECVRF under supplied contexts; `derivation_cases`,
-`same_block_case` and `identity_scope_cases` are prose-traced semantic
-cases with twins for the ruled-out readings.
-
-The supplied contexts establish no sealed Block, roster tenure, duty set,
-selection or finding; an integrated role derives each from its
-authenticated prefix. No case exercises live pulling, the extension-deadline
-pull, level-3/4 notice processes or the `auditor_remove` a coverage failure
-requires.
-
-## Sanction records, state tuples and enforcement instants
-
-WIST-4 §6.1 counts every sealed Delta of the identity for age, §7 records an
-unnoticed `sanction` and treats a cited Record as available once sealed,
-§7's enforcement-instant sentence and WIST-3 §7's `sanction_state` row fix
-what an Aggregator enforces between Blocks and what the tuple carries under
-derived rungs, and §4 fixes a coverage-failure removal's evidence.
-`vectors/wist4/derivation.json` (excluded first Delta), `sanctions.json`
-(`primary` additions, `instant_cases`) and `coverage.json` (`removal_cases`)
-carry the discriminating cases; `tools/validate_examples.py` recomputes each
-with a twin for the ruled-out reading and verifies the signed removal.
-
-The tuple change alters no schema arity or member type; a Consumer that read
-Registry Update IDs from the member reads Audit Record IDs now, which an
-implementation following the earlier row would report as an unknown ID.
-Live enforcement between Blocks, Snapshot production and the removal's
-sealing remain integrated-role obligations the vectors do not exercise.

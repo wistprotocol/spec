@@ -43,10 +43,11 @@ current rules. Keep known conformance failures visible until resolved.
 
 Final consolidation requires all of the following:
 
-- An implemented Auditor validated end to end with a Publisher, Aggregator
-  and Consumer against the applicable WIST-1 through WIST-4 conformance
-  checklists, including live fetches, evidence capture, Record publication,
-  admission, sealing and Consumer verification.
+- Implemented Publisher, Aggregator and Consumer roles validated end to end
+  against the applicable WIST-1 through WIST-4 conformance checklists,
+  including a Publisher acting as a Labeler: live pulls of Feeds and Label
+  Feeds, admission, sealing, Snapshot production and Consumer verification
+  and ranking.
 - Two independent implementations passing the full vector suite, including
   the pure-Python conformance reference in `tools/`. Passing vectors does not
   waive a known failure or an unexercised role obligation.

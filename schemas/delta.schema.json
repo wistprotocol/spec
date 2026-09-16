@@ -54,7 +54,7 @@
   },
   "allOf": [
     {
-      "comment": "WIST-1 §3.3: `new` and `update` are the content-bearing change types. One that commits to nothing claims content without saying what it is, and no audit could ever check it (WIST-4 §5) — WIST1-E09.",
+      "comment": "WIST-1 §3.3: `new` and `update` are the content-bearing change types. One that commits to nothing claims content without saying what it is, and no Payload could ever be checked against it (WIST-1 §3.6) — WIST1-E09.",
       "if": {
         "required": ["delta"],
         "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["new", "update"]}}}}
@@ -62,7 +62,7 @@
       "then": {"properties": {"delta": {"required": ["payload"]}}}
     },
     {
-      "comment": "WIST-1 §3.3: `attest` and `delete` carry no content of their own; what they are measured against is the Reference Payload (WIST-4 §5).",
+      "comment": "WIST-1 §3.3: `attest` and `delete` carry no content of their own; the chain they extend names the Payload that stands (WIST-3 §7).",
       "if": {
         "required": ["delta"],
         "properties": {"delta": {"required": ["change_type"], "properties": {"change_type": {"enum": ["attest", "delete"]}}}}

@@ -26,33 +26,13 @@
         "record",
         "reduced.example.org",
         "https://reduced.example.org/notice",
-        "sha256:52e0447ff6856e133af9b37bd2b1fbd6a44463848420c0a2a71fb87295dedeb9"
-      ],
-      [
-        "reputation_inputs",
-        "example.com",
-        "2026-08-02T13:00:00Z",
-        null,
-        1,
-        [
-          "03a65369b394311a4301c9ded8565a4e"
-        ],
-        []
-      ],
-      [
-        "reputation_inputs",
-        "reduced.example.org",
-        "2026-08-02T13:00:00Z",
-        null,
-        0,
-        [],
-        []
+        "sha256:4ad46050dbb223470bce4a6919fb3a003e273d3c9c9318dcb12e6e25e56fb35b"
       ]
     ]
   },
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "0fqFgxaeVUbJX1Ml1g9OX7bZ6R9L0ufFKURHE8osAr3UX6F1h__Qoxw1dLiUevCTNJbIm9CqRZEmrYxwjrD4Cw"
+    "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
   }
 }

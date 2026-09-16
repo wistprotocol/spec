@@ -16,9 +16,9 @@ This document defines the two foundational objects of the suite:
 
 How deltas are published on a site and discovered by aggregators is defined
 in [WIST-2](WIST-2-site-publication.md). How they are sequenced into the log and
-distributed is defined in [WIST-3](WIST-3-logbook-distribution.md). How they
-are audited, and how domain reputation is derived, is defined in
-[WIST-4](WIST-4-audit-reputation-governance.md).
+distributed is defined in [WIST-3](WIST-3-logbook-distribution.md). How the Log is
+governed and its parameters amended is defined in
+[WIST-4](WIST-4-governance.md).
 
 ## 2. Conventions and Terminology
 
@@ -63,8 +63,7 @@ shown here.
   [RFC 3492]; with any trailing dot removed and no port. Case is folded by
   UTS #46's own mapping step and by nothing before it: an implementation
   MUST NOT lowercase the input first. Every Unicode property read by the
-  suite uses **Unicode 16.0**, including these mapping tables and WIST-4's
-  similarity properties. Moving the version changes the specification and,
+  suite uses **Unicode 16.0**, including these mapping tables. Moving the version changes the specification and,
   after deployment, requires a new major version under
   [PUBLICATION.md](../PUBLICATION.md#deployment-boundary).
   Algorithm and flag rationale: [ADR-0014](../decisions/0014-canonical-host-flag-profile.md);
@@ -100,8 +99,7 @@ still apply: an Ed25519 `public_key` is 32 octets (43 characters),
 `sig.value` is 64 octets (86 characters), and a Payload `salt` is at least
 16 octets. Empty strings are invalid for these fields.
 
-A malformed base64url field is `WIST1-E14`, except an Audit Record signature
-field, whose diagnostic and precedence are WIST-4 §10.1's. Check the
+A malformed base64url field is `WIST1-E14`. Check the
 encoding before using that field for key exclusion, signer resolution, signature or commitment
 verification; an unused malformed Declaration key still rejects the whole
 Declaration under §5.1. This is distinct from a canonically encoded public
@@ -131,8 +129,7 @@ document governs semantics.
 The version of this specification the object conforms to, as a semver
 string. This document defines version `1.0.0`. Consumers MUST reject
 objects whose major version they do not implement. Every Delta or Payload validator,
-including a Publisher checking its output, an Aggregator, an Auditor or a
-Consumer, MUST enforce this rejection before treating either object as valid.
+including a Publisher checking its output, an Aggregator or a Consumer, MUST enforce this rejection before treating either object as valid.
 For Deltas and Payloads, a validator implementing this revision supports major `1`. A
 different minor or patch component alone MUST NOT cause rejection; all rules
 of the implemented revision still apply.
@@ -163,9 +160,9 @@ sets `additionalProperties: false` on each object whose full field set a
 document of this suite defines, and a minor version never adds a field. Two
 places are deliberately open, and both delegate rather than extend: a Block
 Entry's `body` (WIST-3 §3.3), which is an Envelope validated in full by its
-own schema, and a Registry Update's `details` (WIST-4 §9.1), whose shape is
-fixed per `action` — unconstrained only for the actions WIST-4 §9.1 names,
-and never licensed to carry what that section's closing rules forbid. The
+own schema, and a Registry Update's `details` (WIST-4 §5.1), whose shape is
+fixed per `action` and never licensed to carry what that section's closing
+rules forbid. The
 rule exists so that a consumer encountering an unknown field knows it is
 looking at a non-conforming object rather than at a newer minor version it
 could safely ignore, which is what makes rejection the safe default.
@@ -222,10 +219,9 @@ One of four values:
 - `update` — the URL's content changed. `payload` MUST be present.
   `prev` MUST be present.
 - `delete` — the URL no longer serves the content its chain last committed
-  to: it is gone, or what it now serves is no longer that content. That is
-  the claim an audit measures (WIST-4 §5), so a page whose text has merely
-  been replaced by unrelated text is a truthful `delete` and one still
-  serving the committed content is a false one. The Delta MUST omit
+  to: it is gone, or what it now serves is no longer that content. A page
+  whose text has been replaced by unrelated text is truthfully described
+  by a `delete`; one still serving the committed content is not. The Delta MUST omit
   `payload`. `prev` MUST be present.
 - `attest` — the Publisher asserts the URL's content is unchanged as of
   `observed_at` (a freshness attestation). The Delta MUST omit `payload`.
@@ -238,16 +234,13 @@ requirements above therefore make `new` and `update` exactly the
 content-bearing change types: a validator MUST reject a `new` or an
 `update` with no `payload` under `WIST1-E09`, and such a Delta MUST NOT be
 sealed. A Delta claiming that content appeared or changed while committing
-to none says what happened and not what it is, so no audit could ever
-confirm or refute it (WIST-4 §5 would record `not_auditable` forever) — a
-claim that is unfalsifiable by construction, sealed permanently, and free.
+to none says what happened and not what it is — a claim with nothing to
+show, sealed permanently, and free.
 
 An `attest` Delta carries no content of its own precisely because it claims
-none: an audit measures it against the anchor Payload as of the Record's
-reference Delta (WIST-4 §5) — its chain's newest sealed Delta at the
-audit's fetch, which may follow the `attest`. That is why §3.5's chain and
-WIST-2 §3.1's retention obligation reach further back than the Delta
-itself. The same holds for a `delete`, whose claim is that exactly that
+none: it stands on the anchor Payload as of itself (WIST-3 §6.1), which is
+why §3.5's chain and WIST-2 §3.1's retention obligation reach further back
+than the Delta itself. The same holds for a `delete`, whose claim is that exactly that
 content is no longer served.
 
 ### 3.4. `observed_at`
@@ -262,7 +255,7 @@ greater than the `observed_at` of the Delta referenced by `prev` (error
 or key validity bound.
 
 **Clock parameter time.** For an unsealed Delta, capture the validator's
-clock and the accepted WIST-4 §9 schedule when its validation attempt
+clock and the accepted WIST-4 §5 schedule when its validation attempt
 begins. Read `clock_skew_seconds` at that instant and retain both values
 through the attempt, including retrieval and Declaration retries. A new
 attempt takes a new clock and schedule.
@@ -271,9 +264,8 @@ Before sealing a queued Delta, the Aggregator MUST repeat this check using
 the candidate Block's `sealed_at` as the clock and the accepted schedule at
 that instant. For a sealed Delta, every validator MUST use its committing
 Block's `sealed_at` for both the clock and the parameter anchor. An amendment
-effective exactly then participates; later amendments, replay time,
-`observed_at` and an Audit Record's or reference Delta's Block do not replace
-either value. Historical clock eligibility therefore requires no supplied
+effective exactly then participates; later amendments, replay time and
+`observed_at` do not replace either value. Historical clock eligibility therefore requires no supplied
 wall clock. This rule checks the Publisher's timestamp against Log time;
 it does not certify the accuracy of the Aggregator's clock.
 
@@ -411,7 +403,7 @@ not reproduce `commitment` under the accompanying salt (`WIST1-E04`,
 parameter map per validation attempt:
 
 - For admission into a Log where the Delta is not yet sealed, read
-  WIST-4 §9's accepted schedule at the validator clock when that Delta's
+  WIST-4 §5's accepted schedule at the validator clock when that Delta's
   validation attempt begins. Retain that map through retrieval and
   validation of its Payload. A separately
   retrieved predecessor starts its own attempt. A new attempt after restart
@@ -426,15 +418,14 @@ parameter map per validation attempt:
 - For a Delta sealed in the Log being verified, every validator MUST use
   the map in force at its Block's `sealed_at`, reconstructed from the
   authenticated accepted schedule through that Block. Retain this profile
-  for later Payload retrieval, verification, replay and restart. When an audit uses another
-  Delta's Payload as its reference, that Payload retains its own committing
-  Delta's profile; the audited Delta or Record supplies no replacement cap.
+  for later Payload retrieval, verification, replay and restart. A Payload
+  retains its own committing Delta's profile wherever it is read.
 
 An amendment effective exactly at the selected instant participates.
 `observed_at`, later amendments and a later validator clock MUST NOT change
 a sealed Delta's profile. These rules choose size caps only; they do not
-change signature authority, clock-skew checks, extraction/verdict profiles,
-Payload integrity, availability or withdrawal obligations. See WIST-4 §9
+change signature authority, clock-skew checks, Payload integrity,
+availability or withdrawal obligations. See WIST-4 §5
 and [ADR-0020](../decisions/0020-parameter-schedules.md).
 
 **The `links` member.** `urls` carries the page's external links as
@@ -465,10 +456,9 @@ dedup rule above enforceable at ingest, against a Payload the validator
 sees on its own. Which links a page has, and whether the declared
 prefix is the correct (longest-fitting) prefix — equality of `len(urls)`
 and `total` follows automatically once the full set fits, per the
-truncation rule above — is checkable only against the page; that is
-WIST-4 §5's link dimension, not an ingest rule. The extraction procedure
-itself is defined in WIST-2 and is the same procedure for the Publisher
-declaring and the Auditor checking.
+truncation rule above — is checkable only against the page, which no
+party in this suite is obliged to fetch; the extraction procedure itself
+is defined in WIST-2 §11 for the Publisher declaring.
 
 The Payload schema's `extract.maxLength` and `links.urls` item
 `maxLength` describe the default profile; validators MUST apply the active
@@ -489,8 +479,8 @@ itself, not merely against third parties. It is **hiding**: once the salt
 is destroyed, the commitment is the output of a keyed function under a key
 nobody holds, so a party holding a copy of the original text cannot
 demonstrate that the copy is what was committed to. Binding survives
-withdrawal for the Deltas whose Payloads still exist and for every verdict
-already recorded; hiding begins at withdrawal. The salt is what separates
+withdrawal for the Deltas whose Payloads still exist; hiding begins at
+withdrawal. The salt is what separates
 them, which is why it MUST be unpredictable and unique per Delta: a
 Publisher that derives salts from the content, or reuses one across
 Deltas, keeps the binding and forfeits the hiding.
@@ -597,8 +587,7 @@ fork. This suite pins them, for every signature it defines:
 - `A` and `R` MUST each be canonically encoded — the encoded `y` less than
   `p = 2^255 − 19` — and MUST NOT be a point of small order.
 
-A signature failing any of these is `WIST1-E01`, except an Audit Record
-signature, whose diagnostic and precedence are WIST-4 §10.1's. A `keys` or
+A signature failing any of these is `WIST1-E01`. A `keys` or
 `recovery_keys` entry (§5.1) whose `public_key` is non-canonically encoded
 or of small order is not admitted to the Key Set at all, and a Delta naming
 it is `WIST1-E02`: the check belongs where the key enters, so that a
@@ -618,9 +607,9 @@ candidate (`WIST1-E02`); at least one usable
 named binding but no verifying signature is `WIST1-E01`. Check every usable
 named binding from the eligible predecessor and incoming signing array,
 even if another binding of that identifier was excluded. The same exclusion
-applies when deriving keys for Deltas and notice-era appeals. Deltas also
+applies when deriving keys for Deltas and Labels. Deltas also
 apply §5.1's per-binding timestamp eligibility before signature diagnostics;
-Declaration and appeal authentication apply no such time filter.
+Declaration authentication applies no such time filter.
 
 Retain the original Envelope for signatures, hashes, predecessor links,
 idempotence and recovery-set byte protection. Identifier uniqueness and
@@ -664,7 +653,7 @@ inner object is canonicalized with JCS, those Canonical Bytes are signed
 with Ed25519, and the signature is detached into `sig`. Where WIST-2, WIST-3
 and WIST-4 define new signed objects — the Feed and its Pages, the Publisher
 Declaration, the Block header, the Checkpoint, the Log Anchor, the
-Snapshot Index and Manifest, the Audit Record, the Registry Update — this
+Snapshot Index and Manifest, the Label, the Registry Update — this
 rule applies unchanged, and each of those documents names only which inner
 object it wraps. A verifier that implements it once implements it for the
 whole suite, and there is no per-object signing variant to get wrong.
@@ -731,9 +720,8 @@ separate identities or merge into an accepted Declaration: they fail field
 validation before grouping. Scope members use the same representation but
 do not change the Declaration's Publisher identity. Feed and status `domain`,
 Publisher-domain Snapshot fields, and Registry Update `subject` when it names
-a Publisher use this same format and exact identity. This does not relax
-separate Auditor/Observer admission constraints or apply a hostname format
-to subjects that name parameters or keys. Each object's existing failure
+a Publisher use this same format and exact identity. This does not apply a
+hostname format to subjects that name parameters or keys. Each object's existing failure
 disposition and diagnostic remains applicable.
 
 **Declaration field validation.** A validator MUST reject a canonicalizable
@@ -1015,8 +1003,7 @@ For example, let recovery R have `seq` 1, and let a fresh competitor F with
 recovery key names R, not F, and uses `seq` greater than 2. If settlement
 occurs before D arrives, R becomes current again, but D still needs `seq`
 greater than 2. Naming F after settlement fails even with a valid signature.
-These are Declaration acceptance and key-continuity rules; identity-scoped
-reputation and sanction effects are governed separately by WIST-4 §6.3.
+These are Declaration acceptance and key-continuity rules.
 
 For an admissible competing branch, suppose R replaces signing key k1 with
 k2 and recovery key r1 with r2. A fresh F naming R may install k1 again only
@@ -1032,7 +1019,7 @@ and rejection twins appear in `vectors/wist1/recovery-settlement.json`.
 by what signs it, using the authenticated public key resolved above:
 
 - Signed by a key in the previous Key Set — an ordinary rotation.
-  Accepted; `A` and `C` (WIST-4 §6) are preserved.
+  Accepted; the identity is preserved.
 - Signed by a key in the previous Declaration's `recovery_keys` — a
   **recovery rotation**. The recovery window (Parameter Registry:
   `recovery_window_days`, 7 days) opens at the `sealed_at` of the Block
@@ -1046,7 +1033,7 @@ by what signs it, using the authenticated public key resolved above:
   denotes (WIST-3 §3.1), cannot be frozen: an Aggregator MUST NOT seal a
   recovery Declaration whose window would end there, and a Block sealing
   one is rejected as a whole under `WIST1-E08`, exactly as a Block sealing
-  a superseded Declaration; WIST-4 §9 keeps `recovery_window_days`
+  a superseded Declaration; WIST-4 §5 keeps `recovery_window_days`
   amendments inside that range from their own `effective_at`.
   A Delta is queued
   when it verifies under **either** the Key Set in effect immediately
@@ -1063,10 +1050,10 @@ by what signs it, using the authenticated public key resolved above:
   sources, preserving reused identifiers and their distinct validity bounds.
   Apply §3.2 using those same frozen sources; neither a competitor nor a
   legitimate follower can expand, shrink or replace their admission scopes.
-  This union authorizes queue admission only, not sealing, historical Delta
-  verification or appeal authentication.
+  This union authorizes queue admission only, not sealing or historical
+  Delta verification.
   At the end of the window the recovery Declaration takes effect with its
-  identity preserved under WIST-4 §6.3, and **every** Declaration accepted
+  identity preserved, and **every** Declaration accepted
   after the owner while the window is open
   other than the recovery Declaration and the chain legitimately following
   it is superseded — an ordinary rotation and a fresh identity alike, so a
@@ -1096,33 +1083,27 @@ by what signs it, using the authenticated public key resolved above:
   A Delta signed by the superseded signing key is exactly the case this
   settles: if the recovery rotated that key out, the Delta dies with it,
   which is the point of the rotation. The survivors become eligible
-  (WIST-4 §6.4) for the first Block whose `sealed_at` is at or after the
-  window's end, in their original acceptance order, and the §6.4
+  (WIST-4 §5) for the first Block whose `sealed_at` is at or after the
+  window's end, in their original acceptance order, and the WIST-4 §5
   inclusion ceiling counts from that Block — a queued Delta is out of
   the ceiling's reach while the window holds it, or the window and the
   ceiling would be two MUSTs one Aggregator cannot both keep.
-  The Aggregator MUST also record a `notice`
-  (WIST-4 §7) carrying `details.kind` `"recovery"`, but that entry
-  **describes** the window and does not open it: the window is derived
-  from the Declaration's own sealing height, so a Consumer replaying the
-  Log computes the same window, the same effective height, and the same
-  historical Key Set whether or not the notice was ever sealed. The suite's
-  only answer to a stolen signing key MUST NOT rest on the Aggregator
-  choosing to file — and a recovery whose effect depended on that entry
-  would leave "took effect under the Compromise recovery rule" with no
-  truth value for the resolution below, and the thief's ordinary rotation
-  standing. The window is derived from the sealing height, and the
-  sealing itself is a duty with a deadline for the same reason: on
+  The window is derived from the Declaration's own sealing height, so a
+  Consumer replaying the Log computes the same window, the same effective
+  height, and the same historical Key Set; no Aggregator act opens or
+  describes it, because the suite's only answer to a stolen signing key
+  MUST NOT rest on the Aggregator choosing to file. The sealing itself is
+  a duty with a deadline for the same reason: on
   discovering a served recovery Declaration that verifies — by pull, by
   hint, or by the Publisher's Ping — the Aggregator MUST seal its Entry
-  within the number of Blocks `record_seal_blocks` fixes (WIST-4 §4's
-  sealing-latency constant, default 24). Supersession of a still-unsealed
+  within the number of Blocks `record_seal_blocks` fixes (WIST-4 §5's
+  discovery sealing deadline, default 24). Supersession of a still-unsealed
   non-chain copy at the recovery deadline cancels that copy's remaining
   sealing duty, without excusing a sealing-latency violation already incurred
   before supersession. Legitimate followers retain their sealing duty.
   A recovery the operator can
-  shelve indefinitely is the notice-layer goodwill dependency
-  reconstituted one layer down. The violation is attributable — the
+  shelve indefinitely would leave the suite's only answer to a stolen key
+  resting on the operator's goodwill. The violation is attributable — the
   Declaration is signed, dated by its own `seq` and `prev_declaration`,
   and any third party can fetch the well-known path and observe the Log
   not sealing it — but it is not derivable from the Log alone, because
@@ -1143,11 +1124,11 @@ by what signs it, using the authenticated public key resolved above:
   window and does not supersede the first; whichever party prevails does
   so by holding the recovery keys the *first* Declaration now lists.
 - Signed by neither — a **fresh identity**. The Declaration is accepted.
-  Outside an open recovery window, `A` and `C` reset to zero and the domain
-  re-enters Provisional (WIST-4 §6.3). Inside an already-open window it is
-  a competing Declaration: acceptance changes the current Declaration and
-  sequence floor, but MUST NOT reset identity or lift sanctions, in an open
-  prefix or after settlement. It is superseded at the window's end by the
+  Outside an open recovery window, the domain's identity resets: a party
+  reading its history from the Log reads it from this height. Inside an
+  already-open window it is a competing Declaration: acceptance changes
+  the current Declaration and sequence floor, but MUST NOT reset
+  identity, in an open prefix or after settlement. It is superseded at the window's end by the
   rule above; fresh classification alone is never a `WIST1-E08`. The sequence,
   predecessor and recovery-key checks still apply. Rejecting an otherwise
   valid fresh identity at ingest would leave the attempt invisible to a party
@@ -1157,7 +1138,7 @@ A Publisher that loses both its signing keys and its recovery keys
 starts over; that is the honest outcome, because with no cryptographic
 continuity left nothing distinguishes the Publisher from a new owner of
 the same name, and preserving standing on domain control alone would let
-anyone buy an aged domain and inherit its reputation.
+anyone buy an aged domain and inherit its history.
 
 **Historical verification.** Accepted Declarations are sealed into the Log
 as `publisher_declaration` Entries (WIST-3 §3.3), except pending non-chain
@@ -1188,11 +1169,6 @@ against the Declaration applicable at its actual sealing height, including
 Declarations in the deadline Block. A scope failure at sealing is `WIST1-E03`;
 a Consumer ignores such an Entry and advances no chain tip. A settlement
 survivor is therefore only authority-eligible, not guaranteed inclusion.
-
-This historical rule governs Deltas. WIST-4 §7 separately freezes each
-sanction notice's appeal Key Set after its Block's Declaration stage,
-selecting the recovery-chain head while a window remains open. Later
-recovery settlement or chain extensions cannot revise that notice's keys.
 
 The Key Set so resolved is the one a sealed Delta MUST verify under, and
 it is not always the one the Aggregator ingested against. Ingest
@@ -1271,7 +1247,7 @@ optional member, malformed strings and forbidden `payload` on `attest` or
 The schema's fixed `url.maxLength` and `payload.bytes.maximum` describe
 the default profile. For these two checks, validators MUST instead apply
 §3.2's JCS-octet URL cap and §3.6's derived commitment cap from the parameter
-profile required at their validation stage under WIST-4 §9; the fixed schema
+profile required at their validation stage under WIST-4 §5; the fixed schema
 values MUST NOT reject an object permitted by that active profile.
 
 Apply all E14 checks before these semantic exceptions. String lengths in
@@ -1319,12 +1295,12 @@ WIST2-E03 remain required. See
 | WIST1-E06 | `observed_at` exceeds the clock plus active signed allowance selected by §3.4 |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong Publisher or URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
 | WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z` (§5.2) |
-| WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none, which no audit can ever check (WIST-4 §5) |
+| WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
-| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url under §2, except Audit Record signature fields (WIST-4 §10.1). Canonicalization failure remains WIST1-E05 |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url under §2. Canonicalization failure remains WIST1-E05 |
 | WIST1-E15 | Delta or Payload major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
@@ -1351,9 +1327,9 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
   never a permanent one. Publishers SHOULD generate recovery keys
   independently of signing keys and keep them offline, SHOULD keep
   signing keys off the web server that serves content, and SHOULD rotate
-  on any suspicion of compromise; fraud committed before recovery is
-  still attributed to the domain and handled by WIST-4 audit and
-  sanctions. A Publisher that loses its signing key without ever having
+  on any suspicion of compromise; publications signed before recovery
+  remain attributed to the domain. A Publisher that loses its signing key
+  without ever having
   provisioned a recovery key has no cryptographic path back (§5.2).
 - **Domain transfer.** A Key Set replacement does not transfer standing
   by itself: §5.2 classifies a replacing Declaration by what signs it,
@@ -1445,16 +1421,14 @@ What remains in the Log permanently, and cannot be withdrawn, is:
   and sit inside the signed Delta, so unlike a Payload they are permanent
   and unwithdrawable, which is why §3.7 forbids personal data in them
   outright rather than bounding it by what the page serves;
-- the verdicts and `similarity` values of any Audit Records about the URL.
-  Those Records observe the page directly, so every content-derived value
-  in them is committed under the same Payload salt rather than digested
-  bare, and expires with it (WIST-4 §5, WIST-4 §12);
 - everything any Registry Update about the URL or its Publisher carries in
-  its `details` and `evidence` — the Aggregator's `legal_basis`, `reason`,
-  `reasoning` and `sanction_lift` text, and the Publisher's own text on an
-  `appeal` alike. These are sealed and unwithdrawable like `meta`,
-  which is why WIST-4 §9.1 and §12 forbid personal data in any of them
-  outright rather than in a list of named fields.
+  its `details` — the Aggregator's `legal_basis` and `jurisdiction`. These
+  are sealed and unwithdrawable like `meta`, which is why WIST-4 §5.1 and
+  §9 forbid personal data in any of them outright rather than in a list
+  of named fields;
+- every Label a Labeler sealed about the URL or its Publisher (WIST-2
+  §3.3): a registry name, an integer and an instant, sealed and
+  unwithdrawable like `meta`.
 
 Publishers should understand that this residue is permanent, and that
 withdrawal removes the content from future distribution rather than from

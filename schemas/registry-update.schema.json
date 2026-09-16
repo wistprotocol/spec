@@ -2,25 +2,25 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wistprotocol.org/schemas/registry-update.schema.json",
   "title": "WIST Registry Update (WIST-4)",
+  "description": "A governance act sealed as a `registry_update` Entry (WIST-3 §3.3) under the Log key. `action` selects the `details` contract of WIST-4 §5.1; the semantic checks that section names — the grace period, the parameter bounds that depend on other values, the Delta a withdrawal names — are outside the schema.",
   "type": "object",
   "required": ["update", "sig"],
   "additionalProperties": false,
   "properties": {
     "update": {
       "type": "object",
-      "required": ["wist_version", "action", "subject", "effective_at"],
+      "required": ["wist_version", "action", "subject", "effective_at", "details"],
       "additionalProperties": false,
       "properties": {
         "wist_version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$(?![\\s\\S])"},
-        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "auditor_admit", "auditor_remove", "sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "parameter_change", "coverage_attestation", "payload_withdrawal", "pull_attestation", "observer_register", "observer_checkpoint", "canary_commitment", "canary_reveal"]},
-        "subject": {"type": "string", "maxLength": 256},
+        "action": {"enum": ["aggregator_key_add", "aggregator_key_remove", "parameter_change", "payload_withdrawal"]},
+        "subject": {"type": "string", "minLength": 1, "maxLength": 256},
         "details": {"type": "object"},
-        "evidence": {"type": "array", "items": {"type": "string", "maxLength": 256}},
         "effective_at": {
           "type": "string",
           "format": "date-time",
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$(?![\\s\\S])",
-          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (WIST-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the §9 grace period above all — so the two are written in one form and compare without normalization. It is descriptive of when the act takes effect and never the anchor of a window: WIST-4 §7 runs the appeal window, and WIST-1 §5.2 the recovery window, from the `sealed_at` of the Block sealing the Entry."
+          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (WIST-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the WIST-4 §5 grace period above all — so the two are written in one form and compare without normalization. It states when the act takes effect; WIST-1 §5.2 runs the recovery window from the `sealed_at` of the Block sealing the Entry."
         }
       }
     },
@@ -37,17 +37,19 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"update": {"properties": {"action": {"enum": ["aggregator_key_add", "auditor_admit"]}}}}},
+      "comment": "WIST-3 §3.4, WIST-4 §5.1: an aggregator_key_add registers a raw Ed25519 public key under a key_id, and `subject` is that key_id.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "aggregator_key_add"}}}}},
       "then": {
         "properties": {
           "update": {
-            "required": ["details"],
             "properties": {
+              "subject": {"type": "string", "minLength": 1, "maxLength": 64},
               "details": {
                 "type": "object",
                 "required": ["key_id", "alg", "public_key"],
+                "additionalProperties": false,
                 "properties": {
-                  "key_id": {"type": "string", "maxLength": 64},
+                  "key_id": {"type": "string", "minLength": 1, "maxLength": 64},
                   "alg": {"const": "Ed25519"},
                   "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"}
                 }
@@ -58,17 +60,19 @@
       }
     },
     {
-      "if": {"properties": {"update": {"properties": {"action": {"enum": ["aggregator_key_remove", "auditor_remove"]}}}}},
+      "comment": "WIST-3 §3.4, WIST-4 §5.1: an aggregator_key_remove retires the key_id it names, and `subject` is that key_id.",
+      "if": {"properties": {"update": {"properties": {"action": {"const": "aggregator_key_remove"}}}}},
       "then": {
         "properties": {
           "update": {
-            "required": ["details"],
             "properties": {
+              "subject": {"type": "string", "minLength": 1, "maxLength": 64},
               "details": {
                 "type": "object",
                 "required": ["key_id"],
+                "additionalProperties": false,
                 "properties": {
-                  "key_id": {"type": "string", "maxLength": 64}
+                  "key_id": {"type": "string", "minLength": 1, "maxLength": 64}
                 }
               }
             }
@@ -77,311 +81,57 @@
       }
     },
     {
-      "if": {"properties": {"update": {"properties": {"action": {"const": "sanction"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details", "evidence"],
-            "properties": {
-              "details": {
-                "type": "object",
-                "required": ["level", "severity", "finding"],
-                "properties": {
-                  "level": {"type": "integer", "minimum": 1, "maximum": 4},
-                  "severity": {"type": "integer", "minimum": 1, "maximum": 3},
-                  "finding": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}
-                }
-              },
-              "evidence": {
-                "type": "array",
-                "minItems": 2,
-                "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {"properties": {"update": {"properties": {"action": {"const": "notice"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "details": {
-                "type": "object",
-                "required": ["kind"],
-                "properties": {
-                  "kind": {"enum": ["sanction", "recovery"]},
-                  "level": {"type": "integer", "enum": [3, 4]},
-                  "activation": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"},
-                  "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
-                  "appeal_deadline": {
-                    "type": "string",
-                    "format": "date-time",
-                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$(?![\\s\\S])",
-                    "description": "The instant WIST-4 §7's appeal window closes, restated for the Publisher's convenience: the `sealed_at` of the Block sealing this notice plus `appeal_window_days`. It is descriptive — every party derives the same deadline from the Block — and carries the whole-second-plus-Z form so that the restatement and the Block value it is computed from compare without normalization."
-                  }
-                },
-                "if": {"properties": {"kind": {"const": "sanction"}}},
-                "then": {"required": ["reason", "appeal_deadline", "level", "activation"]}
-              }
-            },
-            "if": {"properties": {"details": {"properties": {"kind": {"const": "sanction"}}}}},
-            "then": {"required": ["evidence"]}
-          }
-        }
-      }
-    },
-    {
-      "if": {"properties": {"update": {"properties": {"action": {"const": "appeal_ruling"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "details": {
-                "type": "object",
-                "required": ["notice", "outcome", "reasoning"],
-                "properties": {
-                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID (WIST-4 §7) of the `notice` whose process this ruling closes. Required because the ruling deadline and the void rule of §7 are evaluated per notice: a ruling that named none would close every open process of that domain at once, or none of them."},
-                  "outcome": {"enum": ["upheld", "overturned", "unappealed"]},
-                  "reasoning": {"type": "string", "minLength": 1, "maxLength": 1024}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
+      "comment": "WIST-4 §5: `parameter` is an Identifier from the Parameter Registry, `subject` repeats it, and `value` is an integer in that parameter's unit inside the wire range; the fixed bounds the Registry publishes are enforced per identifier below, and the bounds that depend on another parameter's value are replay checks (WIST4-E03).",
       "if": {"properties": {"update": {"properties": {"action": {"const": "parameter_change"}}}}},
       "then": {
         "properties": {
           "update": {
-            "required": ["details"],
             "properties": {
+              "subject": {"enum": [
+                "block_cadence_seconds", "block_decompressed_cap_bytes",
+                "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
+                "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
+                "mirror_retention_days", "record_seal_blocks",
+                "domain_block_entries_max", "max_inclusion_blocks",
+                "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
+                "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
+                "recovery_window_days", "param_grace_days"
+              ]},
               "details": {
                 "type": "object",
                 "required": ["parameter", "value"],
+                "additionalProperties": false,
                 "properties": {
                   "parameter": {"enum": [
-                    "block_cadence_seconds", "block_decompressed_cap_bytes", "extract_cap_bytes",
-                    "summary_cap_bytes", "feed_window", "clock_skew_seconds", "baseline_poll_seconds",
-                    "keyset_cache_ttl_seconds", "recovery_window_days", "sampling_floor",
-                    "sampling_ceiling", "sampling_slope", "similarity_consistent",
-                    "similarity_variance_floor", "shingle_size", "confirm_auditors",
-                    "confirm_window_hours", "coverage_deadline_hours", "age_norm_days",
-                    "decay_horizon_days", "penalty_weight", "c_cap",
-                    "provisional_age_days", "provisional_audits", "provisional_cap_u",
-                    "quota_base", "quota_slope", "latency_threshold_u",
-                    "appeal_window_days", "ruling_deadline_days",
-                    "param_grace_days", "payload_window_days", "unauditable_horizon_days",
-                    "mirror_retention_days", "appeal_seal_days", "url_cap_bytes",
-                    "links_cap_bytes", "link_url_cap_bytes", "link_agreement_consistent",
-                    "link_variance_floor", "warc_retention_days", "record_seal_blocks",
+                    "block_cadence_seconds", "block_decompressed_cap_bytes",
+                    "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
+                    "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
+                    "mirror_retention_days", "record_seal_blocks",
                     "domain_block_entries_max", "max_inclusion_blocks",
-                    "ingest_budget_bytes_day", "min_observed_words",
-                    "extension_triggers_max",
-                    "audit_fetch_cap_bytes", "audit_domain_budget_bytes_day",
-                    "audit_redirect_max", "audit_fetch_timeout_seconds",
-                    "epoch_blocks", "observer_checkpoint_budget", "canary_lead_blocks",
-                    "canary_leaves_max", "canary_commitments_max",
-                    "canary_reveal_min_blocks", "canary_lifetime_blocks"
+                    "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
+                    "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
+                    "recovery_window_days", "param_grace_days"
                   ]},
-                  "value": {"type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991, "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §9 states for it, and this is the one field through which any of them is ever rewritten. A rational here would reach §6.2's denominator through `penalty_weight` and §4's clamp through `sampling_slope`, falsifying WIST-4 §6's `every input is an integer` and §10's `there is no conforming path that uses double` — for a value nobody needs, since every default §9 publishes is already an integer in its own unit."}
+                  "value": {"type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991, "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §5 states for it, and this is the one field through which any of them is ever rewritten; the range is WIST-1 §4's JCS integer domain."}
                 },
                 "allOf": [
-                  {"if": {"properties": {"parameter": {"const": "provisional_cap_u"}}}, "then": {"properties": {"value": {"minimum": 0}}}},
-                  {
-                    "if": {"properties": {"parameter": {"const": "block_cadence_seconds"}}},
-                    "then": {"properties": {"value": {"minimum": 1, "maximum": 86400}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "domain_block_entries_max"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "max_inclusion_blocks"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "ingest_budget_bytes_day"}}},
-                    "then": {"properties": {"value": {"minimum": 1048576}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "audit_fetch_cap_bytes"}}},
-                    "then": {"properties": {"value": {"minimum": 65536}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "audit_redirect_max"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "audit_fetch_timeout_seconds"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "min_observed_words"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "extension_triggers_max"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "block_decompressed_cap_bytes"}}},
-                    "then": {"properties": {"value": {"minimum": 1024}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "extract_cap_bytes"}}},
-                    "then": {"properties": {"value": {"minimum": 2}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "summary_cap_bytes"}}},
-                    "then": {"properties": {"value": {"minimum": 12}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "feed_window"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "recovery_window_days"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "sampling_floor"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "sampling_ceiling"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "similarity_consistent"}}},
-                    "then": {"properties": {"value": {"minimum": 150002, "maximum": 1000000}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "similarity_variance_floor"}}},
-                    "then": {"properties": {"value": {"minimum": 150001, "maximum": 300000}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "shingle_size"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "confirm_auditors"}}},
-                    "then": {"properties": {"value": {"minimum": 2}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "confirm_window_hours"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "coverage_deadline_hours"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "age_norm_days"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "decay_horizon_days"}}},
-                    "then": {"properties": {"value": {"minimum": 1, "maximum": 1825}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "penalty_weight"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "c_cap"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "appeal_window_days"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "appeal_seal_days"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "ruling_deadline_days"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "param_grace_days"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "payload_window_days"}}},
-                    "then": {"properties": {"value": {"minimum": 30}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "unauditable_horizon_days"}}},
-                    "then": {"properties": {"value": {"minimum": 7}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "mirror_retention_days"}}},
-                    "then": {"properties": {"value": {"minimum": 51}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "warc_retention_days"}}},
-                    "then": {"properties": {"value": {"minimum": 51}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "record_seal_blocks"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "url_cap_bytes"}}},
-                    "then": {"properties": {"value": {"minimum": 14}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "links_cap_bytes"}}},
-                    "then": {"properties": {"value": {"minimum": 21}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "link_url_cap_bytes"}}},
-                    "then": {"properties": {"value": {"minimum": 14}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "link_agreement_consistent"}}},
-                    "then": {"properties": {"value": {"minimum": 2, "maximum": 1000000}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "link_variance_floor"}}},
-                    "then": {"properties": {"value": {"minimum": 1, "maximum": 999999}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "epoch_blocks"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "observer_checkpoint_budget"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "canary_lead_blocks"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "canary_leaves_max"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "canary_commitments_max"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "canary_reveal_min_blocks"}}},
-                    "then": {"properties": {"value": {"minimum": 1}}}
-                  },
-                  {
-                    "if": {"properties": {"parameter": {"const": "canary_lifetime_blocks"}}},
-                    "then": {"properties": {"value": {"minimum": 2}}}
-                  }
+                  {"if": {"properties": {"parameter": {"const": "block_cadence_seconds"}}}, "then": {"properties": {"value": {"minimum": 1, "maximum": 86400}}}},
+                  {"if": {"properties": {"parameter": {"const": "block_decompressed_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 1024}}}},
+                  {"if": {"properties": {"parameter": {"const": "extract_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 2}}}},
+                  {"if": {"properties": {"parameter": {"const": "links_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 21}}}},
+                  {"if": {"properties": {"parameter": {"const": "link_url_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 14}}}},
+                  {"if": {"properties": {"parameter": {"const": "summary_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 12}}}},
+                  {"if": {"properties": {"parameter": {"const": "url_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 14}}}},
+                  {"if": {"properties": {"parameter": {"const": "feed_window"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "recovery_window_days"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "param_grace_days"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "payload_window_days"}}}, "then": {"properties": {"value": {"minimum": 30}}}},
+                  {"if": {"properties": {"parameter": {"const": "mirror_retention_days"}}}, "then": {"properties": {"value": {"minimum": 30}}}},
+                  {"if": {"properties": {"parameter": {"const": "record_seal_blocks"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "domain_block_entries_max"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "max_inclusion_blocks"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "ingest_budget_bytes_day"}}}, "then": {"properties": {"value": {"minimum": 1048576}}}},
+                  {"if": {"properties": {"parameter": {"const": "quota_base"}}}, "then": {"properties": {"value": {"minimum": 1}}}}
                 ]
               }
             }
@@ -390,265 +140,23 @@
       }
     },
     {
+      "comment": "WIST-3 §6.2, WIST-4 §5.1: a payload_withdrawal names the Delta whose Payload leaves distribution, the legal ground and the jurisdiction, and `subject` is the Publisher's Canonical Host. Which Delta it may name is a replay check (WIST4-E04).",
       "if": {"properties": {"update": {"properties": {"action": {"const": "payload_withdrawal"}}}}},
       "then": {
         "properties": {
           "update": {
-            "required": ["details"],
             "properties": {
+              "subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
               "details": {
                 "type": "object",
                 "required": ["delta_id", "legal_basis", "jurisdiction"],
+                "additionalProperties": false,
                 "properties": {
                   "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"},
                   "legal_basis": {"type": "string", "minLength": 1, "maxLength": 1024},
                   "jurisdiction": {"type": "string", "minLength": 1, "maxLength": 128}
                 }
               }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §3: an Auditor is a domain, not a bare key. `subject` is the Auditor's `auditor_id`, and it is what §3's independence and self-audit tests compare, so it must be a hostname of at least two labels rather than a free-text label. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_admit"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253}
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §7: an appeal is signed by the Publisher and answers exactly one `notice`. The sealing deadline and the void rule are evaluated per notice, so an appeal that named none would be unattachable to the process it belongs to. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "appeal"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "details": {
-                "type": "object",
-                "required": ["notice"],
-                "properties": {
-                  "notice": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID (WIST-4 §7) of the `notice` being appealed."}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §4: the pull attestation is the Aggregator's signed statement of what its pull of an Auditor's well-known path returned, and it is the precondition for any coverage failure to count against that Auditor. `subject` is the Auditor's `auditor_id`; `block` names the audited Block; `found` lists the IDs the fetch returned, empty where it returned nothing to seal. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "pull_attestation"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
-              "details": {
-                "type": "object",
-                "required": ["block", "found"],
-                "properties": {
-                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The audited Block's Block Hash — the same value that names the Auditor's well-known records file (WIST-4 §4)."},
-                  "found": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}, "description": "The Record and coverage_attestation IDs the pull returned. Empty is a claim like any other: it is what a third party who fetched the same path during the window can contradict."}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §4: a coverage_attestation puts the VRF proof of an empty selection in the Log — the fact the coverage duty is derived from — and carries the same per-auditor chain link an Audit Record carries, so a suppressed attestation is provable from its sealed successor exactly as a suppressed Record is. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "coverage_attestation"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
-              "details": {
-                "type": "object",
-                "required": ["block", "vrf_proof", "prev_record"],
-                "properties": {
-                  "block": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The audited Block's Block Hash — the Block whose selection was empty, and the input the vrf_proof verifies against (WIST-4 §4)."},
-                  "vrf_proof": {"type": "string", "pattern": "^[0-9a-f]{160}$(?![\\s\\S])", "description": "The §4 VRF Proof for the Block whose selection was empty, 80 octets as 160 lowercase hex characters — the same form audit-record.schema.json fixes. An attestation without it claims an empty draw and proves nothing."},
-                  "prev_record": {"oneOf": [{"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}, {"type": "null"}]}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §4, §9.1: an auditor_remove is for cause exactly when it carries evidence, and an empty array names nothing — a removal neither for cause nor an exit — so `evidence`, where present, names at least one ID. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_remove"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "properties": {
-              "evidence": {"type": "array", "minItems": 1}
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §3.1, §9.1: an Observer registers itself under a domain-anchored identity, and the act is self-signed — sig.key_id is the key_id the details register. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "observer_register"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
-              "details": {
-                "type": "object",
-                "required": ["key_id", "alg", "public_key"],
-                "properties": {
-                  "key_id": {"type": "string", "maxLength": 64},
-                  "alg": {"const": "Ed25519"},
-                  "public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §3.1: an observer_checkpoint seals the Observer's chain head, so that every Record behind it is fixed before the reveals it may credit against. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "observer_checkpoint"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253},
-              "details": {
-                "type": "object",
-                "required": ["head"],
-                "properties": {
-                  "head": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The ID of the Observer's newest Audit Record or coverage_attestation for this Log — the head of its prev_record chain (WIST-4 §3.1); an object that carries only commitments."}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §5.1: a canary_commitment fixes a planter's future served bytes as a Merkle root before any of them is served; its subject is the planter, never the canary domain. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "canary_commitment"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})+$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
-              "details": {
-                "type": "object",
-                "required": ["root", "leaves"],
-                "properties": {
-                  "root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "WIST-3 §4's Merkle root over the leaves, each SHA-256(0x00 || served bytes) where the served bytes carry a fresh nonce of at least 16 octets (WIST-4 §5.1): a keyed commitment under that nonce, not a bare digest of content."},
-                  "leaves": {"type": "integer", "minimum": 1, "description": "The leaf count, the tree size every inclusion proof in the reveal reads; bounded above by canary_leaves_max in prose (WIST-4 §5.1)."}
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §5.1: a canary_reveal binds a commitment's leaves to the canary domain's Deltas and is signed by that domain, so only a domain's own keys can declare it a canary. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "canary_reveal"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "required": ["details"],
-            "properties": {
-              "subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})+$(?![\\s\\S])", "description": "Must equal its own Canonical Host under WIST-1 sections 2 and 5.1, including Unicode 16.0 UTS #46 A-label validation; the pattern alone is insufficient."},
-              "details": {
-                "type": "object",
-                "required": ["commitment", "leaves"],
-                "properties": {
-                  "commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID (WIST-4 §7) of the canary_commitment revealed — an object carrying a root and a count, no content."},
-                  "leaves": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "object",
-                      "required": ["index", "delta_id", "leaf_hash", "path"],
-                      "additionalProperties": false,
-                      "properties": {
-                        "index": {"type": "integer", "minimum": 0},
-                        "delta_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"},
-                        "leaf_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "SHA-256(0x00 || served bytes), including the embedded nonce; the starting hash for Log-only membership verification (WIST-4 §5.1)."},
-                        "path": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])"}, "description": "The leaf's Inclusion Proof siblings (WIST-3 §4), leaf level first: nodes over canary leaves, each keyed by its leaf's nonce (WIST-4 §5.1)."}
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "WIST-4 §3.1, §9.1: an auditor_admit whose subject has an Observer history cites the record it weighed — the newest sealed checkpoint and the per-tier scoreboard; the obligation itself is prose, since whether the subject was an Observer is a fact of the Log the schema cannot see. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_admit"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "properties": {
-              "details": {
-                "properties": {
-                  "track_record": {
-                    "type": "object",
-                    "required": ["checkpoint", "scoreboard"],
-                    "additionalProperties": false,
-                    "properties": {
-                      "checkpoint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The Registry Update ID of the newest sealed observer_checkpoint for the subject (WIST-4 §3.1)."},
-                      "scoreboard": {
-                        "type": "object",
-                        "required": ["provisional", "standing", "mature"],
-                        "additionalProperties": false,
-                        "properties": {
-                          "provisional": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}], "items": false, "minItems": 3},
-                          "standing": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}], "items": false, "minItems": 3},
-                          "mature": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}, {"type": "integer", "minimum": 0}], "items": false, "minItems": 3}
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {"properties": {"update": {"properties": {"action": {"enum": ["sanction", "sanction_lift", "notice", "appeal", "appeal_ruling", "payload_withdrawal", "canary_commitment", "canary_reveal"]}}}}},
-      "then": {"properties": {"update": {"properties": {"subject": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Publisher identity in WIST-1 sections 2 and 5.1 Canonical Host form; validate A-labels under the pinned UTS #46 profile."}}}}}
-    },
-    {
-      "comment": "WIST-4 §9.1: an auditor_remove names the auditor_id whose key it retires, in the hostname shape an auditor_admit requires, so a subject outside it fails the details contract (WIST4-E04) rather than the roster rule. Appended rather than inserted: the branches above are addressed by index elsewhere in this suite.",
-      "if": {"properties": {"update": {"properties": {"action": {"const": "auditor_remove"}}}}},
-      "then": {
-        "properties": {
-          "update": {
-            "properties": {
-              "subject": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$(?![\\s\\S])", "maxLength": 253}
             }
           }
         }

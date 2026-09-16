@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 section 5.2 accepted sequence and recovery heads. The supplied Log key and final pinned head authenticate one complete hourly Block chain. An optional branch index selects an independently pinned alternate history. Queries replay through prefix_height, settle at candidate_sealed_at, then evaluate one independent unsealed candidate. Rejection preserves the post-settlement state. No invalid candidate is asserted to be a valid sealed Entry. No identity, sanction or conflicting-batch result is asserted.",
+  "note": "WIST-1 section 5.2 accepted sequence and recovery heads. The supplied Log key and final pinned head authenticate one complete hourly Block chain. An optional branch index selects an independently pinned alternate history. Queries replay through prefix_height, settle at candidate_sealed_at, then evaluate one independent unsealed candidate. Rejection preserves the post-settlement state. No invalid candidate is asserted to be a valid sealed Entry. No identity or conflicting-batch result is asserted.",
   "log_key": {
     "key_id": "test-log-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"

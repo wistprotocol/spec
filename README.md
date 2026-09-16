@@ -5,11 +5,13 @@ Development and publication rules: [PUBLICATION.md](PUBLICATION.md).
 
 An open, verifiable, push-based web index protocol for local AI agents.
 
-Sites publish signed **deltas** about their own URLs; an **aggregator**
-sequences them into a public, hash-chained, append-only log (the
-Certificate Transparency model); **consumers** download a compact snapshot
-once, then follow an hourly delta stream — and query everything locally.
-Consumers verify signatures and hashes locally.
+Sites publish signed **deltas** about their own URLs, and signed
+**labels** about other sites; an **aggregator** sequences them into a
+public, hash-chained, append-only log (the Certificate Transparency
+model); **consumers** download a compact snapshot once, then follow an
+hourly delta stream — and query everything locally, ranking under a
+policy of their own choosing. Consumers verify signatures and hashes
+locally.
 
 ```
 Publisher                 Aggregator                    Mirrors / Consumers
@@ -18,9 +20,8 @@ Publisher                 Aggregator                    Mirrors / Consumers
    │ and sends ping           │ dedups, queues                │
    │                          │ seals hourly Block,     ──►   │ sync blocks,
    │                          │ signs, chains                 │ verify chain,
-   │                          │                               │ apply to local index
-Auditor ◄── samples deltas from sealed blocks ──┘             │
-   │ re-fetches URL, emits signed audit record ──► enters the log like any delta
+   │ signs labels about   ──►  │ seals them beside deltas ──►  │ apply to local index,
+   │ other sites              │                               │ rank by own policy
 ```
 
 ## Documents
@@ -30,7 +31,7 @@ Auditor ◄── samples deltas from sealed blocks ──┘             │
 | [WIST-1](specs/WIST-1-delta-format.md) | Delta Format & Identity — the signed delta object, JCS canonicalization, domain-anchored Ed25519 keys | v1.0.0-draft |
 | [WIST-2](specs/WIST-2-site-publication.md) | Site Publication — `.well-known` layout, feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
 | [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — blocks, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
-| [WIST-4](specs/WIST-4-audit-reputation-governance.md) | Audit, Reputation & Governance — sampling, verdicts, the reputation function, sanctions, constitutional invariants | v1.0.0-draft |
+| [WIST-4](specs/WIST-4-governance.md) | Governance & Parameters — governance acts, constitutional invariants, the Parameter Registry, the Label Registry | v1.0.0-draft |
 
 ## Repository layout
 
@@ -39,10 +40,9 @@ specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
 vectors/     deterministic test vectors (WIST-1 signature and Declaration
-             sequencing, WIST-2 link extraction, WIST-3 Merkle and snapshot
-             records, WIST-4 sampling, reputation, decay table, audit
-             commitments, link agreement, replay derivations, the audit
-             reference Delta, canary scoring, observer checkpoints)
+             sequencing, WIST-2 link extraction and Labels, WIST-3 Merkle
+             and snapshot records, WIST-4 parameter schedules and
+             withdrawals)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```
@@ -55,12 +55,6 @@ tools/.venv/bin/pip install -r tools/requirements.txt
 tools/.venv/bin/python tools/validate_examples.py   # validates examples + vectors
 tools/.venv/bin/python tools/gen_vectors.py         # regenerates (byte-identical)
 ```
-
-`tools/unicode_tables.py` is generated from the Unicode Character
-Database for the release [ADR-0017](decisions/0017-one-pinned-unicode-version.md)
-pins, by `tools/gen_unicode_tables.py`; it is committed, so validation and
-generation stay offline, and the script is re-run only when that release
-moves.
 
 The harness validates every example against its schema, recomputes the
 WIST-1 delta ID and Ed25519 signature, recomputes the payload commitment

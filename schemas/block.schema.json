@@ -18,7 +18,7 @@
           "type": "string",
           "format": "date-time",
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$",
-          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z: no fractional seconds and no numeric offset, so WIST-4 §6.1's conversion to integer seconds is exact (WIST-3 §3.1)."
+          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z: no fractional seconds and no numeric offset, so the conversion to integer seconds every window in this suite rests on is exact (WIST-3 §3.1)."
         },
         "merkle_root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "entry_count": {"type": "integer", "minimum": 0}
@@ -32,7 +32,7 @@
         "required": ["type", "body"],
         "additionalProperties": false,
         "properties": {
-          "type": {"enum": ["publisher_delta", "publisher_declaration", "audit_record", "registry_update"]},
+          "type": {"enum": ["publisher_delta", "publisher_declaration", "label", "registry_update"]},
           "body": {"type": "object"}
         }
       }

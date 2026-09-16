@@ -1,0 +1,1222 @@
+{
+  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration: accepted means the Label validates and its label_id seals; fields and self are WIST2-E06; signature and binding keep WIST-1 codes. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted. The clock allowance over asserted_at is exercised by wist1/delta-clock-time.json.",
+  "declaration": {
+    "publisher": {
+      "wist_version": "1.0.0",
+      "seq": 0,
+      "domain": "example.com",
+      "subdomain_scope": [
+        "www.example.com",
+        "blog.example.com"
+      ],
+      "keys": [
+        {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "valid_from": "2026-08-02T12:00:00Z"
+        }
+      ],
+      "recovery_keys": [
+        {
+          "key_id": "test-r1",
+          "alg": "Ed25519",
+          "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+          "valid_from": "2026-08-02T12:00:00Z"
+        }
+      ],
+      "contact": "mailto:webmaster@example.com"
+    },
+    "sig": {
+      "key_id": "test-k1",
+      "alg": "Ed25519",
+      "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+    }
+  },
+  "url_cap_bytes": 2048,
+  "cases": [
+    {
+      "name": "valid Label",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52"
+    },
+    {
+      "name": "valid Label with a value",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 750000
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "QfilzqUJ_CMwV7e6cQdeIvjStOWZXkGKZwdAvMpU6CzidHOHwp3ZpKEtmRyqf-LfgkbwFXfNGXuIulrgLvW1BA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:8821c18bfb0193fdbc03f47dce6223084f0d0e7dee752f2e37ffc6e5b9083830"
+    },
+    {
+      "name": "valid Label on a Canonical Host",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "reduced.example.org",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "yyzDWXVVO8tl3vjwH9s-r0J2zTXiRWbQR5cXGkQh1gQOnvrjvPj660KfKAfnG_FSB98z90ieCkPHpVIsV6QnBA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:d68976a1aa46b7602fc293f54ff5fd2bd373ee10c538fcb5af5cee228c4ff129"
+    },
+    {
+      "name": "valid retraction",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-03T09:00:00Z",
+          "retracted": true
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "EMa02KW1xvdLw4t4AugTHR6Vcpn7kCTe_Z-a4JRlFjJ2-9-iRYEvz46CWOYtAFQEj7s4Acml1Bc5z5DXhkvPAg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e"
+    },
+    {
+      "name": "value at the floor",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 0
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "8wYD4fSMd3_yDmLEwG4MTdT45digyHDXeR7ajsRjmToPs2MqiuBK5YzgnZKNk-z01_4axP_ZEnJY6BK4qkslCg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:c5e9a2e680d2934888bce874b1809846e2efb3665b3bacb697222fe601328810"
+    },
+    {
+      "name": "value at the ceiling",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 1000000
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "SDlYSUxtkErv3TmZKXWmm8_82tCxcdF2wSotXL3QbXyt1vLeyje4wihNH9BrqaeEteiCcitlc5__PLEfHZ8NAg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:2dfc2ac01ec3e05a95b056af760021729d6918d6af3493db795a1f417cb10001"
+    },
+    {
+      "name": "value above the ceiling",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 1000001
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "AIZtxbNQ6r1eng0QUNZqhblFbhGYWaZU6igmasbu7Ve4ZDdW2E9576yADWTnvSIJnh1CoNC3a4dU5OWLFz-8Bw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "negative value",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": -1
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OsFST7qxi9791pAxfGcicwfApvfQf-837HfvoTJoxDW9nJFZBzwJRdZnh0OY4uUHY9JSKaIAnQJ41ULh-3EQCA"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "fractional value",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "value": 0.5
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "2cKt_nu1T2R4EcDsPgYIF2kdoJb08dMbn1JMXIej5BOJhZmy__NBTHcjJE_pY_UHMX9MjgyPMnsACIKR-093Ag"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "retracted false",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "retracted": false
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "PW-ev5_JV0lo7M9uQtXyMQu55VUIWtfxu13O9wK27EeQ0fhhFHNiFV2oZnX5BjD-ncBsi-0pWsezCxpROXf_AA"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "unknown member",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z",
+          "extra": true
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "MlzH7TYu23Frw94fXAVsV_UiZtiA39PjJnza8ya9e4R7ckydMITnhrMzzL7q06svpQffNz39ZwA4gvCtYzHKAQ"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "missing wist_version",
+      "envelope": {
+        "label": {
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "-9AUUrVZw_Wnnjpik3V4Uhc3Zbh5zWLfFSmTMo2ue_pQaYwkVEDDcFmfGrz1T8bXRwi3qhfm34AqtBrtA24_Dg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "missing labeler",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "OP6FchcYreB7U3GzCOj2ZY6v6z7CIhnLsdWfqF45fRo31MP3niLlPA2q5Bv1fvB0Sov470dsdewW9nVE6bTPDQ"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "missing subject",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "JHHJZc9o82bHud9SXSI1Wub6c6n-Mh5y1EdFS5RceVP55xJSQPwF-PwouxEqqK-RO9lHZKfbJrpv5IiCAJivCQ"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "missing name",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "qThZySeulXKDz9H9Gva6GkJHk5WBZTNfQmtDBLyJK3tpxQIuRITJV10K31l4yZ5dbCw2PH7Kz2p5pZs5_L47AA"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "missing asserted_at",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "-Xv2RR3PJIUGJ2MAEGxG-qYMwicREWzSsjmFYIZa53rsatGzefmlyPZ4vjlzzxCdTJ-79Palkc3CH-gLyXiSAA"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "unsupported major",
+      "envelope": {
+        "label": {
+          "wist_version": "2.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "KbOPxw60BXsGecaCk2CVkSbDXz7rzspKgDTgu6IxEyLsw4Sudms_c4hcQxjCKwcK2cRmVKLAk0Dbr76UyGu9BA"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "later minor and patch",
+      "envelope": {
+        "label": {
+          "wist_version": "1.7.3",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "pYW249eUo3rchmXcDBZgAyCbEeDaQ3xq7gRkCOAHVgLpQGrC9jZT6qRACc-5nlSCJ2VEYDsmm2Cv8V6ZD796DA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:302aae8c3e6c6577ea4dc2758cb351293fa45650ad6a86d98d5abbeb50b6fa7c"
+    },
+    {
+      "name": "name without a prefix",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "UF3XRrus9rGAduitRVdt2hYvp9vv3S9-oNlCclu-bmRAgbgHvLdDt6X8utHtJHxmYUWwT_VVqPCFtRDyR_1LCg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "name with an empty term",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ItkSK_MCaShC3wakyGwWWHlC-twUizCdB1PRlavVyr4_0jkpkyj8K2Lm4jgD_uo0aEbypzEEFZOZHjDmebPjAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "name with an uppercase term",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:Spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "GRQbaC5RCuuPGSUMZSSD03HhBExybMLcEW6cAIQyF6J4NsVVyNCx9Rfyqjv3B63s8sDvUuzJEDu6edhiQKAlDg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "name outside the wist registry",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:unknown-term",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "SNNrsvke6_4SYst-5dzbw24B_5qz0eIJo_xT_RlOabBBL01c0BMJWrjzyeyZD0iUAqc_-zk7XiAq2DgApXVBCg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "name under a Canonical Host prefix",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "reduced.example.org:trusted-vendor",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "pI4R9jMcwGU8kdAquOfcFy0xzpdWjpyKoEYLFmxuXGeRu7gko8vsadLa6hT8ZeotCDEDXo_Iud1q41AsXP0GAQ"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:a7923d4ce8b32db99d03d819ce5e8215820586d870837efa6c2b0f2369394e5c"
+    },
+    {
+      "name": "name under a prefix the Labeler does not control",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "labels.sample.net:verified",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ySedSQlBNDIZmTmgnFXwfuuNrbTXcajEMB7dkHBEeu0u0MZWmHwdcDmE2AYhK-lj-0y38QGgDAQYRV03K1A6Bw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:171b000b70951660c67728b92303057a74a0b289ee3f9f3f7b9764b3098b6a97"
+    },
+    {
+      "name": "name of 64 characters",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "labels.sample.net:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "w9UvEXewd9d4Zcd_wBqBZlmXeVZvnMoxBMNSlTF6IGBl_QtzZt6PxJdq1lJBNubAMk1Saonz562rHpFC2jj1AA"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:0baa711f1f48bdf211c0a0b290f400a8f93e9d4188cfc424749225c050ec8ed7"
+    },
+    {
+      "name": "name of 65 characters",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "labels.sample.net:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "5_D32YcLBIAGRHGgmev7TUU57qzeGfyDl9nEz5gya_SolHDJVrGNm17m5ZqZFvxbsgLvQBNCPQXToFmO7IjtBw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "subject not normalized",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://Reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "7Q4J42qqSvZTfROwvZHcEDnYIndCqSzSNBGUg_moYRdpTQaaab6cuL6JxF6_pnE0n_2a0KfrPrB6bQnBkpSiAQ"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "subject with a fragment",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice#top",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "Zlf378OFCVBXFN-SGdZyKNbztcdDpfPrR-4Qn5385OTbpifAhQ19JqUw9BcAcSqAZSqzkndQBCBPHhhaIII5Aw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "subject under http",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "http://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "6lc3COvvK5jlL1a_A1WCrvEVwZkJpCdiPKqjnRJJIpQERuSkeCQ1jQSZOwmWvtaBFOjbqj8uEB-r3q-9bww_Bg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "subject host not canonical",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "Reduced.example.org",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "CauaI7NMjNp2Pc6rT4m9EtZY_5jDW9lm1vWUCjnHzaQvqjGNG_qe118htyJSz-M7565ZlwlPV_dqjy9ZALVkBw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "subject at the url cap",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "PTSkEgxc_0qwhoPeq8jRYRIExxbYq0-dnpRFmBYK4jYihPkWM1iJLqTJ2soxv5Q4U7OI_lfXFMzzqFe3iZtfCw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:9b55dc3b9bce76d17fc38506552763b870e1e8895ad12175033e47f5fcc67285"
+    },
+    {
+      "name": "subject over the url cap",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "a9-8Np_iidB4obXTyjjjR3l-VMCi41Z_ixKZ6oXEYBhK0wHY63w1Q7cZqTR70zbXlUT38R5Lu-RK3mAfu2OQDg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "asserted_at without a zone",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "adhyUSCorpWn-cqxdQqhOwn1bu3evnrW5TSLus4FKipNIWuiRPvNazVadepK20LK2uBE6rbgifte6eIPMVmoDw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "asserted_at with an offset",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T14:30:00+02:00"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "PREe6wKF_hi7zUrVsMSTyirW4w9s0q4HxdDAyViHJBC0JUCQQOJgb5vrF3o8ImTCN9m6MXwnbc0EVthNl4GzDw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:8de5fcb3436c83796a2538178572414cdb4a6644783f8531155d5fe306059573"
+    },
+    {
+      "name": "asserted_at on a leap second",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-06-30T23:59:60Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "c4BcPtcM_uiXAkJN4YlhPtWxGe_xZCU06-kg6e5X17fu7Sl8cvdlAFZ402c4OkkPe8mnzKSk-nLilp1qacqjDw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "labeler other than the authenticated domain",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "reduced.example.org",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "cY32CR3Wp1h3IW9CO_UlrX2a6PS4dH6GUoQhD0-rDxmVqR0Xytd3zLUEFap-EEhMSymTPN4oFXz0xz8Hbj-NDg"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "self-label of the domain",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "example.com",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "-t4KgZn_W9NKI1WUtRHgolPZEOl3J4vrweSU4RZgytGPWIK0_ANFHNxZy7xMR1GlCo_YVnvclCIW9AaJ3et2CQ"
+        }
+      },
+      "expected": "self",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "self-label of a scoped host",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "www.example.com",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "5hD0tzqo4RH66mgkL9M-kprR1wqcfTwDMQ0LAZU2LKkIZ-lo7VCJPq5dn9VGmVUOy7bR83QretmVDfB9gEwGBA"
+        }
+      },
+      "expected": "self",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "self-label of an own URL",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://example.com/blog/post-1",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "HDN_6-ml2RyC0_5fX1aQbYDBiItbpXV_cqcNt7LylcEUoAFKbHX1pCfdtRsotvsbcLPCiZplmyHL8R1yx1M8AQ"
+        }
+      },
+      "expected": "self",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "self-label of a scoped URL",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://blog.example.com/post",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "xaSvzIHAO0qiODbMPnFtvCAEhX-JU7vuD6Dim9F9fFbB4GzdGnN6xWvv6R2BPRCeVOgN8cxAuzldG9lQRdsRBg"
+        }
+      },
+      "expected": "self",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "a host outside the declared scope",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://sub.example.com/",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "mjgyypcsL7Wkyzmble3nsnHQTREFlgRE8MSkXZHW1gbVzOCflpI3mFuzW8WCWIjpwLR4bDtUCvYjdqF8vvRmAg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:6ccd3f141661c2296a644ba9a5d01656da9e9eaa905301886118ff4640f813d4"
+    },
+    {
+      "name": "a host with the domain as a prefix",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://example.com.sample.net/",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "yi_r2Mb8FvH4wbPPIwrrgZk_TXYqjz8NbqTcYuYBoaMk_xmzhfN5RAC4XSakNXsiHmX5U4CcYb5w-uS5SNTbBg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:d64869333a37d3c666691bf5eb086b80780b68d14e8ea4eef351fd3baaa1e6de"
+    },
+    {
+      "name": "signature over other bytes",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:31:00Z"
+        },
+        "sig": {
+          "key_id": "test-k1",
+          "alg": "Ed25519",
+          "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
+        }
+      },
+      "expected": "signature",
+      "code": "WIST1-E01",
+      "author_signature": false,
+      "label_id": null
+    },
+    {
+      "name": "signed by the recovery key",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-r1",
+          "alg": "Ed25519",
+          "value": "tzy6HcCWS_8qpslu82PmZ03LdK0wEdP7CKP06WPQHCrTKQrA6G3aZ2maFoKwzbLG_YG0p4Ey0CR908SJJWAvAA"
+        }
+      },
+      "expected": "binding",
+      "code": "WIST1-E02",
+      "author_signature": false,
+      "label_id": null
+    },
+    {
+      "name": "signed under an unknown key_id",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-02T12:30:00Z"
+        },
+        "sig": {
+          "key_id": "test-k9",
+          "alg": "Ed25519",
+          "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
+        }
+      },
+      "expected": "binding",
+      "code": "WIST1-E02",
+      "author_signature": true,
+      "label_id": null
+    }
+  ],
+  "current_cases": [
+    {
+      "name": "greatest asserted_at wins whatever sealed later",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z"
+          },
+          "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:00:00Z"
+          },
+          "label_id": "sha256:ee961ec526601f3f6e1aa8c5ca33660e44e9d069046d90726df0f5fdfbb444c6",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "current": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-02T12:30:00Z",
+        1
+      ]
+    },
+    {
+      "name": "equal instants break by Block height",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z",
+            "value": 500000
+          },
+          "label_id": "sha256:1b92ccff938ae27c715ba4dbe4ce4199d308d3a3f6fc937342b777d2cd52b331",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z",
+            "value": 700000
+          },
+          "label_id": "sha256:22b515903db37546a690bdb29b77070ddb7c7c65c94040dd49fd833d866e2c1e",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "current": "sha256:22b515903db37546a690bdb29b77070ddb7c7c65c94040dd49fd833d866e2c1e",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        700000,
+        "2026-08-02T12:30:00Z",
+        2
+      ]
+    },
+    {
+      "name": "equal instants in one Block break by Entry index",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z",
+            "value": 500000
+          },
+          "label_id": "sha256:1b92ccff938ae27c715ba4dbe4ce4199d308d3a3f6fc937342b777d2cd52b331",
+          "height": 3,
+          "entry_index": 4
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z",
+            "value": 700000
+          },
+          "label_id": "sha256:22b515903db37546a690bdb29b77070ddb7c7c65c94040dd49fd833d866e2c1e",
+          "height": 3,
+          "entry_index": 2
+        }
+      ],
+      "current": "sha256:1b92ccff938ae27c715ba4dbe4ce4199d308d3a3f6fc937342b777d2cd52b331",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        500000,
+        "2026-08-02T12:30:00Z",
+        3
+      ]
+    },
+    {
+      "name": "a later retraction leaves no tuple",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z"
+          },
+          "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-03T09:00:00Z",
+            "retracted": true
+          },
+          "label_id": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "current": "sha256:ff753b9ae3aaf50b3b7d7632f9ffd3433721c59752b9249f4d63d315337e769e",
+      "state_tuple": null
+    },
+    {
+      "name": "a retraction older than the assertion applies nothing",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-03T09:00:00Z"
+          },
+          "label_id": "sha256:2ee1806f58e29dfe0ac69f0039682e2bc338108afe8701fecba692274fa53812",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z",
+            "retracted": true
+          },
+          "label_id": "sha256:fac5df714fe30efcc4f942be2ddb9edf64780c566f476e56295a931c0093258a",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "current": "sha256:2ee1806f58e29dfe0ac69f0039682e2bc338108afe8701fecba692274fa53812",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-03T09:00:00Z",
+        1
+      ]
+    },
+    {
+      "name": "an offset instant compares as an instant",
+      "sealed": [
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T12:30:00Z"
+          },
+          "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 1,
+          "entry_index": 0
+        },
+        {
+          "label": {
+            "wist_version": "1.0.0",
+            "labeler": "example.com",
+            "subject": "https://reduced.example.org/notice",
+            "name": "wist:spam",
+            "asserted_at": "2026-08-02T14:30:01+02:00"
+          },
+          "label_id": "sha256:c2104778c30c216aa633ff7e1d1704ec91b6e8a36884f4ea5165a4604de660bb",
+          "height": 2,
+          "entry_index": 0
+        }
+      ],
+      "current": "sha256:c2104778c30c216aa633ff7e1d1704ec91b6e8a36884f4ea5165a4604de660bb",
+      "state_tuple": [
+        "label",
+        "example.com",
+        "https://reduced.example.org/notice",
+        "wist:spam",
+        null,
+        "2026-08-02T14:30:01+02:00",
+        2
+      ]
+    }
+  ]
+}

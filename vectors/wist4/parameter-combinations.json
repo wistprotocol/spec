@@ -1,220 +1,537 @@
 {
-  "note": "WIST-4 \u00a79 combination rules. `cases`: the coverage-countability rule \u2014 each case gives the four participants, the sum the rule bounds, and \u2014 from a simulation of an Auditor that fails every Block on a fully sealed grid \u2014 the greatest number of failures any single height carries, under the unattested establishing height and under an attestation sealed in the next Block; the rule reads each deadline onto the grid, so it holds exactly when the unattested predicate is reachable wherever the deadline is a whole number of Blocks. `extension_window_cases`: the rule keeping an extension Record sealable inside the confirmation window \u2014 each case gives the three participants, the sum, and the latest instant after B\u2081 at which a Record published at the extension deadline seals on a fully sealed grid.",
-  "window_days": 30,
-  "cases": [
+  "note": "WIST-4 \u00a75 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. block_size_cases and block_transport_cases: the Block-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract. clock_cases: a parameter read for work already begun stays attached to its anchor.",
+  "prospective_defaults": {
+    "links_cap_bytes": 4096,
+    "link_url_cap_bytes": 2048,
+    "mirror_retention_days": 90,
+    "payload_window_days": 180
+  },
+  "prospective_floors": {
+    "links_cap_bytes": 21,
+    "link_url_cap_bytes": 14,
+    "mirror_retention_days": 30,
+    "payload_window_days": 30
+  },
+  "prospective_cases": [
     {
-      "label": "registry defaults",
-      "changed": "block_cadence_seconds",
-      "block_cadence_seconds": 3600,
-      "coverage_deadline_hours": 72,
-      "record_seal_blocks": 24,
-      "coverage_failures_max": 24,
-      "sum_s": 432000,
-      "rule_holds": true,
-      "deadline_on_grid": true,
-      "unattested": {
-        "establishing_lag_s": 345600,
-        "max_counted_at_any_height": 624,
-        "predicate_reachable": true
-      },
-      "attested_next_block": {
-        "establishing_lag_s": 262800,
-        "max_counted_at_any_height": 647,
-        "predicate_reachable": true
-      }
+      "label": "pending link cap then incompatible aggregate cap",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "link_url_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "links_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 950400
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 4000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        },
+        {
+          "at_s": 950400,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 4000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "cadence at the tables maximum",
-      "changed": "block_cadence_seconds",
-      "block_cadence_seconds": 86400,
-      "coverage_deadline_hours": 72,
-      "record_seal_blocks": 24,
-      "coverage_failures_max": 24,
-      "sum_s": 4406400,
-      "rule_holds": false,
-      "deadline_on_grid": true,
-      "unattested": {
-        "establishing_lag_s": 2332800,
-        "max_counted_at_any_height": 3,
-        "predicate_reachable": false
-      },
-      "attested_next_block": {
-        "establishing_lag_s": 345600,
-        "max_counted_at_any_height": 26,
-        "predicate_reachable": true
-      }
+      "label": "later activation sealed first",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "links_cap_bytes",
+          "value": 3000,
+          "effective_at_s": 1728000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "link_url_cap_bytes",
+          "value": 2990,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        },
+        {
+          "at_s": 1728000,
+          "values": {
+            "links_cap_bytes": 3000,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "the last seal deadline the rule admits",
-      "changed": "record_seal_blocks",
-      "block_cadence_seconds": 3600,
-      "coverage_deadline_hours": 72,
-      "record_seal_blocks": 623,
-      "coverage_failures_max": 24,
-      "sum_s": 2588400,
-      "rule_holds": true,
-      "deadline_on_grid": true,
-      "unattested": {
-        "establishing_lag_s": 2502000,
-        "max_counted_at_any_height": 25,
-        "predicate_reachable": true
-      },
-      "attested_next_block": {
-        "establishing_lag_s": 262800,
-        "max_counted_at_any_height": 647,
-        "predicate_reachable": true
-      }
+      "label": "invalid future after earlier activation",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "link_url_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 1728000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "links_cap_bytes",
+          "value": 3000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        },
+        {
+          "at_s": 1728000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 4000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "one block past it",
-      "changed": "record_seal_blocks",
-      "block_cadence_seconds": 3600,
-      "coverage_deadline_hours": 72,
-      "record_seal_blocks": 624,
-      "coverage_failures_max": 24,
-      "sum_s": 2592000,
-      "rule_holds": false,
-      "deadline_on_grid": true,
-      "unattested": {
-        "establishing_lag_s": 2505600,
-        "max_counted_at_any_height": 24,
-        "predicate_reachable": false
-      },
-      "attested_next_block": {
-        "establishing_lag_s": 262800,
-        "max_counted_at_any_height": 647,
-        "predicate_reachable": true
-      }
+      "label": "intermediate replacement makes schedule valid",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "link_url_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "link_url_cap_bytes",
+          "value": 1000,
+          "effective_at_s": 950400
+        },
+        {
+          "block_height": 48,
+          "entry_index": 0,
+          "sealed_at_s": 172800,
+          "parameter": "links_cap_bytes",
+          "value": 3000,
+          "effective_at_s": 1036800
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 4000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        },
+        {
+          "at_s": 950400,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 1000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        },
+        {
+          "at_s": 1036800,
+          "values": {
+            "links_cap_bytes": 3000,
+            "link_url_cap_bytes": 1000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "a deadline between two blocks",
-      "changed": "record_seal_blocks",
-      "block_cadence_seconds": 5000,
-      "coverage_deadline_hours": 2,
-      "record_seal_blocks": 493,
-      "coverage_failures_max": 24,
-      "sum_s": 2592200,
-      "rule_holds": false,
-      "deadline_on_grid": false,
-      "unattested": {
-        "establishing_lag_s": 2470000,
-        "max_counted_at_any_height": 25,
-        "predicate_reachable": true
-      },
-      "attested_next_block": {
-        "establishing_lag_s": 10000,
-        "max_counted_at_any_height": 517,
-        "predicate_reachable": true
-      }
+      "label": "same effective time conflicts",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "link_url_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "links_cap_bytes",
+          "value": 3000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 4000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "conservative rejection with twenty five countable failures",
-      "changed": "record_seal_blocks",
-      "block_cadence_seconds": 5000,
-      "coverage_deadline_hours": 4,
-      "record_seal_blocks": 492,
-      "coverage_failures_max": 24,
-      "sum_s": 2594400,
-      "rule_holds": false,
-      "deadline_on_grid": false,
-      "unattested": {
-        "establishing_lag_s": 2470000,
-        "max_counted_at_any_height": 25,
-        "predicate_reachable": true
-      },
-      "attested_next_block": {
-        "establishing_lag_s": 15000,
-        "max_counted_at_any_height": 516,
-        "predicate_reachable": true
-      }
+      "label": "rejected candidate is not retried",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "link_url_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "links_cap_bytes",
+          "value": 3000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 48,
+          "entry_index": 0,
+          "sealed_at_s": 172800,
+          "parameter": "link_url_cap_bytes",
+          "value": 1000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 1000,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "one later seal leaves twenty four countable failures",
-      "changed": "record_seal_blocks",
-      "block_cadence_seconds": 5000,
-      "coverage_deadline_hours": 4,
-      "record_seal_blocks": 493,
-      "coverage_failures_max": 24,
-      "sum_s": 2599400,
-      "rule_holds": false,
-      "deadline_on_grid": false,
-      "unattested": {
-        "establishing_lag_s": 2475000,
-        "max_counted_at_any_height": 24,
-        "predicate_reachable": false
-      },
-      "attested_next_block": {
-        "establishing_lag_s": 15000,
-        "max_counted_at_any_height": 516,
-        "predicate_reachable": true
-      }
-    }
-  ],
-  "extension_window_cases": [
-    {
-      "label": "registry defaults",
-      "changed": "block_cadence_seconds",
-      "block_cadence_seconds": 3600,
-      "confirm_window_hours": 72,
-      "record_seal_blocks": 24,
-      "extension_deadline_s": 129600,
-      "sum_s": 216000,
-      "window_s": 259200,
-      "rule_holds": true,
-      "latest_seal_s": 216000,
-      "seals_inside_window": true
+      "label": "canonical same Block order",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 1,
+          "sealed_at_s": 0,
+          "parameter": "link_url_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "links_cap_bytes",
+          "value": 3000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 3000,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "cadence at the tables maximum",
-      "changed": "block_cadence_seconds",
-      "block_cadence_seconds": 86400,
-      "confirm_window_hours": 72,
-      "record_seal_blocks": 24,
-      "extension_deadline_s": 129600,
-      "sum_s": 2203200,
-      "window_s": 259200,
-      "rule_holds": false,
-      "latest_seal_s": 2160000,
-      "seals_inside_window": false
+      "label": "invalid bound cannot hide behind replacement",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "links_cap_bytes",
+          "value": 20,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "links_cap_bytes",
+          "value": 4096,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "the last seal deadline the rule admits",
-      "changed": "record_seal_blocks",
-      "block_cadence_seconds": 3600,
-      "confirm_window_hours": 72,
-      "record_seal_blocks": 36,
-      "extension_deadline_s": 129600,
-      "sum_s": 259200,
-      "window_s": 259200,
-      "rule_holds": true,
-      "latest_seal_s": 259200,
-      "seals_inside_window": true
+      "label": "grace period required",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "links_cap_bytes",
+          "value": 4000,
+          "effective_at_s": 518400
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 518400,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "one block past it",
-      "changed": "record_seal_blocks",
-      "block_cadence_seconds": 3600,
-      "confirm_window_hours": 72,
-      "record_seal_blocks": 37,
-      "extension_deadline_s": 129600,
-      "sum_s": 262800,
-      "window_s": 259200,
-      "rule_holds": false,
-      "latest_seal_s": 262800,
-      "seals_inside_window": false
+      "label": "aggregate cap exactly the link cap plus its structure",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "links_cap_bytes",
+          "value": 2069,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 2069,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
     },
     {
-      "label": "a deadline between two blocks",
-      "changed": "block_cadence_seconds",
-      "block_cadence_seconds": 5000,
-      "confirm_window_hours": 73,
-      "record_seal_blocks": 26,
-      "extension_deadline_s": 129600,
-      "sum_s": 259600,
-      "window_s": 262800,
-      "rule_holds": true,
-      "latest_seal_s": 255000,
-      "seals_inside_window": true
+      "label": "retention below a sixth of the window",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "payload_window_days",
+          "value": 541,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180
+          }
+        }
+      ]
+    },
+    {
+      "label": "retention exactly a sixth of the window",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "payload_window_days",
+          "value": 540,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 540
+          }
+        }
+      ]
+    },
+    {
+      "label": "window raised after retention raised",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "mirror_retention_days",
+          "value": 120,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "payload_window_days",
+          "value": 720,
+          "effective_at_s": 950400
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 120,
+            "payload_window_days": 180
+          }
+        },
+        {
+          "at_s": 950400,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 120,
+            "payload_window_days": 720
+          }
+        }
+      ]
+    },
+    {
+      "label": "retention lowered under a pending window",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "payload_window_days",
+          "value": 540,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "mirror_retention_days",
+          "value": 60,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 540
+          }
+        }
+      ]
     }
   ],
   "block_cap_default": 268435456,
@@ -1052,1002 +1369,6 @@
       "error": null
     }
   ],
-  "prospective_defaults": {
-    "sampling_floor": 200000,
-    "sampling_ceiling": 5000000
-  },
-  "prospective_cases": [
-    {
-      "label": "pending floor then incompatible ceiling",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 4000000,
-          "effective_at_s": 864000
-        },
-        {
-          "block_height": 24,
-          "entry_index": 0,
-          "sealed_at_s": 86400,
-          "parameter": "sampling_ceiling",
-          "value": 3000000,
-          "effective_at_s": 950400
-        }
-      ],
-      "rejected_indices": [
-        1
-      ],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 4000000,
-            "sampling_ceiling": 5000000
-          }
-        },
-        {
-          "at_s": 950400,
-          "values": {
-            "sampling_floor": 4000000,
-            "sampling_ceiling": 5000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "later activation sealed first",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_ceiling",
-          "value": 3000000,
-          "effective_at_s": 1728000
-        },
-        {
-          "block_height": 24,
-          "entry_index": 0,
-          "sealed_at_s": 86400,
-          "parameter": "sampling_floor",
-          "value": 4000000,
-          "effective_at_s": 864000
-        }
-      ],
-      "rejected_indices": [
-        1
-      ],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 200000,
-            "sampling_ceiling": 5000000
-          }
-        },
-        {
-          "at_s": 1728000,
-          "values": {
-            "sampling_floor": 200000,
-            "sampling_ceiling": 3000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "invalid future after earlier activation",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 4000000,
-          "effective_at_s": 1728000
-        },
-        {
-          "block_height": 24,
-          "entry_index": 0,
-          "sealed_at_s": 86400,
-          "parameter": "sampling_ceiling",
-          "value": 3000000,
-          "effective_at_s": 864000
-        }
-      ],
-      "rejected_indices": [
-        1
-      ],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 200000,
-            "sampling_ceiling": 5000000
-          }
-        },
-        {
-          "at_s": 1728000,
-          "values": {
-            "sampling_floor": 4000000,
-            "sampling_ceiling": 5000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "intermediate replacement makes schedule valid",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 4000000,
-          "effective_at_s": 864000
-        },
-        {
-          "block_height": 24,
-          "entry_index": 0,
-          "sealed_at_s": 86400,
-          "parameter": "sampling_floor",
-          "value": 2000000,
-          "effective_at_s": 950400
-        },
-        {
-          "block_height": 48,
-          "entry_index": 0,
-          "sealed_at_s": 172800,
-          "parameter": "sampling_ceiling",
-          "value": 3000000,
-          "effective_at_s": 1036800
-        }
-      ],
-      "rejected_indices": [],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 4000000,
-            "sampling_ceiling": 5000000
-          }
-        },
-        {
-          "at_s": 950400,
-          "values": {
-            "sampling_floor": 2000000,
-            "sampling_ceiling": 5000000
-          }
-        },
-        {
-          "at_s": 1036800,
-          "values": {
-            "sampling_floor": 2000000,
-            "sampling_ceiling": 3000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "same effective time conflicts",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 4000000,
-          "effective_at_s": 864000
-        },
-        {
-          "block_height": 24,
-          "entry_index": 0,
-          "sealed_at_s": 86400,
-          "parameter": "sampling_ceiling",
-          "value": 3000000,
-          "effective_at_s": 864000
-        }
-      ],
-      "rejected_indices": [
-        1
-      ],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 4000000,
-            "sampling_ceiling": 5000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "rejected candidate is not retried",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 4000000,
-          "effective_at_s": 864000
-        },
-        {
-          "block_height": 24,
-          "entry_index": 0,
-          "sealed_at_s": 86400,
-          "parameter": "sampling_ceiling",
-          "value": 3000000,
-          "effective_at_s": 864000
-        },
-        {
-          "block_height": 48,
-          "entry_index": 0,
-          "sealed_at_s": 172800,
-          "parameter": "sampling_floor",
-          "value": 2000000,
-          "effective_at_s": 864000
-        }
-      ],
-      "rejected_indices": [
-        1
-      ],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 2000000,
-            "sampling_ceiling": 5000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "canonical same Block order",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 1,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 4000000,
-          "effective_at_s": 864000
-        },
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_ceiling",
-          "value": 3000000,
-          "effective_at_s": 864000
-        }
-      ],
-      "rejected_indices": [
-        0
-      ],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 200000,
-            "sampling_ceiling": 3000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "invalid bound cannot hide behind replacement",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 0,
-          "effective_at_s": 864000
-        },
-        {
-          "block_height": 24,
-          "entry_index": 0,
-          "sealed_at_s": 86400,
-          "parameter": "sampling_floor",
-          "value": 200000,
-          "effective_at_s": 864000
-        }
-      ],
-      "rejected_indices": [
-        0
-      ],
-      "maps": [
-        {
-          "at_s": 864000,
-          "values": {
-            "sampling_floor": 200000,
-            "sampling_ceiling": 5000000
-          }
-        }
-      ]
-    },
-    {
-      "label": "grace period required",
-      "changes": [
-        {
-          "block_height": 0,
-          "entry_index": 0,
-          "sealed_at_s": 0,
-          "parameter": "sampling_floor",
-          "value": 400000,
-          "effective_at_s": 518400
-        }
-      ],
-      "rejected_indices": [
-        0
-      ],
-      "maps": [
-        {
-          "at_s": 518400,
-          "values": {
-            "sampling_floor": 200000,
-            "sampling_ceiling": 5000000
-          }
-        }
-      ]
-    }
-  ],
-  "retention_profiles": [
-    {
-      "from_s": 0,
-      "appeal_window_days": 14,
-      "appeal_seal_days": 7,
-      "ruling_deadline_days": 30,
-      "mirror_retention_days": 51
-    },
-    {
-      "from_s": 4060800,
-      "appeal_window_days": 1,
-      "appeal_seal_days": 1,
-      "ruling_deadline_days": 60,
-      "mirror_retention_days": 62
-    },
-    {
-      "from_s": 7776000,
-      "appeal_window_days": 1,
-      "appeal_seal_days": 1,
-      "ruling_deadline_days": 75,
-      "mirror_retention_days": 77
-    }
-  ],
-  "retention_cases": [
-    {
-      "label": "old notice and newer ruling span",
-      "evidence_first_served_s": 0,
-      "notices": [
-        {
-          "sealed_at_s": 3456000,
-          "appeal_s": 5184000,
-          "merits_ruling_s": null,
-          "unappealed_s": null,
-          "accepted": true
-        }
-      ],
-      "probes": [
-        {
-          "n_s": 4406399,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4406400,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4752000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5184000,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270400,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270401,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5356800,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5356801,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 6912000,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 6912001,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 10281600,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 10368000,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 10368001,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": false
-        }
-      ]
-    },
-    {
-      "label": "unappealed statement cannot close retention early",
-      "evidence_first_served_s": 0,
-      "notices": [
-        {
-          "sealed_at_s": 3456000,
-          "appeal_s": null,
-          "merits_ruling_s": null,
-          "unappealed_s": 4665600,
-          "accepted": true
-        }
-      ],
-      "probes": [
-        {
-          "n_s": 4406399,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4406400,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4752000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5184000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270400,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270401,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 5356800,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 5356801,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912001,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10281600,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368001,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        }
-      ]
-    },
-    {
-      "label": "accepted merits ruling closes process",
-      "evidence_first_served_s": 0,
-      "notices": [
-        {
-          "sealed_at_s": 3456000,
-          "appeal_s": 5184000,
-          "merits_ruling_s": 6912000,
-          "unappealed_s": null,
-          "accepted": true
-        }
-      ],
-      "probes": [
-        {
-          "n_s": 4406399,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4406400,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4752000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5184000,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270400,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270401,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5356800,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5356801,
-          "process_ends_s": [
-            10368000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 6912000,
-          "process_ends_s": [
-            6912000
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 6912001,
-          "process_ends_s": [
-            6912000
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10281600,
-          "process_ends_s": [
-            6912000
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368000,
-          "process_ends_s": [
-            6912000
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368001,
-          "process_ends_s": [
-            6912000
-          ],
-          "must_serve": false
-        }
-      ]
-    },
-    {
-      "label": "late appeal does not extend retention",
-      "evidence_first_served_s": 0,
-      "notices": [
-        {
-          "sealed_at_s": 3456000,
-          "appeal_s": 5356800,
-          "merits_ruling_s": null,
-          "unappealed_s": null,
-          "accepted": true
-        }
-      ],
-      "probes": [
-        {
-          "n_s": 4406399,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4406400,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4752000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5184000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270400,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270401,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 5356800,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 5356801,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912001,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10281600,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368001,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": false
-        }
-      ]
-    },
-    {
-      "label": "overlapping notices retain shared evidence",
-      "evidence_first_served_s": 0,
-      "notices": [
-        {
-          "sealed_at_s": 3456000,
-          "appeal_s": null,
-          "merits_ruling_s": null,
-          "unappealed_s": null,
-          "accepted": true
-        },
-        {
-          "sealed_at_s": 5184000,
-          "appeal_s": null,
-          "merits_ruling_s": null,
-          "unappealed_s": null,
-          "accepted": true
-        }
-      ],
-      "probes": [
-        {
-          "n_s": 4406399,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4406400,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 4752000,
-          "process_ends_s": [
-            5270400
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5184000,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270400,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5270401,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5356800,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": true
-        },
-        {
-          "n_s": 5356801,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912000,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912001,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10281600,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368000,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368001,
-          "process_ends_s": [
-            5270400,
-            5356800
-          ],
-          "must_serve": false
-        }
-      ]
-    },
-    {
-      "label": "rejected notice creates no retention duty",
-      "evidence_first_served_s": 0,
-      "notices": [
-        {
-          "sealed_at_s": 3456000,
-          "appeal_s": 5184000,
-          "merits_ruling_s": null,
-          "unappealed_s": null,
-          "accepted": false
-        }
-      ],
-      "probes": [
-        {
-          "n_s": 4406399,
-          "process_ends_s": [],
-          "must_serve": true
-        },
-        {
-          "n_s": 4406400,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 4752000,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 5184000,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 5270400,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 5270401,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 5356800,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 5356801,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912000,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 6912001,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 10281600,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368000,
-          "process_ends_s": [],
-          "must_serve": false
-        },
-        {
-          "n_s": 10368001,
-          "process_ends_s": [],
-          "must_serve": false
-        }
-      ]
-    }
-  ],
   "recovery_window_base_s": 1800000000,
   "recovery_window_cases": [
     {
@@ -2330,147 +1651,6 @@
       ]
     }
   ],
-  "cadence_transition_cases": [
-    {
-      "label": "new map alone misses old extension",
-      "profiles": [
-        {
-          "from_s": 0,
-          "confirm_window_hours": 72,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 864000,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 7200
-        }
-      ],
-      "transition_valid": false,
-      "anchor_s": 856800,
-      "pull_s": 986400,
-      "window_end_s": 1116000,
-      "latest_seal_s": 1159200,
-      "actual_seal_inside_window": false
-    },
-    {
-      "label": "larger window staged before slower cadence",
-      "profiles": [
-        {
-          "from_s": 0,
-          "confirm_window_hours": 72,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 864000,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 1123200,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 7200
-        }
-      ],
-      "transition_valid": true,
-      "anchor_s": 856800,
-      "pull_s": 986400,
-      "window_end_s": 1116000,
-      "latest_seal_s": 1072800,
-      "actual_seal_inside_window": true
-    },
-    {
-      "label": "one second before old profile expires",
-      "profiles": [
-        {
-          "from_s": 0,
-          "confirm_window_hours": 72,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 864000,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 1123199,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 7200
-        }
-      ],
-      "transition_valid": false,
-      "anchor_s": 856800,
-      "pull_s": 986400,
-      "window_end_s": 1116000,
-      "latest_seal_s": 1072800,
-      "actual_seal_inside_window": true
-    },
-    {
-      "label": "later interval still overlaps old profile",
-      "profiles": [
-        {
-          "from_s": 0,
-          "confirm_window_hours": 72,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 864000,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 950400,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 7200
-        }
-      ],
-      "transition_valid": false,
-      "anchor_s": 856800,
-      "pull_s": 986400,
-      "window_end_s": 1116000,
-      "latest_seal_s": 1159200,
-      "actual_seal_inside_window": false
-    },
-    {
-      "label": "short cadence increase remains bounded conservatively",
-      "profiles": [
-        {
-          "from_s": 0,
-          "confirm_window_hours": 72,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        },
-        {
-          "from_s": 864000,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 7200
-        },
-        {
-          "from_s": 867600,
-          "confirm_window_hours": 96,
-          "record_seal_blocks": 24,
-          "block_cadence_seconds": 3600
-        }
-      ],
-      "transition_valid": false,
-      "anchor_s": 856800,
-      "pull_s": 986400,
-      "window_end_s": 1116000,
-      "latest_seal_s": 1072800,
-      "actual_seal_inside_window": true
-    }
-  ],
   "wire_public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "wire_cases": [
     {
@@ -2479,7 +1659,7 @@
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "quota_base",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "quota_base",
@@ -2487,9 +1667,9 @@
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "S64X8hB9I3cBExAuwwMc1OSjRiY76nTB9u3JAmftbtWqrM9hUqhrQFwrm0msI9T9Te2Ot5nTUE11_fQO2XthAQ"
+          "value": "lpUFEqJZv8wAF4PgD5cYhzYsfAkYtWnGmzUuhDEVncw_XxvBVqK1o4RX-oV_c4MS8_ig79i1BfhhW4yM9vdOAA"
         }
       },
       "canonical_integer": true,
@@ -2503,7 +1683,7 @@
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "quota_base",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "quota_base",
@@ -2511,15 +1691,15 @@
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "0so5S8fZlrp41shm6YrztRXlPXjYolg2y9IB7xe-tnCsbWsqQ3BlPjEDoI1pyfrK8LSlalEyUOQCdRxgiqJYAw"
+          "value": "nh5joI6mf3eP5XJS7N4Lhhqx_FtN7FIWx1woU8aGPvhZD3ZJgUqE6AH9Girt5oXPDbVO4K1FANyILNPZ3HR8AQ"
         }
       },
       "canonical_integer": true,
-      "schema_valid": true,
+      "schema_valid": false,
       "combinations_hold_at_defaults": true,
-      "sealed_disposition": "candidate"
+      "sealed_disposition": "ignored"
     },
     {
       "label": "quota_base value 9007199254740992",
@@ -2527,7 +1707,7 @@
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "quota_base",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "quota_base",
@@ -2535,9 +1715,9 @@
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "oiJJrHLV1AJjoLBKZ3y6kX9y7ugFWR6R-tQzaN4GGFc7YzFCO6IihadKp6rZvg1fHRu49Ozpj_gMa5MXAxsoBQ"
+          "value": "okLyr-PS1XFprpCZvpmJcIzNAc2AtemzVhH5_SwaxvDO9gGlv96QaLnwrNfPCCW8ldLa_UTS8gl0k5ASdNEWBA"
         }
       },
       "canonical_integer": false,
@@ -2551,7 +1731,7 @@
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "quota_base",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "quota_base",
@@ -2559,9 +1739,9 @@
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "oiJJrHLV1AJjoLBKZ3y6kX9y7ugFWR6R-tQzaN4GGFc7YzFCO6IihadKp6rZvg1fHRu49Ozpj_gMa5MXAxsoBQ"
+          "value": "okLyr-PS1XFprpCZvpmJcIzNAc2AtemzVhH5_SwaxvDO9gGlv96QaLnwrNfPCCW8ldLa_UTS8gl0k5ASdNEWBA"
         }
       },
       "canonical_integer": false,
@@ -2570,22 +1750,22 @@
       "sealed_disposition": "ignored"
     },
     {
-      "label": "provisional_cap_u value  1",
+      "label": "payload_window_days value 29",
       "envelope": {
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "payload_window_days",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
-            "parameter": "provisional_cap_u",
-            "value": -1
+            "parameter": "payload_window_days",
+            "value": 29
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "oQBWjNS78OLjwM-GKUKglqxZYlbeMbCmpazCIwfDAujd578I68JJyjZ5qWKFjZxvhsvashtfmD1P8YTZCaexDg"
+          "value": "FNqozKhDul6v8rPr_RoytYqF8LzqvBD1ZDdMzwNOTIDGngnnf-2axnhfgaJTGtJTBBJ5kzwy7FvZFxf-cuazBg"
         }
       },
       "canonical_integer": true,
@@ -2594,22 +1774,22 @@
       "sealed_disposition": "ignored"
     },
     {
-      "label": "provisional_cap_u value 0",
+      "label": "payload_window_days value 30",
       "envelope": {
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "payload_window_days",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
-            "parameter": "provisional_cap_u",
-            "value": 0
+            "parameter": "payload_window_days",
+            "value": 30
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "r4TDz34erIpr73okEAKBiHw3WBBp2YS0sjefQnfSuG6q2dYvGHVec3EucmfVZ1DsYgdvXye0eKDWCpMRvBxWBg"
+          "value": "mi2uyge8109U91C5BzPEFgg1An0o9E9ZaWygKDHgpmf7GaFTTzH_Y8oGRHsyO81IVHCPrFf8buot8jU_ZeKcAA"
         }
       },
       "canonical_integer": true,
@@ -2618,22 +1798,22 @@
       "sealed_disposition": "candidate"
     },
     {
-      "label": "block_cadence_seconds value 86400",
+      "label": "payload_window_days value 541",
       "envelope": {
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "payload_window_days",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
-            "parameter": "block_cadence_seconds",
-            "value": 86400
+            "parameter": "payload_window_days",
+            "value": 541
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "z16jsdTZnEaEwkMIrrlNVlpiE1KTdHGqRZ1AD431lihuBe0GNmFUEJkMd2pjEPVDjEpt79ffnuSze_NGZRF4Cg"
+          "value": "Rz5ZKRQ_o4ciP-g_U9X0ImEy54NYrHNRxMM3vgp8xOE1-GnrdigDPGF88taQ2EfzaQv9M_hZNHz6Lm5KcdytBw"
         }
       },
       "canonical_integer": true,
@@ -2642,12 +1822,60 @@
       "sealed_disposition": "candidate"
     },
     {
+      "label": "links_cap_bytes value 2000",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "links_cap_bytes",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "links_cap_bytes",
+            "value": 2000
+          }
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "gu_FpyUAlDKLLHlHqe_4Tfg8lS1MIaiYCbDRP7ReiJlh0sluEPdlhQWXD-K5BnHuRdGENg7WDvsJ3hdT5P7TAQ"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": false,
+      "sealed_disposition": "candidate"
+    },
+    {
+      "label": "block_cadence_seconds value 86400",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "block_cadence_seconds",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "block_cadence_seconds",
+            "value": 86400
+          }
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "miuXsJeAYx6JUlr8ZZjmNbshjhLOmHTGg05T7LmlbzSwtDKTvbPQto7qmJni2AIe0Gk3cRksshVHSPtRkAi8CA"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "candidate"
+    },
+    {
       "label": "block_decompressed_cap_bytes value '4096'",
       "envelope": {
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "block_decompressed_cap_bytes",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "block_decompressed_cap_bytes",
@@ -2655,9 +1883,9 @@
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "Lvng60sYtkKt51loiCVjVs_BStyCth0k65mJznFGuy2kk1hWuubpzjoFjDJzNdQ7e-UZP4eGYktjf6OEhzbECA"
+          "value": "pA4TUGkoFoUzgzFWptH6yOAcGPWf09KzZgEROjpppUo9ODmDnbLdTjXw0TwPvIiR0nIcmZPah0flgqisUiGSDQ"
         }
       },
       "canonical_integer": true,
@@ -2671,7 +1899,7 @@
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "block_decompressed_cap_bytes",
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "block_decompressed_cap_bytes",
@@ -2679,9 +1907,9 @@
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "fiCoCEb5ZvCqAzJMPN7SrSI14jFYRLzt-ykDK66usCCT4FbT9jGTlA7MjVmB0nNS7slImQ8-F0_F8M0Z21YQBQ"
+          "value": "e28P4GAqbGoZmv8WW4oSTl_2b37kUi_TdUuBx3zyXwe1wfFpwfjCxUpYkqWarE0cy8XgKnGrv9GiXgjNh-F-DA"
         }
       },
       "canonical_integer": true,
@@ -2695,7 +1923,7 @@
         "update": {
           "wist_version": "1.0.0",
           "action": "parameter_change",
-          "subject": "log.sample.net",
+          "subject": "quota_base",
           "effective_at": "2026-08-12T00:00:00.5Z",
           "details": {
             "parameter": "quota_base",
@@ -2703,9 +1931,9 @@
           }
         },
         "sig": {
-          "key_id": "test-process-k1",
+          "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "jluIKYih2byye62tOQIry3XdGgVNe8TAf2x4_6fUhrnl2h6k9ggWr6V5bV-G7l9z5tluR-gs3bLoCfRQAI_cDQ"
+          "value": "GivDoP-Tqo4Kt89op4psfFCUsp-AN8Bz9ZvQQ7q9t0wHTH9tw-mDEOwoW8dtD6Yu6jn9rhZ1S44nZQRoZzTxAw"
         }
       },
       "canonical_integer": true,
@@ -2715,38 +1943,14 @@
     }
   ],
   "clock_defaults": {
-    "confirm_auditors": 2,
-    "confirm_window_hours": 72,
-    "coverage_deadline_hours": 72,
     "record_seal_blocks": 24,
-    "appeal_window_days": 14,
-    "appeal_seal_days": 7,
-    "ruling_deadline_days": 30,
-    "canary_lead_blocks": 24,
-    "canary_lifetime_blocks": 1440,
-    "canary_reveal_min_blocks": 168,
-    "payload_window_days": 180
+    "recovery_window_days": 7,
+    "payload_window_days": 180,
+    "param_grace_days": 7
   },
   "clock_cases": [
     {
-      "label": "coverage retains deadline",
-      "parameter": "coverage_deadline_hours",
-      "anchor_s": 10,
-      "changes": [
-        {
-          "parameter": "coverage_deadline_hours",
-          "effective_at_s": 11,
-          "value": 96
-        }
-      ],
-      "query_s": 20,
-      "unit_scale": 3600,
-      "start": 10,
-      "selected_value": 72,
-      "endpoint": 259210
-    },
-    {
-      "label": "coverage retains seal count",
+      "label": "discovery retains seal count",
       "parameter": "record_seal_blocks",
       "anchor_s": 10,
       "changes": [
@@ -2763,92 +1967,24 @@
       "endpoint": 224
     },
     {
-      "label": "extension retains close",
-      "parameter": "confirm_window_hours",
+      "label": "recovery window retains length",
+      "parameter": "recovery_window_days",
       "anchor_s": 10,
       "changes": [
         {
-          "parameter": "confirm_window_hours",
+          "parameter": "recovery_window_days",
           "effective_at_s": 11,
-          "value": 96
+          "value": 14
         }
       ],
       "query_s": 20,
-      "unit_scale": 3600,
+      "unit_scale": 86400,
       "start": 10,
-      "selected_value": 72,
-      "endpoint": 259210
+      "selected_value": 7,
+      "endpoint": 604810
     },
     {
-      "label": "checkpoint retains seal count",
-      "parameter": "record_seal_blocks",
-      "anchor_s": 10,
-      "changes": [
-        {
-          "parameter": "record_seal_blocks",
-          "effective_at_s": 11,
-          "value": 48
-        }
-      ],
-      "query_s": 20,
-      "unit_scale": 1,
-      "start": 200,
-      "selected_value": 24,
-      "endpoint": 224
-    },
-    {
-      "label": "commitment retains lead",
-      "parameter": "canary_lead_blocks",
-      "anchor_s": 10,
-      "changes": [
-        {
-          "parameter": "canary_lead_blocks",
-          "effective_at_s": 11,
-          "value": 48
-        }
-      ],
-      "query_s": 20,
-      "unit_scale": 1,
-      "start": 200,
-      "selected_value": 24,
-      "endpoint": 224
-    },
-    {
-      "label": "commitment retains lifetime",
-      "parameter": "canary_lifetime_blocks",
-      "anchor_s": 10,
-      "changes": [
-        {
-          "parameter": "canary_lifetime_blocks",
-          "effective_at_s": 11,
-          "value": 2880
-        }
-      ],
-      "query_s": 20,
-      "unit_scale": 1,
-      "start": 200,
-      "selected_value": 1440,
-      "endpoint": 1640
-    },
-    {
-      "label": "newest Delta fixes reveal minimum",
-      "parameter": "canary_reveal_min_blocks",
-      "anchor_s": 10,
-      "changes": [
-        {
-          "parameter": "canary_reveal_min_blocks",
-          "effective_at_s": 11,
-          "value": 336
-        }
-      ],
-      "query_s": 20,
-      "unit_scale": 1,
-      "start": 200,
-      "selected_value": 168,
-      "endpoint": 368
-    },
-    {
-      "label": "reveal retains scoring span",
+      "label": "availability retains span",
       "parameter": "payload_window_days",
       "anchor_s": 10,
       "changes": [
@@ -2865,138 +2001,38 @@
       "endpoint": 15552010
     },
     {
-      "label": "notice retains appeal span",
-      "parameter": "appeal_window_days",
+      "label": "grace retains span",
+      "parameter": "param_grace_days",
       "anchor_s": 10,
       "changes": [
         {
-          "parameter": "appeal_window_days",
-          "effective_at_s": 11,
-          "value": 28
-        }
-      ],
-      "query_s": 20,
-      "unit_scale": 86400,
-      "start": 10,
-      "selected_value": 14,
-      "endpoint": 1209610
-    },
-    {
-      "label": "notice retains seal span",
-      "parameter": "appeal_seal_days",
-      "anchor_s": 10,
-      "changes": [
-        {
-          "parameter": "appeal_seal_days",
+          "parameter": "param_grace_days",
           "effective_at_s": 11,
           "value": 14
         }
       ],
       "query_s": 20,
       "unit_scale": 86400,
-      "start": 1209610,
+      "start": 10,
       "selected_value": 7,
-      "endpoint": 1814410
-    },
-    {
-      "label": "accepted appeal fixes ruling span",
-      "parameter": "ruling_deadline_days",
-      "anchor_s": 12,
-      "changes": [
-        {
-          "parameter": "ruling_deadline_days",
-          "effective_at_s": 11,
-          "value": 60
-        }
-      ],
-      "query_s": 20,
-      "unit_scale": 86400,
-      "start": 12,
-      "selected_value": 60,
-      "endpoint": 5184012
+      "endpoint": 604810
     },
     {
       "label": "effective at anchor is included",
-      "parameter": "coverage_deadline_hours",
+      "parameter": "record_seal_blocks",
       "anchor_s": 11,
       "changes": [
         {
-          "parameter": "coverage_deadline_hours",
+          "parameter": "record_seal_blocks",
           "effective_at_s": 11,
-          "value": 96
+          "value": 48
         }
       ],
       "query_s": 20,
-      "unit_scale": 3600,
-      "start": 11,
-      "selected_value": 96,
-      "endpoint": 345611
-    }
-  ],
-  "confirmation_clock_cases": [
-    {
-      "label": "quorum increase before second Record",
-      "changes": [
-        {
-          "parameter": "confirm_auditors",
-          "effective_at_s": 86400,
-          "value": 3
-        }
-      ],
-      "record_times_s": [
-        0,
-        172800,
-        176400
-      ],
-      "confirming_index": 2
-    },
-    {
-      "label": "shorter window excludes stale member",
-      "changes": [
-        {
-          "parameter": "confirm_window_hours",
-          "effective_at_s": 172800,
-          "value": 24
-        }
-      ],
-      "record_times_s": [
-        0,
-        176400,
-        180000
-      ],
-      "confirming_index": 2
-    },
-    {
-      "label": "established confirmation survives amendment",
-      "changes": [
-        {
-          "parameter": "confirm_auditors",
-          "effective_at_s": 172800,
-          "value": 3
-        }
-      ],
-      "record_times_s": [
-        0,
-        86400,
-        176400
-      ],
-      "confirming_index": 1
-    },
-    {
-      "label": "quorum activation equality",
-      "changes": [
-        {
-          "parameter": "confirm_auditors",
-          "effective_at_s": 86400,
-          "value": 3
-        }
-      ],
-      "record_times_s": [
-        0,
-        86400,
-        90000
-      ],
-      "confirming_index": 2
+      "unit_scale": 1,
+      "start": 200,
+      "selected_value": 48,
+      "endpoint": 248
     }
   ]
 }
