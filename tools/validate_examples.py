@@ -3751,7 +3751,11 @@ def _dc4_sanction_primary():
     schema = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
     key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["process"]["public_key"]))
     findings = {f["confirming_record"]: f for f in v["primary"]["findings"]}
-    all_ids = {r["id"] for f in findings.values() for r in f["records"]}
+    all_ids = {r["id"] for f in findings.values() for r in f["records"]} | set(v["primary"]["rejected_available_ids"])
+    assert any(not c["noticed"] and c["error"] is None for c in v["primary"]["cases"]), \
+        "an unnoticed sanction must be recorded, not rejected"
+    assert any(set(c["envelope"]["update"]["evidence"]) & set(v["primary"]["rejected_available_ids"]) and c["error"] is None
+               for c in v["primary"]["cases"]), "a rejected Record must be available to cite"
     for case in v["primary"]["cases"]:
         doc = case["envelope"]
         key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
@@ -4805,6 +4809,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist4/coverage.json", "prev_record"): "a claimed predecessor ID, fabricated in the negative case",
     ("vectors/wist4/coverage.json", "found"): "a signed acknowledgment of a Record or attestation ID",
     ("vectors/wist4/coverage.json", "attestation_duty_block"): "a Block hash",
+    ("vectors/wist4/coverage.json", "block_hash"): "a failed duty Block's hash",
+    ("vectors/wist4/coverage.json", "record_id_twin"): "a Record ID the removal test rejects",
+    ("vectors/wist4/sanctions.json", "rejected_available_ids"): "Audit Record IDs of rejected but sealed Records",
     ("vectors/wist4/sanctions.json", "activation"): "a confirming Audit Record ID",
     ("vectors/wist4/sanctions.json", "record_id"): "an Audit Record ID",
     ("vectors/wist4/sanctions.json", "current_activation_at_reversal"): "a confirming Audit Record ID",
@@ -10478,5 +10485,68 @@ def _dc4_sanction_identity_scope_twin():
     doc = json.loads(forged["envelope_json"])
     assert _roster_acts_validator().is_valid(doc) and not _roster_acts_verifies(doc, v["lift_log_key"]["public_key"])
 check("negative:wist4-sanction-identity-scope", _dc4_sanction_identity_scope_twin)
+
+def _instant_level(case, at_s, sealed_only=False):
+    latest = max((b for b in case["blocks"] if b <= at_s), default=None)
+    if latest is None:
+        return 0
+    v = _sanctions_vector()
+    t_s = case["notice_sealed_at_s"] + (v["appeal_window_days"] + v["appeal_seal_days"]) * 86400
+    discharged = case["discharge_sealed_at_s"] is not None and case["discharge_sealed_at_s"] <= latest
+    boundary = latest if sealed_only else at_s
+    return case["fallback_level"] if not discharged and t_s <= boundary else case["level"]
+
+def _dc4_enforcement_instants():
+    """WIST-4 §7: enforcement at an instant reads the latest sealed Block and
+    voids an undischarged sealing deadline at or before the instant."""
+    v = _sanctions_vector()
+    for case in v["instant_cases"]:
+        for probe in case["probes"]:
+            assert _instant_level(case, probe["at_s"]) == probe["level"], (case["label"], probe)
+    silence = next(c for c in v["instant_cases"] if c["label"] == "silence voids between Blocks")
+    between = next(p for p in silence["probes"] if p["at_s"] not in silence["blocks"] and p["level"] == silence["fallback_level"])
+    assert _instant_level(silence, between["at_s"], sealed_only=True) == silence["level"], \
+        "recomputation is blind to the instant between Blocks"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    for marker in ("reads the state derived at the highest Block sealed at or before that instant",
+                   "is not rejected on that ground",
+                   "one sealed at or below it, whatever §3 or §10.1 make of it",
+                   "by Block Hash, every duty Block counting at the removal's Block"):
+        assert marker in prose, f"WIST-4 does not state: {marker!r}"
+    wist3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "derived level, establishing Audit Record IDs" in wist3, "WIST-3 §7 still names Registry Update IDs"
+check("vectors:wist4-enforcement-instants", _dc4_enforcement_instants)
+
+def _dc4_coverage_removal():
+    """WIST-4 §4: the coverage-failure removal is Log-signed and its evidence
+    is exactly the counting duty Blocks' hashes in ascending octet order."""
+    v = _coverage_vector()
+    validator = _roster_acts_validator()
+    for case in v["removal_cases"]:
+        code, doc = _roster_acts_eligibility(case["envelope_json"], validator)
+        assert code is None and doc is not None, case["label"]
+        assert doc["sig"]["key_id"] == v["removal_log_key"]["key_id"]
+        assert _roster_acts_verifies(doc, v["removal_log_key"]["public_key"]), case["label"]
+        update = doc["update"]
+        assert update["action"] == "auditor_remove" and update["details"]["key_id"] == case["held_key_id"]
+        expected = sorted(b["block_hash"] for b in case["counting_duties"])
+        assert update["evidence"] == expected, case["label"]
+        assert all(b["height"] <= case["head"]["height"] for b in case["counting_duties"])
+        assert case["record_id_twin"] not in expected and _roster_acts_validator().is_valid(
+            {"update": dict(update, evidence=[case["record_id_twin"]]), "sig": doc["sig"]}), \
+            "a Record ID passes the schema and is caught only by the counting test"
+check("vectors:wist4-coverage-removal", _dc4_coverage_removal)
+
+def _dc4_derivation_accepted():
+    """WIST-4 §6.1: an accepted Delta excluded from materialization still ages the domain."""
+    v = json.loads((ROOT / "vectors" / "wist4" / "derivation.json").read_text())
+    case = next(c for c in v["cases"] if c["label"] == "excluded first delta still ages")
+    first = min(c["sealed_at_s"] for c in case["accepted"])
+    assert case["expected"]["a_days"] == (case["n"]["sealed_at_s"] - first) // 86400
+    kept = min(c["sealed_at_s"] for c in case["accepted"] if not c["excluded"])
+    assert (case["n"]["sealed_at_s"] - kept) // 86400 != case["expected"]["a_days"], "the excluded Delta must move the age"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-audit-reputation-governance.md").read_text())
+    assert "An accepted Delta is any Delta the domain signed that a Block seals" in prose
+check("vectors:wist4-derivation-accepted", _dc4_derivation_accepted)
 
 sys.exit(1 if failures else 0)

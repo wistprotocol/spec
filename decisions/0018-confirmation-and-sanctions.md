@@ -74,7 +74,18 @@ A `sanction` separately identifies its primary finding through
 quorum must appear in its evidence. Its full closed confirming set determines
 `details.severity`; optional findings cannot change that primary severity.
 The ladder still derives from every qualifying finding, independently of
-which finding a sanction selects.
+which finding a sanction selects. A cited Record is available once sealed,
+whatever its validity; a sanction sealed before an accepted notice of its
+level is recorded, not rejected, since the notice rule binds enforcement.
+
+### Enforcement instants and the state artifact
+
+Replay and Snapshot state read sealed heights. An Aggregator enforcing
+between Blocks reads the latest sealed Block's derived state and treats an
+undischarged sealing or ruling deadline at or before the instant as void
+from that instant. The `sanction_state` tuple carries the derived level and
+the Audit Record IDs of the active rungs' activations; the notice
+prerequisite bounds the Aggregator's own enforcement, not the tuple.
 
 ### Appeals and rulings
 
@@ -143,6 +154,15 @@ is the first to meet that branch only where the level-3 state was cleared
 in between. Otherwise the second finding already reaches level 4 through
 the further-finding branch. Reversals never alter evidence-derived `penalty_n`.
 
+Rejecting an early sanction act would let a missing notice erase a public
+record of the action while the derived rung stands anyway; recording it and
+noting the missing notice keeps both facts visible. Reading only sealed
+Blocks for live enforcement would let an Aggregator that stops sealing keep
+enforcing a voided state; reading the instant against the latest prefix
+gives the same answer the next Block derives. Carrying Registry Update IDs
+in the state tuple presumed sanction acts establish rungs; under derived
+rungs the establishing items are the confirming Records.
+
 Automatic expiry would contradict latched sanctions; reversing every future
 activation would let an old process reach a new offense. Accepting partial
 quorums would let citation selection fabricate support or severity. Retention
@@ -155,7 +175,10 @@ profiles and actual process lifetimes avoid those failures.
 `vectors/wist4/confirmation.json`, `extension.json` and `sanctions.json`
 exercise quorums, activation targets, conflicting acts and citation support;
 `sanctions.json`'s `identity_scope_cases` and signed `lift_cases` cover
-pre-reset findings, resets and rejected lifts.
+pre-reset findings, resets and rejected lifts; its `primary` cases include
+an unnoticed sanction and a citation of a rejected Record, and its
+`instant_cases` probe enforcement between Blocks with a sealed-heights-only
+twin.
 `parameter-combinations.json` exercises temporal profiles and retention.
 Live notice publication and acquisition of cited Blocks remain obligations
 of the WIST-3 and WIST-4 role checklists.

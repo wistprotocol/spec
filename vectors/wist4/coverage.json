@@ -1984,5 +1984,44 @@
     ],
     "in_coverage_failure_at_block": false,
     "in_coverage_failure_under_prior_prefix_reading": true
-  }
+  },
+  "removal_note": "WIST-4 \u00a74: the auditor_remove a coverage failure requires is Log-signed, retires the key the Auditor holds at the removal's Block and lists as evidence the Block Hashes of every failed duty Block counting there in ascending octet order; a Record ID is not a failed Block.",
+  "removal_log_key": {
+    "key_id": "test-agg-k1",
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+  },
+  "removal_cases": [
+    {
+      "label": "coverage failure removal names the counting Blocks",
+      "head": {
+        "height": 120,
+        "sealed_at_s": 432000
+      },
+      "held_key_id": "receipt-auditor-k1",
+      "counting_duties": [
+        {
+          "height": 3,
+          "block_hash": "sha256:b37f4467b9f74701e10d0229364c88b1cec0f59f2bb9da6eb0ae4c0dc182b8aa"
+        },
+        {
+          "height": 7,
+          "block_hash": "sha256:8c88a5bdeb07a22f2c2d4b23e196a8714cb618c196d6e447c5d168dab4c02043"
+        },
+        {
+          "height": 11,
+          "block_hash": "sha256:4b42f9331983130bc5a9d4520e4c119b72b8aacff30840c1970c9699053d2123"
+        },
+        {
+          "height": 19,
+          "block_hash": "sha256:c9b4c83e2c57256770757ff82767c35e01825e958b669544e657dd4bbb76a7db"
+        },
+        {
+          "height": 23,
+          "block_hash": "sha256:51d43dea1c45a2df1fe870598b55f8150c581f7e62812bd8a9944d460e335a5e"
+        }
+      ],
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"auditor_remove\", \"subject\": \"audit.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"key_id\": \"receipt-auditor-k1\"}, \"evidence\": [\"sha256:4b42f9331983130bc5a9d4520e4c119b72b8aacff30840c1970c9699053d2123\", \"sha256:51d43dea1c45a2df1fe870598b55f8150c581f7e62812bd8a9944d460e335a5e\", \"sha256:8c88a5bdeb07a22f2c2d4b23e196a8714cb618c196d6e447c5d168dab4c02043\", \"sha256:b37f4467b9f74701e10d0229364c88b1cec0f59f2bb9da6eb0ae4c0dc182b8aa\", \"sha256:c9b4c83e2c57256770757ff82767c35e01825e958b669544e657dd4bbb76a7db\"]}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"Kc1sOAFQyUJVUJpMj44JYZ4gh7T5rT3Em2W1H18_htQzpdIQFXMxbCO_PBii7wNBVMDVORAx3g-wotarzogwDg\"}}",
+      "record_id_twin": "sha256:23cd3053fc72cb7f825e7f28b7a78e2ca3240bec1d1569f32f58ab19d5fae088"
+    }
+  ]
 }

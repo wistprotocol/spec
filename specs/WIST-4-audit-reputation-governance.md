@@ -644,7 +644,10 @@ and for as long as that holds, its Records do not count: a validator
 recomputing reputation rejects every Record it signs (§3), so its verdicts
 enter no domain's `C`, no `penalty_n`, and no Confirmed Inconsistency.
 The Aggregator MUST also remove it by `auditor_remove` (§3), whose
-`evidence` MUST name the failed Blocks — but the `auditor_remove` records
+`evidence` MUST name the failed Blocks — by Block Hash, every duty Block
+counting at the removal's Block, in ascending octet order — and whose
+`details.key_id` is the key the Auditor holds at that Block; but the
+`auditor_remove` records
 the consequence and does not create it. A failure count is exactly as
 recomputable as the selection set that produced it, and the state a
 Auditor's Records are in once coverage failure is established MUST NOT depend on whether the
@@ -2089,8 +2092,11 @@ has no such lower bound, and everything from height 0 counts.
 - **`A`** = whole days between the `sealed_at` of the Block that first
   contained an accepted Delta from this domain under its current identity
   and the `sealed_at` of Block N. A domain with no accepted Delta in that
-  range has `A` = 0. Publisher-supplied `observed_at` is never used, so
-  backdating a Delta cannot age a domain.
+  range has `A` = 0. An accepted Delta is any Delta the domain signed that
+  a Block seals, including one WIST-3 §7's one-URL, one-Publisher rule
+  keeps out of materialization: age measures the identity's publication,
+  not what a Consumer shows. Publisher-supplied `observed_at` is never
+  used, so backdating a Delta cannot age a domain.
 - **`base_u`** = `100 000 + ((900 000 × min(A, 730)) / 730)`, integer
   division, parenthesized as written. It rises linearly from 100 000
   (exactly the Provisional cap) at `A` = 0 to 1 000 000 at `A` ≥ 730.
@@ -2478,10 +2484,16 @@ quorum establishing that finding at its first confirming Record. It MAY
 also carry other Audit Record IDs, including complete findings with other
 severities. Those optional Records do not change the primary severity or
 invalidate the sanction merely by differing from it. Every cited ID must
-resolve to an Audit Record available at that Block. Missing or malformed
+resolve to an Audit Record available at that Block: one sealed at or
+below it, whatever §3 or §10.1 make of it. Missing or malformed
 required fields are `WIST4-E04`; a well-shaped claim failing this evidence
-contract is `WIST4-E05`. The ladder still derives from all findings, not
-only the primary one a sanction selects.
+contract is `WIST4-E05`. A `sanction` sealed before an accepted notice of
+its level is not rejected on that ground — it records an action the
+Aggregator could not yet enforce under **Notice before enforcement**
+below, and replay notes the missing notice — because the ladder derives
+from findings and the notice rule binds enforcement, not the record. The
+ladder still derives from all findings, not only the primary one a
+sanction selects.
 
 **Retain sealed evidence through the actual process.** For WIST-3 §6's
 Mirror duty, an accepted sanction notice's process closes at T if no timely
@@ -2564,6 +2576,12 @@ Process requirements:
   the Aggregator MUST NOT enforce the sanction by rejecting the domain's
   Pings or Feed pulls (`403`, WIST-2 §4) or withholding its Deltas from
   materialization. The derivation rule below independently governs replay.
+  An Aggregator enforcing at an instant reads the state derived at the
+  highest Block sealed at or before that instant, and treats a sealing or
+  ruling deadline at or before the instant that this prefix leaves
+  undischarged as void from the instant, exactly as the next Block will
+  derive it; Snapshot state (WIST-3 §7) and replay read sealed heights
+  only.
 - Escalation criteria: level 1 at a single Confirmed Inconsistency; level
   2 at 3 within 90 days; level 3 at 10 within 90 days, or any severity-3;
   **level 4 at 3 severity-3 Confirmed Inconsistencies within 180 days, or

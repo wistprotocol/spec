@@ -1426,6 +1426,61 @@
       "code": null
     }
   ],
+  "instant_note": "WIST-4 \u00a77, enforcement between Blocks: the Aggregator reads the latest sealed Block's derived level and treats an undischarged sealing deadline T at or before the instant as void from the instant, falling to the highest active rung at or below 2; a discharge sealed before T keeps the state. Blocks are sealing instants.",
+  "instant_cases": [
+    {
+      "label": "silence voids between Blocks",
+      "notice_sealed_at_s": 0,
+      "level": 3,
+      "fallback_level": 1,
+      "blocks": [
+        0,
+        1296000,
+        1900800
+      ],
+      "discharge_sealed_at_s": null,
+      "probes": [
+        {
+          "at_s": 1728000,
+          "level": 3
+        },
+        {
+          "at_s": 1814400,
+          "level": 1
+        },
+        {
+          "at_s": 1818000,
+          "level": 1
+        },
+        {
+          "at_s": 1900800,
+          "level": 1
+        }
+      ]
+    },
+    {
+      "label": "discharge sealed before T keeps the state",
+      "notice_sealed_at_s": 0,
+      "level": 3,
+      "fallback_level": 1,
+      "blocks": [
+        0,
+        1296000,
+        1900800
+      ],
+      "discharge_sealed_at_s": 1296000,
+      "probes": [
+        {
+          "at_s": 1818000,
+          "level": 3
+        },
+        {
+          "at_s": 1900800,
+          "level": 3
+        }
+      ]
+    }
+  ],
   "notice_target_cases": [
     {
       "label": "one process survives later notice",
@@ -7186,7 +7241,10 @@
     }
   ],
   "primary": {
-    "note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records. Notice and level eligibility are satisfied independently; these cases isolate the primary finding/evidence contract.",
+    "note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records; rejected_available_ids are Records \u00a73/\u00a710.1 reject that are nevertheless sealed and so available to cite. Notice and level eligibility are satisfied independently except where `noticed` is false, which records a sanction sealed before any accepted notice of its level: recorded, not rejected. These cases isolate the primary finding/evidence contract.",
+    "rejected_available_ids": [
+      "sha256:6cca1f819893abb9502061005866c7a5e52afbbab2419c7bc57c87e0809a0ab4"
+    ],
     "findings": [
       {
         "subject": "site.sample.net",
@@ -7244,7 +7302,67 @@
             "value": "giL8JQ6u2Xw6pDNYS44_5eNnhGS19K7prFU1T6qb_AKNmFYczsz69zxY2hBwokwF1lYtRj_2IyrQNCx0wb1QAQ"
           }
         },
-        "error": null
+        "error": null,
+        "noticed": true
+      },
+      {
+        "label": "unnoticed level three sanction is recorded",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3,
+              "finding": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8"
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "giL8JQ6u2Xw6pDNYS44_5eNnhGS19K7prFU1T6qb_AKNmFYczsz69zxY2hBwokwF1lYtRj_2IyrQNCx0wb1QAQ"
+          }
+        },
+        "error": null,
+        "noticed": false
+      },
+      {
+        "label": "citation of a rejected Record resolves",
+        "envelope": {
+          "update": {
+            "wist_version": "1.0.0",
+            "action": "sanction",
+            "subject": "site.sample.net",
+            "effective_at": "2026-08-12T00:00:00Z",
+            "details": {
+              "level": 3,
+              "severity": 3,
+              "finding": "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8"
+            },
+            "evidence": [
+              "sha256:9cb59705475c3b157e99ec7ab38acaa1ef243ae58073d244fd7c7cb0ec1cddf5",
+              "sha256:26b35c3bec6148d2d9773a0b0e440fb3221f5d4e013c98acbcd6a4fc1a8ccbb8",
+              "sha256:88de527da5a9eb115f256485b66ee2a57b92986963d31c6f4db13e9cedeaacc3",
+              "sha256:cd87e7e34b71077e81fbbae76146a55526b960ed5ed9a7fd23244bdb0da92cdf",
+              "sha256:6cca1f819893abb9502061005866c7a5e52afbbab2419c7bc57c87e0809a0ab4"
+            ]
+          },
+          "sig": {
+            "key_id": "test-process-k1",
+            "alg": "Ed25519",
+            "value": "JsLwhoLP2o5547NoLmGtUutJm1NPGqhniSbmdklTAlruBxe15z00aT9Rm9AZm_9UkZyesbFhh3bVHhjtY9KXDg"
+          }
+        },
+        "error": null,
+        "noticed": true
       },
       {
         "label": "reversed mixed evidence",
@@ -7272,7 +7390,8 @@
             "value": "vBCJowx6yhR0DINjKAUmFe6xOJYIzdrHi0qI9FrzgRK_DHbyabl1cfI52TfEc1Mf2Fc1EHuJT59XgtZkbX_AAA"
           }
         },
-        "error": null
+        "error": null,
+        "noticed": true
       },
       {
         "label": "minor primary with severe optional finding",
@@ -7300,7 +7419,8 @@
             "value": "FLa0HiOQplOUGl91PaXtgsMW8vru330t0q6HJEmYgsoZEBkvipF2wH0_i4R_NMpGkBIT_KL2EXESL-8FqoZOCA"
           }
         },
-        "error": null
+        "error": null,
+        "noticed": true
       },
       {
         "label": "severity from optional finding is wrong",
@@ -7328,7 +7448,8 @@
             "value": "ySB-ktq1dlC84neSwxvUrxAMlSjfoNMG6ItRecG3ZoCIj9JrUaJphROqhR3esD5ykSbSIH0HThBFpV4TUbDzDA"
           }
         },
-        "error": "WIST4-E05"
+        "error": "WIST4-E05",
+        "noticed": true
       },
       {
         "label": "first quorum member is not confirming Record",
@@ -7356,7 +7477,8 @@
             "value": "h8RK6jkJX6avmdWOR7X23Edj_33lfe5WgZtZTRYd2bf6JWO6DGZ0f8LKXS-dGjAgCC_PzRpnxpdEKc_wcd5GBQ"
           }
         },
-        "error": "WIST4-E05"
+        "error": "WIST4-E05",
+        "noticed": true
       },
       {
         "label": "primary quorum incomplete",
@@ -7383,7 +7505,8 @@
             "value": "rOMkH02Fc1uh8vBqEG0je97a_BM8UUQwPANCVa_X9L-ItHVnVt5EgSfpqOnps-ezq9Bf9RkDUJDlIMVcFIo9DQ"
           }
         },
-        "error": "WIST4-E05"
+        "error": "WIST4-E05",
+        "noticed": true
       },
       {
         "label": "finding belongs to another subject",
@@ -7411,7 +7534,8 @@
             "value": "jf4EIE76FLp3lDM169eZIxZtnINepOB0zTK-ihf_lSA2DWnJleXNHu0PEcsX0WCausXmELLpVRCc35Ci3xNWCw"
           }
         },
-        "error": "WIST4-E05"
+        "error": "WIST4-E05",
+        "noticed": true
       },
       {
         "label": "missing primary selector",
@@ -7438,7 +7562,8 @@
             "value": "GA1_CtXlaKeDNQg5xYwPHpVn9L85gjXsUxVb3esXvZ8WbglQACNiBxzfgOFtaqOxNrVZ5j_y71r-sGd3Z7k1Dw"
           }
         },
-        "error": "WIST4-E04"
+        "error": "WIST4-E04",
+        "noticed": true
       }
     ]
   },

@@ -1154,7 +1154,7 @@ value fields are:
 | `auditor` | `auditor_id`, `key_id` | `public_key`, admitted height, removed height or `null` | WIST-4 §3 |
 | `declaration` | domain | the current Declaration Envelope, its sealing height | WIST-1 §5 |
 | `parameter` | identifier, `effective_at` | value | WIST-4 §9 |
-| `sanction_state` | domain | level, establishing Registry Update IDs, each open deadline instant | WIST-4 §7 |
+| `sanction_state` | domain | derived level, establishing Audit Record IDs, each open deadline instant | WIST-4 §7 |
 | `recovery_window` | domain | recovery Declaration height, window end | WIST-1 §5.2 |
 | `exclusion` | publisher, URL | excluded-since height | WIST-4 §5 |
 | `coverage_failure` | `auditor_id`, block number | — | WIST-4 §4 |
@@ -1212,7 +1212,9 @@ the strings the sealed Entries carry; keys are raw base64url public
 keys; IDs are `sha256:`-prefixed. Three kinds need more than that:
 `declaration`'s value members are the current Declaration Envelope as
 sealed, verbatim as one JSON object member, then its sealing height;
-`sanction_state`'s establishing Registry Update IDs are an
+`sanction_state`'s level is the derived level of WIST-4 §7, rungs 3 and 4
+included whether or not a notice has sealed; its establishing Audit Record
+IDs — the confirming Records that armed its active rungs — are an
 ascending-octet-ordered array, and its open deadlines an array of
 two-member `[label, instant]` arrays with `label` one of `"appeal"`,
 `"appeal_sealing"`, `"ruling"` (WIST-4 §7's three open-deadline kinds),

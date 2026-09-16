@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta; a Delta sealed at the reset height R is the fresh identity's. penalty_inputs rows are [severity, t_days].",
+  "note": "WIST-4 \u00a76.1/\u00a76.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta; a Delta sealed at the reset height R is the fresh identity's. penalty_inputs rows are [severity, t_days]. An accepted Delta flagged `excluded` is kept out of materialization by WIST-3 \u00a77's one-URL, one-Publisher rule and still ages the domain.",
   "c_cap": 500,
   "cases": [
     {
@@ -266,6 +266,34 @@
             9
           ]
         ]
+      }
+    },
+    {
+      "label": "excluded first delta still ages",
+      "resets": [],
+      "n": {
+        "height": 100,
+        "sealed_at_s": 11232000
+      },
+      "accepted": [
+        {
+          "height": 10,
+          "sealed_at_s": 8640000,
+          "excluded": true
+        },
+        {
+          "height": 20,
+          "sealed_at_s": 9504000,
+          "excluded": false
+        }
+      ],
+      "consistent_audits": [],
+      "confirmed": [],
+      "expected": {
+        "reset": null,
+        "a_days": 30,
+        "c": 0,
+        "penalty_inputs": []
       }
     },
     {

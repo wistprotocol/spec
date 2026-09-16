@@ -54,6 +54,14 @@ while contradicted even when the fallback established it first. Only a
 successor with valid non-evidence fields and an authentic signature is the
 Auditor's publication.
 
+### Removal for coverage failure
+
+The removal names the key the Auditor holds at the removal's Block and lists
+as `evidence` the Block Hashes of every failed duty Block counting at that
+Block, in ascending octet order. Block Hashes rather than Record IDs, because
+a failed duty has no Record to cite; every counting Block rather than the
+first `coverage_failures_max` + 1, so the evidence is the count itself.
+
 ### Completion and late sealing
 
 Read duty completion from the available Log prefix. A complete discharge
@@ -117,7 +125,8 @@ completion and receipt-backed exemptions. `coverage.json`'s
 supplied duty contexts, checked through the schema partition, Ed25519 and
 ECVRF with an authenticity-before-duty twin; its `derivation_cases` and
 `same_block_case` trace the readings above with twins for the ruled-out
-ones. The `evidence_cases` of
+ones; its `removal_cases` carry a signed coverage-failure removal whose
+evidence is checked against the counting Blocks, with a Record-ID twin. The `evidence_cases` of
 `extension.json` carry signed Records pairing rejected filings with later
 valid ones for the same Delta; their checker derives each rejection from the
 signed bytes, version, score bands and supplied standing, removal and

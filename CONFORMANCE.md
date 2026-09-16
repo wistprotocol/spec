@@ -757,3 +757,21 @@ selection or finding; an integrated role derives each from its
 authenticated prefix. No case exercises live pulling, the extension-deadline
 pull, level-3/4 notice processes or the `auditor_remove` a coverage failure
 requires.
+
+## Sanction records, state tuples and enforcement instants
+
+WIST-4 §6.1 counts every sealed Delta of the identity for age, §7 records an
+unnoticed `sanction` and treats a cited Record as available once sealed,
+§7's enforcement-instant sentence and WIST-3 §7's `sanction_state` row fix
+what an Aggregator enforces between Blocks and what the tuple carries under
+derived rungs, and §4 fixes a coverage-failure removal's evidence.
+`vectors/wist4/derivation.json` (excluded first Delta), `sanctions.json`
+(`primary` additions, `instant_cases`) and `coverage.json` (`removal_cases`)
+carry the discriminating cases; `tools/validate_examples.py` recomputes each
+with a twin for the ruled-out reading and verifies the signed removal.
+
+The tuple change alters no schema arity or member type; a Consumer that read
+Registry Update IDs from the member reads Audit Record IDs now, which an
+implementation following the earlier row would report as an unknown ID.
+Live enforcement between Blocks, Snapshot production and the removal's
+sealing remain integrated-role obligations the vectors do not exercise.

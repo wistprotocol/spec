@@ -3725,6 +3725,11 @@ derivation_scenarios = [
          {"height": 60, "audited_height": 50, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:aa", "severity": 3},
          {"height": 60, "audited_height": 57, "sealed_at_s": 121 * DAY_S, "delta_id": "sha256:bb", "severity": 1},
          {"height": 54, "audited_height": 50, "sealed_at_s": 119 * DAY_S, "delta_id": "sha256:cc", "severity": 2}]},
+    {"label": "excluded-first-delta-still-ages",
+     "resets": [], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
+     "accepted": [{"height": 10, "sealed_at_s": 100 * DAY_S, "excluded": True},
+                  {"height": 20, "sealed_at_s": 110 * DAY_S, "excluded": False}],
+     "consistent_audits": [], "confirmed": []},
     {"label": "delta-sealed-at-the-reset-height",
      "resets": [55], "n": {"height": 100, "sealed_at_s": 130 * DAY_S},
      "accepted": [{"height": 54, "sealed_at_s": 118 * DAY_S},
@@ -3739,9 +3744,13 @@ derivation_scenarios = [
 ]
 for case in derivation_scenarios:
     case["expected"] = derive_inputs(case)
+    if case["label"] == "excluded-first-delta-still-ages":
+        assert case["expected"]["a_days"] == 30, "age dates from the excluded Delta"
+        materialized_only = dict(case, accepted=[d for d in case["accepted"] if not d["excluded"]])
+        assert derive_inputs(materialized_only)["a_days"] == 20, "the ruled-out reading must differ"
 
 write_json(WIST4 / "derivation.json", spaced_labels({
-    "note": "WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta; a Delta sealed at the reset height R is the fresh identity's. penalty_inputs rows are [severity, t_days].",
+    "note": "WIST-4 §6.1/§6.3 inputs derived from one domain's Log events. A Record's audited_height is the sealing height of its audited_delta; a Delta sealed at the reset height R is the fresh identity's. penalty_inputs rows are [severity, t_days]. An accepted Delta flagged `excluded` is kept out of materialization by WIST-3 §7's one-URL, one-Publisher rule and still ages the domain.",
     "c_cap": C_CAP,
     "cases": derivation_scenarios,
 }))
@@ -4189,6 +4198,23 @@ for case in attestation_cases:
 assert len({c["label"] for c in attestation_cases}) == len(attestation_cases)
 
 
+# ------------------------------------ WIST-4 §4: removal for coverage failure
+REMOVAL_COUNTING = [{"height": h, "block_hash": "sha256:" + sha256_hex(f"failed duty block {h}".encode())}
+                    for h in (3, 7, 11, 19, 23)]
+removal_evidence = sorted(b["block_hash"] for b in REMOVAL_COUNTING)
+removal_envelope = sign_envelope("update", {"wist_version": "1.0.0", "action": "auditor_remove",
+    "subject": "audit.sample.net", "effective_at": "2026-08-05T12:00:00Z",
+    "details": {"key_id": "receipt-auditor-k1"}, "evidence": removal_evidence}, "test-agg-k1")
+removal_cases = [{
+    "label": "coverage failure removal names the counting Blocks",
+    "head": {"height": 120, "sealed_at_s": 120 * HOUR_S},
+    "held_key_id": "receipt-auditor-k1",
+    "counting_duties": REMOVAL_COUNTING,
+    "envelope_json": json.dumps(removal_envelope, ensure_ascii=True),
+    "record_id_twin": "sha256:" + sha256_hex(b"a Record ID is not a failed Block"),
+}]
+
+
 # ---------------------------------------- WIST-4 §4: what the sealed prefix decides
 def derivation_probe_counts(case, height, *, prefix_before_block=False, exemption_only_if_attested=False,
                             unauthentic_successor_contradicts=False):
@@ -4274,6 +4300,11 @@ write_json(WIST4 / "coverage.json", spaced_labels({
                         "Records are weighed."),
     "derivation_cases": derivation_cases,
     "same_block_case": same_block_case,
+    "removal_note": ("WIST-4 §4: the auditor_remove a coverage failure requires is Log-signed, retires the key "
+                     "the Auditor holds at the removal's Block and lists as evidence the Block Hashes of every "
+                     "failed duty Block counting there in ascending octet order; a Record ID is not a failed Block."),
+    "removal_log_key": ATTESTATION_LOG_KEY,
+    "removal_cases": removal_cases,
 }))
 
 
@@ -6691,8 +6722,11 @@ for n, similarities in enumerate(([0, 0], [200000, 250000])):
         "records": [{"id": ident, "effective_similarity": similarity} for ident,similarity in zip(ids,similarities)]})
 primary_cases = []
 all_primary_ids = [r["id"] for f in primary_findings for r in f["records"]]
+primary_rejected_ids = ["sha256:" + sha256_hex(b"primary rejected optional record")]
 for label, primary, evidence, severity, subject, error in (
     ("mixed optional findings", primary_findings[0]["confirming_record"], all_primary_ids, 3, "site.sample.net", None),
+    ("unnoticed level three sanction is recorded", primary_findings[0]["confirming_record"], all_primary_ids, 3, "site.sample.net", None),
+    ("citation of a rejected Record resolves", primary_findings[0]["confirming_record"], all_primary_ids + primary_rejected_ids, 3, "site.sample.net", None),
     ("reversed mixed evidence", primary_findings[0]["confirming_record"], list(reversed(all_primary_ids)), 3, "site.sample.net", None),
     ("minor primary with severe optional finding", primary_findings[1]["confirming_record"], all_primary_ids, 1, "site.sample.net", None),
     ("severity from optional finding is wrong", primary_findings[0]["confirming_record"], all_primary_ids, 1, "site.sample.net", "WIST4-E05"),
@@ -6713,7 +6747,8 @@ for label, primary, evidence, severity, subject, error in (
         sim = max(r["effective_similarity"] for r in f["records"])
         valid = severity == (1 if sim >= 150000 else 2 if sim >= 50000 else 3)
     assert valid == (error is None), label
-    primary_cases.append({"label": label, "envelope": envelope, "error": error})
+    primary_cases.append({"label": label, "envelope": envelope, "error": error,
+                          "noticed": label != "unnoticed level three sanction is recorded"})
 
 NOTICE_ACTIVATION_A = "sha256:" + sha256_hex(b"notice activation A")
 NOTICE_ACTIVATION_B = "sha256:" + sha256_hex(b"notice activation B")
@@ -6813,6 +6848,34 @@ assert identity_scoped_transitions(identity_scope_cases[0]["blocks"], count_pre_
 assert identity_scoped_transitions(identity_scope_cases[2]["blocks"], honor_rejected_lifts=True)[1] == []
 
 
+def instant_level(case, at_s, sealed_only=False):
+    """WIST-4 §7, enforcement at an instant: the derived level at the latest
+    Block sealed at or before the instant, voided to the fallback rung where
+    an undischarged sealing or ruling deadline is at or before the instant.
+    `sealed_only` is the ruled-out reading that waits for the next Block."""
+    latest = max((b for b in case["blocks"] if b <= at_s), default=None)
+    if latest is None:
+        return 0
+    t_s = case["notice_sealed_at_s"] + (APPEAL_WINDOW_DAYS + APPEAL_SEAL_DAYS) * DAY_S
+    discharged = case["discharge_sealed_at_s"] is not None and case["discharge_sealed_at_s"] <= latest
+    void_at = None if discharged else t_s
+    boundary = latest if sealed_only else at_s
+    return case["fallback_level"] if void_at is not None and void_at <= boundary else case["level"]
+
+
+instant_cases = []
+for label, discharge, probes in (
+    ("silence voids between Blocks", None, [20 * DAY_S, 21 * DAY_S, 21 * DAY_S + HOUR_S, 22 * DAY_S]),
+    ("discharge sealed before T keeps the state", 15 * DAY_S, [21 * DAY_S + HOUR_S, 22 * DAY_S]),
+):
+    case = {"label": label, "notice_sealed_at_s": 0, "level": 3, "fallback_level": 1,
+            "blocks": [0, 15 * DAY_S, 22 * DAY_S], "discharge_sealed_at_s": discharge}
+    case["probes"] = [{"at_s": at, "level": instant_level(case, at)} for at in probes]
+    instant_cases.append(case)
+assert [[p["level"] for p in c["probes"]] for c in instant_cases] == [[3, 1, 1, 1], [3, 3]], "instant cases drifted"
+assert instant_level(instant_cases[0], 21 * DAY_S + HOUR_S, sealed_only=True) == 3, "the sealed-only reading must differ"
+
+
 def lift_case(label, code, *, signer=priv, key_id="test-agg-k1", subject="site.sample.net", version="1.0.0",
               extra=None, details=None):
     update = {"wist_version": version, "action": "sanction_lift", "subject": subject,
@@ -6858,10 +6921,16 @@ write_json(WIST4 / "sanctions.json", spaced_labels({
                   "Host shape WIST4-E04."),
     "lift_log_key": ATTESTATION_LOG_KEY,
     "lift_cases": lift_cases,
+    "instant_note": ("WIST-4 §7, enforcement between Blocks: the Aggregator reads the latest sealed Block's "
+                     "derived level and treats an undischarged sealing deadline T at or before the instant "
+                     "as void from the instant, falling to the highest active rung at or below 2; a "
+                     "discharge sealed before T keeps the state. Blocks are sealing instants."),
+    "instant_cases": instant_cases,
     "notice_target_cases": notice_target_cases,
     "notice_evidence_cases": notice_evidence.cases(),
     "retired_escalation_cases": retired_escalation_cases,
-    "primary": {"note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records. Notice and level eligibility are satisfied independently; these cases isolate the primary finding/evidence contract.",
+    "primary": {"note": "Each supplied closed confirming set has two independent Auditors within the default window, in listed Log order; all Records are valid and sealed before the sanction. IDs denote those fixture Records; rejected_available_ids are Records §3/§10.1 reject that are nevertheless sealed and so available to cite. Notice and level eligibility are satisfied independently except where `noticed` is false, which records a sanction sealed before any accepted notice of its level: recorded, not rejected. These cases isolate the primary finding/evidence contract.",
+                "rejected_available_ids": primary_rejected_ids,
         "findings": primary_findings, "cases": primary_cases},
     "process": {"note": "Each notice's activation and evidence are supplied valid premises. Unless a case gives activation_sealed_at_s, its target was armed below the notice Block. Explicit activation-Block cases supply the new severity-3 finding and exercise its timing with rung replay.",
                 "public_key": b64u(pub_raw), "notice_sealed_at_s": 0,
