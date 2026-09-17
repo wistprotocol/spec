@@ -1331,16 +1331,17 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
   remain attributed to the domain. A Publisher that loses its signing key
   without ever having
   provisioned a recovery key has no cryptographic path back (§5.2).
-- **Domain transfer.** A Key Set replacement does not transfer standing
+- **Domain transfer.** A Key Set replacement does not transfer history
   by itself: §5.2 classifies a replacing Declaration by what signs it,
   and one signed by neither the previous Key Set nor the previous
-  `recovery_keys` is a fresh identity whose `A`/`C` reset to zero outside
+  `recovery_keys` is a fresh identity, visible in the Log as such, outside
   an open recovery window. A competing fresh Declaration inside that window
-  cannot acquire the recovering identity's standing or reset it (§5.2). A
+  cannot take over the recovering identity or reset it (§5.2). A
   party that acquires a domain's hosting without also acquiring a
   signing or recovery key therefore cannot inherit its predecessor's
   history — only cryptographic continuity does that, never possession of
-  the name alone.
+  the name alone — and a Consumer reading a domain's age or publication
+  history from the Log reads it from the fresh identity's height (WIST-4 §8).
 - **Payload substitution.** A Mirror, a Publisher, or anyone else in the
   serving path can offer any bytes at a Payload's URL. None of it matters:
   a validator accepts a Payload only when it reproduces the Delta's
