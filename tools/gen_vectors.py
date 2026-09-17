@@ -3144,6 +3144,252 @@ def withdrawal_vectors():
 write_json(WIST4 / "withdrawal.json", withdrawal_vectors())
 
 
+# ------------------------------------------ WIST-4 §3.1: Public Suffix List snapshots
+SUFFIX_LIST_HEADER = [
+    "// Fixture excerpt of the Public Suffix List, https://publicsuffix.org/list/public_suffix_list.dat",
+    "// (Mozilla Foundation, MPL-2.0): rules copied verbatim, section markers preserved, most rules omitted.",
+]
+SUFFIX_LIST_ICANN = ["ac", "biz", "*.ck", "!www.ck", "cn", "com.cn", "公司.cn", "com", "dev", "io", "jp",
+                     "ac.jp", "kyoto.jp", "ide.kyoto.jp", "*.kobe.jp", "!city.kobe.jp", "*.mm", "net", "org",
+                     "us", "ak.us", "k12.ak.us", "中国"]
+SUFFIX_LIST_PRIVATE = ["uk.com", "pages.dev", "github.io"]
+
+
+def suffix_list_text(private_extra=()):
+    lines = SUFFIX_LIST_HEADER + ["", "// ===BEGIN ICANN DOMAINS===", ""] + SUFFIX_LIST_ICANN + [
+        "", "// ===END ICANN DOMAINS===", "// ===BEGIN PRIVATE DOMAINS===", ""] + SUFFIX_LIST_PRIVATE + list(
+        private_extra) + ["", "// ===END PRIVATE DOMAINS==="]
+    return "\n".join(lines) + "\n"
+
+
+def host_label(label: str) -> str:
+    """The fixture's Canonical Host processing of one label: the fixtures use no
+    character UTS #46 maps other than by case folding, so lowercase ASCII and
+    Punycode are exact here; a general implementation runs the whole profile."""
+    if label == "*":
+        return label
+    label = label.lower()
+    return label if label.isascii() else alabel(label)
+
+
+def canonical_fixture_host(name):
+    labels = name.split(".")
+    if any(not label for label in labels):
+        return None
+    return ".".join(host_label(label) for label in labels)
+
+
+def suffix_rules(text: str):
+    """WIST-4 §3.1: every rule line of both sections, labels in Canonical Host form."""
+    rules = []
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("//"):
+            continue
+        rule = stripped.split()[0]
+        exception = rule.startswith("!")
+        labels = tuple(host_label(label) for label in rule.lstrip("!").split("."))
+        rules.append((labels, exception))
+    return rules
+
+
+def registrable_domain(host: str, rules):
+    """WIST-4 §3.1: the Public Suffix List algorithm, the host itself where it
+    leaves no registrable domain, and the host itself under no snapshot."""
+    if rules is None:
+        return host, False
+    labels = host.split(".")
+    matching = []
+    for rule, exception in rules:
+        if len(rule) > len(labels):
+            continue
+        if all(r == "*" or r == h for r, h in zip(reversed(rule), reversed(labels))):
+            matching.append((rule, exception))
+    if not matching:
+        prevailing, exception = ("*",), False
+    else:
+        exceptions = [m for m in matching if m[1]]
+        prevailing, exception = max(exceptions or matching, key=lambda m: len(m[0]))
+    suffix = len(prevailing) - 1 if exception else len(prevailing)
+    if suffix >= len(labels):
+        return host, True
+    return ".".join(labels[len(labels) - suffix - 1:]), False
+
+
+def official_suffix_cases(rules):
+    cases = []
+    for line in (ROOT / "tools" / "psl_test_cases.txt").read_text(encoding="utf-8").split("\n"):
+        m = re.fullmatch(r"checkPublicSuffix\((null|'([^']*)'), (null|'([^']*)')\);", line.strip())
+        if not m or m.group(1) == "null":
+            continue
+        raw, expected = m.group(2), m.group(4)
+        host = canonical_fixture_host(raw)
+        case = {"input": raw, "host": host, "expected": expected, "registrable": None, "public_suffix": None}
+        if host is not None:
+            registrable, own = registrable_domain(host, rules)
+            assert registrable == (host if expected is None else canonical_fixture_host(expected)), raw
+            case.update({"registrable": registrable, "public_suffix": own})
+        cases.append(case)
+    return cases
+
+
+def registrable_domain_vectors():
+    first_text = suffix_list_text()
+    second_text = suffix_list_text(["hosts.sample.net"])
+    lists = []
+    for name, text in (("first", first_text), ("second", second_text)):
+        octets = text.encode("utf-8")
+        lists.append({"name": name, "text": text, "sha256": "sha256:" + sha256_hex(octets), "bytes": len(octets)})
+    by_name = {l["name"]: l for l in lists}
+    rules = {l["name"]: suffix_rules(l["text"]) for l in lists}
+    rules[None] = None
+    ids = {name: by_name[name]["sha256"] for name in by_name}
+
+    def domain_case(label, host, list_name):
+        registrable, own = registrable_domain(host, rules[list_name])
+        return {"label": label, "list": list_name, "host": host, "registrable": registrable, "public_suffix": own}
+
+    domain_cases = [
+        domain_case("shared registrable domain", "a.example.com", "first"),
+        domain_case("shared registrable domain sibling", "b.example.com", "first"),
+        domain_case("deeper shared host", "x.a.example.com", "first"),
+        domain_case("the registrable domain itself", "example.com", "first"),
+        domain_case("private section host", "alice.github.io", "first"),
+        domain_case("private section sibling", "bob.github.io", "first"),
+        domain_case("private suffix is its own unit", "github.io", "first"),
+        domain_case("private suffix under an ICANN suffix", "site.pages.dev", "first"),
+        domain_case("wildcard exception", "www.ck", "first"),
+        domain_case("wildcard suffix host", "test.ck", "first"),
+        domain_case("under a wildcard suffix", "b.test.ck", "first"),
+        domain_case("unlisted top level", "foo.unlisted", "first"),
+        domain_case("deep unlisted top level", "a.b.foo.unlisted", "first"),
+        domain_case("single label", "localhost", "first"),
+        domain_case("IDN suffix host", alabel("食狮") + "." + alabel("公司") + ".cn", "first"),
+        domain_case("unlisted IDN top level", alabel("пример") + "." + alabel("рф"), "first"),
+        domain_case("shared before the private rule", "a.hosts.sample.net", "first"),
+        domain_case("shared before the private rule sibling", "b.hosts.sample.net", "first"),
+        domain_case("separate after the private rule", "a.hosts.sample.net", "second"),
+        domain_case("separate after the private rule sibling", "b.hosts.sample.net", "second"),
+        domain_case("no snapshot in force", "a.example.com", None),
+        domain_case("no snapshot in force sibling", "b.example.com", None),
+    ]
+
+    def act(label, code, *, height, name="first", signer=priv, key_id="test-agg-k1", version="1.0.0",
+            subject=None, details=None, extra=None, effective_at=None, in_force_after=None):
+        snapshot = by_name[name]
+        body = {"sha256": snapshot["sha256"], "bytes": snapshot["bytes"]} if details is None else details
+        update = {"wist_version": version, "action": "suffix_list_update",
+                  "subject": snapshot["sha256"] if subject is None else subject,
+                  "effective_at": effective_at or f"2026-08-0{height + 1}T12:00:00Z", "details": body}
+        if extra:
+            update.update(extra)
+        return {"label": label, "height": height,
+                "envelope_json": json.dumps(sign_envelope_with(signer, "update", update, key_id), ensure_ascii=True),
+                "code": code, "in_force_after": in_force_after}
+
+    acts = [
+        act("first snapshot pinned", None, height=0, in_force_after="first"),
+        act("signed by a key the Log does not hold", "WIST4-E11", height=1, name="second",
+            signer=priv2, key_id="test-r1", in_force_after="first"),
+        act("unsupported major", "WIST4-E11", height=1, name="second", version="2.0.0", in_force_after="first"),
+        act("unknown member", "WIST4-E11", height=1, name="second", extra={"source": "x"}, in_force_after="first"),
+        act("subject names another snapshot", "WIST4-E04", height=2, name="second", subject=ids["first"],
+            in_force_after="first"),
+        act("malformed snapshot identifier", "WIST4-E04", height=2, subject="sha256:xyz",
+            details={"sha256": "sha256:xyz", "bytes": 1}, in_force_after="first"),
+        act("zero bytes", "WIST4-E04", height=2, name="second",
+            details={"sha256": ids["second"], "bytes": 0}, in_force_after="first"),
+        act("missing bytes", "WIST4-E04", height=2, name="second",
+            details={"sha256": ids["second"]}, in_force_after="first"),
+        act("bytes disagree with the named file", "WIST4-E04", height=2, name="second",
+            details={"sha256": ids["second"], "bytes": by_name["second"]["bytes"] + 1}, in_force_after="first"),
+        act("second snapshot pinned", None, height=3, name="second", in_force_after="second"),
+        act("repeated pin of the snapshot in force", None, height=5, name="second",
+            effective_at="2026-08-06T13:00:00Z", in_force_after="second"),
+    ]
+    in_force = [{"height": 0, "list": None}, {"height": 1, "list": "first"}, {"height": 2, "list": "first"},
+                {"height": 3, "list": "first"}, {"height": 4, "list": "second"}, {"height": 5, "list": "second"},
+                {"height": 6, "list": "second"}]
+    force_at = {row["height"]: row["list"] for row in in_force}
+
+    def entry(kind, domain):
+        return {"type": kind, "domain": domain}
+
+    def capacity(label, height, entries, cap=2):
+        counts = {}
+        for e in entries:
+            unit = registrable_domain(e["domain"], rules[force_at[height]])[0]
+            counts[unit] = counts.get(unit, 0) + 1
+        expected = "WIST3-E03" if max(counts.values()) > cap else None
+        return {"label": label, "height": height, "domain_block_entries_max": cap, "entries": entries,
+                "expected": expected}
+
+    capacity_cases = [
+        capacity("three hosts of one registrable domain", 2,
+                 [entry("publisher_delta", "a.example.com"), entry("publisher_delta", "b.example.com"),
+                  entry("publisher_delta", "c.example.com")]),
+        capacity("two private section hosts at the cap each", 2,
+                 [entry("publisher_delta", "alice.github.io"), entry("publisher_delta", "alice.github.io"),
+                  entry("publisher_delta", "bob.github.io"), entry("label", "bob.github.io")]),
+        capacity("a Label counts with the Deltas", 2,
+                 [entry("publisher_delta", "a.hosts.sample.net"), entry("publisher_delta", "a.hosts.sample.net"),
+                  entry("label", "b.hosts.sample.net")]),
+        capacity("the same Entries after the private rule", 4,
+                 [entry("publisher_delta", "a.hosts.sample.net"), entry("publisher_delta", "a.hosts.sample.net"),
+                  entry("label", "b.hosts.sample.net")]),
+        capacity("no snapshot in force keys on the host", 0,
+                 [entry("publisher_delta", "a.example.com"), entry("publisher_delta", "a.example.com"),
+                  entry("publisher_delta", "b.example.com"), entry("publisher_delta", "b.example.com")]),
+        capacity("the same Entries under the first snapshot", 1,
+                 [entry("publisher_delta", "a.example.com"), entry("publisher_delta", "a.example.com"),
+                  entry("publisher_delta", "b.example.com"), entry("publisher_delta", "b.example.com")]),
+    ]
+
+    def quota(label, height, pings, base=2):
+        noise = {}
+        rows = []
+        for host, is_noise in pings:
+            unit = registrable_domain(host, rules[force_at[height]])[0]
+            if noise.get(unit, 0) >= base:
+                rows.append({"host": host, "noise": is_noise, "expected": 429})
+                continue
+            if is_noise:
+                noise[unit] = noise.get(unit, 0) + 1
+            rows.append({"host": host, "noise": is_noise, "expected": 202})
+        return {"label": label, "height": height, "quota_base": base, "pings": rows}
+
+    pings = [("a.example.com", True), ("b.example.com", True), ("c.example.com", False), ("alice.github.io", True),
+             ("alice.github.io", True), ("alice.github.io", False), ("bob.github.io", True),
+             ("a.hosts.sample.net", True), ("b.hosts.sample.net", True), ("c.hosts.sample.net", True)]
+    quota_cases = [quota("one UTC day under the first snapshot", 2, pings),
+                   quota("the same Pings under the second snapshot", 4, pings),
+                   quota("the same Pings with no snapshot in force", 0, pings)]
+
+    state_tuples = [{"log_position": 0, "entries": [["suffix_list", ids["first"], 0]]},
+                    {"log_position": 2, "entries": [["suffix_list", ids["first"], 0]]},
+                    {"log_position": 3, "entries": [["suffix_list", ids["second"], 3]]},
+                    {"log_position": 6, "entries": [["suffix_list", ids["second"], 3]]}]
+    return spaced_labels({
+        "note": ("WIST-4 §3.1, WIST-2 §4, WIST-3 §3.2 and §7. lists are Public Suffix List snapshots as octets "
+                 "(text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's "
+                 "checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where "
+                 "it has none), expected the project's answer and registrable the Registrable Domain, the host "
+                 "itself where the list leaves none. domain_cases read a host under a named snapshot or under "
+                 "none. act_cases replay in Block order under the Log key: a suffix_list_update is in force from "
+                 "the Block after its sealing Block (in_force lists the snapshot in force at each height). "
+                 "capacity_cases count publisher_delta and label Entries per Registrable Domain under the "
+                 "snapshot in force at the Block; quota_cases apply quota_base to the noise Pings of one UTC day "
+                 "per Registrable Domain in order; state_tuples are the WIST-3 §7 suffix_list tuple at a "
+                 "log_position."),
+        "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)},
+        "lists": lists, "official_cases": official_suffix_cases(rules["first"]), "domain_cases": domain_cases,
+        "act_cases": acts, "in_force": in_force, "capacity_cases": capacity_cases, "quota_cases": quota_cases,
+        "state_tuples": state_tuples})
+
+
+write_json(WIST4 / "registrable-domain.json", registrable_domain_vectors())
+
+
 # ------------------------------------------------ WIST-3 §6: Block frames
 def raw_frame(payload, declared=None, single=True, width=4, chunks=None):
     size = len(payload) if declared is None else declared

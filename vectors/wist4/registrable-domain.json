@@ -1,0 +1,1176 @@
+{
+  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Block order under the Log key: a suffix_list_update is in force from the Block after its sealing Block (in_force lists the snapshot in force at each height). capacity_cases count publisher_delta and label Entries per Registrable Domain under the snapshot in force at the Block; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a log_position.",
+  "log_key": {
+    "key_id": "test-agg-k1",
+    "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+  },
+  "lists": [
+    {
+      "name": "first",
+      "text": "// Fixture excerpt of the Public Suffix List, https://publicsuffix.org/list/public_suffix_list.dat\n// (Mozilla Foundation, MPL-2.0): rules copied verbatim, section markers preserved, most rules omitted.\n\n// ===BEGIN ICANN DOMAINS===\n\nac\nbiz\n*.ck\n!www.ck\ncn\ncom.cn\n\u516c\u53f8.cn\ncom\ndev\nio\njp\nac.jp\nkyoto.jp\nide.kyoto.jp\n*.kobe.jp\n!city.kobe.jp\n*.mm\nnet\norg\nus\nak.us\nk12.ak.us\n\u4e2d\u56fd\n\n// ===END ICANN DOMAINS===\n// ===BEGIN PRIVATE DOMAINS===\n\nuk.com\npages.dev\ngithub.io\n\n// ===END PRIVATE DOMAINS===\n",
+      "sha256": "sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2",
+      "bytes": 496
+    },
+    {
+      "name": "second",
+      "text": "// Fixture excerpt of the Public Suffix List, https://publicsuffix.org/list/public_suffix_list.dat\n// (Mozilla Foundation, MPL-2.0): rules copied verbatim, section markers preserved, most rules omitted.\n\n// ===BEGIN ICANN DOMAINS===\n\nac\nbiz\n*.ck\n!www.ck\ncn\ncom.cn\n\u516c\u53f8.cn\ncom\ndev\nio\njp\nac.jp\nkyoto.jp\nide.kyoto.jp\n*.kobe.jp\n!city.kobe.jp\n*.mm\nnet\norg\nus\nak.us\nk12.ak.us\n\u4e2d\u56fd\n\n// ===END ICANN DOMAINS===\n// ===BEGIN PRIVATE DOMAINS===\n\nuk.com\npages.dev\ngithub.io\nhosts.sample.net\n\n// ===END PRIVATE DOMAINS===\n",
+      "sha256": "sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31",
+      "bytes": 513
+    }
+  ],
+  "official_cases": [
+    {
+      "input": "COM",
+      "host": "com",
+      "expected": null,
+      "registrable": "com",
+      "public_suffix": true
+    },
+    {
+      "input": "example.COM",
+      "host": "example.com",
+      "expected": "example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "input": "WwW.example.COM",
+      "host": "www.example.com",
+      "expected": "example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "input": ".com",
+      "host": null,
+      "expected": null,
+      "registrable": null,
+      "public_suffix": null
+    },
+    {
+      "input": ".example",
+      "host": null,
+      "expected": null,
+      "registrable": null,
+      "public_suffix": null
+    },
+    {
+      "input": ".example.com",
+      "host": null,
+      "expected": null,
+      "registrable": null,
+      "public_suffix": null
+    },
+    {
+      "input": ".example.example",
+      "host": null,
+      "expected": null,
+      "registrable": null,
+      "public_suffix": null
+    },
+    {
+      "input": "example",
+      "host": "example",
+      "expected": null,
+      "registrable": "example",
+      "public_suffix": true
+    },
+    {
+      "input": "example.example",
+      "host": "example.example",
+      "expected": "example.example",
+      "registrable": "example.example",
+      "public_suffix": false
+    },
+    {
+      "input": "b.example.example",
+      "host": "b.example.example",
+      "expected": "example.example",
+      "registrable": "example.example",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.example.example",
+      "host": "a.b.example.example",
+      "expected": "example.example",
+      "registrable": "example.example",
+      "public_suffix": false
+    },
+    {
+      "input": "biz",
+      "host": "biz",
+      "expected": null,
+      "registrable": "biz",
+      "public_suffix": true
+    },
+    {
+      "input": "domain.biz",
+      "host": "domain.biz",
+      "expected": "domain.biz",
+      "registrable": "domain.biz",
+      "public_suffix": false
+    },
+    {
+      "input": "b.domain.biz",
+      "host": "b.domain.biz",
+      "expected": "domain.biz",
+      "registrable": "domain.biz",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.domain.biz",
+      "host": "a.b.domain.biz",
+      "expected": "domain.biz",
+      "registrable": "domain.biz",
+      "public_suffix": false
+    },
+    {
+      "input": "com",
+      "host": "com",
+      "expected": null,
+      "registrable": "com",
+      "public_suffix": true
+    },
+    {
+      "input": "example.com",
+      "host": "example.com",
+      "expected": "example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "input": "b.example.com",
+      "host": "b.example.com",
+      "expected": "example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.example.com",
+      "host": "a.b.example.com",
+      "expected": "example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "input": "uk.com",
+      "host": "uk.com",
+      "expected": null,
+      "registrable": "uk.com",
+      "public_suffix": true
+    },
+    {
+      "input": "example.uk.com",
+      "host": "example.uk.com",
+      "expected": "example.uk.com",
+      "registrable": "example.uk.com",
+      "public_suffix": false
+    },
+    {
+      "input": "b.example.uk.com",
+      "host": "b.example.uk.com",
+      "expected": "example.uk.com",
+      "registrable": "example.uk.com",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.example.uk.com",
+      "host": "a.b.example.uk.com",
+      "expected": "example.uk.com",
+      "registrable": "example.uk.com",
+      "public_suffix": false
+    },
+    {
+      "input": "test.ac",
+      "host": "test.ac",
+      "expected": "test.ac",
+      "registrable": "test.ac",
+      "public_suffix": false
+    },
+    {
+      "input": "mm",
+      "host": "mm",
+      "expected": null,
+      "registrable": "mm",
+      "public_suffix": true
+    },
+    {
+      "input": "c.mm",
+      "host": "c.mm",
+      "expected": null,
+      "registrable": "c.mm",
+      "public_suffix": true
+    },
+    {
+      "input": "b.c.mm",
+      "host": "b.c.mm",
+      "expected": "b.c.mm",
+      "registrable": "b.c.mm",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.c.mm",
+      "host": "a.b.c.mm",
+      "expected": "b.c.mm",
+      "registrable": "b.c.mm",
+      "public_suffix": false
+    },
+    {
+      "input": "jp",
+      "host": "jp",
+      "expected": null,
+      "registrable": "jp",
+      "public_suffix": true
+    },
+    {
+      "input": "test.jp",
+      "host": "test.jp",
+      "expected": "test.jp",
+      "registrable": "test.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "www.test.jp",
+      "host": "www.test.jp",
+      "expected": "test.jp",
+      "registrable": "test.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "ac.jp",
+      "host": "ac.jp",
+      "expected": null,
+      "registrable": "ac.jp",
+      "public_suffix": true
+    },
+    {
+      "input": "test.ac.jp",
+      "host": "test.ac.jp",
+      "expected": "test.ac.jp",
+      "registrable": "test.ac.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "www.test.ac.jp",
+      "host": "www.test.ac.jp",
+      "expected": "test.ac.jp",
+      "registrable": "test.ac.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "kyoto.jp",
+      "host": "kyoto.jp",
+      "expected": null,
+      "registrable": "kyoto.jp",
+      "public_suffix": true
+    },
+    {
+      "input": "test.kyoto.jp",
+      "host": "test.kyoto.jp",
+      "expected": "test.kyoto.jp",
+      "registrable": "test.kyoto.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "ide.kyoto.jp",
+      "host": "ide.kyoto.jp",
+      "expected": null,
+      "registrable": "ide.kyoto.jp",
+      "public_suffix": true
+    },
+    {
+      "input": "b.ide.kyoto.jp",
+      "host": "b.ide.kyoto.jp",
+      "expected": "b.ide.kyoto.jp",
+      "registrable": "b.ide.kyoto.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.ide.kyoto.jp",
+      "host": "a.b.ide.kyoto.jp",
+      "expected": "b.ide.kyoto.jp",
+      "registrable": "b.ide.kyoto.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "c.kobe.jp",
+      "host": "c.kobe.jp",
+      "expected": null,
+      "registrable": "c.kobe.jp",
+      "public_suffix": true
+    },
+    {
+      "input": "b.c.kobe.jp",
+      "host": "b.c.kobe.jp",
+      "expected": "b.c.kobe.jp",
+      "registrable": "b.c.kobe.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.c.kobe.jp",
+      "host": "a.b.c.kobe.jp",
+      "expected": "b.c.kobe.jp",
+      "registrable": "b.c.kobe.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "city.kobe.jp",
+      "host": "city.kobe.jp",
+      "expected": "city.kobe.jp",
+      "registrable": "city.kobe.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "www.city.kobe.jp",
+      "host": "www.city.kobe.jp",
+      "expected": "city.kobe.jp",
+      "registrable": "city.kobe.jp",
+      "public_suffix": false
+    },
+    {
+      "input": "ck",
+      "host": "ck",
+      "expected": null,
+      "registrable": "ck",
+      "public_suffix": true
+    },
+    {
+      "input": "test.ck",
+      "host": "test.ck",
+      "expected": null,
+      "registrable": "test.ck",
+      "public_suffix": true
+    },
+    {
+      "input": "b.test.ck",
+      "host": "b.test.ck",
+      "expected": "b.test.ck",
+      "registrable": "b.test.ck",
+      "public_suffix": false
+    },
+    {
+      "input": "a.b.test.ck",
+      "host": "a.b.test.ck",
+      "expected": "b.test.ck",
+      "registrable": "b.test.ck",
+      "public_suffix": false
+    },
+    {
+      "input": "www.ck",
+      "host": "www.ck",
+      "expected": "www.ck",
+      "registrable": "www.ck",
+      "public_suffix": false
+    },
+    {
+      "input": "www.www.ck",
+      "host": "www.www.ck",
+      "expected": "www.ck",
+      "registrable": "www.ck",
+      "public_suffix": false
+    },
+    {
+      "input": "us",
+      "host": "us",
+      "expected": null,
+      "registrable": "us",
+      "public_suffix": true
+    },
+    {
+      "input": "test.us",
+      "host": "test.us",
+      "expected": "test.us",
+      "registrable": "test.us",
+      "public_suffix": false
+    },
+    {
+      "input": "www.test.us",
+      "host": "www.test.us",
+      "expected": "test.us",
+      "registrable": "test.us",
+      "public_suffix": false
+    },
+    {
+      "input": "ak.us",
+      "host": "ak.us",
+      "expected": null,
+      "registrable": "ak.us",
+      "public_suffix": true
+    },
+    {
+      "input": "test.ak.us",
+      "host": "test.ak.us",
+      "expected": "test.ak.us",
+      "registrable": "test.ak.us",
+      "public_suffix": false
+    },
+    {
+      "input": "www.test.ak.us",
+      "host": "www.test.ak.us",
+      "expected": "test.ak.us",
+      "registrable": "test.ak.us",
+      "public_suffix": false
+    },
+    {
+      "input": "k12.ak.us",
+      "host": "k12.ak.us",
+      "expected": null,
+      "registrable": "k12.ak.us",
+      "public_suffix": true
+    },
+    {
+      "input": "test.k12.ak.us",
+      "host": "test.k12.ak.us",
+      "expected": "test.k12.ak.us",
+      "registrable": "test.k12.ak.us",
+      "public_suffix": false
+    },
+    {
+      "input": "www.test.k12.ak.us",
+      "host": "www.test.k12.ak.us",
+      "expected": "test.k12.ak.us",
+      "registrable": "test.k12.ak.us",
+      "public_suffix": false
+    },
+    {
+      "input": "\u98df\u72ee.com.cn",
+      "host": "xn--85x722f.com.cn",
+      "expected": "\u98df\u72ee.com.cn",
+      "registrable": "xn--85x722f.com.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "\u98df\u72ee.\u516c\u53f8.cn",
+      "host": "xn--85x722f.xn--55qx5d.cn",
+      "expected": "\u98df\u72ee.\u516c\u53f8.cn",
+      "registrable": "xn--85x722f.xn--55qx5d.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "www.\u98df\u72ee.\u516c\u53f8.cn",
+      "host": "www.xn--85x722f.xn--55qx5d.cn",
+      "expected": "\u98df\u72ee.\u516c\u53f8.cn",
+      "registrable": "xn--85x722f.xn--55qx5d.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "shishi.\u516c\u53f8.cn",
+      "host": "shishi.xn--55qx5d.cn",
+      "expected": "shishi.\u516c\u53f8.cn",
+      "registrable": "shishi.xn--55qx5d.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "\u516c\u53f8.cn",
+      "host": "xn--55qx5d.cn",
+      "expected": null,
+      "registrable": "xn--55qx5d.cn",
+      "public_suffix": true
+    },
+    {
+      "input": "\u98df\u72ee.\u4e2d\u56fd",
+      "host": "xn--85x722f.xn--fiqs8s",
+      "expected": "\u98df\u72ee.\u4e2d\u56fd",
+      "registrable": "xn--85x722f.xn--fiqs8s",
+      "public_suffix": false
+    },
+    {
+      "input": "www.\u98df\u72ee.\u4e2d\u56fd",
+      "host": "www.xn--85x722f.xn--fiqs8s",
+      "expected": "\u98df\u72ee.\u4e2d\u56fd",
+      "registrable": "xn--85x722f.xn--fiqs8s",
+      "public_suffix": false
+    },
+    {
+      "input": "shishi.\u4e2d\u56fd",
+      "host": "shishi.xn--fiqs8s",
+      "expected": "shishi.\u4e2d\u56fd",
+      "registrable": "shishi.xn--fiqs8s",
+      "public_suffix": false
+    },
+    {
+      "input": "\u4e2d\u56fd",
+      "host": "xn--fiqs8s",
+      "expected": null,
+      "registrable": "xn--fiqs8s",
+      "public_suffix": true
+    },
+    {
+      "input": "xn--85x722f.com.cn",
+      "host": "xn--85x722f.com.cn",
+      "expected": "xn--85x722f.com.cn",
+      "registrable": "xn--85x722f.com.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "xn--85x722f.xn--55qx5d.cn",
+      "host": "xn--85x722f.xn--55qx5d.cn",
+      "expected": "xn--85x722f.xn--55qx5d.cn",
+      "registrable": "xn--85x722f.xn--55qx5d.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "www.xn--85x722f.xn--55qx5d.cn",
+      "host": "www.xn--85x722f.xn--55qx5d.cn",
+      "expected": "xn--85x722f.xn--55qx5d.cn",
+      "registrable": "xn--85x722f.xn--55qx5d.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "shishi.xn--55qx5d.cn",
+      "host": "shishi.xn--55qx5d.cn",
+      "expected": "shishi.xn--55qx5d.cn",
+      "registrable": "shishi.xn--55qx5d.cn",
+      "public_suffix": false
+    },
+    {
+      "input": "xn--55qx5d.cn",
+      "host": "xn--55qx5d.cn",
+      "expected": null,
+      "registrable": "xn--55qx5d.cn",
+      "public_suffix": true
+    },
+    {
+      "input": "xn--85x722f.xn--fiqs8s",
+      "host": "xn--85x722f.xn--fiqs8s",
+      "expected": "xn--85x722f.xn--fiqs8s",
+      "registrable": "xn--85x722f.xn--fiqs8s",
+      "public_suffix": false
+    },
+    {
+      "input": "www.xn--85x722f.xn--fiqs8s",
+      "host": "www.xn--85x722f.xn--fiqs8s",
+      "expected": "xn--85x722f.xn--fiqs8s",
+      "registrable": "xn--85x722f.xn--fiqs8s",
+      "public_suffix": false
+    },
+    {
+      "input": "shishi.xn--fiqs8s",
+      "host": "shishi.xn--fiqs8s",
+      "expected": "shishi.xn--fiqs8s",
+      "registrable": "shishi.xn--fiqs8s",
+      "public_suffix": false
+    },
+    {
+      "input": "xn--fiqs8s",
+      "host": "xn--fiqs8s",
+      "expected": null,
+      "registrable": "xn--fiqs8s",
+      "public_suffix": true
+    }
+  ],
+  "domain_cases": [
+    {
+      "label": "shared registrable domain",
+      "list": "first",
+      "host": "a.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "shared registrable domain sibling",
+      "list": "first",
+      "host": "b.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "deeper shared host",
+      "list": "first",
+      "host": "x.a.example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "the registrable domain itself",
+      "list": "first",
+      "host": "example.com",
+      "registrable": "example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "private section host",
+      "list": "first",
+      "host": "alice.github.io",
+      "registrable": "alice.github.io",
+      "public_suffix": false
+    },
+    {
+      "label": "private section sibling",
+      "list": "first",
+      "host": "bob.github.io",
+      "registrable": "bob.github.io",
+      "public_suffix": false
+    },
+    {
+      "label": "private suffix is its own unit",
+      "list": "first",
+      "host": "github.io",
+      "registrable": "github.io",
+      "public_suffix": true
+    },
+    {
+      "label": "private suffix under an ICANN suffix",
+      "list": "first",
+      "host": "site.pages.dev",
+      "registrable": "site.pages.dev",
+      "public_suffix": false
+    },
+    {
+      "label": "wildcard exception",
+      "list": "first",
+      "host": "www.ck",
+      "registrable": "www.ck",
+      "public_suffix": false
+    },
+    {
+      "label": "wildcard suffix host",
+      "list": "first",
+      "host": "test.ck",
+      "registrable": "test.ck",
+      "public_suffix": true
+    },
+    {
+      "label": "under a wildcard suffix",
+      "list": "first",
+      "host": "b.test.ck",
+      "registrable": "b.test.ck",
+      "public_suffix": false
+    },
+    {
+      "label": "unlisted top level",
+      "list": "first",
+      "host": "foo.unlisted",
+      "registrable": "foo.unlisted",
+      "public_suffix": false
+    },
+    {
+      "label": "deep unlisted top level",
+      "list": "first",
+      "host": "a.b.foo.unlisted",
+      "registrable": "foo.unlisted",
+      "public_suffix": false
+    },
+    {
+      "label": "single label",
+      "list": "first",
+      "host": "localhost",
+      "registrable": "localhost",
+      "public_suffix": true
+    },
+    {
+      "label": "IDN suffix host",
+      "list": "first",
+      "host": "xn--85x722f.xn--55qx5d.cn",
+      "registrable": "xn--85x722f.xn--55qx5d.cn",
+      "public_suffix": false
+    },
+    {
+      "label": "unlisted IDN top level",
+      "list": "first",
+      "host": "xn--e1afmkfd.xn--p1ai",
+      "registrable": "xn--e1afmkfd.xn--p1ai",
+      "public_suffix": false
+    },
+    {
+      "label": "shared before the private rule",
+      "list": "first",
+      "host": "a.hosts.sample.net",
+      "registrable": "sample.net",
+      "public_suffix": false
+    },
+    {
+      "label": "shared before the private rule sibling",
+      "list": "first",
+      "host": "b.hosts.sample.net",
+      "registrable": "sample.net",
+      "public_suffix": false
+    },
+    {
+      "label": "separate after the private rule",
+      "list": "second",
+      "host": "a.hosts.sample.net",
+      "registrable": "a.hosts.sample.net",
+      "public_suffix": false
+    },
+    {
+      "label": "separate after the private rule sibling",
+      "list": "second",
+      "host": "b.hosts.sample.net",
+      "registrable": "b.hosts.sample.net",
+      "public_suffix": false
+    },
+    {
+      "label": "no snapshot in force",
+      "list": null,
+      "host": "a.example.com",
+      "registrable": "a.example.com",
+      "public_suffix": false
+    },
+    {
+      "label": "no snapshot in force sibling",
+      "list": null,
+      "host": "b.example.com",
+      "registrable": "b.example.com",
+      "public_suffix": false
+    }
+  ],
+  "act_cases": [
+    {
+      "label": "first snapshot pinned",
+      "height": 0,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2\", \"effective_at\": \"2026-08-01T12:00:00Z\", \"details\": {\"sha256\": \"sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2\", \"bytes\": 496}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"oETJnqiIDMKNoAJwgZhau-da1DeSVsdbFbgfG_MC-dFcweudQBpz3P6vY5HBQNvapCf_KJcPqJreD_zlzxfPDA\"}}",
+      "code": null,
+      "in_force_after": "first"
+    },
+    {
+      "label": "signed by a key the Log does not hold",
+      "height": 1,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-02T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-r1\", \"alg\": \"Ed25519\", \"value\": \"D0KR6NHFtavIUpt-L9Zi-5vNKmYCamT1ZCIBGaixpBx5zoiBZsLtok6BpZQCHx5qgxFOS0LLMUy8JPPRnToFDA\"}}",
+      "code": "WIST4-E11",
+      "in_force_after": "first"
+    },
+    {
+      "label": "unsupported major",
+      "height": 1,
+      "envelope_json": "{\"update\": {\"wist_version\": \"2.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-02T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_TL20GEipTsrE-o-kQRtF6fxRizYn_9MQ9PsrtpQqAoIJMvRdWDI40zSPJ0rLpCMYSGIWnxePv5YpLQSq7jkBA\"}}",
+      "code": "WIST4-E11",
+      "in_force_after": "first"
+    },
+    {
+      "label": "unknown member",
+      "height": 1,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-02T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}, \"source\": \"x\"}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"9KXcgygAEUj44FoiVeidSTjGILgNC8eAv-9LARdTS9t4wg2svwUlawN3DoWS4HcMIVA4BJ0q5YTdAxUVnv4WBA\"}}",
+      "code": "WIST4-E11",
+      "in_force_after": "first"
+    },
+    {
+      "label": "subject names another snapshot",
+      "height": 2,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2\", \"effective_at\": \"2026-08-03T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"L9F-XWHpekcw9fd8swYZHYxFoAlFKLGMm10m0jxpkq_KVtzC4Edtr_T5NF9LS7zDxel_M-1s1ykiSzdielpEAg\"}}",
+      "code": "WIST4-E04",
+      "in_force_after": "first"
+    },
+    {
+      "label": "malformed snapshot identifier",
+      "height": 2,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:xyz\", \"effective_at\": \"2026-08-03T12:00:00Z\", \"details\": {\"sha256\": \"sha256:xyz\", \"bytes\": 1}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"hdXc1lYkNv0UY04AGG6BjGROfhJBh1NPO_8TnF8PakgKfFCq5ny5r6P_DltVKljldPmz1Be2-5xTf-fkSY97Cw\"}}",
+      "code": "WIST4-E04",
+      "in_force_after": "first"
+    },
+    {
+      "label": "zero bytes",
+      "height": 2,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-03T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 0}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"p6OdCGsmnwf3AbidFgZyLv1HUxwLHEqp4QmWT847nlDev-DN3hoVfXMWwmtiSK5JGprOtY9be0dDJTWQuM7CBw\"}}",
+      "code": "WIST4-E04",
+      "in_force_after": "first"
+    },
+    {
+      "label": "missing bytes",
+      "height": 2,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-03T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"PgY3lKwXmPd4dSVeUqCyRy7B7CBTS8rh9D2HHdFQRoTBBnSF7Co5yd_dTQayRKHtO1kB8OblqTLR56V0ED0KBA\"}}",
+      "code": "WIST4-E04",
+      "in_force_after": "first"
+    },
+    {
+      "label": "bytes disagree with the named file",
+      "height": 2,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-03T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 514}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"ue1EXEE7J_2z-Vm4TVSa5CJBCWsHPsQ8DhYJfhQKJklowZAbBXGf9992IjnGAig3cXGHYKqZ-OEy6krdvFPBBA\"}}",
+      "code": "WIST4-E04",
+      "in_force_after": "first"
+    },
+    {
+      "label": "second snapshot pinned",
+      "height": 3,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-04T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"zgQa4WQhAnHKG3dayklN69HyQQ9ix7dsyHyLHcFe6lfRn52lO_IZoM4Vo_j_051sjiltyDPnQZshgwVj6vzPBA\"}}",
+      "code": null,
+      "in_force_after": "second"
+    },
+    {
+      "label": "repeated pin of the snapshot in force",
+      "height": 5,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-06T13:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"tteNeAsDFywiigJ8Xk01X7Y7ZmaFGjr8b07k3S_C5tRxmlg70IlcyQwna7x4X-QbkTm2WqFio6Jw5cD3kHxTAQ\"}}",
+      "code": null,
+      "in_force_after": "second"
+    }
+  ],
+  "in_force": [
+    {
+      "height": 0,
+      "list": null
+    },
+    {
+      "height": 1,
+      "list": "first"
+    },
+    {
+      "height": 2,
+      "list": "first"
+    },
+    {
+      "height": 3,
+      "list": "first"
+    },
+    {
+      "height": 4,
+      "list": "second"
+    },
+    {
+      "height": 5,
+      "list": "second"
+    },
+    {
+      "height": 6,
+      "list": "second"
+    }
+  ],
+  "capacity_cases": [
+    {
+      "label": "three hosts of one registrable domain",
+      "height": 2,
+      "domain_block_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "a.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "b.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "c.example.com"
+        }
+      ],
+      "expected": "WIST3-E03"
+    },
+    {
+      "label": "two private section hosts at the cap each",
+      "height": 2,
+      "domain_block_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "alice.github.io"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "alice.github.io"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "bob.github.io"
+        },
+        {
+          "type": "label",
+          "domain": "bob.github.io"
+        }
+      ],
+      "expected": null
+    },
+    {
+      "label": "a Label counts with the Deltas",
+      "height": 2,
+      "domain_block_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "label",
+          "domain": "b.hosts.sample.net"
+        }
+      ],
+      "expected": "WIST3-E03"
+    },
+    {
+      "label": "the same Entries after the private rule",
+      "height": 4,
+      "domain_block_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "a.hosts.sample.net"
+        },
+        {
+          "type": "label",
+          "domain": "b.hosts.sample.net"
+        }
+      ],
+      "expected": null
+    },
+    {
+      "label": "no snapshot in force keys on the host",
+      "height": 0,
+      "domain_block_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "a.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "a.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "b.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "b.example.com"
+        }
+      ],
+      "expected": null
+    },
+    {
+      "label": "the same Entries under the first snapshot",
+      "height": 1,
+      "domain_block_entries_max": 2,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "a.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "a.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "b.example.com"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "b.example.com"
+        }
+      ],
+      "expected": "WIST3-E03"
+    }
+  ],
+  "quota_cases": [
+    {
+      "label": "one UTC day under the first snapshot",
+      "height": 2,
+      "quota_base": 2,
+      "pings": [
+        {
+          "host": "a.example.com",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "b.example.com",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "c.example.com",
+          "noise": false,
+          "expected": 429
+        },
+        {
+          "host": "alice.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "alice.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "alice.github.io",
+          "noise": false,
+          "expected": 429
+        },
+        {
+          "host": "bob.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "a.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "b.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "c.hosts.sample.net",
+          "noise": true,
+          "expected": 429
+        }
+      ]
+    },
+    {
+      "label": "the same Pings under the second snapshot",
+      "height": 4,
+      "quota_base": 2,
+      "pings": [
+        {
+          "host": "a.example.com",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "b.example.com",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "c.example.com",
+          "noise": false,
+          "expected": 429
+        },
+        {
+          "host": "alice.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "alice.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "alice.github.io",
+          "noise": false,
+          "expected": 429
+        },
+        {
+          "host": "bob.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "a.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "b.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "c.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        }
+      ]
+    },
+    {
+      "label": "the same Pings with no snapshot in force",
+      "height": 0,
+      "quota_base": 2,
+      "pings": [
+        {
+          "host": "a.example.com",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "b.example.com",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "c.example.com",
+          "noise": false,
+          "expected": 202
+        },
+        {
+          "host": "alice.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "alice.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "alice.github.io",
+          "noise": false,
+          "expected": 429
+        },
+        {
+          "host": "bob.github.io",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "a.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "b.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        },
+        {
+          "host": "c.hosts.sample.net",
+          "noise": true,
+          "expected": 202
+        }
+      ]
+    }
+  ],
+  "state_tuples": [
+    {
+      "log_position": 0,
+      "entries": [
+        [
+          "suffix_list",
+          "sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2",
+          0
+        ]
+      ]
+    },
+    {
+      "log_position": 2,
+      "entries": [
+        [
+          "suffix_list",
+          "sha256:7d33b5043f459b41e3177b188f65790f7eef4c2fc40e28a996eace43034874e2",
+          0
+        ]
+      ]
+    },
+    {
+      "log_position": 3,
+      "entries": [
+        [
+          "suffix_list",
+          "sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31",
+          3
+        ]
+      ]
+    },
+    {
+      "log_position": 6,
+      "entries": [
+        [
+          "suffix_list",
+          "sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31",
+          3
+        ]
+      ]
+    }
+  ]
+}

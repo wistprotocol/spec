@@ -366,10 +366,15 @@ three times with exponential backoff (1 min, 4 min, 16 min) and then rely
 on the Aggregator's baseline polling; it MUST NOT retry a 4xx other than
 429.
 
-Every domain's Ping quota Q is `quota_base` Pings per UTC day (WIST-4
-§5), the same for every domain. Only pings resolving to `WIST2-E02` or
-`WIST2-E04` count against it; productive pings do not. Exceeding Q yields
-`429` until the UTC-day window resets.
+The Ping quota Q is `quota_base` Pings per UTC day per Registrable
+Domain (WIST-4 §5), the same for every Registrable Domain: a Ping for a
+Canonical Host counts against the Registrable Domain of that host under
+the Public Suffix List snapshot in force at the Ping (WIST-4 §3.1), so
+hosts under one registrable name share one quota while hosts under a
+private-section suffix hold their own. Only pings resolving to
+`WIST2-E02` or `WIST2-E04` count against it; productive pings do not.
+Once Q is reached, every Ping for a host of that Registrable Domain
+yields `429` until the UTC-day window resets.
 
 ## 5. Aggregator Pull Behavior
 
@@ -387,9 +392,12 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    history arbitrarily deep: a single Ping would otherwise oblige
    terabytes of pulls, an amplification no quota reaches because
    productive pings are unmetered (§4). The Aggregator therefore
-   applies a per-domain budget: it MUST fetch no more than
+   applies a per-domain budget, accounted per Registrable Domain
+   (WIST-4 §3.1) so that a free hostname is not a free budget: it MUST
+   fetch no more than
    `ingest_budget_bytes_day` (Parameter Registry; default 1 GiB) of
-   Feed pages, Deltas and Payloads for one domain per UTC day, MAY
+   Feed pages, Deltas and Payloads for the hosts of one Registrable
+   Domain per UTC day, MAY
    suspend the walk when the budget is spent, and MUST resume it —
    from where it stopped, which §3.2's "until already-ingested" rule
    makes well-defined — on a later day rather than treat the suspension
@@ -575,8 +583,9 @@ carries `wist_version`, the `domain` it describes, and:
 
 - `last_pull_at` — the time of the last successful pull, or `null` if the
   Aggregator has never completed one;
-- `quota_remaining` — Pings still available to the domain in the current
-  UTC-day window, against the `Q` of WIST-4 §5;
+- `quota_remaining` — Pings still available to the domain's Registrable
+  Domain in the current UTC-day window, against the `Q` of WIST-4 §5,
+  shared with every other host of that Registrable Domain (§4);
 - `state` — the domain's **ingestion** state: one of `new` (known, not yet
   successfully pulled), `active`, or `refused` (the Aggregator does not
   ingest the domain — the one state §4 answers a Ping with `403` for);
@@ -596,7 +605,10 @@ the Publisher's debugging surface, not an artifact other parties verify.
   walk, whose depth the pinging domain controls — which is why §5's
   per-domain ingest budget, not the Ping's own cheapness, is the
   content-walk bound; Declaration discovery is excluded (§5). Quotas
-  (WIST-4 §5) throttle abusive domains; Ingest Endpoints SHOULD additionally apply source-IP rate limits below the
+  (WIST-4 §5) throttle abusive domains, and both the quota and the
+  budget are keyed per Registrable Domain (WIST-4 §3.1), so a flood
+  from a thousand free hostnames under one name is one domain's flood;
+  Ingest Endpoints SHOULD additionally apply source-IP rate limits below the
   per-domain quotas.
 - **Feed replay.** An attacker replaying an old `feed.json` cannot
   regress state: signatures bind content, `generated_at` monotonicity
@@ -682,16 +694,18 @@ adjacent to the layout it walks.
       `generated_at`, or that of the first Block after it sealing an
       applicable Declaration — the highest `seq`'s where a Block seals
       several (§3.2)
-- [ ] Applies the per-domain ingest budget to that walk, suspending and
-      resuming across days rather than truncating it (§5)
+- [ ] Applies the per-domain ingest budget to that walk, accounted per
+      Registrable Domain, suspending and resuming across days rather
+      than truncating it (§5, WIST-4 §3.1)
 - [ ] Runs baseline polling independent of Pings (§5)
 - [ ] Pulls a domain's Label Feed with its Feed under the same budget,
       validates each Label under §3.3, seals what verifies and reports
       `WIST2-E06` for the rest (§3.3, §5, §7)
 - [ ] Never attributes unsigned-hint content to a domain (§6)
 - [ ] Implements the Error Registry behaviors and the status endpoint (§7)
-- [ ] Accounts pings correctly against the domain's quota — only
-      `WIST2-E02`/`WIST2-E04` count as noise (§4)
+- [ ] Accounts pings correctly against the Registrable Domain's quota
+      under the snapshot in force — only `WIST2-E02`/`WIST2-E04` count
+      as noise (§4, WIST-4 §3.1)
 - [ ] HTTPS-only, same-authority-only fetching, per the Canonical Host /
       `subdomain_scope` redirect rule (§8)
 

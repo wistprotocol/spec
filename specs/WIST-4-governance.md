@@ -5,12 +5,13 @@
 ## 1. Introduction
 
 WIST-4 defines the governance acts an Aggregator seals into its Log —
-Aggregator key changes, parameter amendments and Payload withdrawals —
-the Parameter Registry those amendments change, the registry of Label
-names Labelers publish under (WIST-2 §3.3), and the constitutional
-invariants no operator can amend. Governance acts are Log Entries
-(WIST-3 §3.3), so any party replaying the Log derives the parameter
-schedule, the key registry and every withdrawal from public, ordered
+Aggregator key changes, parameter amendments, Payload withdrawals and
+Public Suffix List snapshots — the Parameter Registry those amendments
+change, the registry of Label names Labelers publish under (WIST-2
+§3.3), and the constitutional invariants no operator can amend.
+Governance acts are Log Entries (WIST-3 §3.3), so any party replaying
+the Log derives the parameter schedule, the key registry, every
+withdrawal and the snapshot every quota reads from public, ordered
 history. Nothing in this suite measures a Publisher's page or scores a
 Publisher; ranking and trust are assessed at consumption, over the raw
 inputs the Log carries
@@ -26,7 +27,7 @@ shown here.
 
 - **Registry Update**: the signed governance object this document defines,
   sealed as a `registry_update` Entry (WIST-3 §3.3). Its `action` selects
-  one of the four governance acts of §3; `subject` names what the act is
+  one of the five governance acts of §3; `subject` names what the act is
   about; `details` is constrained per `action` by §5.1.
 - **Registry Update ID**: `"sha256:" + hex(SHA-256(JCS(update)))` — the
   act's inner object canonicalized and hashed under the construction
@@ -38,6 +39,16 @@ shown here.
   from the Label Registry (§6, WIST-2 §3.3).
 - **Labeler**: a Publisher whose publications include Labels (WIST-2
   §3.4). Every Publisher MAY label; a Labeler needs no admission.
+- **Public Suffix List snapshot**: the exact octets of one revision of
+  the Public Suffix List file, identified by `"sha256:" +
+  hex(SHA-256(octets))`, pinned into the Log by a `suffix_list_update`
+  (§3.1) and served beside the Log (WIST-3 §6).
+- **Registrable Domain**: of a Canonical Host, the domain the Public
+  Suffix List algorithm derives from it under the snapshot in force
+  (§3.1): the public suffix plus one label, or the host itself where the
+  list leaves no such domain. Quota and capacity are accounted per
+  Registrable Domain; identity, signing and scope stay per Canonical
+  Host (WIST-1 §3.8).
 
 Every signed object in this document carries `wist_version` (WIST-1 §3.1)
 and the WIST-1 §4 signature block (`key_id`, `alg`, `value`).
@@ -47,7 +58,7 @@ and the WIST-1 §4 signature block (`key_id`, `alg`, `value`).
 A Registry Update is an Envelope whose inner object is `update` (schema:
 [`schemas/registry-update.schema.json`](../schemas/registry-update.schema.json)),
 carrying `wist_version`, `action`, `subject`, `effective_at` and, where
-the act's contract requires it, `details`. The four acts are:
+the act's contract requires it, `details`. The five acts are:
 
 - `aggregator_key_add` and `aggregator_key_remove` — the Aggregator's own
   signing keys, valid at a height as WIST-3 §3.4 defines.
@@ -55,6 +66,8 @@ the act's contract requires it, `details`. The four acts are:
   in force from its `effective_at` under §5.
 - `payload_withdrawal` — the removal of one Payload from distribution
   under WIST-3 §6.2.
+- `suffix_list_update` — the Public Suffix List snapshot every quota and
+  capacity decision reads from the next Block on (§3.1).
 
 Every act is signed by the Aggregator under a Log key valid at the act's
 Block (WIST-3 §3.4). `effective_at` is a whole-second UTC instant with a
@@ -62,8 +75,98 @@ literal trailing `Z`, the form every Block `sealed_at` carries (WIST-3
 §3.1); it is descriptive of when the act takes effect and never the
 anchor of a window — a recovery window runs from the `sealed_at` of the
 Block sealing the recovery Declaration (WIST-1 §5.2). An act's `subject`
-is the parameter identifier, the key identifier or the Publisher's
-Canonical Host its contract names (§5.1).
+is the parameter identifier, the key identifier, the Publisher's
+Canonical Host or the snapshot identifier its contract names (§5.1).
+
+### 3.1. Public Suffix List Snapshots and the Registrable Domain
+
+Every Canonical Host is a separate Publisher identity (WIST-1 §3.8), and
+a hostname under a shared parent costs nothing: a subdomain of a hosting
+provider, or of a domain its operator already holds, is a free
+identity. Every bound this suite places on how much one party may
+publish — the Ping quota (WIST-2 §4), the ingest budget (WIST-2 §5) and
+the per-domain Block capacity (WIST-3 §3.2) — is therefore accounted
+per **Registrable Domain**, the unit the Public Suffix List draws
+between what a registry sells and what a registrant subdivides, and
+never per hostname. Hosts under a suffix the list's private section
+names — `alice.github.io` and `bob.github.io`, whose provider registers
+`github.io` there — stay separate units, because the list records that
+their names are allocated to different parties; `a.example.com` and
+`b.example.com` share one.
+
+**The snapshot.** The list changes, and two parties reading different
+revisions of it would account one Log two ways, so the revision in
+force is pinned in the Log. A `suffix_list_update` names a snapshot by
+`details.sha256`, the identifier `"sha256:" + hex(SHA-256(octets))` of
+the exact file, and `details.bytes`, the octet count of that file;
+`subject` repeats the identifier (§5.1). The Aggregator MUST serve the
+named octets at `/log/suffix-lists/<hex>.dat` (WIST-3 §6) from the
+Block that seals the act, immutably and without expiry, and Mirrors
+retain them as they retain Checkpoints; a served file whose SHA-256 is
+not the identifier is `WIST3-E03`, and one no source holds is
+`WIST3-E01`, which leaves every Block the snapshot governs unverifiable
+until it is obtained. An act whose `bytes` disagrees with the named
+file's octet count fails its contract (`WIST4-E04`).
+
+**In force.** An accepted `suffix_list_update` is in force from the
+Block after its sealing Block: the snapshot in force at Block B is the
+one named by the most recent accepted `suffix_list_update` sealed at a
+height below B, and the snapshot in force at an instant T is the one
+named by the most recent accepted act sealed at or before T — the same
+snapshot the first Block sealed after T reads. An act naming the
+snapshot already in force is accepted and changes nothing, the height
+WIST-3 §7's tuple carries included: that height is the sealing height
+of the accepted act that put the snapshot in force. Before the
+first accepted act, no snapshot is in force and **every Canonical Host
+is its own Registrable Domain**; an Aggregator SHOULD seal its first
+`suffix_list_update` in Block 0, since until it does a free hostname is
+a free quota. Where the name of the snapshot in force is needed by a
+Consumer resuming from a Snapshot, WIST-3 §7's `suffix_list` tuple
+carries it.
+
+**The algorithm.** A snapshot is a UTF-8 text. Each line's rule is the
+text before its first whitespace; a line that is empty, or begins with
+`//`, carries no rule. Every rule line of the file applies, in the
+ICANN section and the private section alike. A rule is an optional
+leading `!`, the exception marker, followed by labels separated by `.`;
+a label is `*`, the wildcard, or a hostname label, which is converted
+to Canonical Host form by WIST-1 §2's processing before any comparison,
+so that a rule the list spells in Unicode matches the A-labels a
+Canonical Host carries. A rule with a label that processing rejects is
+ignored. The Registrable Domain of a Canonical Host H under the
+snapshot is derived as the Public Suffix List's algorithm states it:
+
+1. A rule matches H when H has at least as many labels as the rule and,
+   pairing labels from the right, every rule label is `*` or equals the
+   host label it is paired with. Collect the matching rules.
+2. The prevailing rule is the exception rule among them, the one with
+   the most labels where several are exceptions; otherwise the matching
+   rule with the most labels; otherwise, where no rule matches, `*`.
+3. Where the prevailing rule is an exception rule, drop its leftmost
+   label. The public suffix of H is its rightmost labels, as many as the
+   prevailing rule has.
+4. The Registrable Domain is the public suffix plus the one label of H
+   to its left. Where H has no label to the left of its public suffix —
+   H is a listed suffix, a single label, or a host a wildcard rule
+   swallows whole — **the Registrable Domain is the host itself**.
+
+Under this derivation `a.b.example.com` and `example.com` share the
+Registrable Domain `example.com`; `alice.github.io` is its own, and so
+is `github.io`; `www.ck` is its own under the exception `!www.ck` while
+`test.ck` is a suffix under `*.ck` and therefore its own unit; a host
+under a top-level label the list does not carry keys on its last two
+labels. The vector `vectors/wist4/registrable-domain.json` fixes these
+readings, transcribes the Public Suffix List project's own test cases
+over a fixture snapshot, and replays acts, capacity and quota under a
+snapshot advance.
+
+**Identity is unchanged.** The Registrable Domain is an accounting key
+and nothing else. A Publisher is still its Canonical Host, signs under
+its own Declaration, holds its own scope and its own status endpoint
+(WIST-2 §7.1), and Labels are still applied to the Canonical Host or
+URL they name. Two hosts sharing a Registrable Domain share a quota and
+a capacity; they share no key, no chain and no consequence of each
+other's Labels.
 
 ## 4. Constitutional Invariants
 
@@ -82,9 +185,10 @@ version of this suite — a fork that must win adoption on its own merits.
    own authority (WIST-1 §3.2) is rejected (WIST-2 §3.3).
 2. **Position is not for sale.** The Aggregator MUST NOT accept payment
    or any consideration for inclusion, weight, latency or any treatment
-   of a Publisher's content. Every domain has the same Ping quota and the
-   same inclusion eligibility (§5). Infrastructure services treating all
-   Publishers identically, such as mirror bandwidth, are exempt.
+   of a Publisher's content. Every Registrable Domain has the same Ping
+   quota and every domain the same inclusion eligibility (§5).
+   Infrastructure services treating all Publishers identically, such as
+   mirror bandwidth, are exempt.
 3. **The record is not rewritable.** Sealed Blocks and their commitments,
    Labels and governance actions are immutable; corrections append to the
    Log. Payloads remain outside it and may be withdrawn only through a
@@ -275,19 +379,22 @@ without amending anything. The floor is set well above any plausible
 Mirror resynchronisation lag, so that absence inside the window remains
 attributable rather than routine.
 
-**Ping quota and inclusion.** Every domain's Ping quota is `quota_base`
-Pings per UTC day (WIST-2 §4), the same for a domain on its first day
-and one a decade old. Every accepted Delta is eligible for the next
+**Ping quota and inclusion.** Every Registrable Domain's Ping quota is
+`quota_base` Pings per UTC day (WIST-2 §4), shared by every Canonical
+Host under it (§3.1) and the same for a domain on its first day and one
+a decade old. Every accepted Delta is eligible for the next
 Block, and an accepted Delta MUST be sealed no later than
 `max_inclusion_blocks` Blocks after the Block it became eligible for. A
 Delta queued under WIST-1 §5.2's recovery window is not yet eligible:
 its eligibility, and with it this ceiling's clock, starts at the first
 Block at or after the window's end, after WIST-1 §5.2's revalidation.
 Eligibility is gated the same way by WIST-3 §3.2's per-domain Block
-capacity: where more of a domain's Deltas are eligible for a Block than
+capacity, accounted per Registrable Domain: where more of a Registrable
+Domain's Deltas are eligible for a Block than
 `domain_block_entries_max` admits, they take the capacity in acceptance
-order, and a Delta the cap holds out of a Block becomes eligible for the
-first Block with room for it, which is where its ceiling's clock starts.
+order across its hosts, and a Delta the cap holds out of a Block becomes
+eligible for the first Block with room for it, which is where its
+ceiling's clock starts.
 The ceiling bounds the Aggregator's delay of a Delta whose turn has come,
 not the domain's rate: a backfill of 50 000 accepted Deltas seals over
 five Blocks at the default cap, and none of them is late. The ceiling
@@ -317,14 +424,14 @@ and ceiling as a Delta (WIST-2 §3.3).
 | Payload availability window | `payload_window_days` | 180 days | WIST-3 §6.1 |
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | WIST-3 §6 |
 | Discovery sealing deadline | `record_seal_blocks` | 24 Blocks | WIST-1 §5.2, WIST-2 §3.3 |
-| Per-domain Block capacity | `domain_block_entries_max` | 10 000 Entries | WIST-3 §3.2 |
+| Per-domain Block capacity (per Registrable Domain) | `domain_block_entries_max` | 10 000 Entries | WIST-3 §3.2 |
 | Inclusion ceiling | `max_inclusion_blocks` | 4 Blocks | §5 |
 | Per-domain daily ingest budget | `ingest_budget_bytes_day` | 1 GiB | WIST-2 §5 |
 | Feed window | `feed_window` | 1000 IDs | WIST-2 §3.2, §3.4 |
 | Clock skew allowance | `clock_skew_seconds` | 10 minutes | WIST-1 §3.4 |
 | Key Set cache TTL | `keyset_cache_ttl_seconds` | 24 hours | WIST-1 §5.1 |
 | Baseline feed poll interval | `baseline_poll_seconds` | 24 hours | WIST-2 §5 |
-| Ping quota (per domain per UTC day) | `quota_base` | 1000 | §5, WIST-2 §4 |
+| Ping quota (per Registrable Domain per UTC day) | `quota_base` | 1000 | §5, WIST-2 §4 |
 | Recovery window | `recovery_window_days` | 7 days | WIST-1 §5.2 |
 | Parameter change grace period | `param_grace_days` | 7 days | §5 |
 
@@ -349,6 +456,12 @@ and ceiling as a Delta (WIST-2 §3.3).
   its `details` contract (`WIST4-E04`). A later withdrawal of an already
   withdrawn Delta is accepted and changes nothing: the earliest accepted
   withdrawal's Block is the height every rule reads.
+- `suffix_list_update`: `sha256`, the snapshot identifier (§3.1), and
+  `bytes`, the octet count of the identified file, an integer ≥ 1;
+  `subject` is the identifier and MUST equal `details.sha256`. Both are
+  REQUIRED. An act whose `bytes` is not the named file's octet count
+  fails its `details` contract (`WIST4-E04`); which snapshot is in force
+  at a height follows §3.1.
 
 **Envelope eligibility and precedence.** Every party validating a
 Registry Update — an Aggregator before sealing one, and any party
@@ -439,6 +552,18 @@ party in this suite aggregates Labels into a score, and no Consumer is
 bound to apply any Label: which Labelers a Consumer subscribes to, how it
 weighs their Labels and what it does with a `wist:trust-seed` are its own
 policy, exactly as ranking is ([ADR-0008](../decisions/0008-raw-citation-graph-never-a-score.md)).
+Two readings are recommended to every ranking policy that propagates
+trust or distrust along the signed link graph, because the alternative
+readings hand the graph to whoever holds the cheapest names: propagate
+over Registrable Domains (§3.1), collapsing every host of one
+Registrable Domain into one node under the snapshot in force at the
+height ranked, so that a thousand free subdomains are one voice and
+hosts under a private-section suffix keep theirs; and read a domain's
+age from the height of the first Entry the Log seals for it — its first
+`publisher_declaration` Entry, or the first after a fresh identity
+(WIST-1 §5.2) — never from registration records, WHOIS or any source
+outside the Log, which are neither replayable nor bound to the keys
+that sign.
 An Aggregator MUST seal every eligible Label it pulls whatever its name
 or subject and MUST NOT read a Label when materializing records (WIST-3
 §7): Labels are transported beside the records, never applied to them.
@@ -496,6 +621,17 @@ MUST NOT reuse them for another meaning.
   the Log as a Declaration signed by neither the previous Key Set nor its
   recovery keys, and a Consumer reading a domain's age or publication
   history from the Log reads it from that height.
+- **Free hostnames.** A hostname under a domain one already holds, or
+  under a hosting provider's suffix, costs nothing, so any bound keyed
+  per hostname is no bound. Quota, ingest budget and Block capacity are
+  keyed per Registrable Domain (§3.1), which makes a thousand subdomains
+  one unit and leaves a hosting provider's customers separate through
+  the list's private section; the snapshot is pinned in the Log so the
+  accounting replays identically, and a Consumer that ranks over the
+  link graph is advised to collapse hosts the same way (§6). What no
+  list bounds is registration itself: a party that buys a thousand
+  cheap domains holds a thousand units, priced by the registries and
+  visible in the Log as a thousand fresh identities.
 - **Parameter capture.** A `parameter_change` is the one lever an
   Aggregator holds over every Publisher at once; the grace period, the
   bounds table, the combination rules and the prospective validation
@@ -531,9 +667,15 @@ enters the Log.
       guarantee at sealing (§5)
 - [ ] Withdraws a Payload only by a `payload_withdrawal` naming the
       Delta, the legal basis and the jurisdiction (§5.1, WIST-3 §6.2)
-- [ ] Applies the same Ping quota and the same inclusion eligibility to
-      every domain, and seals an accepted Delta or Label within
-      `max_inclusion_blocks` of its eligibility Block (§5)
+- [ ] Applies the same Ping quota to every Registrable Domain and the
+      same inclusion eligibility to every domain, and seals an accepted
+      Delta or Label within `max_inclusion_blocks` of its eligibility
+      Block (§5)
+- [ ] Pins the Public Suffix List snapshot it accounts under with a
+      `suffix_list_update`, serves every pinned snapshot at
+      `/log/suffix-lists/<hex>.dat` without expiry, and keys quota,
+      ingest budget and capacity on the Registrable Domain under the
+      snapshot in force (§3.1)
 - [ ] Seals every eligible Label it pulls whatever its name or subject,
       rejects a self-labeling Label, and never reads a Label when
       materializing records (§6, WIST-2 §3.3, WIST-3 §7)
@@ -552,6 +694,10 @@ enters the Log.
       accepted schedule (§5, §7)
 - [ ] Reads a withdrawal from the earliest Block sealing it and applies
       WIST-3 §6.2 from that height (§5.1)
+- [ ] Reads the snapshot in force at a Block as the most recent accepted
+      `suffix_list_update` sealed below it, obtains and verifies the
+      named octets, and derives Registrable Domains by §3.1's algorithm,
+      every Canonical Host being its own before the first act (§3.1)
 - [ ] Carries Labels as sealed and never aggregates them into a value the
       Log did not carry (§6)
 

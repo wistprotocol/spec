@@ -123,16 +123,21 @@ forever.
 
 **Per-domain Block capacity.** A Block MUST NOT carry more than
 `domain_block_entries_max` (Parameter Registry; default 10 000)
-`publisher_delta` and `label` Entries, counted together, whose Publisher
-or Labeler is one domain, and a Consumer replaying the Log MUST reject a
-Block that does. Where a domain has more accepted Deltas and Labels
-eligible for a Block than the cap admits, the surplus waits its turn in
-acceptance order, and WIST-4 §5's inclusion ceiling runs from the Block
-an Entry's turn arrives in — so the cap never obliges an Aggregator to
-breach the ceiling, nor the ceiling to breach the cap. This is the one
-bound in the suite on how much a domain may publish, and it is
-deliberately a bound on *rate*, not on worth or on standing: every
-domain has the same quota and the same eligibility (WIST-4 §5), judging
+`publisher_delta` and `label` Entries, counted together, whose
+Publisher's or Labeler's Canonical Host has one Registrable Domain under
+the Public Suffix List snapshot in force at the Block (WIST-4 §3.1), and
+a Consumer replaying the Log MUST reject a Block that does. The unit is
+the Registrable Domain, not the hostname, because a hostname under a
+name one holds is free; before the first accepted `suffix_list_update`
+every Canonical Host is its own unit. Where a Registrable Domain has
+more accepted Deltas and Labels eligible for a Block than the cap
+admits, the surplus waits its turn in acceptance order across its
+hosts, and WIST-4 §5's inclusion ceiling runs from the Block an Entry's
+turn arrives in — so the cap never obliges an Aggregator to breach the
+ceiling, nor the ceiling to breach the cap. This is the one bound in
+the suite on how much a domain may publish, and it is deliberately a
+bound on *rate*, not on worth or on standing: every Registrable Domain
+has the same quota and every domain the same eligibility (WIST-4 §5), judging
 content's worth is outside the protocol (ADR-0006), and a ceiling that
 grew with any standing would re-create the pay-for-position pressure
 Invariant 2 exists to forbid — so the cap is flat, high enough that a large site's
@@ -489,6 +494,7 @@ but they are the one class of file that may cease to be served, under §6.2.
 /log/blocks/000000000.json.zst          (immutable; zero-padded 9-digit block number)
 /log/blocks/000000001.json.zst
 ...
+/log/suffix-lists/7d33b504….dat         (immutable; a pinned Public Suffix List snapshot, WIST-4 §3.1)
 /payloads/6cac5bdd….json                (one per content-bearing Delta — §6.1)
 /snapshots/index.json                   (mutable, signed; the discovery entry point)
 /snapshots/2026-08-02/manifest.json     (signed; declares log position)
@@ -587,6 +593,17 @@ Checkpoints is stricter and this floor does not relax it: a Mirror retains
 every Checkpoint it has ever served, without expiry, because Checkpoints
 are the equivocation evidence itself and are small enough that no retention
 argument applies to them.
+
+**Suffix-list files.** Every Public Suffix List snapshot a sealed
+`suffix_list_update` names is served at `/log/suffix-lists/<hex>.dat`,
+where `<hex>` is the identifier's 64-character digest (WIST-4 §3.1), as
+the exact octets that hash to it, from the Block that seals the act and
+without expiry; a Mirror that serves a Block MUST serve the snapshot in
+force at it and every snapshot an act in that Block names, and retains
+them as it retains Checkpoints, without expiry. A file whose octets do
+not hash to its name is `WIST3-E03`, and one no source holds is
+`WIST3-E01`: the Consumer cannot check the per-domain capacity of any
+Block that snapshot governs until it obtains the file.
 
 **Sizing.** The Log's permanent volume is the Entries it seals:
 Declarations, governance acts, Deltas and Labels. An idle Log accrues one
@@ -1098,6 +1115,7 @@ value fields are:
 | `declaration` | domain | the current Declaration Envelope, its sealing height, the highest accepted `seq` | WIST-1 §5 |
 | `parameter` | identifier, `effective_at` | value | WIST-4 §5 |
 | `recovery_window` | domain | owner Declaration height, window end, the recovery-chain head Envelope, its sealing height | WIST-1 §5.2 |
+| `suffix_list` | snapshot identifier | sealing height of the act that put it in force | WIST-4 §3.1 |
 | `withdrawal` | Delta ID | the Publisher's domain, sealing height | §6.2 |
 | `label` | labeler, subject, name | value or `null`, `asserted_at`, sealing height | WIST-2 §3.3 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
@@ -1114,7 +1132,12 @@ its own instant — `effective_at` inclusive, the greatest `effective_at`
 at or before an instant prevailing (WIST-4 §5). An amendment that another
 amendment with the same `effective_at`, sealed later in Log order,
 supersedes is never in force and is not state: no tuple exists for it,
-which is what keeps the key unambiguous. A
+which is what keeps the key unambiguous. A `suffix_list` tuple exists
+for the one snapshot in force at the first Block above `log_position`
+— the most recent accepted `suffix_list_update` sealed at or below it
+(WIST-4 §3.1) — and for no earlier one, so that a resuming Consumer
+accounts the next Block's capacity under the snapshot a replaying one
+reads; no tuple exists while no act has been accepted. A
 `record` tuple carries the chain tip — the newest Delta of the chain,
 which the content tuple does not name (its `delta_id` is the anchor) —
 because a resuming Consumer must reject a fork of the live chain
@@ -1145,8 +1168,8 @@ whole-second literal-`Z` RFC 3339 strings the sealing Blocks and the
 Entries they seal carry (WIST-4 §3); a Label's `asserted_at` is the
 Publisher timestamp its Entry carries (WIST-2 §3.3); domains, URLs,
 `key_id`s, names and parameter identifiers are the strings the sealed
-Entries carry; keys are raw base64url public keys; IDs are
-`sha256:`-prefixed. Four kinds need more than that:
+Entries carry; keys are raw base64url public keys; IDs and snapshot
+identifiers are `sha256:`-prefixed. Four kinds need more than that:
 `declaration`'s value members are the current Declaration Envelope as
 sealed, verbatim as one JSON object member, then its sealing height, then
 the highest accepted `seq` — WIST-1 §5.2's sequence floor, which a
@@ -1174,8 +1197,8 @@ declares `shards`, the state file MAY be split on the same
 Publisher-domain rule, one part per shard for the domain-keyed kinds
 (`declaration`, `recovery_window`, `record`, `withdrawal` by the
 withdrawn Delta's Publisher, `label` by its Labeler), with the Log-wide
-kinds (`aggregator_key`, `parameter`) carried in every part, since no
-Consumer can validate an Entry without them.
+kinds (`aggregator_key`, `parameter`, `suffix_list`) carried in every
+part, since no Consumer can validate an Entry without them.
 The tuple set is a set: a Log-wide tuple appears exactly once in the
 digest preimage, however many parts carry a copy.
 `state_digest` remains the digest over the whole tuple set: a partial
@@ -1213,8 +1236,11 @@ above, treats its coverage as partial.
    each against its Delta's commitment and `bytes` (§6.1).
 10. Load the state artifact (§7): verify its signature and its
     `log_position`, and adopt its tuples as the protocol state at
-    `log_position` — key registries, Declarations, parameters,
-    withdrawals, Labels, chain tips. Every Entry applied in the next step
+    `log_position` — key registries, Declarations, parameters, the
+    Public Suffix List snapshot in force (whose octets the Consumer
+    fetches from `/log/suffix-lists/` and verifies by their identifier
+    before it checks the next Block's per-domain capacity, WIST-4
+    §3.1), withdrawals, Labels, chain tips. Every Entry applied in the next step
     is validated against this state exactly as a replaying Consumer
     validates against state it derived itself: a signature under a key
     the state does not admit, a Delta whose `prev` is not the chain tip
@@ -1405,6 +1431,11 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       serving that Snapshot (§6)
 - [ ] Retains every Block from genesis and every Checkpoint it has
       published, the latter at `/log/checkpoints/<block_number>.json` (§6)
+- [ ] Serves every Public Suffix List snapshot a sealed
+      `suffix_list_update` names at `/log/suffix-lists/<hex>.dat`, from
+      the sealing Block and without expiry, and counts the per-domain
+      capacity per Registrable Domain under the snapshot in force
+      (§3.2, §6, WIST-4 §3.1)
 - [ ] Rebuilds a Snapshot superseded by a withdrawal at a `log_position`
       at or above the withdrawal's height, or withdraws it (§6.2, §7)
 - [ ] Emits each Block in exactly one standard Zstandard frame with no
@@ -1431,6 +1462,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Retains every Block it serves for at least `mirror_retention_days`
       (§6)
 - [ ] Retains all Checkpoints ever served, without expiry (§5, §6)
+- [ ] Serves the Public Suffix List snapshots the Blocks it serves read
+      and name, without expiry (§6)
 - [ ] Serves the Payloads of every Block it serves for at least the
       availability window, never serves a Block before its Payloads, and
       stops serving one only after a `payload_withdrawal` is sealed for
@@ -1471,7 +1504,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Obtains the Anchor out-of-band and resolves signing keys by height
       (§3.4)
 - [ ] Rejects Blocks off the `sealed_at` grid, out of canonical Entry
-      order, or over the per-domain Entry capacity (§3.1–§3.3)
+      order, or over the per-domain Entry capacity counted per
+      Registrable Domain under the snapshot in force, obtained and
+      verified by its identifier (§3.1–§3.3, §6, WIST-4 §3.1)
 - [ ] On cold start from a Snapshot, loads the state artifact and
       validates subsequent Entries against it; on a sharded Snapshot,
       verifies each held shard's digest and treats coverage as partial

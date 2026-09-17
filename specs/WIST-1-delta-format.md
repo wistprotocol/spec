@@ -520,6 +520,13 @@ Key Set is `WIST1-E02` under §5.1, even when another domain has a verifying
 key. The URL must satisfy this named Publisher's literal scope (§3.2),
 including explicitly listed hostnames outside its ancestry.
 
+Every Canonical Host is a separate Publisher identity. It is not a
+separate accounting unit: the Ping quota, the ingest budget and the
+per-domain Block capacity are keyed on the host's Registrable Domain
+under the Public Suffix List snapshot in force (WIST-4 §3.1), so two
+hosts under one registrable name share those bounds while sharing no
+key, chain or scope.
+
 `publisher` is inside `JCS(delta)`: both signature and Delta ID bind it.
 Changing this field requires signing the changed bytes and produces a different
 ID; changing only `sig.key_id` cannot change the Publisher. Re-signing unchanged

@@ -517,7 +517,7 @@ def _state_tuple_encoding():
         assert all("type" in m or "const" in m or "oneOf" in m or "enum" in m
                    for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
     expected = {"aggregator_key", "declaration", "parameter", "recovery_window",
-                "withdrawal", "label", "record"}
+                "suffix_list", "withdrawal", "label", "record"}
     assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
     state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
     digest = "sha256:" + hashlib.sha256(
@@ -1988,6 +1988,9 @@ NON_CONTENT_DIGESTS = {
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[1]"): "a Canonical Host identifying a Labeler, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[1]"): "a Canonical Host identifying a Publisher, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[6]/prefixItems[3]"): "a chain-tip Delta ID: SHA-256 over a Delta that carries only a salted commitment (WIST-3 §7)",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[7]/prefixItems[1]"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
+    ("registry-update.schema.json", "allOf[4]/then/properties/update/properties/subject"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
+    ("registry-update.schema.json", "allOf[4]/then/properties/update/properties/details/properties/sha256"): "a Public Suffix List snapshot identifier: SHA-256 over a list of domain-name rules, no page content (WIST-4 §3.1)",
 }
 
 NON_CONTENT_VALUES = {
@@ -2093,6 +2096,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/feed-next.json", "value"): "valid or deliberately invalid signatures",
     ("vectors/wist4/withdrawal.json", "delta_id"): "fixture Delta IDs; retrieval is not asserted",
     ("vectors/wist4/withdrawal.json", "public_key"): "the fixture Log public key",
+    ("vectors/wist4/registrable-domain.json", "sha256"): "SHA-256 over a Public Suffix List snapshot's octets: a list of domain-name rules, no page content (WIST-4 §3.1)",
+    ("vectors/wist4/registrable-domain.json", "public_key"): "the fixture Log public key",
     ("vectors/wist2/declaration-refresh.json", "salt"): "the example Payload salt",
     ("vectors/wist2/declaration-refresh.json", "id"): "SHA-256 of the served Delta",
     ("vectors/wist2/declaration-refresh.json", "prev"): "SHA-256 of the served predecessor",
@@ -2217,6 +2222,7 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/labels.json", "value"): "an Ed25519 signature over a Label",
     ("vectors/wist2/labels.json", "current"): "the current Label's ID after replay (WIST-2 §3.3)",
     ("vectors/wist4/withdrawal.json", "state_tuples"): "fixture Delta IDs inside WIST-3 §7 withdrawal tuples",
+    ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers inside WIST-3 §7 suffix_list tuples",
     ("vectors/wist2/labels.json", "label_id"): "a Label ID: SHA-256 over a Label, which carries a subject, a registry name and an integer — no page content (WIST-2 §3.3)",
     ("examples/label.json", "value"): "an Ed25519 signature over the example Label",
     ("examples/label-feed.json", "value"): "an Ed25519 signature over the example Label Feed",
@@ -4242,6 +4248,30 @@ def _dc4_payload_withdrawal():
 check("schema:wist4-payload-withdrawal", _dc4_payload_withdrawal)
 
 
+def _dc4_suffix_list_update():
+    """WIST-4 §3.1: a suffix_list_update pins a snapshot by digest and octet
+    count, and `subject` repeats the digest, so two acts naming one file are
+    the same act however they were spelled."""
+    schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
+    assert "suffix_list_update" in schema["properties"]["update"]["properties"]["action"]["enum"]
+    snapshot = json.loads((ROOT / "vectors/wist4/registrable-domain.json").read_text(encoding="utf-8"))["lists"][0]
+    act = {"update": {"wist_version": "1.0.0", "action": "suffix_list_update", "subject": snapshot["sha256"],
+                      "details": {"sha256": snapshot["sha256"], "bytes": snapshot["bytes"]},
+                      "effective_at": "2026-08-02T16:00:00Z"},
+           "sig": json.loads((ROOT / "examples" / "registry-update.json").read_text())["sig"]}
+    v = Draft202012Validator(schema)
+    v.validate(act)
+    for mutate in (lambda a: a["update"]["details"].pop("bytes"),
+                   lambda a: a["update"]["details"].pop("sha256"),
+                   lambda a: a["update"]["details"].update(bytes=0),
+                   lambda a: a["update"]["details"].update(source="https://publicsuffix.org/"),
+                   lambda a: a["update"].update(subject="example.com")):
+        bad = copy.deepcopy(act)
+        mutate(bad)
+        assert not v.is_valid(bad), "a malformed suffix_list_update validates"
+check("schema:wist4-suffix-list-update", _dc4_suffix_list_update)
+
+
 def _dc4_sealed_at_precision():
     """Every window in the suite runs on Block `sealed_at`, in whole seconds.
 
@@ -6049,6 +6079,201 @@ def _dc4_withdrawal_twin():
     raw = valid["envelope_json"].replace('"legal_basis"', '"legal_basis": "x", "legal_basis"', 1)
     assert _registry_update_eligibility(raw, validator)[0] == "WIST1-E05"
 check("negative:wist4-withdrawal", _dc4_withdrawal_twin)
+
+
+def _registrable_domain_vector():
+    return json.loads((ROOT / "vectors/wist4/registrable-domain.json").read_text(encoding="utf-8"))
+
+def _psl_host_label(label):
+    if label == "*":
+        return label
+    label = label.lower()
+    return label if label.isascii() else "xn--" + label.encode("punycode").decode("ascii")
+
+def _psl_canonical_host(name):
+    labels = name.split(".")
+    return None if any(not l for l in labels) else ".".join(_psl_host_label(l) for l in labels)
+
+def _psl_rules(text):
+    """WIST-4 §3.1: the rule lines of both sections as {rule: is_exception}, labels
+    in Canonical Host form; a second copy of the reading, structured as a map."""
+    rules = {}
+    for line in text.splitlines():
+        body = line.strip()
+        if not body or body.startswith("//"):
+            continue
+        token = body.split()[0]
+        exception = token[:1] == "!"
+        rule = ".".join(_psl_host_label(l) for l in token.lstrip("!").split("."))
+        rules[rule] = exception
+    return rules
+
+def _psl_registrable(host, rules):
+    """The Public Suffix List algorithm as WIST-4 §3.1 states it, returning the
+    Registrable Domain and whether the host is itself a public suffix."""
+    if rules is None:
+        return host, False
+    labels = host.split(".")
+    best = None
+    for rule, exception in rules.items():
+        parts = rule.split(".")
+        if len(parts) > len(labels):
+            continue
+        if all(a == "*" or a == b for a, b in zip(parts[::-1], labels[::-1])):
+            candidate = (exception, len(parts), rule)
+            if best is None or candidate[:2] > best[:2]:
+                best = candidate
+    suffix = 1 if best is None else (best[1] - 1 if best[0] else best[1])
+    if suffix >= len(labels):
+        return host, True
+    return ".".join(labels[len(labels) - suffix - 1:]), False
+
+def _dc4_registrable_domain():
+    """WIST-4 §3.1, WIST-2 §4 and WIST-3 §3.2: the Registrable Domain under a
+    pinned Public Suffix List snapshot, checked against the Public Suffix
+    List project's own test cases, the act replay, the in-force rule, the
+    per-Registrable-Domain capacity and quota, and the suffix_list tuple."""
+    v = _registrable_domain_vector()
+    lists = {l["name"]: l for l in v["lists"]}
+    for l in v["lists"]:
+        octets = l["text"].encode("utf-8")
+        assert l["sha256"] == "sha256:" + hashlib.sha256(octets).hexdigest() and l["bytes"] == len(octets), l["name"]
+        assert "// ===BEGIN ICANN DOMAINS===" in l["text"] and "// ===BEGIN PRIVATE DOMAINS===" in l["text"]
+    rules = {name: _psl_rules(l["text"]) for name, l in lists.items()}
+    rules[None] = None
+    by_id = {l["sha256"]: l for l in v["lists"]}
+    # External anchor: the project's checkPublicSuffix cases, read from the file,
+    # over the fixture snapshot, which carries every rule those inputs reach.
+    official = {}
+    for line in (ROOT / "tools/psl_test_cases.txt").read_text(encoding="utf-8").splitlines():
+        m = re.fullmatch(r"checkPublicSuffix\((null|'([^']*)'), (null|'([^']*)')\);", line.strip())
+        if m and m.group(1) != "null":
+            official[m.group(2)] = m.group(4)
+    assert len(official) >= 75 and {c["input"] for c in v["official_cases"]} == set(official)
+    for case in v["official_cases"]:
+        expected = official[case["input"]]
+        assert case["expected"] == expected, case["input"]
+        host = _psl_canonical_host(case["input"])
+        assert case["host"] == host, case["input"]
+        if host is None:
+            assert case["registrable"] is None and case["public_suffix"] is None
+            continue
+        registrable, own = _psl_registrable(host, rules["first"])
+        assert registrable == (host if expected is None else _psl_canonical_host(expected)), case["input"]
+        assert (case["registrable"], case["public_suffix"]) == (registrable, own), case["input"]
+    assert any(c["host"] and c["input"] != c["host"] for c in v["official_cases"]), "no case exercises canonicalization"
+    for case in v["domain_cases"]:
+        assert (case["registrable"], case["public_suffix"]) == _psl_registrable(case["host"], rules[case["list"]]), case["label"]
+    shared = [c for c in v["domain_cases"] if c["list"] == "first" and c["registrable"] == "example.com"]
+    assert len({c["host"] for c in shared}) >= 3, "no shared-quota hosts"
+    private = [c for c in v["domain_cases"] if c["host"].endswith(".github.io")]
+    assert len({c["registrable"] for c in private}) == len(private) >= 2, "private section hosts merge"
+    split = {c["list"]: c["registrable"] for c in v["domain_cases"] if c["host"] == "a.hosts.sample.net"}
+    assert split == {"first": "sample.net", "second": "a.hosts.sample.net"}, "the snapshot advance splits nothing"
+    assert all(c["registrable"] == c["host"] for c in v["domain_cases"] if c["list"] is None)
+
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(v["log_key"]["public_key"]))
+    accepted = []
+    seen = set()
+    heights = [c["height"] for c in v["act_cases"]]
+    assert heights == sorted(heights)
+    for case in v["act_cases"]:
+        code, doc = _registry_update_eligibility(case["envelope_json"], validator)
+        if doc is not None:
+            try:
+                assert doc["sig"]["key_id"] == v["log_key"]["key_id"]
+                log_key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+            except (AssertionError, InvalidSignature):
+                code = "WIST4-E11"
+            else:
+                update = doc["update"]
+                named = by_id.get(update["details"]["sha256"])
+                if update["subject"] != update["details"]["sha256"] or named is None \
+                        or named["bytes"] != update["details"]["bytes"]:
+                    code = "WIST4-E04"
+        assert code == case["code"], (case["label"], code)
+        if code is None:
+            accepted.append((case["height"], by_id[json.loads(case["envelope_json"])["update"]["details"]["sha256"]]["name"]))
+        in_force = next((n for h, n in reversed(accepted) if h <= case["height"]), None)
+        assert in_force == case["in_force_after"], case["label"]
+        seen.add(code)
+    assert seen == {None, "WIST4-E11", "WIST4-E04"}
+
+    def force_at(height):
+        return next((n for h, n in reversed(accepted) if h < height), None)
+    for row in v["in_force"]:
+        assert force_at(row["height"]) == row["list"], row
+    assert {row["list"] for row in v["in_force"]} == {None, "first", "second"}
+    for case in v["capacity_cases"]:
+        counts = collections.Counter(_psl_registrable(e["domain"], rules[force_at(case["height"])])[0]
+                                     for e in case["entries"])
+        assert all(e["type"] in ("publisher_delta", "label") for e in case["entries"])
+        expected = "WIST3-E03" if max(counts.values()) > case["domain_block_entries_max"] else None
+        assert expected == case["expected"], case["label"]
+    assert {c["expected"] for c in v["capacity_cases"]} == {None, "WIST3-E03"}
+    for case in v["quota_cases"]:
+        noise = collections.Counter()
+        for ping in case["pings"]:
+            unit = _psl_registrable(ping["host"], rules[force_at(case["height"])])[0]
+            if noise[unit] >= case["quota_base"]:
+                assert ping["expected"] == 429, (case["label"], ping)
+                continue
+            if ping["noise"]:
+                noise[unit] += 1
+            assert ping["expected"] == 202, (case["label"], ping)
+        assert 429 in {p["expected"] for p in case["pings"]} or case["height"] == 0, case["label"]
+    for state in v["state_tuples"]:
+        pinned = None
+        for h, n in accepted:
+            if h <= state["log_position"] and (pinned is None or pinned[1] != n):
+                pinned = (h, n)
+        assert state["entries"] == [["suffix_list", lists[pinned[1]]["sha256"], pinned[0]]], state
+    assert any(h > s["entries"][0][2] for h, _ in accepted for s in v["state_tuples"]
+               if h <= s["log_position"]), "no repeated pin leaves the tuple's height alone"
+    schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
+    envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    envelope["state"]["entries"] = v["state_tuples"][0]["entries"]
+    schema.validate(envelope)
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
+    for marker in ("in force from the Block after its sealing Block",
+                   "the Registrable Domain is the host itself",
+                   "every Canonical Host is its own Registrable Domain"):
+        assert marker in prose, marker
+    w2 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    assert "Ping quota Q is `quota_base` Pings per UTC day per Registrable Domain" in w2
+    w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "whose Publisher's or Labeler's Canonical Host has one Registrable Domain" in w3
+check("vectors:wist4-registrable-domain", _dc4_registrable_domain)
+
+def _dc4_registrable_domain_twin():
+    v = _registrable_domain_vector()
+    rules = _psl_rules(v["lists"][0]["text"])
+    assert _psl_registrable("www.ck", rules) == ("www.ck", False)
+    no_exception = {r: e for r, e in rules.items() if r != "www.ck"}
+    assert _psl_registrable("www.ck", no_exception) == ("www.ck", True), "the exception rule is inert"
+    icann_only = _psl_rules(v["lists"][0]["text"].split("// ===BEGIN PRIVATE DOMAINS===")[0])
+    assert _psl_registrable("alice.github.io", icann_only) == ("github.io", False), "the private section is inert"
+    assert _psl_registrable("alice.github.io", rules) == ("alice.github.io", False)
+    assert _psl_registrable("a.b.example.example", rules) == ("example.example", False)
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    valid = next(c for c in v["act_cases"] if c["code"] is None)
+    doc = json.loads(valid["envelope_json"])
+    doc["update"]["details"]["bytes"] = "496"
+    assert _registry_update_eligibility(json.dumps(doc), validator)[0] == "WIST4-E04"
+    doc = json.loads(valid["envelope_json"])
+    doc["update"]["subject"] = "example.com"
+    assert _registry_update_eligibility(json.dumps(doc), validator)[0] == "WIST4-E04"
+    doc = json.loads(valid["envelope_json"])
+    del doc["update"]["effective_at"]
+    assert _registry_update_eligibility(json.dumps(doc), validator)[0] == "WIST4-E11"
+    schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
+    envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    envelope["state"]["entries"] = [["suffix_list", v["lists"][0]["sha256"], "0"]]
+    assert not schema.is_valid(envelope), "a string height validated in a suffix_list tuple"
+    envelope["state"]["entries"] = [["suffix_list", v["lists"][0]["sha256"]]]
+    assert not schema.is_valid(envelope), "an under-arity suffix_list tuple validated"
+check("negative:wist4-registrable-domain", _dc4_registrable_domain_twin)
 
 
 def _label_vector():

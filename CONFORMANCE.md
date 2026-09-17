@@ -136,16 +136,35 @@ resulting WIST-3 §7 `withdrawal` tuples. Signed Block histories, live
 withdrawal sealing, Payload destruction and Snapshot exclusion require
 integration validation.
 
+**Registrable domains.** WIST-4 §3.1, WIST-2 §4 and WIST-3 §3.2 key the
+Ping quota, the ingest budget and the per-domain Block capacity on the
+Registrable Domain under a pinned Public Suffix List snapshot, and draft
+[ADR-0042](decisions/0042-registrable-domain-accounting.md) records why.
+`vectors/wist4/registrable-domain.json` carries two fixture snapshots,
+the Public Suffix List project's own `checkPublicSuffix` cases
+(`tools/psl_test_cases.txt`, transcribed verbatim) over the first, shared
+and private-section hosts, signed `suffix_list_update` acts with their
+WIST4-E11/E04 dispositions, the snapshot in force at each height across
+an advance, capacity and quota accounting under it and the WIST-3 §7
+`suffix_list` tuple. The reference derives every Registrable Domain with
+its own implementation of the algorithm and checks it against the
+project's answers, which anchors the algorithm outside this repository;
+the fixture's rules are copied from the real list, and its labels need
+no UTS #46 mapping beyond case folding and Punycode. Serving the
+snapshot octets, live quota and budget accounting per Registrable
+Domain, capacity rejection in a replaying Consumer and cold-start
+adoption of the tuple require integration validation.
+
 **Registry Update eligibility.** WIST-4 §5.1 and draft
 [ADR-0036](decisions/0036-registry-update-eligibility.md) assign a `subject`
 outside its action's contract shape WIST4-E04, other field failures
 WIST4-E11, and place both before authenticity and semantic diagnostics.
 The reference derives the E11/E04 partition from the schema: a failure
 inside an action's conditional branch is the contract, any other is a
-field failure. Only `payload_withdrawal` acts are exercised with signed
-Envelopes; `aggregator_key_add`, `aggregator_key_remove` and
-`parameter_change` acts are exercised through the schema and the
-parameter vectors, and a repeated Registry Update ID's idempotence, live
+field failure. `payload_withdrawal` and `suffix_list_update` acts are
+exercised with signed Envelopes; `aggregator_key_add`,
+`aggregator_key_remove` and `parameter_change` acts are exercised
+through the schema and the parameter vectors, and a repeated Registry Update ID's idempotence, live
 sealing and durable restoration need integrated validation.
 
 **Labels.** WIST-2 §3.3 and WIST-4 §6 fix the Label object, the Label
@@ -493,13 +512,13 @@ arithmetic checks do not establish live-service behavior.
 | WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label ID, sealing as `label` Entries under the inclusion ceiling and per-domain capacity, `tier1/labels.parquet` and `label` tuples from authenticated Log replay |
-| WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota application |
+| WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota and ingest-budget application per Registrable Domain under the snapshot in force |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change pull timing without creating a duty; redirect termination and authority restrictions under live pulls |
 | WIST-3 §§5–6 publication | Durable Block publication before its Checkpoint; Payload replication before the Block |
 | WIST-3 §§3.1, 6 transport parsing | Independent decoding of the Block-frame vectors and general compressed/checksummed frames; rejection of extra frames, skippable data and trailing bytes; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples; the full four-digit Gregorian year range, including late December 9999 independently of library timestamp limits. The raw-frame reference in `tools/block_frames.py` does not implement entropy decoding or checksum verification. |
 | WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Blocks and Checkpoints at the correct height, including rejected keys |
 | WIST-4 §5 inclusion | Acceptance and per-domain turn accounting under backlog, overload and recovery; the Log alone does not reveal acceptance time |
-| WIST-4 §§3, 5.1 governance | Key registration and removal, parameter schedules and withdrawals sealed, replayed and restored across the three roles |
+| WIST-4 §§3, 5.1 governance | Key registration and removal, parameter schedules, withdrawals and suffix-list snapshots sealed, served, replayed and restored across the three roles, including per-Registrable-Domain capacity rejection in a replaying Consumer |
 
 These are validation requirements, not assertions that every boundary lacks
 unit coverage. Current vectors already exercise, among other cases,
