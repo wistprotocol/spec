@@ -567,9 +567,15 @@ def recovery_settlement_vectors():
     new_delta = sign_envelope_with(priv3, "delta", sample, KID3)
     bad_delta = json.loads(json.dumps(new_delta))
     bad_delta["sig"]["value"] = old_delta["sig"]["value"]
-    def binding(name, before, opening, final, env, queued, eligible):
+    full_scope = {"domain": publisher["domain"], "subdomain_scope": publisher["subdomain_scope"]}
+    bare_scope = {"domain": publisher["domain"], "subdomain_scope": []}
+
+    def binding(name, before, opening, final, env, queued, eligible,
+                scopes=(full_scope, full_scope, full_scope)):
         binding_cases.append({"name": name, "pre_recovery_keys": before,
                               "recovery_keys": opening, "settlement_keys": final,
+                              "pre_recovery_scope": scopes[0], "recovery_scope": scopes[1],
+                              "settlement_scope": scopes[2],
                               "envelope": env, "delta_id": decl_hash(env["delta"]),
                               "expected_queued": queued, "expected_eligible": eligible})
     binding("old binding queues but fails settlement", publisher["keys"], [K2],
@@ -594,11 +600,18 @@ def recovery_settlement_vectors():
     binding("later re serve of rejected Delta ID under a restored key", publisher["keys"], [K2],
             publisher["keys"], old_delta, True, True)
     binding_cases[-1]["re_serve_of"] = 0
+    scoped = dict(delta, observed_at=timestamp(10), url="https://blog.example.com/settlement/bindings")
+    scoped_delta = sign_envelope_with(priv3, "delta", scoped, KID3)
+    binding("scope withdrawn at settlement rejects a queued Delta", publisher["keys"], [K2], [K2],
+            scoped_delta, True, False, (full_scope, full_scope, bare_scope))
+    binding("scope granted only at settlement prevents queue admission", publisher["keys"], [K2], [K2],
+            scoped_delta, False, False, (bare_scope, bare_scope, full_scope))
     write_json(WIST1 / "recovery-settlement.json", {
         "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Blocks, "
                 "opening recovery at height 1 and settling at height 169. Declaration projections "
                 "must match their signed Envelopes and Block Entries. Every key in each history "
-                "has a fixed window; separate binding_cases vary the windows. "
+                "has a fixed window; separate binding_cases vary the windows and the frozen "
+                "admission and settlement scopes, each given as a domain and its subdomain_scope. "
                 "Every timestamp probe uses whole-second literal-Z values; this family does not "
                 "establish the broader RFC 3339 profile of observed_at. Signed served Deltas are "
                 "distinct new URLs received in array order at hour 10; their shape and signature "

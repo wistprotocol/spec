@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Blocks, opening recovery at height 1 and settling at height 169. Declaration projections must match their signed Envelopes and Block Entries. Every key in each history has a fixed window; separate binding_cases vary the windows. Every timestamp probe uses whole-second literal-Z values; this family does not establish the broader RFC 3339 profile of observed_at. Signed served Deltas are distinct new URLs received in array order at hour 10; their shape and signature eligibility are exercised, not Payload availability, quotas or actual Block packing. expected.eligible denotes signature-eligible survivors in acceptance order, not proof of their eventual inclusion. Each probe independently replaces the next Block's Declaration as an unsealed candidate and must reject without changing its prefix. Snapshot recovery is not established by these histories.",
+  "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Blocks, opening recovery at height 1 and settling at height 169. Declaration projections must match their signed Envelopes and Block Entries. Every key in each history has a fixed window; separate binding_cases vary the windows and the frozen admission and settlement scopes, each given as a domain and its subdomain_scope. Every timestamp probe uses whole-second literal-Z values; this family does not establish the broader RFC 3339 profile of observed_at. Signed served Deltas are distinct new URLs received in array order at hour 10; their shape and signature eligibility are exercised, not Payload availability, quotas or actual Block packing. expected.eligible denotes signature-eligible survivors in acceptance order, not proof of their eventual inclusion. Each probe independently replaces the next Block's Declaration as an unsealed candidate and must reject without changing its prefix. Snapshot recovery is not established by these histories.",
   "log_key": {
     "key_id": "test-log-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -23680,6 +23680,27 @@
           "nbf": 1785758400
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -23739,6 +23760,27 @@
           "nbf": 1785841200
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -23799,6 +23841,27 @@
           "exp": 1785837600
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -23858,6 +23921,27 @@
           "nbf": 1785837600
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -23919,6 +24003,27 @@
           "exp": 1785841200
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -23978,6 +24083,27 @@
           "nbf": 1785758400
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -24038,6 +24164,27 @@
           "nbf": 1785758400
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -24097,6 +24244,27 @@
           "nbf": 1785758400
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -24156,6 +24324,27 @@
           "nbf": 1785758400
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -24215,6 +24404,27 @@
           "nbf": 1785672000
         }
       ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
       "envelope": {
         "delta": {
           "wist_version": "1.0.0",
@@ -24245,6 +24455,157 @@
       "expected_queued": true,
       "expected_eligible": true,
       "re_serve_of": 0
+    },
+    {
+      "name": "scope withdrawn at settlement rejects a queued Delta",
+      "pre_recovery_keys": [
+        {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "nbf": 1785672000
+        }
+      ],
+      "recovery_keys": [
+        {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+          "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "nbf": 1785758400
+        }
+      ],
+      "settlement_keys": [
+        {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+          "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "nbf": 1785758400
+        }
+      ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": []
+      },
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://blog.example.com/settlement/bindings",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "software"
+            ],
+            "license": "CC-BY-4.0"
+          }
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "2Ih7_Xgq9HiLynfezX7m0kRbcqgXcGdQYI6I18Us9qkolj9fimjPZVuaqostu3k9muWTqHldc7FVvCQJtm2eBA"
+        }
+      },
+      "delta_id": "sha256:8b2c491a0d591c7d9e1a9b6fe65e8992f5e8bfe66456229b9eed883be2dad1a8",
+      "expected_queued": true,
+      "expected_eligible": false
+    },
+    {
+      "name": "scope granted only at settlement prevents queue admission",
+      "pre_recovery_keys": [
+        {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "nbf": 1785672000
+        }
+      ],
+      "recovery_keys": [
+        {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+          "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "nbf": 1785758400
+        }
+      ],
+      "settlement_keys": [
+        {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+          "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "nbf": 1785758400
+        }
+      ],
+      "pre_recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": []
+      },
+      "recovery_scope": {
+        "domain": "example.com",
+        "subdomain_scope": []
+      },
+      "settlement_scope": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ]
+      },
+      "envelope": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://blog.example.com/settlement/bindings",
+          "change_type": "new",
+          "observed_at": "2026-08-04T10:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
+            "alg": "HMAC-SHA256",
+            "bytes": 263
+          },
+          "meta": {
+            "lang": "en",
+            "topics": [
+              "software"
+            ],
+            "license": "CC-BY-4.0"
+          }
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "2Ih7_Xgq9HiLynfezX7m0kRbcqgXcGdQYI6I18Us9qkolj9fimjPZVuaqostu3k9muWTqHldc7FVvCQJtm2eBA"
+        }
+      },
+      "delta_id": "sha256:8b2c491a0d591c7d9e1a9b6fe65e8992f5e8bfe66456229b9eed883be2dad1a8",
+      "expected_queued": false,
+      "expected_eligible": false
     }
   ]
 }

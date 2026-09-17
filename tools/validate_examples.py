@@ -3828,13 +3828,21 @@ def _wist1_recovery_settlement():
             return True
         except Exception:
             return False
+    def covers(env, scope):
+        import urllib.parse
+        host = urllib.parse.urlsplit(env["delta"]["url"]).hostname
+        return host == scope["domain"] or host in scope["subdomain_scope"]
+
     for case in vector["binding_cases"]:
         env = case["envelope"]
         validator.validate(env)
         assert digest(env["delta"]) == case["delta_id"]
-        queued = any(verifies(env, case[field]) for field in ("pre_recovery_keys", "recovery_keys"))
+        queued = any(verifies(env, case[keys]) and covers(env, case[scope])
+                     for keys, scope in (("pre_recovery_keys", "pre_recovery_scope"),
+                                         ("recovery_keys", "recovery_scope")))
         assert queued == case["expected_queued"], case["name"]
-        assert (queued and verifies(env, case["settlement_keys"])) == case["expected_eligible"], case["name"]
+        settled = verifies(env, case["settlement_keys"]) and covers(env, case["settlement_scope"])
+        assert (queued and settled) == case["expected_eligible"], case["name"]
         if "re_serve_of" in case:
             earlier = vector["binding_cases"][case["re_serve_of"]]
             assert earlier["envelope"] == env and earlier["delta_id"] == case["delta_id"]
