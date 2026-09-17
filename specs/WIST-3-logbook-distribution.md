@@ -1265,6 +1265,8 @@ digest preimage, however many parts carry a copy.
 Consumer verifies its parts against the per-shard digests and, as
 above, treats its coverage as partial.
 
+## 8. Cold Start and Continuous Operation
+
 **Cold start:**
 
 1. Fetch `/snapshots/index.json`; verify its signature; choose an entry
