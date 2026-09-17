@@ -241,9 +241,11 @@ tentatively add it to the accepted prefix, including amendments not yet
 effective. At the sealing instant and at every `effective_at` at or
 after that instant in this tentative prefix, derive the complete
 parameter map by the in-force rule above and check every combination
-rule below, including the transition checks over successive maps.
-Between those instants the map is constant; after the final one it
-remains that final map. If any checked map violates a combination,
+rule below against that map. Every combination rule reads one map;
+the only check that reads the sealed prefix is the Block-size guarantee
+below, and no rule compares two successive maps. Between those instants
+the map is constant; after the final one it remains that final map. If
+any checked map violates a combination,
 reject this candidate as `WIST4-E03` and retain the previously accepted
 schedule unchanged. Otherwise accept it. Rejected amendments are never
 reconsidered merely because a later candidate would make them feasible.
