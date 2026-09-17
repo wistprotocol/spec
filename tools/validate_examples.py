@@ -6326,6 +6326,126 @@ def _dc4_registrable_domain_twin():
 check("negative:wist4-registrable-domain", _dc4_registrable_domain_twin)
 
 
+def _fetch_bounds_vector():
+    return json.loads((ROOT / "vectors/wist2/fetch-bounds.json").read_text())
+
+_REFUSED_V4 = [("loopback", "127.0.0.0/8"), ("unspecified", "0.0.0.0/32"), ("private", "10.0.0.0/8"),
+               ("private", "172.16.0.0/12"), ("private", "192.168.0.0/16"), ("link-local", "169.254.0.0/16"),
+               ("shared address space", "100.64.0.0/10"), ("broadcast", "255.255.255.255/32"),
+               ("multicast", "224.0.0.0/4"), ("documentation", "192.0.2.0/24"), ("documentation", "198.51.100.0/24"),
+               ("documentation", "203.0.113.0/24"), ("benchmarking", "198.18.0.0/15"), ("reserved", "240.0.0.0/4")]
+_REFUSED_V6 = [("loopback", "::1/128"), ("unspecified", "::/128"), ("unique local", "fc00::/7"),
+               ("link-local", "fe80::/10"), ("multicast", "ff00::/8"), ("documentation", "2001:db8::/32")]
+
+def _address_class(text, loopback_opt_in):
+    """WIST-2 §8: the refused class of one address, None for a public unicast
+    destination; the interpreter's ipaddress module does the prefix arithmetic."""
+    import ipaddress
+    address = ipaddress.ip_address(text)
+    if address.version == 6:
+        embedded = address.ipv4_mapped
+        if embedded is None and address in ipaddress.ip_network("2002::/16"):
+            embedded = ipaddress.ip_address(int(address) >> 80 & 0xffffffff)
+        if embedded is None and address in ipaddress.ip_network("64:ff9b::/96"):
+            embedded = ipaddress.ip_address(int(address) & 0xffffffff)
+        if embedded is not None:
+            return _address_class(str(embedded), loopback_opt_in)
+        table = _REFUSED_V6
+    else:
+        table = _REFUSED_V4
+    for cls, prefix in table:
+        if address in ipaddress.ip_network(prefix):
+            return None if cls == "loopback" and loopback_opt_in else cls
+    return None
+
+def _dc2_fetch_bounds():
+    """WIST-2 §8 and §5 (ADR-0044): destination classes, name refusal, response
+    bounds under the caps, pull-work dispositions and per-request scope."""
+    v = _fetch_bounds_vector()
+    classes = set()
+    for case in v["destinations"]:
+        cls = _address_class(case["address"], case["loopback_opt_in"])
+        assert cls == case["class"] and case["allowed"] == (cls is None), (case["label"], cls)
+        classes.add(cls)
+    assert classes >= {None, "loopback", "unspecified", "private", "link-local", "shared address space",
+                       "broadcast", "multicast", "documentation", "benchmarking", "reserved", "unique local"}
+    assert any(c["loopback_opt_in"] and c["allowed"] for c in v["destinations"])
+    assert any(c["address"].startswith("::ffff:") and c["class"] for c in v["destinations"])
+    assert any(c["address"].startswith("2002:") and c["class"] for c in v["destinations"])
+    assert any(c["address"].startswith("64:ff9b:") and c["class"] for c in v["destinations"])
+    for case in v["resolutions"]:
+        allowed = bool(case["addresses"]) and all(_address_class(a, False) is None for a in case["addresses"])
+        assert allowed == case["allowed"], case["label"]
+    assert {c["allowed"] for c in v["resolutions"]} == {True, False}
+    for case in v["object_bounds"]:
+        p = case["parameters"]
+        if case["object"] in ("declaration", "feed", "page", "mirrors"):
+            expected = 1048576
+        elif case["object"] == "delta":
+            expected = 16384 + 2 * p["url_cap_bytes"]
+        else:
+            assert case["object"] == "payload"
+            expected = p["extract_cap_bytes"] + p["links_cap_bytes"] + p["summary_cap_bytes"] + 4096
+        assert case["bound"] == expected, case["label"]
+    assert len({c["bound"] for c in v["object_bounds"] if c["object"] == "delta"}) == 2, "one parameter map only"
+    outcomes = set()
+    for case in v["work_cases"]:
+        budget, work_bytes, objects = case["budget_remaining"], case["work_bytes_remaining"], case["work_objects_remaining"]
+        size, own = case["object_bytes"], case["object_bound"]
+        if budget == 0 or work_bytes == 0 or objects == 0:
+            expected = ("suspended", 0)
+        else:
+            limit = min(own, budget, work_bytes)
+            if size <= limit:
+                expected = ("fetched", size)
+            elif limit < own:
+                expected = ("suspended", limit)
+            else:
+                expected = ("failed", 0)
+        assert (case["outcome"], case["debited"]) == expected, (case["label"], expected)
+        outcomes.add(case["outcome"])
+    assert outcomes == {"fetched", "suspended", "failed"}
+    from urllib.parse import urlsplit
+    for case in v["redirect_cases"]:
+        host = case["requested_host"]
+        scope = None
+        grants = removals = 0
+        for step in case["steps"]:
+            if "declaration" in step:
+                new = set(step["declaration"]["subdomain_scope"])
+                grants += bool(new - (scope or set()))
+                removals += bool((scope or set()) - new)
+                scope = new
+                continue
+            target = urlsplit(step["redirect_to"])
+            allowed = target.scheme == "https" and (target.hostname == host or (scope is not None and target.hostname in scope))
+            assert allowed == step["allowed"], (case["label"], step)
+        assert grants and removals, "no mid-pull scope grant and removal"
+        assert any("redirect_to" in s and not s["allowed"] for s in case["steps"][:next(i for i, s in enumerate(case["steps"]) if "declaration" in s)]), \
+            "no off-host redirect before the first Declaration"
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    for marker in ("An Aggregator MUST connect only to a public unicast address",
+                   "refuses a name whole when any address it resolves to is refused",
+                   "An Aggregator MUST NOT read more than 1 048 576 octets",
+                   "16 384 + 2 × `url_cap_bytes` octets of a Delta file",
+                   "the Declaration accepted at the instant the request is issued",
+                   "a redirect MUST stay on the requested Canonical Host",
+                   "An Aggregator MAY suspend a walk below the budget under a per-pull limit of its own",
+                   "the octets read are debited and the walk suspends there"):
+        assert marker in prose, marker
+check("vectors:wist2-fetch-bounds", _dc2_fetch_bounds)
+
+def _dc2_fetch_bounds_twin():
+    assert _address_class("127.0.0.1", False) == "loopback" and _address_class("127.0.0.1", True) is None
+    assert _address_class("::ffff:169.254.169.254", False) == "link-local"
+    assert _address_class("2001:db9::1", False) is None and _address_class("2001:db8:ffff::1", False) == "documentation"
+    assert _address_class("fe80::1", True) == "link-local", "the opt-in admits loopback alone"
+    v = _fetch_bounds_vector()
+    case = next(c for c in v["work_cases"] if c["outcome"] == "failed")
+    assert case["object_bytes"] > case["object_bound"] <= min(case["budget_remaining"], case["work_bytes_remaining"])
+check("negative:wist2-fetch-bounds", _dc2_fetch_bounds_twin)
+
+
 def _label_vector():
     return json.loads((ROOT / "vectors/wist2/labels.json").read_text())
 

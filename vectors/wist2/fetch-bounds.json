@@ -1,0 +1,567 @@
+{
+  "note": "WIST-2 \u00a78 and \u00a75, ADR-0044. destinations classify one address, allowed only when the class is null; loopback_opt_in is the single-machine opt-in. resolutions decide a name from every address it resolves to. object_bounds are the octets an Aggregator reads at most, under the parameter map given. work_cases replay one fetch under the remaining daily budget and a per-pull limit: fetched debits the object, suspended debits the octets read up to the bound, failed is an object above its own bound. redirect_cases replay redirects and accepted Declarations in order for one requested Canonical Host.",
+  "destinations": [
+    {
+      "label": "public IPv4",
+      "address": "93.184.216.34",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "public IPv6",
+      "address": "2606:2800:220:1:248:1893:25c8:1946",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "loopback",
+      "address": "127.0.0.1",
+      "loopback_opt_in": false,
+      "class": "loopback",
+      "allowed": false
+    },
+    {
+      "label": "loopback end of range",
+      "address": "127.255.255.254",
+      "loopback_opt_in": false,
+      "class": "loopback",
+      "allowed": false
+    },
+    {
+      "label": "loopback under the local opt in",
+      "address": "127.0.0.1",
+      "loopback_opt_in": true,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "IPv6 loopback",
+      "address": "::1",
+      "loopback_opt_in": false,
+      "class": "loopback",
+      "allowed": false
+    },
+    {
+      "label": "IPv6 loopback under the local opt in",
+      "address": "::1",
+      "loopback_opt_in": true,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "unspecified",
+      "address": "0.0.0.0",
+      "loopback_opt_in": false,
+      "class": "unspecified",
+      "allowed": false
+    },
+    {
+      "label": "IPv6 unspecified",
+      "address": "::",
+      "loopback_opt_in": false,
+      "class": "unspecified",
+      "allowed": false
+    },
+    {
+      "label": "private ten",
+      "address": "10.1.2.3",
+      "loopback_opt_in": false,
+      "class": "private",
+      "allowed": false
+    },
+    {
+      "label": "private one seven two",
+      "address": "172.31.0.9",
+      "loopback_opt_in": false,
+      "class": "private",
+      "allowed": false
+    },
+    {
+      "label": "private one nine two",
+      "address": "192.168.1.1",
+      "loopback_opt_in": false,
+      "class": "private",
+      "allowed": false
+    },
+    {
+      "label": "public neighbour of the private block",
+      "address": "172.32.0.1",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "link local",
+      "address": "169.254.1.1",
+      "loopback_opt_in": false,
+      "class": "link-local",
+      "allowed": false
+    },
+    {
+      "label": "cloud metadata",
+      "address": "169.254.169.254",
+      "loopback_opt_in": false,
+      "class": "link-local",
+      "allowed": false
+    },
+    {
+      "label": "shared address space",
+      "address": "100.64.0.1",
+      "loopback_opt_in": false,
+      "class": "shared address space",
+      "allowed": false
+    },
+    {
+      "label": "shared address space end of range",
+      "address": "100.127.255.255",
+      "loopback_opt_in": false,
+      "class": "shared address space",
+      "allowed": false
+    },
+    {
+      "label": "public after shared address space",
+      "address": "100.128.0.0",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "broadcast",
+      "address": "255.255.255.255",
+      "loopback_opt_in": false,
+      "class": "broadcast",
+      "allowed": false
+    },
+    {
+      "label": "multicast",
+      "address": "224.0.0.1",
+      "loopback_opt_in": false,
+      "class": "multicast",
+      "allowed": false
+    },
+    {
+      "label": "documentation one",
+      "address": "192.0.2.1",
+      "loopback_opt_in": false,
+      "class": "documentation",
+      "allowed": false
+    },
+    {
+      "label": "documentation two",
+      "address": "198.51.100.7",
+      "loopback_opt_in": false,
+      "class": "documentation",
+      "allowed": false
+    },
+    {
+      "label": "documentation three",
+      "address": "203.0.113.9",
+      "loopback_opt_in": false,
+      "class": "documentation",
+      "allowed": false
+    },
+    {
+      "label": "benchmarking",
+      "address": "198.18.0.1",
+      "loopback_opt_in": false,
+      "class": "benchmarking",
+      "allowed": false
+    },
+    {
+      "label": "benchmarking end of range",
+      "address": "198.19.255.255",
+      "loopback_opt_in": false,
+      "class": "benchmarking",
+      "allowed": false
+    },
+    {
+      "label": "public after benchmarking",
+      "address": "198.20.0.1",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "reserved",
+      "address": "240.0.0.1",
+      "loopback_opt_in": false,
+      "class": "reserved",
+      "allowed": false
+    },
+    {
+      "label": "unique local",
+      "address": "fd12::1",
+      "loopback_opt_in": false,
+      "class": "unique local",
+      "allowed": false
+    },
+    {
+      "label": "IPv6 link local",
+      "address": "fe80::1",
+      "loopback_opt_in": false,
+      "class": "link-local",
+      "allowed": false
+    },
+    {
+      "label": "IPv6 multicast",
+      "address": "ff02::1",
+      "loopback_opt_in": false,
+      "class": "multicast",
+      "allowed": false
+    },
+    {
+      "label": "IPv6 documentation",
+      "address": "2001:db8::1",
+      "loopback_opt_in": false,
+      "class": "documentation",
+      "allowed": false
+    },
+    {
+      "label": "IPv4 mapped private",
+      "address": "::ffff:10.0.0.1",
+      "loopback_opt_in": false,
+      "class": "private",
+      "allowed": false
+    },
+    {
+      "label": "IPv4 mapped public",
+      "address": "::ffff:93.184.216.34",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "six to four private",
+      "address": "2002:c0a8:101::1",
+      "loopback_opt_in": false,
+      "class": "private",
+      "allowed": false
+    },
+    {
+      "label": "six to four public",
+      "address": "2002:5db8:d822::1",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    },
+    {
+      "label": "NAT64 cloud metadata",
+      "address": "64:ff9b::a9fe:a9fe",
+      "loopback_opt_in": false,
+      "class": "link-local",
+      "allowed": false
+    },
+    {
+      "label": "NAT64 public",
+      "address": "64:ff9b::5db8:d822",
+      "loopback_opt_in": false,
+      "class": null,
+      "allowed": true
+    }
+  ],
+  "resolutions": [
+    {
+      "label": "every answer public",
+      "addresses": [
+        "93.184.216.34",
+        "2606:2800:220:1:248:1893:25c8:1946"
+      ],
+      "allowed": true
+    },
+    {
+      "label": "one private answer refuses the name",
+      "addresses": [
+        "93.184.216.34",
+        "10.0.0.5"
+      ],
+      "allowed": false
+    },
+    {
+      "label": "one mapped loopback answer refuses the name",
+      "addresses": [
+        "::ffff:127.0.0.1",
+        "93.184.216.34"
+      ],
+      "allowed": false
+    },
+    {
+      "label": "no answer",
+      "addresses": [],
+      "allowed": false
+    }
+  ],
+  "object_bounds": [
+    {
+      "label": "declaration under the defaults",
+      "object": "declaration",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "feed under the defaults",
+      "object": "feed",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "page under the defaults",
+      "object": "page",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "mirrors under the defaults",
+      "object": "mirrors",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "delta under the defaults",
+      "object": "delta",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 20480
+    },
+    {
+      "label": "payload under the defaults",
+      "object": "payload",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 43008
+    },
+    {
+      "label": "declaration under the amended",
+      "object": "declaration",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "feed under the amended",
+      "object": "feed",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "page under the amended",
+      "object": "page",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "mirrors under the amended",
+      "object": "mirrors",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 1048576
+    },
+    {
+      "label": "delta under the amended",
+      "object": "delta",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 24576
+    },
+    {
+      "label": "payload under the amended",
+      "object": "payload",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 81920
+    }
+  ],
+  "work_cases": [
+    {
+      "label": "within every bound",
+      "object_bound": 20480,
+      "budget_remaining": 100000,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 10000,
+      "outcome": "fetched",
+      "debited": 10000
+    },
+    {
+      "label": "exactly the remaining budget",
+      "object_bound": 20480,
+      "budget_remaining": 10000,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 10000,
+      "outcome": "fetched",
+      "debited": 10000
+    },
+    {
+      "label": "crosses the remaining budget",
+      "object_bound": 20480,
+      "budget_remaining": 5000,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 10000,
+      "outcome": "suspended",
+      "debited": 5000
+    },
+    {
+      "label": "crosses the per pull octet limit",
+      "object_bound": 20480,
+      "budget_remaining": 100000,
+      "work_bytes_remaining": 6000,
+      "work_objects_remaining": 5,
+      "object_bytes": 10000,
+      "outcome": "suspended",
+      "debited": 6000
+    },
+    {
+      "label": "no objects left in the pull",
+      "object_bound": 20480,
+      "budget_remaining": 100000,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 0,
+      "object_bytes": 10,
+      "outcome": "suspended",
+      "debited": 0
+    },
+    {
+      "label": "budget spent",
+      "object_bound": 20480,
+      "budget_remaining": 0,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 10,
+      "outcome": "suspended",
+      "debited": 0
+    },
+    {
+      "label": "above its own bound",
+      "object_bound": 20480,
+      "budget_remaining": 100000,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 30000,
+      "outcome": "failed",
+      "debited": 0
+    },
+    {
+      "label": "above its own bound and the remaining budget",
+      "object_bound": 20480,
+      "budget_remaining": 5000,
+      "work_bytes_remaining": 50000,
+      "work_objects_remaining": 5,
+      "object_bytes": 30000,
+      "outcome": "suspended",
+      "debited": 5000
+    }
+  ],
+  "redirect_cases": [
+    {
+      "label": "a scope grant and a scope removal inside one pull",
+      "requested_host": "example.com",
+      "steps": [
+        {
+          "redirect_to": "https://www.example.com/.well-known/wist/feed.json",
+          "allowed": false
+        },
+        {
+          "redirect_to": "https://example.com/feed-moved.json",
+          "allowed": true
+        },
+        {
+          "declaration": {
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com"
+            ]
+          }
+        },
+        {
+          "redirect_to": "https://www.example.com/.well-known/wist/feed.json",
+          "allowed": true
+        },
+        {
+          "redirect_to": "https://cdn.example.com/.well-known/wist/feed.json",
+          "allowed": false
+        },
+        {
+          "declaration": {
+            "domain": "example.com",
+            "subdomain_scope": [
+              "cdn.example.com"
+            ]
+          }
+        },
+        {
+          "redirect_to": "https://www.example.com/.well-known/wist/feed.json",
+          "allowed": false
+        },
+        {
+          "redirect_to": "https://cdn.example.com/.well-known/wist/feed.json",
+          "allowed": true
+        },
+        {
+          "redirect_to": "http://cdn.example.com/.well-known/wist/feed.json",
+          "allowed": false
+        },
+        {
+          "redirect_to": "https://example.com/other.json",
+          "allowed": true
+        }
+      ]
+    }
+  ]
+}

@@ -470,7 +470,16 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    makes well-defined — on a later day rather than treat the suspension
    as completion. The budget bounds the walk without breaking it: an
    honest large site backfills across days; a hostile deep feed costs
-   its own hosting bill, not the Aggregator's month.
+   its own hosting bill, not the Aggregator's month. An Aggregator MAY
+   suspend a walk below the budget under a per-pull limit of its own, in
+   octets or in objects, so that one Ping cannot hold a pull for a whole
+   day's budget; it resumes such a walk as it resumes a budget
+   suspension, and a walk suspended below the budget and resumed on a
+   later pull satisfies §3.2's until-already-ingested rule the same way.
+   An object that would cross the remaining budget or the per-pull limit
+   is not read past the bound: the octets read are debited and the walk
+   suspends there. An object above its own §8 response bound is a failed
+   fetch, not a suspension, and debits nothing.
 
    Declaration discovery is outside this byte budget: initial, periodic and
    failure-triggered `publisher.json` requests MUST NOT debit it. Exhaustion
@@ -695,6 +704,49 @@ the Publisher's debugging surface, not an artifact other parties verify.
   to fetch. Five is chosen rather than derived: a publication path
   needing a sixth hop to reach its own well-known file is misconfigured
   rather than unlucky.
+- **Redirect authority per request.** The `subdomain_scope` a redirect
+  target is checked against is the one in the Declaration accepted at
+  the instant the request is issued: a replacement accepted earlier in
+  the same pull governs the requests after it, and a host the
+  replacement dropped no longer authorizes a redirect. Before the first
+  accepted Declaration — during first contact (§5) — a redirect MUST
+  stay on the requested Canonical Host.
+- **Fetch destinations.** A Publisher chooses where every fetch goes —
+  its Canonical Host, each redirect target and the addresses its names
+  resolve to — so an Aggregator's fetcher is a request an outside party
+  aims from inside the Aggregator's network. An Aggregator MUST connect
+  only to a public unicast address: it checks a literal host, every
+  redirect hop and every address a name resolves to at connection time,
+  and refuses a name whole when any address it resolves to is refused.
+  The refused classes are, for IPv4, loopback (127.0.0.0/8), unspecified
+  (0.0.0.0), private (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16),
+  link-local (169.254.0.0/16, where cloud metadata services live),
+  shared address space (100.64.0.0/10), broadcast (255.255.255.255),
+  multicast (224.0.0.0/4), documentation (192.0.2.0/24, 198.51.100.0/24,
+  203.0.113.0/24), benchmarking (198.18.0.0/15) and reserved
+  (240.0.0.0/4); for IPv6, loopback (::1), unspecified (::), unique
+  local (fc00::/7), link-local (fe80::/10), multicast (ff00::/8) and
+  documentation (2001:db8::/32); an IPv4-mapped (::ffff:0:0/96), 6to4
+  (2002::/16) or NAT64 (64:ff9b::/96) address takes the class of the
+  IPv4 address it embeds. A deployment that runs the whole stack on one
+  machine MAY admit loopback alone, under the same explicit opt-in that
+  admits plain HTTP to it. A refused destination is a failed fetch:
+  `WIST2-E01` for a Feed or Page, and for a Delta or Payload the
+  disposition §5 gives an object it cannot retrieve.
+- **Response bounds.** No field check applies before an object has been
+  read, so the octets an Aggregator reads are bounded before the fields
+  are. An Aggregator MUST NOT read more than 1 048 576 octets of a
+  Declaration, Feed, Page or Mirror list (WIST-3 §5); 16 384 + 2 ×
+  `url_cap_bytes` octets of a Delta file; or `extract_cap_bytes` +
+  `links_cap_bytes` + `summary_cap_bytes` + 4 096 octets of a Payload,
+  each parameter read from the map in force at the request (WIST-4 §5).
+  The fixed terms cover what the caps do not reach — signatures,
+  identifiers, timestamps, framing and the Payload salt — and the flat
+  bound covers objects whose fields the schema bounds by count and
+  length rather than by a parameter. An object above its bound is a
+  failed fetch with the dispositions above. The vector
+  `vectors/wist2/fetch-bounds.json` exercises this rule and the two
+  before it. See [ADR-0044](../decisions/0044-fetch-bounds.md).
 
 ## 9. Privacy Considerations
 

@@ -5247,3 +5247,132 @@ def delta_clock_time_vectors():
 
 
 write_json(WIST1 / 'delta-clock-time.json', delta_clock_time_vectors())
+
+
+# --------------------------------------------- WIST-2 §5 and §8: fetch bounds
+def fetch_bounds_vectors():
+    def dest(label, address, cls, opt_in=False):
+        return {"label": label, "address": address, "loopback_opt_in": opt_in, "class": cls,
+                "allowed": cls is None}
+
+    destinations = [
+        dest("public IPv4", "93.184.216.34", None),
+        dest("public IPv6", "2606:2800:220:1:248:1893:25c8:1946", None),
+        dest("loopback", "127.0.0.1", "loopback"),
+        dest("loopback end of range", "127.255.255.254", "loopback"),
+        dest("loopback under the local opt in", "127.0.0.1", None, True),
+        dest("IPv6 loopback", "::1", "loopback"),
+        dest("IPv6 loopback under the local opt in", "::1", None, True),
+        dest("unspecified", "0.0.0.0", "unspecified"),
+        dest("IPv6 unspecified", "::", "unspecified"),
+        dest("private ten", "10.1.2.3", "private"),
+        dest("private one seven two", "172.31.0.9", "private"),
+        dest("private one nine two", "192.168.1.1", "private"),
+        dest("public neighbour of the private block", "172.32.0.1", None),
+        dest("link local", "169.254.1.1", "link-local"),
+        dest("cloud metadata", "169.254.169.254", "link-local"),
+        dest("shared address space", "100.64.0.1", "shared address space"),
+        dest("shared address space end of range", "100.127.255.255", "shared address space"),
+        dest("public after shared address space", "100.128.0.0", None),
+        dest("broadcast", "255.255.255.255", "broadcast"),
+        dest("multicast", "224.0.0.1", "multicast"),
+        dest("documentation one", "192.0.2.1", "documentation"),
+        dest("documentation two", "198.51.100.7", "documentation"),
+        dest("documentation three", "203.0.113.9", "documentation"),
+        dest("benchmarking", "198.18.0.1", "benchmarking"),
+        dest("benchmarking end of range", "198.19.255.255", "benchmarking"),
+        dest("public after benchmarking", "198.20.0.1", None),
+        dest("reserved", "240.0.0.1", "reserved"),
+        dest("unique local", "fd12::1", "unique local"),
+        dest("IPv6 link local", "fe80::1", "link-local"),
+        dest("IPv6 multicast", "ff02::1", "multicast"),
+        dest("IPv6 documentation", "2001:db8::1", "documentation"),
+        dest("IPv4 mapped private", "::ffff:10.0.0.1", "private"),
+        dest("IPv4 mapped public", "::ffff:93.184.216.34", None),
+        dest("six to four private", "2002:c0a8:101::1", "private"),
+        dest("six to four public", "2002:5db8:d822::1", None),
+        dest("NAT64 cloud metadata", "64:ff9b::a9fe:a9fe", "link-local"),
+        dest("NAT64 public", "64:ff9b::5db8:d822", None),
+    ]
+    resolutions = [
+        {"label": "every answer public", "addresses": ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"],
+         "allowed": True},
+        {"label": "one private answer refuses the name", "addresses": ["93.184.216.34", "10.0.0.5"],
+         "allowed": False},
+        {"label": "one mapped loopback answer refuses the name", "addresses": ["::ffff:127.0.0.1", "93.184.216.34"],
+         "allowed": False},
+        {"label": "no answer", "addresses": [], "allowed": False},
+    ]
+    defaults = {"url_cap_bytes": 2048, "extract_cap_bytes": 32768, "links_cap_bytes": 4096,
+                "summary_cap_bytes": 2048}
+    amended = {"url_cap_bytes": 4096, "extract_cap_bytes": 65536, "links_cap_bytes": 8192,
+               "summary_cap_bytes": 4096}
+
+    def bound(obj, params):
+        if obj in ("declaration", "feed", "page", "mirrors"):
+            return 1 << 20
+        if obj == "delta":
+            return 16384 + 2 * params["url_cap_bytes"]
+        return params["extract_cap_bytes"] + params["links_cap_bytes"] + params["summary_cap_bytes"] + 4096
+
+    object_bounds = []
+    for name, params in (("defaults", defaults), ("amended", amended)):
+        for obj in ("declaration", "feed", "page", "mirrors", "delta", "payload"):
+            object_bounds.append({"label": f"{obj} under the {name}", "object": obj, "parameters": params,
+                                  "bound": bound(obj, params)})
+
+    def work(label, budget, work_bytes, work_objects, size, object_bound=20480):
+        if budget == 0 or work_bytes == 0 or work_objects == 0:
+            outcome, debited = "suspended", 0
+        else:
+            limit = min(object_bound, budget, work_bytes)
+            if size <= limit:
+                outcome, debited = "fetched", size
+            elif limit < object_bound:
+                outcome, debited = "suspended", limit
+            else:
+                outcome, debited = "failed", 0
+        return {"label": label, "object_bound": object_bound, "budget_remaining": budget,
+                "work_bytes_remaining": work_bytes, "work_objects_remaining": work_objects,
+                "object_bytes": size, "outcome": outcome, "debited": debited}
+
+    work_cases = [
+        work("within every bound", 100000, 50000, 5, 10000),
+        work("exactly the remaining budget", 10000, 50000, 5, 10000),
+        work("crosses the remaining budget", 5000, 50000, 5, 10000),
+        work("crosses the per pull octet limit", 100000, 6000, 5, 10000),
+        work("no objects left in the pull", 100000, 50000, 0, 10),
+        work("budget spent", 0, 50000, 5, 10),
+        work("above its own bound", 100000, 50000, 5, 30000),
+        work("above its own bound and the remaining budget", 5000, 50000, 5, 30000),
+    ]
+    well_known = "/.well-known/wist/feed.json"
+    redirect_cases = [{
+        "label": "a scope grant and a scope removal inside one pull",
+        "requested_host": "example.com",
+        "steps": [
+            {"redirect_to": "https://www.example.com" + well_known, "allowed": False},
+            {"redirect_to": "https://example.com/feed-moved.json", "allowed": True},
+            {"declaration": {"domain": "example.com", "subdomain_scope": ["www.example.com"]}},
+            {"redirect_to": "https://www.example.com" + well_known, "allowed": True},
+            {"redirect_to": "https://cdn.example.com" + well_known, "allowed": False},
+            {"declaration": {"domain": "example.com", "subdomain_scope": ["cdn.example.com"]}},
+            {"redirect_to": "https://www.example.com" + well_known, "allowed": False},
+            {"redirect_to": "https://cdn.example.com" + well_known, "allowed": True},
+            {"redirect_to": "http://cdn.example.com" + well_known, "allowed": False},
+            {"redirect_to": "https://example.com/other.json", "allowed": True},
+        ],
+    }]
+    return spaced_labels({
+        "note": ("WIST-2 §8 and §5, ADR-0044. destinations classify one address, allowed only when the class is "
+                 "null; loopback_opt_in is the single-machine opt-in. resolutions decide a name from every "
+                 "address it resolves to. object_bounds are the octets an Aggregator reads at most, under the "
+                 "parameter map given. work_cases replay one fetch under the remaining daily budget and a "
+                 "per-pull limit: fetched debits the object, suspended debits the octets read up to the bound, "
+                 "failed is an object above its own bound. redirect_cases replay redirects and accepted "
+                 "Declarations in order for one requested Canonical Host."),
+        "destinations": destinations, "resolutions": resolutions, "object_bounds": object_bounds,
+        "work_cases": work_cases, "redirect_cases": redirect_cases})
+
+
+write_json(ROOT / "vectors" / "wist2" / "fetch-bounds.json", fetch_bounds_vectors())
