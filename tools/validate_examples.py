@@ -2234,6 +2234,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/labels.json", "value"): "an Ed25519 signature over a Label",
     ("vectors/wist2/labels.json", "current"): "the current Label's ID after replay (WIST-2 §3.3)",
     ("vectors/wist4/withdrawal.json", "state_tuples"): "fixture Delta IDs inside WIST-3 §7 withdrawal tuples",
+    ("vectors/wist4/withdrawal.json", "record_tuples"): "fixture Delta IDs inside WIST-3 §7 record tuples",
+    ("vectors/wist4/withdrawal.json", "materialized"): "fixture Delta IDs whose content materializes",
+    ("vectors/wist4/withdrawal.json", "adopted"): "fixture Delta IDs inside adopted withdrawal tuples",
     ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers inside WIST-3 §7 suffix_list tuples",
     ("vectors/wist3/timestamps.json", "entries"): "a placeholder Label ID inside a WIST-3 §7 dispute tuple whose timestamp position is probed",
     ("examples/dispute.json", "label"): "the disputed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
@@ -6104,10 +6107,48 @@ def _dc4_withdrawal():
     envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
     envelope["state"]["entries"] = v["state_tuples"]
     state.validate(envelope)
+    # WIST-3 §3.3 and §6.2: every sealed Delta moves its chain tip, the one
+    # withdrawn in its own Block included; only an unwithdrawn one materializes.
+    records = sorted(["record", d["publisher"], d["url"], d["delta_id"]] for d in v["sealed_deltas"])
+    assert records == sorted(v["record_tuples"]), "a withdrawn Delta moved no chain tip"
+    materialized = sorted(d["delta_id"] for d in v["sealed_deltas"] if d["delta_id"] not in withdrawn)
+    assert materialized == sorted(v["materialized"]) and materialized, "withdrawn content materialized"
+    assert any(withdrawn[d["delta_id"]][0] == d["height"] for d in v["sealed_deltas"] if d["delta_id"] in withdrawn), \
+        "no Delta withdrawn in its own Block"
+    envelope["state"]["entries"] = v["state_tuples"] + v["record_tuples"]
+    state.validate(envelope)
+    # WIST-3 §7: a resuming Consumer checks the contract only for a Delta it walked.
+    resume = v["resume"]
+    walked = {d["delta_id"]: d for d in resume["walked_deltas"]}
+    assert all(d["height"] > resume["log_position"] for d in walked.values())
+    resumed = {t[1]: (t[3], t[2]) for t in resume["adopted"]}
+    assert all(h <= resume["log_position"] for h, _ in resumed.values())
+    unverified = 0
+    for case in resume["act_cases"]:
+        code, doc = _registry_update_eligibility(case["envelope_json"], validator)
+        assert code is None, case["label"]
+        log_key.verify(b64u_decode(doc["sig"]["value"]), rfc8785.dumps(doc["update"]))
+        update = doc["update"]
+        fact = walked.get(update["details"]["delta_id"])
+        if fact is not None and (fact["height"] > case["height"] or fact["publisher"] != update["subject"]):
+            code = "WIST4-E04"
+        assert code == case["code"], (case["label"], code)
+        if code is None:
+            delta_id = update["details"]["delta_id"]
+            unverified += fact is None and delta_id not in resumed
+            resumed.setdefault(delta_id, (case["height"], update["subject"]))
+            assert resumed[delta_id][0] == case["withdrawn_height"], case["label"]
+    assert unverified, "no act names a Delta below the Snapshot"
+    assert sorted(["withdrawal", d, p, h] for d, (h, p) in resumed.items()) == sorted(resume["state_tuples"])
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "`delta_id` MUST name a Delta sealed at or below the act's Block whose signed `publisher` is `subject`" in prose
     assert "the earliest accepted withdrawal's Block is the height every rule reads" in prose
     assert "E11 takes precedence over E04" in prose
+    assert "the Delta's content never materializes, its chain tip moves as any Delta's does" in prose
+    assert "checks the contract only for an act naming a Delta sealed above `log_position`" in prose
+    prose3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "takes effect on that Delta as the Delta applies below" in prose3
+    assert "a resuming Consumer accepts a later act naming one of them as consistent" in prose3
 check("vectors:wist4-withdrawal", _dc4_withdrawal)
 
 def _dc4_withdrawal_twin():

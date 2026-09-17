@@ -464,7 +464,16 @@ and ceiling as a Delta (WIST-2 §3.3).
   `subject`; an act naming no such Delta, or another Publisher's, fails
   its `details` contract (`WIST4-E04`). A later withdrawal of an already
   withdrawn Delta is accepted and changes nothing: the earliest accepted
-  withdrawal's Block is the height every rule reads.
+  withdrawal's Block is the height every rule reads. An act sealed in
+  the same Block as the Delta it names applies to that Delta as the
+  Delta applies (WIST-3 §3.3): the Delta's content never materializes,
+  its chain tip moves as any Delta's does, and the withdrawal's height
+  is the act's Block. A Consumer resuming from a Snapshot at
+  `log_position` holds no tuple naming the Deltas sealed at or below it
+  (WIST-3 §7), so it cannot check this contract for an act naming a
+  Delta it never walked: it accepts such an act as consistent — the
+  Aggregator checked the contract at sealing — and checks the contract
+  only for an act naming a Delta sealed above `log_position`.
 - `suffix_list_update`: `sha256`, the snapshot identifier (§3.1), and
   `bytes`, the octet count of the identified file, an integer ≥ 1;
   `subject` is the identifier and MUST equal `details.sha256`. Both are

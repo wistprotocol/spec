@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and must name a Delta sealed at or below its Block whose signed publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs and a later withdrawal of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 \u00a77 withdrawal tuples the replay leaves.",
+  "note": "WIST-4 \u00a75.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and must name a Delta sealed at or below its Block whose signed publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs and a later withdrawal of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 \u00a77 withdrawal tuples the replay leaves, record_tuples the chain tips every sealed Delta moves, withdrawn or not, and materialized the sealed Deltas whose content materializes. resume replays acts at a Consumer that adopted the tuples at log_position and walked only the Deltas above it: an act naming a Delta it did not walk is accepted as consistent.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -8,12 +8,20 @@
     {
       "delta_id": "sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0",
       "publisher": "site.sample.net",
+      "url": "https://site.sample.net/one",
       "height": 1
     },
     {
       "delta_id": "sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541",
       "publisher": "other.sample.org",
+      "url": "https://other.sample.org/two",
       "height": 4
+    },
+    {
+      "delta_id": "sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94",
+      "publisher": "third.sample.org",
+      "url": "https://third.sample.org/three",
+      "height": 5
     }
   ],
   "act_cases": [
@@ -108,5 +116,110 @@
       "other.sample.org",
       4
     ]
-  ]
+  ],
+  "record_tuples": [
+    [
+      "record",
+      "site.sample.net",
+      "https://site.sample.net/one",
+      "sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0"
+    ],
+    [
+      "record",
+      "other.sample.org",
+      "https://other.sample.org/two",
+      "sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541"
+    ],
+    [
+      "record",
+      "third.sample.org",
+      "https://third.sample.org/three",
+      "sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94"
+    ]
+  ],
+  "materialized": [
+    "sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94"
+  ],
+  "resume": {
+    "log_position": 3,
+    "adopted": [
+      [
+        "withdrawal",
+        "sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0",
+        "site.sample.net",
+        3
+      ]
+    ],
+    "walked_deltas": [
+      {
+        "delta_id": "sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541",
+        "publisher": "other.sample.org",
+        "url": "https://other.sample.org/two",
+        "height": 4
+      },
+      {
+        "delta_id": "sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94",
+        "publisher": "third.sample.org",
+        "url": "https://third.sample.org/three",
+        "height": 5
+      }
+    ],
+    "act_cases": [
+      {
+        "label": "repeats an adopted withdrawal",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"czcgUtqOosWA6E0r-LDj0Sdu3G53hrQDU9lSEAXlDqSJ7Mz97uOmkIpiEF297FxEJKKapN7aFJc8atDKkpI4CA\"}}",
+        "code": null,
+        "withdrawn_height": 3
+      },
+      {
+        "label": "names a Delta sealed below the Snapshot",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"old.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:d44aac699d6419b556d19319ca01cbc2f43c25f6a16f478b0650ddff1c95c93b\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"Ij70W6Iz3Z85X6SUaAknAfuIqTqe4-oQz8YA4oEhGKFWEquZeW7uqgIR9fRiTwtBLkByms-esPLRcJp0tOJmCg\"}}",
+        "code": null,
+        "withdrawn_height": 5
+      },
+      {
+        "label": "names a walked Delta of another Publisher",
+        "height": 5,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"site.sample.net\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"fTRIKtQ5BZIa6Fs1eqjKnRHO-U7eU53UCDHeXOEruXBpjfIYb_--vsZwimHdRh_y8gFMI7PA_BqoAHSF2AszAQ\"}}",
+        "code": "WIST4-E04",
+        "withdrawn_height": null
+      },
+      {
+        "label": "names a walked Delta sealed above the act",
+        "height": 4,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"third.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"mnEgqjkAtd9mPgZpRnDKGLCLNRep177Dlp3s7rzEpVs5zdIiVOt2p3Lw8T4T3_er-zXWd9u4QCCD4ettPQoNAw\"}}",
+        "code": "WIST4-E04",
+        "withdrawn_height": null
+      },
+      {
+        "label": "withdraws a walked Delta",
+        "height": 6,
+        "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"third.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"mnEgqjkAtd9mPgZpRnDKGLCLNRep177Dlp3s7rzEpVs5zdIiVOt2p3Lw8T4T3_er-zXWd9u4QCCD4ettPQoNAw\"}}",
+        "code": null,
+        "withdrawn_height": 6
+      }
+    ],
+    "state_tuples": [
+      [
+        "withdrawal",
+        "sha256:d44aac699d6419b556d19319ca01cbc2f43c25f6a16f478b0650ddff1c95c93b",
+        "old.sample.net",
+        5
+      ],
+      [
+        "withdrawal",
+        "sha256:7d4c35535ebc5498599cea59a0a133164f916ed3aad16b86ff350f8fc03ba9d0",
+        "site.sample.net",
+        3
+      ],
+      [
+        "withdrawal",
+        "sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94",
+        "third.sample.org",
+        6
+      ]
+    ]
+  }
 }

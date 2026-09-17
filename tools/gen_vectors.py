@@ -3453,8 +3453,12 @@ print("wist4 parameter-combinations vector written")
 def withdrawal_vectors():
     d1 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta one").hexdigest()
     d2 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta two").hexdigest()
-    sealed = [{"delta_id": d1, "publisher": "site.sample.net", "height": 1},
-              {"delta_id": d2, "publisher": "other.sample.org", "height": 4}]
+    d3 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta three").hexdigest()
+    d0 = "sha256:" + hashlib.sha256(b"withdrawal fixture Delta below the Snapshot").hexdigest()
+    sealed = [{"delta_id": d1, "publisher": "site.sample.net", "url": "https://site.sample.net/one", "height": 1},
+              {"delta_id": d2, "publisher": "other.sample.org", "url": "https://other.sample.org/two", "height": 4},
+              {"delta_id": d3, "publisher": "third.sample.org", "url": "https://third.sample.org/three",
+               "height": 5}]
 
     def act(label, code, *, height=3, delta_id=d1, subject="site.sample.net", signer=priv,
             key_id="test-agg-k1", version="1.0.0", extra=None, details=None, withdrawn_height=None):
@@ -3488,14 +3492,36 @@ def withdrawal_vectors():
     ]
 
     state_tuples = [["withdrawal", d1, "site.sample.net", 3], ["withdrawal", d2, "other.sample.org", 4]]
+    record_tuples = [["record", d["publisher"], d["url"], d["delta_id"]] for d in sealed]
+    resume = {
+        "log_position": 3,
+        "adopted": [["withdrawal", d1, "site.sample.net", 3]],
+        "walked_deltas": [d for d in sealed if d["height"] > 3],
+        "act_cases": [
+            act("repeats an adopted withdrawal", None, height=5, withdrawn_height=3),
+            act("names a Delta sealed below the Snapshot", None, height=5, delta_id=d0,
+                subject="old.sample.net", withdrawn_height=5),
+            act("names a walked Delta of another Publisher", "WIST4-E04", height=5, delta_id=d2),
+            act("names a walked Delta sealed above the act", "WIST4-E04", height=4, delta_id=d3,
+                subject="third.sample.org"),
+            act("withdraws a walked Delta", None, height=6, delta_id=d3, subject="third.sample.org",
+                withdrawn_height=6),
+        ],
+        "state_tuples": [["withdrawal", d0, "old.sample.net", 5], ["withdrawal", d1, "site.sample.net", 3],
+                         ["withdrawal", d3, "third.sample.org", 6]],
+    }
     return spaced_labels({
         "note": ("WIST-4 §5.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and "
                  "must name a Delta sealed at or below its Block whose signed publisher is the subject "
                  "(WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs and a later withdrawal "
                  "of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 §7 "
-                 "withdrawal tuples the replay leaves."),
+                 "withdrawal tuples the replay leaves, record_tuples the chain tips every sealed Delta moves, "
+                 "withdrawn or not, and materialized the sealed Deltas whose content materializes. resume "
+                 "replays acts at a Consumer that adopted the tuples at log_position and walked only the Deltas "
+                 "above it: an act naming a Delta it did not walk is accepted as consistent."),
         "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}, "sealed_deltas": sealed,
-        "act_cases": acts, "state_tuples": state_tuples})
+        "act_cases": acts, "state_tuples": state_tuples, "record_tuples": record_tuples,
+        "materialized": [d3], "resume": resume})
 
 
 write_json(WIST4 / "withdrawal.json", withdrawal_vectors())

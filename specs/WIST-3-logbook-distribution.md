@@ -216,7 +216,9 @@ prefix and all its state, including recovery windows due to settle in the
 rejected Block. Then apply `registry_update` Entries (key acts read at
 Block granularity — "valid at this Block's `sealed_at`" — under §3.4;
 `parameter_change` validation and equal-effective-time precedence read
-canonical Entry index under WIST-4 §5), then
+canonical Entry index under WIST-4 §5; a `payload_withdrawal` naming a
+Delta this Block seals takes effect on that Delta as the Delta applies
+below, WIST-4 §5.1), then
 `publisher_delta` Entries **in chain order**: a Delta whose `prev` names
 a Delta in the same Block applies after it, which is well-defined because
 chains are trees rooted outside the Block and cycles are impossible
@@ -751,8 +753,10 @@ Publisher's domain and whose `details` name the `delta_id`, the
 Deltas is recorded as one entry per Delta, so that each withdrawal names
 exactly what it removed and can be checked on its own.
 
-A withdrawal takes effect at the height of the Block that seals it. From
-that height:
+A withdrawal takes effect at the height of the Block that seals it, for a
+Delta sealed in that same Block included: the Delta applies (§3.3) and
+moves its chain tip, and its content is never materialized. From that
+height:
 
 - the Aggregator, every Mirror **and the Publisher itself** MUST stop
   serving that Payload, and a Consumer MUST NOT treat its absence as a
@@ -1227,7 +1231,10 @@ a sealed dispute, carrying the current dispute's `reason` or `null`, its
 `asserted_at` and its sealing height; a `withdrawal` tuple
 exists for every withdrawn Delta, since a Consumer resuming above the
 withdrawal's Block never sees its Entry and must still exclude the
-content (§6.2). The schema pins each kind's arity and member types
+content (§6.2) — and, since no tuple names the Deltas sealed at or
+below `log_position`, a resuming Consumer accepts a later act naming
+one of them as consistent and checks WIST-4 §5.1's contract only for
+an act naming a Delta it walked. The schema pins each kind's arity and member types
 ([`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json));
 the table remains the normative inventory, and a state file omitting a
 kind with live instances at `log_position`, or carrying one this table
