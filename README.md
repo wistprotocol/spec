@@ -40,9 +40,10 @@ specs/       the four protocol documents
 schemas/     JSON Schema (draft 2020-12) for every normative object
 examples/    one validated example per object type
 vectors/     deterministic test vectors (WIST-1 signature and Declaration
-             sequencing, WIST-2 link extraction and Labels, WIST-3 Merkle
-             and snapshot records, WIST-4 parameter schedules,
-             withdrawals and registrable domains)
+             sequencing, WIST-2 link extraction, Labels, disputes and
+             label definitions, WIST-3 Merkle, snapshot records and
+             label tables, WIST-4 parameter schedules, withdrawals and
+             registrable domains)
 tools/       vector generator and validation harness
 decisions/   ADRs recording the load-bearing design decisions
 ```

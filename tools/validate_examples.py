@@ -110,6 +110,7 @@ INNER_KEY = {
     "checkpoint.json": "checkpoint", "snapshot-manifest.json": "manifest",
     "snapshot-index.json": "index", "snapshot-state.json": "state",
     "registry-update.json": "update", "label.json": "label", "label-feed.json": "feed",
+    "label-definition.json": "definition", "dispute.json": "dispute",
     "log-anchor.json": "anchor",
     "mirrors.json": "mirrors",
     "status.json": None,  # not a signed Envelope — plain JSON (WIST-2 §7.1)
@@ -517,7 +518,7 @@ def _state_tuple_encoding():
         assert all("type" in m or "const" in m or "oneOf" in m or "enum" in m
                    for m in v["prefixItems"]), f"untyped member in {v['prefixItems'][0]}"
     expected = {"aggregator_key", "declaration", "parameter", "recovery_window",
-                "suffix_list", "withdrawal", "label", "record"}
+                "suffix_list", "withdrawal", "label", "dispute", "record"}
     assert kinds == expected, f"kinds mismatch: {kinds ^ expected}"
     state = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())["state"]
     digest = "sha256:" + hashlib.sha256(
@@ -1680,7 +1681,8 @@ check("negative:wist4-parameter-in-force", _dc4_parameter_in_force_twin)
 
 def _combinations_hold(values):
     return (values["links_cap_bytes"] >= values["link_url_cap_bytes"] + 21
-            and values["mirror_retention_days"] * 6 >= values["payload_window_days"])
+            and values["mirror_retention_days"] * 6 >= values["payload_window_days"]
+            and values["labeler_block_entries_max"] <= values["domain_block_entries_max"])
 
 def _prospective_values(defaults, changes, at_s):
     values = dict(defaults)
@@ -1766,6 +1768,7 @@ def _dc4_prospective_parameters():
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     assert "`links_cap_bytes` MUST NOT be below `link_url_cap_bytes` + 21" in prose
     assert "`mirror_retention_days` MUST NOT be below `payload_window_days` divided by 6" in prose
+    assert "`labeler_block_entries_max` MUST NOT exceed `domain_block_entries_max`" in prose
 check("vectors:wist4-prospective-parameters", _dc4_prospective_parameters)
 
 def _dc4_prospective_parameters_twin():
@@ -1978,6 +1981,15 @@ NON_CONTENT_DIGESTS = {
     ("label.schema.json", "properties/label/properties/labeler"): "the signed Canonical Host of the Labeler, not a content digest",
     ("label.schema.json", "properties/label/properties/subject"): "a Normalized URL or Canonical Host the Label is about (WIST-2 §3.3), which the Log carries in the clear; no page content",
     ("label.schema.json", "properties/label/properties/name"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
+    ("label.schema.json", "properties/label/properties/delta"): "a Delta ID the Label binds to (WIST-2 §3.3): SHA-256 over a Delta that carries only a salted commitment",
+    ("dispute.schema.json", "properties/dispute/properties/disputant"): "the signed Canonical Host of the disputant, not a content digest",
+    ("dispute.schema.json", "properties/dispute/properties/label"): "the disputed Label's ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content",
+    ("dispute.schema.json", "properties/dispute/properties/log"): "a Log's `log_id`, a Canonical Host, not a content digest",
+    ("label-definition.schema.json", "properties/definition/properties/labeler"): "the signed Canonical Host of the Labeler, not a content digest",
+    ("label-definition.schema.json", "properties/definition/properties/name"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[7]/oneOf[0]"): "the Delta ID a Label binds to (WIST-2 §3.3): SHA-256 over a Delta that carries only a salted commitment",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[8]/prefixItems[1]"): "the disputed Label's ID (WIST-2 §3.3): SHA-256 over a Label, no page content",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[8]/prefixItems[2]"): "a Canonical Host identifying the disputant, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[3]"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
     ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/subject"): "a Canonical Host identifying a Publisher, not a content digest",
     ("registry-update.schema.json", "allOf[3]/then/properties/update/properties/details/properties/delta_id"): "a Delta ID: SHA-256 over a Delta that itself carries only a salted commitment (WIST-1 §3.6)",
@@ -2223,6 +2235,22 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/labels.json", "current"): "the current Label's ID after replay (WIST-2 §3.3)",
     ("vectors/wist4/withdrawal.json", "state_tuples"): "fixture Delta IDs inside WIST-3 §7 withdrawal tuples",
     ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers inside WIST-3 §7 suffix_list tuples",
+    ("vectors/wist3/timestamps.json", "entries"): "a placeholder Label ID inside a WIST-3 §7 dispute tuple whose timestamp position is probed",
+    ("examples/dispute.json", "label"): "the disputed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
+    ("examples/dispute.json", "value"): "an Ed25519 signature over the example dispute",
+    ("examples/label-definition.json", "value"): "an Ed25519 signature over the example definition",
+    ("vectors/wist2/disputes.json", "label_id"): "a sealed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
+    ("vectors/wist2/disputes.json", "label"): "the disputed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
+    ("vectors/wist2/disputes.json", "value"): "an Ed25519 signature over a dispute or Declaration",
+    ("vectors/wist2/disputes.json", "public_key"): "the fixture disputant and Labeler public keys",
+    ("vectors/wist2/disputes.json", "dispute_id"): "a Dispute ID: SHA-256 over a dispute, which carries a Label ID, hosts and a URL, no page content (WIST-2 §3.3)",
+    ("vectors/wist2/disputes.json", "current"): "the current dispute's ID after replay (WIST-2 §3.3)",
+    ("vectors/wist2/disputes.json", "state_tuple"): "a Label ID inside a WIST-3 §7 dispute tuple",
+    ("vectors/wist2/label-definitions.json", "public_key"): "the example Declaration's Ed25519 public keys",
+    ("vectors/wist2/label-definitions.json", "value"): "an Ed25519 signature over a definition",
+    ("vectors/wist2/labels.json", "delta"): "the Delta ID a Label binds to: SHA-256 over a Delta that carries only a salted commitment (WIST-2 §3.3)",
+    ("vectors/wist2/labels.json", "record_anchor"): "a record's anchor Delta ID (WIST-3 §7): SHA-256 over a Delta that carries only a salted commitment",
+    ("vectors/wist2/labels.json", "state_tuple"): "a Label's Delta binding inside a WIST-3 §7 label tuple",
     ("vectors/wist2/labels.json", "label_id"): "a Label ID: SHA-256 over a Label, which carries a subject, a registry name and an integer — no page content (WIST-2 §3.3)",
     ("examples/label.json", "value"): "an Ed25519 signature over the example Label",
     ("examples/label-feed.json", "value"): "an Ed25519 signature over the example Label Feed",
@@ -3237,24 +3265,28 @@ def _declaration_host_vectors():
     formats = FormatChecker(formats=[])
     formats.checks('wist-canonical-host')(_declaration_host_format)
     schemas = {name: json.loads((ROOT / f'schemas/{name}.schema.json').read_text())
-               for name in ('publisher', 'feed', 'status', 'snapshot-state', 'registry-update', 'label')}
+               for name in ('publisher', 'feed', 'status', 'snapshot-state', 'registry-update', 'label',
+                            'dispute', 'label-definition')}
     validator = Draft202012Validator(schemas['publisher'], format_checker=formats)
     fields = [schemas['publisher']['properties']['publisher']['properties']['domain'],
               schemas['publisher']['properties']['publisher']['properties']['subdomain_scope']['items'],
               schemas['feed']['properties']['feed']['properties']['domain'],
               schemas['status']['properties']['domain'],
-              schemas['label']['properties']['label']['properties']['labeler']]
-    kinds = {'declaration', 'recovery_window', 'withdrawal', 'label', 'record'}
+              schemas['label']['properties']['label']['properties']['labeler'],
+              schemas['dispute']['properties']['dispute']['properties']['disputant'],
+              schemas['dispute']['properties']['dispute']['properties']['log'],
+              schemas['label-definition']['properties']['definition']['properties']['labeler']]
+    kinds = {'declaration', 'recovery_window', 'withdrawal', 'label', 'dispute', 'record'}
     for branch in schemas['snapshot-state']['properties']['state']['properties']['entries']['items']['oneOf']:
         items = branch['prefixItems']
         if items[0].get('const') in kinds:
-            fields.append(items[2 if items[0]['const'] == 'withdrawal' else 1])
+            fields.append(items[2 if items[0]['const'] in ('withdrawal', 'dispute') else 1])
     subject_branches = [b for b in schemas['registry-update']['allOf']
                         if b['if']['properties']['update']['properties']['action'].get('const') == 'payload_withdrawal']
     assert len(subject_branches) == 1
     subject_branch = subject_branches[0]
     fields.append(subject_branch['then']['properties']['update']['properties']['subject'])
-    assert len(fields) == 11
+    assert len(fields) == 15
     for case in vector['hosts']:
         expected = case['expected'] == 'well_formed'
         assert _declaration_host_format(case['input']) == expected, case['name']
@@ -3511,7 +3543,7 @@ def _base64url_vectors():
 
     for path in (ROOT / "schemas").glob("*.json"):
         visit(json.loads(path.read_text()), path.name)
-    assert {kind: len(items) for kind, items in nodes.items()} == {"public_key": 5, "signature": 12, "salt": 1}
+    assert {kind: len(items) for kind, items in nodes.items()} == {"public_key": 5, "signature": 14, "salt": 1}
 
     def encoding_result(value, kind):
         try:
@@ -3964,7 +3996,7 @@ def _parameter_registry_enum():
         overlap = ids & found
         assert not overlap, f"§5 lists {sorted(overlap)} in more than one row"
         ids |= found
-    assert rows == 20, f"{rows} Parameter Registry rows parsed; the table has twenty"
+    assert rows == 21, f"{rows} Parameter Registry rows parsed; the table has twenty-one"
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     enum = None
     for branch in schema["allOf"]:
@@ -4047,7 +4079,7 @@ def _parameter_bounds():
             f"§5's bounds table gives {names[0]} no parseable bound: {cells[1]!r}"
         assert cells[2], f"§5's bounds table gives {names[0]} no stated consequence"
         published[names[0]] = (lo, hi)
-    assert len(published) == 17, \
+    assert len(published) == 18, \
         f"{len(published)} bounds parsed from §5; the table has seventeen"
     enforced = _parameter_change_bounds()
     assert published == enforced, (
@@ -4337,6 +4369,22 @@ TIMESTAMP_FIELDS = {
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[5]"):
         "the Label's own `asserted_at`, carried verbatim so a resuming Consumer orders a later "
         "Label against it (WIST-3 §7); a Publisher timestamp, never compared to a Block",
+    ("label.schema.json", "properties/label/properties/expires_at"):
+        "Publisher-supplied: the instant from which the Label applies nothing (WIST-2 §3.3), compared "
+        "to `asserted_at` at validation and to a Block's `sealed_at` only when the Label is applied, "
+        "as an instant the Publisher chose and the Block does not anchor",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[6]/oneOf[0]"):
+        "the Label's own `expires_at`, carried verbatim so a resuming Consumer drops the Label at the "
+        "same instant a replaying one does (WIST-3 §7); a Publisher timestamp the Block does not anchor",
+    ("dispute.schema.json", "properties/dispute/properties/asserted_at"):
+        "Publisher-supplied and read exactly as a Label's `asserted_at` (WIST-2 §3.3): compared to the "
+        "same disputant's other disputes of the Label and to the validator's own clock, never to a Block",
+    ("label-definition.schema.json", "properties/definition/properties/asserted_at"):
+        "Publisher-supplied and read as a Label's `asserted_at` (WIST-2 §3.3): a Consumer keeps the "
+        "newest definition that verifies; never compared to a Block",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[8]/prefixItems[4]"):
+        "the dispute's own `asserted_at`, carried verbatim so a resuming Consumer orders a later "
+        "dispute against it (WIST-3 §7); a Publisher timestamp, never compared to a Block",
     ("publisher.schema.json", "properties/publisher/properties/keys/items/properties/valid_from"):
         "compared only to a Delta's own `observed_at` (WIST-1 §5.1), never to a Block",
     ("publisher.schema.json",
@@ -4424,8 +4472,10 @@ def _timestamp_anchoring():
                 f"pattern {pattern!r}, not the whole-second-plus-Z form that field carries")
         else:
             publisher_field = (schema_name in ("delta.schema.json", "publisher.schema.json",
-                                               "label.schema.json")
-                               or spath.endswith("oneOf[5]/prefixItems[5]"))
+                                               "label.schema.json", "dispute.schema.json",
+                                               "label-definition.schema.json")
+                               or spath.endswith(("oneOf[5]/prefixItems[5]", "oneOf[5]/prefixItems[6]/oneOf[0]",
+                                                  "oneOf[8]/prefixItems[4]")))
             assert pattern == (PUBLISHER_TIMESTAMP_PATTERN if publisher_field else None), (
                 f"{schema_name}: {spath} has an unexpected unanchored timestamp pattern")
             assert len(declared) > 40, \
@@ -4660,7 +4710,7 @@ def _log_timestamp_vectors():
         if case["schema"] == "snapshot-state.schema.json":
             identity += (case["document"]["state"]["entries"][0][0],)
         exercised.add(identity)
-    assert len(exercised) == 7, "all four fields and three Snapshot timestamp positions required"
+    assert len(exercised) == 9, "all four fields and five Snapshot timestamp positions required"
     snapshot = json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text())
     def patterns(node):
         if isinstance(node, dict):
@@ -6319,8 +6369,12 @@ def _label_disposition(doc, declaration, validator, url_cap_bytes, terms):
     elif not _declaration_host_format(prefix):
         return "fields"
     try:
-        publisher_instant(label["asserted_at"])
+        asserted = publisher_instant(label["asserted_at"])
+        if "expires_at" in label and publisher_instant(label["expires_at"]) <= asserted:
+            return "fields"
     except ValueError:
+        return "fields"
+    if "delta" in label and not subject.startswith("https://"):
         return "fields"
     if host == publisher["domain"] or host in publisher.get("subdomain_scope", []):
         return "self"
@@ -6362,17 +6416,31 @@ def _label_vectors():
         ranked = max(case["sealed"], key=lambda s: (publisher_instant(s["label"]["asserted_at"]),
                                                      s["height"], s["entry_index"]))
         assert ranked["label_id"] == case["current"], case["name"]
-        expected = None if ranked["label"].get("retracted") else [
-            "label", ranked["label"]["labeler"], ranked["label"]["subject"], ranked["label"]["name"],
-            ranked["label"].get("value"), ranked["label"]["asserted_at"], ranked["height"]]
+        inner = ranked["label"]
+        expired = "expires_at" in inner and publisher_instant(inner["expires_at"]) <= log_seconds(case["sealed_at"])
+        expected = None if inner.get("retracted") or expired else [
+            "label", inner["labeler"], inner["subject"], inner["name"], inner.get("value"),
+            inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), ranked["height"]]
         assert case["state_tuple"] == expected, case["name"]
         if expected is not None:
             envelope["state"]["entries"] = [expected]
             state.validate(envelope)
+    assert any(c["state_tuple"] is None and not c["sealed"][0]["label"].get("retracted")
+               and "expires_at" in c["sealed"][0]["label"] for c in v["current_cases"]), "no expiry drops a tuple"
+    assert any(c["state_tuple"] is not None and c["state_tuple"][7] is not None for c in v["current_cases"])
+    for case in v["binding_cases"]:
+        applies = case["record_anchor"] is not None and (case["delta"] is None or case["delta"] == case["record_anchor"])
+        assert applies == case["applies"], case["name"]
+    assert {c["applies"] for c in v["binding_cases"]} == {True, False}
+    outcomes_expiry = {c["expected"] for c in v["cases"] if "expires_at" in c["envelope"]["label"]}
+    assert outcomes_expiry == {"accepted", "fields"}, "expiry cases do not cover both dispositions"
+    assert {c["expected"] for c in v["cases"] if "delta" in c["envelope"]["label"]} == {"accepted", "fields"}
     assert any(c["state_tuple"] is None for c in v["current_cases"])
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     assert "the sealed Label with the greatest `asserted_at`, and among equal instants the one later in Log order" in prose
     assert "it is rejected under `WIST2-E06` and never sealed" in prose
+    assert "applies nothing at a Block whose `sealed_at` is at or after that instant" in prose
+    assert "the Label applies only while the subject URL's record stands on that anchor Delta" in prose
 check("vectors:wist2-labels", _label_vectors)
 
 def _label_vectors_twin():
@@ -6395,6 +6463,226 @@ def _label_vectors_twin():
     reversed_order = min(tie["sealed"], key=lambda s: (s["height"], s["entry_index"]))
     assert reversed_order["label_id"] != tie["current"]
 check("negative:wist2-labels", _label_vectors_twin)
+
+
+def _dispute_vector():
+    return json.loads((ROOT / "vectors/wist2/disputes.json").read_text())
+
+def _dispute_disposition(doc, declaration, validator, sealed):
+    """WIST-2 §3.3 over one Dispute Envelope: accepted, fields, unsealed,
+    authority, signature or binding, in the order the section applies them."""
+    import link_extraction
+    if not validator.is_valid(doc):
+        return "fields"
+    dispute = doc["dispute"]
+    if dispute["wist_version"].partition(".")[0] != "1":
+        return "fields"
+    publisher = declaration["publisher"]
+    if dispute["disputant"] != publisher["domain"]:
+        return "fields"
+    if not _declaration_host_format(dispute["log"]):
+        return "fields"
+    if "reason" in dispute and link_extraction.normalize_url(dispute["reason"], dispute["reason"]) != dispute["reason"]:
+        return "fields"
+    try:
+        publisher_instant(dispute["asserted_at"])
+    except ValueError:
+        return "fields"
+    label = sealed.get(dispute["label"])
+    if label is None:
+        return "unsealed"
+    subject = label["subject"]
+    host = subject[len("https://"):].split("/", 1)[0] if subject.startswith("https://") else subject
+    if host != publisher["domain"] and host not in publisher.get("subdomain_scope", []):
+        return "authority"
+    key = next((k for k in publisher["keys"] if k["key_id"] == doc["sig"]["key_id"]), None)
+    if key is None:
+        return "binding"
+    if not _ed25519_profile_verdict(canonical_b64u_decode(key["public_key"]),
+                                    canonical_b64u_decode(doc["sig"]["value"]),
+                                    rfc8785.dumps(dispute))[0]:
+        return "signature"
+    return "accepted"
+
+def _dispute_vectors():
+    """WIST-2 §3.3 disputes: every disposition recomputed under the disputant's
+    Declaration against the supplied sealed Labels, the Dispute IDs, the
+    current-dispute rule and the WIST-3 §7 dispute tuple."""
+    v = _dispute_vector()
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/dispute.schema.json").read_text()))
+    sealed = {l["label_id"]: l for l in v["sealed_labels"]}
+    codes = {"accepted": None, "fields": "WIST2-E06", "unsealed": "WIST2-E06", "authority": "WIST2-E06",
+             "signature": "WIST1-E01", "binding": "WIST1-E02"}
+    outcomes = set()
+    for case in v["cases"]:
+        got = _dispute_disposition(case["envelope"], case["declaration"], validator, sealed)
+        assert got == case["expected"], (case["name"], got, case["expected"])
+        assert case["code"] == codes[case["expected"]], case["name"]
+        dispute_id = "sha256:" + hashlib.sha256(rfc8785.dumps(case["envelope"]["dispute"])).hexdigest()
+        assert case["dispute_id"] == (dispute_id if case["expected"] == "accepted" else None), case["name"]
+        outcomes.add(case["expected"])
+    assert outcomes == set(codes)
+    assert any(c["expected"] == "accepted" and c["envelope"]["dispute"]["log"] != "log.example" for c in v["cases"]), \
+        "no accepted dispute cites another Log"
+    example = json.loads((ROOT / "examples" / "dispute.json").read_text())
+    example_sealed = {example["dispute"]["label"]: {"subject": "https://example.com/blog/post-1"}}
+    publisher = json.loads((ROOT / "examples" / "publisher.json").read_text())
+    assert _dispute_disposition(example, publisher, validator, example_sealed) == "accepted"
+    state = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
+    envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+    for case in v["current_cases"]:
+        ranked = max(case["sealed"], key=lambda s: (publisher_instant(s["dispute"]["asserted_at"]),
+                                                     s["height"], s["entry_index"]))
+        assert ranked["dispute_id"] == case["current"], case["name"]
+        inner = ranked["dispute"]
+        expected = ["dispute", inner["label"], inner["disputant"], inner.get("reason"), inner["asserted_at"],
+                    ranked["height"]]
+        assert case["state_tuple"] == expected, case["name"]
+        envelope["state"]["entries"] = [expected]
+        state.validate(envelope)
+    block = json.loads((ROOT / "schemas/block.schema.json").read_text())
+    assert "dispute" in block["properties"]["entries"]["items"]["properties"]["type"]["enum"]
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    assert "the disputed Label's `subject` MUST lie under the disputant's authority" in prose
+    assert "an Aggregator MUST NOT reject a dispute for naming another Log" in prose
+    assert "A dispute is never applied by the Aggregator or a Snapshot builder" in prose
+    w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "`publisher_delta`, `label`, `dispute`, and within each group" in w3
+check("vectors:wist2-disputes", _dispute_vectors)
+
+def _dispute_vectors_twin():
+    v = _dispute_vector()
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/dispute.schema.json").read_text()))
+    sealed = {l["label_id"]: l for l in v["sealed_labels"]}
+    valid = next(c for c in v["cases"] if c["expected"] == "accepted")
+    widened = copy.deepcopy(valid["declaration"])
+    widened["publisher"]["domain"] = "elsewhere.example"
+    doc = copy.deepcopy(valid["envelope"])
+    doc["dispute"]["disputant"] = "elsewhere.example"
+    assert _dispute_disposition(doc, widened, validator, sealed) == "authority"
+    assert _dispute_disposition(valid["envelope"], valid["declaration"], validator, {}) == "unsealed"
+    tie = next(c for c in v["current_cases"] if c["name"] == "equal instants break by Log order")
+    assert min(tie["sealed"], key=lambda s: s["entry_index"])["dispute_id"] != tie["current"]
+check("negative:wist2-disputes", _dispute_vectors_twin)
+
+
+def _definition_vector():
+    return json.loads((ROOT / "vectors/wist2/label-definitions.json").read_text())
+
+def _definition_accepted(doc, declaration, validator, terms):
+    import link_extraction
+    if not validator.is_valid(doc):
+        return False
+    definition = doc["definition"]
+    publisher = declaration["publisher"]
+    if definition["wist_version"].partition(".")[0] != "1" or definition["labeler"] != publisher["domain"]:
+        return False
+    m = re.fullmatch(r"([a-z0-9.-]+):([a-z0-9-]+)", definition["name"])
+    if not m or (m.group(1) == "wist" and definition["name"] not in terms) \
+            or (m.group(1) != "wist" and not _declaration_host_format(m.group(1))):
+        return False
+    if link_extraction.normalize_url(definition["description"], definition["description"]) != definition["description"]:
+        return False
+    try:
+        publisher_instant(definition["asserted_at"])
+    except ValueError:
+        return False
+    key = next((k for k in publisher["keys"] if k["key_id"] == doc["sig"]["key_id"]), None)
+    return key is not None and _ed25519_profile_verdict(
+        canonical_b64u_decode(key["public_key"]), canonical_b64u_decode(doc["sig"]["value"]),
+        rfc8785.dumps(definition))[0]
+
+def _definition_vectors():
+    """WIST-2 §3.3 label definitions: each case's acceptance recomputed over the
+    example Declaration and the served path derived from the name."""
+    v = _definition_vector()
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/label-definition.schema.json").read_text()))
+    terms = _wist_label_terms()
+    for case in v["cases"]:
+        accepted = _definition_accepted(case["envelope"], v["declaration"], validator, terms)
+        assert accepted == (case["expected"] == "accepted"), case["name"]
+        path = ("labels/definitions/" + hashlib.sha256(case["envelope"]["definition"]["name"].encode("utf-8")).hexdigest()
+                + ".json") if accepted else None
+        assert case["path"] == path, case["name"]
+    assert {c["envelope"]["definition"]["treatment"] for c in v["cases"] if c["expected"] == "accepted"} == {"hide", "warn", "inform"}
+    example = json.loads((ROOT / "examples" / "label-definition.json").read_text())
+    assert _definition_accepted(example, v["declaration"], validator, terms)
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
+    assert "treats a name with no verifiable definition as `inform`" in prose
+    assert "`<hex>` is the lowercase hex SHA-256 of the name's UTF-8 octets" in prose
+    w4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
+    assert "`hide` (the subject is not presented), `warn` (presented with the Label shown) or `inform`" in w4
+check("vectors:wist2-label-definitions", _definition_vectors)
+
+def _definition_vectors_twin():
+    v = _definition_vector()
+    validator = Draft202012Validator(json.loads((ROOT / "schemas/label-definition.schema.json").read_text()))
+    valid = next(c for c in v["cases"] if c["name"] == "valid definition")
+    assert not _definition_accepted(valid["envelope"], v["declaration"], validator, set())
+    doc = copy.deepcopy(valid["envelope"])
+    doc["definition"]["treatment"] = "inform"
+    assert not _definition_accepted(doc, v["declaration"], validator, _wist_label_terms())
+check("negative:wist2-label-definitions", _definition_vectors_twin)
+
+
+def _label_table_vector():
+    return json.loads((ROOT / "vectors/wist3/label-tables.json").read_text())
+
+def _label_table_vectors():
+    """WIST-3 §7 labeler statistics, WIST-3 §3.2 per-Labeler cap and WIST-4 §6's
+    recommended persistence and inactivity rules, each recomputed."""
+    v = _label_table_vector()
+    for case in v["statistics_cases"]:
+        rows = {}
+        for e in sorted(case["sealed"], key=lambda e: e["height"]):
+            row = rows.setdefault(e["labeler"], [0, 0, set(), e["height"]])
+            row[0] += 1
+            row[1] += e["retracted"]
+            row[2].add(e["subject"])
+        expected = [{"labeler": k, "label_count": r[0], "retraction_count": r[1], "distinct_subjects": len(r[2]),
+                     "first_seen_height": r[3]} for k, r in sorted(rows.items())]
+        assert case["rows"] == expected, case["label"]
+        assert len(expected) >= 2 and any(r["retraction_count"] for r in expected)
+    seen = set()
+    for case in v["cap_cases"]:
+        domain = collections.Counter(e["domain"] for e in case["entries"])
+        labeler = collections.Counter(e["domain"] for e in case["entries"] if e["type"] in ("label", "dispute"))
+        over = max(domain.values()) > case["domain_block_entries_max"] or \
+            (labeler and max(labeler.values()) > case["labeler_block_entries_max"])
+        assert case["expected"] == ("WIST3-E03" if over else None), case["label"]
+        assert case["labeler_block_entries_max"] <= case["domain_block_entries_max"]
+        seen.add(case["expected"])
+    assert seen == {None, "WIST3-E03"}
+    assert any(e["type"] == "dispute" for c in v["cap_cases"] for e in c["entries"])
+    for case in v["persistence_cases"]:
+        def live(h):
+            current = max((ev for ev in case["events"] if ev["height"] <= h),
+                          key=lambda ev: publisher_instant(ev["asserted_at"]), default=None)
+            if current is None or current["retracted"]:
+                return False
+            return case["expires_at_height"] is None or h < case["expires_at_height"]
+        for probe in case["probes"]:
+            assert probe["counted"] == (live(probe["height"]) and live(probe["height"] - 1)), (case["label"], probe)
+        assert {p["counted"] for p in case["probes"]} == {True, False}, case["label"]
+    for case in v["inactivity_cases"]:
+        assert case["applies"] == (case["height"] - case["last_sealed_height"] <= case["inactivity_blocks"]), case["label"]
+    assert {c["applies"] for c in v["inactivity_cases"]} == {True, False}
+    w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "`(labeler, label_count, retraction_count, distinct_subjects, first_seen_height)`" in w3
+    assert "a Block MUST NOT carry more than `labeler_block_entries_max`" in w3
+    w4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
+    assert "only once it has persisted across two consecutive Blocks" in w4
+    assert "Ignore a Labeler with no sealed Entry of any type within a configured number of Blocks, 720 by default" in w4
+check("vectors:wist3-label-tables", _label_table_vectors)
+
+def _label_table_vectors_twin():
+    v = _label_table_vector()
+    case = next(c for c in v["persistence_cases"] if c["label"] == "counted from the second consecutive Block")
+    first = min(p["height"] for p in case["probes"] if p["counted"])
+    assert not next(p for p in case["probes"] if p["height"] == first - 1)["counted"], "a Label counts in its sealing Block"
+    cap = next(c for c in v["cap_cases"] if c["label"] == "labels over the labeler cap")
+    assert len(cap["entries"]) <= cap["domain_block_entries_max"], "the labeler cap case is really a domain cap case"
+check("negative:wist3-label-tables", _label_table_vectors_twin)
 
 
 sys.exit(1 if failures else 0)

@@ -1,0 +1,15 @@
+{
+  "definition": {
+    "wist_version": "1.0.0",
+    "labeler": "example.com",
+    "name": "wist:spam",
+    "description": "https://example.com/labels/spam",
+    "treatment": "hide",
+    "asserted_at": "2026-08-02T12:00:00Z"
+  },
+  "sig": {
+    "key_id": "test-k1",
+    "alg": "Ed25519",
+    "value": "EWDKKDtLJSj26InmWXpEqbxZsFKzCnBno9_nm0bto_9oplcANbOoZma_Bq6bODdLLd5fQOEVhJYT-YAdLriaCQ"
+  }
+}

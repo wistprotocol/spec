@@ -1,0 +1,353 @@
+{
+  "note": "WIST-3 section 7 tier1/labelers.parquet rows from sealed label Entries (statistics_cases: every sealed Label counts, retractions included, subjects distinct, first-seen the lowest height); WIST-3 section 3.2 and WIST-4 section 5 per-Labeler cap over label and dispute Entries beside the per-domain cap with no suffix-list snapshot in force, so every host is its own unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or wist:unavailable Label counts at a height only when it was current, unretracted and unexpired at that height and the one before (persistence_cases; expires_at_height is the first height whose Block instant reaches the expiry), and a Labeler with no sealed Entry within inactivity_blocks is ignored (inactivity_cases).",
+  "statistics_cases": [
+    {
+      "label": "four sealed Labels of one Labeler and one of another",
+      "sealed": [
+        {
+          "height": 1,
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "retracted": false
+        },
+        {
+          "height": 1,
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/other",
+          "name": "wist:spam",
+          "retracted": false
+        },
+        {
+          "height": 2,
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "retracted": true
+        },
+        {
+          "height": 2,
+          "labeler": "example.com",
+          "subject": "reduced.example.org",
+          "name": "wist:distrust-seed",
+          "retracted": false
+        },
+        {
+          "height": 3,
+          "labeler": "labels.sample.net",
+          "subject": "https://example.com/blog/post-1",
+          "name": "wist:copied",
+          "retracted": false
+        },
+        {
+          "height": 4,
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "retracted": false
+        }
+      ],
+      "rows": [
+        {
+          "labeler": "example.com",
+          "label_count": 5,
+          "retraction_count": 1,
+          "distinct_subjects": 3,
+          "first_seen_height": 1
+        },
+        {
+          "labeler": "labels.sample.net",
+          "label_count": 1,
+          "retraction_count": 0,
+          "distinct_subjects": 1,
+          "first_seen_height": 3
+        }
+      ]
+    }
+  ],
+  "cap_cases": [
+    {
+      "label": "labels at the labeler cap",
+      "labeler_block_entries_max": 2,
+      "domain_block_entries_max": 3,
+      "entries": [
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        }
+      ],
+      "expected": null
+    },
+    {
+      "label": "labels over the labeler cap",
+      "labeler_block_entries_max": 2,
+      "domain_block_entries_max": 3,
+      "entries": [
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        }
+      ],
+      "expected": "WIST3-E03"
+    },
+    {
+      "label": "a dispute counts with the labels",
+      "labeler_block_entries_max": 2,
+      "domain_block_entries_max": 3,
+      "entries": [
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "dispute",
+          "domain": "a.example"
+        }
+      ],
+      "expected": "WIST3-E03"
+    },
+    {
+      "label": "Deltas do not count toward the labeler cap",
+      "labeler_block_entries_max": 2,
+      "domain_block_entries_max": 3,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        }
+      ],
+      "expected": null
+    },
+    {
+      "label": "labels and Deltas over the domain cap",
+      "labeler_block_entries_max": 2,
+      "domain_block_entries_max": 3,
+      "entries": [
+        {
+          "type": "publisher_delta",
+          "domain": "a.example"
+        },
+        {
+          "type": "publisher_delta",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        }
+      ],
+      "expected": "WIST3-E03"
+    },
+    {
+      "label": "two Labelers at the cap each",
+      "labeler_block_entries_max": 2,
+      "domain_block_entries_max": 3,
+      "entries": [
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "a.example"
+        },
+        {
+          "type": "label",
+          "domain": "b.example"
+        },
+        {
+          "type": "label",
+          "domain": "b.example"
+        }
+      ],
+      "expected": null
+    }
+  ],
+  "persistence_cases": [
+    {
+      "label": "counted from the second consecutive Block",
+      "events": [
+        {
+          "height": 5,
+          "asserted_at": "2026-08-02T12:00:00Z",
+          "retracted": false
+        }
+      ],
+      "expires_at_height": null,
+      "probes": [
+        {
+          "height": 4,
+          "counted": false
+        },
+        {
+          "height": 5,
+          "counted": false
+        },
+        {
+          "height": 6,
+          "counted": true
+        },
+        {
+          "height": 7,
+          "counted": true
+        }
+      ]
+    },
+    {
+      "label": "a retraction stops the count",
+      "events": [
+        {
+          "height": 5,
+          "asserted_at": "2026-08-02T12:00:00Z",
+          "retracted": false
+        },
+        {
+          "height": 7,
+          "asserted_at": "2026-08-02T13:00:00Z",
+          "retracted": true
+        }
+      ],
+      "expires_at_height": null,
+      "probes": [
+        {
+          "height": 5,
+          "counted": false
+        },
+        {
+          "height": 6,
+          "counted": true
+        },
+        {
+          "height": 7,
+          "counted": false
+        },
+        {
+          "height": 8,
+          "counted": false
+        }
+      ]
+    },
+    {
+      "label": "re asserted after a retraction",
+      "events": [
+        {
+          "height": 5,
+          "asserted_at": "2026-08-02T12:00:00Z",
+          "retracted": false
+        },
+        {
+          "height": 6,
+          "asserted_at": "2026-08-02T13:00:00Z",
+          "retracted": true
+        },
+        {
+          "height": 8,
+          "asserted_at": "2026-08-02T15:00:00Z",
+          "retracted": false
+        }
+      ],
+      "expires_at_height": null,
+      "probes": [
+        {
+          "height": 7,
+          "counted": false
+        },
+        {
+          "height": 8,
+          "counted": false
+        },
+        {
+          "height": 9,
+          "counted": true
+        },
+        {
+          "height": 10,
+          "counted": true
+        }
+      ]
+    },
+    {
+      "label": "expiry ends the count",
+      "events": [
+        {
+          "height": 5,
+          "asserted_at": "2026-08-02T12:00:00Z",
+          "retracted": false
+        }
+      ],
+      "expires_at_height": 8,
+      "probes": [
+        {
+          "height": 6,
+          "counted": true
+        },
+        {
+          "height": 7,
+          "counted": true
+        },
+        {
+          "height": 8,
+          "counted": false
+        }
+      ]
+    }
+  ],
+  "inactivity_cases": [
+    {
+      "label": "within the window",
+      "last_sealed_height": 100,
+      "inactivity_blocks": 720,
+      "height": 820,
+      "applies": true
+    },
+    {
+      "label": "one Block past the window",
+      "last_sealed_height": 100,
+      "inactivity_blocks": 720,
+      "height": 821,
+      "applies": false
+    },
+    {
+      "label": "never sealed anything since genesis",
+      "last_sealed_height": 0,
+      "inactivity_blocks": 720,
+      "height": 721,
+      "applies": false
+    },
+    {
+      "label": "a short window",
+      "last_sealed_height": 100,
+      "inactivity_blocks": 24,
+      "height": 124,
+      "applies": true
+    }
+  ]
+}

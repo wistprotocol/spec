@@ -2631,6 +2631,38 @@ label = {
 label_id = "sha256:" + sha256_hex(rfc8785.dumps(label))
 label_envelope = sign_envelope("label", label, "test-k1")
 write_json(EXAMPLES / "label.json", label_envelope)
+definition = {
+    "wist_version": "1.0.0",
+    "labeler": "example.com",
+    "name": "wist:spam",
+    "description": "https://example.com/labels/spam",
+    "treatment": "hide",
+    "asserted_at": "2026-08-02T12:00:00Z",
+}
+write_json(EXAMPLES / "label-definition.json", sign_envelope("definition", definition, "test-k1"))
+
+LABELER_HOST = "labels.sample.net"
+labeler_declaration = sign_envelope_with(priv4, "publisher", {
+    "wist_version": "1.0.0", "seq": 0, "domain": LABELER_HOST,
+    "keys": [{"key_id": "l-k1", "alg": "Ed25519", "public_key": b64u(pub4_raw),
+              "valid_from": "2026-08-01T00:00:00Z"}]}, "l-k1")
+disputed_label = {
+    "wist_version": "1.0.0", "labeler": LABELER_HOST, "subject": "https://example.com/blog/post-1",
+    "name": "wist:copied", "asserted_at": "2026-08-02T11:00:00Z",
+}
+disputed_label_id = "sha256:" + sha256_hex(rfc8785.dumps(disputed_label))
+dispute = {
+    "wist_version": "1.0.0",
+    "disputant": "example.com",
+    "label": disputed_label_id,
+    "log": "log.example",
+    "height": 1,
+    "reason": "https://example.com/blog/post-1-is-original",
+    "asserted_at": "2026-08-02T12:45:00Z",
+}
+dispute_id = "sha256:" + sha256_hex(rfc8785.dumps(dispute))
+write_json(EXAMPLES / "dispute.json", sign_envelope("dispute", dispute, "test-k1"))
+
 label_feed = {
     "wist_version": "1.0.0",
     "domain": "example.com",
@@ -2640,6 +2672,26 @@ label_feed = {
 }
 write_json(EXAMPLES / "label-feed.json", sign_envelope("feed", label_feed, "test-k1"))
 print("wist2 label examples written:", label_id)
+
+
+def publisher_instant_s(value: str):
+    """A Publisher timestamp as an exact rational instant in seconds."""
+    from fractions import Fraction
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(\.\d+)?([Zz]|[+-]\d{2}:\d{2})", value)
+    year, month, day, hour, minute, second = (int(m.group(i)) for i in range(1, 7))
+    days = datetime.date(year, month, day).toordinal() - datetime.date(1970, 1, 1).toordinal()
+    base = Fraction(days * 86400 + hour * 3600 + minute * 60 + second)
+    if m.group(7):
+        base += Fraction(m.group(7))
+    zone = m.group(8)
+    if zone not in ("Z", "z"):
+        sign = 1 if zone[0] == "+" else -1
+        base -= sign * (int(zone[1:3]) * 3600 + int(zone[4:6]) * 60)
+    return base
+
+
+def log_instant_s(value: str) -> int:
+    return calendar.timegm(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ"))
 
 
 def label_vectors():
@@ -2704,26 +2756,50 @@ def label_vectors():
     add("self-label of a scoped URL", dict(label, subject="https://blog.example.com/post"), expected="self")
     add("a host outside the declared scope", dict(label, subject="https://sub.example.com/"))
     add("a host with the domain as a prefix", dict(label, subject="https://example.com.sample.net/"))
+    add("valid expiry", dict(label, expires_at="2026-09-02T12:30:00Z"))
+    add("expiry with an offset instant", dict(label, expires_at="2026-08-02T14:30:01+02:00"))
+    add("expiry one second after assertion", dict(label, expires_at="2026-08-02T12:30:01Z"))
+    add("expiry at assertion", dict(label, expires_at="2026-08-02T12:30:00Z"), expected="fields")
+    add("expiry before assertion", dict(label, expires_at="2026-08-01T12:30:00Z"), expected="fields")
+    add("expiry on a leap second", dict(label, expires_at="2026-12-31T23:59:60Z"), expected="fields")
+    add("expiry without a zone", dict(label, expires_at="2026-09-02T12:30:00"), expected="fields")
+    add("Delta binding on a URL subject", dict(label, delta=disputed_label_id))
+    add("Delta binding with an expiry", dict(label, delta=disputed_label_id, expires_at="2026-09-02T12:30:00Z"))
+    add("Delta binding on a Canonical Host subject", dict(label, subject="reduced.example.org", delta=disputed_label_id),
+        expected="fields")
+    add("Delta binding not a Delta ID", dict(label, delta="sha256:xyz"), expected="fields")
+    add("Delta binding uppercase hex", dict(label, delta=disputed_label_id.upper().replace("SHA256", "sha256")),
+        expected="fields")
     add("signature over other bytes", expected="signature",
         mutate=lambda doc: doc["label"].update(asserted_at="2026-08-02T12:31:00Z"))
     add("signed by the recovery key", signer=priv2, key_id="test-r1", expected="binding")
     add("signed under an unknown key_id", key_id="test-k9", expected="binding")
 
-    def sealed(asserted_at, height, entry_index, value=None, retracted=False):
+    def sealed(asserted_at, height, entry_index, value=None, retracted=False, expires_at=None, delta=None):
         inner = dict(label, asserted_at=asserted_at)
         if value is not None:
             inner["value"] = value
         if retracted:
             inner["retracted"] = True
+        if expires_at is not None:
+            inner["expires_at"] = expires_at
+        if delta is not None:
+            inner["delta"] = delta
         return {"label": inner, "label_id": "sha256:" + sha256_hex(rfc8785.dumps(inner)),
                 "height": height, "entry_index": entry_index}
 
-    def current_case(name, items, winner):
+    def label_tuple(chosen):
+        inner = chosen["label"]
+        return ["label", inner["labeler"], inner["subject"], inner["name"], inner.get("value"),
+                inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), chosen["height"]]
+
+    def current_case(name, items, winner, sealed_at="2026-08-03T12:00:00Z"):
         chosen = items[winner]
-        tuple_ = (None if chosen["label"].get("retracted") else
-                  ["label", chosen["label"]["labeler"], chosen["label"]["subject"], chosen["label"]["name"],
-                   chosen["label"].get("value"), chosen["label"]["asserted_at"], chosen["height"]])
-        return {"name": name, "sealed": items, "current": chosen["label_id"], "state_tuple": tuple_}
+        expired = (chosen["label"].get("expires_at") is not None
+                   and publisher_instant_s(chosen["label"]["expires_at"]) <= log_instant_s(sealed_at))
+        tuple_ = None if chosen["label"].get("retracted") or expired else label_tuple(chosen)
+        return {"name": name, "sealed": items, "sealed_at": sealed_at, "current": chosen["label_id"],
+                "state_tuple": tuple_}
 
     current = [
         current_case("greatest asserted_at wins whatever sealed later",
@@ -2738,20 +2814,283 @@ def label_vectors():
                      [sealed("2026-08-03T09:00:00Z", 1, 0), sealed("2026-08-02T12:30:00Z", 2, 0, retracted=True)], 0),
         current_case("an offset instant compares as an instant",
                      [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-02T14:30:01+02:00", 2, 0)], 1),
+        current_case("an unexpired Label keeps its tuple",
+                     [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T12:00:01Z")], 0),
+        current_case("a Label expired at the Snapshot's Block leaves no tuple",
+                     [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T12:00:00Z")], 0),
+        current_case("an expired Label is still the current one",
+                     [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T00:00:00Z"),
+                      sealed("2026-08-02T12:00:00Z", 2, 0)], 0),
+        current_case("a bound Label carries its Delta",
+                     [sealed("2026-08-02T12:30:00Z", 1, 0, delta=disputed_label_id)], 0),
     ]
+    binding = []
+    for name, anchor, delta, applies in (
+        ("bound to the live anchor", disputed_label_id, disputed_label_id, True),
+        ("bound to an earlier anchor", "sha256:" + sha256_hex(b"a later publication"), disputed_label_id, False),
+        ("unbound applies to any anchor", "sha256:" + sha256_hex(b"a later publication"), None, True),
+        ("bound with no live record", None, disputed_label_id, False),
+        ("unbound with no live record", None, None, False),
+    ):
+        binding.append({"name": name, "delta": delta, "record_anchor": anchor, "applies": applies})
     return dict(
         note=("WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases "
               "over the example Declaration: accepted means the Label validates and its label_id seals; "
               "fields and self are WIST2-E06; signature and binding keep WIST-1 codes. current_cases "
               "replay sealed Labels of one (labeler, subject, name) and give the current Label at the "
               "end and the WIST-3 section 7 tuple the state carries, null where the current Label is "
-              "retracted. The clock allowance over asserted_at is exercised by wist1/delta-clock-time.json."),
+              "retracted or expired at sealed_at, the Snapshot Block's instant. binding_cases read a "
+              "Label's delta against the subject record's anchor Delta: a bound Label applies only "
+              "while the record stands on that Delta. The clock allowance over asserted_at is "
+              "exercised by wist1/delta-clock-time.json."),
         declaration=json.loads((EXAMPLES / "publisher.json").read_text()),
-        url_cap_bytes=2048, cases=cases, current_cases=current)
+        url_cap_bytes=2048, cases=cases, current_cases=current, binding_cases=binding)
 
 
 write_json(WIST2V / "labels.json", label_vectors())
 print("wist2 labels vector written")
+
+
+def dispute_vectors():
+    disputant_declaration = sign_envelope_with(priv3, "publisher", {
+        "wist_version": "1.0.0", "seq": 0, "domain": "reduced.example.org",
+        "subdomain_scope": ["www.reduced.example.org"],
+        "keys": [{"key_id": "r-k1", "alg": "Ed25519", "public_key": b64u(pub3_raw),
+                  "valid_from": "2026-08-01T00:00:00Z"}]}, "r-k1")
+    sealed_labels = [{"label_id": label_id, "labeler": "example.com", "subject": LABEL_SUBJECT, "height": 1}]
+    base = {"wist_version": "1.0.0", "disputant": "reduced.example.org", "label": label_id,
+            "log": "log.example", "height": 1, "asserted_at": "2026-08-02T13:00:00Z"}
+    cases = []
+
+    def add(name, body=None, *, expected="accepted", signer=priv3, key_id="r-k1",
+            declaration=disputant_declaration, mutate=None):
+        body = dict(base) if body is None else body
+        doc = sign_envelope_with(signer, "dispute", body, key_id)
+        if mutate:
+            mutate(doc)
+        code = {"accepted": None, "fields": "WIST2-E06", "unsealed": "WIST2-E06",
+                "authority": "WIST2-E06", "signature": "WIST1-E01", "binding": "WIST1-E02"}[expected]
+        cases.append(dict(name=name, envelope=doc, declaration=declaration, expected=expected, code=code,
+                          dispute_id=("sha256:" + sha256_hex(rfc8785.dumps(doc["dispute"])))
+                          if expected == "accepted" else None))
+
+    add("valid dispute")
+    add("dispute with a reason", dict(base, reason="https://reduced.example.org/notice-is-original"))
+    add("dispute citing another Log", dict(base, log="mirror.log.example", height=7))
+    add("dispute of a Label on a scoped host", dict(base), declaration=disputant_declaration)
+    add("unknown member", dict(base, extra=True), expected="fields")
+    for field in ("wist_version", "disputant", "label", "log", "height", "asserted_at"):
+        body = dict(base)
+        del body[field]
+        add("missing " + field, body, expected="fields")
+    add("label not a Label ID", dict(base, label="sha256:xyz"), expected="fields")
+    add("negative height", dict(base, height=-1), expected="fields")
+    add("reason under http", dict(base, reason="http://reduced.example.org/x"), expected="fields")
+    add("reason not normalized", dict(base, reason="https://Reduced.example.org/x"), expected="fields")
+    add("log not a Canonical Host", dict(base, log="Log.Example"), expected="fields")
+    add("asserted_at on a leap second", dict(base, asserted_at="2026-06-30T23:59:60Z"), expected="fields")
+    add("unsupported major", dict(base, wist_version="2.0.0"), expected="fields")
+    add("label the Log has not sealed", dict(base, label="sha256:" + sha256_hex(b"never sealed")),
+        expected="unsealed")
+    add("dispute by a third party", dict(base, disputant=LABELER_HOST), signer=priv4, key_id="l-k1",
+        declaration=labeler_declaration, expected="authority")
+    add("disputant other than the authenticated domain", dict(base, disputant="example.com"), expected="fields")
+    add("signature over other bytes", expected="signature",
+        mutate=lambda doc: doc["dispute"].update(asserted_at="2026-08-02T13:00:01Z"))
+    add("signed under an unknown key_id", key_id="r-k9", expected="binding")
+
+    def sealed(asserted_at, height, entry_index, reason=None):
+        inner = dict(base, asserted_at=asserted_at)
+        if reason is not None:
+            inner["reason"] = reason
+        return {"dispute": inner, "dispute_id": "sha256:" + sha256_hex(rfc8785.dumps(inner)),
+                "height": height, "entry_index": entry_index}
+
+    def current_case(name, items, winner):
+        chosen = items[winner]
+        inner = chosen["dispute"]
+        return {"name": name, "sealed": items, "current": chosen["dispute_id"],
+                "state_tuple": ["dispute", inner["label"], inner["disputant"], inner.get("reason"),
+                                inner["asserted_at"], chosen["height"]]}
+
+    current = [
+        current_case("greatest asserted_at wins whatever sealed later",
+                     [sealed("2026-08-02T13:30:00Z", 2, 0, "https://reduced.example.org/why"),
+                      sealed("2026-08-02T13:00:00Z", 3, 0)], 0),
+        current_case("equal instants break by Log order",
+                     [sealed("2026-08-02T13:00:00Z", 2, 1), sealed("2026-08-02T13:00:00Z", 2, 3,
+                                                                    "https://reduced.example.org/later")], 1),
+    ]
+    return dict(
+        note=("WIST-2 section 3.3 disputes over sealed Labels: accepted means the dispute validates under "
+              "the disputant's Declaration and its dispute_id seals; fields, unsealed and authority are "
+              "WIST2-E06 (the named Label must be sealed in this Log and its subject must lie under the "
+              "disputant's authority); signature and binding keep WIST-1 codes; log and height are the "
+              "disputant's citation and are not checked against this Log. current_cases replay sealed "
+              "disputes of one (label, disputant) and give the current dispute and the WIST-3 section 7 "
+              "dispute tuple."),
+        sealed_labels=sealed_labels, cases=cases, current_cases=current)
+
+
+write_json(WIST2V / "disputes.json", dispute_vectors())
+print("wist2 disputes vector written")
+
+
+def definition_vectors():
+    cases = []
+
+    def add(name, body=None, *, expected="accepted", signer=priv, key_id="test-k1", mutate=None):
+        body = dict(definition) if body is None else body
+        doc = sign_envelope_with(signer, "definition", body, key_id)
+        if mutate:
+            mutate(doc)
+        path = None
+        if expected == "accepted":
+            path = "labels/definitions/" + sha256_hex(body["name"].encode("utf-8")) + ".json"
+        cases.append(dict(name=name, envelope=doc, expected=expected, path=path))
+
+    add("valid definition")
+    add("warn treatment", dict(definition, treatment="warn"))
+    add("inform treatment", dict(definition, treatment="inform"))
+    add("definition of a Canonical Host name", dict(definition, name="example.com:trusted-vendor",
+                                                     description="https://example.com/labels/trusted-vendor"))
+    add("definition of a name under another prefix", dict(definition, name="labels.sample.net:verified"))
+    add("unknown treatment", dict(definition, treatment="block"), expected="rejected")
+    add("description under http", dict(definition, description="http://example.com/labels/spam"), expected="rejected")
+    add("description not normalized", dict(definition, description="https://Example.com/labels/spam"),
+        expected="rejected")
+    add("name outside the wist registry", dict(definition, name="wist:unknown-term"), expected="rejected")
+    add("name without a prefix", dict(definition, name="spam"), expected="rejected")
+    add("unknown member", dict(definition, extra=True), expected="rejected")
+    for field in ("wist_version", "labeler", "name", "description", "treatment", "asserted_at"):
+        body = dict(definition)
+        del body[field]
+        add("missing " + field, body, expected="rejected")
+    add("unsupported major", dict(definition, wist_version="2.0.0"), expected="rejected")
+    add("labeler other than the authenticated domain", dict(definition, labeler="reduced.example.org"),
+        expected="rejected")
+    add("signature over other bytes", expected="rejected",
+        mutate=lambda doc: doc["definition"].update(treatment="warn"))
+    add("signed under an unknown key_id", key_id="test-k9", expected="rejected")
+    return dict(
+        note=("WIST-2 section 3.3 label definitions over the example Declaration: accepted means a Consumer "
+              "reads the definition at path under the Labeler's well-known prefix; rejected definitions "
+              "supply no treatment and the Consumer falls back to inform. A definition is not sealed and "
+              "carries no Aggregator code."),
+        declaration=json.loads((EXAMPLES / "publisher.json").read_text()), cases=cases)
+
+
+write_json(WIST2V / "label-definitions.json", definition_vectors())
+print("wist2 label-definitions vector written")
+
+
+def label_table_vectors():
+    def entry(height, labeler, subject, name="wist:spam", retracted=False):
+        return {"height": height, "labeler": labeler, "subject": subject, "name": name, "retracted": retracted}
+
+    sealed = [
+        entry(1, "example.com", "https://reduced.example.org/notice"),
+        entry(1, "example.com", "https://reduced.example.org/other"),
+        entry(2, "example.com", "https://reduced.example.org/notice", retracted=True),
+        entry(2, "example.com", "reduced.example.org", "wist:distrust-seed"),
+        entry(3, LABELER_HOST, "https://example.com/blog/post-1", "wist:copied"),
+        entry(4, "example.com", "https://reduced.example.org/notice"),
+    ]
+    labelers = {}
+    for e in sealed:
+        row = labelers.setdefault(e["labeler"], {"labeler": e["labeler"], "label_count": 0, "retraction_count": 0,
+                                                   "subjects": set(), "first_seen_height": e["height"]})
+        row["label_count"] += 1
+        row["retraction_count"] += int(e["retracted"])
+        row["subjects"].add(e["subject"])
+        row["first_seen_height"] = min(row["first_seen_height"], e["height"])
+    statistics_rows = [{"labeler": r["labeler"], "label_count": r["label_count"],
+                        "retraction_count": r["retraction_count"], "distinct_subjects": len(r["subjects"]),
+                        "first_seen_height": r["first_seen_height"]}
+                       for r in sorted(labelers.values(), key=lambda r: r["labeler"])]
+    statistics_cases = [{"label": "four sealed Labels of one Labeler and one of another", "sealed": sealed,
+                         "rows": statistics_rows}]
+
+    def cap_case(label, entries, labeler_cap=2, domain_cap=3):
+        per_labeler, per_domain = {}, {}
+        for e in entries:
+            per_domain[e["domain"]] = per_domain.get(e["domain"], 0) + 1
+            if e["type"] in ("label", "dispute"):
+                per_labeler[e["domain"]] = per_labeler.get(e["domain"], 0) + 1
+        expected = None
+        if max(per_domain.values()) > domain_cap:
+            expected = "WIST3-E03"
+        elif per_labeler and max(per_labeler.values()) > labeler_cap:
+            expected = "WIST3-E03"
+        return {"label": label, "labeler_block_entries_max": labeler_cap, "domain_block_entries_max": domain_cap,
+                "entries": entries, "expected": expected}
+
+    def e(kind, domain):
+        return {"type": kind, "domain": domain}
+
+    cap_cases = [
+        cap_case("labels at the labeler cap", [e("label", "a.example"), e("label", "a.example")]),
+        cap_case("labels over the labeler cap", [e("label", "a.example"), e("label", "a.example"), e("label", "a.example")]),
+        cap_case("a dispute counts with the labels", [e("label", "a.example"), e("label", "a.example"), e("dispute", "a.example")]),
+        cap_case("Deltas do not count toward the labeler cap",
+                 [e("publisher_delta", "a.example"), e("label", "a.example"), e("label", "a.example")]),
+        cap_case("labels and Deltas over the domain cap",
+                 [e("publisher_delta", "a.example"), e("publisher_delta", "a.example"), e("label", "a.example"),
+                  e("label", "a.example")]),
+        cap_case("two Labelers at the cap each", [e("label", "a.example"), e("label", "a.example"),
+                                                   e("label", "b.example"), e("label", "b.example")]),
+    ]
+
+    def persistence_case(label, events, probes, expires_at=None):
+        outcomes = []
+        for height in probes:
+            def live_at(h):
+                current = None
+                for ev in events:
+                    if ev["height"] <= h and (current is None or ev["asserted_at"] > current["asserted_at"]):
+                        current = ev
+                if current is None or current.get("retracted"):
+                    return False
+                if expires_at is not None and expires_at <= h:
+                    return False
+                return True
+            outcomes.append({"height": height, "counted": live_at(height) and live_at(height - 1)})
+        return {"label": label, "events": events, "expires_at_height": expires_at, "probes": outcomes}
+
+    def ev(height, asserted_at, retracted=False):
+        return {"height": height, "asserted_at": asserted_at, "retracted": retracted}
+
+    persistence_cases = [
+        persistence_case("counted from the second consecutive Block", [ev(5, "2026-08-02T12:00:00Z")], [4, 5, 6, 7]),
+        persistence_case("a retraction stops the count",
+                         [ev(5, "2026-08-02T12:00:00Z"), ev(7, "2026-08-02T13:00:00Z", True)], [5, 6, 7, 8]),
+        persistence_case("re-asserted after a retraction",
+                         [ev(5, "2026-08-02T12:00:00Z"), ev(6, "2026-08-02T13:00:00Z", True),
+                          ev(8, "2026-08-02T15:00:00Z")], [7, 8, 9, 10]),
+        persistence_case("expiry ends the count", [ev(5, "2026-08-02T12:00:00Z")], [6, 7, 8], expires_at=8),
+    ]
+    inactivity_cases = [{"label": label, "last_sealed_height": last, "inactivity_blocks": n, "height": h,
+                         "applies": h - last <= n}
+                        for label, last, n, h in (("within the window", 100, 720, 820),
+                                                  ("one Block past the window", 100, 720, 821),
+                                                  ("never sealed anything since genesis", 0, 720, 721),
+                                                  ("a short window", 100, 24, 124))]
+    return spaced_labels({
+        "note": ("WIST-3 section 7 tier1/labelers.parquet rows from sealed label Entries (statistics_cases: every "
+                 "sealed Label counts, retractions included, subjects distinct, first-seen the lowest height); "
+                 "WIST-3 section 3.2 and WIST-4 section 5 per-Labeler cap over label and dispute Entries "
+                 "beside the per-domain cap with no suffix-list snapshot in force, so every host is its own "
+                 "unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or "
+                 "wist:unavailable Label counts at a height only when it was current, unretracted and "
+                 "unexpired at that height and the one before (persistence_cases; expires_at_height is the "
+                 "first height whose Block instant reaches the expiry), and a Labeler with no sealed Entry "
+                 "within inactivity_blocks is ignored (inactivity_cases)."),
+        "statistics_cases": statistics_cases, "cap_cases": cap_cases, "persistence_cases": persistence_cases,
+        "inactivity_cases": inactivity_cases})
+
+
+write_json(WIST3 / "label-tables.json", label_table_vectors())
+print("wist3 label-tables vector written")
 
 # ------------------------------------- WIST-4 §5: which amendment is in force
 # effective_at is inclusive; the greatest effective_at at or before T
@@ -2814,14 +3153,17 @@ print("wist4 parameter-in-force vector written")
 # prospective map: links_cap_bytes ≥ link_url_cap_bytes + 21 and
 # mirror_retention_days × 6 ≥ payload_window_days.
 PROSPECTIVE_DEFAULTS = {"links_cap_bytes": 4096, "link_url_cap_bytes": 2048,
-                        "mirror_retention_days": 90, "payload_window_days": 180}
+                        "mirror_retention_days": 90, "payload_window_days": 180,
+                        "labeler_block_entries_max": 1000, "domain_block_entries_max": 10000}
 PROSPECTIVE_FLOORS = {"links_cap_bytes": 21, "link_url_cap_bytes": 14,
-                      "mirror_retention_days": 30, "payload_window_days": 30}
+                      "mirror_retention_days": 30, "payload_window_days": 30,
+                      "labeler_block_entries_max": 1, "domain_block_entries_max": 1}
 
 
 def combinations_hold(values):
     return (values["links_cap_bytes"] >= values["link_url_cap_bytes"] + 21
-            and values["mirror_retention_days"] * 6 >= values["payload_window_days"])
+            and values["mirror_retention_days"] * 6 >= values["payload_window_days"]
+            and values["labeler_block_entries_max"] <= values["domain_block_entries_max"])
 
 
 def prospective_map(changes, at_s):
@@ -2867,6 +3209,11 @@ for label, rows, rejected in (
     ("retention exactly a sixth of the window", [(0, 0, "payload_window_days", 540, 10)], []),
     ("window raised after retention raised", [(0, 0, "mirror_retention_days", 120, 10), (1, 0, "payload_window_days", 720, 11)], []),
     ("retention lowered under a pending window", [(0, 0, "payload_window_days", 540, 10), (1, 0, "mirror_retention_days", 60, 10)], [1]),
+    ("labeler cap above the domain cap", [(0, 0, "labeler_block_entries_max", 20000, 10)], [0]),
+    ("labeler cap equal to the domain cap", [(0, 0, "labeler_block_entries_max", 10000, 10)], []),
+    ("domain cap lowered under the labeler cap", [(0, 0, "domain_block_entries_max", 500, 10)], [0]),
+    ("both caps lowered in order", [(0, 0, "labeler_block_entries_max", 200, 10), (1, 0, "domain_block_entries_max", 500, 11)], []),
+    ("domain cap lowered under a pending labeler cap", [(0, 0, "labeler_block_entries_max", 200, 12), (1, 0, "domain_block_entries_max", 150, 11)], [1]),
 ):
     changes = [{"block_height": day * 24, "entry_index": index, "sealed_at_s": day * DAY_S,
                 "parameter": parameter, "value": value, "effective_at_s": effective * DAY_S}
@@ -2910,6 +3257,8 @@ for parameter, value, schema_valid, combinations_hold_at_defaults in (
     ("payload_window_days", 30, True, True),
     ("payload_window_days", 541, True, False),
     ("links_cap_bytes", 2000, True, False),
+    ("labeler_block_entries_max", 0, False, True),
+    ("labeler_block_entries_max", 20000, True, False),
     ("block_cadence_seconds", 86400, True, True),
     ("block_decompressed_cap_bytes", "4096", False, True),
     ("block_decompressed_cap_bytes", 4096.0, True, True),
@@ -3508,7 +3857,9 @@ timestamp_probe = "2017-01-01T00:00:00Z"
 for entry, path in (
     (["parameter", "record_seal_blocks", timestamp_probe, 2], [2]),
     (["recovery_window", "example.com", 1, timestamp_probe, {}, 1], [3]),
-    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, 1], [5]),
+    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, None, None, 1], [5]),
+    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", timestamp_probe, None, 1], [6]),
+    (["dispute", "sha256:" + "0" * 64, "example.com", None, timestamp_probe, 1], [4]),
 ):
     document = json.loads((EXAMPLES / "snapshot-state.json").read_text())
     document["state"]["entries"] = [entry]

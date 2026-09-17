@@ -129,7 +129,18 @@ the Public Suffix List snapshot in force at the Block (WIST-4 §3.1), and
 a Consumer replaying the Log MUST reject a Block that does. The unit is
 the Registrable Domain, not the hostname, because a hostname under a
 name one holds is free; before the first accepted `suffix_list_update`
-every Canonical Host is its own unit. Where a Registrable Domain has
+every Canonical Host is its own unit. `dispute` Entries count with the
+Deltas and Labels of the disputant's unit. **Per-Labeler cap.** Inside
+that capacity, a Block MUST NOT carry more than
+`labeler_block_entries_max` (Parameter Registry; default 1 000) `label`
+and `dispute` Entries, counted together, of one Registrable Domain, and a
+Consumer replaying the Log MUST reject a Block that does; the surplus
+waits its turn in acceptance order like any other. The cap never
+exceeds the per-domain capacity (WIST-4 §5), so a Labeler's Labels are
+bounded twice and its Deltas once: labeling is an opinion about other
+parties' publications, and a party that could fill a Block with
+opinions as freely as with publications would make every Consumer's
+subscription list the only bound on it. Where a Registrable Domain has
 more accepted Deltas and Labels eligible for a Block than the cap
 admits, the surplus waits its turn in acceptance order across its
 hosts, and WIST-4 §5's inclusion ceiling runs from the Block an Entry's
@@ -162,23 +173,24 @@ sealed once on the same terms, in at most one `label` Entry.
 ### 3.3. Entries
 
 Each Entry is `{"type": <t>, "body": <envelope>}`, where `type` is one of
-exactly four values and `body` is the Envelope that value names:
+exactly five values and `body` is the Envelope that value names:
 
 - `publisher_delta` — body is a Delta Envelope (WIST-1).
 - `publisher_declaration` — body is a Publisher Declaration Envelope
   (WIST-1 §5.1); the Aggregator MUST seal a Declaration Entry before, or in
   the same Block as, the first Delta it authorizes.
 - `label` — body is a Label Envelope (WIST-2 §3.3).
+- `dispute` — body is a Dispute Envelope (WIST-2 §3.3).
 - `registry_update` — body is a Registry Update Envelope (WIST-4 §3).
 
 WIST-3 defines only this envelope; the `body` format of `registry_update`
-is normative in WIST-4, of `label` in WIST-2, and of `publisher_delta` and
-`publisher_declaration` in WIST-1. Validators MUST reject Blocks containing
+is normative in WIST-4, of `label` and `dispute` in WIST-2, and of
+`publisher_delta` and `publisher_declaration` in WIST-1. Validators MUST reject Blocks containing
 unknown Entry types under the current major version.
 
 **Entry order is canonical.** Within a Block, Entries MUST appear grouped
 by type in the fixed order `publisher_declaration`, `registry_update`,
-`publisher_delta`, `label`, and within each group in ascending octet
+`publisher_delta`, `label`, `dispute`, and within each group in ascending octet
 order of each Entry's Merkle leaf hash (§4). A Consumer replaying the Log
 MUST reject a Block ordered otherwise. The rule exists for the same
 reason as the `sealed_at` grid (§3.1): Entry order feeds `merkle_root`
@@ -210,9 +222,11 @@ a Delta in the same Block applies after it, which is well-defined because
 chains are trees rooted outside the Block and cycles are impossible
 (a Delta ID includes its `prev` in its preimage), and two Deltas with no
 chain relation apply in leaf-hash order without observable difference.
-`label` Entries apply last, in ascending Entry index in the canonical
+`label` Entries apply next, in ascending Entry index in the canonical
 stored order, which WIST-2 §3.3 reads to order two Labels of one Labeler
-sealed in one Block. No conforming behavior depends on any ordering freedom this
+sealed in one Block, and `dispute` Entries last, in the same order, which
+orders two disputes of one Label by one disputant; a dispute applies
+nothing to the Label it names. No conforming behavior depends on any ordering freedom this
 paragraph does not name. Because Declarations apply first, the Key Set a
 `publisher_delta` Entry verifies under is the one WIST-1 §5.2 resolves at
 its own Block with that Block's Declarations already applied: an
@@ -882,13 +896,33 @@ ever is.
 
 **The label table.** `tier1/labels.parquet` carries one row per Label
 current at `log_position` from any Labeler the Log sealed: `(labeler,
-subject, name, value, asserted_at)`, where `value` is the Label's
-integer or `NULL` where absent, and a retracted Label has no row (WIST-2
-§3.3). Like the link graph it is a pure function of the Log — every
-field is sealed in a `label` Entry — and transports statements, never a
-judgement: which Labelers a Consumer believes is the Consumer's
-subscription (WIST-4 §6), and no Snapshot builder applies a Label to a
-record.
+subject, name, value, asserted_at, expires_at, delta)`, where `value` is
+the Label's integer or `NULL` where absent, `expires_at` and `delta` the
+Label's members or `NULL`, and a retracted Label or one expired at Block
+`log_position`'s `sealed_at` has no row (WIST-2 §3.3). Like the link
+graph it is a pure function of the Log — every field is sealed in a
+`label` Entry — and transports statements, never a judgement: which
+Labelers a Consumer believes is the Consumer's subscription (WIST-4
+§6), and no Snapshot builder applies a Label to a record.
+
+**The dispute table.** `tier1/disputes.parquet` carries one row per
+current dispute at `log_position`: `(label_id, disputant, reason,
+asserted_at)`, `reason` `NULL` where absent (WIST-2 §3.3). A dispute
+alters nothing in the label table: the two tables sit beside each
+other so that a Consumer weighing a Labeler can read what the labeled
+parties answered, and no builder decides between them.
+
+**The labeler table.** `tier1/labelers.parquet` carries one row per
+Labeler with any sealed `label` Entry at or below `log_position`:
+`(labeler, label_count, retraction_count, distinct_subjects,
+first_seen_height)` — every sealed `label` Entry of the Labeler counted,
+retractions included, the number of those with `retracted` `true`, the
+number of distinct `subject` values across them, and the height of its
+first sealed `label` Entry. The table reads no Label's `name` or
+`value` and applies no Label: it is arithmetic over Entry counts a
+Consumer could redo from the Log, materialized so that a subscription
+decision can start from how a Labeler behaves rather than from
+nothing.
 
 **The materialized state.** The materialized state is a set of records
 keyed by (Publisher domain, Normalized URL). The Publisher domain is the
@@ -1086,7 +1120,8 @@ table `records` has columns `url`, `publisher`, `delta_id`,
 plus the Payload `summary`'s members, `NULL` where the Payload declares
 none), with an FTS5 index over `title` and `abstract` — and
 `tier1/extracts.parquet` (`url`, `publisher`, `delta_id`, `extract`),
-`tier1/links.parquet` and `tier1/labels.parquet` (above). An implementation MAY add columns and
+`tier1/links.parquet`, `tier1/labels.parquet`, `tier1/disputes.parquet`
+and `tier1/labelers.parquet` (above). An implementation MAY add columns and
 auxiliary tables; a Consumer MUST ignore columns it does not know, and
 MUST NOT require any column this paragraph does not name. The layout is
 normative for the same reason the digest is: "anyone can rebuild an
@@ -1117,7 +1152,8 @@ value fields are:
 | `recovery_window` | domain | owner Declaration height, window end, the recovery-chain head Envelope, its sealing height | WIST-1 §5.2 |
 | `suffix_list` | snapshot identifier | sealing height of the act that put it in force | WIST-4 §3.1 |
 | `withdrawal` | Delta ID | the Publisher's domain, sealing height | §6.2 |
-| `label` | labeler, subject, name | value or `null`, `asserted_at`, sealing height | WIST-2 §3.3 |
+| `label` | labeler, subject, name | value or `null`, `asserted_at`, `expires_at` or `null`, `delta` or `null`, sealing height | WIST-2 §3.3 |
+| `dispute` | Label ID, disputant | `reason` or `null`, `asserted_at`, sealing height | WIST-2 §3.3 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
 A `parameter` tuple exists only for a parameter amended since genesis:
@@ -1181,9 +1217,14 @@ advances the head (WIST-1 §5.2), carried in full because a resuming
 Consumer verifies later followers against the head's Key Set and holds no
 Block to fetch it from; a `label` tuple exists for each (labeler,
 subject, name) whose current Label at `log_position` is not retracted
-(WIST-2 §3.3), carrying that Label's value or `null`, its `asserted_at`
-and its sealing height, so that a resuming Consumer orders a later Label
-of the same triple exactly as a replaying one does; a `withdrawal` tuple
+and not expired at Block `log_position`'s `sealed_at` (WIST-2 §3.3),
+carrying that Label's value or `null`, its `asserted_at`, its
+`expires_at` or `null`, its `delta` or `null` and its sealing height, so
+that a resuming Consumer orders a later Label of the same triple, drops
+the Label at its expiry and reads its binding exactly as a replaying
+one does; a `dispute` tuple exists for each (Label ID, disputant) with
+a sealed dispute, carrying the current dispute's `reason` or `null`, its
+`asserted_at` and its sealing height; a `withdrawal` tuple
 exists for every withdrawn Delta, since a Consumer resuming above the
 withdrawal's Block never sees its Entry and must still exclude the
 content (§6.2). The schema pins each kind's arity and member types
@@ -1196,7 +1237,8 @@ Sharding applies to this artifact as to the tiers: when the manifest
 declares `shards`, the state file MAY be split on the same
 Publisher-domain rule, one part per shard for the domain-keyed kinds
 (`declaration`, `recovery_window`, `record`, `withdrawal` by the
-withdrawn Delta's Publisher, `label` by its Labeler), with the Log-wide
+withdrawn Delta's Publisher, `label` by its Labeler, `dispute` by its
+disputant), with the Log-wide
 kinds (`aggregator_key`, `parameter`, `suffix_list`) carried in every
 part, since no Consumer can validate an Entry without them.
 The tuple set is a set: a Log-wide tuple appears exactly once in the
@@ -1446,9 +1488,12 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       the same Block as, the first Delta it authorizes, and never seals a
       Delta the Key Set resolved at its own Block no longer verifies
       (§3.3, WIST-1 §5.2)
-- [ ] Seals each pulled Label that verifies as a `label` Entry, at most
-      once per Label ID, and materializes `tier1/labels.parquet` from
-      the Labels current at `log_position` (§3.3, §7, WIST-2 §3.3)
+- [ ] Seals each pulled Label that verifies as a `label` Entry and each
+      dispute as a `dispute` Entry, at most once per ID and within the
+      per-Labeler cap, and materializes `tier1/labels.parquet`,
+      `tier1/disputes.parquet` and `tier1/labelers.parquet` from the
+      Labels and disputes current at `log_position` and every sealed
+      `label` Entry (§3.2, §3.3, §7, WIST-2 §3.3)
 
 **Mirror:**
 
@@ -1504,9 +1549,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Obtains the Anchor out-of-band and resolves signing keys by height
       (§3.4)
 - [ ] Rejects Blocks off the `sealed_at` grid, out of canonical Entry
-      order, or over the per-domain Entry capacity counted per
+      order, over the per-domain Entry capacity counted per
       Registrable Domain under the snapshot in force, obtained and
-      verified by its identifier (§3.1–§3.3, §6, WIST-4 §3.1)
+      verified by its identifier, or over the per-Labeler cap (§3.1–§3.3,
+      §6, WIST-4 §3.1)
 - [ ] On cold start from a Snapshot, loads the state artifact and
       validates subsequent Entries against it; on a sharded Snapshot,
       verifies each held shard's digest and treats coverage as partial

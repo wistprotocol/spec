@@ -1,0 +1,1104 @@
+{
+  "note": "WIST-2 section 3.3 disputes over sealed Labels: accepted means the dispute validates under the disputant's Declaration and its dispute_id seals; fields, unsealed and authority are WIST2-E06 (the named Label must be sealed in this Log and its subject must lie under the disputant's authority); signature and binding keep WIST-1 codes; log and height are the disputant's citation and are not checked against this Log. current_cases replay sealed disputes of one (label, disputant) and give the current dispute and the WIST-3 section 7 dispute tuple.",
+  "sealed_labels": [
+    {
+      "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+      "labeler": "example.com",
+      "subject": "https://reduced.example.org/notice",
+      "height": 1
+    }
+  ],
+  "cases": [
+    {
+      "name": "valid dispute",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "USjqjaS7VZSeDl_KAUCB9KM59WMRrpSf52lBQWLr8g3VUuBb3NYFpcalgXtaS6OXLAAYaiJKsPQ3i8szMuaFBw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "dispute_id": "sha256:b05870099579ff4206ef0748f8efbb32109348373108f5a5744b91808cddc285"
+    },
+    {
+      "name": "dispute with a reason",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z",
+          "reason": "https://reduced.example.org/notice-is-original"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "IYNTWrTPP8F6tbf4dte57LoMSaFVqDhGpHVWDQv82zv3Z_65p72EIMSvg7sFYN_xxq6qC7r-_l8ZD2Okp0mzAw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "dispute_id": "sha256:2b483c96e38c2355dcd7e9b5329fd7f7a2dc47f5c08e430fcb393683e9770c34"
+    },
+    {
+      "name": "dispute citing another Log",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "mirror.log.example",
+          "height": 7,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "KzUhUK5laJooR1b-Rk7CTPqbIzRoUJThOKw80SnF_yBVbehbqTRnNottJolF0k9zY-HvPGoF7ZpOfXVfjKfeAg"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "dispute_id": "sha256:23b279e89d8b3ddb7b257404f9a8a665c25305a6ac88f768ddf9ff7a49684663"
+    },
+    {
+      "name": "dispute of a Label on a scoped host",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "USjqjaS7VZSeDl_KAUCB9KM59WMRrpSf52lBQWLr8g3VUuBb3NYFpcalgXtaS6OXLAAYaiJKsPQ3i8szMuaFBw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "dispute_id": "sha256:b05870099579ff4206ef0748f8efbb32109348373108f5a5744b91808cddc285"
+    },
+    {
+      "name": "unknown member",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z",
+          "extra": true
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "JYQJJF3cvt3Ttq14G6gzop81Q-5Z4l3CFljLxRhrAJpIKljQXa_JgL3v9UQ5L7CaWzQEpVg1EzYoUWeKVElMBQ"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "missing wist_version",
+      "envelope": {
+        "dispute": {
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "DeXHsN-xRkdOZHfgMVKimkK3Fwf_LDl_P8hFJevztzDud7tH-i7vtojp__YUJqur11JVIDNKWEapJUnHJxOtAw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "missing disputant",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "tef4UXuXhPRabelEHVOAUL3dgg0wgb94j5pnKI-yIwBAeMIk1z5CgDflVEM4YnuqWQnF-6uubB4FTSUp-1p3Aw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "missing label",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "95FO2MPmlSOOndscTfyGi07v91UaYourBcdi04BcHWZW4NwkBcgCscCCXDSX49PnVFwnm44uE3asB6n92ylOCA"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "missing log",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "ZJWbZe1XOHFbGX7vlFJ51A0eyEzR43nTCMNg_rKteki3geCN1v8rNgtsQEuzYqYUJ2Dw3Digw9QvzfY6Ff53Dg"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "missing height",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "ermF8NILmNUjsbG-ADZzfN4wa3D3UcOwyhx7RPDYhca1bs2NqZw2slNGCNn_bVzIbLizncRmZZvnGEFVGezbDg"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "missing asserted_at",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xX7peFjQhKdBq6lit1fvty6B3USjREIOS52-iM4dreeMQTdCwAwpfRYThZaPy7awbiImjV6LUgxXuPWtQpV_Bw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "label not a Label ID",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:xyz",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "1gk4SOfX1Afn5vZC6DHloMjjBdTkMVXtJJt0UKeqq5kID8ehwUwJWjLbepOMnHBG1mEiWjkOrj2AIWrKtx11Cw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "negative height",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": -1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "I1MLW-o5_SzJH3ekOQc0-81W3bxH1gkZDWTRAssfYAxSdONLLnSeM2gHP1y7VyvNw3rVXFtflTvJ6hwcFeziCw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "reason under http",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z",
+          "reason": "http://reduced.example.org/x"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "OpzaWDp9PH8pzflcH6MDRXQ8Py_cYVcLr6q4j6a5Nm5anAc76_XwzF_jxD_1K1TuEDSkzGe2GIpt8_FvNl-7AQ"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "reason not normalized",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z",
+          "reason": "https://Reduced.example.org/x"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "S1adxzlCTzUDcy-k1faKoXBvwA6h5rMxqI0hKYwpbFsjiGm79j9j_HthVw5bwOuAv7sfeWrPp7fMSJT7xjqdAA"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "log not a Canonical Host",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "Log.Example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "6OZkGpwfxnErP39rQI1E8ahGoTG8a5ci2FGD4tlYSD7PaqivacDEhuIpaOyDG1wHlXWDlix2Mc0kjuvQgjbXBg"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "asserted_at on a leap second",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-06-30T23:59:60Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "t_FlNlDyiYHF7U1h2M04cHFbJ5_QX6GqHl9bFsCW-FTSUVG5fclc6cjQuaOQug9C0QmCchEC__EJcyng3HtODQ"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "unsupported major",
+      "envelope": {
+        "dispute": {
+          "wist_version": "2.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "bAGXA8JiaEoOUMZbmhHK0Tiu_6GrlS8KSfipegruh-cDHxbMMMVg9EvrNvZxTygrcxZpuQ96CD4tBQWhnAtbDg"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "label the Log has not sealed",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:a3b60ce63bedb468d0ac021bb5afc6c16fbb09e0db156dfd8bf9cc067d4f02cf",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "o5JEyF4pdUmlyNHzDDVvY2snSTwQtu2urn-1HAlEr_tr-TUIwd0RW4M9xM1_kG2Dv3S-BQroie4fkYnU0BY7Bg"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "unsealed",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "dispute by a third party",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "labels.sample.net",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "l-k1",
+          "alg": "Ed25519",
+          "value": "SAAagOwK9jUtWAOtkoPf_YR0ADDL6DOeaaj9arvKe3wo6qUCGjStmAdaF2eDh9cwvxQ9YcOrniMEFVdrkPDNAw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "labels.sample.net",
+          "keys": [
+            {
+              "key_id": "l-k1",
+              "alg": "Ed25519",
+              "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "l-k1",
+          "alg": "Ed25519",
+          "value": "Mux1nvYuFn_T-51AHn7muBFz_VRDlGTE-kI5XYQ90x1RAqVNdG3cmBox6VsYUx6eghiQrY6aXHin20MIu7r9DQ"
+        }
+      },
+      "expected": "authority",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "disputant other than the authenticated domain",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "example.com",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "QDHEyYM9Ht3rgHVTAXWt4xk6Akk5YvyAo3P2YxUkzih43jQNoNLG73MqD8Iqtqa9CZbImFf1v5GlXU0ydnyGAw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "signature over other bytes",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:01Z"
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "USjqjaS7VZSeDl_KAUCB9KM59WMRrpSf52lBQWLr8g3VUuBb3NYFpcalgXtaS6OXLAAYaiJKsPQ3i8szMuaFBw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "signature",
+      "code": "WIST1-E01",
+      "dispute_id": null
+    },
+    {
+      "name": "signed under an unknown key_id",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T13:00:00Z"
+        },
+        "sig": {
+          "key_id": "r-k9",
+          "alg": "Ed25519",
+          "value": "USjqjaS7VZSeDl_KAUCB9KM59WMRrpSf52lBQWLr8g3VUuBb3NYFpcalgXtaS6OXLAAYaiJKsPQ3i8szMuaFBw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "key_id": "r-k1",
+              "alg": "Ed25519",
+              "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "valid_from": "2026-08-01T00:00:00Z"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "r-k1",
+          "alg": "Ed25519",
+          "value": "xHnAdiYY2k5nJoiOkVyZ1JSx74ukSZH1_3HcMCxnvAVOCiD1OMBb1E96A3D9NqwQascYAPqpzuvUdHd8c8xLAw"
+        }
+      },
+      "expected": "binding",
+      "code": "WIST1-E02",
+      "dispute_id": null
+    }
+  ],
+  "current_cases": [
+    {
+      "name": "greatest asserted_at wins whatever sealed later",
+      "sealed": [
+        {
+          "dispute": {
+            "wist_version": "1.0.0",
+            "disputant": "reduced.example.org",
+            "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+            "log": "log.example",
+            "height": 1,
+            "asserted_at": "2026-08-02T13:30:00Z",
+            "reason": "https://reduced.example.org/why"
+          },
+          "dispute_id": "sha256:6e0575cf292ea6ed78d0f12e7ca2332bca4b0ac5654750faf4d6be130351858d",
+          "height": 2,
+          "entry_index": 0
+        },
+        {
+          "dispute": {
+            "wist_version": "1.0.0",
+            "disputant": "reduced.example.org",
+            "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+            "log": "log.example",
+            "height": 1,
+            "asserted_at": "2026-08-02T13:00:00Z"
+          },
+          "dispute_id": "sha256:b05870099579ff4206ef0748f8efbb32109348373108f5a5744b91808cddc285",
+          "height": 3,
+          "entry_index": 0
+        }
+      ],
+      "current": "sha256:6e0575cf292ea6ed78d0f12e7ca2332bca4b0ac5654750faf4d6be130351858d",
+      "state_tuple": [
+        "dispute",
+        "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+        "reduced.example.org",
+        "https://reduced.example.org/why",
+        "2026-08-02T13:30:00Z",
+        2
+      ]
+    },
+    {
+      "name": "equal instants break by Log order",
+      "sealed": [
+        {
+          "dispute": {
+            "wist_version": "1.0.0",
+            "disputant": "reduced.example.org",
+            "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+            "log": "log.example",
+            "height": 1,
+            "asserted_at": "2026-08-02T13:00:00Z"
+          },
+          "dispute_id": "sha256:b05870099579ff4206ef0748f8efbb32109348373108f5a5744b91808cddc285",
+          "height": 2,
+          "entry_index": 1
+        },
+        {
+          "dispute": {
+            "wist_version": "1.0.0",
+            "disputant": "reduced.example.org",
+            "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+            "log": "log.example",
+            "height": 1,
+            "asserted_at": "2026-08-02T13:00:00Z",
+            "reason": "https://reduced.example.org/later"
+          },
+          "dispute_id": "sha256:96d165f96edf2ede0cdda2c05d1dcf302cd64317c10ca49548d784a6c909d168",
+          "height": 2,
+          "entry_index": 3
+        }
+      ],
+      "current": "sha256:96d165f96edf2ede0cdda2c05d1dcf302cd64317c10ca49548d784a6c909d168",
+      "state_tuple": [
+        "dispute",
+        "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+        "reduced.example.org",
+        "https://reduced.example.org/later",
+        "2026-08-02T13:00:00Z",
+        2
+      ]
+    }
+  ]
+}

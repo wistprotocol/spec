@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wistprotocol.org/schemas/dispute.schema.json",
+  "title": "WIST Dispute Envelope (WIST-2 §3.3)",
+  "description": "A labeled domain's signed dispute of one sealed Label, naming the Label ID and the Log position the disputant saw it at. That the Label is sealed in this Log, that its subject lies under the disputant's authority, the clock rule over `asserted_at` and the key binding are WIST-2 §3.3 and WIST-1 checks the schema cannot make; `log` and `height` are the disputant's citation and are not checked against another Log.",
+  "type": "object",
+  "required": ["dispute", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "dispute": {
+      "type": "object",
+      "required": ["wist_version", "disputant", "label", "log", "height", "asserted_at"],
+      "additionalProperties": false,
+      "properties": {
+        "wist_version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$(?![\\s\\S])", "description": "Release-version spelling only. WIST-1 sections 3.1 and 7 separately require supported-major validation; minor and patch differences alone do not reject."},
+        "disputant": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "Signed disputant identity, bound as a Delta's `publisher` is under WIST-1 section 3.8; must equal its own Canonical Host. The pattern alone does not validate A-labels."},
+        "label": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "The disputed Label's ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content."},
+        "log": {"type": "string", "format": "wist-canonical-host", "minLength": 1, "maxLength": 253, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*$(?![\\s\\S])", "description": "The `log_id` of the Log in which the disputant saw the Label sealed (WIST-3 §3.4); a citation, checked against nothing."},
+        "height": {"type": "integer", "minimum": 0, "description": "The Block height at which the disputant saw the Label sealed in `log`; a citation, checked against nothing."},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^https://[^#]*$(?![\\s\\S])", "description": "OPTIONAL. A Normalized URL (WIST-1 section 2), byte-identical to its own normalization, where the disputant states its grounds; the pattern alone establishes no normalization."},
+        "asserted_at": {"type": "string", "format": "wist-publisher-timestamp", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])", "description": "The instant the dispute is asserted for, read exactly as a Delta's `observed_at` (WIST-1 section 3.4); the pattern alone does not establish calendar validity."}
+      }
+    },
+    "sig": {
+      "type": "object",
+      "required": ["key_id", "alg", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {"type": "string", "maxLength": 64},
+        "alg": {"const": "Ed25519"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{85}[AQgw]$(?![\\s\\S])"}
+      }
+    }
+  }
+}

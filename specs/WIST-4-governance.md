@@ -39,6 +39,8 @@ shown here.
   from the Label Registry (§6, WIST-2 §3.3).
 - **Labeler**: a Publisher whose publications include Labels (WIST-2
   §3.4). Every Publisher MAY label; a Labeler needs no admission.
+- **Dispute**: a labeled domain's signed answer to one sealed Label,
+  sealed beside the Labels and never applied to them (WIST-2 §3.3).
 - **Public Suffix List snapshot**: the exact octets of one revision of
   the Public Suffix List file, identified by `"sha256:" +
   hex(SHA-256(octets))`, pinned into the Log by a `suffix_list_update`
@@ -311,6 +313,7 @@ recommended setting.
 | `mirror_retention_days` | ≥ 30 | below a month a Consumer resuming from the newest Snapshot may find the Blocks above it already gone from every Mirror (WIST-3 §6, §8) |
 | `record_seal_blocks` | ≥ 1 | at zero the Aggregator must seal what it discovered in the Block of the discovery itself, so every discovery is a breach the instant it completes (WIST-1 §5.2, WIST-2 §3.3) |
 | `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (WIST-3 §3.2) |
+| `labeler_block_entries_max` | ≥ 1 | at zero no Label or dispute can seal and every Label Feed is dead weight (WIST-3 §3.2) |
 | `max_inclusion_blocks` | ≥ 1 | at zero an eligible Delta must seal in its eligibility Block itself, a deadline no Aggregator can meet for a Delta accepted mid-Block |
 | `ingest_budget_bytes_day` | ≥ 1 048 576 | below one MiB the WIST-2 §3.2 walk cannot fetch a single capped Payload with its Feed page, and every backfill starves (WIST-2 §5) |
 | `quota_base` | ≥ 1 | at zero no Ping is ever accepted and publication depends on baseline polling alone (WIST-2 §4) |
@@ -327,10 +330,13 @@ Entries and signature, under the Block-size rule below; `links_cap_bytes`
 MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 `JCS({"total":1,"urls":[…]})` around a single maximum-length URL literal
 — below it a page whose first link is long declares an empty prefix the
-budget rule then makes mandatory; and `mirror_retention_days` MUST NOT be
+budget rule then makes mandatory; `mirror_retention_days` MUST NOT be
 below `payload_window_days` divided by 6, so that a Consumer resuming
 from a Snapshot published inside the availability window finds the
-Blocks it needs. `recovery_window_days` is bounded by the Log's own clock
+Blocks it needs; and `labeler_block_entries_max` MUST NOT exceed
+`domain_block_entries_max`, since a Labeler's Labels count against both
+and a per-Labeler cap above the per-domain one bounds nothing (WIST-3
+§3.2). `recovery_window_days` is bounded by the Log's own clock
 as well: a `parameter_change` whose value, in 86,400-second days from the
 amendment's `effective_at`, would end a window opened at that instant
 after `9999-12-31T23:59:59Z` — the last instant a Log timestamp denotes
@@ -425,6 +431,7 @@ and ceiling as a Delta (WIST-2 §3.3).
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | WIST-3 §6 |
 | Discovery sealing deadline | `record_seal_blocks` | 24 Blocks | WIST-1 §5.2, WIST-2 §3.3 |
 | Per-domain Block capacity (per Registrable Domain) | `domain_block_entries_max` | 10 000 Entries | WIST-3 §3.2 |
+| Per-Labeler Block cap (per Registrable Domain) | `labeler_block_entries_max` | 1 000 Entries | WIST-3 §3.2 |
 | Inclusion ceiling | `max_inclusion_blocks` | 4 Blocks | §5 |
 | Per-domain daily ingest budget | `ingest_budget_bytes_day` | 1 GiB | WIST-2 §5 |
 | Feed window | `feed_window` | 1000 IDs | WIST-2 §3.2, §3.4 |
@@ -545,7 +552,50 @@ A Label's optional `value` is an integer in micro-units (0 … 1 000 000)
 whose meaning the name's definer fixes; for the `wist` terms it is the
 Labeler's confidence, 1 000 000 where absent. A Label's `retracted`
 member, where `true`, withdraws the Labeler's earlier Label of the same
-name on the same subject (WIST-2 §3.3).
+name on the same subject; its `expires_at` ends its application at a
+Block instant; its `delta` binds it to one publication of a URL (WIST-2
+§3.3).
+
+**Treatments.** What a Consumer does with a labeled subject is a
+**treatment**: `hide` (the subject is not presented), `warn` (presented
+with the Label shown) or `inform` (the Label is available to whoever
+asks). A Consumer's profile names a treatment per Labeler and name; for
+a name its profile does not cover it applies the treatment the
+Labeler's definition of the name declares (WIST-2 §3.3), and `inform`
+where no definition verifies. A Labeler therefore states, in public and
+under its signature, how strongly it means each name, and a Consumer
+that follows it does so knowingly.
+
+**Disputes.** The domain a Label is about may answer it with a signed
+dispute (WIST-2 §3.3), sealed beside the Labels and carried to every
+Consumer as the Label is. No party in this suite rules on a dispute:
+the Aggregator seals it and applies nothing, the Snapshot carries both
+sides, and a Consumer's profile decides how a disputed Label is treated
+— whether a dispute lowers the treatment, suspends it, or merely shows.
+What the dispute changes is that the answer travels with the
+accusation, signed by the accused, where every Consumer that sees the
+one sees the other.
+
+**A recommended default profile.** A Consumer profile is the Consumer's
+own; the following defaults are recommended for one that names nothing
+else. Count a `wist:mismatch` or `wist:unavailable` Label against a
+subject only once it has persisted across two consecutive Blocks — the
+Label current, unretracted and unexpired at a height and at the height
+before it — since a page changes between a Labeler's fetch and the
+Publisher's next Delta and one Block's disagreement is the ordinary
+course of publication, not evidence. Ignore a Labeler with no sealed
+Entry of any type within a configured number of Blocks, 720 by default
+(thirty days at the default cadence): an unattended labeler is a set of
+opinions nobody stands behind. Both rules read the Log alone and are
+exercised by `vectors/wist3/label-tables.json`.
+
+**Labeler statistics.** The Aggregator materializes, per Labeler, how
+many Labels it has sealed, how many of those retract, how many distinct
+subjects it has labeled and the height it first labeled at (WIST-3 §7,
+`tier1/labelers.parquet`), reading no Label's meaning. A Consumer can
+recompute every figure from the Log; the table exists so that the
+question a subscription decision starts with — what has this Labeler
+done — has an answer before the Consumer trusts anything.
 
 This registry fixes names, subjects and meanings and nothing else. No
 party in this suite aggregates Labels into a score, and no Consumer is
@@ -616,6 +666,18 @@ MUST NOT reuse them for another meaning.
   authority is rejected (§4, WIST-2 §3.3), so a domain cannot declare
   itself a trust seed; a domain declaring a sibling it also controls can,
   and only a Consumer's choice of Labelers answers that.
+- **Unanswerable labels.** A label store that accepts every statement
+  and forgets none, with no answer path and no bound, ends as an
+  attestation spam sink or as a moderation queue nobody can appeal to.
+  Four bounds address that here: a Label can expire, so a stale claim
+  ends without its Labeler's attention; a Label can bind to one
+  publication, so a corrected page is not carried under the old claim;
+  the labeled domain can dispute in the Log, signed, beside the Label,
+  so the answer reaches every Consumer the claim does; and a Labeler
+  seals at most `labeler_block_entries_max` Labels and disputes per
+  Block (§5, WIST-3 §3.2), so filling the commons with opinions costs
+  Blocks as filling it with publications does. None of them judges a
+  Label; each keeps the Consumer's judgement possible.
 - **Domain resale.** Buying a domain or its hosting conveys no history.
   WIST-1 §5.2 binds continuity to keys: a fresh identity is visible in
   the Log as a Declaration signed by neither the previous Key Set nor its
@@ -676,9 +738,13 @@ enters the Log.
       `/log/suffix-lists/<hex>.dat` without expiry, and keys quota,
       ingest budget and capacity on the Registrable Domain under the
       snapshot in force (§3.1)
-- [ ] Seals every eligible Label it pulls whatever its name or subject,
-      rejects a self-labeling Label, and never reads a Label when
-      materializing records (§6, WIST-2 §3.3, WIST-3 §7)
+- [ ] Seals every eligible Label and dispute it pulls whatever the name
+      or subject, within the per-Labeler cap, rejects a self-labeling
+      Label and a third party's dispute, never reads a Label when
+      materializing records and never applies a dispute to a Label (§5,
+      §6, WIST-2 §3.3, WIST-3 §§3.2/7)
+- [ ] Materializes the labeler statistics from Entry counts alone (§6,
+      WIST-3 §7)
 - [ ] Enforces the §4 invariants unconditionally
 
 **Any party replaying the Log:**
@@ -698,8 +764,9 @@ enters the Log.
       `suffix_list_update` sealed below it, obtains and verifies the
       named octets, and derives Registrable Domains by §3.1's algorithm,
       every Canonical Host being its own before the first act (§3.1)
-- [ ] Carries Labels as sealed and never aggregates them into a value the
-      Log did not carry (§6)
+- [ ] Carries Labels and disputes as sealed, drops a Label at its expiry
+      and reads its Delta binding, and never aggregates them into a
+      value the Log did not carry (§6, WIST-2 §3.3)
 
 ## References
 

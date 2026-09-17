@@ -4,13 +4,17 @@
     "links_cap_bytes": 4096,
     "link_url_cap_bytes": 2048,
     "mirror_retention_days": 90,
-    "payload_window_days": 180
+    "payload_window_days": 180,
+    "labeler_block_entries_max": 1000,
+    "domain_block_entries_max": 10000
   },
   "prospective_floors": {
     "links_cap_bytes": 21,
     "link_url_cap_bytes": 14,
     "mirror_retention_days": 30,
-    "payload_window_days": 30
+    "payload_window_days": 30,
+    "labeler_block_entries_max": 1,
+    "domain_block_entries_max": 1
   },
   "prospective_cases": [
     {
@@ -43,7 +47,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 4000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         },
         {
@@ -52,7 +58,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 4000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -87,7 +95,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         },
         {
@@ -96,7 +106,9 @@
             "links_cap_bytes": 3000,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -131,7 +143,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         },
         {
@@ -140,7 +154,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 4000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -181,7 +197,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 4000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         },
         {
@@ -190,7 +208,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 1000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         },
         {
@@ -199,7 +219,9 @@
             "links_cap_bytes": 3000,
             "link_url_cap_bytes": 1000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -234,7 +256,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 4000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -277,7 +301,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 1000,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -312,7 +338,9 @@
             "links_cap_bytes": 3000,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -347,7 +375,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -374,7 +404,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -399,7 +431,9 @@
             "links_cap_bytes": 2069,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -426,7 +460,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -451,7 +487,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 540
+            "payload_window_days": 540,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -484,7 +522,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 120,
-            "payload_window_days": 180
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         },
         {
@@ -493,7 +533,9 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 120,
-            "payload_window_days": 720
+            "payload_window_days": 720,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -528,7 +570,188 @@
             "links_cap_bytes": 4096,
             "link_url_cap_bytes": 2048,
             "mirror_retention_days": 90,
-            "payload_window_days": 540
+            "payload_window_days": 540,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
+          }
+        }
+      ]
+    },
+    {
+      "label": "labeler cap above the domain cap",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "labeler_block_entries_max",
+          "value": 20000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
+          }
+        }
+      ]
+    },
+    {
+      "label": "labeler cap equal to the domain cap",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "labeler_block_entries_max",
+          "value": 10000,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 10000,
+            "domain_block_entries_max": 10000
+          }
+        }
+      ]
+    },
+    {
+      "label": "domain cap lowered under the labeler cap",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "domain_block_entries_max",
+          "value": 500,
+          "effective_at_s": 864000
+        }
+      ],
+      "rejected_indices": [
+        0
+      ],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
+          }
+        }
+      ]
+    },
+    {
+      "label": "both caps lowered in order",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "labeler_block_entries_max",
+          "value": 200,
+          "effective_at_s": 864000
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "domain_block_entries_max",
+          "value": 500,
+          "effective_at_s": 950400
+        }
+      ],
+      "rejected_indices": [],
+      "maps": [
+        {
+          "at_s": 864000,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 200,
+            "domain_block_entries_max": 10000
+          }
+        },
+        {
+          "at_s": 950400,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 200,
+            "domain_block_entries_max": 500
+          }
+        }
+      ]
+    },
+    {
+      "label": "domain cap lowered under a pending labeler cap",
+      "changes": [
+        {
+          "block_height": 0,
+          "entry_index": 0,
+          "sealed_at_s": 0,
+          "parameter": "labeler_block_entries_max",
+          "value": 200,
+          "effective_at_s": 1036800
+        },
+        {
+          "block_height": 24,
+          "entry_index": 0,
+          "sealed_at_s": 86400,
+          "parameter": "domain_block_entries_max",
+          "value": 150,
+          "effective_at_s": 950400
+        }
+      ],
+      "rejected_indices": [
+        1
+      ],
+      "maps": [
+        {
+          "at_s": 950400,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 1000,
+            "domain_block_entries_max": 10000
+          }
+        },
+        {
+          "at_s": 1036800,
+          "values": {
+            "links_cap_bytes": 4096,
+            "link_url_cap_bytes": 2048,
+            "mirror_retention_days": 90,
+            "payload_window_days": 180,
+            "labeler_block_entries_max": 200,
+            "domain_block_entries_max": 10000
           }
         }
       ]
@@ -1838,6 +2061,54 @@
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
           "value": "gu_FpyUAlDKLLHlHqe_4Tfg8lS1MIaiYCbDRP7ReiJlh0sluEPdlhQWXD-K5BnHuRdGENg7WDvsJ3hdT5P7TAQ"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": true,
+      "combinations_hold_at_defaults": false,
+      "sealed_disposition": "candidate"
+    },
+    {
+      "label": "labeler_block_entries_max value 0",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "labeler_block_entries_max",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "labeler_block_entries_max",
+            "value": 0
+          }
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "7KT-8dvkoQofHDxGHDNtWD5MQphWqui7NtLM24Rf-S8XuU9v-bPI7HyroiV3-Qja7SWEOixuzVhZe5iuHsp2Bg"
+        }
+      },
+      "canonical_integer": true,
+      "schema_valid": false,
+      "combinations_hold_at_defaults": true,
+      "sealed_disposition": "ignored"
+    },
+    {
+      "label": "labeler_block_entries_max value 20000",
+      "envelope": {
+        "update": {
+          "wist_version": "1.0.0",
+          "action": "parameter_change",
+          "subject": "labeler_block_entries_max",
+          "effective_at": "2026-08-12T00:00:00Z",
+          "details": {
+            "parameter": "labeler_block_entries_max",
+            "value": 20000
+          }
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "eXbPUCQAhffzyerusLYcQIgGhVNPFRL1Mz5IOSHMzZXPpbBvZUta4rbA9wNAZhuqfjRtivfhwXXwOjim2UB-Dw"
         }
       },
       "canonical_integer": true,

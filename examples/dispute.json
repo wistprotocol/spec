@@ -1,0 +1,16 @@
+{
+  "dispute": {
+    "wist_version": "1.0.0",
+    "disputant": "example.com",
+    "label": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981",
+    "log": "log.example",
+    "height": 1,
+    "reason": "https://example.com/blog/post-1-is-original",
+    "asserted_at": "2026-08-02T12:45:00Z"
+  },
+  "sig": {
+    "key_id": "test-k1",
+    "alg": "Ed25519",
+    "value": "KU9SnK3FA2HfAlRbxmOnR9VCndqr7vuUOaAXWCM0lz1qGwJRGWJAOb1GqCPKGRJGbqgyc3I5HkaxQXGg1L2DDw"
+  }
+}

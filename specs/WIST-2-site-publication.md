@@ -283,9 +283,20 @@ carrying:
   Publisher timestamp under WIST-1 §3.4's profile and clock rule, read
   exactly as a Delta's `observed_at`;
 - `retracted` — OPTIONAL, `true` where the Label withdraws the Labeler's
-  earlier Label of the same `name` on the same `subject`.
+  earlier Label of the same `name` on the same `subject`;
+- `expires_at` — OPTIONAL, the instant from which the Label applies
+  nothing, a Publisher timestamp under the same profile as
+  `asserted_at`; it MUST be later than `asserted_at`, and one that is
+  not is `WIST2-E06`;
+- `delta` — OPTIONAL, only with a Normalized URL `subject`, a Delta ID
+  that binds the Label to one publication: the Label applies only while
+  the subject URL's record stands on that anchor Delta (WIST-3 §7) and
+  covers no later publication of the URL. A `delta` beside a Canonical
+  Host `subject`, or one that is not a Delta ID, is `WIST2-E06`; whether
+  the Delta is sealed in any Log is not checked, since a Labeler may
+  bind to a publication another Log sealed.
 
-Those seven members and no others. The **Label ID** is `"sha256:" +
+Those nine members and no others. The **Label ID** is `"sha256:" +
 hex(SHA-256(JCS(label)))`, the construction WIST-1 §4 uses for a Delta
 ID. A Label is signed under the Labeler's Key Set by the rule a Delta is
 signed under (WIST-1 §5.2), with `asserted_at` in the place of
@@ -319,20 +330,76 @@ order (WIST-3 §3.3: ascending Block height, then Entry index). A current
 Label with `retracted` `true` means the Labeler asserts nothing about
 that subject under that name; every earlier Label stays sealed. A Label
 whose `asserted_at` is earlier than the current Label's is sealed and
-applies nothing. Consumers read Labels through their Snapshot tuples and
-`tier1/labels.parquet` (WIST-3 §7) and apply only the Labelers they
-subscribe to (WIST-4 §6).
+applies nothing. A current Label with an `expires_at` applies nothing
+at a Block whose `sealed_at` is at or after that instant — compared as
+instants, the Publisher timestamp converted exactly — and it stays the
+current Label, so an earlier unexpired Label does not return; a Labeler
+that wants the subject labeled again asserts anew. Consumers read
+Labels through their Snapshot tuples and `tier1/labels.parquet` (WIST-3
+§7), which carry the current, unretracted, unexpired Labels with their
+`expires_at` and `delta`, and apply only the Labelers they subscribe to
+(WIST-4 §6).
+
+**Label definitions.** A Labeler SHOULD publish, for every `name` it
+uses, a **label definition**: an Envelope whose inner object is
+`definition` (schema:
+[`schemas/label-definition.schema.json`](../schemas/label-definition.schema.json)),
+carrying `wist_version`, `labeler` (bound as a Label's is), the `name`,
+a `description` — a Normalized URL where the Labeler describes what the
+name means and how it applies it — a `treatment`, one of `hide`, `warn`
+and `inform`, the treatment a Consumer applies to the name's subjects
+when its own profile names none (WIST-4 §6), and `asserted_at`, read
+as a Label's. It is served at `labels/definitions/<hex>.json`, where
+`<hex>` is the lowercase hex SHA-256 of the name's UTF-8 octets, and is
+signed under the Labeler's Key Set as a Label is. A definition is not
+sealed and not pulled by an Aggregator: a Consumer fetches it for each
+name of a Labeler it subscribes to, keeps the newest `asserted_at` that
+verifies, and treats a name with no verifiable definition as `inform`.
+A definition for a `wist` term describes the Labeler's own application
+of the registry's meaning, which it cannot change.
+
+**Disputes.** The domain a Label is about MAY publish a **dispute**: an
+Envelope whose inner object is `dispute` (schema:
+[`schemas/dispute.schema.json`](../schemas/dispute.schema.json)),
+carrying `wist_version`, `disputant` — the disputing Publisher's
+Canonical Host, bound as a Label's `labeler` is — `label`, the disputed
+Label's ID, `log` and `height`, the `log_id` and Block height at which
+the disputant saw the Label sealed, an OPTIONAL `reason`, a Normalized
+URL where the disputant states its grounds, and `asserted_at`, read as
+a Label's. Those seven members and no others; the **Dispute ID** is the
+Label ID construction over `dispute`. A dispute is published at
+`labels/<id>.json` beside the Labels — the directory holds Label and
+Dispute Envelopes alike, told apart by their inner member — and listed
+in the Label Feed like a Label. It is signed under the disputant's Key
+Set by the rule a Label is signed under. The self-labeling rule does not
+apply: a dispute references a Label rather than asserting anything
+about its signer, and the opposite constraint holds instead — the
+disputed Label's `subject` MUST lie under the disputant's authority
+(its `domain` or a scoped host, or a URL under either, WIST-1 §3.2), and
+the Label MUST already be sealed in the Log the Aggregator seals; a
+dispute failing either, or a field check, is `WIST2-E06` and never
+sealed. `log` and `height` are the disputant's citation: an Aggregator
+MUST NOT reject a dispute for naming another Log or a height at which
+its own Log did not seal the Label. For each (label, disputant) the
+current dispute is chosen as a Label is, by `asserted_at` and then Log
+order. A dispute is never applied by the Aggregator or a Snapshot
+builder: it alters no Label, tuple or record. It is sealed as a
+`dispute` Entry (WIST-3 §3.3), carried as a `dispute` tuple and
+materialized in `tier1/disputes.parquet` beside the labels (WIST-3 §7),
+so that a Consumer weighing a Labeler sees what the labeled parties
+answered, without any party in the suite deciding who is right.
 
 **Pull.** Whenever an Aggregator pulls a domain's Feed — on a Ping and at
 the baseline interval alike (§5) — it MUST also fetch `label-feed.json`
 where the domain serves one, walk it under §3.2's rules and §5's ingest
-budget, fetch each Label ID it has not sealed, validate the Label under
-this section and WIST-1 §4, and queue it for sealing as a `label` Entry
-(WIST-3 §3.3) under the eligibility and ceiling WIST-4 §5 gives a Delta.
-A Label that fails is `WIST2-E06`, reported at the status endpoint (§7.1)
-with the Label ID, and pulled again on the next pull like a rejected
-Delta (§5). A Label ID an Aggregator has sealed is seen, exactly as a
-Delta ID is.
+budget, fetch each ID it has not sealed, validate the Label or dispute
+under this section and WIST-1 §4, and queue it for sealing as a `label`
+or `dispute` Entry (WIST-3 §3.3) under the eligibility and ceiling
+WIST-4 §5 gives a Delta and the per-Labeler cap of WIST-3 §3.2. A Label
+or dispute that fails is `WIST2-E06`, reported at the status endpoint
+(§7.1) with its ID, and pulled again on the next pull like a rejected
+Delta (§5). A Label ID or Dispute ID an Aggregator has sealed is seen,
+exactly as a Delta ID is.
 
 ## 4. The Ping
 
@@ -661,8 +728,15 @@ adjacent to the layout it walks.
       (§3.1, WIST-3 §6.2)
 - [ ] Where it labels, serves each Label at `labels/<id>.json` and lists
       it in a Label Feed under §3.2's rules, signs it under its Key Set,
-      names a registry `name`, and never labels a subject under its own
-      authority (§3.3)
+      names a registry `name`, places `expires_at` after `asserted_at`,
+      binds `delta` only to a URL subject, and never labels a subject
+      under its own authority (§3.3)
+- [ ] Where it labels, serves a signed definition of each name it uses
+      at `labels/definitions/<hex>.json` with a description URL and a
+      treatment (§3.3)
+- [ ] Where it disputes, serves each dispute at `labels/<id>.json`,
+      lists it in a Label Feed, names a sealed Label whose subject lies
+      under its own authority, and signs it under its Key Set (§3.3)
 - [ ] Seals Pages when `deltas` would exceed 1000 entries — file
       published before cutover, sealing-order numbering, no Delta
       omitted or duplicated across Pages, monotonic `generated_at` (§3.2)
@@ -699,8 +773,10 @@ adjacent to the layout it walks.
       than truncating it (§5, WIST-4 §3.1)
 - [ ] Runs baseline polling independent of Pings (§5)
 - [ ] Pulls a domain's Label Feed with its Feed under the same budget,
-      validates each Label under §3.3, seals what verifies and reports
-      `WIST2-E06` for the rest (§3.3, §5, §7)
+      validates each Label and dispute under §3.3 — a dispute only of a
+      Label it has sealed whose subject lies under the disputant's
+      authority — seals what verifies under the per-Labeler cap and
+      reports `WIST2-E06` for the rest (§3.3, §5, §7, WIST-3 §3.2)
 - [ ] Never attributes unsigned-hint content to a domain (§6)
 - [ ] Implements the Error Registry behaviors and the status endpoint (§7)
 - [ ] Accounts pings correctly against the Registrable Domain's quota

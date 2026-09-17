@@ -32,7 +32,7 @@
         "required": ["type", "body"],
         "additionalProperties": false,
         "properties": {
-          "type": {"enum": ["publisher_delta", "publisher_declaration", "label", "registry_update"]},
+          "type": {"enum": ["publisher_delta", "publisher_declaration", "label", "dispute", "registry_update"]},
           "body": {"type": "object"}
         }
       }

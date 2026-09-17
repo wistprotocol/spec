@@ -170,15 +170,33 @@ sealing and durable restoration need integrated validation.
 **Labels.** WIST-2 §3.3 and WIST-4 §6 fix the Label object, the Label
 Feed, self-labeling, the registry name form and which Label is current.
 `vectors/wist2/labels.json` carries signed Labels over the example
-Declaration with field, form, cap, self-labeling and signature
-dispositions, and current-Label replays with the WIST-3 §7 tuple each
-leaves; the reference recomputes every disposition, the Label IDs and the
-tuples, and its twins flip the self-labeling scope, the registry term set
-and the tie order. The clock allowance over `asserted_at` is exercised by
-`vectors/wist1/delta-clock-time.json` for Deltas and applies to Labels by
-reference. Live Label Feed pulls, `WIST2-E06` reporting, sealing as
-`label` Entries under the inclusion ceiling, `tier1/labels.parquet` and
-Consumer subscription need integrated validation.
+Declaration with field, form, cap, self-labeling, expiry, Delta-binding
+and signature dispositions, current-Label replays with the WIST-3 §7
+tuple each leaves at a Snapshot instant, and binding cases against a
+record's anchor Delta; the reference recomputes every disposition, the
+Label IDs and the tuples, and its twins flip the self-labeling scope,
+the registry term set and the tie order. The clock allowance over
+`asserted_at` is exercised by `vectors/wist1/delta-clock-time.json` for
+Deltas and applies to Labels by reference. Live Label Feed pulls,
+`WIST2-E06` reporting, sealing as `label` Entries under the inclusion
+ceiling, `tier1/labels.parquet` and Consumer subscription need
+integrated validation.
+
+**Label accountability.** WIST-2 §3.3, WIST-3 §§3.2/7 and WIST-4 §§5/6
+add label definitions, disputes, the per-Labeler cap, the recommended
+default profile and the labeler statistics (draft
+[ADR-0043](decisions/0043-label-accountability.md)).
+`vectors/wist2/disputes.json` carries signed disputes over a fixture
+disputant Declaration with field, unsealed-Label, third-party,
+signature and binding dispositions and current-dispute replays with
+their tuples; `vectors/wist2/label-definitions.json` carries signed
+definitions with their served paths and every treatment;
+`vectors/wist3/label-tables.json` carries the labeler statistics rows,
+per-Labeler cap cases beside the per-domain cap, and the persistence
+and inactivity rules of the recommended profile. The reference
+recomputes each. Live dispute pulls, `dispute` Entry sealing, the two
+tier-1 tables, Consumer reading of definitions and a profile applying
+the treatments need integrated validation.
 
 **Publisher timestamp eligibility** follows WIST-1 §3.4 and
 [ADR-0026](decisions/0026-publisher-timestamp-profile.md).
@@ -511,7 +529,7 @@ arithmetic checks do not establish live-service behavior.
 | WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
 | WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
-| WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label ID, sealing as `label` Entries under the inclusion ceiling and per-domain capacity, `tier1/labels.parquet` and `label` tuples from authenticated Log replay |
+| WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label or Dispute ID, sealing as `label` and `dispute` Entries under the inclusion ceiling, the per-domain capacity and the per-Labeler cap, `tier1/labels.parquet`, `tier1/disputes.parquet`, `tier1/labelers.parquet` and the `label` and `dispute` tuples from authenticated Log replay, expiry and Delta binding applied at materialization |
 | WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota and ingest-budget application per Registrable Domain under the snapshot in force |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change pull timing without creating a duty; redirect termination and authority restrictions under live pulls |
 | WIST-3 §§5–6 publication | Durable Block publication before its Checkpoint; Payload replication before the Block |

@@ -92,7 +92,7 @@
                 "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
                 "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
                 "mirror_retention_days", "record_seal_blocks",
-                "domain_block_entries_max", "max_inclusion_blocks",
+                "domain_block_entries_max", "labeler_block_entries_max", "max_inclusion_blocks",
                 "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
                 "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
                 "recovery_window_days", "param_grace_days"
@@ -107,7 +107,7 @@
                     "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
                     "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
                     "mirror_retention_days", "record_seal_blocks",
-                    "domain_block_entries_max", "max_inclusion_blocks",
+                    "domain_block_entries_max", "labeler_block_entries_max", "max_inclusion_blocks",
                     "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
                     "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
                     "recovery_window_days", "param_grace_days"
@@ -129,6 +129,7 @@
                   {"if": {"properties": {"parameter": {"const": "mirror_retention_days"}}}, "then": {"properties": {"value": {"minimum": 30}}}},
                   {"if": {"properties": {"parameter": {"const": "record_seal_blocks"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
                   {"if": {"properties": {"parameter": {"const": "domain_block_entries_max"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "labeler_block_entries_max"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
                   {"if": {"properties": {"parameter": {"const": "max_inclusion_blocks"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
                   {"if": {"properties": {"parameter": {"const": "ingest_budget_bytes_day"}}}, "then": {"properties": {"value": {"minimum": 1048576}}}},
                   {"if": {"properties": {"parameter": {"const": "quota_base"}}}, "then": {"properties": {"value": {"minimum": 1}}}}

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wistprotocol.org/schemas/label.schema.json",
   "title": "WIST Label Envelope (WIST-2 §3.3)",
-  "description": "A Labeler's signed statement about a subject outside its own authority, under a Label Registry name (WIST-4 §6). Self-labeling, the subject's normalization and cap, the name's registry form beyond its syntax, the clock rule over `asserted_at` and the key binding are WIST-2 §3.3 and WIST-1 checks the schema cannot make.",
+  "description": "A Labeler's signed statement about a subject outside its own authority, under a Label Registry name (WIST-4 §6). Self-labeling, the subject's normalization and cap, the name's registry form beyond its syntax, the clock rule over `asserted_at`, `expires_at` falling after `asserted_at`, `delta` only with a URL subject, and the key binding are WIST-2 §3.3 and WIST-1 checks the schema cannot make.",
   "type": "object",
   "required": ["label", "sig"],
   "additionalProperties": false,
@@ -18,7 +18,9 @@
         "name": {"type": "string", "minLength": 3, "maxLength": 64, "pattern": "^[a-z0-9-]{1,63}(\\.[a-z0-9-]{1,63})*:[a-z0-9-]+$(?![\\s\\S])", "description": "`<prefix>:<term>` from the Label Registry (WIST-4 §6): the prefix `wist` carries only the registry's own terms, every other prefix is a Canonical Host whose terms that domain defines."},
         "value": {"type": "integer", "minimum": 0, "maximum": 1000000, "description": "Micro-units, 0 … 1 000 000; absent where the name carries no magnitude."},
         "asserted_at": {"type": "string", "format": "wist-publisher-timestamp", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])", "description": "The instant the statement is asserted for, read exactly as a Delta's `observed_at` (WIST-1 section 3.4): Gregorian calendar validation, exact fractions and offsets, seconds 00–59; the pattern alone does not establish calendar validity."},
-        "retracted": {"const": true, "description": "Present only where the Label withdraws the Labeler's earlier Label of the same name on the same subject (WIST-2 §3.3)."}
+        "retracted": {"const": true, "description": "Present only where the Label withdraws the Labeler's earlier Label of the same name on the same subject (WIST-2 §3.3)."},
+        "expires_at": {"type": "string", "format": "wist-publisher-timestamp", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])", "description": "OPTIONAL. The instant from which the Label applies nothing (WIST-2 §3.3): a Publisher timestamp under WIST-1 section 3.4's profile that MUST be later than `asserted_at`; compared to a Block's `sealed_at` when the Label is applied. The pattern alone establishes neither calendar validity nor the order."},
+        "delta": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$(?![\\s\\S])", "description": "OPTIONAL, only with a Normalized URL subject: the Delta ID of the publication the Label is bound to (WIST-2 §3.3); the Label applies only while the subject's record stands on that anchor Delta. A Delta ID is SHA-256 over a Delta, which carries a salted commitment and no content."}
       }
     },
     "sig": {

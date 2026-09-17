@@ -401,6 +401,8 @@
               "wist:spam",
               null,
               "2017-01-01T00:00:00Z",
+              null,
+              null,
               1
             ]
           ]
@@ -416,6 +418,69 @@
         "entries",
         0,
         5
+      ]
+    },
+    {
+      "schema": "snapshot-state.schema.json",
+      "document": {
+        "state": {
+          "wist_version": "1.0.0",
+          "log_position": 0,
+          "entries": [
+            [
+              "label",
+              "labeler.example",
+              "https://example.com/blog/post-1",
+              "wist:spam",
+              null,
+              "2026-08-02T12:00:00Z",
+              "2017-01-01T00:00:00Z",
+              null,
+              1
+            ]
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+        }
+      },
+      "path": [
+        "state",
+        "entries",
+        0,
+        6
+      ]
+    },
+    {
+      "schema": "snapshot-state.schema.json",
+      "document": {
+        "state": {
+          "wist_version": "1.0.0",
+          "log_position": 0,
+          "entries": [
+            [
+              "dispute",
+              "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "example.com",
+              null,
+              "2017-01-01T00:00:00Z",
+              1
+            ]
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+        }
+      },
+      "path": [
+        "state",
+        "entries",
+        0,
+        4
       ]
     }
   ],
