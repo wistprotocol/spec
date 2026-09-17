@@ -3575,7 +3575,11 @@ def _declaration_field_vectors():
         (ROOT / "schemas/publisher.schema.json").read_text()), format_checker=formats)
 
     def field_error(envelope):
-        return "WIST1-E14" if not validator.is_valid(envelope) else None
+        if not validator.is_valid(envelope):
+            return "WIST1-E14"
+        if envelope["publisher"]["wist_version"].partition(".")[0] != "1":
+            return "WIST1-E15"
+        return None
 
     author = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["author_key"]))
     for case in vector["cases"]:
@@ -3678,7 +3682,7 @@ def _declaration_field_vectors():
             pass
         else:
             raise AssertionError("field rejection vector did not authenticate its Block")
-    assert outcomes == {"accepted", "WIST1-E14", "WIST1-E08", "WIST1-E01"}
+    assert outcomes == {"accepted", "WIST1-E14", "WIST1-E15", "WIST1-E08", "WIST1-E01"}
     assert prefixes == {"empty", "initial", "open", "deadline"}
 
 

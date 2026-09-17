@@ -1206,6 +1206,8 @@ def declaration_field_vectors():
     add("missing semantic predecessor", ["prev_declaration"], remove=True, expected="WIST1-E08")
     add("well shaped wrong predecessor", ["prev_declaration"], "sha256:" + "00" * 32,
         expected="WIST1-E08")
+    add("later minor version", ["wist_version"], "1.1.0", expected="ordinary_rotation")
+    add("unimplemented major version", ["wist_version"], "2.0.0", expected="WIST1-E15")
     add("safe integer maximum", ["seq"], 2**53 - 1, expected="ordinary_rotation")
     add("contact at bound", ["contact"], "x" * 256, expected="ordinary_rotation")
     times = [("2026-02-30T12:00:00Z", False), ("2026-08-04T24:00:00Z", False),

@@ -129,11 +129,14 @@ document governs semantics.
 
 The version of this specification the object conforms to, as a semver
 string. This document defines version `1.0.0`. Consumers MUST reject
-objects whose major version they do not implement. Every Delta or Payload validator,
-including a Publisher checking its output, an Aggregator or a Consumer, MUST enforce this rejection before treating either object as valid.
-For Deltas and Payloads, a validator implementing this revision supports major `1`. A
-different minor or patch component alone MUST NOT cause rejection; all rules
-of the implemented revision still apply.
+objects whose major version they do not implement. Every Delta, Payload or
+Declaration validator, including a Publisher checking its output, an
+Aggregator admitting an object or a Consumer replaying a sealed one, MUST
+enforce this rejection before treating the object as valid. For Deltas,
+Payloads and Declarations, a validator implementing this revision supports
+major `1`; any other major is `WIST1-E15` under §7. A different minor or
+patch component alone MUST NOT cause rejection; all rules of the implemented
+revision still apply.
 
 For a Delta or Payload, the version string MUST contain exactly three dot-separated
 nonnegative ASCII decimal components, with no leading zeros except `0`
@@ -1405,7 +1408,7 @@ WIST2-E03 remain required. See
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
 | WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer, a key entry whose `kid` is not its thumbprint or whose `exp` is not greater than `nbf`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url under §2. Canonicalization failure remains WIST1-E05 |
-| WIST1-E15 | Delta or Payload major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
+| WIST1-E15 | Delta, Payload or Declaration major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
 whose `publisher` object is byte-identical to the domain's current one

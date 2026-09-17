@@ -4750,6 +4750,88 @@
       "author_signature_valid": true
     },
     {
+      "name": "later minor version",
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.1.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785758400
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+              "nbf": 1785672000
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:d2ea8f5a0f253583ab0492fa8c59bc04a080072923b921bf02a8faee06397400"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "tbFVNTE2oTLtLNDVLupPUy0tdTOtSHYqKNZCJ0-1dMQY9Qv0F7kebxiIc1ODguav4a6Qle7ikB-AraseRyO4Dg"
+        }
+      },
+      "expected": "ordinary_rotation",
+      "author_signature_valid": true
+    },
+    {
+      "name": "unimplemented major version",
+      "envelope": {
+        "publisher": {
+          "wist_version": "2.0.0",
+          "seq": 1,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785758400
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+              "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+              "nbf": 1785672000
+            }
+          ],
+          "contact": "mailto:webmaster@example.com",
+          "prev_declaration": "sha256:d2ea8f5a0f253583ab0492fa8c59bc04a080072923b921bf02a8faee06397400"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "IjzhMYJmrk6m_y2sDbTc3-UKYQaAPpjZjP0lh74WSF575H2ElZSsniISr1XM-80GmOJhiB5NZJV1a_jQICn2Bg"
+        }
+      },
+      "expected": "WIST1-E15",
+      "author_signature_valid": true
+    },
+    {
       "name": "safe integer maximum",
       "envelope": {
         "publisher": {
@@ -11406,6 +11488,206 @@
       },
       "pinned_head": "sha256:43126a2f9de1df25c6ba38a0625d8d6e83e39bc96bba2803dd7641a05d2b5205",
       "expected": "WIST1-E08"
+    },
+    {
+      "name": "later minor version",
+      "prefix": "initial",
+      "block": {
+        "header": {
+          "wist_version": "1.0.0",
+          "block_number": 1,
+          "prev_block_hash": "sha256:ffcc907c9c467bc16eb0647e91694c2e3d609960e01b50d7516deb0f9ffc08e1",
+          "sealed_at": "2026-08-04T01:00:00Z",
+          "merkle_root": "sha256:86145b9651903d16aa02e1efaff59820faeadf712b2165aa125b4d959118fde4",
+          "entry_count": 2
+        },
+        "sig": {
+          "key_id": "test-log-k1",
+          "alg": "Ed25519",
+          "value": "NWi8AGSZHI_8vnwU356GIZOvup35zHjZjaB_Hh7-GysXjzokZf9FhowCZcZ2TUfXSomISCDY34L-A-mapLIPAQ"
+        },
+        "entries": [
+          {
+            "type": "publisher_declaration",
+            "body": {
+              "publisher": {
+                "wist_version": "1.1.0",
+                "seq": 1,
+                "domain": "example.com",
+                "subdomain_scope": [
+                  "www.example.com",
+                  "blog.example.com"
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                    "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+                    "nbf": 1785758400
+                  }
+                ],
+                "recovery_keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                    "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+                    "nbf": 1785672000
+                  }
+                ],
+                "contact": "mailto:webmaster@example.com",
+                "prev_declaration": "sha256:d2ea8f5a0f253583ab0492fa8c59bc04a080072923b921bf02a8faee06397400"
+              },
+              "sig": {
+                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "alg": "Ed25519",
+                "value": "tbFVNTE2oTLtLNDVLupPUy0tdTOtSHYqKNZCJ0-1dMQY9Qv0F7kebxiIc1ODguav4a6Qle7ikB-AraseRyO4Dg"
+              }
+            }
+          },
+          {
+            "type": "publisher_declaration",
+            "body": {
+              "publisher": {
+                "wist_version": "1.0.0",
+                "seq": 0,
+                "domain": "other.example",
+                "subdomain_scope": [
+                  "www.example.com",
+                  "blog.example.com"
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                    "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                    "nbf": 1785672000
+                  }
+                ],
+                "recovery_keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                    "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+                    "nbf": 1785672000
+                  }
+                ],
+                "contact": "mailto:webmaster@example.com"
+              },
+              "sig": {
+                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "alg": "Ed25519",
+                "value": "xr8RYy8REJ-5SuSngkRMRPAm3n6gogHU0SyEjgxnOj5fjOdCpJU0QJQ8LacX7dpchdPA07dEQsDYuIgF6pNtDg"
+              }
+            }
+          }
+        ]
+      },
+      "pinned_head": "sha256:0e3e473da189b2318c2fb809b51ef2af59d1f30da3dfb5e3c1795861990f9c19",
+      "expected": "accepted"
+    },
+    {
+      "name": "unimplemented major version",
+      "prefix": "initial",
+      "block": {
+        "header": {
+          "wist_version": "1.0.0",
+          "block_number": 1,
+          "prev_block_hash": "sha256:ffcc907c9c467bc16eb0647e91694c2e3d609960e01b50d7516deb0f9ffc08e1",
+          "sealed_at": "2026-08-04T01:00:00Z",
+          "merkle_root": "sha256:0592d00b4d5453dd279d40e24866106f05ae7212cfe431844a975cee88dc6266",
+          "entry_count": 2
+        },
+        "sig": {
+          "key_id": "test-log-k1",
+          "alg": "Ed25519",
+          "value": "SJeoBCm9hNvMuwyueBF4lYbiBb-MHbEv-p0hJljLHHa_RX9htXhY8Vz5Xnf7Dk-8x-hquF1vIw3z6vvyE1GVDQ"
+        },
+        "entries": [
+          {
+            "type": "publisher_declaration",
+            "body": {
+              "publisher": {
+                "wist_version": "2.0.0",
+                "seq": 1,
+                "domain": "example.com",
+                "subdomain_scope": [
+                  "www.example.com",
+                  "blog.example.com"
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                    "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+                    "nbf": 1785758400
+                  }
+                ],
+                "recovery_keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                    "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+                    "nbf": 1785672000
+                  }
+                ],
+                "contact": "mailto:webmaster@example.com",
+                "prev_declaration": "sha256:d2ea8f5a0f253583ab0492fa8c59bc04a080072923b921bf02a8faee06397400"
+              },
+              "sig": {
+                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "alg": "Ed25519",
+                "value": "IjzhMYJmrk6m_y2sDbTc3-UKYQaAPpjZjP0lh74WSF575H2ElZSsniISr1XM-80GmOJhiB5NZJV1a_jQICn2Bg"
+              }
+            }
+          },
+          {
+            "type": "publisher_declaration",
+            "body": {
+              "publisher": {
+                "wist_version": "1.0.0",
+                "seq": 0,
+                "domain": "other.example",
+                "subdomain_scope": [
+                  "www.example.com",
+                  "blog.example.com"
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                    "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                    "nbf": 1785672000
+                  }
+                ],
+                "recovery_keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                    "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+                    "nbf": 1785672000
+                  }
+                ],
+                "contact": "mailto:webmaster@example.com"
+              },
+              "sig": {
+                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "alg": "Ed25519",
+                "value": "xr8RYy8REJ-5SuSngkRMRPAm3n6gogHU0SyEjgxnOj5fjOdCpJU0QJQ8LacX7dpchdPA07dEQsDYuIgF6pNtDg"
+              }
+            }
+          }
+        ]
+      },
+      "pinned_head": "sha256:5e494158a1af08ae38827421573d7211c25dfed56e8a97c815060b08e53ae28e",
+      "expected": "WIST1-E15"
     },
     {
       "name": "safe integer maximum",
