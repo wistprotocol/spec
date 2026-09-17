@@ -85,8 +85,9 @@ on how much one party can say.
 
 ## Consequences
 
-- Label objects carry nine members; label tuples and the label table
-  carry `expires_at` and `delta`; Blocks carry a fifth Entry type; the
+- Label objects carry nine members; label tuples carry `expires_at`,
+  `delta` and the Label ID a dispute names, and the label table
+  `expires_at` and `delta`; Blocks carry a fifth Entry type; the
   Registry carries a twenty-first parameter with a combination rule.
 - `vectors/wist2/labels.json` gains expiry, binding and Snapshot-instant
   cases; `vectors/wist2/disputes.json`, `vectors/wist2/label-definitions.json`

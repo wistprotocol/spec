@@ -926,7 +926,11 @@ first sealed `label` Entry. The table reads no Label's `name` or
 `value` and applies no Label: it is arithmetic over Entry counts a
 Consumer could redo from the Log, materialized so that a subscription
 decision can start from how a Labeler behaves rather than from
-nothing.
+nothing. The table is tier-1 data, not state: no tuple carries its
+counts, a Consumer resumed from a Snapshot MAY read it for the figures
+at `log_position`, and one that does not holds counts only for the
+Entries it walked and MUST NOT present them as the Labeler's whole
+history.
 
 **The materialized state.** The materialized state is a set of records
 keyed by (Publisher domain, Normalized URL). The Publisher domain is the
@@ -1156,7 +1160,7 @@ value fields are:
 | `recovery_window` | domain | owner Declaration height, window end, the recovery-chain head Envelope, its sealing height | WIST-1 §5.2 |
 | `suffix_list` | snapshot identifier | sealing height of the act that put it in force | WIST-4 §3.1 |
 | `withdrawal` | Delta ID | the Publisher's domain, sealing height | §6.2 |
-| `label` | labeler, subject, name | value or `null`, `asserted_at`, `expires_at` or `null`, `delta` or `null`, sealing height | WIST-2 §3.3 |
+| `label` | labeler, subject, name | value or `null`, `asserted_at`, `expires_at` or `null`, `delta` or `null`, Label ID, sealing height | WIST-2 §3.3 |
 | `dispute` | Label ID, disputant | `reason` or `null`, `asserted_at`, sealing height | WIST-2 §3.3 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
@@ -1223,10 +1227,11 @@ Block to fetch it from; a `label` tuple exists for each (labeler,
 subject, name) whose current Label at `log_position` is not retracted
 and not expired at Block `log_position`'s `sealed_at` (WIST-2 §3.3),
 carrying that Label's value or `null`, its `asserted_at`, its
-`expires_at` or `null`, its `delta` or `null` and its sealing height, so
-that a resuming Consumer orders a later Label of the same triple, drops
-the Label at its expiry and reads its binding exactly as a replaying
-one does; a `dispute` tuple exists for each (Label ID, disputant) with
+`expires_at` or `null`, its `delta` or `null`, its Label ID and its
+sealing height, so that a resuming Consumer orders a later Label of the
+same triple, drops the Label at its expiry, reads its binding and
+checks a later dispute naming the Label (WIST-2 §3.3) exactly as a
+replaying one does; a `dispute` tuple exists for each (Label ID, disputant) with
 a sealed dispute, carrying the current dispute's `reason` or `null`, its
 `asserted_at` and its sealing height; a `withdrawal` tuple
 exists for every withdrawn Delta, since a Consumer resuming above the

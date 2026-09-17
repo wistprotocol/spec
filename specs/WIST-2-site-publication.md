@@ -398,8 +398,15 @@ or `dispute` Entry (WIST-3 §3.3) under the eligibility and ceiling
 WIST-4 §5 gives a Delta and the per-Labeler cap of WIST-3 §3.2. A Label
 or dispute that fails is `WIST2-E06`, reported at the status endpoint
 (§7.1) with its ID, and pulled again on the next pull like a rejected
-Delta (§5). A Label ID or Dispute ID an Aggregator has sealed is seen,
-exactly as a Delta ID is.
+Delta (§5); a listed file that cannot be fetched, carries neither a
+Label nor a dispute, or does not carry the listed ID fails the same
+way. A Label ID or Dispute ID an Aggregator has sealed is seen, exactly
+as a Delta ID is. The Label Feed is pulled once the Feed walk completes:
+a Feed pull that fails or suspends pulls no Label Feed in that pull. A
+Label walk that cannot begin under a spent budget (§5) waits for the
+next pull without suspending the completed Feed walk; one that stops
+mid-walk suspends and resumes as §5 says. The vector
+`vectors/wist2/fetch-bounds.json` exercises these dispositions.
 
 ## 4. The Ping
 
@@ -744,7 +751,8 @@ the Publisher's debugging surface, not an artifact other parties verify.
   read, so the octets an Aggregator reads are bounded before the fields
   are. An Aggregator MUST NOT read more than 1 048 576 octets of a
   Declaration, Feed, Page or Mirror list (WIST-3 §5); 16 384 + 2 ×
-  `url_cap_bytes` octets of a Delta file; or `extract_cap_bytes` +
+  `url_cap_bytes` octets of a Delta file or of a Label or dispute file
+  (§3.3); or `extract_cap_bytes` +
   `links_cap_bytes` + `summary_cap_bytes` + 4 096 octets of a Payload,
   each parameter read from the map in force at the request (WIST-4 §5).
   The fixed terms cover what the caps do not reach — signatures,

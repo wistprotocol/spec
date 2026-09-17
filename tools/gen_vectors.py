@@ -2799,7 +2799,8 @@ def label_vectors():
     def label_tuple(chosen):
         inner = chosen["label"]
         return ["label", inner["labeler"], inner["subject"], inner["name"], inner.get("value"),
-                inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), chosen["height"]]
+                inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), chosen["label_id"],
+                chosen["height"]]
 
     def current_case(name, items, winner, sealed_at="2026-08-03T12:00:00Z"):
         chosen = items[winner]
@@ -3908,8 +3909,8 @@ timestamp_probe = "2017-01-01T00:00:00Z"
 for entry, path in (
     (["parameter", "record_seal_blocks", timestamp_probe, 2], [2]),
     (["recovery_window", "example.com", 1, timestamp_probe, {}, 1], [3]),
-    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, None, None, 1], [5]),
-    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", timestamp_probe, None, 1], [6]),
+    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, None, None, "sha256:" + "0" * 64, 1], [5]),
+    (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", timestamp_probe, None, "sha256:" + "0" * 64, 1], [6]),
     (["dispute", "sha256:" + "0" * 64, "example.com", None, timestamp_probe, 1], [4]),
 ):
     document = json.loads((EXAMPLES / "snapshot-state.json").read_text())
@@ -5362,13 +5363,13 @@ def fetch_bounds_vectors():
     def bound(obj, params):
         if obj in ("declaration", "feed", "page", "mirrors"):
             return 1 << 20
-        if obj == "delta":
+        if obj in ("delta", "label"):
             return 16384 + 2 * params["url_cap_bytes"]
         return params["extract_cap_bytes"] + params["links_cap_bytes"] + params["summary_cap_bytes"] + 4096
 
     object_bounds = []
     for name, params in (("defaults", defaults), ("amended", amended)):
-        for obj in ("declaration", "feed", "page", "mirrors", "delta", "payload"):
+        for obj in ("declaration", "feed", "page", "mirrors", "delta", "label", "payload"):
             object_bounds.append({"label": f"{obj} under the {name}", "object": obj, "parameters": params,
                                   "bound": bound(obj, params)})
 
@@ -5397,6 +5398,18 @@ def fetch_bounds_vectors():
         work("above its own bound", 100000, 50000, 5, 30000),
         work("above its own bound and the remaining budget", 5000, 50000, 5, 30000),
     ]
+    def label_feed(label, feed_walk, budget, pages, pulled, suspended):
+        return {"label": label, "feed_walk": feed_walk, "budget_remaining": budget, "label_feed_pages": pages,
+                "label_feed_pulled": pulled, "suspended": suspended}
+
+    label_feed_cases = [
+        label_feed("Feed pull failed", "failed", 100000, 1, False, False),
+        label_feed("Feed walk suspended", "suspended", 0, 1, False, True),
+        label_feed("Feed walk completed and budget spent", "completed", 0, 1, False, False),
+        label_feed("Feed walk completed and the budget covers the live Label Feed only", "completed", 1, 2,
+                   True, True),
+        label_feed("Feed walk completed and the budget covers every Page", "completed", 100000, 2, True, False),
+    ]
     well_known = "/.well-known/wist/feed.json"
     redirect_cases = [{
         "label": "a scope grant and a scope removal inside one pull",
@@ -5421,9 +5434,12 @@ def fetch_bounds_vectors():
                  "parameter map given. work_cases replay one fetch under the remaining daily budget and a "
                  "per-pull limit: fetched debits the object, suspended debits the octets read up to the bound, "
                  "failed is an object above its own bound. redirect_cases replay redirects and accepted "
-                 "Declarations in order for one requested Canonical Host."),
+                 "Declarations in order for one requested Canonical Host. label_feed_cases decide whether a "
+                 "pull reaches the Label Feed after its Feed walk and whether it ends suspended: budget_remaining "
+                 "counts whole Label Feed pages the budget still covers, label_feed_pages the pages the walk "
+                 "would read."),
         "destinations": destinations, "resolutions": resolutions, "object_bounds": object_bounds,
-        "work_cases": work_cases, "redirect_cases": redirect_cases})
+        "work_cases": work_cases, "redirect_cases": redirect_cases, "label_feed_cases": label_feed_cases})
 
 
 write_json(ROOT / "vectors" / "wist2" / "fetch-bounds.json", fetch_bounds_vectors())

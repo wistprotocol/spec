@@ -1988,6 +1988,7 @@ NON_CONTENT_DIGESTS = {
     ("label-definition.schema.json", "properties/definition/properties/labeler"): "the signed Canonical Host of the Labeler, not a content digest",
     ("label-definition.schema.json", "properties/definition/properties/name"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[7]/oneOf[0]"): "the Delta ID a Label binds to (WIST-2 §3.3): SHA-256 over a Delta that carries only a salted commitment",
+    ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[8]"): "the current Label's ID (WIST-2 §3.3): SHA-256 over a Label, which carries a subject, a name and an integer, no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[8]/prefixItems[1]"): "the disputed Label's ID (WIST-2 §3.3): SHA-256 over a Label, no page content",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[8]/prefixItems[2]"): "a Canonical Host identifying the disputant, not a content digest",
     ("snapshot-state.schema.json", "properties/state/properties/entries/items/oneOf[5]/prefixItems[3]"): "a Label Registry name, `<prefix>:<term>` (WIST-4 §6), not a content digest",
@@ -2233,12 +2234,13 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/labels.json", "public_key"): "the example Declaration's Ed25519 public keys",
     ("vectors/wist2/labels.json", "value"): "an Ed25519 signature over a Label",
     ("vectors/wist2/labels.json", "current"): "the current Label's ID after replay (WIST-2 §3.3)",
+    ("vectors/wist2/labels.json", "state_tuple"): "the current Label's ID inside a WIST-3 §7 label tuple",
     ("vectors/wist4/withdrawal.json", "state_tuples"): "fixture Delta IDs inside WIST-3 §7 withdrawal tuples",
     ("vectors/wist4/withdrawal.json", "record_tuples"): "fixture Delta IDs inside WIST-3 §7 record tuples",
     ("vectors/wist4/withdrawal.json", "materialized"): "fixture Delta IDs whose content materializes",
     ("vectors/wist4/withdrawal.json", "adopted"): "fixture Delta IDs inside adopted withdrawal tuples",
     ("vectors/wist4/registrable-domain.json", "entries"): "Public Suffix List snapshot identifiers inside WIST-3 §7 suffix_list tuples",
-    ("vectors/wist3/timestamps.json", "entries"): "a placeholder Label ID inside a WIST-3 §7 dispute tuple whose timestamp position is probed",
+    ("vectors/wist3/timestamps.json", "entries"): "a placeholder Label ID inside a WIST-3 §7 label or dispute tuple whose timestamp position is probed",
     ("examples/dispute.json", "label"): "the disputed Label's ID: SHA-256 over a Label, no page content (WIST-2 §3.3)",
     ("examples/dispute.json", "value"): "an Ed25519 signature over the example dispute",
     ("examples/label-definition.json", "value"): "an Ed25519 signature over the example definition",
@@ -6431,13 +6433,24 @@ def _dc2_fetch_bounds():
         p = case["parameters"]
         if case["object"] in ("declaration", "feed", "page", "mirrors"):
             expected = 1048576
-        elif case["object"] == "delta":
+        elif case["object"] in ("delta", "label"):
             expected = 16384 + 2 * p["url_cap_bytes"]
         else:
             assert case["object"] == "payload"
             expected = p["extract_cap_bytes"] + p["links_cap_bytes"] + p["summary_cap_bytes"] + 4096
         assert case["bound"] == expected, case["label"]
     assert len({c["bound"] for c in v["object_bounds"] if c["object"] == "delta"}) == 2, "one parameter map only"
+    assert {c["object"] for c in v["object_bounds"]} >= {"label", "delta", "payload"}
+    for case in v["label_feed_cases"]:
+        if case["feed_walk"] != "completed":
+            expected = (False, case["feed_walk"] == "suspended")
+        elif case["budget_remaining"] == 0:
+            expected = (False, False)
+        else:
+            expected = (True, case["budget_remaining"] < case["label_feed_pages"])
+        assert (case["label_feed_pulled"], case["suspended"]) == expected, case["label"]
+    assert {(c["label_feed_pulled"], c["suspended"]) for c in v["label_feed_cases"]} == \
+        {(False, False), (False, True), (True, True), (True, False)}
     outcomes = set()
     for case in v["work_cases"]:
         budget, work_bytes, objects = case["budget_remaining"], case["work_bytes_remaining"], case["work_objects_remaining"]
@@ -6481,6 +6494,10 @@ def _dc2_fetch_bounds():
                    "the Declaration accepted at the instant the request is issued",
                    "a redirect MUST stay on the requested Canonical Host",
                    "An Aggregator MAY suspend a walk below the budget under a per-pull limit of its own",
+                   "of a Delta file or of a Label or dispute file",
+                   "a Feed pull that fails or suspends pulls no Label Feed in that pull",
+                   "waits for the next pull without suspending the completed Feed walk",
+                   "or does not carry the listed ID fails the same way",
                    "the octets read are debited and the walk suspends there"):
         assert marker in prose, marker
 check("vectors:wist2-fetch-bounds", _dc2_fetch_bounds)
@@ -6590,7 +6607,8 @@ def _label_vectors():
         expired = "expires_at" in inner and publisher_instant(inner["expires_at"]) <= log_seconds(case["sealed_at"])
         expected = None if inner.get("retracted") or expired else [
             "label", inner["labeler"], inner["subject"], inner["name"], inner.get("value"),
-            inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), ranked["height"]]
+            inner["asserted_at"], inner.get("expires_at"), inner.get("delta"), ranked["label_id"],
+            ranked["height"]]
         assert case["state_tuple"] == expected, case["name"]
         if expected is not None:
             envelope["state"]["entries"] = [expected]

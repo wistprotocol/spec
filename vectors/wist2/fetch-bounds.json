@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 \u00a78 and \u00a75, ADR-0044. destinations classify one address, allowed only when the class is null; loopback_opt_in is the single-machine opt-in. resolutions decide a name from every address it resolves to. object_bounds are the octets an Aggregator reads at most, under the parameter map given. work_cases replay one fetch under the remaining daily budget and a per-pull limit: fetched debits the object, suspended debits the octets read up to the bound, failed is an object above its own bound. redirect_cases replay redirects and accepted Declarations in order for one requested Canonical Host.",
+  "note": "WIST-2 \u00a78 and \u00a75, ADR-0044. destinations classify one address, allowed only when the class is null; loopback_opt_in is the single-machine opt-in. resolutions decide a name from every address it resolves to. object_bounds are the octets an Aggregator reads at most, under the parameter map given. work_cases replay one fetch under the remaining daily budget and a per-pull limit: fetched debits the object, suspended debits the octets read up to the bound, failed is an object above its own bound. redirect_cases replay redirects and accepted Declarations in order for one requested Canonical Host. label_feed_cases decide whether a pull reaches the Label Feed after its Feed walk and whether it ends suspended: budget_remaining counts whole Label Feed pages the budget still covers, label_feed_pages the pages the walk would read.",
   "destinations": [
     {
       "label": "public IPv4",
@@ -349,6 +349,17 @@
       "bound": 20480
     },
     {
+      "label": "label under the defaults",
+      "object": "label",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "summary_cap_bytes": 2048
+      },
+      "bound": 20480
+    },
+    {
       "label": "payload under the defaults",
       "object": "payload",
       "parameters": {
@@ -406,6 +417,17 @@
     {
       "label": "delta under the amended",
       "object": "delta",
+      "parameters": {
+        "url_cap_bytes": 4096,
+        "extract_cap_bytes": 65536,
+        "links_cap_bytes": 8192,
+        "summary_cap_bytes": 4096
+      },
+      "bound": 24576
+    },
+    {
+      "label": "label under the amended",
+      "object": "label",
       "parameters": {
         "url_cap_bytes": 4096,
         "extract_cap_bytes": 65536,
@@ -562,6 +584,48 @@
           "allowed": true
         }
       ]
+    }
+  ],
+  "label_feed_cases": [
+    {
+      "label": "Feed pull failed",
+      "feed_walk": "failed",
+      "budget_remaining": 100000,
+      "label_feed_pages": 1,
+      "label_feed_pulled": false,
+      "suspended": false
+    },
+    {
+      "label": "Feed walk suspended",
+      "feed_walk": "suspended",
+      "budget_remaining": 0,
+      "label_feed_pages": 1,
+      "label_feed_pulled": false,
+      "suspended": true
+    },
+    {
+      "label": "Feed walk completed and budget spent",
+      "feed_walk": "completed",
+      "budget_remaining": 0,
+      "label_feed_pages": 1,
+      "label_feed_pulled": false,
+      "suspended": false
+    },
+    {
+      "label": "Feed walk completed and the budget covers the live Label Feed only",
+      "feed_walk": "completed",
+      "budget_remaining": 1,
+      "label_feed_pages": 2,
+      "label_feed_pulled": true,
+      "suspended": true
+    },
+    {
+      "label": "Feed walk completed and the budget covers every Page",
+      "feed_walk": "completed",
+      "budget_remaining": 100000,
+      "label_feed_pages": 2,
+      "label_feed_pulled": true,
+      "suspended": false
     }
   ]
 }
