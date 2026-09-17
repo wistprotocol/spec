@@ -438,7 +438,13 @@ Domain (WIST-4 §5), the same for every Registrable Domain: a Ping for a
 Canonical Host counts against the Registrable Domain of that host under
 the Public Suffix List snapshot in force at the Ping (WIST-4 §3.1), so
 hosts under one registrable name share one quota while hosts under a
-private-section suffix hold their own. Only pings resolving to
+private-section suffix hold their own. Counts are kept per Registrable
+Domain as named under the snapshot in force at each Ping: when an
+accepted `suffix_list_update` changes a host's Registrable Domain
+inside a day, the Pings already counted stay under the unit they were
+counted against, and from its next Ping the host counts against the
+unit it now belongs to, starting from whatever that unit already
+carries. Only pings resolving to
 `WIST2-E02` or `WIST2-E04` count against it; productive pings do not.
 Once Q is reached, every Ping for a host of that Registrable Domain
 yields `429` until the UTC-day window resets.
@@ -460,7 +466,8 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    terabytes of pulls, an amplification no quota reaches because
    productive pings are unmetered (§4). The Aggregator therefore
    applies a per-domain budget, accounted per Registrable Domain
-   (WIST-4 §3.1) so that a free hostname is not a free budget: it MUST
+   (WIST-4 §3.1) so that a free hostname is not a free budget, keyed at
+   each fetch as §4 keys the quota at each Ping: it MUST
    fetch no more than
    `ingest_budget_bytes_day` (Parameter Registry; default 1 GiB) of
    Feed pages, Deltas and Payloads for the hosts of one Registrable

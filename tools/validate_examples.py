@@ -6284,12 +6284,15 @@ def _dc4_registrable_domain():
                         or named["bytes"] != update["details"]["bytes"]:
                     code = "WIST4-E04"
         assert code == case["code"], (case["label"], code)
+        unheld = doc is not None and by_id.get(doc["update"]["details"]["sha256"]) is None
+        assert case.get("consumer") == ("WIST3-E01" if unheld else None), case["label"]
         if code is None:
             accepted.append((case["height"], by_id[json.loads(case["envelope_json"])["update"]["details"]["sha256"]]["name"]))
         in_force = next((n for h, n in reversed(accepted) if h <= case["height"]), None)
         assert in_force == case["in_force_after"], case["label"]
         seen.add(code)
     assert seen == {None, "WIST4-E11", "WIST4-E04"}
+    assert any(c.get("consumer") for c in v["act_cases"]), "no act names an unobtainable file"
 
     def force_at(height):
         return next((n for h, n in reversed(accepted) if h < height), None)
@@ -6303,10 +6306,11 @@ def _dc4_registrable_domain():
         expected = "WIST3-E03" if max(counts.values()) > case["domain_block_entries_max"] else None
         assert expected == case["expected"], case["label"]
     assert {c["expected"] for c in v["capacity_cases"]} == {None, "WIST3-E03"}
+    changed = 0
     for case in v["quota_cases"]:
         noise = collections.Counter()
         for ping in case["pings"]:
-            unit = _psl_registrable(ping["host"], rules[force_at(case["height"])])[0]
+            unit = _psl_registrable(ping["host"], rules[force_at(ping.get("height", case["height"]))])[0]
             if noise[unit] >= case["quota_base"]:
                 assert ping["expected"] == 429, (case["label"], ping)
                 continue
@@ -6314,6 +6318,8 @@ def _dc4_registrable_domain():
                 noise[unit] += 1
             assert ping["expected"] == 202, (case["label"], ping)
         assert 429 in {p["expected"] for p in case["pings"]} or case["height"] == 0, case["label"]
+        changed += len({force_at(p.get("height", case["height"])) for p in case["pings"]}) > 1
+    assert changed, "no quota case crosses a snapshot change"
     for state in v["state_tuples"]:
         pinned = None
         for h, n in accepted:
@@ -6329,10 +6335,13 @@ def _dc4_registrable_domain():
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
     for marker in ("in force from the Block after its sealing Block",
                    "the Registrable Domain is the host itself",
-                   "every Canonical Host is its own Registrable Domain"):
+                   "every Canonical Host is its own Registrable Domain",
+                   "An Aggregator MUST NOT seal an act naming a file it does not hold",
+                   "it stops at the act's Block (`WIST3-E01`)"):
         assert marker in prose, marker
     w2 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     assert "Ping quota Q is `quota_base` Pings per UTC day per Registrable Domain" in w2
+    assert "the Pings already counted stay under the unit they were counted against" in w2
     w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
     assert "whose Publisher's or Labeler's Canonical Host has one Registrable Domain" in w3
 check("vectors:wist4-registrable-domain", _dc4_registrable_domain)

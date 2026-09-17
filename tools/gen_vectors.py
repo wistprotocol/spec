@@ -3657,6 +3657,8 @@ def registrable_domain_vectors():
         domain_case("no snapshot in force sibling", "b.example.com", None),
     ]
 
+    unheld_id = "sha256:" + sha256_hex(b"a snapshot nobody serves\n")
+
     def act(label, code, *, height, name="first", signer=priv, key_id="test-agg-k1", version="1.0.0",
             subject=None, details=None, extra=None, effective_at=None, in_force_after=None):
         snapshot = by_name[name]
@@ -3689,6 +3691,9 @@ def registrable_domain_vectors():
         act("second snapshot pinned", None, height=3, name="second", in_force_after="second"),
         act("repeated pin of the snapshot in force", None, height=5, name="second",
             effective_at="2026-08-06T13:00:00Z", in_force_after="second"),
+        dict(act("names a file no source holds", "WIST4-E04", height=6, subject=unheld_id,
+                 details={"sha256": unheld_id, "bytes": 7}, in_force_after="second"),
+             consumer="WIST3-E01"),
     ]
     in_force = [{"height": 0, "list": None}, {"height": 1, "list": "first"}, {"height": 2, "list": "first"},
                 {"height": 3, "list": "first"}, {"height": 4, "list": "second"}, {"height": 5, "list": "second"},
@@ -3731,14 +3736,19 @@ def registrable_domain_vectors():
     def quota(label, height, pings, base=2):
         noise = {}
         rows = []
-        for host, is_noise in pings:
-            unit = registrable_domain(host, rules[force_at[height]])[0]
+        for ping in pings:
+            host, is_noise = ping[0], ping[1]
+            at = ping[2] if len(ping) > 2 else height
+            unit = registrable_domain(host, rules[force_at[at]])[0]
+            row = {"host": host, "noise": is_noise}
+            if len(ping) > 2:
+                row["height"] = at
             if noise.get(unit, 0) >= base:
-                rows.append({"host": host, "noise": is_noise, "expected": 429})
+                rows.append(dict(row, expected=429))
                 continue
             if is_noise:
                 noise[unit] = noise.get(unit, 0) + 1
-            rows.append({"host": host, "noise": is_noise, "expected": 202})
+            rows.append(dict(row, expected=202))
         return {"label": label, "height": height, "quota_base": base, "pings": rows}
 
     pings = [("a.example.com", True), ("b.example.com", True), ("c.example.com", False), ("alice.github.io", True),
@@ -3746,7 +3756,12 @@ def registrable_domain_vectors():
              ("a.hosts.sample.net", True), ("b.hosts.sample.net", True), ("c.hosts.sample.net", True)]
     quota_cases = [quota("one UTC day under the first snapshot", 2, pings),
                    quota("the same Pings under the second snapshot", 4, pings),
-                   quota("the same Pings with no snapshot in force", 0, pings)]
+                   quota("the same Pings with no snapshot in force", 0, pings),
+                   quota("a snapshot change inside the day", 3,
+                         [("a.hosts.sample.net", True, 3), ("b.hosts.sample.net", True, 3),
+                          ("c.hosts.sample.net", True, 3), ("a.hosts.sample.net", True, 4),
+                          ("a.hosts.sample.net", True, 4), ("a.hosts.sample.net", True, 4),
+                          ("b.hosts.sample.net", True, 4), ("c.hosts.sample.net", False, 4)])]
 
     state_tuples = [{"log_position": 0, "entries": [["suffix_list", ids["first"], 0]]},
                     {"log_position": 2, "entries": [["suffix_list", ids["first"], 0]]},
@@ -3762,8 +3777,10 @@ def registrable_domain_vectors():
                  "the Block after its sealing Block (in_force lists the snapshot in force at each height). "
                  "capacity_cases count publisher_delta and label Entries per Registrable Domain under the "
                  "snapshot in force at the Block; quota_cases apply quota_base to the noise Pings of one UTC day "
-                 "per Registrable Domain in order; state_tuples are the WIST-3 §7 suffix_list tuple at a "
-                 "log_position."),
+                 "per Registrable Domain in order, each Ping under the snapshot in force at its own height where "
+                 "one is given; an act carrying consumer names a file no source holds, which fails its contract "
+                 "at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 §7 "
+                 "suffix_list tuple at a log_position."),
         "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)},
         "lists": lists, "official_cases": official_suffix_cases(rules["first"]), "domain_cases": domain_cases,
         "act_cases": acts, "in_force": in_force, "capacity_cases": capacity_cases, "quota_cases": quota_cases,

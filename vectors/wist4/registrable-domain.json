@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Block order under the Log key: a suffix_list_update is in force from the Block after its sealing Block (in_force lists the snapshot in force at each height). capacity_cases count publisher_delta and label Entries per Registrable Domain under the snapshot in force at the Block; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a log_position.",
+  "note": "WIST-4 \u00a73.1, WIST-2 \u00a74, WIST-3 \u00a73.2 and \u00a77. lists are Public Suffix List snapshots as octets (text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where it has none), expected the project's answer and registrable the Registrable Domain, the host itself where the list leaves none. domain_cases read a host under a named snapshot or under none. act_cases replay in Block order under the Log key: a suffix_list_update is in force from the Block after its sealing Block (in_force lists the snapshot in force at each height). capacity_cases count publisher_delta and label Entries per Registrable Domain under the snapshot in force at the Block; quota_cases apply quota_base to the noise Pings of one UTC day per Registrable Domain in order, each Ping under the snapshot in force at its own height where one is given; an act carrying consumer names a file no source holds, which fails its contract at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 \u00a77 suffix_list tuple at a log_position.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -792,6 +792,14 @@
       "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-06T13:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"tteNeAsDFywiigJ8Xk01X7Y7ZmaFGjr8b07k3S_C5tRxmlg70IlcyQwna7x4X-QbkTm2WqFio6Jw5cD3kHxTAQ\"}}",
       "code": null,
       "in_force_after": "second"
+    },
+    {
+      "label": "names a file no source holds",
+      "height": 6,
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:ceb5777d8b2fb00658edfb297035841c400b74cdc40ca857dd22089fd2f1df14\", \"effective_at\": \"2026-08-07T12:00:00Z\", \"details\": {\"sha256\": \"sha256:ceb5777d8b2fb00658edfb297035841c400b74cdc40ca857dd22089fd2f1df14\", \"bytes\": 7}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"6Gys_KtDM39HnZ7ghex5M26peiHVyQurpBhaFW4PffScWwUl2oYrcAb3awRzkgmHVwqHXXwagM2OjEJ7RXsUDA\"}}",
+      "code": "WIST4-E04",
+      "in_force_after": "second",
+      "consumer": "WIST3-E01"
     }
   ],
   "in_force": [
@@ -1126,6 +1134,61 @@
         {
           "host": "c.hosts.sample.net",
           "noise": true,
+          "expected": 202
+        }
+      ]
+    },
+    {
+      "label": "a snapshot change inside the day",
+      "height": 3,
+      "quota_base": 2,
+      "pings": [
+        {
+          "host": "a.hosts.sample.net",
+          "noise": true,
+          "height": 3,
+          "expected": 202
+        },
+        {
+          "host": "b.hosts.sample.net",
+          "noise": true,
+          "height": 3,
+          "expected": 202
+        },
+        {
+          "host": "c.hosts.sample.net",
+          "noise": true,
+          "height": 3,
+          "expected": 429
+        },
+        {
+          "host": "a.hosts.sample.net",
+          "noise": true,
+          "height": 4,
+          "expected": 202
+        },
+        {
+          "host": "a.hosts.sample.net",
+          "noise": true,
+          "height": 4,
+          "expected": 202
+        },
+        {
+          "host": "a.hosts.sample.net",
+          "noise": true,
+          "height": 4,
+          "expected": 429
+        },
+        {
+          "host": "b.hosts.sample.net",
+          "noise": true,
+          "height": 4,
+          "expected": 202
+        },
+        {
+          "host": "c.hosts.sample.net",
+          "noise": false,
+          "height": 4,
           "expected": 202
         }
       ]

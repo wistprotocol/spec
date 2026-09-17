@@ -108,7 +108,14 @@ retain them as they retain Checkpoints; a served file whose SHA-256 is
 not the identifier is `WIST3-E03`, and one no source holds is
 `WIST3-E01`, which leaves every Block the snapshot governs unverifiable
 until it is obtained. An act whose `bytes` disagrees with the named
-file's octet count fails its contract (`WIST4-E04`).
+file's octet count fails its contract (`WIST4-E04`). An Aggregator MUST
+NOT seal an act naming a file it does not hold, since it could not
+serve the file from the sealing Block: at the Aggregator such an act
+fails its contract (`WIST4-E04`). A Consumer that cannot obtain the
+file an act names cannot check the act's `bytes` either, so it neither
+accepts nor ignores the act: it stops at the act's Block (`WIST3-E01`)
+and resumes once the file is obtained, and a file obtained that does
+not hash to its name stops it the same way (`WIST3-E03`).
 
 **In force.** An accepted `suffix_list_update` is in force from the
 Block after its sealing Block: the snapshot in force at Block B is the
