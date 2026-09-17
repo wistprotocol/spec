@@ -1106,6 +1106,14 @@ def declaration_conflict_vectors():
     add("different domains may report either failure", "initial", [invalid_other, ordinary, recovery_same],
         initial_state, "WIST1-E08", [(None, invalid_other, "WIST1-E01")], invalid=[invalid_other],
         expected_results=["WIST1-E01", "WIST1-E08"])
+    fresh_outside = signed(initial, 1, priv3, "test-k2", keys=[K2])
+    add("fresh identity outside a window resets", "initial", [fresh_outside],
+        {"example.com": state(fresh_outside, reset=1)},
+        isolated=[(initial, fresh_outside, "fresh_identity")])
+    fresh_settled = signed(owner, 3, keys=publisher["keys"])
+    add("fresh identity after settlement resets", "deadline", [fresh_settled],
+        {"example.com": state(fresh_settled, windows=1, reset=169)},
+        isolated=[(owner, fresh_settled, "fresh_identity")])
     write_json(WIST1 / "declaration-conflicts.json", {
         "note": "WIST-1 section 5.2 and WIST-3 section 3.3 equal-sequence Declaration groups. "
                 "Each case appends its Block to the named authenticated prefix; trusted fixture "
