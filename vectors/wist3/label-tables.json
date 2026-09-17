@@ -318,6 +318,36 @@
           "counted": false
         }
       ]
+    },
+    {
+      "label": "equal instants resolve in Log order",
+      "events": [
+        {
+          "height": 5,
+          "asserted_at": "2026-08-02T12:00:00Z",
+          "retracted": true
+        },
+        {
+          "height": 6,
+          "asserted_at": "2026-08-02T12:00:00Z",
+          "retracted": false
+        }
+      ],
+      "expires_at_height": null,
+      "probes": [
+        {
+          "height": 5,
+          "counted": false
+        },
+        {
+          "height": 6,
+          "counted": false
+        },
+        {
+          "height": 7,
+          "counted": true
+        }
+      ]
     }
   ],
   "inactivity_cases": [

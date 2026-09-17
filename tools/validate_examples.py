@@ -7158,8 +7158,11 @@ def _label_table_vectors():
     assert any(e["type"] == "dispute" for c in v["cap_cases"] for e in c["entries"])
     for case in v["persistence_cases"]:
         def live(h):
-            current = max((ev for ev in case["events"] if ev["height"] <= h),
-                          key=lambda ev: publisher_instant(ev["asserted_at"]), default=None)
+            # WIST-2 §3.3: the greatest asserted_at, and among equal instants
+            # the one later in Log order, which the event list is in.
+            current = max((ev for index, ev in enumerate(case["events"]) if ev["height"] <= h),
+                          key=lambda ev: (publisher_instant(ev["asserted_at"]),
+                                          case["events"].index(ev)), default=None)
             if current is None or current["retracted"]:
                 return False
             return case["expires_at_height"] is None or h < case["expires_at_height"]

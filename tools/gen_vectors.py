@@ -3114,7 +3114,10 @@ def label_table_vectors():
             def live_at(h):
                 current = None
                 for ev in events:
-                    if ev["height"] <= h and (current is None or ev["asserted_at"] > current["asserted_at"]):
+                    # WIST-2 §3.3: greatest asserted_at, and among equal
+                    # instants the one later in Log order, which is the
+                    # order the events are listed in.
+                    if ev["height"] <= h and (current is None or ev["asserted_at"] >= current["asserted_at"]):
                         current = ev
                 if current is None or current.get("retracted"):
                     return False
@@ -3135,6 +3138,8 @@ def label_table_vectors():
                          [ev(5, "2026-08-02T12:00:00Z"), ev(6, "2026-08-02T13:00:00Z", True),
                           ev(8, "2026-08-02T15:00:00Z")], [7, 8, 9, 10]),
         persistence_case("expiry ends the count", [ev(5, "2026-08-02T12:00:00Z")], [6, 7, 8], expires_at=8),
+        persistence_case("equal instants resolve in Log order",
+                         [ev(5, "2026-08-02T12:00:00Z", True), ev(6, "2026-08-02T12:00:00Z")], [5, 6, 7]),
     ]
     inactivity_cases = [{"label": label, "last_sealed_height": last, "inactivity_blocks": n, "height": h,
                          "applies": h - last <= n}
