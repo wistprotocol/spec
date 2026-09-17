@@ -155,16 +155,15 @@ history: every Delta ID the Publisher has ever sealed MUST appear on
 exactly one Page, never on two and never on none.
 
 **Verification of sealed pages.** Verify a Page under WIST-1 §4 using the
-signing entry named by its `sig.key_id` in the Declaration current at
-`generated_at`. If no usable named entry verifies, try the Declaration
-selected from the first following Block by the bridge below. An absent
-current Declaration also permits this fallback. Each attempt MUST use that
-Declaration's own named entry and public bytes; another alias of those bytes
-does not supply the named entry or suppress fallback. Finding `sig.key_id`
-in current does not suppress fallback when its entry fails verification.
-No other Declaration supplies authority, and the Delta-only
-`valid_from` comparison does not apply to Pages. A Page that verifies under
-neither source is `WIST2-E04`.
+signing entry whose `kid` equals its `sig.key_id` in the Declaration
+current at `generated_at`. If no usable named entry verifies, try the
+Declaration selected from the first following Block by the bridge below.
+An absent current Declaration also permits this fallback. Each attempt
+MUST use that Declaration's own named entry. Finding `sig.key_id` in
+current does not suppress fallback when its entry fails verification. No
+other Declaration supplies authority, a pending Declaration (WIST-1 §5.2)
+supplies none, and the Delta-only `nbf`/`exp` window does not apply to
+Pages. A Page that verifies under neither source is `WIST2-E04`.
 
 Pages are immutable and never re-signed on rotation. A validator MUST NOT
 reject a Page solely because its signing key has since been retired or its

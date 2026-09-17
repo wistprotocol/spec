@@ -48,7 +48,7 @@ authenticated Delta history and durable service adoption remain required.
 
 Canonical encoding and its diagnostics are defined by WIST-1 §2 and
 [ADR-0025](decisions/0025-canonical-base64url.md). `base64url.json` checks
-unused bits independently of decoder policy, schema agreement, signed aliases,
+unused bits independently of decoder policy, schema agreement, noncanonical key spellings,
 field-before-conflict/idempotence ordering and atomic Block rejection.
 The key-eligibility reference uses this decoder. Complete field formats,
 role admission/replay/sealing/restoration and transport-wrapper integration
@@ -223,26 +223,51 @@ beyond its calendar range does not conform to this profile.
 
 **Resolved recovery-binding diagnostics — WIST-1 §5.1/§5.2 and draft
 ADR-0023.** Queue admission retains the pre-recovery and window-owner
-signing sets, including complete reused-identifier/public-key/time bindings.
-Filter unusable and future named bindings before signature verification:
+signing sets, including each source's complete per-key `nbf`/`exp` bindings.
+Filter unusable and out-of-window named bindings before signature verification:
 none remaining is WIST1-E02; remaining bindings with no verifying signature
 is WIST1-E01. A single binding must satisfy both checks. Encoding and
 Publisher timestamp errors retain
 WIST1-E14 precedence, and settlement retains WIST1-E13. The signed
 `recovery-bindings.json` histories and independent reference exercise mixed
-failures, exact fractional/offset bounds, exclusions, aliases, reversed
-signed arrays and fixed owner sources after a legitimate follower. They
+failures, exact fractional/offset bounds, exclusions, one key with two
+windows, reversed signed arrays and fixed owner sources after a legitimate
+follower. They
 establish source selection and key diagnostics, not full Delta/chain
 eligibility, live clock checks, durable queues, Payload availability, quotas,
 sealing, settlement or Snapshot restoration. Independent role consumption
 and integrated admission/replay/restoration remain required. Selecting only
-the first identifier match, merging distinct bounds or substituting a later
+the first identifier match, merging distinct windows or substituting a later
 Declaration does not conform.
+
+**Resolved key directory, commitment and activation — WIST-1 §5.1/§5.2
+and draft ADR-0045.** A Declaration key entry is an Ed25519 JWK whose `kid`
+is its RFC 7638 thumbprint, so an identifier names one key and a key one
+identifier; a `kid` that is not that thumbprint, or an `exp` not greater
+than `nbf`, is WIST1-E14 and is checked before the WIST1-E08 uniqueness
+rule. A signing binding admits a Delta whose `observed_at` satisfies
+`nbf` ≤ `observed_at` < `exp`, comparing the exact instant with the
+NumericDate integers; Declaration signer resolution and classification
+ignore the window, so an expired or not-yet-started entry still rotates.
+Under a predecessor's `next_keys`, an ordinary rotation either keeps that
+signing set and commitment or installs exactly the committed set. A fresh
+identity accepted outside a recovery window is pending: it supplies no
+authority, resets identity only at its activation height, and is discarded
+by a replacement of the current Declaration sealed before that height.
+`vectors/wist1/key-directory.json` carries the thumbprint known answer,
+entry field cases, window boundaries, satisfied and unsatisfied
+commitments, and authenticated histories for a delayed activation, a
+signing-key reversal, a recovery-key reversal and a zero delay, with their
+`pending_declaration` tuples. The histories establish Declaration state
+transitions and Delta key checks, not queuing, Payload availability,
+quotas, sealing or live discovery. The `_wist.<domain>` TXT record is
+published for comparison only; a validator that lets its content change an
+acceptance decision does not conform.
 
 Separately, WIST-2 §3.2 sealed-Page verification
 must retain the selected Declaration's key provenance: gathering every
 historical binding with its identifiers can authenticate against the wrong
-Declaration. Validation must distinguish reused identifiers and excluded
+Declaration. Validation must distinguish retired keys and excluded
 bindings without broadening the permitted source Key Set.
 Full validation also requires authenticated applicable Declaration history,
 including recovery supersession. Both timestamp lookups read sealed Entries;
@@ -250,14 +275,14 @@ an accepted but unsealed Declaration does not establish the first following
 Block's Key Set. Verification over supplied key sets alone does not establish
 these source-selection obligations or Page publication and immutability.
 
-**Resolved Page alias fallback — WIST-2 §3.2 and draft ADR-0023.**
-`vectors/wist2/page-bindings.json` supplies 16 signed probes over three
-ordinary Declaration chains. The independent reference authenticates those
-chains and exercises renamed aliases, reused identifiers, excluded entries,
-exact cutoffs, first contact, forbidden later sources and absence of a
-following Declaration. Signature-invalid twins and reversed source order
-check rejection and ordering independence; future `valid_from` values
-distinguish Page verification from Delta filtering. Sealing positions are
+**Resolved Page named-entry fallback — WIST-2 §3.2 and draft ADR-0023.**
+`vectors/wist2/page-bindings.json` supplies signed probes over ordinary
+Declaration chains. The independent reference authenticates those chains
+and exercises rotated keys, excluded entries, exact cutoffs, first contact,
+forbidden later sources and absence of a following Declaration.
+Signature-invalid twins and reversed source order check rejection and
+ordering independence; future `nbf` values distinguish Page verification
+from Delta filtering. Sealing positions are
 supplied inputs, not authenticated Block evidence. Empty Delta lists isolate
 key/source selection and establish no Page-size or publication conformance.
 Full role validation still requires authenticated inclusion and recovery
@@ -323,14 +348,13 @@ rejection twins enforce recovery-key protection, predecessor eligibility and
 Declaration authorship. A shared key naming a competitor cannot advance the
 recovery chain. Signed Delta inputs exercise admission under the frozen union
 and signature-eligible settlement survivors; separate binding probes cover
-identifier reuse, aliases, `valid_from`, bad signatures and later re-serving
-of a rejected ID. These replace inadmissible abstract recovery-set rotations.
+key windows, bad signatures and later re-serving of a rejected ID. These replace inadmissible abstract recovery-set rotations.
 The histories do not establish durable queuing, Payload availability, quotas,
 actual survivor inclusion, status reporting or complete historical Delta
 verification. Its timestamp comparisons exercise whole-second literal-Z
 fixtures only; integrated §3.4 Publisher timestamp validation for `observed_at`
-and `valid_from`, including exact fractional-second ordering, remains an
-integrated validation obligation.
+against integer `nbf`/`exp` windows, including exact fractional-second
+ordering, remains an integrated validation obligation.
 
 WIST-3 §7's Snapshot `declaration` tuple carries only the current Envelope
 and sealing height, and `recovery_window` carries only owner height and end.
@@ -524,9 +548,10 @@ arithmetic checks do not establish live-service behavior.
 | Surface | Required evidence |
 |---|---|
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
-| WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate identifiers reject and reused identifiers or aliases preserve the authenticated public key's correct identity/recovery class |
+| WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate keys and thumbprint mismatches reject, and the authenticated public key's set membership fixes its identity/recovery class |
 | WIST-1 §5.1/§5.2 Delta recovery bindings | Consume `recovery-bindings.json` with independent signature and timestamp implementations. Preserve frozen source provenance and complete bindings in admission, authenticated replay and durable restoration; distinguish E14 fields, E02 absence of eligible authority and E01 failed signatures without borrowing the union for sealing or historical verification. Exercise complete Delta/chain and live-clock eligibility separately. |
 | WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
+| WIST-1 §5.1/§5.2 key directory and activation | Consume `key-directory.json`: recompute every thumbprint and fingerprint, apply the entry field rules before uniqueness, admit Deltas only inside a binding's window, enforce `next_keys` on ordinary rotations, and replay the histories so that a pending identity supplies no authority, activates at its frozen height and is discarded on reversal. Snapshot resumption requires the `pending_declaration` tuple. Live discovery, the DNS record's retrieval and integrated role behavior remain separate obligations. |
 | WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label or Dispute ID, sealing as `label` and `dispute` Entries under the inclusion ceiling, the per-domain capacity and the per-Labeler cap, `tier1/labels.parquet`, `tier1/disputes.parquet`, `tier1/labelers.parquet` and the `label` and `dispute` tuples from authenticated Log replay, expiry and Delta binding applied at materialization |

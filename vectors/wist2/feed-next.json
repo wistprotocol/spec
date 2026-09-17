@@ -12,17 +12,18 @@
       ],
       "keys": [
         {
-          "key_id": "test-k1",
-          "alg": "Ed25519",
-          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "valid_from": "2026-08-09T00:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "nbf": 1786233600
         }
       ]
     },
     "sig": {
-      "key_id": "test-k1",
+      "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
       "alg": "Ed25519",
-      "value": "JXHvKPvEJdkOvfRUelmC2s-n1VW3OvkO84eqwqPjGtnq3kKmAOLy0MXOLS8nh12tLODlXbQZP2_erlId3V1MBw"
+      "value": "i5ofZgIsjiaP2Ri3vZjSfJ7P-rBd4cIeA7UGf_VwWuMfKc8H6m32yShgFdKfbEuXxY5CKwVQ2J9aKnmXkoiFAQ"
     }
   },
   "cases": [
@@ -39,7 +40,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Vh9hHgc00j2yB6vxlWCf7qBL-y4Jo7XJ7cl_ccqkAJFDzG4jWGOgn6md8p1Eb0y3uVsv9otfkzo-ssx-zm8SBw"
         }
@@ -66,7 +67,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "BHUv3WzMeqlzkzFe8YzPc11HYSSO7sONBKE53Wd9bkMQe9JR08epwY5vKORiOm23d-cjY51YLQlDRMiQVtdQAQ"
         }
@@ -93,7 +94,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json?v=2&x=%2F"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "e2AiLSnWUFlQujaYb3X3LO9G5arBG8XTqlHInj5XB_ERWBZpDcmXm9OBEDGvsVMrn6_-gx_RqZBDMi2BycLtDg"
         }
@@ -120,7 +121,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json?"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "I6aAAy8oIPH4lTdTD9h2wbVwCRshaDbOmjzcvIbXgQX-C0aBXTU5DzodMSZOK8JqamEGJsD_RihxiSSHr-6QDg"
         }
@@ -147,7 +148,7 @@
           "next": "https://localhost/.well-known/wist/feed/a%2Fb.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "uz8kvutPbo6r8falBS-XsDmOYkYD2HBTmpwd-uTBNJsJ9nlG7cV0gDhGO7X3LzeuCTV7_IxpopJFmqj82-otDg"
         }
@@ -174,7 +175,7 @@
           "next": "https://localhost/.well-known/wist/feed/%E2%82%AC.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "J_FHKe9NeAmYaniGIjDL6CeBHekuZH7CPQeJVRoeLXhujas4IFv0kBBW6hzfUmNuf15kHwRTEnXDfsGHgZh8AQ"
         }
@@ -201,7 +202,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "GhS4cotEbh-wg1gYJkQhlwGUuHR37Q4lHe7BmjmXxIpqyFLBOsOQ3X0G3KM0dh6LkUMtKBiyQ07ElvJyahzhBw"
         }
@@ -228,7 +229,7 @@
           "next": "https://www.localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "aC1Fx1XCGlGOnZq5rbNHGqg8arQH3njdTbmFHszdb4_SmZwyh7KWmS2r-tnxGqL8Sy1TmLyrtev2-K8j9HU1Cw"
         }
@@ -255,7 +256,7 @@
           "next": "https://other.example/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "EvwVYv8aOPHcBCBLBkUQSHfU01IiSstEAIBXZVZ_LIqbJ0w8lPbyCKKUCx48KqiUTKO-546u5JhONW30HG6-Cw"
         }
@@ -282,7 +283,7 @@
           "next": "https://LOCALHOST/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Mf5pFoMmC9ldy_uyCd6lXUWTlsUMOzhhwIqcd4qHBUK2cP80NM3k5xnl7kgkQvXBtZFXlmLGc_M5LKqwBdk5CQ"
         }
@@ -309,7 +310,7 @@
           "next": "https://localhost:443/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "EvWvIdV68jAJvv9gtFNzjELAtDl7WIxCt3DZdJyWF127xUEf-st2WVNa4zDoY29j5Y3ivarCXS0ab3Djg2QlAg"
         }
@@ -336,7 +337,7 @@
           "next": "https://localhost:8443/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "6SjEOdAUtS2-LdL8eWVA59z9HfemQOi_35BTMP12P0lcWiEeBPRIiifBYK5_wzl3N66HHuXybMGq2ppZgDacCw"
         }
@@ -363,7 +364,7 @@
           "next": "https://user@localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "wNb7FN1sy9ndHNKDtwDnWEJC0LKdzAt3uAo2dehZasOkTD4X8lP20L1yI677k9oaTw--0TVnBmGrWa6AB1nRAg"
         }
@@ -390,7 +391,7 @@
           "next": "https://"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "OEbaA5UG8VGYmt4w1sacrxjX44GhQKS41V9KbthDCPnwWloyl0ggEyqQh9l7vrDtBolVbAG_84jRA3KQO5TXDg"
         }
@@ -417,7 +418,7 @@
           "next": "https://localhost"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "c-GApkH1XXD2yxujiCEthQwaRU_UExLWNDd-rJlJweG4vaiGcpUXWd5c-szmm_aMi1fKgehntp-40-yrT-3JCw"
         }
@@ -444,7 +445,7 @@
           "next": "https://localhost/.well-known/wist"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "dU3mjFWM2sQ-Axg9dqJ7QiuSpL10h-SZXhywRq6JNAQMdDCjNgnFmVdIWPiHJrF22W4Lw4LIEY63NrNfOl_tDA"
         }
@@ -471,7 +472,7 @@
           "next": "https://localhost/x/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "ZS2LOI7nr28zDIE5usbPxBD2T__VbviVGh16VUiG8BuiEjId2_SUMt60nHpZ8DsnSBmKJRGvR3FYChwYMrLRAA"
         }
@@ -498,7 +499,7 @@
           "next": "https://localhost//.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "vSPvTtr2Y5YTtvabVYEN784G0m_CzIsFsDZWJJ_fOttzGXluu7ELjopNGcNjwCocMvQMgz6qsVFRvSgiDsezCA"
         }
@@ -525,7 +526,7 @@
           "next": "https://localhost/.well-known/wistx/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "vQAIEa9YZ4H6yPfWdisahkCfTf0Ks4WRGUhPep06vK8ZJshodClSQZ1I06ZyjVqE6zZHQUdXuFxm-2TkIwCnBw"
         }
@@ -552,7 +553,7 @@
           "next": "https://localhost/.well-known/wist/feed/../publisher.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "USdcfBzwsJN9M84szbkWNsMwgv1jHzvZcfd-e1KrQR0PpDXeJGpmdKsdUU_eCTIpt4EoHwHBSBO_ScXIZgW8Bw"
         }
@@ -579,7 +580,7 @@
           "next": "https://localhost/.well-known/wist/%2E%2E/secret.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "dDQUw8Gv29kexi_IckJ1YIcYPLdiOrRj8j7_ESKal1vV0RDy39I_hyCXjT4oMkWdEVxFUxYXEdB4bvTQ0MnGCA"
         }
@@ -606,7 +607,7 @@
           "next": "https://localhost/.well-known/wist%2Ffeed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "xIgoRTRbPwIlsBPGdi_t2MuXZcsQGh9wpxsvF_IKIIdpBZlSHH_vgG27GCPCuGZNYIrKOI90jnXti2rTEplfBA"
         }
@@ -633,7 +634,7 @@
           "next": "https://localhost/.well-known/wist/feed/%e2%82%ac.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "rJfm25TOlXkxHHQu5SDQ8vYyJhR3kEtHDf1VmQY4bsscqxFiK6uXO7QkI6o1YKlTGnHH_NAIg_jijW0Z9RtOAQ"
         }
@@ -660,7 +661,7 @@
           "next": "https://localhost/.well-known/wist/feed/%7Ea.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Ti0LcRHDHg_jeRMG2OeBsKD5Y0iSMuQls43S4BYIJ3RhljRWZYN0pHRUZH4fDm6KvQIvIs9UYMwKlpES89RvCQ"
         }
@@ -687,7 +688,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json?x=%2f"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "fhgSc-DTMgbg_bMVyes4nKF-faSzhuYeVgGb_khX8N_cqEgs_V35t4P2po7dT8VSE-yO3YsYJ8B7dbUoqQyMBQ"
         }
@@ -714,7 +715,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json\n"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "tEaremF-vZC9ClxIjua7EOQgYw96mJ31xwQIiaukptG_MOSvBww0yDS97NQhujkJ1v5F-LhsEeU-qjt2EBzFAw"
         }
@@ -741,7 +742,7 @@
           "next": 7
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "EPPzRrxOmRPi3fgJ2yaG63IqcVMESEKvSRul4O-IzIBSqbr2Ugu_U8vxvDNxPdVCzyR-JMKudtaiVpTbncJsDQ"
         }
@@ -768,7 +769,7 @@
           "next": []
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "_8DEQ-QVNHW9KYs_-EKEb8D23ouPGYgaksWMW9Uj4GWRz6XAz4LqCCLDEqy4tZ-7wzSRGroV5Kc782RT_ewtCg"
         }
@@ -795,7 +796,7 @@
           "next": "http://localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "nuNQDGaC1mmHofoF0Ko4PQ5Y4ZxlOeSWjdXEso94FhpATJITiIeVuc2sZZrbis5thFcYQ6fZS6scQGuBarDiAw"
         }
@@ -822,7 +823,7 @@
           "next": "HTTPS://localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "17UC9xF7sezBVS7TI3u1mkMQ1NEtfl4ssF2zg-YuvsU2dUtAa2Lzs6Gknw85Y1P3k0encj7hctzIjXnnoEW1Cg"
         }
@@ -849,7 +850,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json#0"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Ud5SW0BcaCoiEjfp8cRVlW_T0KuTu485T-TtGGVA4C4lAIcPVIL5u8lP-ybTN0uMEWpssoiUnxwL_o6wKR3ABw"
         }
@@ -876,7 +877,7 @@
           "next": ""
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "QsfWx6-oc3gntXwMtgB4tyhTvO6BnglPei58T3CfLTg_yX4yE9zcdqLc3OIIlqdPy0WNInN45ISCaIV73rIKBg"
         }
@@ -903,7 +904,7 @@
           "next": "https://www.localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "aC1Fx1XCGlGOnZq5rbNHGqg8arQH3njdTbmFHszdb4_SmZwyh7KWmS2r-tnxGqL8Sy1TmLyrtev2-K8j9HU1Cw"
         }
@@ -930,7 +931,7 @@
           "next": "https://www.localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "aX3rbKYua2q7JbhRDFnl9Ep7A1AYaXIUOwW720r-i_3EAiswbNGiKY45D9yQ25A7Vd2nALXu2KwbQkBcX_lbAg"
         }
@@ -957,7 +958,7 @@
           "next": "https://localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "BHUv3WzMeqlzkzFe8YzPc11HYSSO7sONBKE53Wd9bkMQe9JR08epwY5vKORiOm23d-cjY51YLQlDRMiQVtdQAQ"
         }
@@ -986,7 +987,7 @@
           "next": "https://www.localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         }
@@ -1013,7 +1014,7 @@
           "next": "https://www.localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "T1Ezu22zHqyifa7c4KxRmGe5uaLAHXCmQVJ_-3Tnn6C8Ftd-7q5DmtyNv3lo3X7ccHsrBlk84TGxYmyS-SoDDQ"
         }
@@ -1040,7 +1041,7 @@
           "next": "https://www.localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Klma_sefM6jse9PEK2O7l8Abr9vtdkcG6GxmAWHasvtCqePuVik1X90K0bIyogWem1QlqJRAaxUtztl9vdyHDQ"
         }
@@ -1067,7 +1068,7 @@
           "next": "https://www.localhost/.well-known/wist/feed/0.json"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Klma_sefM6jse9PEK2O7l8Abr9vtdkcG6GxmAWHasvtCqePuVik1X90K0bIyogWem1QlqJRAaxUtztl9vdyHDQ"
         }

@@ -11,26 +11,28 @@
       ],
       "keys": [
         {
-          "key_id": "test-k1",
-          "alg": "Ed25519",
-          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "valid_from": "2026-08-02T12:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "nbf": 1785672000
         }
       ],
       "recovery_keys": [
         {
-          "key_id": "test-r1",
-          "alg": "Ed25519",
-          "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-          "valid_from": "2026-08-02T12:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+          "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+          "nbf": 1785672000
         }
       ],
       "contact": "mailto:webmaster@example.com"
     },
     "sig": {
-      "key_id": "test-k1",
+      "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
       "alg": "Ed25519",
-      "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+      "value": "i37BwQl2RRi8jzOzJIyexlNbAjQD3V5jtFEW7sU-NqvnSv4RK5kvvxI7IeozfuSGp99G17quTMGb6Yb-SHX-BQ"
     }
   },
   "cases": [
@@ -46,7 +48,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "EWDKKDtLJSj26InmWXpEqbxZsFKzCnBno9_nm0bto_9oplcANbOoZma_Bq6bODdLLd5fQOEVhJYT-YAdLriaCQ"
         }
@@ -66,7 +68,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "d4TVvzciT1CJ1gVkDCVWfU1z7-HKSzCUNy_6zDPJ_vS59S4cg8xoNjeaIq9Eeiee-nl0El-iNRT5TIPw_7lUCA"
         }
@@ -86,7 +88,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "jDfxjyvL4iwgOa4IkxWbvtjjrLdKL-T2OvgSGhXF5W_ok_VCbzpNdPJyjfko-L2YUc1LApoNu4zQUZnYJA6TDg"
         }
@@ -106,7 +108,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "dZQrsxLkwV6YT0DySAxrz5_hvE_I3qs2lvYzNpHAjOq6rWbZPteHe1dxy4PndpQUQUGiIzPzL2GLzItaTh6uBQ"
         }
@@ -126,7 +128,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "u1tfOw9F6sAr1lZovzTqKbwM-mbs1DqcHiCnmoZwtCYDxZ4RXy8P9ujMQWt5dQWLIm5Wqja7OdgnAZr13OREAg"
         }
@@ -146,7 +148,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Vt6IVbHrbDAJu4L5lQj3YAD2QuKX_Bjvs4XyDIWWPSgJuasB24nOA4Jfu_wfWmCiniTooPv19VWSaI61Nss7Dw"
         }
@@ -166,7 +168,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "p3Z2UJlc60vR35tMTE5H0HraX1--Nnw_sAbObkiAwQhLsHa3V45CWTt9Gsxw5Yb_kvE63ax4U9i_R8XHT1W9Ag"
         }
@@ -186,7 +188,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "gkfSmbyeOsv7fM_sbRIU00DYSq6tPtqX9IFWI2fUzKnxNagrCRQ79vbhSkItqQBMSRjPUKvUCYtdxNv1g4auDA"
         }
@@ -206,7 +208,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "wXHmNaChm6Ljq8zbj1xJZFUwzfRfGqppuMD0AfG6ek2VZaEzP7OkvmFhr3lhlhT37tjwMigU7-7O1HoxkuUCBQ"
         }
@@ -226,7 +228,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "tgOgHnw1fLBoTUy0MlDQZWkd61FsTU4dB86POB04PrrijdS6HiKNXP0vhfEgOB5ycHD7jz3IMaT1ivfBTKQlBw"
         }
@@ -247,7 +249,7 @@
           "extra": true
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "PaoCy3Jb-CEbBwYmJJ5h2CYS9O_iUx090KTNZmmyO_Sz2pPi1meaFJpJ_r5hE7x71dXqn3NntySLqTn5ljcOCQ"
         }
@@ -266,7 +268,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "fNrZayT_lj6e6FNCaNN6GmPyaw_wzm91Y6O_S8V6E0R7j5eQrFnmV3OmweXl0csbKXnlCwzemF2mVfTSDAehBA"
         }
@@ -285,7 +287,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "wfqwLI8uc4bFT9I6TVgqLEfOD9C0i7GCd2ruPbFwOhmMoKge5ethEleZjKimDbblM2afjyEzOonDc3K4r_1gCg"
         }
@@ -304,7 +306,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "avUtrbSq-R5-GkvtDuxC5GVmYdgnqDdCclxwyx9cMzdsfWh3BE_kLmAKcINbjCcxKZazuOQQO5HD3v5MRYXhDg"
         }
@@ -323,7 +325,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "yIXNmWomxHz1X9xbFlVmkFwb5B3UNXxRu6OW4S7XY0N4ej4Ao1ZKwpUh7K0KSPkoLACAKHW6tlEEeMNyH5NJDw"
         }
@@ -342,7 +344,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "xJu50-diECgfFzxNzfIcTffpd4PEIOuHoY9onbuE3uBtIOkUTARxY3Ol1AQUO5vU1rf-vfrDRgAEpKisj4r7AQ"
         }
@@ -361,7 +363,7 @@
           "treatment": "hide"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "UzJ3CMVmFfQNsbh6hR46nzo7eVmPcP3Qv3213gZ72bEkGsjqxpqcbGO7s-TCDmugQoKgUCPMuhv-bxWDOsZHBw"
         }
@@ -381,7 +383,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "DBWeEctXU9xsAVnwPZOQUDpii290s32jV2shJIfiBnzSmD7IEY7cKyPOJ7gZuslOO4n7SPPmIhfIOp3__yoODA"
         }
@@ -401,7 +403,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "KrHtfCjnT7-CjL0QLamHOOtMg20gIcSdD7i1jPAfY5-bLFFmAfAN0k-cSYX4YA4Vk4FrZsS0ps4o2NsNR1IHBw"
         }
@@ -421,7 +423,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "EWDKKDtLJSj26InmWXpEqbxZsFKzCnBno9_nm0bto_9oplcANbOoZma_Bq6bODdLLd5fQOEVhJYT-YAdLriaCQ"
         }
@@ -430,7 +432,7 @@
       "path": null
     },
     {
-      "name": "signed under an unknown key_id",
+      "name": "signed under an unknown identifier",
       "envelope": {
         "definition": {
           "wist_version": "1.0.0",
@@ -441,7 +443,7 @@
           "asserted_at": "2026-08-02T12:00:00Z"
         },
         "sig": {
-          "key_id": "test-k9",
+          "key_id": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8",
           "alg": "Ed25519",
           "value": "EWDKKDtLJSj26InmWXpEqbxZsFKzCnBno9_nm0bto_9oplcANbOoZma_Bq6bODdLLd5fQOEVhJYT-YAdLriaCQ"
         }

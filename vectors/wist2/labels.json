@@ -11,26 +11,28 @@
       ],
       "keys": [
         {
-          "key_id": "test-k1",
-          "alg": "Ed25519",
-          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "valid_from": "2026-08-02T12:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "nbf": 1785672000
         }
       ],
       "recovery_keys": [
         {
-          "key_id": "test-r1",
-          "alg": "Ed25519",
-          "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-          "valid_from": "2026-08-02T12:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+          "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+          "nbf": 1785672000
         }
       ],
       "contact": "mailto:webmaster@example.com"
     },
     "sig": {
-      "key_id": "test-k1",
+      "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
       "alg": "Ed25519",
-      "value": "cOfZvt9-LdqES7s_bVZ3lFCKS9lJatEUJpODOGriUFKhoRbCCNf18B45W8VHSDlmoCqbhiRoTjzhE5JzuCzsBA"
+      "value": "i37BwQl2RRi8jzOzJIyexlNbAjQD3V5jtFEW7sU-NqvnSv4RK5kvvxI7IeozfuSGp99G17quTMGb6Yb-SHX-BQ"
     }
   },
   "url_cap_bytes": 2048,
@@ -46,7 +48,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
         }
@@ -68,7 +70,7 @@
           "value": 750000
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "QfilzqUJ_CMwV7e6cQdeIvjStOWZXkGKZwdAvMpU6CzidHOHwp3ZpKEtmRyqf-LfgkbwFXfNGXuIulrgLvW1BA"
         }
@@ -89,7 +91,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "yyzDWXVVO8tl3vjwH9s-r0J2zTXiRWbQR5cXGkQh1gQOnvrjvPj660KfKAfnG_FSB98z90ieCkPHpVIsV6QnBA"
         }
@@ -111,7 +113,7 @@
           "retracted": true
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "EMa02KW1xvdLw4t4AugTHR6Vcpn7kCTe_Z-a4JRlFjJ2-9-iRYEvz46CWOYtAFQEj7s4Acml1Bc5z5DXhkvPAg"
         }
@@ -133,7 +135,7 @@
           "value": 0
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "8wYD4fSMd3_yDmLEwG4MTdT45digyHDXeR7ajsRjmToPs2MqiuBK5YzgnZKNk-z01_4axP_ZEnJY6BK4qkslCg"
         }
@@ -155,7 +157,7 @@
           "value": 1000000
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "SDlYSUxtkErv3TmZKXWmm8_82tCxcdF2wSotXL3QbXyt1vLeyje4wihNH9BrqaeEteiCcitlc5__PLEfHZ8NAg"
         }
@@ -177,7 +179,7 @@
           "value": 1000001
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "AIZtxbNQ6r1eng0QUNZqhblFbhGYWaZU6igmasbu7Ve4ZDdW2E9576yADWTnvSIJnh1CoNC3a4dU5OWLFz-8Bw"
         }
@@ -199,7 +201,7 @@
           "value": -1
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "OsFST7qxi9791pAxfGcicwfApvfQf-837HfvoTJoxDW9nJFZBzwJRdZnh0OY4uUHY9JSKaIAnQJ41ULh-3EQCA"
         }
@@ -221,7 +223,7 @@
           "value": 0.5
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "2cKt_nu1T2R4EcDsPgYIF2kdoJb08dMbn1JMXIej5BOJhZmy__NBTHcjJE_pY_UHMX9MjgyPMnsACIKR-093Ag"
         }
@@ -243,7 +245,7 @@
           "retracted": false
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "PW-ev5_JV0lo7M9uQtXyMQu55VUIWtfxu13O9wK27EeQ0fhhFHNiFV2oZnX5BjD-ncBsi-0pWsezCxpROXf_AA"
         }
@@ -265,7 +267,7 @@
           "extra": true
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "MlzH7TYu23Frw94fXAVsV_UiZtiA39PjJnza8ya9e4R7ckydMITnhrMzzL7q06svpQffNz39ZwA4gvCtYzHKAQ"
         }
@@ -285,7 +287,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "-9AUUrVZw_Wnnjpik3V4Uhc3Zbh5zWLfFSmTMo2ue_pQaYwkVEDDcFmfGrz1T8bXRwi3qhfm34AqtBrtA24_Dg"
         }
@@ -305,7 +307,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "OP6FchcYreB7U3GzCOj2ZY6v6z7CIhnLsdWfqF45fRo31MP3niLlPA2q5Bv1fvB0Sov470dsdewW9nVE6bTPDQ"
         }
@@ -325,7 +327,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "JHHJZc9o82bHud9SXSI1Wub6c6n-Mh5y1EdFS5RceVP55xJSQPwF-PwouxEqqK-RO9lHZKfbJrpv5IiCAJivCQ"
         }
@@ -345,7 +347,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "qThZySeulXKDz9H9Gva6GkJHk5WBZTNfQmtDBLyJK3tpxQIuRITJV10K31l4yZ5dbCw2PH7Kz2p5pZs5_L47AA"
         }
@@ -365,7 +367,7 @@
           "name": "wist:spam"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "-Xv2RR3PJIUGJ2MAEGxG-qYMwicREWzSsjmFYIZa53rsatGzefmlyPZ4vjlzzxCdTJ-79Palkc3CH-gLyXiSAA"
         }
@@ -386,7 +388,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "KbOPxw60BXsGecaCk2CVkSbDXz7rzspKgDTgu6IxEyLsw4Sudms_c4hcQxjCKwcK2cRmVKLAk0Dbr76UyGu9BA"
         }
@@ -407,7 +409,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "pYW249eUo3rchmXcDBZgAyCbEeDaQ3xq7gRkCOAHVgLpQGrC9jZT6qRACc-5nlSCJ2VEYDsmm2Cv8V6ZD796DA"
         }
@@ -428,7 +430,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "UF3XRrus9rGAduitRVdt2hYvp9vv3S9-oNlCclu-bmRAgbgHvLdDt6X8utHtJHxmYUWwT_VVqPCFtRDyR_1LCg"
         }
@@ -449,7 +451,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "ItkSK_MCaShC3wakyGwWWHlC-twUizCdB1PRlavVyr4_0jkpkyj8K2Lm4jgD_uo0aEbypzEEFZOZHjDmebPjAw"
         }
@@ -470,7 +472,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "GRQbaC5RCuuPGSUMZSSD03HhBExybMLcEW6cAIQyF6J4NsVVyNCx9Rfyqjv3B63s8sDvUuzJEDu6edhiQKAlDg"
         }
@@ -491,7 +493,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "SNNrsvke6_4SYst-5dzbw24B_5qz0eIJo_xT_RlOabBBL01c0BMJWrjzyeyZD0iUAqc_-zk7XiAq2DgApXVBCg"
         }
@@ -512,7 +514,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "pI4R9jMcwGU8kdAquOfcFy0xzpdWjpyKoEYLFmxuXGeRu7gko8vsadLa6hT8ZeotCDEDXo_Iud1q41AsXP0GAQ"
         }
@@ -533,7 +535,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "ySedSQlBNDIZmTmgnFXwfuuNrbTXcajEMB7dkHBEeu0u0MZWmHwdcDmE2AYhK-lj-0y38QGgDAQYRV03K1A6Bw"
         }
@@ -554,7 +556,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "w9UvEXewd9d4Zcd_wBqBZlmXeVZvnMoxBMNSlTF6IGBl_QtzZt6PxJdq1lJBNubAMk1Saonz562rHpFC2jj1AA"
         }
@@ -575,7 +577,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "5_D32YcLBIAGRHGgmev7TUU57qzeGfyDl9nEz5gya_SolHDJVrGNm17m5ZqZFvxbsgLvQBNCPQXToFmO7IjtBw"
         }
@@ -596,7 +598,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "7Q4J42qqSvZTfROwvZHcEDnYIndCqSzSNBGUg_moYRdpTQaaab6cuL6JxF6_pnE0n_2a0KfrPrB6bQnBkpSiAQ"
         }
@@ -617,7 +619,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Zlf378OFCVBXFN-SGdZyKNbztcdDpfPrR-4Qn5385OTbpifAhQ19JqUw9BcAcSqAZSqzkndQBCBPHhhaIII5Aw"
         }
@@ -638,7 +640,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "6lc3COvvK5jlL1a_A1WCrvEVwZkJpCdiPKqjnRJJIpQERuSkeCQ1jQSZOwmWvtaBFOjbqj8uEB-r3q-9bww_Bg"
         }
@@ -659,7 +661,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "CauaI7NMjNp2Pc6rT4m9EtZY_5jDW9lm1vWUCjnHzaQvqjGNG_qe118htyJSz-M7565ZlwlPV_dqjy9ZALVkBw"
         }
@@ -680,7 +682,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "PTSkEgxc_0qwhoPeq8jRYRIExxbYq0-dnpRFmBYK4jYihPkWM1iJLqTJ2soxv5Q4U7OI_lfXFMzzqFe3iZtfCw"
         }
@@ -701,7 +703,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "a9-8Np_iidB4obXTyjjjR3l-VMCi41Z_ixKZ6oXEYBhK0wHY63w1Q7cZqTR70zbXlUT38R5Lu-RK3mAfu2OQDg"
         }
@@ -722,7 +724,7 @@
           "asserted_at": "2026-08-02T12:30:00"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "adhyUSCorpWn-cqxdQqhOwn1bu3evnrW5TSLus4FKipNIWuiRPvNazVadepK20LK2uBE6rbgifte6eIPMVmoDw"
         }
@@ -743,7 +745,7 @@
           "asserted_at": "2026-08-02T14:30:00+02:00"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "PREe6wKF_hi7zUrVsMSTyirW4w9s0q4HxdDAyViHJBC0JUCQQOJgb5vrF3o8ImTCN9m6MXwnbc0EVthNl4GzDw"
         }
@@ -764,7 +766,7 @@
           "asserted_at": "2026-06-30T23:59:60Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "c4BcPtcM_uiXAkJN4YlhPtWxGe_xZCU06-kg6e5X17fu7Sl8cvdlAFZ402c4OkkPe8mnzKSk-nLilp1qacqjDw"
         }
@@ -785,7 +787,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "cY32CR3Wp1h3IW9CO_UlrX2a6PS4dH6GUoQhD0-rDxmVqR0Xytd3zLUEFap-EEhMSymTPN4oFXz0xz8Hbj-NDg"
         }
@@ -806,7 +808,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "-t4KgZn_W9NKI1WUtRHgolPZEOl3J4vrweSU4RZgytGPWIK0_ANFHNxZy7xMR1GlCo_YVnvclCIW9AaJ3et2CQ"
         }
@@ -827,7 +829,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "5hD0tzqo4RH66mgkL9M-kprR1wqcfTwDMQ0LAZU2LKkIZ-lo7VCJPq5dn9VGmVUOy7bR83QretmVDfB9gEwGBA"
         }
@@ -848,7 +850,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "HDN_6-ml2RyC0_5fX1aQbYDBiItbpXV_cqcNt7LylcEUoAFKbHX1pCfdtRsotvsbcLPCiZplmyHL8R1yx1M8AQ"
         }
@@ -869,7 +871,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "xaSvzIHAO0qiODbMPnFtvCAEhX-JU7vuD6Dim9F9fFbB4GzdGnN6xWvv6R2BPRCeVOgN8cxAuzldG9lQRdsRBg"
         }
@@ -890,7 +892,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "mjgyypcsL7Wkyzmble3nsnHQTREFlgRE8MSkXZHW1gbVzOCflpI3mFuzW8WCWIjpwLR4bDtUCvYjdqF8vvRmAg"
         }
@@ -911,7 +913,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "yi_r2Mb8FvH4wbPPIwrrgZk_TXYqjz8NbqTcYuYBoaMk_xmzhfN5RAC4XSakNXsiHmX5U4CcYb5w-uS5SNTbBg"
         }
@@ -933,7 +935,7 @@
           "expires_at": "2026-09-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "VCNDxRxWaraHKMhxY2ODtBpCwexwKOalhG_nS8OWy7L8zKPtPBOgLJEqnIyRu_bw2gIy1UwRxvSi1JCC2NdUDg"
         }
@@ -955,7 +957,7 @@
           "expires_at": "2026-08-02T14:30:01+02:00"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "F3uzg73Q7cVB5jzEjQb-X6r2b63-W0dQxnjcmfRGqFg3OlZ-Vul2vmNQr1OBwaBSxLA1pITe-nEjP2oTqpMkAA"
         }
@@ -977,7 +979,7 @@
           "expires_at": "2026-08-02T12:30:01Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "kJ1jDTaz7Qj3XTxQmRqcaHhndLdW1J97EnB3xLR2BBxv_FEdBj3ArGbpiwv3LTzxkDfarGC22qteUQy_IgYhCQ"
         }
@@ -999,7 +1001,7 @@
           "expires_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "qusI8HS64PfCmlo8Xd69ge1-Wd7V1YPsgFw-Lic6gkmpQYXSi7D6KbTXrr84trlJfWC2epbfrSYSh2P8l1_fAQ"
         }
@@ -1021,7 +1023,7 @@
           "expires_at": "2026-08-01T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "6I7nc6hMSFynCj453m7ksJnFgFAdWJEXV_zkjT86BTtMhGXVF0K_F1w3VJtV2Wu1W72QpW5CUdoJA3UECmyvAw"
         }
@@ -1043,7 +1045,7 @@
           "expires_at": "2026-12-31T23:59:60Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "Pkxrlog0wX_5nFkiTlm0Ph8Ca_M8Lx6aOT2nJmbJs8uvHLHaBBoUsgcua1rxe4IMwjO69jPWIUjLBKPPDgxjBQ"
         }
@@ -1065,7 +1067,7 @@
           "expires_at": "2026-09-02T12:30:00"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "3ehWI_5uUXK3cjzG8DxnnKcsnVfKP8UL1GkNFQsDY5ADPErZiakLTakVq5Ln-rkAicbAd7TmUbKq0hrnAOsRAg"
         }
@@ -1087,7 +1089,7 @@
           "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "W-4ZPpcHx1HAEmVu3B9wUnU0PgbzxZ3hLGVxTMgv4cG9dtF8pfyBYxeLDxVqmcJu-q2-oL8VvNlMqGFhfFDqDw"
         }
@@ -1110,7 +1112,7 @@
           "expires_at": "2026-09-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "AITs3Ivad0PUn7khAu2P6CQAakyVaEptuLcY_k2LQIzDD-PpMqYGZHxDbdzbnwFvi5nV0ZX2_kni5PPzGB4rCw"
         }
@@ -1132,7 +1134,7 @@
           "delta": "sha256:f76e6cb85789694942858270d64e655ba1b062374c622d3bd61af0f1a8f0e981"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "HPkYBiyg-nwui3NDOaBJR_gFLdjFr284K1GFOpDWsUEOAg9XJ2H9Q0q90jpH3xqH4pZCSCKD_4wQlMh9r5e-Dg"
         }
@@ -1154,7 +1156,7 @@
           "delta": "sha256:xyz"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "dhn01kSL4t4zFTnqIFhjcJy0A6aHeBVqa1312ym70eapIK5aG2_zHBUdaiZHASGwxngt2Sx9UVe9YCrPR_GpBA"
         }
@@ -1176,7 +1178,7 @@
           "delta": "sha256:F76E6CB85789694942858270D64E655BA1B062374C622D3BD61AF0F1A8F0E981"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "-L7qNDjxcpon21aZE-hPUMLgQQC6n-xpOsXZjBGEnBmaaDNlL7v5RMhFTT5pi94adk3OzN-En_OqHPo_-ngTBw"
         }
@@ -1197,7 +1199,7 @@
           "asserted_at": "2026-08-02T12:31:00Z"
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
         }
@@ -1218,7 +1220,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-r1",
+          "key_id": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
           "alg": "Ed25519",
           "value": "tzy6HcCWS_8qpslu82PmZ03LdK0wEdP7CKP06WPQHCrTKQrA6G3aZ2maFoKwzbLG_YG0p4Ey0CR908SJJWAvAA"
         }
@@ -1229,7 +1231,7 @@
       "label_id": null
     },
     {
-      "name": "signed under an unknown key_id",
+      "name": "signed under an unknown identifier",
       "envelope": {
         "label": {
           "wist_version": "1.0.0",
@@ -1239,7 +1241,7 @@
           "asserted_at": "2026-08-02T12:30:00Z"
         },
         "sig": {
-          "key_id": "test-k9",
+          "key_id": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8",
           "alg": "Ed25519",
           "value": "ReU9X3byos_LZ7nE8RE8GBL27ZGVsMGy74m8d_K3pUNj7PA1bqaN5Kr6kJ6OGtfanGEnqXwUrYivqXwz87RPAA"
         }

@@ -6,6 +6,7 @@ Re-running always produces byte-identical output.
 """
 import base64, calendar, datetime, hashlib, hmac, itertools, json, pathlib, re, time
 from decimal import Decimal, localcontext
+from fractions import Fraction
 
 import rfc8785
 from cryptography.exceptions import InvalidSignature
@@ -40,6 +41,30 @@ def sign_envelope(inner_name: str, inner: dict, key_id: str) -> dict:
     sig = priv.sign(canonical)
     return {inner_name: inner,
             "sig": {"key_id": key_id, "alg": "Ed25519", "value": b64u(sig)}}
+
+def kid_of_x(x: str) -> str:
+    """WIST-1 §5.1: the RFC 7638 thumbprint of an Ed25519 OKP JWK, computed over
+    the entry's `x` string as written."""
+    return b64u(hashlib.sha256(rfc8785.dumps({"crv": "Ed25519", "kty": "OKP", "x": x})).digest())
+
+def kid_of(raw: bytes) -> str:
+    return kid_of_x(b64u(raw))
+
+def nbf_at(instant: str) -> int:
+    """A whole-second UTC instant as the NumericDate integer WIST-1 §5.1 uses."""
+    return calendar.timegm(time.strptime(instant, "%Y-%m-%dT%H:%M:%SZ"))
+
+def jwk_x(x: str, nbf, exp=None) -> dict:
+    entry = {"kty": "OKP", "crv": "Ed25519", "x": x, "kid": kid_of_x(x),
+             "nbf": nbf_at(nbf) if isinstance(nbf, str) else nbf}
+    if exp is not None:
+        entry["exp"] = nbf_at(exp) if isinstance(exp, str) else exp
+    return entry
+
+def jwk(raw: bytes, nbf, exp=None) -> dict:
+    return jwk_x(b64u(raw), nbf, exp)
+
+KID1 = kid_of(pub_raw)
 
 def write_json(path: pathlib.Path, obj: dict) -> None:
     path.write_text(json.dumps(obj, indent=2) + "\n")
@@ -111,10 +136,10 @@ delta = {
 
 delta_canonical = rfc8785.dumps(delta)
 delta_id = "sha256:" + sha256_hex(delta_canonical)
-delta_envelope = sign_envelope("delta", delta, "test-k1")
+delta_envelope = sign_envelope("delta", delta, KID1)
 
 write_json(WIST1 / "keypair.json",
-           {"seed_hex": SEED.hex(), "public_key": b64u(pub_raw),
+           {"seed_hex": SEED.hex(), "public_key": b64u(pub_raw), "kid": KID1,
             "warning": "test vector key — NEVER use in production"})
 (WIST1 / "delta.canonical").write_bytes(delta_canonical)
 write_json(WIST1 / "envelope.json", delta_envelope)
@@ -132,15 +157,20 @@ print("wist1 payload path: /payloads/%s.json" % delta_id.split(":")[1])
 SEED2 = bytes(range(32, 64))    # TEST ONLY — never use in production
 SEED3 = bytes(range(64, 96))    # TEST ONLY — never use in production
 SEED4 = bytes(range(96, 128))   # TEST ONLY — never use in production
+SEED5 = bytes(range(128, 160))  # TEST ONLY — never use in production
 priv2 = Ed25519PrivateKey.from_private_bytes(SEED2)
 priv3 = Ed25519PrivateKey.from_private_bytes(SEED3)
 priv4 = Ed25519PrivateKey.from_private_bytes(SEED4)
+priv5 = Ed25519PrivateKey.from_private_bytes(SEED5)
 
 def raw_public(key) -> bytes:
     return key.public_key().public_bytes(
         serialization.Encoding.Raw, serialization.PublicFormat.Raw)
 
 pub2_raw, pub3_raw, pub4_raw = raw_public(priv2), raw_public(priv3), raw_public(priv4)
+KID2, KID3, KID4 = kid_of(pub2_raw), kid_of(pub3_raw), kid_of(pub4_raw)
+# The fifth keypair is listed by no Declaration: its thumbprint names an unknown signer.
+KID5 = kid_of(raw_public(priv5))
 
 def sign_envelope_with(key, inner_name: str, inner: dict, key_id: str) -> dict:
     return {inner_name: inner,
@@ -153,20 +183,14 @@ publisher = {
     "seq": 0,
     "domain": "example.com",
     "subdomain_scope": ["www.example.com", "blog.example.com"],
-    "keys": [
-        {"key_id": "test-k1", "alg": "Ed25519", "public_key": b64u(pub_raw),
-         "valid_from": "2026-08-02T12:00:00Z"}
-    ],
-    # A distinct keypair, as WIST-1 §5.2 requires: the two sets share neither
-    # a key_id nor a public_key, because a recovery key that is also a signing
-    # key is not held offline and is stolen with the key it duplicates.
-    "recovery_keys": [
-        {"key_id": "test-r1", "alg": "Ed25519", "public_key": b64u(pub2_raw),
-         "valid_from": "2026-08-02T12:00:00Z"}
-    ],
+    "keys": [jwk(pub_raw, "2026-08-02T12:00:00Z")],
+    # A distinct keypair, as WIST-1 §5.2 requires: the two sets share no
+    # public key, because a recovery key that is also a signing key is not
+    # held offline and is stolen with the key it duplicates.
+    "recovery_keys": [jwk(pub2_raw, "2026-08-02T12:00:00Z")],
     "contact": "mailto:webmaster@example.com",
 }
-write_json(EXAMPLES / "publisher.json", sign_envelope("publisher", publisher, "test-k1"))
+write_json(EXAMPLES / "publisher.json", sign_envelope("publisher", publisher, KID1))
 print("wist1 publisher example written")
 
 # ------------------------------------------- WIST-1 §5.2: Declaration sequencing
@@ -183,10 +207,8 @@ def decl_hash(inner: dict) -> str:
     """WIST-1 §5.2: prev_declaration = sha256 over JCS of the inner object."""
     return "sha256:" + sha256_hex(rfc8785.dumps(inner))
 
-K2 = {"key_id": "test-k2", "alg": "Ed25519", "public_key": b64u(pub3_raw),
-      "valid_from": "2026-08-03T12:00:00Z"}
-R2 = {"key_id": "test-r2", "alg": "Ed25519", "public_key": b64u(pub4_raw),
-      "valid_from": "2026-08-03T12:00:00Z"}
+K2 = jwk(pub3_raw, "2026-08-03T12:00:00Z")
+R2 = jwk(pub4_raw, "2026-08-03T12:00:00Z")
 
 stored_decl = publisher
 stored_hash = decl_hash(stored_decl)
@@ -209,68 +231,66 @@ fresh_identity_dropping_recovery = variant(seq=1, prev_declaration=stored_hash, 
 del fresh_identity_dropping_recovery["recovery_keys"]
 overlapping_sets = variant(
     seq=1, prev_declaration=stored_hash,
-    recovery_keys=[{"key_id": "test-r1", "alg": "Ed25519",
-                    "public_key": b64u(pub_raw),
-                    "valid_from": "2026-08-02T12:00:00Z"}])
+    recovery_keys=[jwk(pub_raw, "2026-08-02T12:00:00Z")])
 
 declaration_cases = [
     {"name": "identical re-serve",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", stored_decl, "test-k1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope("publisher", stored_decl, KID1),
      "expected": "idempotent",
      "why": "§5.2: the fetched publisher object is byte-identical to the "
             "accepted one, so the re-poll §5.1's 24-hour cache TTL obliges is "
             "an idempotent acceptance, not WIST1-E08."},
     {"name": "same seq, different bytes",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", mutated_same_seq, "test-k1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope("publisher", mutated_same_seq, KID1),
      "expected": "WIST1-E08",
      "why": "§5.2: seq is not greater than the highest accepted and the object "
             "differs — the superseded-replay case the rule catches."},
     {"name": "stale lower seq",
-     "stored": sign_envelope("publisher", rotated, "test-k1"),
-     "fetched": sign_envelope("publisher", stored_decl, "test-k1"),
+     "stored": sign_envelope("publisher", rotated, KID1),
+     "fetched": sign_envelope("publisher", stored_decl, KID1),
      "expected": "WIST1-E08",
      "why": "§5.2: seq 0 below the accepted seq 1."},
     {"name": "missing prev_declaration",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", missing_prev, "test-k1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope("publisher", missing_prev, KID1),
      "expected": "WIST1-E08",
      "why": "§5.2: seq > 0 with prev_declaration absent."},
     {"name": "mismatched prev_declaration",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", wrong_prev, "test-k1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope("publisher", wrong_prev, KID1),
      "expected": "WIST1-E08",
      "why": "§5.2: prev_declaration does not equal the hash of the previously "
             "accepted Declaration's publisher object."},
     {"name": "ordinary rotation",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", rotated, "test-k1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope("publisher", rotated, KID1),
      "expected": "ordinary_rotation",
      "why": "§5.2: higher seq, correct prev_declaration, signed by a key of "
             "the previous Key Set; recovery_keys carried byte-identical."},
     {"name": "recovery rotation",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope_with(priv2, "publisher", recovery_rotated, "test-r1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope_with(priv2, "publisher", recovery_rotated, KID2),
      "expected": "recovery_rotation",
      "why": "§5.2: signed by a key in the previous Declaration's "
             "recovery_keys, which is what lets it replace them."},
     {"name": "recovery keys altered by a signing key",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", recovery_dropped_by_signing_key, "test-k1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope("publisher", recovery_dropped_by_signing_key, KID1),
      "expected": "WIST1-E08",
      "why": "§5.2: recovery keys protect themselves — a Declaration altering "
             "them MUST be signed by one of the recovery keys it replaces."},
     {"name": "fresh identity",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity, "test-k2"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity, KID3),
      "expected": "fresh_identity",
      "why": "§5.2: signed by neither the previous signing keys nor the "
             "previous recovery_keys, which it carries byte-identical — "
             "accepted as a fresh identity whose history starts here (WIST-3 §7)."},
     {"name": "fresh identity inside an open recovery window",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity, "test-k2"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity, KID3),
      "recovery_window_open": True,
      "expected": "fresh_identity",
      "why": "§5.2: an open window changes nothing about acceptance — the "
@@ -278,18 +298,18 @@ declaration_cases = [
             "because rejecting it at ingest would leave a thief's attempt "
             "invisible to a party replaying the Log."},
     {"name": "fresh identity dropping the recovery keys",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity_dropping_recovery, "test-k2"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope_with(priv3, "publisher", fresh_identity_dropping_recovery, KID3),
      "expected": "WIST1-E08",
      "why": "§5.2: recovery keys protect themselves against every Declaration "
             "not signed by one of them — a fresh identity included, or a "
             "party holding only the web server could shed them and sever "
             "the owner's path back."},
     {"name": "key named in both key sets",
-     "stored": sign_envelope("publisher", stored_decl, "test-k1"),
-     "fetched": sign_envelope("publisher", overlapping_sets, "test-k1"),
+     "stored": sign_envelope("publisher", stored_decl, KID1),
+     "fetched": sign_envelope("publisher", overlapping_sets, KID1),
      "expected": "WIST1-E08",
-     "why": "§5.2: the same public_key in keys and recovery_keys. A recovery "
+     "why": "§5.2: the same public key in keys and recovery_keys. A recovery "
             "key that is also a signing key is stolen with it, and a signer "
             "in both sets leaves the recovery-window classification without "
             "an answer every replaying party derives identically."},
@@ -311,60 +331,57 @@ print("wist1 declaration-sequence vector written")
 
 def binding_case(name, incoming, signer, key_id, expected, stored=stored_decl):
     return {"name": name,
-            "stored": sign_envelope("publisher", stored, "test-k1") if stored else None,
+            "stored": sign_envelope("publisher", stored, KID1) if stored else None,
             "fetched": sign_envelope_with(signer, "publisher", incoming, key_id),
             "expected": expected}
 
 binding_cases = []
-for array, original, other in (("keys", stored_decl["keys"][0], K2),
-                                ("recovery_keys", stored_decl["recovery_keys"][0], R2)):
-    for duplicate in (dict(original), dict(other, key_id=original["key_id"])):
+for array, original in (("keys", stored_decl["keys"][0]),
+                        ("recovery_keys", stored_decl["recovery_keys"][0])):
+    for duplicate in (dict(original), dict(original, nbf=original["nbf"] + 3600)):
         for reverse in (False, True):
             entries = [original, duplicate]
             if reverse:
                 entries.reverse()
             incoming = variant(seq=1, prev_declaration=stored_hash, **{array: entries})
             binding_cases.append(binding_case(
-                f"duplicate {array} identifier {'reversed' if reverse else 'forward'} "
-                f"{'identical' if duplicate == original else 'different key'}",
-                incoming, priv, "test-k1", "WIST1-E08"))
+                f"duplicate {array} key {'reversed' if reverse else 'forward'} "
+                f"{'identical' if duplicate == original else 'different window'}",
+                incoming, priv, KID1, "WIST1-E08"))
             initial = variant(**{array: entries})
             binding_cases.append(binding_case(
                 f"initial duplicate {array} {'reversed' if reverse else 'forward'} "
-                f"{'identical' if duplicate == original else 'different key'}",
-                initial, priv, "test-k1", "WIST1-E08", stored=None))
+                f"{'identical' if duplicate == original else 'different window'}",
+                initial, priv, KID1, "WIST1-E08", stored=None))
 
-reused = variant(seq=1, prev_declaration=stored_hash,
-                 keys=[dict(K2, key_id="test-k1")])
-alias = dict(stored_decl["keys"][0], key_id="alias")
-renamed = variant(seq=1, prev_declaration=stored_hash, keys=[alias])
-recovery_alias = dict(stored_decl["recovery_keys"][0], key_id="recovery-alias")
-renamed_recovery = variant(seq=1, prev_declaration=stored_hash,
-                           keys=[recovery_alias], recovery_keys=[R2])
+mismatched = variant(seq=1, prev_declaration=stored_hash, keys=[dict(K2, kid=KID1)])
 binding_cases.extend([
-    binding_case("reused identifier new signer", reused, priv3, "test-k1", "fresh_identity"),
-    binding_case("reused identifier old signer", reused, priv, "test-k1", "ordinary_rotation"),
-    binding_case("renamed signing key preserves identity", renamed, priv, "alias", "ordinary_rotation"),
-    binding_case("signing aliases remain valid", variant(seq=1, prev_declaration=stored_hash,
-                 keys=[stored_decl["keys"][0], alias]), priv, "alias", "ordinary_rotation"),
-    binding_case("renamed recovery key retains authority", renamed_recovery,
-                 priv2, "recovery-alias", "recovery_rotation"),
-    binding_case("renamed signing key cannot alter recovery", dict(renamed, recovery_keys=[R2]),
-                 priv, "alias", "WIST1-E08"),
-    binding_case("reused identifier cannot alter recovery", dict(reused, recovery_keys=[R2]),
-                 priv3, "test-k1", "WIST1-E08"),
-    binding_case("unrelated signature under known identifier", reused, priv4, "test-k1", "WIST1-E01"),
-    binding_case("unknown signer identifier", reused, priv3, "unknown", "WIST1-E02"),
+    binding_case("ordinary rotation to a new key", rotated, priv, KID1, "ordinary_rotation"),
+    binding_case("recovery rotation", recovery_rotated, priv2, KID2, "recovery_rotation"),
+    binding_case("fresh identity under the incoming key", rotated, priv3, KID3, "fresh_identity"),
+    binding_case("fresh identity cannot alter recovery", dict(rotated, recovery_keys=[R2]),
+                 priv3, KID3, "WIST1-E08"),
+    binding_case("kid not the thumbprint of x", mismatched, priv3, KID1, "WIST1-E14"),
+    binding_case("kid mismatch precedes recovery protection", dict(mismatched, recovery_keys=[R2]),
+                 priv3, KID1, "WIST1-E14"),
+    binding_case("initial kid not the thumbprint of x", variant(keys=[dict(stored_decl["keys"][0], kid=KID3)]),
+                 priv, KID3, "WIST1-E14", stored=None),
+    binding_case("expiry not after start", variant(seq=1, prev_declaration=stored_hash,
+                 keys=[dict(K2, exp=K2["nbf"])]), priv, KID1, "WIST1-E14"),
+    binding_case("unrelated signature under known identifier", rotated, priv4, KID3, "WIST1-E01"),
+    binding_case("unknown signer identifier", rotated, priv3, KID5, "WIST1-E02"),
     binding_case("incoming recovery key cannot self authorize", recovery_rotated,
-                 priv4, "test-r2", "WIST1-E02"),
-    binding_case("initial self signature", stored_decl, priv, "test-k1", "initial", stored=None),
+                 priv4, KID4, "WIST1-E02"),
+    binding_case("initial self signature", stored_decl, priv, KID1, "initial", stored=None),
     binding_case("initial signature names second signing key",
-                 variant(keys=[K2, stored_decl["keys"][0]]), priv, "test-k1", "initial", stored=None),
+                 variant(keys=[K2, stored_decl["keys"][0]]), priv, KID1, "initial", stored=None),
 ])
 write_json(WIST1 / "declaration-binding.json", {
-    "note": "WIST-1 section 5.2: authenticate sig.key_id against previous signing/recovery "
-            "and incoming signing entries; classify verified public bytes by previous set membership. "
-            "A null stored value tests the initial self-signed Declaration. Duplicate key_id is WIST1-E08.",
+    "note": "WIST-1 sections 5.1 and 5.2: check each entry's kid against its thumbprint and its "
+            "window, authenticate sig.key_id against previous signing/recovery and incoming signing "
+            "entries, and classify the verified public key by previous set membership. "
+            "A null stored value tests the initial self-signed Declaration. A public key listed twice "
+            "is WIST1-E08; a kid that is not its entry's thumbprint is WIST1-E14.",
     "cases": binding_cases,
 })
 
@@ -377,21 +394,21 @@ def recovery_order_leaf(envelope):
 
 
 def recovery_order_case(name, reverse_leaves, split_blocks=False, ordinary_first=False):
-    initial = sign_envelope("publisher", publisher, "test-k1")
+    initial = sign_envelope("publisher", publisher, KID1)
     prefix = [initial]
     if ordinary_first:
         ordinary = variant(seq=1, prev_declaration=decl_hash(publisher),
                            contact="mailto:rotation@example.com")
-        prefix.append(sign_envelope("publisher", ordinary, "test-k1"))
+        prefix.append(sign_envelope("publisher", ordinary, KID1))
     first_inner = variant(seq=len(prefix),
                           prev_declaration=decl_hash(prefix[-1]["publisher"]),
                           keys=[K2], recovery_keys=[R2])
-    first = sign_envelope_with(priv2, "publisher", first_inner, "test-r1")
+    first = sign_envelope_with(priv2, "publisher", first_inner, KID2)
     for nonce in range(1000):
         second_inner = dict(first_inner, seq=first_inner["seq"] + 1,
                             prev_declaration=decl_hash(first_inner),
                             contact=f"mailto:recovery{nonce}@example.com")
-        second = sign_envelope_with(priv4, "publisher", second_inner, "test-r2")
+        second = sign_envelope_with(priv4, "publisher", second_inner, KID4)
         if (recovery_order_leaf(second) < recovery_order_leaf(first)) == reverse_leaves:
             break
     else:
@@ -431,6 +448,7 @@ write_json(WIST1 / "recovery-order.json", {
             "recovery is signed by the recovery key installed by the first.",
     "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
     "recovery_window_days": 7,
+    "declaration_activation_blocks": 0,
     "cases": [
         recovery_order_case("same Block reversed recovery leaves", True),
         recovery_order_case("same Block ascending recovery leaves", False),
@@ -442,28 +460,27 @@ write_json(WIST1 / "recovery-order.json", {
 def recovery_settlement_vectors():
     extra = {name: Ed25519PrivateKey.from_private_bytes(hashlib.sha256(
         ("wist settlement " + name).encode()).digest()) for name in ("third", "fourth", "alien")}
-    key_entries = {name: {"key_id": "test-" + name, "alg": "Ed25519",
-                          "public_key": b64u(raw_public(key)),
-                          "valid_from": "2026-08-03T12:00:00Z"}
+    key_entries = {name: jwk(raw_public(key), "2026-08-03T12:00:00Z")
                    for name, key in extra.items()}
-    initial = sign_envelope("publisher", publisher, "test-k1")
+    kids = {name: entry["kid"] for name, entry in key_entries.items()}
+    initial = sign_envelope("publisher", publisher, KID1)
 
     def signed(previous, seq, signer, key_id, **changes):
         inner = dict(previous["publisher"], seq=seq,
                      prev_declaration=decl_hash(previous["publisher"]), **changes)
         return sign_envelope_with(signer, "publisher", inner, key_id)
 
-    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
-    fresh = signed(owner, 2, priv, "test-k1", keys=publisher["keys"])
-    descendant = signed(fresh, 3, priv, "test-k1", keys=[key_entries["third"]])
-    alien = signed(owner, 2, extra["alien"], "test-alien", keys=[key_entries["alien"]])
-    ordinary = signed(owner, 2, priv3, "test-k2", keys=[key_entries["third"]])
-    second = signed(owner, 2, priv4, "test-r2", keys=[key_entries["fourth"]],
+    owner = signed(initial, 1, priv2, KID2, keys=[K2], recovery_keys=[R2])
+    fresh = signed(owner, 2, priv, KID1, keys=publisher["keys"])
+    descendant = signed(fresh, 3, priv, KID1, keys=[key_entries["third"]])
+    alien = signed(owner, 2, extra["alien"], kids["alien"], keys=[key_entries["alien"]])
+    ordinary = signed(owner, 2, priv3, KID3, keys=[key_entries["third"]])
+    second = signed(owner, 2, priv4, KID4, keys=[key_entries["fourth"]],
                     recovery_keys=publisher["recovery_keys"])
-    after_second = signed(second, 3, priv, "test-k1", keys=publisher["keys"])
-    shared = signed(owner, 2, priv, "test-k1", keys=publisher["keys"] + [K2])
-    wrong_branch = signed(shared, 3, priv3, "test-k2", keys=[key_entries["third"]])
-    right_branch = signed(owner, 3, priv3, "test-k2", keys=[key_entries["third"]])
+    after_second = signed(second, 3, priv, KID1, keys=publisher["keys"])
+    shared = signed(owner, 2, priv, KID1, keys=publisher["keys"] + [K2])
+    wrong_branch = signed(shared, 3, priv3, KID3, keys=[key_entries["third"]])
+    right_branch = signed(owner, 3, priv3, KID3, keys=[key_entries["third"]])
     scenarios = [
         ("no competitor", [], owner, []),
         ("fresh competitor and ordinary descendant", [fresh, descendant], owner, [fresh, descendant]),
@@ -480,8 +497,8 @@ def recovery_settlement_vectors():
         inner = env["publisher"]
         return {"label": decl_hash(inner), "predecessor": inner.get("prev_declaration"),
                 "signer": env["sig"]["key_id"],
-                "keys": [key["key_id"] for key in inner["keys"]],
-                "recovery_keys": [key["key_id"] for key in inner.get("recovery_keys", [])],
+                "keys": [key["kid"] for key in inner["keys"]],
+                "recovery_keys": [key["kid"] for key in inner.get("recovery_keys", [])],
                 "envelope": env}
     cases = []
     for name, window, effective, superseded in scenarios:
@@ -499,31 +516,30 @@ def recovery_settlement_vectors():
             previous = decl_hash(header)
         served = []
         for index, (signer, key_id) in enumerate([
-                (priv, "test-k1"), (priv3, "test-k2"),
-                (extra["third"], "test-third"), (extra["fourth"], "test-fourth"),
-                (extra["alien"], "test-alien"), (priv3, "test-k2")]):
+                (priv, KID1), (priv3, KID3),
+                (extra["third"], kids["third"]), (extra["fourth"], kids["fourth"]),
+                (extra["alien"], kids["alien"]), (priv3, KID3)]):
             inner = dict(delta, url=f"https://example.com/settlement/{index}",
                          observed_at=timestamp(10))
             env = sign_envelope_with(signer, "delta", inner, key_id)
             served.append({"delta_id": decl_hash(inner), "signer": key_id, "envelope": env})
-        queued = [d for d in served if d["signer"] in {"test-k1", "test-k2"}]
-        effective_ids = [key["key_id"] for key in effective["publisher"]["keys"]]
+        queued = [d for d in served if d["signer"] in {KID1, KID3}]
+        effective_ids = [key["kid"] for key in effective["publisher"]["keys"]]
         probes = []
         for height, env in enumerate(events[2:], 2):
             predecessor = next(e for e in events[:height]
                                if decl_hash(e["publisher"]) == env["publisher"]["prev_declaration"])
             altered = publisher["recovery_keys"] if predecessor["publisher"]["recovery_keys"] == [R2] else [R2]
             signer_id = env["sig"]["key_id"]
-            if signer_id in [key["key_id"] for key in predecessor["publisher"]["recovery_keys"]]:
+            if signer_id in [key["kid"] for key in predecessor["publisher"]["recovery_keys"]]:
                 continue
-            signer = {"test-k1": priv, "test-k2": priv3,
-                      "test-alien": extra["alien"]}[signer_id]
+            signer = {KID1: priv, KID3: priv3, kids["alien"]: extra["alien"]}[signer_id]
             twin = signed(predecessor, env["publisher"]["seq"], signer, signer_id,
                           keys=env["publisher"]["keys"], recovery_keys=altered)
             probes.append({"name": "unauthorized recovery set replacement",
                            "prefix_height": height - 1, "candidate": twin,
                            "expected_result": "WIST1-E08"})
-        stale = signed(initial, len(events), priv, "test-k1")
+        stale = signed(initial, len(events), priv, KID1)
         probes.append({"name": "pre recovery predecessor cannot return",
                        "prefix_height": len(events) - 1, "candidate": stale,
                        "expected_result": "WIST1-E08"})
@@ -535,7 +551,7 @@ def recovery_settlement_vectors():
                        "prefix_height": 0, "candidate": bad, "expected_result": "WIST1-E01"})
         cases.append({"name": name, "blocks": blocks, "pinned_head": previous,
                       "initial_declaration": projection(initial),
-                      "pre_recovery_keys": ["test-k1"], "recovery_declaration": projection(owner),
+                      "pre_recovery_keys": [KID1], "recovery_declaration": projection(owner),
                       "window_declarations": [projection(env) for env in window], "served": served,
                       "probes": probes,
                       "expected": {"queued": [d["delta_id"] for d in queued],
@@ -547,10 +563,8 @@ def recovery_settlement_vectors():
                                    "rejected": [d["delta_id"] for d in queued if d["signer"] not in effective_ids]}})
     binding_cases = []
     sample = dict(delta, observed_at=timestamp(10), url="https://example.com/settlement/bindings")
-    old_delta = sign_envelope_with(priv, "delta", sample, "test-k1")
-    new_delta = sign_envelope_with(priv3, "delta", sample, "test-k2")
-    rebound = dict(K2, key_id="test-k1")
-    rebound_delta = sign_envelope_with(priv3, "delta", sample, "test-k1")
+    old_delta = sign_envelope_with(priv, "delta", sample, KID1)
+    new_delta = sign_envelope_with(priv3, "delta", sample, KID3)
     bad_delta = json.loads(json.dumps(new_delta))
     bad_delta["sig"]["value"] = old_delta["sig"]["value"]
     def binding(name, before, opening, final, env, queued, eligible):
@@ -558,32 +572,35 @@ def recovery_settlement_vectors():
                               "recovery_keys": opening, "settlement_keys": final,
                               "envelope": env, "delta_id": decl_hash(env["delta"]),
                               "expected_queued": queued, "expected_eligible": eligible})
-    binding("reused identifier checks the second admission set", publisher["keys"], [rebound],
-            [rebound], rebound_delta, True, True)
-    binding("old binding queues but fails settlement", publisher["keys"], [rebound],
-            [rebound], old_delta, True, False)
-    binding("renamed same public key does not retain Delta identifier", publisher["keys"], [K2],
-            [dict(K2, key_id="renamed")], new_delta, True, False)
-    binding("settlement valid_from excludes previously queued Delta", publisher["keys"], [K2],
-            [dict(K2, valid_from=timestamp(11))], new_delta, True, False)
-    binding("valid_from equality is eligible", publisher["keys"], [dict(K2, valid_from=timestamp(10))],
-            [dict(K2, valid_from=timestamp(10))], new_delta, True, True)
-    binding("future valid_from prevents queue admission", publisher["keys"], [dict(K2, valid_from=timestamp(11))],
+    binding("old binding queues but fails settlement", publisher["keys"], [K2],
+            [K2], old_delta, True, False)
+    binding("settlement start excludes previously queued Delta", publisher["keys"], [K2],
+            [dict(K2, nbf=nbf_at(timestamp(11)))], new_delta, True, False)
+    binding("settlement expiry excludes previously queued Delta", publisher["keys"], [K2],
+            [dict(K2, exp=nbf_at(timestamp(10)))], new_delta, True, False)
+    binding("start equality is eligible", publisher["keys"], [dict(K2, nbf=nbf_at(timestamp(10)))],
+            [dict(K2, nbf=nbf_at(timestamp(10)))], new_delta, True, True)
+    binding("expiry after the observation is eligible", publisher["keys"],
+            [dict(K2, exp=nbf_at(timestamp(11)))], [dict(K2, exp=nbf_at(timestamp(11)))],
+            new_delta, True, True)
+    binding("future start prevents queue admission", publisher["keys"], [dict(K2, nbf=nbf_at(timestamp(11)))],
             [K2], new_delta, False, False)
+    binding("expired admission entry prevents queue admission", publisher["keys"],
+            [dict(K2, exp=nbf_at(timestamp(10)))], [K2], new_delta, False, False)
     binding("known identifier with invalid signature is not queued", publisher["keys"], [K2],
             [K2], bad_delta, False, False)
     binding("unknown identifier is not queued", publisher["keys"], [K2], [K2],
-            sign_envelope_with(priv3, "delta", sample, "unknown"), False, False)
+            sign_envelope_with(priv3, "delta", sample, KID5), False, False)
     binding("later re serve of rejected Delta ID under a restored key", publisher["keys"], [K2],
             publisher["keys"], old_delta, True, True)
-    binding_cases[-1]["re_serve_of"] = 1
+    binding_cases[-1]["re_serve_of"] = 0
     write_json(WIST1 / "recovery-settlement.json", {
         "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Blocks, "
                 "opening recovery at height 1 and settling at height 169. Declaration projections "
-                "must match their signed Envelopes and Block Entries. All key identifiers in each history "
-                "have fixed public-key and valid_from bindings; separate binding_cases vary them. "
+                "must match their signed Envelopes and Block Entries. Every key in each history "
+                "has a fixed window; separate binding_cases vary the windows. "
                 "Every timestamp probe uses whole-second literal-Z values; this family does not "
-                "establish the broader RFC 3339 profile of observed_at or valid_from. Signed served Deltas are "
+                "establish the broader RFC 3339 profile of observed_at. Signed served Deltas are "
                 "distinct new URLs received in array order at hour 10; their shape and signature "
                 "eligibility are exercised, not Payload availability, quotas or actual Block packing. "
                 "expected.eligible denotes signature-eligible survivors in acceptance order, not proof "
@@ -591,7 +608,8 @@ def recovery_settlement_vectors():
                 "Declaration as an unsealed candidate and must reject without changing its prefix. "
                 "Snapshot recovery is not established by these histories.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "cases": cases, "binding_cases": binding_cases})
+        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "cases": cases, "binding_cases": binding_cases})
 
 
 recovery_settlement_vectors()
@@ -599,36 +617,46 @@ recovery_settlement_vectors()
 def recovery_binding_vectors():
     signers = {name: Ed25519PrivateKey.from_private_bytes(hashlib.sha256(
         ("wist recovery binding " + name).encode()).digest()) for name in ("a", "b", "c")}
+    start = nbf_at("2026-08-04T10:00:00Z")
     instant = "2026-08-04T10:00:00.0000000001Z"
-    future = "2026-08-04T10:00:00.0000000002Z"
     equivalent = "2026-08-04t11:00:00.000000000100+01:00"
     excluded = b64u((1).to_bytes(32, "little"))
+    kids = {name: kid_of(raw_public(key)) for name, key in signers.items()}
 
-    def key(name, valid_from=instant, key_id="shared", public=None):
-        return {"key_id": key_id, "alg": "Ed25519",
-                "public_key": public or b64u(raw_public(signers[name])), "valid_from": valid_from}
+    def key(name, nbf=start, public=None, exp=None):
+        return jwk_x(public or b64u(raw_public(signers[name])), nbf, exp)
 
+    def eligible(entry, at=start):
+        return entry["x"] != excluded and entry["nbf"] <= at and entry.get("exp", at + 1) > at
+
+    # Each scenario lists the pre-recovery entry of signer a and the owner's
+    # entry, which may belong to a or b. A probe's outcome follows WIST-1 §5.1
+    # over both frozen sources: no eligible named binding is WIST1-E02, an
+    # eligible binding with a failing signature is WIST1-E01.
     scenarios = [
-        ("both eligible", key("a"), key("b"), ("accepted", "accepted", "WIST1-E01")),
-        ("old future", key("a", future), key("b"), ("WIST1-E01", "accepted", "WIST1-E01")),
-        ("owner future", key("a"), key("b", future), ("accepted", "WIST1-E01", "WIST1-E01")),
-        ("both future", key("a", future), key("b", future), ("WIST1-E02",) * 3),
-        ("same public old future", key("a", future), key("a", equivalent),
-         ("accepted", "WIST1-E01", "WIST1-E01")),
-        ("same public owner future", key("a", equivalent), key("a", future),
-         ("accepted", "WIST1-E01", "WIST1-E01")),
-        ("old excluded", key("a", public=excluded), key("b"),
-         ("WIST1-E01", "accepted", "WIST1-E01")),
-        ("owner excluded", key("a"), key("b", public=excluded),
-         ("accepted", "WIST1-E01", "WIST1-E01")),
-        ("both excluded", key("a", public=excluded), key("b", public=excluded), ("WIST1-E02",) * 3),
-        ("excluded and future", key("a", public=excluded), key("b", future), ("WIST1-E02",) * 3),
-        ("future and excluded", key("a", future), key("b", public=excluded), ("WIST1-E02",) * 3),
-        ("eligible differently named alias", key("a", future), key("a", key_id="renamed"),
-         ("WIST1-E02",) * 3),
+        ("both eligible", key("a"), key("b")),
+        ("old future", key("a", start + 1), key("b")),
+        ("owner future", key("a"), key("b", start + 1)),
+        ("both future", key("a", start + 1), key("b", start + 1)),
+        ("old expired", key("a", start - 3600, exp=start), key("b")),
+        ("owner expired", key("a"), key("b", start - 3600, exp=start)),
+        ("same public old future", key("a", start + 1), key("a")),
+        ("same public owner future", key("a"), key("a", start + 1)),
+        ("same public owner expired", key("a"), key("a", start - 3600, exp=start)),
+        ("old excluded", key("a", public=excluded), key("b")),
+        ("owner excluded", key("a"), key("b", public=excluded)),
+        ("both excluded", key("a", public=excluded), key("b", public=excluded)),
+        ("excluded and future", key("a", public=excluded), key("b", start + 1)),
+        ("future and excluded", key("a", start + 1), key("b", public=excluded)),
     ]
     histories, cases = {}, []
-    for name, before, opening, outcomes in scenarios:
+    for name, before, opening in scenarios:
+        def outcome(signer, named, at=start):
+            candidates = [entry for entry in (before, opening) if entry["kid"] == kids[named]]
+            if not any(eligible(entry, at) for entry in candidates):
+                return "WIST1-E02"
+            return "accepted" if signer == named else "WIST1-E01"
+        outcomes = (outcome("a", "a"), outcome("b", "b"))
         for reverse in (False, True):
             history_name = name + (" reversed arrays" if reverse else "")
             old_keys = publisher["keys"] + [before]
@@ -636,12 +664,12 @@ def recovery_binding_vectors():
             if reverse:
                 old_keys.reverse()
                 new_keys.reverse()
-            initial = sign_envelope("publisher", dict(publisher, keys=old_keys), "test-k1")
+            initial = sign_envelope("publisher", dict(publisher, keys=old_keys), KID1)
             owner = sign_envelope_with(priv2, "publisher", dict(publisher, seq=1,
                 prev_declaration=decl_hash(initial["publisher"]), keys=new_keys,
-                recovery_keys=[R2]), "test-r1")
+                recovery_keys=[R2]), KID2)
             follower = sign_envelope_with(priv3, "publisher", dict(owner["publisher"], seq=2,
-                prev_declaration=decl_hash(owner["publisher"]), keys=[key("c", key_id="test-k3")]), "test-k2")
+                prev_declaration=decl_hash(owner["publisher"]), keys=[key("c")]), KID3)
             blocks, previous = [], "sha256:genesis"
             for height, env in enumerate((initial, owner, follower)):
                 header = {"wist_version": "1.0.0", "block_number": height,
@@ -664,23 +692,29 @@ def recovery_binding_vectors():
                                   "history": history_name, "prefix_height": height,
                                   "envelope": env, "expected": expected})
 
-            for signer_name, outcome in zip(("a", "b", "c"), outcomes):
-                add("signature " + signer_name, signers[signer_name], "shared", outcome)
-            no_eligible = outcomes == ("WIST1-E02",) * 3
-            add("invalid signature", signers["a"], "shared",
-                "WIST1-E02" if no_eligible else "WIST1-E01", damage="signature")
-            add("unknown identifier", signers["a"], "unknown", "WIST1-E02")
-            add("pre recovery only recovery key", priv2, "test-r1", "WIST1-E02")
-            add("owner only recovery key", priv4, "test-r2", "WIST1-E02")
-            add("follower only signing key", signers["c"], "test-k3", "WIST1-E02")
-            add("retired owner signing key", priv3, "test-k2", "accepted")
-            add("malformed signature before missing authority", signers["a"], "unknown",
+            for signer_name, result in zip(("a", "b"), outcomes):
+                add("signature " + signer_name, signers[signer_name], kids[signer_name], result)
+            add("forged signature under the first identifier", signers["b"], kids["a"], outcome("b", "a"))
+            add("forged signature under the second identifier", signers["a"], kids["b"], outcome("a", "b"))
+            add("invalid signature", signers["a"], kids["a"],
+                "WIST1-E02" if outcomes[0] == "WIST1-E02" else "WIST1-E01", damage="signature")
+            add("unknown identifier", signers["a"], KID5, "WIST1-E02")
+            add("pre recovery only recovery key", priv2, KID2, "WIST1-E02")
+            add("owner only recovery key", priv4, KID4, "WIST1-E02")
+            add("follower only signing key", signers["c"], kids["c"], "WIST1-E02")
+            add("retired owner signing key", priv3, KID3, "accepted")
+            add("malformed signature before missing authority", signers["a"], KID5,
                 "WIST1-E14", damage="encoding")
-            add("leap label before missing authority", signers["a"], "unknown", "WIST1-E14",
+            add("leap label before missing authority", signers["a"], KID5, "WIST1-E14",
                 observed_at="2016-12-31T23:59:60Z")
-            add("fraction beyond nanoseconds", signers["a"], "shared", outcomes[0],
+            add("fraction beyond nanoseconds", signers["a"], kids["a"], outcomes[0],
                 observed_at="2026-08-04T10:00:00.00000000010000000000000000001Z")
-            add("offset equality", signers["b"], "shared", outcomes[1], observed_at=equivalent)
+            add("whole second start equality", signers["a"], kids["a"], outcomes[0],
+                observed_at="2026-08-04T10:00:00Z")
+            add("fraction before the start", signers["a"], kids["a"],
+                outcome("a", "a", start - Fraction(1, 10 ** 30)),
+                observed_at="2026-08-04T09:59:59.999999999999999999999999999999Z")
+            add("offset equality", signers["b"], kids["b"], outcomes[1], observed_at=equivalent)
     write_json(WIST1 / "recovery-bindings.json", {
         "note": "WIST-1 sections 4, 5.1 and 5.2. Each history authenticates an initial Declaration, "
                 "a recovery owner and an ordinary recovery-chain follower in three hourly Blocks. "
@@ -689,10 +723,12 @@ def recovery_binding_vectors():
                 "owner signing bindings even after the follower. accepted denotes only successful Delta "
                 "key verification, not queue mutation, complete Delta/chain eligibility, Payload availability, "
                 "quotas, clock skew, actual sealing, settlement or Snapshot restoration. Timestamp probes "
-                "exercise exact bound ordering and field rejection; accepted probes supply no live clock. "
+                "exercise exact window ordering against integer nbf and exp values and field rejection; "
+                "accepted probes supply no live clock. "
                 "Reversed-array histories re-sign Declarations and rebuild authenticated hashes.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "histories": histories, "cases": cases})
+        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "histories": histories, "cases": cases})
 
 
 recovery_binding_vectors()
@@ -703,14 +739,14 @@ def recovery_heads_vectors():
                      prev_declaration=decl_hash(previous["publisher"]), **changes)
         return sign_envelope_with(signer, "publisher", inner, key_id)
 
-    initial = sign_envelope("publisher", publisher, "test-k1")
-    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
-    fresh = signed(owner, 10, priv, "test-k1", keys=publisher["keys"])
-    follower = signed(owner, 11, priv3, "test-k2", contact="mailto:owner@example.com")
-    fresh_again = signed(follower, 20, priv, "test-k1", keys=publisher["keys"])
-    recovered = signed(follower, 21, priv4, "test-r2", recovery_keys=publisher["recovery_keys"])
-    competitor = signed(recovered, 30, priv, "test-k1", keys=publisher["keys"])
-    after = signed(recovered, 31, priv3, "test-k2", contact="mailto:after@example.com")
+    initial = sign_envelope("publisher", publisher, KID1)
+    owner = signed(initial, 1, priv2, KID2, keys=[K2], recovery_keys=[R2])
+    fresh = signed(owner, 10, priv, KID1, keys=publisher["keys"])
+    follower = signed(owner, 11, priv3, KID3, contact="mailto:owner@example.com")
+    fresh_again = signed(follower, 20, priv, KID1, keys=publisher["keys"])
+    recovered = signed(follower, 21, priv4, KID4, recovery_keys=publisher["recovery_keys"])
+    competitor = signed(recovered, 30, priv, KID1, keys=publisher["keys"])
+    after = signed(recovered, 31, priv3, KID3, contact="mailto:after@example.com")
     events = {0: initial, 1: owner, 2: fresh, 3: follower, 4: fresh_again,
               5: recovered, 6: competitor, 169: after}
     blocks, previous = [], "sha256:genesis"
@@ -760,28 +796,28 @@ def recovery_heads_vectors():
             probes[-1]["branch"] = branch
     probe("ordinary follower bypasses fresh competitor", 2, 3, follower,
           "ordinary_rotation", state(follower, follower, 11))
-    via_fresh = signed(fresh, 11, priv3, "test-k2", keys=[K2])
+    via_fresh = signed(fresh, 11, priv3, KID3, keys=[K2])
     probe("same key naming competitor is fresh", 2, 3, via_fresh,
           "fresh_identity", state(via_fresh, owner, 11))
     for seq in (2, 10):
-        candidate = signed(owner, seq, priv3, "test-k2")
+        candidate = signed(owner, seq, priv3, KID3)
         probe(f"sequence {seq} cannot ignore accepted competitor", 2, 3,
               candidate, "WIST1-E08", state(fresh, owner, 10))
-    stale = signed(owner, 12, priv3, "test-k2")
+    stale = signed(owner, 12, priv3, KID3)
     probe("old recovery ancestor cannot fork advanced chain", 3, 4, stale,
           "WIST1-E08", state(follower, follower, 11))
     probe("current Declaration is idempotent", 3, 4, follower,
           "idempotent", state(follower, follower, 11))
-    sibling = signed(owner, 11, priv3, "test-k2", contact="mailto:sibling@example.com")
+    sibling = signed(owner, 11, priv3, KID3, contact="mailto:sibling@example.com")
     probe("same predecessor is not identical publisher bytes", 3, 4, sibling,
           "WIST1-E08", state(follower, follower, 11))
     probe("recovery follower uses named head recovery protection", 4, 5, recovered,
           "recovery_rotation", state(recovered, recovered, 21))
-    off_chain = signed(fresh_again, 21, priv4, "test-r2",
+    off_chain = signed(fresh_again, 21, priv4, KID4,
                        recovery_keys=publisher["recovery_keys"])
     probe("recovery of competitor cannot take window ownership", 4, 5, off_chain,
           "recovery_rotation", state(off_chain, follower, 21))
-    stolen = signed(owner, 11, priv, "test-k1", keys=publisher["keys"],
+    stolen = signed(owner, 11, priv, KID1, keys=publisher["keys"],
                      recovery_keys=publisher["recovery_keys"])
     probe("fresh competitor cannot restore old recovery keys", 2, 3, stolen,
           "WIST1-E08", state(fresh, owner, 10))
@@ -803,18 +839,18 @@ def recovery_heads_vectors():
           competitor, "WIST1-E08", state(recovered, None, 30))
     probe("legitimate follower in deadline Block", 168, 169, after,
           "ordinary_rotation", state(after, None, 31))
-    obsolete = signed(competitor, 31, priv, "test-k1")
+    obsolete = signed(competitor, 31, priv, KID1)
     probe("superseded predecessor in deadline Block rejects", 168, 169, obsolete,
           "WIST1-E08", state(recovered, None, 30))
-    low_seq = signed(recovered, 22, priv3, "test-k2")
+    low_seq = signed(recovered, 22, priv3, KID3)
     probe("settlement retains competing sequence floor", 168, 169, low_seq,
           "WIST1-E08", state(recovered, None, 30))
-    new_recovery = signed(recovered, 31, priv2, "test-r1")
+    new_recovery = signed(recovered, 31, priv2, KID2)
     probe("recovery at deadline opens a new window", 168, 169, new_recovery,
           "recovery_rotation", state(new_recovery, new_recovery, 31, opened_at=169, windows=2))
     probe("superseded predecessor remains rejected after settlement", 170, 171,
-          signed(competitor, 32, priv, "test-k1"), "WIST1-E08", state(after, None, 31))
-    competitor_recovery = signed(fresh, 11, priv4, "test-r2",
+          signed(competitor, 32, priv, KID1), "WIST1-E08", state(after, None, 31))
+    competitor_recovery = signed(fresh, 11, priv4, KID4,
                                  recovery_keys=publisher["recovery_keys"])
     branch_header = dict(blocks[3]["header"],
                          merkle_root="sha256:" + recovery_order_leaf(competitor_recovery).hex())
@@ -822,14 +858,14 @@ def recovery_heads_vectors():
     branch_block["entries"] = [recovery_order_entry(competitor_recovery)]
     branch = {"blocks": blocks[:3] + [branch_block], "pinned_head": decl_hash(branch_header),
               "expected_state": state(competitor_recovery, owner, 11)}
-    follows_named = signed(owner, 12, priv3, "test-k2")
+    follows_named = signed(owner, 12, priv3, KID3)
     probe("ordinary follower preserves named head recovery set", 3, 4, follows_named,
           "ordinary_rotation", state(follows_named, follows_named, 12), branch=0)
-    follows_competitor_set = signed(owner, 12, priv3, "test-k2",
+    follows_competitor_set = signed(owner, 12, priv3, KID3,
                                     recovery_keys=publisher["recovery_keys"])
     probe("current competitor recovery set cannot replace named head set", 3, 4,
           follows_competitor_set, "WIST1-E08", state(competitor_recovery, owner, 11), branch=0)
-    low_seq_after_restore = signed(recovered, 22, priv3, "test-k2")
+    low_seq_after_restore = signed(recovered, 22, priv3, KID3)
     resume_cases = [
         {"label": "floor survives a restored lower sequence head",
          "declaration": ["declaration", "example.com", recovered, 5, 30], "recovery_window": None,
@@ -850,7 +886,8 @@ def recovery_heads_vectors():
                 "post-settlement state. No invalid candidate is asserted to be a valid "
                 "sealed Entry. No identity or conflicting-batch result is asserted.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "blocks": blocks, "pinned_head": previous,
+        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "blocks": blocks, "pinned_head": previous,
         "branches": [branch],
         "expected_prefix_states": [{"height": height, "state": expected}
                                    for height, expected in traces],
@@ -868,19 +905,19 @@ def recovery_admission_vectors():
                      prev_declaration=decl_hash(previous["publisher"]), **changes)
         return sign_envelope_with(signer, "publisher", inner, key_id)
 
-    initial = sign_envelope("publisher", publisher, "test-k1")
-    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
-    fresh = signed(owner, 2, priv, "test-k1", keys=publisher["keys"])
-    branch = signed(fresh, 3, priv, "test-k1", contact="mailto:branch@example.com")
-    branch_recovery = signed(branch, 4, priv4, "test-r2", keys=[K2])
-    follower = signed(owner, 5, priv3, "test-k2", contact="mailto:follower@example.com")
-    competitor = signed(follower, 6, priv, "test-k1", keys=publisher["keys"])
-    newest = signed(follower, 7, priv3, "test-k2", contact="mailto:newest@example.com")
-    recovered = signed(owner, 3, priv4, "test-r2", keys=publisher["keys"])
-    recovered_again = signed(recovered, 4, priv4, "test-r2", contact="mailto:again@example.com")
-    fresh_after_recovery = signed(recovered, 4, priv3, "test-k2", keys=[K2], contact="mailto:after-recovery@example.com")
-    after = signed(newest, 8, priv, "test-k1", keys=publisher["keys"])
-    late = signed(owner, 3, priv, "test-k1", keys=publisher["keys"], contact="mailto:late@example.com")
+    initial = sign_envelope("publisher", publisher, KID1)
+    owner = signed(initial, 1, priv2, KID2, keys=[K2], recovery_keys=[R2])
+    fresh = signed(owner, 2, priv, KID1, keys=publisher["keys"])
+    branch = signed(fresh, 3, priv, KID1, contact="mailto:branch@example.com")
+    branch_recovery = signed(branch, 4, priv4, KID4, keys=[K2])
+    follower = signed(owner, 5, priv3, KID3, contact="mailto:follower@example.com")
+    competitor = signed(follower, 6, priv, KID1, keys=publisher["keys"])
+    newest = signed(follower, 7, priv3, KID3, contact="mailto:newest@example.com")
+    recovered = signed(owner, 3, priv4, KID4, keys=publisher["keys"])
+    recovered_again = signed(recovered, 4, priv4, KID4, contact="mailto:again@example.com")
+    fresh_after_recovery = signed(recovered, 4, priv3, KID3, keys=[K2], contact="mailto:after-recovery@example.com")
+    after = signed(newest, 8, priv, KID1, keys=publisher["keys"])
+    late = signed(owner, 3, priv, KID1, keys=publisher["keys"], contact="mailto:late@example.com")
     declarations = dict(initial=initial, owner=owner, fresh=fresh, branch=branch,
                         branch_recovery=branch_recovery, follower=follower,
                         competitor=competitor, newest=newest, recovered=recovered,
@@ -977,7 +1014,8 @@ def recovery_admission_vectors():
                 "before evaluating the deadline Block. No Delta, Payload, quota, Snapshot, durable "
                 "storage or authenticated Audit Record eligibility is asserted.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "deadline": timestamp(169),
+        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "deadline": timestamp(169),
         "blocks": blocks, "pinned_head": previous,
         "declarations": declarations, "cases": cases,
     })
@@ -986,7 +1024,7 @@ def recovery_admission_vectors():
 recovery_admission_vectors()
 
 def declaration_conflict_vectors():
-    def signed(previous, seq, signer=priv, key_id="test-k1", **changes):
+    def signed(previous, seq, signer=priv, key_id=KID1, **changes):
         inner = dict(previous["publisher"], seq=seq,
                      prev_declaration=decl_hash(previous["publisher"]), **changes)
         return sign_envelope_with(signer, "publisher", inner, key_id)
@@ -1010,8 +1048,8 @@ def declaration_conflict_vectors():
                 "window_end": "2026-08-11T01:00:00Z" if chain else None,
                 "windows_opened": windows, "reset_height": reset}
 
-    initial = sign_envelope("publisher", publisher, "test-k1")
-    owner = signed(initial, 1, priv2, "test-r1", keys=[K2], recovery_keys=[R2])
+    initial = sign_envelope("publisher", publisher, KID1)
+    owner = signed(initial, 1, priv2, KID2, keys=[K2], recovery_keys=[R2])
     fresh = signed(owner, 2, keys=publisher["keys"])
     blocks, previous = [], "sha256:genesis"
     for height in range(169):
@@ -1036,7 +1074,7 @@ def declaration_conflict_vectors():
                                               for p, e, r in isolated], **fields})
 
     ordinary = signed(initial, 1, keys=[K2])
-    recovery_same = sign_envelope_with(priv2, "publisher", ordinary["publisher"], "test-r1")
+    recovery_same = sign_envelope_with(priv2, "publisher", ordinary["publisher"], KID2)
     for reverse in (False, True):
         for nonce in range(1000):
             sibling = signed(initial, 1, contact=f"mailto:sibling{nonce}@example.com")
@@ -1057,13 +1095,13 @@ def declaration_conflict_vectors():
     add("identical recovery Envelopes apply once", "initial", [owner, owner],
         {"example.com": state(owner, owner, windows=1)})
     add("current publisher alternate signatures install nothing", "initial",
-        [initial, sign_envelope_with(priv2, "publisher", publisher, "test-r1")], initial_state)
-    alternate_initial = sign_envelope("publisher", dict(publisher, contact="mailto:other@example.com"), "test-k1")
+        [initial, sign_envelope_with(priv2, "publisher", publisher, KID2)], initial_state)
+    alternate_initial = sign_envelope("publisher", dict(publisher, contact="mailto:other@example.com"), KID1)
     add("distinct initial Declarations", "empty", [initial, alternate_initial], {}, "WIST1-E08",
         [(None, initial, "initial"), (None, alternate_initial, "initial")])
     add("identical initial Envelopes", "empty", [initial, initial], initial_state)
     other = sign_envelope("publisher", dict(publisher, domain="aaa.example.net", subdomain_scope=[],
-                                           contact="mailto:keys@aaa.example.net"), "test-k1")
+                                           contact="mailto:keys@aaa.example.net"), KID1)
     add("equal sequences across domains", "empty", [initial, other],
         {"example.com": state(initial), "aaa.example.net": state(other)})
     lower = signed(initial, 1, contact="mailto:lower@example.com")
@@ -1073,25 +1111,19 @@ def declaration_conflict_vectors():
         initial_state, "WIST1-E08",
         [(None, other, "initial"), (initial, lower, "ordinary_rotation"),
          (lower, left, "ordinary_rotation"), (lower, right, "ordinary_rotation")])
-    follower = signed(owner, 3, priv3, "test-k2", contact="mailto:follower@example.com")
+    follower = signed(owner, 3, priv3, KID3, contact="mailto:follower@example.com")
     competitor = signed(fresh, 3, contact="mailto:competitor@example.com")
     add("distinct eligible recovery heads", "open", [follower, competitor], open_state, "WIST1-E08",
         [(owner, follower, "ordinary_rotation"), (fresh, competitor, "ordinary_rotation")])
-    restored_alternate = sign_envelope_with(priv3, "publisher", owner["publisher"], "test-k2")
+    restored_alternate = sign_envelope_with(priv3, "publisher", owner["publisher"], KID3)
     add("settlement precedes restored current re serves", "deadline", [owner, restored_alternate],
         {"example.com": state(owner, floor=2, windows=1)})
-    after_left = signed(owner, 3, priv3, "test-k2", contact="mailto:afterleft@example.com")
-    after_right = signed(owner, 3, priv3, "test-k2", contact="mailto:afterright@example.com")
+    after_left = signed(owner, 3, priv3, KID3, contact="mailto:afterleft@example.com")
+    after_right = signed(owner, 3, priv3, KID3, contact="mailto:afterright@example.com")
     add("rejected deadline Block does not settle", "deadline", [after_left, after_right],
         open_state, "WIST1-E08",
         [(owner, after_left, "ordinary_rotation"), (owner, after_right, "ordinary_rotation")])
-    alias_inner = dict(ordinary["publisher"], keys=[K2, dict(K2, key_id="alias")])
-    alias_one = sign_envelope_with(priv3, "publisher", alias_inner, "test-k2")
-    alias_two = sign_envelope_with(priv3, "publisher", alias_inner, "alias")
-    add("same authority distinct signature identifiers", "initial", [alias_one, alias_two],
-        initial_state, "WIST1-E08",
-        [(initial, alias_one, "fresh_identity"), (initial, alias_two, "fresh_identity")])
-    invalid_author = sign_envelope_with(priv4, "publisher", ordinary["publisher"], "test-k1")
+    invalid_author = sign_envelope_with(priv4, "publisher", ordinary["publisher"], KID1)
     add("conflict does not filter invalid signatures", "initial", [ordinary, invalid_author],
         initial_state, "WIST1-E08",
         [(initial, ordinary, "ordinary_rotation"), (initial, invalid_author, "WIST1-E01")],
@@ -1102,11 +1134,11 @@ def declaration_conflict_vectors():
         initial_state, "WIST1-E08")
     add("initial and duplicate replacement in one Block", "empty", [initial, ordinary, ordinary],
         {"example.com": state(ordinary)})
-    invalid_other = sign_envelope_with(priv4, "publisher", other["publisher"], "test-k1")
+    invalid_other = sign_envelope_with(priv4, "publisher", other["publisher"], KID1)
     add("different domains may report either failure", "initial", [invalid_other, ordinary, recovery_same],
         initial_state, "WIST1-E08", [(None, invalid_other, "WIST1-E01")], invalid=[invalid_other],
         expected_results=["WIST1-E01", "WIST1-E08"])
-    fresh_outside = signed(initial, 1, priv3, "test-k2", keys=[K2])
+    fresh_outside = signed(initial, 1, priv3, KID3, keys=[K2])
     add("fresh identity outside a window resets", "initial", [fresh_outside],
         {"example.com": state(fresh_outside, reset=1)},
         isolated=[(initial, fresh_outside, "fresh_identity")])
@@ -1124,14 +1156,15 @@ def declaration_conflict_vectors():
                 "authorship against fixture key bindings, not eligibility or idempotent installation. "
                 "No Snapshot eligibility is asserted. Domain iteration order is immaterial to accepted state.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "prefixes": prefixes, "cases": cases})
+        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "prefixes": prefixes, "cases": cases})
 
 
 declaration_conflict_vectors()
 
 def declaration_field_vectors():
     conflicts = json.loads((WIST1 / "declaration-conflicts.json").read_text())
-    initial = sign_envelope("publisher", publisher, "test-k1")
+    initial = sign_envelope("publisher", publisher, KID1)
     ordinary = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
     cases = []
 
@@ -1144,7 +1177,7 @@ def declaration_field_vectors():
             del target[path[-1]]
         else:
             target[path[-1]] = value
-        cases.append({"name": name, "envelope": sign_envelope("publisher", inner, "test-k1"),
+        cases.append({"name": name, "envelope": sign_envelope("publisher", inner, KID1),
                       "expected": expected, "author_signature_valid": True})
 
     for path, value in (
@@ -1154,13 +1187,22 @@ def declaration_field_vectors():
         (["recovery_keys"], None), (["subdomain_scope"], None),
         (["contact"], None), (["contact"], "x" * 257),
         (["domain"], "bad host.example"), (["subdomain_scope"], ["bad host.example"]),
-        (["keys", 0, "key_id"], "x" * 65), (["keys", 0, "alg"], "other"),
-        (["keys", 0, "public_key"], "!" * 43),
+        (["keys", 0, "kid"], "x" * 43), (["keys", 0, "kid"], KID1),
+        (["keys", 0, "kid"], "x" * 65), (["keys", 0, "kty"], "EC"),
+        (["keys", 0, "crv"], "X25519"), (["keys", 0, "alg"], "Ed25519"),
+        (["keys", 0, "x"], "!" * 43), (["keys", 0, "x"], K2["x"][:42]),
+        (["keys", 0, "exp"], None), (["keys", 0, "exp"], "later"),
+        (["keys", 0, "exp"], K2["nbf"]), (["keys", 0, "exp"], K2["nbf"] - 1),
+        (["recovery_keys", 0, "kid"], KID3),
         (["wist_version"], "1.0"), (["unknown"], True),
     ):
         add("invalid " + " ".join(map(str, path)) + " " + str(value)[:12], path, value)
-    for path in (["seq"], ["domain"], ["keys"], ["keys", 0, "valid_from"]):
+    for path in (["seq"], ["domain"], ["keys"], ["keys", 0, "nbf"], ["keys", 0, "kid"],
+                 ["keys", 0, "x"], ["keys", 0, "kty"], ["keys", 0, "crv"]):
         add("missing " + " ".join(map(str, path)), path, remove=True)
+    add("expiry after start", ["keys", 0, "exp"], K2["nbf"] + 1, expected="ordinary_rotation")
+    add("recovery expiry after start", ["recovery_keys", 0, "exp"],
+        publisher["recovery_keys"][0]["nbf"] + 1, expected="WIST1-E08")
     add("missing semantic predecessor", ["prev_declaration"], remove=True, expected="WIST1-E08")
     add("well shaped wrong predecessor", ["prev_declaration"], "sha256:" + "00" * 32,
         expected="WIST1-E08")
@@ -1213,63 +1255,72 @@ def declaration_field_vectors():
         ("2026-08-04T12:00:00+01", False),
         ("2026-08-04T12:00:00+00:00[UTC]", False),
     ])
-    for position, (value, valid) in enumerate(times):
-        add(f"signing valid from {position}", ["keys", 0, "valid_from"], value,
+    starts = [(0, True), (253402300799, True), (1754308800, True), (-1, False),
+              (253402300800, False), (1.5, False), ("1754308800", False), (None, False),
+              (True, False), ([1754308800], False)]
+    for position, (value, valid) in enumerate(starts):
+        add(f"signing start {position}", ["keys", 0, "nbf"], value,
             expected="ordinary_rotation" if valid else "WIST1-E14")
-        add(f"recovery valid from {position}", ["recovery_keys", 0, "valid_from"], value,
+        add(f"recovery start {position}", ["recovery_keys", 0, "nbf"], value,
             expected="WIST1-E08" if valid else "WIST1-E14")
     for field, value in (("sig", None), ("unknown", True)):
-        env = sign_envelope("publisher", ordinary, "test-k1")
+        env = sign_envelope("publisher", ordinary, KID1)
         env[field] = value
         cases.append({"name": "Envelope " + field, "envelope": env,
                       "expected": "WIST1-E14", "author_signature_valid": field != "sig"})
     for field, value in (("value", "bad"), ("key_id", None), ("alg", "other"), ("unknown", True)):
-        env = sign_envelope("publisher", ordinary, "test-k1")
+        env = sign_envelope("publisher", ordinary, KID1)
         env["sig"][field] = value
         cases.append({"name": "signature " + field, "envelope": env,
                       "expected": "WIST1-E14", "author_signature_valid": field != "value"})
-    bad_signature = sign_envelope_with(priv4, "publisher", ordinary, "test-k1")
+    bad_signature = sign_envelope_with(priv4, "publisher", ordinary, KID1)
     cases.append({"name": "valid fields invalid signature", "envelope": bad_signature,
                   "expected": "WIST1-E01", "author_signature_valid": False})
     cases.append({"name": "invalid fields and invalid signature",
-                  "envelope": sign_envelope_with(priv4, "publisher", dict(ordinary, contact=None), "test-k1"),
+                  "envelope": sign_envelope_with(priv4, "publisher", dict(ordinary, contact=None), KID1),
                   "expected": "WIST1-E14", "author_signature_valid": False})
     delta_cases = []
     for position, (value, valid) in enumerate(times):
         inner = {key: value for key, value in delta.items() if key != "payload"}
         inner.update(change_type="delete", observed_at=value, prev=decl_hash(delta))
         delta_cases.append({"name": f"observed at {position}",
-                            "envelope": sign_envelope("delta", inner, "test-k1"),
+                            "envelope": sign_envelope("delta", inner, KID1),
                             "expected": "well_formed" if valid else "WIST1-E14"})
     absent = {key: value for key, value in delta.items() if key not in ("payload", "observed_at")}
     absent.update(change_type="delete", prev=decl_hash(delta))
-    delta_cases.append({"name": "missing observed at", "envelope": sign_envelope("delta", absent, "test-k1"),
+    delta_cases.append({"name": "missing observed at", "envelope": sign_envelope("delta", absent, KID1),
                         "expected": "WIST1-E14"})
 
     key_time_cases = []
-    for name, valid_from, observed_at, expected in [
-        ("fraction beyond integer parser defaults", "2026-08-04T10:00:00." + "0" * 4400 + "2Z", "2026-08-04T10:00:00." + "0" * 4400 + "1Z", "WIST1-E02"),
-        ("fraction follows whole second", "2026-08-04T10:00:00Z", "2026-08-04T10:00:00.5Z", "key_bound_satisfied"),
-        ("arbitrary precision equality", "2026-08-04T10:00:00.000000000000000000000000000001Z", "2026-08-04T07:00:00.000000000000000000000000000001000-03:00", "key_bound_satisfied"),
-        ("no fractional rounding", "2026-08-04T10:00:00.000000000000000000000000000002Z", "2026-08-04T10:00:00.000000000000000000000000000001Z", "WIST1-E02"),
-        ("unknown local offset equality", "2026-08-04T10:00:00-00:00", "2026-08-04t10:00:00.000z", "key_bound_satisfied"),
-        ("numeric offset equality", "2026-08-04T10:00:00+01:30", "2026-08-04T08:30:00Z", "key_bound_satisfied"),
-        ("positive leap boundary", "2016-12-31T23:59:59.9Z", "2017-01-01T00:00:00Z", "key_bound_satisfied"),
-        ("inserted leap label invalid", "2016-12-31T23:59:59Z", "2016-12-31T23:59:60Z", "WIST1-E14"),
-        ("future leap key invalid", "2030-06-30T23:59:60Z", "2030-07-01T00:00:00Z", "WIST1-E14"),
-        ("hypothetical deletion keeps 59", "2030-06-30T23:59:58Z", "2030-06-30T23:59:59Z", "key_bound_satisfied"),
-        ("hypothetical deletion boundary", "2030-06-30T23:59:59.9Z", "2030-07-01T00:00:00Z", "key_bound_satisfied"),
-        ("future key retains inclusive bound", "2030-07-01T00:00:00Z", "2030-06-30T23:59:59.99999999999999999999Z", "WIST1-E02"),
-        ("offset below written year range", "0000-01-01T00:00:00+23:59", "0000-01-01T00:00:00+23:58", "key_bound_satisfied"),
-        ("offset above written year range", "9999-12-31T23:59:59-23:58", "9999-12-31T23:59:59.00000000001-23:59", "key_bound_satisfied"),
-        ("year zero leap day", "0000-02-29T23:59:59Z", "0000-03-01T00:00:00Z", "key_bound_satisfied"),
+    ten = nbf_at("2026-08-04T10:00:00Z")
+    for name, window, observed_at, expected in [
+        ("fraction follows whole second", (ten, None), "2026-08-04T10:00:00.5Z", "key_bound_satisfied"),
+        ("inclusive start", (ten, None), "2026-08-04T10:00:00Z", "key_bound_satisfied"),
+        ("fraction before the start", (ten, None), "2026-08-04T09:59:59.999999999999999999999999999999Z", "WIST1-E02"),
+        ("no fractional rounding", (ten, None), "2026-08-04T09:59:59." + "9" * 4400 + "Z", "WIST1-E02"),
+        ("unknown local offset equality", (ten, None), "2026-08-04t10:00:00.000-00:00", "key_bound_satisfied"),
+        ("numeric offset equality", (ten, None), "2026-08-04T11:30:00+01:30", "key_bound_satisfied"),
+        ("numeric offset before the start", (ten, None), "2026-08-04T11:29:59.9+01:30", "WIST1-E02"),
+        ("exclusive expiry", (ten, ten + 3600), "2026-08-04T11:00:00Z", "WIST1-E02"),
+        ("fraction below the expiry", (ten, ten + 3600), "2026-08-04T10:59:59.99999999999999999999Z", "key_bound_satisfied"),
+        ("expiry under an offset spelling", (ten, ten + 3600), "2026-08-04T08:00:00-03:00", "WIST1-E02"),
+        ("inserted leap label invalid", (ten, None), "2026-08-04T10:00:60Z", "WIST1-E14"),
+        ("positive leap boundary", (nbf_at("2016-12-31T23:59:59Z"), None), "2017-01-01T00:00:00Z", "key_bound_satisfied"),
+        ("leap second not counted", (nbf_at("2017-01-01T00:00:00Z"), None), "2016-12-31T23:59:59.999Z", "WIST1-E02"),
+        ("hypothetical deletion keeps 59", (nbf_at("2030-06-30T23:59:58Z"), None), "2030-06-30T23:59:59Z", "key_bound_satisfied"),
+        ("epoch origin", (0, None), "1970-01-01T00:00:00Z", "key_bound_satisfied"),
+        ("before the epoch precedes every window", (0, None), "1969-12-31T23:59:59.999Z", "WIST1-E02"),
+        ("year zero precedes every window", (0, None), "0000-01-01T00:00:00+23:59", "WIST1-E02"),
+        ("last representable start", (253402300799, None), "9999-12-31T23:59:59Z", "key_bound_satisfied"),
+        ("offset beyond the written year range", (253402300799, None), "9999-12-31T23:59:59.5-00:01", "key_bound_satisfied"),
+        ("largest expiry", (0, 253402300799), "9999-12-31T23:59:58.999Z", "key_bound_satisfied"),
     ]:
-        declaration = dict(publisher, keys=[dict(publisher["keys"][0], valid_from=valid_from)])
+        declaration = dict(publisher, keys=[jwk(pub_raw, window[0], window[1])])
         inner = {key: value for key, value in delta.items() if key != "payload"}
         inner.update(change_type="delete", observed_at=observed_at, prev=decl_hash(delta))
         key_time_cases.append({"name": name,
-                               "declaration": sign_envelope("publisher", declaration, "test-k1"),
-                               "envelope": sign_envelope("delta", inner, "test-k1"),
+                               "declaration": sign_envelope("publisher", declaration, KID1),
+                               "envelope": sign_envelope("delta", inner, KID1),
                                "expected": expected})
     elapsed_cases = [
         {"start": "2016-12-31T23:59:59Z", "end": "2017-01-01T00:00:00Z", "seconds": "1"},
@@ -1293,9 +1344,9 @@ def declaration_field_vectors():
         case = {"name": name, "kind": kind, "reference": reference, "expected": expected}
         if kind == "predecessor":
             predecessor = dict(delta, observed_at=reference)
-            case["predecessor"] = sign_envelope("delta", predecessor, "test-k1")
+            case["predecessor"] = sign_envelope("delta", predecessor, KID1)
             inner["prev"] = decl_hash(predecessor)
-        case["envelope"] = sign_envelope("delta", inner, "test-k1")
+        case["envelope"] = sign_envelope("delta", inner, KID1)
         relation_cases.append(case)
 
     def block(previous, height, batch):
@@ -1310,22 +1361,22 @@ def declaration_field_vectors():
         return dict(sign_envelope_with(priv, "header", header, "test-log-k1"), entries=entries)
 
     batches = []
-    other = sign_envelope("publisher", dict(publisher, domain="other.example"), "test-k1")
+    other = sign_envelope("publisher", dict(publisher, domain="other.example"), KID1)
     for case in cases:
         batch = block(decl_hash(conflicts["prefixes"]["initial"][-1]["header"]), 1,
                       [other, case["envelope"]])
         batches.append({"name": case["name"], "prefix": "initial", "block": batch,
                         "pinned_head": decl_hash(batch["header"]),
                         "expected": "accepted" if case["expected"] == "ordinary_rotation" else case["expected"]})
-    valid = sign_envelope("publisher", ordinary, "test-k1")
+    valid = sign_envelope("publisher", ordinary, KID1)
     malformed = json.loads(json.dumps(valid))
     malformed["sig"]["unknown"] = True
     later = dict(ordinary, seq=2, prev_declaration=decl_hash(ordinary), contact=None)
     for name, members, expected in (
         ("field error precedes same sequence conflict", [valid, malformed], "WIST1-E14"),
-        ("field error rolls back lower sequence", [valid, sign_envelope_with(priv3, "publisher", later, "test-k2")], "WIST1-E14"),
+        ("field error rolls back lower sequence", [valid, sign_envelope_with(priv3, "publisher", later, KID3)], "WIST1-E14"),
         ("repaired field accepts both sequences", [valid, sign_envelope_with(
-            priv3, "publisher", dict(later, contact="mailto:security@example.com"), "test-k2")], "accepted"),
+            priv3, "publisher", dict(later, contact="mailto:security@example.com"), KID3)], "accepted"),
     ):
         batch = block(decl_hash(conflicts["prefixes"]["initial"][-1]["header"]), 1, members + [other])
         batches.append({"name": name, "prefix": "initial", "block": batch,
@@ -1344,11 +1395,11 @@ def declaration_field_vectors():
         current = initial if prefix in ("empty", "initial") else history[2]["entries"][0]["body"]
         for array in ("keys", "recovery_keys"):
             inner = json.loads(json.dumps(current["publisher"]))
-            inner[array][0]["valid_from"] = "2016-12-31T23:59:60Z"
-            env = sign_envelope("publisher", inner, "test-k1")
+            inner[array][0]["nbf"] = -1
+            env = sign_envelope("publisher", inner, KID1)
             batch = block(decl_hash(history[-1]["header"]) if history else "sha256:genesis",
                           len(history), [other, env])
-            batches.append({"name": "leap field rolls back " + array + " " + prefix,
+            batches.append({"name": "negative start rolls back " + array + " " + prefix,
                             "prefix": prefix, "block": batch,
                             "pinned_head": decl_hash(batch["header"]), "expected": "WIST1-E14"})
     write_json(WIST1 / "declaration-fields.json", {
@@ -1359,13 +1410,15 @@ def declaration_field_vectors():
                 "not full clock, chain or Payload eligibility. Timestamp fields follow the event-independent "
                 "Gregorian profile in WIST-1 section 3.4, rejecting every leap label; the 2030-06-30 "
                 "deletion is hypothetical and asserts no IERS announcement. Key-time cases authenticate "
-                "one supplied binding and assert only field validity and its inclusive bound. Elapsed cases "
+                "one supplied binding and assert only field validity and its window, inclusive at nbf "
+                "and exclusive at exp. Elapsed cases "
                 "use exact civil-clock seconds. Relation cases isolate the inclusive 600-second clock bound "
                 "and strict predecessor ordering; predecessor authorship and ID are checked but lower Log "
                 "position, chain availability and clock acquisition are supplied assumptions. Hostname coverage is limited to ASCII structural examples. No full field profile, "
                 "cryptographic key admission, Snapshot restoration or live service conformance is asserted.",
         "log_key": conflicts["log_key"], "author_key": b64u(pub_raw), "stored": initial,
-        "recovery_window_days": 7, "prefixes": conflicts["prefixes"],
+        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "prefixes": conflicts["prefixes"],
         "cases": cases, "delta_cases": delta_cases, "block_cases": batches,
         "key_time_cases": key_time_cases, "elapsed_cases": elapsed_cases, "relation_cases": relation_cases})
 
@@ -1384,72 +1437,80 @@ def declaration_key_eligibility_vectors():
     cases = []
 
     def add(name, previous, incoming, signer, key_id, expected):
-        old = sign_envelope("publisher", previous, "test-k1") if previous else None
+        old = sign_envelope("publisher", previous, KID1) if previous else None
         env = sign_envelope_with(signer, "publisher", incoming, key_id)
         cases.append({"name": name, "stored": old, "fetched": env, "expected": expected,
                       "author_key": b64u(raw_public(signer)),
                       "expected_usable": {field: [key for key in incoming.get(field, [])
-                                                   if key["public_key"] not in excluded_values]
+                                                   if key["x"] not in excluded_values]
                                           for field in ("keys", "recovery_keys")}})
 
     for label, raw in excluded.items():
-        bad = dict(K2, key_id="excluded", public_key=b64u(raw))
+        bad = jwk(raw, "2026-08-03T12:00:00Z")
         for field in ("keys", "recovery_keys"):
             initial = variant(**{field: stored_decl[field] + [bad]})
-            add("initial unused " + field + " " + label, None, initial, priv, "test-k1", "initial")
+            add("initial unused " + field + " " + label, None, initial, priv, KID1, "initial")
             ordinary = dict(initial, seq=1, prev_declaration=decl_hash(initial),
                             keys=[K2, bad] if field == "keys" else [K2])
             add("ordinary unused " + field + " " + label, initial, ordinary,
-                priv, "test-k1", "ordinary_rotation")
+                priv, KID1, "ordinary_rotation")
         incoming = variant(seq=1, prev_declaration=stored_hash, keys=[K2, bad])
-        add("recovery unused " + label, stored_decl, incoming, priv2, "test-r1", "recovery_rotation")
-        add("excluded incoming named signer " + label, stored_decl, incoming, priv3, "excluded", "WIST1-E02")
+        add("recovery unused " + label, stored_decl, incoming, priv2, KID2, "recovery_rotation")
+        add("excluded incoming named signer " + label, stored_decl, incoming, priv3, bad["kid"], "WIST1-E02")
         previous = variant(recovery_keys=[stored_decl["recovery_keys"][0], bad])
         incoming = dict(previous, seq=1, prev_declaration=decl_hash(previous), keys=[K2])
         add("excluded previous recovery named signer " + label, previous, incoming,
-            priv3, "excluded", "WIST1-E02")
+            priv3, bad["kid"], "WIST1-E02")
         add("valid recovery carries excluded entry " + label, previous, incoming,
-            priv2, "test-r1", "recovery_rotation")
+            priv2, KID2, "recovery_rotation")
         changed = dict(incoming, recovery_keys=stored_decl["recovery_keys"])
         add("excluded recovery entry still protected " + label, previous, changed,
-            priv, "test-k1", "WIST1-E08")
+            priv, KID1, "WIST1-E08")
         add("valid recovery removes excluded entry " + label, previous, changed,
-            priv2, "test-r1", "recovery_rotation")
+            priv2, KID2, "recovery_rotation")
         add("initial no usable signing keys " + label, None, variant(keys=[bad]),
-            priv3, "excluded", "WIST1-E02")
+            priv3, bad["kid"], "WIST1-E02")
         add("replacement no usable signing keys " + label, stored_decl,
-            variant(seq=1, prev_declaration=stored_hash, keys=[bad]), priv, "test-k1", "ordinary_rotation")
-        previous = variant(keys=stored_decl["keys"] + [dict(bad, key_id="test-k2")])
+            variant(seq=1, prev_declaration=stored_hash, keys=[bad]), priv, KID1, "ordinary_rotation")
+        previous = variant(keys=stored_decl["keys"] + [bad])
         incoming = variant(seq=1, prev_declaration=decl_hash(previous), keys=[K2])
-        add("excluded old binding permits incoming signer " + label, previous, incoming,
-            priv3, "test-k2", "fresh_identity")
-        incoming = variant(seq=1, prev_declaration=stored_hash, keys=[dict(bad, key_id="test-k1"), K2])
-        add("excluded incoming binding permits old signer " + label, stored_decl, incoming,
-            priv, "test-k1", "ordinary_rotation")
-        duplicate = variant(keys=stored_decl["keys"] + [dict(bad, key_id="test-k1")])
-        add("excluded duplicate identifier " + label, None, duplicate, priv, "test-k1", "WIST1-E08")
-        overlap = variant(keys=stored_decl["keys"] + [bad], recovery_keys=[dict(bad, key_id="other")])
-        add("excluded cross set overlap " + label, None, overlap, priv, "test-k1", "WIST1-E08")
+        add("excluded old entry permits incoming signer " + label, previous, incoming,
+            priv3, KID3, "fresh_identity")
+        incoming = variant(seq=1, prev_declaration=stored_hash, keys=[bad, K2])
+        add("excluded incoming entry permits old signer " + label, stored_decl, incoming,
+            priv, KID1, "ordinary_rotation")
+        duplicate = variant(keys=stored_decl["keys"] + [bad, bad])
+        add("excluded duplicate key " + label, None, duplicate, priv, KID1, "WIST1-E08")
+        overlap = variant(keys=stored_decl["keys"] + [bad], recovery_keys=[bad])
+        add("excluded cross set overlap " + label, None, overlap, priv, KID1, "WIST1-E08")
         previous = variant(recovery_keys=[bad])
         incoming = dict(previous, seq=1, prev_declaration=decl_hash(previous), recovery_keys=[])
         add("no usable recovery key does not unprotect entries " + label, previous, incoming,
-            priv, "test-k1", "WIST1-E08")
-    mixed = dict(K2, key_id="mixed", public_key=b64u(bytes.fromhex(
-        "b502ff3d92e31d8190b4aa4ea0414005167fad089c4de9dac8a2fc850fed4f58")))
+            priv, KID1, "WIST1-E08")
+    mixed = jwk(bytes.fromhex(
+        "b502ff3d92e31d8190b4aa4ea0414005167fad089c4de9dac8a2fc850fed4f58"), "2026-08-03T12:00:00Z")
     add("non small mixed order key remains usable", None,
-        variant(keys=stored_decl["keys"] + [mixed]), priv, "test-k1", "initial")
+        variant(keys=stored_decl["keys"] + [mixed]), priv, KID1, "initial")
     add("usable named binding invalid signature", stored_decl,
-        variant(seq=1, prev_declaration=stored_hash, keys=[K2]), priv4, "test-k2", "WIST1-E01")
-    add("future valid from does not exclude Declaration signer", None,
-        variant(keys=[dict(stored_decl["keys"][0], valid_from="9999-12-31T23:59:59Z")]),
-        priv, "test-k1", "initial")
+        variant(seq=1, prev_declaration=stored_hash, keys=[K2]), priv4, KID3, "WIST1-E01")
+    add("future start does not exclude Declaration signer", None,
+        variant(keys=[jwk(pub_raw, 253402300799)]), priv, KID1, "initial")
+    add("past expiry does not exclude Declaration signer", None,
+        variant(keys=[jwk(pub_raw, 0, 1)]), priv, KID1, "initial")
+    add("past expiry does not exclude rotation signer", stored_decl,
+        variant(seq=1, prev_declaration=decl_hash(variant(keys=[jwk(pub_raw, 0, 1)])), keys=[K2]),
+        priv, KID1, "WIST1-E08")
+    expired = variant(keys=[jwk(pub_raw, 0, 1)])
+    add("expired previous entry still rotates", expired,
+        dict(expired, seq=1, prev_declaration=decl_hash(expired), keys=[K2]), priv, KID1, "ordinary_rotation")
     write_json(WIST1 / "declaration-key-eligibility.json", {
         "note": "WIST-1 sections 4 and 5.2 derive usable keys while retaining every signed entry. "
                 "stored is null for initial admission; otherwise it is an authenticated initial Declaration. "
                 "Each fetched signature is independently verifiable under author_key, even when that key has "
                 "no eligible named binding. expected_usable describes cryptographic key exclusion only, "
                 "even for rejected Envelopes, and is not installed state. Fixtures use canonical base64url "
-                "and ordinary valid fields. No temporal authority selection, full field/encoding profile, live "
+                "and ordinary valid fields; nbf and exp never filter a Declaration signer. No temporal "
+                "authority selection, full field/encoding profile, live "
                 "admission, Delta replay or Snapshot result is asserted.",
         "cases": cases})
 
@@ -1459,14 +1520,14 @@ declaration_key_eligibility_vectors()
 def base64url_vectors():
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
     fields = []
-    for kind, size in (("public_key", 32), ("signature", 64), ("salt", 16), ("salt", 17), ("salt", 18)):
+    for kind, size in (("x", 32), ("signature", 64), ("salt", 16), ("salt", 17), ("salt", 18)):
         encoded = b64u(bytes(range(size)))
         unused = (6 - (size * 8) % 6) % 6
         for index, character in enumerate(alphabet):
             fields.append({"name": f"{kind} {size} octets final sextet {index}", "kind": kind,
                            "encoded": encoded[:-1] + character,
                            "expected": "well_formed" if index % (2**unused) == 0 else "WIST1-E14"})
-    for kind, size in (("public_key", 32), ("signature", 64), ("salt", 16)):
+    for kind, size in (("x", 32), ("signature", 64), ("salt", 16)):
         canonical = b64u(bytes(range(size)))
         for name, value in (("padding", canonical + "="), ("newline", canonical + "\n"),
                             ("leading space", " " + canonical), ("foreign alphabet", "/" + canonical[1:]),
@@ -1481,32 +1542,31 @@ def base64url_vectors():
         return encoded[:-1] + alphabet[alphabet.index(encoded[-1]) + bits]
 
     def add(name, inner, previous=None, expected="WIST1-E14", signature_bits=0):
-        env = sign_envelope("publisher", inner, "test-k1")
+        env = sign_envelope("publisher", inner, KID1)
         if signature_bits:
             env["sig"]["value"] = alias(env["sig"]["value"], signature_bits)
         cases.append({"name": name, "stored": previous, "envelope": env, "expected": expected})
 
-    initial = sign_envelope("publisher", publisher, "test-k1")
+    initial = sign_envelope("publisher", publisher, KID1)
     ordinary = variant(seq=1, prev_declaration=stored_hash, keys=[K2])
     add("canonical initial", publisher, expected="initial")
     add("canonical ordinary", ordinary, initial, "ordinary_rotation")
-    add("canonical in set alias", variant(keys=[publisher["keys"][0],
-        dict(publisher["keys"][0], key_id="alias")]), expected="initial")
-    add("canonical cross set overlap", variant(recovery_keys=[
-        dict(publisher["keys"][0], key_id="alias")]), expected="WIST1-E08")
+    add("canonical cross set overlap", variant(recovery_keys=[publisher["keys"][0]]), expected="WIST1-E08")
     for bits in range(1, 4):
         for field in ("keys", "recovery_keys"):
             mutated = json.loads(json.dumps(publisher))
-            mutated[field][0]["public_key"] = alias(mutated[field][0]["public_key"], bits)
+            mutated[field][0]["x"] = alias(mutated[field][0]["x"], bits)
             add(f"initial {field} unused bits {bits}", mutated)
             incoming = dict(mutated, seq=1, prev_declaration=stored_hash)
             add(f"replacement {field} unused bits {bits}", incoming, initial)
-        bad = dict(K2, public_key=alias(K2["public_key"], bits))
+            rethumbed = json.loads(json.dumps(mutated))
+            rethumbed[field][0]["kid"] = kid_of_x(rethumbed[field][0]["x"])
+            add(f"initial {field} unused bits {bits} under a matching thumbprint", rethumbed)
+        bad = dict(K2, x=alias(K2["x"], bits))
         add(f"unused signing key unused bits {bits}", variant(keys=publisher["keys"] + [bad]))
-        bad = dict(publisher["keys"][0], key_id="alias",
-                   public_key=alias(publisher["keys"][0]["public_key"], bits))
-        add(f"cross set byte alias unused bits {bits}", variant(recovery_keys=[bad]))
-        excluded = dict(K2, public_key=alias(b64u((1).to_bytes(32, "little")), bits))
+        bad = dict(publisher["keys"][0], x=alias(publisher["keys"][0]["x"], bits))
+        add(f"cross set noncanonical spelling unused bits {bits}", variant(recovery_keys=[bad]))
+        excluded = dict(K2, x=alias(b64u((1).to_bytes(32, "little")), bits))
         add(f"excluded point malformed spelling {bits}", variant(keys=publisher["keys"] + [excluded]))
     for bits in range(1, 16):
         add(f"initial signature unused bits {bits}", publisher, signature_bits=bits)
@@ -1520,7 +1580,7 @@ def base64url_vectors():
             if entry["body"]["publisher"]["seq"] == (1 if prefix == "deadline" else 2))
         malformed = json.loads(json.dumps(current))
         malformed["sig"]["value"] = alias(malformed["sig"]["value"], 1)
-        other = sign_envelope("publisher", dict(publisher, domain="other.example"), "test-k1")
+        other = sign_envelope("publisher", dict(publisher, domain="other.example"), KID1)
         for reject in (False, True):
             members = [other, current] + ([malformed] if reject else [])
             entries = sorted(map(recovery_order_entry, members), key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
@@ -1542,6 +1602,7 @@ def base64url_vectors():
                 "accepted head, including due settlement and other domains. Canonical twins exercise acceptance. "
                 "Full field formats, live services, transport wrappers and Snapshot restoration are not established.",
         "author_key": b64u(pub_raw), "log_key": conflicts["log_key"], "recovery_window_days": 7,
+        "declaration_activation_blocks": 0,
         "fields": fields, "cases": cases, "prefixes": conflicts["prefixes"], "block_cases": blocks})
 
 
@@ -1597,7 +1658,7 @@ def declaration_host_vectors():
         for field in ('domain', 'subdomain_scope'):
             inner = variant(**{field: host['input'] if field == 'domain' else [host['input']]})
             cases.append({'name': field + ' ' + host['name'], 'host_case': host['name'], 'field': field,
-                          'envelope': sign_envelope('publisher', inner, 'test-k1'),
+                          'envelope': sign_envelope('publisher', inner, KID1),
                           'expected': 'initial' if host['expected'] == 'well_formed' else 'WIST1-E14'})
     conflicts = json.loads((WIST1 / 'declaration-conflicts.json').read_text())
     blocks = []
@@ -1620,16 +1681,16 @@ def declaration_host_vectors():
         add_block(case['name'], 'empty', [case['envelope']],
                   'accepted' if case['expected'] == 'initial' else 'WIST1-E14',
                   [case['envelope']['publisher']['domain']] if case['expected'] == 'initial' else None)
-    initial = sign_envelope('publisher', publisher, 'test-k1')
-    other = sign_envelope('publisher', variant(domain='other.example'), 'test-k1')
+    initial = sign_envelope('publisher', publisher, KID1)
+    other = sign_envelope('publisher', variant(domain='other.example'), KID1)
     for spelling in ('EXAMPLE.com', 'example.com.'):
-        alias = sign_envelope('publisher', variant(domain=spelling), 'test-k1')
+        alias = sign_envelope('publisher', variant(domain=spelling), KID1)
         add_block('canonical and alternate ' + spelling, 'empty', [initial, alias, other], 'WIST1-E14')
-    upper_idn = sign_envelope('publisher', variant(domain='bücher.example'), 'test-k1')
-    canonical_idn = sign_envelope('publisher', variant(domain='xn--bcher-kva.example'), 'test-k1')
+    upper_idn = sign_envelope('publisher', variant(domain='bücher.example'), KID1)
+    canonical_idn = sign_envelope('publisher', variant(domain='xn--bcher-kva.example'), KID1)
     add_block('U label and A label identity', 'empty', [upper_idn, canonical_idn], 'WIST1-E14')
     add_block('canonical duplicate identity', 'empty', [canonical_idn, canonical_idn], 'accepted', ['xn--bcher-kva.example'])
-    sibling = sign_envelope('publisher', variant(domain='xn--bcher-kva.example', contact='other'), 'test-k1')
+    sibling = sign_envelope('publisher', variant(domain='xn--bcher-kva.example', contact='other'), KID1)
     add_block('canonical identity conflicts', 'empty', [canonical_idn, sibling], 'WIST1-E08')
     add_block('distinct canonical identities', 'empty', [initial, canonical_idn, other], 'accepted',
               ['example.com', 'xn--bcher-kva.example', 'other.example'])
@@ -1639,7 +1700,7 @@ def declaration_host_vectors():
             entry['body'] for block in history for entry in block['entries']
             if entry['body']['publisher']['seq'] == (1 if prefix == 'deadline' else 2))
         malformed = dict(current['publisher'], subdomain_scope=['EXAMPLE.com'])
-        bad = sign_envelope('publisher', malformed, 'test-k1')
+        bad = sign_envelope('publisher', malformed, KID1)
         add_block(prefix + ' field before conflict and settlement', prefix, [current, bad, other], 'WIST1-E14')
         add_block(prefix + ' canonical acceptance twin', prefix, [current, other], 'accepted',
                   ['example.com', 'other.example'])
@@ -1652,13 +1713,14 @@ def declaration_host_vectors():
                 'Unicode mapping coverage, RFC 3339 eligibility, discovery, live service validation or '
                 'Snapshot recovery. Single label host acceptance asserts no suffix policy.',
         'author_key': b64u(pub_raw), 'log_key': conflicts['log_key'], 'recovery_window_days': 7,
+        'declaration_activation_blocks': 0,
         'hosts': host_cases, 'cases': cases, 'prefixes': conflicts['prefixes'], 'block_cases': blocks})
 
 
 declaration_host_vectors()
 
 # ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
-# The ordinary resolution rule over key_ids alone: a Delta sealed at height N
+# The ordinary resolution rule over key identifiers alone: a Delta sealed at height N
 # verifies under the highest-seq Declaration sealed at a height <= N, the
 # Block's own Declarations included (WIST-3 §3.3 applies them first). The
 # recovery exception is exercised by recovery-settlement.json.
@@ -1716,7 +1778,7 @@ keyset_cases = [
 ]
 
 write_json(WIST1 / "keyset-at-height.json", {
-    "note": ("WIST-1 §5.2 historical verification, ordinary case, over key_ids "
+    "note": ("WIST-1 §5.2 historical verification, ordinary case, over key identifiers "
              "alone: `declarations` carry seq, sealing height and keys; each "
              "Delta carries its sealing height and signer. `expected.key_set_at` "
              "is the Key Set resolved at each height present, `verifies` and "
@@ -1922,7 +1984,7 @@ feed = {
     "deltas": [delta_id],
     "next": None,
 }
-write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, "test-k1"))
+write_json(EXAMPLES / "feed.json", sign_envelope("feed", feed, KID1))
 print("wist2 feed example written")
 
 # --------------------------------------------------------------- WIST-2: status
@@ -2027,7 +2089,7 @@ write_json(WIST2V / "text-extraction.json", {
 print("wist2 text-extraction vector:", [c["label"] for c in TEXT_FIXTURES])
 
 # ------------------------------- WIST-2 §3.2: the Key Set a sealed Page verifies under
-# Over key_ids alone: a Page verifies under the Key Set current at its
+# Over key identifiers alone: a Page verifies under the Key Set current at its
 # generated_at — the Declaration with the greatest sealed_at not later than
 # it — or, where that Key Set lacks the signer, under the first Declaration
 # sealed after generated_at. Declarations here are all applicable (the
@@ -2121,7 +2183,7 @@ page_cases = [
 ]
 
 write_json(WIST2V / "page-keyset.json", {
-    "note": ("WIST-2 §3.2 Key Set resolution for a sealed Page, over key_ids "
+    "note": ("WIST-2 §3.2 Key Set resolution for a sealed Page, over key identifiers "
              "alone: `declarations` carry seq, sealing instant and keys, every "
              "one applicable; each Page carries generated_at and signer. Each "
              "`expected` row gives the Key Set current at generated_at, that "
@@ -2133,25 +2195,23 @@ write_json(WIST2V / "page-keyset.json", {
 print("wist2 page-keyset vector written")
 
 def page_binding_vectors():
-    def binding(identifier, key, excluded=False):
-        return dict(key_id=identifier, alg="Ed25519",
-                    public_key=b64u(bytes(32) if excluded else raw_public(key)),
-                    valid_from="2099-01-01T00:00:00Z")
+    def binding(key, excluded=False):
+        return jwk(bytes(32) if excluded else raw_public(key), "2099-01-01T00:00:00Z")
 
+    anchor = binding(priv)
     histories = {}
     for name, bindings in {
-        "renamed": [binding("old", priv2), binding("new", priv2), binding("later", priv3)],
-        "reused": [binding("shared", priv2), binding("shared", priv3), binding("shared", priv4)],
-        "excluded": [binding("shared", priv2, True), binding("shared", priv3), binding("shared", priv4)],
+        "rotated": [binding(priv2), binding(priv3), binding(priv4)],
+        "excluded": [binding(priv2, True), binding(priv3), binding(priv4)],
     }.items():
         sources = []
         previous = None
         for seq, key in enumerate(bindings):
             body = dict(wist_version="1.0.0", domain="example.com", seq=seq,
-                        keys=[binding("anchor", priv), key])
+                        keys=[anchor, key])
             if previous:
                 body["prev_declaration"] = decl_hash(previous["publisher"])
-            envelope = sign_envelope_with(priv, "publisher", body, "anchor")
+            envelope = sign_envelope_with(priv, "publisher", body, KID1)
             sources.append(dict(sealed_at=f"2026-08-09T{12 + seq:02}:00:00Z", envelope=envelope))
             previous = envelope
         histories[name] = sources
@@ -2164,26 +2224,26 @@ def page_binding_vectors():
                            envelope=sign_envelope_with(key, "feed", body, identifier),
                            expected=expected))
 
-    probe("renamed public key uses first next named entry", "renamed", "new", priv2, "next")
-    probe("old alias still verifies current", "renamed", "old", priv2, "current")
-    probe("absent alias cannot borrow identical public bytes", "renamed", "absent", priv2, "WIST2-E04")
-    probe("alias from a later Block cannot supply authority", "renamed", "later", priv3, "WIST2-E04")
-    probe("renamed identifier is current at exact seal", "renamed", "new", priv2, "current", "2026-08-09T13:00:00Z")
-    probe("retired alias cannot borrow current public bytes", "renamed", "old", priv2, "WIST2-E04", "2026-08-09T13:00:00Z")
-    probe("renamed identifier before first contact is too late", "renamed", "new", priv2, "WIST2-E04", "2026-08-09T11:00:00Z")
-    probe("first contact resolves original named entry", "renamed", "old", priv2, "next", "2026-08-09T11:00:00Z")
-    probe("invalid signature under permitted aliases rejects", "renamed", "new", priv4, "WIST2-E04")
-    probe("reused identifier verifies current bytes", "reused", "shared", priv2, "current")
-    probe("reused identifier verifies first next bytes", "reused", "shared", priv3, "next")
-    probe("reused identifier cannot borrow later bytes", "reused", "shared", priv4, "WIST2-E04")
-    probe("excluded current entry permits first next", "excluded", "shared", priv3, "next")
-    probe("excluded current entry cannot borrow later bytes", "excluded", "shared", priv4, "WIST2-E04")
-    probe("current succeeds without a following Declaration", "renamed", "later", priv3, "current", "2026-08-09T15:00:00Z")
-    probe("retired bytes fail without a following Declaration", "renamed", "new", priv2, "WIST2-E04", "2026-08-09T15:00:00Z")
+    excluded_kid = kid_of(bytes(32))
+    probe("incoming key uses first next named entry", "rotated", KID3, priv3, "next")
+    probe("current key verifies current", "rotated", KID2, priv2, "current")
+    probe("unlisted identifier cannot borrow a listed key", "rotated", KID5, priv2, "WIST2-E04")
+    probe("key from a later Block cannot supply authority", "rotated", KID4, priv4, "WIST2-E04")
+    probe("incoming key is current at exact seal", "rotated", KID3, priv3, "current", "2026-08-09T13:00:00Z")
+    probe("retired key cannot verify at exact seal", "rotated", KID2, priv2, "WIST2-E04", "2026-08-09T13:00:00Z")
+    probe("incoming key before first contact is too late", "rotated", KID3, priv3, "WIST2-E04", "2026-08-09T11:00:00Z")
+    probe("first contact resolves original entry", "rotated", KID2, priv2, "next", "2026-08-09T11:00:00Z")
+    probe("invalid signature under a named entry rejects", "rotated", KID3, priv4, "WIST2-E04")
+    probe("anchor key verifies current", "rotated", KID1, priv, "current")
+    probe("excluded current entry permits first next", "excluded", KID3, priv3, "next")
+    probe("excluded current entry cannot borrow later key", "excluded", KID4, priv4, "WIST2-E04")
+    probe("excluded entry supplies no authority under its own identifier", "excluded", excluded_kid, priv2, "WIST2-E04")
+    probe("current succeeds without a following Declaration", "rotated", KID4, priv4, "current", "2026-08-09T15:00:00Z")
+    probe("retired key fails without a following Declaration", "rotated", KID3, priv3, "WIST2-E04", "2026-08-09T15:00:00Z")
     return dict(note="WIST-2 §3.2 named-entry verification over signed ordinary Declaration chains. "
                 "Sealing positions are supplied inputs, without Block inclusion or recovery proofs. "
                 "Empty Delta lists isolate signature/source selection; these are not publication or "
-                "Page-size fixtures. Future valid_from values distinguish Pages from Delta filtering.",
+                "Page-size fixtures. Future nbf values distinguish Pages from Delta filtering.",
                 histories=histories, probes=probes)
 
 
@@ -2214,7 +2274,7 @@ def attest_delta(n: int, prev_id: str) -> dict:
         "prev": prev_id,
         "meta": {"lang": "en"},
     }
-    return sign_envelope("delta", inner, "test-k1")
+    return sign_envelope("delta", inner, KID1)
 
 # prev IDs for the attest deltas: synthetic prior deltas ("new" for each URL)
 def synthetic_prior_id(n: int) -> str:
@@ -2637,7 +2697,7 @@ label = {
     "asserted_at": "2026-08-02T12:30:00Z",
 }
 label_id = "sha256:" + sha256_hex(rfc8785.dumps(label))
-label_envelope = sign_envelope("label", label, "test-k1")
+label_envelope = sign_envelope("label", label, KID1)
 write_json(EXAMPLES / "label.json", label_envelope)
 definition = {
     "wist_version": "1.0.0",
@@ -2647,13 +2707,12 @@ definition = {
     "treatment": "hide",
     "asserted_at": "2026-08-02T12:00:00Z",
 }
-write_json(EXAMPLES / "label-definition.json", sign_envelope("definition", definition, "test-k1"))
+write_json(EXAMPLES / "label-definition.json", sign_envelope("definition", definition, KID1))
 
 LABELER_HOST = "labels.sample.net"
 labeler_declaration = sign_envelope_with(priv4, "publisher", {
     "wist_version": "1.0.0", "seq": 0, "domain": LABELER_HOST,
-    "keys": [{"key_id": "l-k1", "alg": "Ed25519", "public_key": b64u(pub4_raw),
-              "valid_from": "2026-08-01T00:00:00Z"}]}, "l-k1")
+    "keys": [jwk(pub4_raw, "2026-08-01T00:00:00Z")]}, KID4)
 disputed_label = {
     "wist_version": "1.0.0", "labeler": LABELER_HOST, "subject": "https://example.com/blog/post-1",
     "name": "wist:copied", "asserted_at": "2026-08-02T11:00:00Z",
@@ -2669,7 +2728,7 @@ dispute = {
     "asserted_at": "2026-08-02T12:45:00Z",
 }
 dispute_id = "sha256:" + sha256_hex(rfc8785.dumps(dispute))
-write_json(EXAMPLES / "dispute.json", sign_envelope("dispute", dispute, "test-k1"))
+write_json(EXAMPLES / "dispute.json", sign_envelope("dispute", dispute, KID1))
 
 label_feed = {
     "wist_version": "1.0.0",
@@ -2678,7 +2737,7 @@ label_feed = {
     "deltas": [label_id],
     "next": None,
 }
-write_json(EXAMPLES / "label-feed.json", sign_envelope("feed", label_feed, "test-k1"))
+write_json(EXAMPLES / "label-feed.json", sign_envelope("feed", label_feed, KID1))
 print("wist2 label examples written:", label_id)
 
 
@@ -2705,7 +2764,7 @@ def log_instant_s(value: str) -> int:
 def label_vectors():
     cases = []
 
-    def add(name, body=None, *, expected="accepted", signer=priv, key_id="test-k1", mutate=None):
+    def add(name, body=None, *, expected="accepted", signer=priv, key_id=KID1, mutate=None):
         body = dict(label) if body is None else body
         doc = sign_envelope_with(signer, "label", body, key_id)
         if mutate:
@@ -2780,8 +2839,8 @@ def label_vectors():
         expected="fields")
     add("signature over other bytes", expected="signature",
         mutate=lambda doc: doc["label"].update(asserted_at="2026-08-02T12:31:00Z"))
-    add("signed by the recovery key", signer=priv2, key_id="test-r1", expected="binding")
-    add("signed under an unknown key_id", key_id="test-k9", expected="binding")
+    add("signed by the recovery key", signer=priv2, key_id=KID2, expected="binding")
+    add("signed under an unknown identifier", key_id=KID5, expected="binding")
 
     def sealed(asserted_at, height, entry_index, value=None, retracted=False, expires_at=None, delta=None):
         inner = dict(label, asserted_at=asserted_at)
@@ -2864,14 +2923,13 @@ def dispute_vectors():
     disputant_declaration = sign_envelope_with(priv3, "publisher", {
         "wist_version": "1.0.0", "seq": 0, "domain": "reduced.example.org",
         "subdomain_scope": ["www.reduced.example.org"],
-        "keys": [{"key_id": "r-k1", "alg": "Ed25519", "public_key": b64u(pub3_raw),
-                  "valid_from": "2026-08-01T00:00:00Z"}]}, "r-k1")
+        "keys": [jwk(pub3_raw, "2026-08-01T00:00:00Z")]}, KID3)
     sealed_labels = [{"label_id": label_id, "labeler": "example.com", "subject": LABEL_SUBJECT, "height": 1}]
     base = {"wist_version": "1.0.0", "disputant": "reduced.example.org", "label": label_id,
             "log": "log.example", "height": 1, "asserted_at": "2026-08-02T13:00:00Z"}
     cases = []
 
-    def add(name, body=None, *, expected="accepted", signer=priv3, key_id="r-k1",
+    def add(name, body=None, *, expected="accepted", signer=priv3, key_id=KID3,
             declaration=disputant_declaration, mutate=None):
         body = dict(base) if body is None else body
         doc = sign_envelope_with(signer, "dispute", body, key_id)
@@ -2901,12 +2959,12 @@ def dispute_vectors():
     add("unsupported major", dict(base, wist_version="2.0.0"), expected="fields")
     add("label the Log has not sealed", dict(base, label="sha256:" + sha256_hex(b"never sealed")),
         expected="unsealed")
-    add("dispute by a third party", dict(base, disputant=LABELER_HOST), signer=priv4, key_id="l-k1",
+    add("dispute by a third party", dict(base, disputant=LABELER_HOST), signer=priv4, key_id=KID4,
         declaration=labeler_declaration, expected="authority")
     add("disputant other than the authenticated domain", dict(base, disputant="example.com"), expected="fields")
     add("signature over other bytes", expected="signature",
         mutate=lambda doc: doc["dispute"].update(asserted_at="2026-08-02T13:00:01Z"))
-    add("signed under an unknown key_id", key_id="r-k9", expected="binding")
+    add("signed under an unknown identifier", key_id=KID5, expected="binding")
 
     def sealed(asserted_at, height, entry_index, reason=None):
         inner = dict(base, asserted_at=asserted_at)
@@ -2948,7 +3006,7 @@ print("wist2 disputes vector written")
 def definition_vectors():
     cases = []
 
-    def add(name, body=None, *, expected="accepted", signer=priv, key_id="test-k1", mutate=None):
+    def add(name, body=None, *, expected="accepted", signer=priv, key_id=KID1, mutate=None):
         body = dict(definition) if body is None else body
         doc = sign_envelope_with(signer, "definition", body, key_id)
         if mutate:
@@ -2980,7 +3038,7 @@ def definition_vectors():
         expected="rejected")
     add("signature over other bytes", expected="rejected",
         mutate=lambda doc: doc["definition"].update(treatment="warn"))
-    add("signed under an unknown key_id", key_id="test-k9", expected="rejected")
+    add("signed under an unknown identifier", key_id=KID5, expected="rejected")
     return dict(
         note=("WIST-2 section 3.3 label definitions over the example Declaration: accepted means a Consumer "
               "reads the definition at path under the Labeler's well-known prefix; rejected definitions "
@@ -3476,7 +3534,7 @@ def withdrawal_vectors():
 
     acts = [
         act("valid withdrawal", None, withdrawn_height=3),
-        act("signed by a key the Log does not hold", "WIST4-E11", signer=priv2, key_id="test-r1"),
+        act("signed by a key the Log does not hold", "WIST4-E11", signer=priv2, key_id="test-log-r1"),
         act("unsupported major", "WIST4-E11", version="2.0.0"),
         act("unknown member", "WIST4-E11", extra={"note": "x"}),
         act("delta id not a Delta ID", "WIST4-E04",
@@ -3676,7 +3734,7 @@ def registrable_domain_vectors():
     acts = [
         act("first snapshot pinned", None, height=0, in_force_after="first"),
         act("signed by a key the Log does not hold", "WIST4-E11", height=1, name="second",
-            signer=priv2, key_id="test-r1", in_force_after="first"),
+            signer=priv2, key_id="test-log-r1", in_force_after="first"),
         act("unsupported major", "WIST4-E11", height=1, name="second", version="2.0.0", in_force_after="first"),
         act("unknown member", "WIST4-E11", height=1, name="second", extra={"source": "x"}, in_force_after="first"),
         act("subject names another snapshot", "WIST4-E04", height=2, name="second", subject=ids["first"],
@@ -3931,11 +3989,10 @@ write_json(ROOT / "vectors/wist3/timestamps.json", {
 def delta_diagnostic_vectors():
     publisher = {
         "wist_version": "1.0.0", "domain": "example.com", "seq": 0,
-        "keys": [{"key_id": "test-k1", "alg": "Ed25519",
-                  "public_key": b64u(pub_raw), "valid_from": "2026-08-01T00:00:00Z"}],
+        "keys": [jwk(pub_raw, "2026-08-01T00:00:00Z")],
         "subdomain_scope": ["other.example"],
     }
-    previous_source = sign_envelope("publisher", publisher, "test-k1")
+    previous_source = sign_envelope("publisher", publisher, KID1)
     cases = []
     for binding, scope, future, chain in itertools.product(
             ("valid", "bad signature", "missing", "future"), (True, False),
@@ -3945,21 +4002,21 @@ def delta_diagnostic_vectors():
         source["prev_declaration"] = "sha256:" + sha256_hex(rfc8785.dumps(publisher))
         source["subdomain_scope"] = ["other.example"] if scope else []
         if binding == "future":
-            source["keys"][0]["valid_from"] = "2026-08-04T11:00:00Z"
-        declaration = sign_envelope("publisher", source, "test-k1")
+            source["keys"][0]["nbf"] = nbf_at("2026-08-04T11:00:00Z")
+        declaration = sign_envelope("publisher", source, KID1)
         observed = "2026-08-04T10:10:00.00000000000000000001Z" if future else "2026-08-04T07:10:00-03:00"
         previous = {
             "wist_version": "1.0.0", "publisher": "example.com", "url": "https://other.example/page",
             "change_type": "new", "observed_at": "2026-08-04T09:00:00Z" if chain else observed,
             "payload": delta["payload"], "meta": {"lang": "en"},
         }
-        predecessor = sign_envelope("delta", previous, "test-k1")
+        predecessor = sign_envelope("delta", previous, KID1)
         candidate = {
             "wist_version": "1.0.0", "publisher": "example.com", "url": previous["url"], "change_type": "attest",
             "observed_at": observed, "prev": "sha256:" + sha256_hex(rfc8785.dumps(previous)),
             "meta": {"lang": "en"},
         }
-        envelope = sign_envelope("delta", candidate, "absent" if binding == "missing" else "test-k1")
+        envelope = sign_envelope("delta", candidate, KID5 if binding == "missing" else KID1)
         if binding == "bad signature":
             envelope["sig"]["value"] = b64u(Ed25519PrivateKey.from_private_bytes(bytes([99]) * 32).sign(rfc8785.dumps(candidate)))
         errors = []
@@ -4018,7 +4075,7 @@ def delta_field_vectors():
 
     def add(name, inner, allowed=(), envelope_changes=None):
         for damaged in (False, True):
-            envelope = sign_envelope("delta", inner, "test-k1")
+            envelope = sign_envelope("delta", inner, KID1)
             envelope = json.loads(json.dumps(envelope))
             if damaged:
                 envelope["sig"]["value"] = b64u(
@@ -4163,7 +4220,7 @@ def delta_field_vectors():
         inner = json.loads(json.dumps(base))
         if malformed:
             inner["change_type"] = "replace"
-        doc = sign_envelope("delta", inner, "test-k1")
+        doc = sign_envelope("delta", inner, KID1)
         actual_id = "sha256:" + sha256_hex(rfc8785.dumps(inner))
         transports.append({"envelope": doc, "requested_id": "sha256:" + "0" * 64 if wrong_id else actual_id,
                            "feed_domain": "other.example" if foreign else "example.com",
@@ -4185,9 +4242,8 @@ def delta_attribution_vectors():
     parent, child, external = "example.com", "child.example.com", "elsewhere.example"
     url = "https://child.example.com/page"
 
-    def binding(key, identifier="shared", valid_from="2026-08-01T00:00:00Z"):
-        return {"key_id": identifier, "alg": "Ed25519", "public_key": b64u(raw_public(key)),
-                "valid_from": valid_from}
+    def binding(key, nbf="2026-08-01T00:00:00Z"):
+        return jwk(raw_public(key), nbf)
 
     def declaration(domain, key, extra=(), **fields):
         inner = {"wist_version": "1.0.0", "domain": domain, "seq": 0,
@@ -4195,16 +4251,16 @@ def delta_attribution_vectors():
         if domain != child:
             inner["subdomain_scope"] = [child]
         inner.update(fields)
-        return sign_envelope_with(key, "publisher", inner, "shared")
+        return sign_envelope_with(key, "publisher", inner, kid_of(raw_public(key)))
 
     def signed(domain, key, **fields):
         inner = dict(delta, publisher=domain, url=url)
         inner.update(fields)
-        return sign_envelope_with(key, "delta", inner, "shared")
+        return sign_envelope_with(key, "delta", inner, kid_of(raw_public(key)))
 
     shared = [declaration(domain, keys[0]) for domain in (parent, child)]
     distinct = [shared[0], declaration(child, keys[1])]
-    copied = [shared[0], declaration(child, keys[1], [binding(keys[0], "copied")])]
+    copied = [shared[0], declaration(child, keys[1], [binding(keys[0])])]
     cases = []
 
     def add(name, declarations, envelopes, outcomes, **extra):
@@ -4219,8 +4275,8 @@ def delta_attribution_vectors():
         [signed(parent, keys[0])], ["accepted"])
     changed = signed(parent, keys[0]); changed["delta"]["publisher"] = child
     add("author tampering requires a new signature even with shared keys", shared, [changed], ["WIST1-E01"])
-    alias = signed(parent, keys[0]); alias["sig"]["key_id"] = "copied"
-    add("unsigned alias cannot borrow another domain's key", copied, [alias], ["WIST1-E02"])
+    unlisted = signed(parent, keys[0]); unlisted["sig"]["key_id"] = kid_of(raw_public(keys[1]))
+    add("unlisted identifier cannot borrow another domain's key", copied, [unlisted], ["WIST1-E02"])
     add("unknown author cannot borrow a scoped matching key", shared,
         [signed("unknown.example", keys[0])], ["WIST1-E02"])
     add("another domain's matching identifier does not suppress author", distinct,
@@ -4230,13 +4286,15 @@ def delta_attribution_vectors():
     no_scope = declaration(parent, keys[0], subdomain_scope=[])
     add("another author's scope supplies no authority", [no_scope, shared[1]],
         [signed(parent, keys[0])], ["WIST1-E03"])
-    future = declaration(parent, keys[0], keys=[binding(keys[0], valid_from="2026-08-03T00:00:00Z")])
+    future = declaration(parent, keys[0], keys=[binding(keys[0], nbf="2026-08-03T00:00:00Z")])
     add("another author's earlier key supplies no bound", [future, shared[1]],
         [signed(parent, keys[0])], ["WIST1-E02"])
-    excluded = declaration(parent, keys[1], keys=[binding(keys[1], "own"),
-        dict(binding(keys[0]), public_key=b64u(b"\x01" + bytes(31)))])
-    excluded = sign_envelope_with(keys[1], "publisher", excluded["publisher"], "own")
-    add("excluded author binding cannot borrow copied usable key", [excluded, shared[1]],
+    expired = declaration(parent, keys[0], keys=[dict(binding(keys[0]), exp=nbf_at("2026-08-01T12:00:00Z"))])
+    add("another author's unexpired key supplies no bound", [expired, shared[1]],
+        [signed(parent, keys[0])], ["WIST1-E02"])
+    excluded = declaration(parent, keys[1], keys=[binding(keys[1]),
+        jwk(b"\x01" + bytes(31), "2026-08-01T00:00:00Z")])
+    add("excluded author entry cannot borrow another domain's usable key", [excluded, shared[1]],
         [signed(parent, keys[0])], ["WIST1-E02"])
     for host in ("a", "xn--bcher-kva.example", "ab--cd.example"):
         add("canonical host " + host, [declaration(host, keys[0])],
@@ -4249,7 +4307,7 @@ def delta_attribution_vectors():
         env["delta"]["publisher"] = host
         if name == "missing":
             del env["delta"]["publisher"]
-        env = sign_envelope_with(keys[0], "delta", env["delta"], "absent")
+        env = sign_envelope_with(keys[0], "delta", env["delta"], kid_of(raw_public(keys[7])))
         add("Publisher field " + name, shared, [env], ["WIST1-E14"])
     valid = signed(parent, keys[0])
     for feed_domain, seen, redirected, expected in [
@@ -4267,14 +4325,14 @@ def delta_attribution_vectors():
     start = datetime.datetime(2026, 8, 2, 12, tzinfo=datetime.timezone.utc)
     def timestamp(height):
         return (start + datetime.timedelta(hours=height)).isoformat().replace("+00:00", "Z")
-    first = declaration(parent, keys[0], recovery_keys=[binding(keys[7], "recovery")])
-    def replacement(previous, key, signer, signer_id="shared", **fields):
+    first = declaration(parent, keys[0], recovery_keys=[binding(keys[7])])
+    def replacement(previous, key, signer, **fields):
         inner = dict(previous["publisher"], seq=previous["publisher"]["seq"] + 1,
                      prev_declaration=decl_hash(previous["publisher"]), keys=[binding(key)])
         inner.update(fields)
-        return sign_envelope_with(signer, "publisher", inner, signer_id)
+        return sign_envelope_with(signer, "publisher", inner, kid_of(raw_public(signer)))
     ordinary = replacement(first, keys[2], keys[0])
-    owner = replacement(ordinary, keys[3], keys[7], "recovery")
+    owner = replacement(ordinary, keys[3], keys[7])
     competitor = replacement(owner, keys[4], keys[4])
     follower = replacement(owner, keys[5], keys[3], seq=4)
     reset = replacement(follower, keys[6], keys[6], seq=5)
@@ -4292,7 +4350,8 @@ def delta_attribution_vectors():
             if parent in tips:
                 env["delta"].pop("payload")
                 env["delta"].update(change_type="attest", prev=tips[parent])
-                env = sign_envelope_with(authors_at[height], "delta", env["delta"], "shared")
+                env = sign_envelope_with(authors_at[height], "delta", env["delta"],
+                                         kid_of(raw_public(authors_at[height])))
             entries.append({"type": "publisher_delta", "body": env})
             tips[parent] = decl_hash(env["delta"]); envelopes[height] = env
         if height == 0:
@@ -4312,7 +4371,7 @@ def delta_attribution_vectors():
                 env = signed(domain, key, observed_at=timestamp(height + 1), prev=tips[domain])
                 env["delta"].pop("payload"); env["delta"]["change_type"] = "attest"
                 env["delta"].update(fields)
-                env = sign_envelope_with(key, "delta", env["delta"], "shared")
+                env = sign_envelope_with(key, "delta", env["delta"], kid_of(raw_public(key)))
                 probes.append(dict(name=name, height=height, stage=stage, envelope=env, expected=expected))
             key = keys[3] if height in (3, 4) else authors_at[height]
             probe("same author continues at " + str(height), parent, key, "accepted")
@@ -4323,13 +4382,13 @@ def delta_attribution_vectors():
                                stage="admission" if height in (3, 4) else "sealing", envelope=env, expected="WIST1-E07"))
             if height in (3, 4):
                 for candidate, expected in [(keys[2], "accepted"), (keys[3], "accepted"),
-                                            (keys[4], "WIST1-E01"), (keys[5], "WIST1-E01")]:
+                                            (keys[4], "WIST1-E02"), (keys[5], "WIST1-E02")]:
                     probe("frozen recovery sources at " + str(height) + " " + str(len(probes)),
                           parent, candidate, expected, stage="admission")
                 probe("foreign recovery source cannot authorize child " + str(height),
-                      child, keys[2], "WIST1-E01", stage="admission")
+                      child, keys[2], "WIST1-E02", stage="admission")
             if height == 170:
-                probe("expired recovery union", parent, keys[2], "WIST1-E01", stage="admission")
+                probe("expired recovery union", parent, keys[2], "WIST1-E02", stage="admission")
     versions = []
     for name, version, mutation, expected in [
             ("current draft", "1.0.0", None, "accepted"),
@@ -4339,7 +4398,7 @@ def delta_attribution_vectors():
         env = signed(parent, keys[0], wist_version=version)
         if mutation == "missing": del env["delta"]["publisher"]
         if mutation == "unknown": env["delta"]["extra"] = True
-        env = sign_envelope_with(keys[0], "delta", env["delta"], "shared")
+        env = sign_envelope_with(keys[0], "delta", env["delta"], kid_of(raw_public(keys[0])))
         versions.append(dict(name=name, envelope=env, expected=expected))
     return dict(
         note="WIST-1 sections 3.1, 3.5 and 3.8, WIST-2 section 5 and WIST-3 section 7. "
@@ -4353,7 +4412,8 @@ def delta_attribution_vectors():
              "the Publisher identity current at at_height is the one that signed at reference_height. "
              "Version cases assume a validator of this exact draft implementing only wire major 1.",
         cases=cases, log_key=dict(key_id="log-key", public_key=b64u(pub_raw)),
-        recovery_window_days=7, blocks=blocks, pinned_head=previous, probes=probes,
+        recovery_window_days=7, declaration_activation_blocks=0, blocks=blocks,
+        pinned_head=previous, probes=probes,
         projection_cases=[
             dict(at_height=4, reference_height=0, publisher=parent, expected_current_identity=True),
             dict(at_height=170, reference_height=0, publisher=parent, expected_current_identity=True),
@@ -4371,8 +4431,8 @@ def recovery_scope_vectors():
         ("wist recovery scope " + name).encode()).digest())
         for name in ("old", "owner", "competitor", "recovery", "admin")}
     start = datetime.datetime(2026, 8, 2, tzinfo=datetime.timezone.utc)
-    early = "2026-08-02T00:00:00.0000000001Z"
-    later = "2026-08-02T00:00:00.0000000002Z"
+    early = "2026-08-02T00:00:00Z"
+    later = "2026-08-02T00:00:01Z"
     domain = "example.com"
     hosts = [domain, "old.example", "owner.example", "retained.example",
              "follower.example", "competitor.example", "stale.example"]
@@ -4380,37 +4440,38 @@ def recovery_scope_vectors():
     def timestamp(height):
         return (start + datetime.timedelta(hours=height)).isoformat().replace("+00:00", "Z")
 
-    def binding(name, identifier="shared", valid_from=early):
-        return dict(key_id=identifier, alg="Ed25519", public_key=b64u(raw_public(keys[name])),
-                    valid_from=valid_from)
+    kids = {name: kid_of(raw_public(key)) for name, key in keys.items()}
+
+    def binding(name, nbf=early):
+        return jwk(raw_public(keys[name]), nbf)
 
     histories, probes = {}, []
     for shared in (False, True):
         name = "shared public key with distinct bounds" if shared else "distinct source public keys"
         owner_key = "old" if shared else "owner"
-        owner_binding = binding(owner_key, valid_from=later if shared else early)
+        owner_binding = binding(owner_key, nbf=later if shared else early)
         initial = sign_envelope_with(keys["old"], "publisher", dict(
             wist_version="1.0.0", domain=domain, seq=0, keys=[binding("old")],
-            recovery_keys=[binding("recovery", "recovery")], subdomain_scope=["stale.example"]), "shared")
+            recovery_keys=[binding("recovery")], subdomain_scope=["stale.example"]), kids["old"])
 
-        def replace(previous, seq, bindings, scope, signer, identifier="shared"):
+        def replace(previous, seq, bindings, scope, signer):
             inner = dict(previous["publisher"], seq=seq,
                          prev_declaration=decl_hash(previous["publisher"]),
                          keys=bindings, subdomain_scope=scope)
-            return sign_envelope_with(keys[signer], "publisher", inner, identifier)
+            return sign_envelope_with(keys[signer], "publisher", inner, kids[signer])
 
         prior = replace(initial, 1, [binding("old")],
                         ["old.example", "retained.example"], "old")
-        owner = replace(prior, 2, [owner_binding, binding("admin", "admin")],
-                        ["owner.example", "retained.example"], "recovery", "recovery")
+        owner = replace(prior, 2, [owner_binding, binding("admin")],
+                        ["owner.example", "retained.example"], "recovery")
         competitor = replace(owner, 3, [binding("competitor")],
                              ["competitor.example"], "competitor")
-        follower = replace(owner, 4, [owner_binding, binding("admin", "admin")],
-                           ["old.example", "retained.example", "follower.example"], "admin", "admin")
+        follower = replace(owner, 4, [owner_binding, binding("admin")],
+                           ["old.example", "retained.example", "follower.example"], "admin")
         latest = replace(follower, 5, [binding("competitor")], [], "competitor")
-        deadline = replace(follower, 6, [owner_binding], [], "admin", "admin")
+        deadline = replace(follower, 6, [owner_binding], [], "admin")
         deadline["publisher"].pop("subdomain_scope")
-        deadline = sign_envelope_with(keys["admin"], "publisher", deadline["publisher"], "admin")
+        deadline = sign_envelope_with(keys["admin"], "publisher", deadline["publisher"], kids["admin"])
         restored = replace(deadline, 7, [owner_binding], hosts[1:], owner_key)
         declarations = {0: [initial], 1: [prior, owner], 2: [competitor], 3: [follower],
                         168: [latest], 169: [deadline], 170: [restored]}
@@ -4427,9 +4488,10 @@ def recovery_scope_vectors():
         histories[name] = dict(blocks=blocks, pinned_head=previous)
 
         def add(label, height, stage, signer, host, expected, observed_at=later,
-                identifier="shared", damage=None):
+                identifier=None, damage=None):
             env = sign_envelope_with(keys[signer], "delta", dict(delta,
-                publisher=domain, url="https://" + host + "/scope", observed_at=observed_at), identifier)
+                publisher=domain, url="https://" + host + "/scope", observed_at=observed_at),
+                identifier or kids[signer])
             if damage == "signature":
                 env["sig"]["value"] = b64u(bytes(64))
             elif damage == "encoding":
@@ -4445,11 +4507,13 @@ def recovery_scope_vectors():
                 for host in hosts:
                     add(f"frozen source {signer} {host} at {height}", height, "admission", signer, host,
                         "accepted" if host in allowed else "WIST1-E03")
-            add(f"competitor signature at {height}", height, "admission", "competitor", domain, "WIST1-E01")
+            add(f"competitor signature at {height}", height, "admission", "competitor", domain, "WIST1-E02")
+            add(f"forged signature under the old identifier at {height}", height, "admission", "competitor",
+                domain, "WIST1-E01", identifier=kids["old"])
             add(f"unknown identifier at {height}", height, "admission", "old", domain, "WIST1-E02",
-                identifier="unknown")
+                identifier=KID5)
             add(f"malformed signature field at {height}", height, "admission", "old", domain, "WIST1-E14",
-                identifier="unknown", damage="encoding")
+                identifier=KID5, damage="encoding")
         if shared:
             for height in (1, 3, 168):
                 add(f"scope cannot borrow future binding at {height}", height, "admission", "old",
@@ -4457,7 +4521,9 @@ def recovery_scope_vectors():
                 add(f"eligible old source at {height}", height, "admission", "old", "old.example",
                     "accepted", observed_at=early)
                 add(f"inclusive owner bound at {height}", height, "admission", "old", "owner.example",
-                    "accepted", observed_at="2026-08-02t01:00:00.000000000200+01:00")
+                    "accepted", observed_at="2026-08-02t01:00:01.000+01:00")
+                add(f"fraction below owner bound at {height}", height, "admission", "old", "owner.example",
+                    "WIST1-E03", observed_at="2026-08-02T00:00:00.999999999999Z")
         for host in (domain, "owner.example", "retained.example"):
             expected = "WIST1-E13" if host == "owner.example" else "accepted"
             add("owner queued copy settlement " + host, 169, "settlement", owner_key, host, expected)
@@ -4491,7 +4557,7 @@ def recovery_scope_vectors():
         "inputs, not claimed live validation times. Chains, clocks, Payload, quotas, durable queue/status "
         "effects and actual Delta inclusion are not exercised. Trusted Log key and pinned heads are "
         "fixture inputs. Signature-invalid twins are checked independently by the reference.",
-        log_key=dict(key_id="log-key", public_key=b64u(pub_raw)), recovery_window_days=7,
+        log_key=dict(key_id="log-key", public_key=b64u(pub_raw)), recovery_window_days=7, declaration_activation_blocks=0,
         histories=histories, probes=probes)
 
 
@@ -4506,13 +4572,11 @@ def declaration_refresh_vectors():
     signing = [Ed25519PrivateKey.from_private_bytes(seed) for seed in seeds]
 
     def signed(inner, body, key, identifier=None):
-        return {inner: body, "sig": {"key_id": identifier or f"k{key + 1}",
+        return {inner: body, "sig": {"key_id": identifier or kid_of(raw_public(signing[key])),
             "alg": "Ed25519", "value": b64u(signing[key].sign(rfc8785.dumps(body)))}}
 
-    def binding(key, identifier=None, at="2026-08-09T00:00:00Z"):
-        return dict(key_id=identifier or f"k{key + 1}", alg="Ed25519",
-            public_key=b64u(signing[key].public_key().public_bytes(
-                serialization.Encoding.Raw, serialization.PublicFormat.Raw)), valid_from=at)
+    def binding(key, at="2026-08-09T00:00:00Z"):
+        return jwk(raw_public(signing[key]), at)
 
     def declaration(keys, previous=None, signer=0):
         body = dict(wist_version="1.0.0", domain=domain, keys=keys,
@@ -4547,14 +4611,14 @@ def declaration_refresh_vectors():
                 rejected=[[ids[i], code] for i, code in errors], suspended=suspended,
                 declaration_requests=1 + len(responses))))
 
-    add("absent identifier rotation", [delta_object("a", 1)], [rotated])
-    reused = declaration([binding(1, "k1")], original)
-    add("reused identifier rotation", [delta_object("a", 1, "k1")], [reused])
+    add("unlisted key rotation", [delta_object("a", 1)], [rotated])
     future = declaration([binding(0), binding(1, at="2026-08-10T00:00:00Z")])
     add("future binding replacement", [delta_object("a", 1)],
         [declaration([binding(1)], future)], initial=future)
-    excluded_key = binding(1)
-    excluded_key["public_key"] = b64u(bytes([1]) + bytes(31))
+    expired = declaration([binding(0), dict(binding(1), exp=nbf_at("2026-08-09T12:00:00Z"))])
+    add("expired binding replacement", [delta_object("a", 1)],
+        [declaration([binding(1)], expired)], initial=expired)
+    excluded_key = jwk(bytes([1]) + bytes(31), "2026-08-09T00:00:00Z")
     excluded = declaration([binding(0), excluded_key])
     add("excluded binding replacement", [delta_object("a", 1)],
         [declaration([binding(1)], excluded)], initial=excluded)
@@ -4634,7 +4698,7 @@ def feed_field_vectors():
 
     def add(name, body=None, *, expected="accepted", mutate=None, live=True):
         body = dict(base) if body is None else body
-        doc = sign_envelope("feed", body, "test-k1")
+        doc = sign_envelope("feed", body, KID1)
         if mutate:
             mutate(doc)
         try:
@@ -4706,8 +4770,7 @@ def feed_field_vectors():
         mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
     add("bad signature", expected="signature", mutate=lambda doc: doc["sig"].update(value=b64u(bytes(64))))
     source = sign_envelope("publisher", dict(wist_version="1.0.0", domain="localhost", seq=0,
-        keys=[dict(key_id="test-k1", alg="Ed25519", public_key=b64u(pub_raw),
-                   valid_from="2026-08-09T00:00:00Z")]), "test-k1")
+        keys=[jwk(pub_raw, "2026-08-09T00:00:00Z")]), KID1)
     return dict(description="Feed Envelope field and identity precedence under WIST-2 section 5. "
                 "Serve each live candidate unchanged after the supplied Declaration, re-serving that "
                 "Declaration on retry. Field checks also apply to Pages; these supplied-context probes "
@@ -4731,7 +4794,7 @@ def feed_next_vectors():
 
     def add(name, next_value, expected, body=None, *, live=True, seen=(), mutate=None):
         body = dict(base if body is None else body, next=next_value)
-        doc = sign_envelope("feed", body, "test-k1")
+        doc = sign_envelope("feed", body, KID1)
         if mutate:
             mutate(doc)
         cases.append(dict(name=name, envelope=doc, live=live, seen=list(seen), expected=expected,
@@ -4788,8 +4851,7 @@ def feed_next_vectors():
         dict(base, generated_at="2026-08-09T13:00:00Z"), live=False)
     source = sign_envelope("publisher", dict(wist_version="1.0.0", domain=host, seq=0,
         subdomain_scope=["www.localhost"],
-        keys=[dict(key_id="test-k1", alg="Ed25519", public_key=b64u(pub_raw),
-                   valid_from="2026-08-09T00:00:00Z")]), "test-k1")
+        keys=[jwk(pub_raw, "2026-08-09T00:00:00Z")]), KID1)
     return dict(description="Feed and Page next targets under WIST-2 section 3.2. Each case is the "
                 "object the walk reached, live or sealed, after the supplied Declaration; seen lists "
                 "the Delta IDs already seen and retained_generated_at the durable live-Feed "
@@ -4813,7 +4875,7 @@ def feed_regression_vectors():
         body = dict(wist_version="1.0.0", domain=domain, generated_at=at, deltas=[], next=None)
         if extra:
             body["extra"] = True
-        doc = sign_envelope("feed", body, "test-k1")
+        doc = sign_envelope("feed", body, KID1)
         if bad_signature:
             doc["sig"]["value"] = b64u(bytes(64))
         retained_s = None
@@ -4919,18 +4981,18 @@ def delta_cap_time_vectors():
                             meta=dict(lang='en'), payload=dict(
                                 commitment='hmac-sha256:' + hmac.new(salt, raw, hashlib.sha256).hexdigest(),
                                 alg='HMAC-SHA256', bytes=len(raw)))
-                objects[name] = dict(envelope=sign_envelope('delta', body, 'test-k1'), payload=payload,
+                objects[name] = dict(envelope=sign_envelope('delta', body, KID1), payload=payload,
                                      id=decl_hash(body), sealed_height=168 if cohort == 'early' else 338)
 
     anchor = objects['early extract_cap_bytes 1']
     attestation_body = dict(wist_version='1.0.0', publisher='example.com',
                             url=anchor['envelope']['delta']['url'], change_type='attest',
                             observed_at=at(169 * 3600), meta=dict(lang='en'), prev=anchor['id'])
-    attestation = sign_envelope('delta', attestation_body, 'test-k1')
+    attestation = sign_envelope('delta', attestation_body, KID1)
     replacement = objects['later extract_cap_bytes 1']
     body = dict(replacement['envelope']['delta'], url=attestation_body['url'], change_type='update',
                 observed_at=at(337 * 3600), prev=decl_hash(attestation_body))
-    replacement.update(envelope=sign_envelope('delta', body, 'test-k1'), id=decl_hash(body))
+    replacement.update(envelope=sign_envelope('delta', body, KID1), id=decl_hash(body))
 
     ranks = dict(publisher_declaration=0, registry_update=1, publisher_delta=2)
 
@@ -4947,7 +5009,7 @@ def delta_cap_time_vectors():
     for height in range(509):
         entries = []
         if height == 0:
-            entries.append(dict(type='publisher_declaration', body=sign_envelope('publisher', publisher, 'test-k1')))
+            entries.append(dict(type='publisher_declaration', body=sign_envelope('publisher', publisher, KID1)))
         if height == 169:
             entries.append(dict(type='publisher_delta', body=attestation))
         for seal, effective, values, links_only in schedule:
@@ -5003,7 +5065,7 @@ def delta_cap_time_vectors():
                 body.update(change_type='new', url='https://example.com/invalid/extract',
                             observed_at='2026-08-04T01:00:00Z')
                 del body['prev']
-            envelope = sign_envelope('delta', body, 'test-k1')
+            envelope = sign_envelope('delta', body, KID1)
             candidate = block(169, decl_hash(blocks[168]['header']),
                               [dict(type='publisher_delta', body=envelope)])
             invalid_blocks.append(dict(name=name, block=candidate, pinned_head=decl_hash(candidate['header']),
@@ -5059,7 +5121,7 @@ def payload_link_vectors():
                     change_type='new', observed_at='2026-08-09T12:00:00Z', meta=dict(lang='en'),
                     payload=dict(commitment='hmac-sha256:' + hmac.new(salt, rfc8785.dumps(content), hashlib.sha256).hexdigest(),
                                  alg='HMAC-SHA256', bytes=len(rfc8785.dumps(content))))
-        cases.append(dict(name=name, envelope=sign_envelope('delta', body, 'test-k1'), payload=payload, expected=expected))
+        cases.append(dict(name=name, envelope=sign_envelope('delta', body, KID1), payload=payload, expected=expected))
     return dict(spec='WIST-1 section 3.6; WIST-2 section 5', public_key=b64u(pub_raw), cases=cases)
 
 
@@ -5090,7 +5152,7 @@ def payload_field_vectors():
                     observed_at='2026-08-09T12:00:00Z', meta=dict(lang='en'),
                     payload=dict(commitment=commitment,
                                  alg='HMAC-SHA256', bytes=len(encoded) + int(wrong_length)))
-        case = dict(name=name, envelope=sign_envelope('delta', body, 'test-k1'),
+        case = dict(name=name, envelope=sign_envelope('delta', body, KID1),
                     payload=payload, allowed=sorted(allowed), preimage=dict(salt=b64u(salt), content=content))
         if caps:
             caps = dict(caps)
@@ -5238,11 +5300,11 @@ def delta_clock_time_vectors():
     for hour, value in changes:
         update = dict(wist_version='1.0.0', action='parameter_change', subject='clock_skew_seconds',
                       details=dict(parameter='clock_skew_seconds', value=value), effective_at=at(hour * 3600))
-        amendments.append(dict(sealed_at=at(0), envelope=sign_envelope('update', update, 'test-k1'), accepted=True))
+        amendments.append(dict(sealed_at=at(0), envelope=sign_envelope('update', update, KID1), accepted=True))
     for label, effective, value in [('bad signature', 168 * 3600, 9000), ('short grace', 3600, 9999)]:
         update = dict(wist_version='1.0.0', action='parameter_change', subject='clock_skew_seconds',
                       details=dict(parameter='clock_skew_seconds', value=value), effective_at=at(effective))
-        signed = sign_envelope('update', update, 'test-k1')
+        signed = sign_envelope('update', update, KID1)
         if label == 'bad signature':
             signed['sig']['value'] = b64u(bytes(64))
         amendments.append(dict(sealed_at=at(0), envelope=signed, accepted=False))
@@ -5254,7 +5316,7 @@ def delta_clock_time_vectors():
 
     def add(name, stage, clock_s, observed, expected, **context):
         body = dict(delta, observed_at=observed, url='https://example.com/clock/' + str(len(probes)))
-        probes.append(dict(name=name, stage=stage, envelope=sign_envelope('delta', body, 'test-k1'),
+        probes.append(dict(name=name, stage=stage, envelope=sign_envelope('delta', body, KID1),
                            expected_clock=at(clock_s), expected_allowance=allowance(clock_s),
                            expected=expected, **context))
 
@@ -5443,3 +5505,233 @@ def fetch_bounds_vectors():
 
 
 write_json(ROOT / "vectors" / "wist2" / "fetch-bounds.json", fetch_bounds_vectors())
+
+# ------------------------------------------- WIST-1 §5.1/§5.2: key directory
+def fingerprint_of(entries):
+    """WIST-1 §5.1 Key Set fingerprint: sha256 over the JCS array of kids in byte order."""
+    kids = sorted(entry["kid"] for entry in entries)
+    return "sha256:" + sha256_hex(rfc8785.dumps(kids))
+
+
+def key_directory_vectors():
+    start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
+
+    def timestamp(hour, seconds=0):
+        return (start + datetime.timedelta(hours=hour, seconds=seconds)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    rfc8037_x = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+    thumbprints = [{"name": "RFC 8037 appendix A.3 key", "x": rfc8037_x,
+                    "kid": kid_of(base64.urlsafe_b64decode(rfc8037_x + "="))}]
+    for name, raw in (("fixture signing key", pub_raw), ("fixture recovery key", pub2_raw),
+                      ("second signing key", pub3_raw), ("second recovery key", pub4_raw)):
+        thumbprints.append({"name": name, "x": b64u(raw), "kid": kid_of(raw)})
+    fingerprints = [
+        {"name": "example Declaration signing set", "kids": [KID1], "fingerprint": fingerprint_of(publisher["keys"])},
+        {"name": "two keys listed in reverse byte order", "kids": sorted([KID1, KID3], reverse=True),
+         "fingerprint": fingerprint_of([{"kid": KID1}, {"kid": KID3}])},
+    ]
+    dns_record = {"domain": "example.com", "name": "_wist.example.com",
+                  "txt": "v=wist1; keys=" + fingerprint_of(publisher["keys"])}
+
+    entry_cases = []
+    def entry(name, inner, signer, kid, expected):
+        entry_cases.append({"name": name, "envelope": sign_envelope_with(signer, "publisher", inner, kid),
+                            "expected": expected})
+    k1 = publisher["keys"][0]
+    entry("thumbprint of another key", variant(keys=[dict(k1, kid=KID3)]), priv, KID3, "WIST1-E14")
+    entry("thumbprint with one character changed", variant(keys=[dict(k1, kid=("A" if KID1[0] != "A" else "B") + KID1[1:])]),
+          priv, KID1, "WIST1-E14")
+    entry("recovery thumbprint of another key", variant(recovery_keys=[dict(publisher["recovery_keys"][0], kid=KID4)]),
+          priv, KID1, "WIST1-E14")
+    entry("exp equal to nbf", variant(keys=[dict(k1, exp=k1["nbf"])]), priv, KID1, "WIST1-E14")
+    entry("exp below nbf", variant(keys=[dict(k1, exp=k1["nbf"] - 1)]), priv, KID1, "WIST1-E14")
+    entry("exp one second after nbf", variant(keys=[dict(k1, exp=k1["nbf"] + 1)]), priv, KID1, "initial")
+    entry("recovery entry with exp", variant(recovery_keys=[dict(publisher["recovery_keys"][0], exp=k1["nbf"] + 86400)]),
+          priv, KID1, "initial")
+    entry("same key twice with distinct windows", variant(keys=[k1, dict(k1, nbf=k1["nbf"] + 1)]), priv, KID1, "WIST1-E08")
+    entry("same key in both sets", variant(recovery_keys=[dict(k1, nbf=k1["nbf"] + 1)]), priv, KID1, "WIST1-E08")
+    entry("extra member alg", variant(keys=[dict(k1, alg="Ed25519")]), priv, KID1, "WIST1-E14")
+    entry("next keys well formed", variant(next_keys=fingerprint_of([{"kid": KID3}])), priv, KID1, "initial")
+    entry("next keys malformed", variant(next_keys="sha256:" + "0" * 63), priv, KID1, "WIST1-E14")
+
+    window_cases = []
+    base_nbf = nbf_at(timestamp(10))
+    def window(name, keys, signer, kid, observed_at, expected):
+        declaration = sign_envelope_with(priv, "publisher", variant(keys=keys), KID1)
+        inner = dict(delta, url="https://example.com/key-directory", observed_at=observed_at)
+        window_cases.append({"name": name, "declaration": declaration,
+                             "envelope": sign_envelope_with(signer, "delta", inner, kid), "expected": expected})
+    bounded = [jwk(pub_raw, base_nbf, base_nbf + 3600)]
+    window("half a second before nbf", bounded, priv, KID1, timestamp(10, -1)[:-1] + ".5Z", "WIST1-E02")
+    window("at nbf", bounded, priv, KID1, timestamp(10), "accepted")
+    window("fraction after nbf", bounded, priv, KID1, timestamp(10)[:-1] + ".000000000000000000001Z", "accepted")
+    window("half a second before exp", bounded, priv, KID1, timestamp(10, 3599)[:-1] + ".5Z", "accepted")
+    window("at exp", bounded, priv, KID1, timestamp(11), "WIST1-E02")
+    window("fraction after exp", bounded, priv, KID1, timestamp(11)[:-1] + ".000000000000000000001Z", "WIST1-E02")
+    window("offset spelling inside window", bounded, priv, KID1, "2026-08-04T07:30:00-03:00", "accepted")
+    window("offset spelling at exp", bounded, priv, KID1, "2026-08-04T12:00:00+01:00", "WIST1-E02")
+    window("valid signature outside window", bounded, priv, KID1, timestamp(12), "WIST1-E02")
+    overlap = [jwk(pub_raw, base_nbf - 86400, base_nbf + 3600), jwk(pub3_raw, base_nbf + 1800)]
+    window("overlap outgoing key before its exp", overlap, priv, KID1, timestamp(10, 1800), "accepted")
+    window("overlap outgoing key at its exp", overlap, priv, KID1, timestamp(11), "WIST1-E02")
+    window("overlap incoming key before its nbf", overlap, priv3, KID3, timestamp(10, 1799)[:-1] + ".999Z", "WIST1-E02")
+    window("overlap incoming key at its nbf", overlap, priv3, KID3, timestamp(10, 1800), "accepted")
+    window("overlap incoming key without exp far later", overlap, priv3, KID3, "2030-01-01T00:00:00Z", "accepted")
+    window("overlap outgoing key signature under incoming kid", overlap, priv, KID3, timestamp(10, 1800), "WIST1-E01")
+    window("nbf zero admits the epoch", [jwk(pub_raw, 0)], priv, KID1, "1970-01-01T00:00:00Z", "accepted")
+    window("instant before the epoch precedes every nbf", [jwk(pub_raw, 0)], priv, KID1, "1969-12-31T23:59:59.999Z", "WIST1-E02")
+    window("nbf at the last NumericDate", [jwk(pub_raw, 253402300799)], priv, KID1, "9999-12-31T23:59:59Z", "accepted")
+    window("recovery only key supplies no authority", bounded, priv2, KID2, timestamp(10), "WIST1-E02")
+
+    commitment_cases = []
+    committed = variant(next_keys=fingerprint_of([{"kid": KID3}]))
+    committed_hash = decl_hash(committed)
+    def commitment(name, stored, fetched, signer, kid, expected):
+        commitment_cases.append({"name": name, "stored": sign_envelope_with(priv, "publisher", stored, KID1),
+                                 "fetched": sign_envelope_with(signer, "publisher", fetched, kid), "expected": expected})
+    history_nbf = nbf_at(timestamp(0))
+    K3, K4 = jwk(pub3_raw, history_nbf), jwk(pub4_raw, history_nbf)
+    successor = dict(committed, seq=1, prev_declaration=committed_hash, keys=[K3])
+    del successor["next_keys"]
+    commitment("committed set installed", committed, successor, priv, KID1, "ordinary_rotation")
+    commitment("committed set installed with a new commitment", committed,
+               dict(successor, next_keys=fingerprint_of([{"kid": KID4}])), priv, KID1, "ordinary_rotation")
+    commitment("uncommitted set installed", committed, dict(successor, keys=[K4]), priv, KID1, "WIST1-E08")
+    commitment("committed set is exact", committed, dict(successor, keys=[k1, K3]), priv, KID1, "WIST1-E08")
+    commitment("signing set and commitment kept", committed,
+               dict(committed, seq=1, prev_declaration=committed_hash, contact="mailto:security@example.com"),
+               priv, KID1, "ordinary_rotation")
+    dropped = dict(committed, seq=1, prev_declaration=committed_hash)
+    del dropped["next_keys"]
+    commitment("commitment dropped without rotating", committed, dropped, priv, KID1, "WIST1-E08")
+    commitment("commitment changed without rotating", committed,
+               dict(committed, seq=1, prev_declaration=committed_hash, next_keys=fingerprint_of([{"kid": KID4}])),
+               priv, KID1, "WIST1-E08")
+    commitment("signing key window changed without rotating", committed,
+               dict(committed, seq=1, prev_declaration=committed_hash, keys=[dict(k1, exp=base_nbf + 86400)]),
+               priv, KID1, "ordinary_rotation")
+    commitment("recovery rotation overrides the commitment", committed,
+               dict(successor, keys=[K4]), priv2, KID2, "recovery_rotation")
+    commitment("fresh identity is not bound by the commitment", committed,
+               dict(successor, keys=[K4]), priv4, KID4, "fresh_identity")
+    commitment("commitment adopted by an ordinary rotation", publisher,
+               variant(seq=1, prev_declaration=stored_hash, next_keys=fingerprint_of([{"kid": KID3}])),
+               priv, KID1, "ordinary_rotation")
+
+    # Signed hourly Block histories for the activation delay.
+    initial = sign_envelope_with(priv, "publisher", publisher, KID1)
+    def signed(previous, seq, signer, kid, **changes):
+        inner = dict(previous["publisher"], seq=seq,
+                     prev_declaration=decl_hash(previous["publisher"]), **changes)
+        return sign_envelope_with(signer, "publisher", inner, kid)
+    fresh = signed(initial, 1, priv3, KID3, keys=[K3])
+    follower = signed(fresh, 2, priv3, KID3, keys=[K4])
+    reversal = signed(initial, 2, priv, KID1, contact="mailto:owner@example.com")
+    recovery_reversal = signed(initial, 2, priv2, KID2, keys=[K3], recovery_keys=[jwk(pub4_raw, base_nbf)])
+    below_floor = signed(initial, 1, priv, KID1, contact="mailto:owner@example.com")
+    fresh_beside_pending = signed(initial, 2, priv4, KID4, keys=[K4])
+    second_fresh = signed(fresh, 3, priv4, KID4, keys=[K4])
+
+    def history(events, length, **fields):
+        blocks, previous = [], "sha256:genesis"
+        for height in range(length):
+            entries = [recovery_order_entry(events[height])] if height in events else []
+            root = recovery_order_leaf(events[height]) if entries else hashlib.sha256(b"\x00").digest()
+            header = {"wist_version": "1.0.0", "block_number": height, "prev_block_hash": previous,
+                      "sealed_at": timestamp(height), "merkle_root": "sha256:" + root.hex(),
+                      "entry_count": len(entries)}
+            block = sign_envelope_with(priv, "header", header, "test-log-k1")
+            block["entries"] = entries
+            blocks.append(block)
+            previous = decl_hash(header)
+        return dict(blocks=blocks, pinned_head=previous, **fields)
+
+    def state(current, pending=None, activation=None, floor=0, reset=None, window_end=None):
+        return {"current_declaration": decl_hash(current["publisher"]),
+                "pending_head": decl_hash(pending["publisher"]) if pending else None,
+                "activation_height": activation, "highest_accepted_seq": floor,
+                "reset_height": reset, "window_end": window_end}
+
+    histories = {
+        "activated": history({0: initial, 2: fresh}, 28, expected_states=[
+            (1, state(initial)), (2, state(initial, fresh, 26, 1)), (25, state(initial, fresh, 26, 1)),
+            (26, state(fresh, floor=1, reset=26)), (27, state(fresh, floor=1, reset=26))]),
+        "pending follower": history({0: initial, 2: fresh, 3: follower}, 28, expected_states=[
+            (2, state(initial, fresh, 26, 1)), (3, state(initial, follower, 26, 2)),
+            (26, state(follower, floor=2, reset=26))]),
+        "reversed by a signing key": history({0: initial, 2: fresh, 4: reversal}, 28, expected_states=[
+            (3, state(initial, fresh, 26, 1)), (4, state(reversal, floor=2)), (26, state(reversal, floor=2)),
+            (27, state(reversal, floor=2))]),
+        "reversed by a recovery key": history({0: initial, 2: fresh, 4: recovery_reversal}, 6, expected_states=[
+            (3, state(initial, fresh, 26, 1)),
+            (4, state(recovery_reversal, floor=2, window_end=timestamp(4 + 168))),
+            (5, state(recovery_reversal, floor=2, window_end=timestamp(4 + 168)))]),
+        "activation delay zero": history({0: initial, 2: fresh}, 4, declaration_activation_blocks=0,
+                                         expected_states=[(1, state(initial)), (2, state(fresh, floor=1, reset=2)),
+                                                          (3, state(fresh, floor=1, reset=2))]),
+    }
+    for name, value in histories.items():
+        value["expected_states"] = [{"height": h, "state": s} for h, s in value["expected_states"]]
+    snapshot_tuples = [
+        {"history": "activated", "height": 3,
+         "declaration": ["declaration", "example.com", initial, 0, 1],
+         "pending_declaration": ["pending_declaration", "example.com", fresh, 2, 26]},
+        {"history": "pending follower", "height": 5,
+         "declaration": ["declaration", "example.com", initial, 0, 2],
+         "pending_declaration": ["pending_declaration", "example.com", follower, 3, 26]},
+        {"history": "activated", "height": 26,
+         "declaration": ["declaration", "example.com", fresh, 2, 1], "pending_declaration": None},
+        {"history": "reversed by a signing key", "height": 5,
+         "declaration": ["declaration", "example.com", reversal, 4, 2], "pending_declaration": None},
+    ]
+
+    def rejection(name, history_name, height, candidate, expected):
+        return {"name": name, "history": history_name, "prefix_height": height,
+                "candidate_sealed_at": timestamp(height + 1), "candidate": candidate, "expected": expected}
+    rejections = [
+        rejection("fresh identity naming current beside a pending head", "activated", 3, fresh_beside_pending, "WIST1-E08"),
+        rejection("reversal below the pending sequence floor", "activated", 3, below_floor, "WIST1-E08"),
+        rejection("fresh identity naming the pending head is accepted", "activated", 3, second_fresh, "fresh_identity"),
+        rejection("reversal after activation names a superseded predecessor", "activated", 26, reversal, "WIST1-E08"),
+        rejection("pending head cannot be named after reversal", "reversed by a signing key", 5, follower, "WIST1-E08"),
+        rejection("re-serve of the pending head installs nothing", "activated", 3, fresh, "idempotent"),
+    ]
+
+    delta_probes = []
+    def probe(name, history_name, height, signer, kid, expected):
+        inner = dict(delta, url="https://example.com/activation", observed_at=timestamp(height))
+        delta_probes.append({"name": name, "history": history_name, "prefix_height": height,
+                             "envelope": sign_envelope_with(signer, "delta", inner, kid), "expected": expected})
+    probe("pending key supplies no authority", "activated", 3, priv3, KID3, "WIST1-E02")
+    probe("current key keeps authority while pending", "activated", 3, priv, KID1, "accepted")
+    probe("activated key has authority", "activated", 26, priv3, KID3, "accepted")
+    probe("replaced key loses authority at activation", "activated", 26, priv, KID1, "WIST1-E02")
+    probe("reversed key never gains authority", "reversed by a signing key", 27, priv3, KID3, "WIST1-E02")
+    probe("owner key keeps authority after reversal", "reversed by a signing key", 27, priv, KID1, "accepted")
+    probe("follower key waits for activation", "pending follower", 4, priv4, KID4, "WIST1-E02")
+    probe("follower key has authority after activation", "pending follower", 27, priv4, KID4, "accepted")
+    probe("zero delay activates at once", "activation delay zero", 2, priv3, KID3, "accepted")
+
+    write_json(WIST1 / "key-directory.json", {
+        "note": "WIST-1 sections 5.1 and 5.2. thumbprints are RFC 7638 known answers; fingerprints and "
+                "dns_record apply the Key Set fingerprint. entry_cases are initial Declarations judged on "
+                "field and uniqueness rules. window_cases judge a Delta's key check under the supplied "
+                "Declaration alone: accepted means the named binding is inside its window and verifies. "
+                "commitment_cases evaluate fetched against stored as declaration-binding.json does. "
+                "Each history is an authenticated hourly Block chain; expected_states hold after the "
+                "named height applies, snapshot_tuples are the WIST-3 section 7 tuples at that height, "
+                "rejections apply a candidate to the next Block after prefix_height and must leave the "
+                "prefix state unchanged when rejected, and delta_probes judge only the key check against "
+                "the Declaration current after prefix_height. The parameter map is a trusted fixture "
+                "input; a history's own declaration_activation_blocks overrides the file default. No live "
+                "transport, queue, Payload or quota behavior is established.",
+        "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
+        "recovery_window_days": 7, "declaration_activation_blocks": 24,
+        "thumbprints": thumbprints, "fingerprints": fingerprints, "dns_record": dns_record,
+        "entry_cases": entry_cases, "window_cases": window_cases, "commitment_cases": commitment_cases,
+        "histories": histories, "snapshot_tuples": snapshot_tuples, "rejections": rejections,
+        "delta_probes": delta_probes})
+
+
+key_directory_vectors()
+print("wist1 key-directory vector written")

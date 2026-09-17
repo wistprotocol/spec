@@ -202,11 +202,12 @@ Storage order and application order are therefore decoupled, and
 **application order** is defined, not inherited: within a Block, apply
 `publisher_declaration` Entries first (for each domain, validate and apply
 them in ascending `seq`, after settling any recovery window whose end is
-at or before this Block's `sealed_at`; WIST-1 §5.2 retains the highest
+at or before this Block's `sealed_at` and activating any pending head
+whose activation height is this Block's; WIST-1 §5.2 retains the highest
 accepted sequence through settlement and selects a recovery window's owner in
 ascending `(Block height, seq)` order, so intra-Block storage position
 never decides between them; a fresh Declaration applied before that owner
-resets identity, while an in-window fresh competitor does not),
+becomes pending, while an in-window fresh competitor does not),
 with equal-sequence groups handled by WIST-1 §5.2: conflicting first-install
 Envelopes invalidate the entire Block under `WIST1-E08`; current-Declaration
 re-serves and exact duplicates install no additional state or signature.
@@ -1156,6 +1157,7 @@ value fields are:
 |---|---|---|---|
 | `aggregator_key` | `key_id` | `public_key`, added height, removed height or `null` | §3.4 |
 | `declaration` | domain | the current Declaration Envelope, its sealing height, the highest accepted `seq` | WIST-1 §5 |
+| `pending_declaration` | domain | the pending head Envelope, its sealing height, the activation height | WIST-1 §5.2 |
 | `parameter` | identifier, `effective_at` | value | WIST-4 §5 |
 | `recovery_window` | domain | owner Declaration height, window end, the recovery-chain head Envelope, its sealing height | WIST-1 §5.2 |
 | `suffix_list` | snapshot identifier | sealing height of the act that put it in force | WIST-4 §3.1 |
@@ -1213,7 +1215,7 @@ Entries they seal carry (WIST-4 §3); a Label's `asserted_at` is the
 Publisher timestamp its Entry carries (WIST-2 §3.3); domains, URLs,
 `key_id`s, names and parameter identifiers are the strings the sealed
 Entries carry; keys are raw base64url public keys; IDs and snapshot
-identifiers are `sha256:`-prefixed. Four kinds need more than that:
+identifiers are `sha256:`-prefixed. Five kinds need more than that:
 `declaration`'s value members are the current Declaration Envelope as
 sealed, verbatim as one JSON object member, then its sealing height, then
 the highest accepted `seq` — WIST-1 §5.2's sequence floor, which a
@@ -1223,7 +1225,11 @@ window end, then the recovery-chain head's Declaration Envelope verbatim
 and its sealing height — the owner itself until a legitimate follower
 advances the head (WIST-1 §5.2), carried in full because a resuming
 Consumer verifies later followers against the head's Key Set and holds no
-Block to fetch it from; a `label` tuple exists for each (labeler,
+Block to fetch it from; `pending_declaration`'s are the pending head's
+Declaration Envelope verbatim, its sealing height and the activation
+height frozen at the first pending Declaration (WIST-1 §5.2), carried in
+full for the same reason, and present only while a pending head exists;
+a `label` tuple exists for each (labeler,
 subject, name) whose current Label at `log_position` is not retracted
 and not expired at Block `log_position`'s `sealed_at` (WIST-2 §3.3),
 carrying that Label's value or `null`, its `asserted_at`, its
@@ -1248,8 +1254,8 @@ does not name, does not verify.
 Sharding applies to this artifact as to the tiers: when the manifest
 declares `shards`, the state file MAY be split on the same
 Publisher-domain rule, one part per shard for the domain-keyed kinds
-(`declaration`, `recovery_window`, `record`, `withdrawal` by the
-withdrawn Delta's Publisher, `label` by its Labeler, `dispute` by its
+(`declaration`, `pending_declaration`, `recovery_window`, `record`,
+`withdrawal` by the withdrawn Delta's Publisher, `label` by its Labeler, `dispute` by its
 disputant), with the Log-wide
 kinds (`aggregator_key`, `parameter`, `suffix_list`) carried in every
 part, since no Consumer can validate an Entry without them.
@@ -1303,7 +1309,10 @@ above, treats its coverage as partial.
     eligible predecessor beside the current Declaration, and the Consumer
     settles it before applying the first Block at or after its end exactly
     as WIST-1 §5.2 directs: the head becomes current and the `declaration`
-    tuple's sequence floor stays.
+    tuple's sequence floor stays. A `pending_declaration` tuple makes its
+    head an eligible predecessor beside the current Declaration, supplies
+    no Delta authority, and activates or is reversed at the heights
+    WIST-1 §5.2 fixes.
 11. Apply Entries in order to the local index, materializing content only
     from Payloads that verified.
 
@@ -1591,29 +1600,29 @@ the WIST-1 vector Delta at entry 3; the other positions contain the
 **Leaf hashes (hex):**
 
 ```
-leaf0 = 370e13a6771d67cd9320d478f4f64ac4ae82c6c3a9dca4a2eb74d956cab99621
-leaf1 = 5a39e49df93a4fbac7d2f16b193dd90607cea79ed2114fb3b97fe333549ac94c
-leaf2 = 9738a27346b6d936eefa46b3f13627c4910a0ef7fecfd9cc0bf882fdbf1c2f52
-leaf3 = e8cb4bf3afc137fe5bac0552c9e780a55cc29978c8cb43b9f374e0822402f5ff
+leaf0 = 75c6c8c2cb19db1247c531f326f1eb73f1be9c2f3275cf82792c194b3f259498
+leaf1 = 836dc0b3e22bded85b29840c757502128eaae0b1375ee99fe2c78bf794bc1d9a
+leaf2 = bea0c768bc2e63130a903adcc65f248d0da56f5ab5bf4abe628a2c2b140007ca
+leaf3 = ca3a0886a09c7664edeb1adafaf8542b60dcf12f728d62868a462cf82cf585ef
 ```
 
 **Interior nodes:**
 
 ```
-n01 = node(leaf0, leaf1) = aa0d6e7e40e54bca3785015c5cb9c29287d58ef3c125adbf7c65659be42bd3f5
-n23 = node(leaf2, leaf3) = efb78a21b393b646480e2382ffa5244e4d2975cbc4df271dcb37a2d176871466
+n01 = node(leaf0, leaf1) = 6c77758a2c40c6247022f51bbc43b3bb515ea01c783abd0861b4fe8e43d5d7ff
+n23 = node(leaf2, leaf3) = a99ad975eda3a87b3956b765d2333052d0f355836e87c2d5b5976647c492200c
 ```
 
 **Merkle root:**
 
 ```
-sha256:95654a634abe13f19746e080d15927f9868cd030acd9d46b4827a4e41931023d
+sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe
 ```
 
 **Block Hash (over JCS of the header):**
 
 ```
-sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e
+sha256:a83a94390a706189bdeac60724a010efc914806dfb709671425a1124e60df436
 ```
 
 **Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings

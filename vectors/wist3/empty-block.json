@@ -4,7 +4,7 @@
     "header": {
       "wist_version": "1.0.0",
       "block_number": 1,
-      "prev_block_hash": "sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e",
+      "prev_block_hash": "sha256:a83a94390a706189bdeac60724a010efc914806dfb709671425a1124e60df436",
       "sealed_at": "2026-08-02T14:00:00Z",
       "merkle_root": "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
       "entry_count": 0
@@ -13,9 +13,9 @@
     "sig": {
       "key_id": "test-agg-k1",
       "alg": "Ed25519",
-      "value": "0R0j6TUHb0-L7YUneJcxsZCoTQQYS1DTMgaPonnnPsZ1BHEpNgtpR6FHNN5Sxrz-fO9k2VsRz-7y38pvgLcCBw"
+      "value": "_uDO5YuRLtxercw5ZjOAzKTE2JNA7SIPnPl3QAtkiIUEopc01-OlBLzqd9NVu9gWYcOYPX98-njik-qblTm0Aw"
     }
   },
-  "block_hash": "sha256:44baf6145711a433ce943cdbe37150e4c88483ceba3a5d45bb9fccab2ade4611",
+  "block_hash": "sha256:5d03123a65a8173665e716e0e6c55d0798807bec4eb444370e6c64974c43d49b",
   "rfc6962_empty_root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 }

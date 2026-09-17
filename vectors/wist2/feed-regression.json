@@ -8,17 +8,18 @@
       "seq": 0,
       "keys": [
         {
-          "key_id": "test-k1",
-          "alg": "Ed25519",
-          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "valid_from": "2026-08-09T00:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "nbf": 1786233600
         }
       ]
     },
     "sig": {
-      "key_id": "test-k1",
+      "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
       "alg": "Ed25519",
-      "value": "v7HxtE3mXHlu7ZSM-jwENFhywFf9jPWgXL8nbBvHgbDFElnNdDf64_AZGaGUha-ZS4ya8nELOTOrvTdetNZcBQ"
+      "value": "iXgDHebHLP6Y4ivHBJwjjRbX2_rmgicYotwrVrPJaJSJcnJGR30ND3pYVF5ItbFelSRYzCaMOJDmyauuixB2CQ"
     }
   },
   "cases": [
@@ -36,7 +37,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "weBBOfk60YS07PfDXJ78MFKJgqVi4okH3l1P9biclzKDb22jMMIGTVWS7CQYTBQZ1xv8Sd4fqMkC0nKp2RDzBA"
             }
@@ -58,7 +59,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "weBBOfk60YS07PfDXJ78MFKJgqVi4okH3l1P9biclzKDb22jMMIGTVWS7CQYTBQZ1xv8Sd4fqMkC0nKp2RDzBA"
             }
@@ -80,7 +81,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "G49tP2MrzATKpPkLvP_bgPihCm3j9y9Nq6HYRRHzWC9X1F79ImSIKJ2Nk-4ZQvwdZ2AcetBteXCsWf_N6wpWCA"
             }
@@ -102,7 +103,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "CYGfsD-0TpQmYdcVS4xaBDR6IlmVI0LhfNXnzAbnSv8sASxJedr2jC153bDAvnaMaL6l9yzT9ALmh7EG9hfqAw"
             }
@@ -124,7 +125,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "weBBOfk60YS07PfDXJ78MFKJgqVi4okH3l1P9biclzKDb22jMMIGTVWS7CQYTBQZ1xv8Sd4fqMkC0nKp2RDzBA"
             }
@@ -146,7 +147,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "CYGfsD-0TpQmYdcVS4xaBDR6IlmVI0LhfNXnzAbnSv8sASxJedr2jC153bDAvnaMaL6l9yzT9ALmh7EG9hfqAw"
             }
@@ -174,7 +175,7 @@
               "extra": true
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "YxNfpACHrFBq-0k00_9iImRW7VYqha6vkgCiC_ItF1y0y7hloUO1RrgdmPmWBl9G172t44Krq8trDCmpPs6oBw"
             }
@@ -196,7 +197,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }
@@ -218,7 +219,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "v8wS8BHqL7Iu54GVzvUV62YOl-nF98SylfHsqdqeB4thMIOC2iaSQ3P5yx-hZS_E7CdQWNrGFGVJnXQ8AhCPAw"
             }
@@ -240,7 +241,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "weBBOfk60YS07PfDXJ78MFKJgqVi4okH3l1P9biclzKDb22jMMIGTVWS7CQYTBQZ1xv8Sd4fqMkC0nKp2RDzBA"
             }
@@ -262,7 +263,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }
@@ -284,7 +285,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "CYGfsD-0TpQmYdcVS4xaBDR6IlmVI0LhfNXnzAbnSv8sASxJedr2jC153bDAvnaMaL6l9yzT9ALmh7EG9hfqAw"
             }
@@ -311,7 +312,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "weBBOfk60YS07PfDXJ78MFKJgqVi4okH3l1P9biclzKDb22jMMIGTVWS7CQYTBQZ1xv8Sd4fqMkC0nKp2RDzBA"
             }
@@ -334,7 +335,7 @@
               "extra": true
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }
@@ -356,7 +357,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }
@@ -378,7 +379,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }
@@ -400,7 +401,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "G49tP2MrzATKpPkLvP_bgPihCm3j9y9Nq6HYRRHzWC9X1F79ImSIKJ2Nk-4ZQvwdZ2AcetBteXCsWf_N6wpWCA"
             }
@@ -427,7 +428,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "v1fakCDG8gtTRT6jqv9odF7iPaRJ2QDmy97jnMZYh_wmuk7DgTgVUsKFOTez6xpIvT5SQhGu6iQrN8US49JzDg"
             }
@@ -449,7 +450,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "FN0iFnDGyofF5mUUabk12-PKIvjVsq17NVefv2xe4773KAPTsXTf5GCQNKlTjl6kbXq1eaZv9y55wl6SrWnzBg"
             }
@@ -471,7 +472,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "weBBOfk60YS07PfDXJ78MFKJgqVi4okH3l1P9biclzKDb22jMMIGTVWS7CQYTBQZ1xv8Sd4fqMkC0nKp2RDzBA"
             }
@@ -493,7 +494,7 @@
               "next": null
             },
             "sig": {
-              "key_id": "test-k1",
+              "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
               "alg": "Ed25519",
               "value": "FN0iFnDGyofF5mUUabk12-PKIvjVsq17NVefv2xe4773KAPTsXTf5GCQNKlTjl6kbXq1eaZv9y55wl6SrWnzBg"
             }

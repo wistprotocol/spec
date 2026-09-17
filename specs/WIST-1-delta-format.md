@@ -95,7 +95,7 @@ all unused low bits of its final character to zero. Validators MUST reject
 other encodings, including length congruent to 1 modulo 4; they MUST NOT
 repair or normalize them. Decoding followed by unpadded base64url encoding
 MUST reproduce the original string exactly. Field-specific byte lengths
-still apply: an Ed25519 `public_key` is 32 octets (43 characters),
+still apply: an Ed25519 key entry's `x` is 32 octets (43 characters),
 `sig.value` is 64 octets (86 characters), and a Payload `salt` is at least
 16 octets. Empty strings are invalid for these fields.
 
@@ -114,8 +114,9 @@ precedence between unrelated failures in other objects.
 Key membership and disjointness compare decoded public bytes after encoding
 validation; equality of these bytes is equivalent to equality of their
 canonical strings. Preserve original signed entries for JCS, hashes and
-recovery-set protection. Identifier aliases within one set remain permitted
-by §5.2; alternate base64url spellings cannot introduce another alias.
+recovery-set protection. A key entry's `kid` is derived from the canonical
+string of `x` (§5.1); alternate base64url spellings cannot introduce a
+second entry for one key.
 
 ## 3. The Delta Object
 
@@ -647,7 +648,7 @@ The Envelope carries the result:
 {
   "delta": { ... },
   "sig": {
-    "key_id": "test-k1",
+    "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
     "alg": "Ed25519",
     "value": "<base64url signature, 86 characters>"
   }
@@ -700,9 +701,36 @@ containing: `wist_version`, `domain`, `seq` (a monotonic Declaration
 counter, starting at 0; see §5.2), `prev_declaration` (the hash of the
 Declaration this one replaces; REQUIRED when `seq` > 0, absent only for
 `seq` 0; see §5.2), optional `subdomain_scope` (hostnames the Key Set
-also covers), the `keys` array (each entry: `key_id`, `alg`, raw Ed25519
-`public_key` base64url, `valid_from`), optional `recovery_keys` (same
-item shape as `keys`; see §5.2), and optional `contact`.
+also covers), the `keys` array of signing entries (see **Key entries**
+below), optional `recovery_keys` (same item shape as `keys`; see §5.2),
+optional `next_keys` (a Key Set fingerprint committing to the next signing
+set; see §5.2), and optional `contact`.
+
+**Key entries.** Each `keys` or `recovery_keys` entry is an Ed25519 JSON
+Web Key (RFC 8037) with exactly the members `kty` (`"OKP"`), `crv`
+(`"Ed25519"`), `x` (the raw public key in canonical base64url, §2), `kid`,
+`nbf` and optionally `exp`. `kid` MUST equal the entry's JWK thumbprint
+(RFC 7638): the unpadded base64url encoding of SHA-256 over the JCS
+serialization of `{"crv": "Ed25519", "kty": "OKP", "x": <x>}`. The `keys`
+array is the `keys` member of a JWK Set (RFC 7517), and a signature block
+(§4) names an entry by its `kid` in `key_id`. `nbf` and `exp` are
+NumericDate integers (RFC 7519 §2): seconds since 1970-01-01T00:00:00Z
+ignoring leap seconds, from 0 to 253402300799. `exp`, when present, MUST
+be greater than `nbf`. A `kid` that is not the thumbprint of `x`, or an
+`exp` not greater than `nbf`, is `WIST1-E14`.
+
+**Key Set fingerprint.** The fingerprint of a signing set is
+`"sha256:" + hex(SHA-256(JCS(kids)))`, where `kids` is the JSON array of
+the set's `kid` strings in ascending byte order. §5.2 uses it for
+`next_keys`; the DNS record below publishes it.
+
+**DNS fingerprint record.** A Publisher MAY publish a TXT record at
+`_wist.<domain>` whose content is `v=wist1; keys=<fingerprint>` for the
+signing set of its current Declaration, and SHOULD update it with every
+change of that set. The record carries no key and is not a discovery
+channel (§8): a validator MAY query it and report a mismatch or an absent
+record, and MUST NOT let the result change whether a Declaration or a
+Delta is accepted.
 
 **Signed host representation.** `domain` and each `subdomain_scope` member
 MUST be byte-identical to its own Canonical Host (§2), using the pinned
@@ -735,12 +763,13 @@ disposition and diagnostic remains applicable.
 Declaration Envelope that violates its schema or the integer range in §4
 with `WIST1-E14`. This includes missing required members, wrong JSON types,
 unknown members, optional members present as `null`, empty `keys`, string
-bounds, noncanonical or malformed host fields, malformed `valid_from` in either key
-array, and malformed signature-field encodings. Schema `format` constraints
+bounds, noncanonical or malformed host fields, a key entry in either array
+whose `kid` is not its thumbprint or whose `exp` is not greater than
+`nbf`, and malformed signature-field encodings. Schema `format` constraints
 are assertions, not optional annotations. Apply the fields' specified
-formats, including §3.4's Publisher timestamp profile for `valid_from`;
-do not substitute the narrower Log timestamp profile. A valid encoding that fails cryptographic key or
-signature verification is governed by §4 and §5.2, not this syntax error.
+formats; `nbf` and `exp` are integers, never timestamp strings. A valid
+encoding that fails cryptographic key or signature verification is
+governed by §4 and §5.2, not this syntax error.
 
 Perform this field validation before Declaration sequencing, same-Block
 conflict comparison, idempotence or signer resolution, including for a
@@ -772,33 +801,36 @@ rotation. For live Delta ingestion, either binding failure below
 WIST-2 §5. Historical replay and sealing use their Log-derived sources
 (§5.2); they MUST NOT substitute live discovery for those sources.
 
-`valid_from` bounds each signing binding's use. After field validation,
-collect every signing entry named by the Delta's `sig.key_id` from the
-source Key Set or sets authorized by §5.2 for exactly `delta.publisher`
-(§3.8). No other domain's bindings participate. Exclude unusable public keys
-under §4, then exclude each binding whose `valid_from` is later than the
-Delta's `observed_at`, comparing exact instants under §3.4. If no binding
+`nbf` and `exp` bound each signing binding's use. After field validation,
+collect every signing entry whose `kid` equals the Delta's `sig.key_id`
+from the source Key Set or sets authorized by §5.2 for exactly
+`delta.publisher` (§3.8). No other domain's bindings participate. Exclude
+unusable public keys under §4, then exclude each binding whose window does
+not contain the Delta's `observed_at`: a binding is eligible when `nbf` ≤
+`observed_at` and, if `exp` is present, `observed_at` < `exp`, comparing
+the exact instant under §3.4 with the NumericDate integer. If no binding
 remains, reject with `WIST1-E02`. Otherwise verify the signature against
 every remaining candidate until one succeeds under §4; accept this key
 check if any succeeds, or reject with `WIST1-E01` if none does.
 
-An eligible binding must itself satisfy both the timestamp bound and the
-signature check. A verifying signature under a future binding cannot borrow
-another binding's earlier `valid_from`. In particular, one eligible binding
-with a failed signature plus one future binding with a valid signature is
-`WIST1-E01`; all named bindings being excluded or future is `WIST1-E02`,
-regardless of their signature results. The field failures specified in §2
+An eligible binding must itself satisfy both the window and the
+signature check. A verifying signature under a binding outside its window
+cannot borrow another binding's window. In particular, one eligible binding
+with a failed signature plus one out-of-window binding with a valid
+signature is `WIST1-E01`; all named bindings being excluded or out of
+window is `WIST1-E02`, regardless of their signature results. The field failures specified in §2
 and §3.4 retain `WIST1-E14` precedence. Other Delta checks and object-specific dispositions,
 including recovery settlement's `WIST1-E13`, remain applicable.
 Across distinct Delta checks, §7 permits any established applicable semantic
 diagnostic; the binding check itself retains the E02/E01 distinction above.
 
-Preserve complete `(key_id, public_key, valid_from)` bindings across the
-authorized sources; neither identifier reuse nor repeated public bytes
-permits dropping a distinct validity bound. Candidate or source iteration
-order MUST NOT affect acceptance or its diagnostic. Recovery-only entries
-and differently named aliases supply no Delta authority. Backdating a
-Delta to before every authorized binding existed therefore fails this check.
+Preserve complete `(kid, nbf, exp)` bindings across the authorized
+sources; one key listed by two sources with different windows keeps both.
+Candidate or source iteration order MUST NOT affect acceptance or its
+diagnostic. Recovery-only entries and pending Declarations (§5.2) supply
+no Delta authority. Backdating a Delta to before every authorized binding
+existed therefore fails this check, as does dating it after every binding
+expired.
 
 ### 5.2. Sequencing, Rotation and Revocation
 
@@ -829,9 +861,27 @@ the superseded-replay and same-`seq`-mutation case the rule exists to
 catch.
 
 Key rotation is performed by publishing a Declaration whose envelope is
-signed by a key from the **previous** Key Set (the signer resolution
-below authenticates that key even when its identifier changes). The first Declaration a domain publishes (`seq` 0) is self-signed. A
-key is revoked by publishing a Declaration that omits it.
+signed by a key from the **previous** Key Set. The first Declaration a
+domain publishes (`seq` 0) is self-signed. A key is revoked by publishing
+a Declaration that omits it. A Declaration that lists the outgoing key
+with an `exp` beside the incoming key gives the two an overlap window in
+which Deltas verify under either (§5.1); the outgoing key keeps its
+Declaration signing authority until omitted. The `nbf` and `exp` windows
+bound Deltas only: signer resolution and classification below use set
+membership regardless of the window.
+
+**Rotation commitment.** A Declaration MAY carry `next_keys`, the Key Set
+fingerprint (§5.1) of the signing set its next ordinary rotation will
+install. When the eligible predecessor carries `next_keys`, a replacement
+classified below as an ordinary rotation MUST either keep the
+predecessor's signing `kid` set and its `next_keys` unchanged, or list a
+signing set whose fingerprint equals the predecessor's `next_keys`; any
+other ordinary rotation is `WIST1-E08`. The replacement MAY carry its own
+`next_keys`. A recovery rotation and a fresh identity are not bound by the
+predecessor's commitment. Publishers SHOULD generate the committed keys
+before committing and hold them apart from the current signing keys, so
+that a party holding only the current signing key can rotate to nothing
+it controls.
 
 **Recovery keys.** A Declaration MAY list `recovery_keys` alongside its
 signing `keys`. Recovery keys sign nothing but Declarations and are
@@ -857,9 +907,9 @@ Declaration lists no recovery keys MAY establish them with an ordinary
 signing-key signature — there is nothing yet to protect — which is how a
 Publisher adopts recovery keys after the fact.
 
-The two sets are disjoint. A Declaration MUST NOT name the same `key_id`,
-or the same `public_key`, in both `keys` and `recovery_keys`, and one that
-does is rejected with `WIST1-E08`. A recovery key that is also a signing
+The two sets are disjoint. A Declaration MUST NOT list the same public
+key (`x`, equivalently `kid`) in both `keys` and `recovery_keys`, and one
+that does is rejected with `WIST1-E08`. A recovery key that is also a signing
 key is neither held offline nor signing only Declarations, so it offers
 nothing the signing key it duplicates does not already offer, and stealing
 one steals both. The rule is also what keeps the classification below
@@ -867,16 +917,15 @@ answerable: whether a Declaration opens a recovery window is state every
 replaying party must derive identically, and a signer present in both sets
 would leave two defensible answers.
 
-**Unambiguous key identifiers.** A Declaration MUST NOT repeat a `key_id`
-within `keys`, within `recovery_keys`, or across them, even when the repeated
-entries are identical. Reject such a Declaration with `WIST1-E08`, including
-a first (`seq` 0) Declaration. Different identifiers MAY name the same
-`public_key` within one set; the cross-set prohibition above still applies.
-For a Delta, `sig.key_id` selects its entry within each authorized source
-set and that entry's `valid_from` bound applied to `observed_at`; §5.1
-checks every eligible binding when recovery admission authorizes two sets.
-Aliases with other identifiers do not make that lookup ambiguous.
-This rule is a semantic constraint beyond the Declaration schema.
+**Unique keys.** A Declaration MUST NOT list the same public key twice
+within `keys`, within `recovery_keys`, or across them, even when the
+repeated entries are identical. Reject such a Declaration with
+`WIST1-E08`, including a first (`seq` 0) Declaration. Because `kid` is
+the key's thumbprint (§5.1), an identifier names at most one key and a
+key carries one identifier: for a Delta, `sig.key_id` selects at most one
+entry within each authorized source set, and §5.1 checks every selected
+binding when recovery admission authorizes two sets. This rule is a
+semantic constraint beyond the Declaration schema.
 
 **Declaration signer resolution.** For a replacement Declaration, collect
 the entries named by its `sig.key_id` from the eligible predecessor named
@@ -885,17 +934,15 @@ Declaration's `keys` and `recovery_keys` and from the incoming Declaration's
 `keys`. Verify the Envelope against those candidate public keys using §4's
 signature profile, excluding unusable bindings under §4 first. No usable
 named candidate is `WIST1-E02`; usable named candidates but
-no verifying signature is `WIST1-E01`. A failed verification against an old
-binding MUST NOT prevent checking the incoming binding of the same identifier.
-The first Declaration instead resolves its signer only from its own `keys`.
+no verifying signature is `WIST1-E01`. The same `kid` in both sources
+names the same key. The first Declaration instead resolves its signer only
+from its own `keys`.
 
-Classify the authenticated public key by its bytes, not by its identifier:
-membership in the previous signing set is ordinary rotation, membership in
-the previous recovery set is recovery rotation, and membership in neither
-is fresh identity. Thus a new public key reusing an identifier can establish
-a fresh identity, while renaming an existing public key cannot erase
-continuity or acquire a different class of authority. Recovery-key protection
-still applies to the resulting classification. The rule does not authorize
+Classify the authenticated public key by set membership: membership in
+the previous signing set is ordinary rotation, membership in the previous
+recovery set is recovery rotation, and membership in neither is fresh
+identity. Recovery-key protection still applies to the resulting
+classification. The rule does not authorize
 an incoming recovery key to authenticate its own installation.
 
 **Same-Block Declaration conflicts.** For each domain, process the Block's
@@ -937,8 +984,8 @@ For Log replay, acceptance here means acceptance in ascending
 `(Block height, seq)` application order; unsealed submissions are not part
 of the replayed floor.
 
-Without an open recovery window, only the current Declaration is an eligible
-predecessor. Accepting a replacement makes it current. A recovery rotation
+Without an open recovery window or a pending head (below), only the
+current Declaration is an eligible predecessor. Accepting a replacement makes it current. A recovery rotation
 also establishes the **recovery-chain head**, initially that same Declaration.
 While the window is open, a new Declaration MAY name either the current
 Declaration (the latest accepted replacement) or the recovery-chain head.
@@ -1021,6 +1068,52 @@ That signer advances recovery only by naming the current recovery-chain head.
 Restoring r1 without r2's signature fails recovery-key protection; such a
 Declaration is rejected, not accepted for later supersession. Signed cases
 and rejection twins appear in `vectors/wist1/recovery-settlement.json`.
+
+**Pending identities and activation.** A fresh identity accepted outside
+an open recovery window does not take effect at once. It is sealed as a
+`publisher_declaration` Entry and becomes the domain's **pending head**;
+the current Declaration is unchanged. Read `declaration_activation_blocks`
+(Parameter Registry, default 24) from the parameter map in force at the
+Block sealing the first pending Declaration and freeze the **activation
+height**: that Block's height plus the parameter. While a pending head
+exists, the eligible predecessors are the current Declaration and the
+pending head. A replacement naming the pending head is authenticated,
+classified and checked against it as its predecessor, opens no recovery
+window whatever signs it, and on acceptance becomes the pending head
+without moving the activation height. A Declaration whose `publisher`
+object is byte-identical to the pending head is an idempotent acceptance,
+exactly as a re-serve of the current Declaration is: it installs nothing,
+does not raise the sequence floor and is not `WIST1-E08`. Discovery
+re-fetches a served Declaration throughout the activation delay, so the
+rule that catches a superseded replay must not catch the pending head its
+Publisher is still serving. A replacement naming the current
+Declaration MUST authenticate as an ordinary or recovery rotation against
+it; a fresh identity naming the current Declaration beside a pending head
+is `WIST1-E08`. On acceptance that replacement becomes current and the
+pending head and every Declaration that named it are discarded:
+superseded, never current, and excluded from every later predecessor and
+Key Set resolution. This is the **reversal**, the answer a Publisher that
+still holds a listed signing or recovery key gives to a Declaration
+published from its web host alone. A recovery rotation that reverses a
+pending head opens a recovery window as any recovery rotation does.
+Before applying any Declaration in the Block at the activation height,
+activate: the pending head becomes current, the pending state ends, and
+the domain's identity resets at that height, so a party reading its
+history from the Log reads it from the activation height. With
+`declaration_activation_blocks` at 0 the activation height is the sealing
+height itself and the fresh identity activates in the Block that seals it.
+
+A pending Declaration supplies no authority: a Delta signed under its
+keys is `WIST1-E02` until activation, and Deltas continue to verify under
+the current Declaration. Signed histories for a delayed activation, a
+reversal by each key class and a zero delay appear in
+`vectors/wist1/key-directory.json`, with the thumbprint known answer,
+entry field cases, window boundaries and commitment cases §5.1 and this
+section fix. A fresh identity accepted inside an open recovery
+window is a competitor under the rules below, never pending. The sequence
+floor counts pending Declarations, so a reversal MUST exceed the pending
+head's `seq`. The pending head, its sealing height and the activation
+height are Snapshot state (WIST-3 §7).
 
 **Compromise recovery.** A Declaration with a higher `seq` is classified
 by what signs it, using the authenticated public key resolved above:
@@ -1131,8 +1224,8 @@ by what signs it, using the authenticated public key resolved above:
   window and does not supersede the first; whichever party prevails does
   so by holding the recovery keys the *first* Declaration now lists.
 - Signed by neither — a **fresh identity**. The Declaration is accepted.
-  Outside an open recovery window, the domain's identity resets: a party
-  reading its history from the Log reads it from this height. Inside an
+  Outside an open recovery window it becomes pending under the rule above
+  and resets the domain's identity only at its activation height. Inside an
   already-open window it is a competing Declaration: acceptance changes
   the current Declaration and sequence floor, but MUST NOT reset
   identity, in an open prefix or after settlement. It is superseded at the window's end by the
@@ -1148,23 +1241,27 @@ the same name, and preserving standing on domain control alone would let
 anyone buy an aged domain and inherit its history.
 
 **Historical verification.** Accepted Declarations are sealed into the Log
-as `publisher_declaration` Entries (WIST-3 §3.3), except pending non-chain
+as `publisher_declaration` Entries (WIST-3 §3.3), except unsealed non-chain
 copies removed by recovery supersession above. The Key Set applicable to a
-`publisher_delta` Entry sealed in Block N is normally the one from its
-signed `delta.publisher` domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
+`publisher_delta` Entry sealed in Block N is the Declaration current for
+its signed `delta.publisher` domain once Block N's Declaration Entries,
+settlements and activations have applied under this section: normally the
+domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
 that a recovery Declaration which took effect under the Compromise
 recovery rule above prevails over every off-chain competitor accepted after
-its owner while the recovery window is open, regardless of `seq`. A Consumer
-replaying the Log therefore excludes any such superseded Declaration from the "highest `seq`"
-comparison and treats the recovery Declaration (and whatever legitimately
-follows it) as applicable instead, for every height from the recovery
-Declaration's own sealing height onward. Because `seq`, `prev_declaration`,
-each Declaration's signer, Entry order, and the recovery window's own
-anchor — the `sealed_at` of the Block sealing the recovery Declaration —
-are all present in the Log
-itself, this resolution — ordinary case and recovery exception alike — is
-fully deterministic from log order alone, with no fetch and no trust in
-the Aggregator. "Took effect under the Compromise recovery rule" is
+its owner while the recovery window is open, regardless of `seq`, and that
+a pending Declaration supplies nothing before its activation height and a
+reversed one never. A Consumer replaying the Log therefore excludes
+superseded, reversed and not-yet-activated Declarations from the "highest
+`seq`" comparison and treats the recovery Declaration (and whatever
+legitimately follows it) as applicable instead, for every height from the
+recovery Declaration's own sealing height onward. Because `seq`,
+`prev_declaration`, each Declaration's signer, Entry order, the recovery
+window's own anchor — the `sealed_at` of the Block sealing the recovery
+Declaration — and the activation height, derived from a sealing height,
+are all present in the Log itself, this resolution — ordinary case,
+recovery exception and activation alike — is fully deterministic from log
+order alone, with no fetch and no trust in the Aggregator. "Took effect under the Compromise recovery rule" is
 therefore a predicate every replaying party evaluates identically, rather
 than a claim resting on an entry the Aggregator may or may not have filed.
 
@@ -1295,19 +1392,19 @@ WIST2-E03 remain required. See
 | Code | Meaning |
 |---------|--------------------------------------------------------------|
 | WIST1-E01 | Invalid signature (for a Delta, no signature verifies under any usable, time-eligible named binding authorized by §5.1/§5.2, although at least one such binding exists) |
-| WIST1-E02 | No usable, time-eligible named Delta signing binding in the source Key Set(s) authorized by §5.1/§5.2, including the frozen recovery-admission union; or no usable Declaration signer candidate (§5.2). At sealing, a Delta stranded by a Declaration accepted since the pull is never sealed |
+| WIST1-E02 | No usable, time-eligible named Delta signing binding in the source Key Set(s) authorized by §5.1/§5.2, including the frozen recovery-admission union, or under a pending Declaration (§5.2); or no usable Declaration signer candidate (§5.2). At sealing, a Delta stranded by a Declaration accepted since the pull is never sealed |
 | WIST1-E03 | URL out of scope, not normalized, or not normalizable (host not covered by domain/`subdomain_scope`; `url` not byte-identical to its own Normalized URL; or `url` has no normalization at all — §2) |
 | WIST1-E04 | Size cap exceeded, in JCS octets as §3.6 defines them (`payload.bytes` > 38944, or a retrieved Payload whose `JCS(extract)` exceeds 32768 octets, whose `JCS(links)` exceeds 4096 octets, whose `JCS(url)` on any `links.urls` entry exceeds 2048 octets, or whose `JCS(summary)` exceeds 2048 octets) |
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` exceeds the clock plus active signed allowance selected by §3.4 |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong Publisher or URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2; the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z` (§5.2) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded and pending Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2, including a fresh identity naming the current Declaration beside a pending head; an ordinary rotation that neither keeps nor installs the predecessor's `next_keys` commitment (§5.2); the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z` (§5.2) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
 | WIST1-E12 | `links` violates a structural rule of §3.6 |
 | WIST1-E13 | Queued Delta invalidated by recovery: a Delta queued during a §5.2 recovery window whose signature/binding or URL scope fails against the recovery-chain head selected at the window's end (§5.2). The queued copy is dropped and never sealed, and the drop is visible to the Publisher via the status endpoint (WIST-2 §7.1); the Delta's identity is not barred, so the same Delta re-served later and satisfying the authority then in force remains eligible subject to all other checks (§5.2) |
-| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer or malformed `valid_from`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url under §2. Canonicalization failure remains WIST1-E05 |
+| WIST1-E14 | Malformed Declaration Envelope (§5.1), including an out-of-range integer, a key entry whose `kid` is not its thumbprint or whose `exp` is not greater than `nbf`; malformed Delta Envelope or Payload fields under §7, subject to their semantic exceptions; or malformed base64url under §2. Canonicalization failure remains WIST1-E05 |
 | WIST1-E15 | Delta or Payload major version not implemented by the validator (§3.1); malformed version spelling remains WIST1-E14 |
 
 Duplicate submission of an identical Delta, and re-fetching a Declaration
@@ -1331,7 +1428,10 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
   and a Declaration signed by the recovery key supersedes any ordinary
   rotation sealed during its 7-day recovery window — so a thief holding
   only the signing key gets a temporary, always-reversible foothold,
-  never a permanent one. Publishers SHOULD generate recovery keys
+  never a permanent one. A Publisher that commits to its next signing
+  set (`next_keys`, §5.2) narrows even that foothold: the thief can
+  rotate only to keys the Publisher generated and holds elsewhere.
+  Publishers SHOULD generate recovery keys
   independently of signing keys and keep them offline, SHOULD keep
   signing keys off the web server that serves content, and SHOULD rotate
   on any suspicion of compromise; publications signed before recovery
@@ -1342,13 +1442,16 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
   by itself: §5.2 classifies a replacing Declaration by what signs it,
   and one signed by neither the previous Key Set nor the previous
   `recovery_keys` is a fresh identity, visible in the Log as such, outside
-  an open recovery window. A competing fresh Declaration inside that window
+  an open recovery window, and pending for `declaration_activation_blocks`
+  Blocks, during which any still-held signing or recovery key reverses it
+  (§5.2). A competing fresh Declaration inside that window
   cannot take over the recovering identity or reset it (§5.2). A
   party that acquires a domain's hosting without also acquiring a
   signing or recovery key therefore cannot inherit its predecessor's
   history — only cryptographic continuity does that, never possession of
   the name alone — and a Consumer reading a domain's age or publication
-  history from the Log reads it from the fresh identity's height (WIST-4 §8).
+  history from the Log reads it from the fresh identity's activation
+  height (WIST-4 §8).
 - **Payload substitution.** A Mirror, a Publisher, or anyone else in the
   serving path can offer any bytes at a Payload's URL. None of it matters:
   a validator accepts a Payload only when it reproduces the Delta's
@@ -1386,7 +1489,9 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
   fallback that is only sometimes authenticated is one whose security
   depends on a property no verifier can check at the moment it matters. No
   DNS-based, and no other non-HTTPS, discovery mechanism may be
-  reintroduced within this major version.
+  reintroduced within this major version. The `_wist.<domain>` fingerprint
+  record §5.1 permits carries no key and changes no acceptance decision;
+  it is monitoring, not discovery, and stays outside this prohibition.
 
 ## 9. Privacy Considerations
 
@@ -1464,7 +1569,11 @@ copies already served.
       `JCS(summary)` ≤ 2048 (§3.6)
 - [ ] Carries `payload` on every `new` and `update`, and omits it on
       `attest` and on `delete` (§3.3)
-- [ ] Rotates keys by signing the new Key Set with a previous key (§5.2)
+- [ ] Lists each key as an Ed25519 JWK whose `kid` is its thumbprint,
+      with `nbf` and an optional `exp` (§5.1)
+- [ ] Rotates keys by signing the new Key Set with a previous key, and
+      keeps keys committed through `next_keys` apart from the current
+      signing keys (§5.2)
 - [ ] Increments seq and sets prev_declaration on every new Declaration
       (§5.2)
 - [ ] Emits only Normalized URLs and keeps published Deltas retrievable
@@ -1498,6 +1607,9 @@ copies already served.
       and object/stage dispositions
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
       by Block height (§5.2)
+- [ ] Enforces `next_keys` on ordinary rotations, holds a fresh identity
+      pending until its activation height with no authority meanwhile, and
+      discards it on reversal (§5.2)
 - [ ] Seals a Delta only where it verifies under the Key Set resolved at
       its sealing height, the sealing Block's own Declarations included —
       a Delta a later-accepted Declaration stranded is `WIST1-E02`, not

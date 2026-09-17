@@ -7,18 +7,19 @@
       "domain": "example.com",
       "keys": [
         {
-          "key_id": "pub-k1",
-          "alg": "Ed25519",
-          "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
-          "valid_from": "2026-08-02T00:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "nbf": 1785628800
         }
       ],
       "seq": 0
     },
     "sig": {
-      "key_id": "pub-k1",
+      "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
       "alg": "Ed25519",
-      "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+      "value": "1XrPxWicaV0aBEp8OcqgMWKY1IiWC00LC3c3y70zKkn4QGvKxyx978SIWbXkd9934LXuELG7f2jUlq8CJ9ofBg"
     }
   },
   "delta": {
@@ -38,9 +39,9 @@
       }
     },
     "sig": {
-      "key_id": "pub-k1",
+      "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
       "alg": "Ed25519",
-      "value": "b3vPH5wwRZAyCF1yGSsERifNtzLEw3hRiqs6gYwSN_-p9SftoZ13ltBVd-4kBsNUuktXTSCkDlQ0FkrSIjSvCg"
+      "value": "bY9zVPJCd6iKIBCoSIn8YfIz4SNsoYSf0KjXtO6mARj7BTdItoIG2vZB2Bh_EdvEPHgP_Z_TB1GGatEZ4Ez4DQ"
     }
   },
   "payload": {
@@ -86,7 +87,7 @@
             "block_number": 0,
             "prev_block_hash": "sha256:genesis",
             "sealed_at": "2026-08-02T13:00:00Z",
-            "merkle_root": "sha256:5dc6c41a5b4e6610e9d9015785bbf60d8e7f4f510f0b5fd4ed8219a1daba76d6",
+            "merkle_root": "sha256:db7fef56379e900e76fa6ca1994c76a40c358ca396956c88c336b989db4be7f2",
             "entry_count": 1
           },
           "entries": [
@@ -98,18 +99,19 @@
                   "domain": "example.com",
                   "keys": [
                     {
-                      "key_id": "pub-k1",
-                      "alg": "Ed25519",
-                      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
-                      "valid_from": "2026-08-02T00:00:00Z"
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                      "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                      "nbf": 1785628800
                     }
                   ],
                   "seq": 0
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
                   "alg": "Ed25519",
-                  "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+                  "value": "1XrPxWicaV0aBEp8OcqgMWKY1IiWC00LC3c3y70zKkn4QGvKxyx978SIWbXkd9934LXuELG7f2jUlq8CJ9ofBg"
                 }
               }
             }
@@ -117,16 +119,16 @@
           "sig": {
             "key_id": "log-a-genesis",
             "alg": "Ed25519",
-            "value": "nnoHTiwwhqDcQa9PfM3m2i-bbxTsYLxwp3Xm6kIkytgTkdnsb77x4Gn7-0zNeG9axw6qAH-Eb6W5LfLpyE_2Cg"
+            "value": "LKZHn311bU_jhuA7Ln1nMHXgovcrat6Fdw2Xv42L3mtGyM5KQ-LLEsZw9RVy84H0suZw4embXLjz30_OAEaXBw"
           }
         },
         {
           "header": {
             "wist_version": "1.0.0",
             "block_number": 1,
-            "prev_block_hash": "sha256:084e23b18c98b93056d9b5cc1cda8704cec7838205daa06bee5d1aa2112c98ea",
+            "prev_block_hash": "sha256:3de722e09568c8aa9d0481f21c47bfd51f9a7aab1d04c1c32388c85a6fe0dab5",
             "sealed_at": "2026-08-02T14:00:00Z",
-            "merkle_root": "sha256:fc63069857cfc4ec6fe25b3121e4fb760d8ff47cd39275ca5e76f3d3b08893b5",
+            "merkle_root": "sha256:26c6b2ce7726619468900bcc5d9caa5f4d49268817f223cb56b655aa3ef66087",
             "entry_count": 1
           },
           "entries": [
@@ -149,9 +151,9 @@
                   }
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
                   "alg": "Ed25519",
-                  "value": "b3vPH5wwRZAyCF1yGSsERifNtzLEw3hRiqs6gYwSN_-p9SftoZ13ltBVd-4kBsNUuktXTSCkDlQ0FkrSIjSvCg"
+                  "value": "bY9zVPJCd6iKIBCoSIn8YfIz4SNsoYSf0KjXtO6mARj7BTdItoIG2vZB2Bh_EdvEPHgP_Z_TB1GGatEZ4Ez4DQ"
                 }
               }
             }
@@ -159,7 +161,7 @@
           "sig": {
             "key_id": "log-a-genesis",
             "alg": "Ed25519",
-            "value": "R8KZGwJIVwYMFU3axFukApdHfw234ONjzGAD2Oi_rhzvJqNvjcZz6qZBzrS8QcasNxKfc0CoPf6R4rVbbJUnCA"
+            "value": "YdVGb5ioI1nkcuiDUpVJed_Zt3A6YDvkSwJ5LTD2Bby9lKDlKZk6BmExuAM0tL_X-u8JQPlh8q3Glbt75UaGBw"
           }
         }
       ],
@@ -167,13 +169,13 @@
         "checkpoint": {
           "wist_version": "1.0.0",
           "block_number": 1,
-          "block_hash": "sha256:84b5665d32f25b7c9d1bef78807d036bdf4c7298ab657e3e0274fe88d35f862c",
+          "block_hash": "sha256:8e1fbeb101cbaad2b7a2c51c23ea3d11ea01821eebb384f27586805be405bd51",
           "sealed_at": "2026-08-02T14:00:00Z"
         },
         "sig": {
           "key_id": "log-a-genesis",
           "alg": "Ed25519",
-          "value": "quqNaX4sYpgU8OfhhKrBQY7fL1uqoSrKcZfFed5LYQPZs9KDCKrdeu0noYemvjJkym5MAaMWBdMYACkXWLHuAA"
+          "value": "zwHexNxbvt284vpS6uBoN4xihhwQLa0QXPt1eNOiPp6iswoGX4-pZxvF-vgmtMl9G6bFhotKMtph3rwhfzk1AQ"
         }
       }
     },
@@ -204,7 +206,7 @@
             "block_number": 0,
             "prev_block_hash": "sha256:genesis",
             "sealed_at": "2026-08-02T13:00:00Z",
-            "merkle_root": "sha256:5dc6c41a5b4e6610e9d9015785bbf60d8e7f4f510f0b5fd4ed8219a1daba76d6",
+            "merkle_root": "sha256:db7fef56379e900e76fa6ca1994c76a40c358ca396956c88c336b989db4be7f2",
             "entry_count": 1
           },
           "entries": [
@@ -216,18 +218,19 @@
                   "domain": "example.com",
                   "keys": [
                     {
-                      "key_id": "pub-k1",
-                      "alg": "Ed25519",
-                      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
-                      "valid_from": "2026-08-02T00:00:00Z"
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                      "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                      "nbf": 1785628800
                     }
                   ],
                   "seq": 0
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
                   "alg": "Ed25519",
-                  "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+                  "value": "1XrPxWicaV0aBEp8OcqgMWKY1IiWC00LC3c3y70zKkn4QGvKxyx978SIWbXkd9934LXuELG7f2jUlq8CJ9ofBg"
                 }
               }
             }
@@ -235,14 +238,14 @@
           "sig": {
             "key_id": "log-b-genesis",
             "alg": "Ed25519",
-            "value": "ltVEvmv7QQq7wUz5eAJPbXavV_I8Fw_LGB992l_QHMPcux9gLoWswO3L5Pp0FzdQFjoZ3_ZASS9KJ3dCmyWmDg"
+            "value": "DOONKaMYkAE1gpkw0euWEuvuAc3oUxzkoFT_vubqD2W855Wd-qG5vUfsKahluYC_7vBnJ2tq9kgOAT7DLM7HDg"
           }
         },
         {
           "header": {
             "wist_version": "1.0.0",
             "block_number": 1,
-            "prev_block_hash": "sha256:084e23b18c98b93056d9b5cc1cda8704cec7838205daa06bee5d1aa2112c98ea",
+            "prev_block_hash": "sha256:3de722e09568c8aa9d0481f21c47bfd51f9a7aab1d04c1c32388c85a6fe0dab5",
             "sealed_at": "2026-08-02T14:00:00Z",
             "merkle_root": "sha256:6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
             "entry_count": 0
@@ -251,16 +254,16 @@
           "sig": {
             "key_id": "log-b-genesis",
             "alg": "Ed25519",
-            "value": "gzodtwTw7yfjj1ts9tOdjprccSm6AOi1ibkErtgnPZhqO09Ml9pkxcHBWiZ31EUQWCVwX_38oljeyK_wtD7yCQ"
+            "value": "PJOnhs-QVzFhpS43GaTYCeQNYqEMRFR5PX3OQZSpIrgbc0YAELDKyfV66B9PhfL8chdg71Zqdg5gGPqpXNF1Cw"
           }
         },
         {
           "header": {
             "wist_version": "1.0.0",
             "block_number": 2,
-            "prev_block_hash": "sha256:373c69f27998e15b00b03de0aaf39d9d8013a19d84d1d2af8d552611e707f8c7",
+            "prev_block_hash": "sha256:d65103c31e46160742fa875ce28b19bb25bc546c3374527f787abf9d703443d0",
             "sealed_at": "2026-08-02T15:00:00Z",
-            "merkle_root": "sha256:fc63069857cfc4ec6fe25b3121e4fb760d8ff47cd39275ca5e76f3d3b08893b5",
+            "merkle_root": "sha256:26c6b2ce7726619468900bcc5d9caa5f4d49268817f223cb56b655aa3ef66087",
             "entry_count": 1
           },
           "entries": [
@@ -283,9 +286,9 @@
                   }
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
                   "alg": "Ed25519",
-                  "value": "b3vPH5wwRZAyCF1yGSsERifNtzLEw3hRiqs6gYwSN_-p9SftoZ13ltBVd-4kBsNUuktXTSCkDlQ0FkrSIjSvCg"
+                  "value": "bY9zVPJCd6iKIBCoSIn8YfIz4SNsoYSf0KjXtO6mARj7BTdItoIG2vZB2Bh_EdvEPHgP_Z_TB1GGatEZ4Ez4DQ"
                 }
               }
             }
@@ -293,7 +296,7 @@
           "sig": {
             "key_id": "log-b-genesis",
             "alg": "Ed25519",
-            "value": "qpGjUeYXaqDOYZi_WjVKW3SqN0HSgsN-p_JJymOJNjQfgZbjG-ar8n6_J2Q5QKpORfBDv3LM9iZfGtb282pTBw"
+            "value": "81ytx0B2pH90mdeKS-4_4oZg3zVeRVaikfAtqrBkAP12904dOVDHeeLgLU0jA7_3KMzvRAXv-zTaVTLabrFTBQ"
           }
         }
       ],
@@ -301,13 +304,13 @@
         "checkpoint": {
           "wist_version": "1.0.0",
           "block_number": 2,
-          "block_hash": "sha256:183b8e4ef13a66daa9df82b2e2a8483a4735926d6565d541e33a738599f15133",
+          "block_hash": "sha256:6f54ccabc94fbf2a0c48bf18a68f0efcbe9e71c49725902f2e9765ce6b19abe4",
           "sealed_at": "2026-08-02T15:00:00Z"
         },
         "sig": {
           "key_id": "log-b-genesis",
           "alg": "Ed25519",
-          "value": "Kp7RfhYntH33Lsi3I0SyIviu5ek_uHfCn3hr00pwMdU1m1rjDNYR4glPQYD4yLHjGjHKEAcIY27Oo_yGxGEhCQ"
+          "value": "_oFOjyjdqOLgxfTqXCJEL1hlxS9fS5q7WlbHSKV7n9vjAztG7-wmmDK-iJkY_7c9oibj8QTDl9cHeo1JacEfCQ"
         }
       }
     }

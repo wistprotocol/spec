@@ -321,6 +321,7 @@ recommended setting.
 | `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (WIST-3 §6.1) |
 | `mirror_retention_days` | ≥ 30 | below a month a Consumer resuming from the newest Snapshot may find the Blocks above it already gone from every Mirror (WIST-3 §6, §8) |
 | `record_seal_blocks` | ≥ 1 | at zero the Aggregator must seal what it discovered in the Block of the discovery itself, so every discovery is a breach the instant it completes (WIST-1 §5.2, WIST-2 §3.3) |
+| `declaration_activation_blocks` | ≥ 0 | at zero a fresh identity activates in the Block that seals it, the delay absent by choice; below zero it would activate before it is sealed, an order no replay can apply (WIST-1 §5.2) |
 | `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (WIST-3 §3.2) |
 | `labeler_block_entries_max` | ≥ 1 | at zero no Label or dispute can seal and every Label Feed is dead weight (WIST-3 §3.2) |
 | `max_inclusion_blocks` | ≥ 1 | at zero an eligible Delta must seal in its eligibility Block itself, a deadline no Aggregator can meet for a Delta accepted mid-Block |
@@ -449,6 +450,7 @@ and ceiling as a Delta (WIST-2 §3.3).
 | Baseline feed poll interval | `baseline_poll_seconds` | 24 hours | WIST-2 §5 |
 | Ping quota (per Registrable Domain per UTC day) | `quota_base` | 1000 | §5, WIST-2 §4 |
 | Recovery window | `recovery_window_days` | 7 days | WIST-1 §5.2 |
+| Fresh-identity activation delay | `declaration_activation_blocks` | 24 Blocks | WIST-1 §5.2 |
 | Parameter change grace period | `param_grace_days` | 7 days | §5 |
 
 ### 5.1. Registry Update `details` Contract
@@ -628,8 +630,8 @@ Registrable Domain into one node under the snapshot in force at the
 height ranked, so that a thousand free subdomains are one voice and
 hosts under a private-section suffix keep theirs; and read a domain's
 age from the height of the first Entry the Log seals for it — its first
-`publisher_declaration` Entry, or the first after a fresh identity
-(WIST-1 §5.2) — never from registration records, WHOIS or any source
+`publisher_declaration` Entry, or the activation height of a fresh
+identity (WIST-1 §5.2) — never from registration records, WHOIS or any source
 outside the Log, which are neither replayable nor bound to the keys
 that sign.
 An Aggregator MUST seal every eligible Label it pulls whatever its name
@@ -699,8 +701,9 @@ MUST NOT reuse them for another meaning.
 - **Domain resale.** Buying a domain or its hosting conveys no history.
   WIST-1 §5.2 binds continuity to keys: a fresh identity is visible in
   the Log as a Declaration signed by neither the previous Key Set nor its
-  recovery keys, and a Consumer reading a domain's age or publication
-  history from the Log reads it from that height.
+  recovery keys, takes effect only after its activation delay, and a
+  Consumer reading a domain's age or publication history from the Log
+  reads it from the activation height.
 - **Free hostnames.** A hostname under a domain one already holds, or
   under a hosting provider's suffix, costs nothing, so any bound keyed
   per hostname is no bound. Quota, ingest budget and Block capacity are

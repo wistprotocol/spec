@@ -1,7 +1,7 @@
 {
-  "note": "WIST-2 \u00a73.2 named-entry verification over signed ordinary Declaration chains. Sealing positions are supplied inputs, without Block inclusion or recovery proofs. Empty Delta lists isolate signature/source selection; these are not publication or Page-size fixtures. Future valid_from values distinguish Pages from Delta filtering.",
+  "note": "WIST-2 \u00a73.2 named-entry verification over signed ordinary Declaration chains. Sealing positions are supplied inputs, without Block inclusion or recovery proofs. Empty Delta lists isolate signature/source selection; these are not publication or Page-size fixtures. Future nbf values distinguish Pages from Delta filtering.",
   "histories": {
-    "renamed": [
+    "rotated": [
       {
         "sealed_at": "2026-08-09T12:00:00Z",
         "envelope": {
@@ -11,23 +11,25 @@
             "seq": 0,
             "keys": [
               {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "nbf": 4070908800
               },
               {
-                "key_id": "old",
-                "alg": "Ed25519",
-                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+                "kid": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
+                "nbf": 4070908800
               }
             ]
           },
           "sig": {
-            "key_id": "anchor",
+            "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
             "alg": "Ed25519",
-            "value": "7M-rabb3m65dUt52YDytofAo4f4cKCok46RVdGdIR5yDxY0QPGXppDflQHAIuBbATN7pOyW2YwsoLM3sORbyDQ"
+            "value": "4gEymG0TpF0FtmncDaCNbAdgoKHCzXXAant85wQ8A6FXg1xetvn2VTJ-EXSE-SCScV34yR5bEIIRp0STTojFCg"
           }
         }
       },
@@ -40,24 +42,26 @@
             "seq": 1,
             "keys": [
               {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "nbf": 4070908800
               },
               {
-                "key_id": "new",
-                "alg": "Ed25519",
-                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+                "nbf": 4070908800
               }
             ],
-            "prev_declaration": "sha256:8ff939441f27b538ebf7d97f858c179080812e94e468993d1f9f3eed123b7706"
+            "prev_declaration": "sha256:12c9cbe30fd1d21bec2383792ee20ec73010b7e79b822514f41b570e97f7b250"
           },
           "sig": {
-            "key_id": "anchor",
+            "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
             "alg": "Ed25519",
-            "value": "CHtlsMbjXIcOY61MTGOYiYsidSYwZACznZcNZoODSNwi6vGUnbrbPCKGYt0_7YBBTV7xC-o_43KZLIzsMR3cCQ"
+            "value": "OEfytDiwEauEsjKqDb06k53seV07fxjcyFSGlDpmvisZQjHimCAjp51zJzgs3PtI9yirkxVcibfu2zUVyENSDw"
           }
         }
       },
@@ -70,115 +74,26 @@
             "seq": 2,
             "keys": [
               {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "nbf": 4070908800
               },
               {
-                "key_id": "later",
-                "alg": "Ed25519",
-                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "kid": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI",
+                "nbf": 4070908800
               }
             ],
-            "prev_declaration": "sha256:c8d461dda872c97a8f6acf4ea0e490f47db394a4a8db360776c1481045ad7fdf"
+            "prev_declaration": "sha256:c22f6d1c3a9e263a9779349dc5ab98a76299e834a7393b68f98924ede655c664"
           },
           "sig": {
-            "key_id": "anchor",
+            "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
             "alg": "Ed25519",
-            "value": "0WbLhnklksSSVm87jbZzGG7ebNF2IQBy7N5yz9irjSQHRgHSdjaNpMuICAMpaBTHkLc9lVY8dga3Dq8XNVZMDg"
-          }
-        }
-      }
-    ],
-    "reused": [
-      {
-        "sealed_at": "2026-08-09T12:00:00Z",
-        "envelope": {
-          "publisher": {
-            "wist_version": "1.0.0",
-            "domain": "example.com",
-            "seq": 0,
-            "keys": [
-              {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
-              },
-              {
-                "key_id": "shared",
-                "alg": "Ed25519",
-                "public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
-                "valid_from": "2099-01-01T00:00:00Z"
-              }
-            ]
-          },
-          "sig": {
-            "key_id": "anchor",
-            "alg": "Ed25519",
-            "value": "cL-O-SRR4j9AOAY2625Yh4MA0A_1lbJnYAMUbG8gV5CL381Bm0ynKYiEbvHLuBnYGrAqsy1vPmI2c8RgigQmBg"
-          }
-        }
-      },
-      {
-        "sealed_at": "2026-08-09T13:00:00Z",
-        "envelope": {
-          "publisher": {
-            "wist_version": "1.0.0",
-            "domain": "example.com",
-            "seq": 1,
-            "keys": [
-              {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
-              },
-              {
-                "key_id": "shared",
-                "alg": "Ed25519",
-                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
-                "valid_from": "2099-01-01T00:00:00Z"
-              }
-            ],
-            "prev_declaration": "sha256:905396b4e246a0ba34e371dbefad6c4a0f585cf164b32a30f39a32b5aa8bbab9"
-          },
-          "sig": {
-            "key_id": "anchor",
-            "alg": "Ed25519",
-            "value": "3RNAxo2Pvqqu3MmBpBTLz6cUMcxmI1bIjKPEOCvDvImc24NDULnv2zOOJTI9gnuDBteMPbMwsRHa4ZFKoRLUBg"
-          }
-        }
-      },
-      {
-        "sealed_at": "2026-08-09T14:00:00Z",
-        "envelope": {
-          "publisher": {
-            "wist_version": "1.0.0",
-            "domain": "example.com",
-            "seq": 2,
-            "keys": [
-              {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
-              },
-              {
-                "key_id": "shared",
-                "alg": "Ed25519",
-                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
-                "valid_from": "2099-01-01T00:00:00Z"
-              }
-            ],
-            "prev_declaration": "sha256:31a4e4596514d715df587785c362f984b8704e8a8dac8ba2f96560bc74153b92"
-          },
-          "sig": {
-            "key_id": "anchor",
-            "alg": "Ed25519",
-            "value": "MyUJw9a9Wu_9YCKxPxFBnrydl2YGnjAzLPtTBeZyxh2wrAlXHLykUdXod2CVDs_K4DNJpJgdLEbum0C1SpFyBQ"
+            "value": "WoXmoWcbQzbK_A6MPFaDdo5wbjXTng19iLRechh8wId9EuRyMqQwl8f77JOd0Fx0yN7KrD3p5KznlPa1Wmi6Bg"
           }
         }
       }
@@ -193,23 +108,25 @@
             "seq": 0,
             "keys": [
               {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "nbf": 4070908800
               },
               {
-                "key_id": "shared",
-                "alg": "Ed25519",
-                "public_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "kid": "ogRZbCR5KTrPFCAfuYmCMwj0w7Yuk3Lr6YWQWfpkbf0",
+                "nbf": 4070908800
               }
             ]
           },
           "sig": {
-            "key_id": "anchor",
+            "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
             "alg": "Ed25519",
-            "value": "UQpQ9wqAY1KrGUMPHQnQKK1woL8Qr1gD8lPVZOo73rNA2BGcM-jK7hsb0wxBncQ4fd0tdwBRUup6K9ylu_XXAQ"
+            "value": "d4Hbo76eFdeT5LvAsOgXQ0tvAexZSwFfEjC_RNjg7n6oPchO0TOZAcxjtkvYxgE6cxqjH7uf-rqeU3y684CbAQ"
           }
         }
       },
@@ -222,24 +139,26 @@
             "seq": 1,
             "keys": [
               {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "nbf": 4070908800
               },
               {
-                "key_id": "shared",
-                "alg": "Ed25519",
-                "public_key": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+                "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+                "nbf": 4070908800
               }
             ],
-            "prev_declaration": "sha256:8bcc5dbcc1ae433c80d63b72d28c8e033951329536d50a98bf84eeaa4ac95180"
+            "prev_declaration": "sha256:c98a046a992787d2f33e06f85049894260b55ae6faaa22e63e6ff2123f8adad9"
           },
           "sig": {
-            "key_id": "anchor",
+            "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
             "alg": "Ed25519",
-            "value": "_f5ExvHdkWve3pyGnSmcxJLjXO6zDybIxibPFcS78zSeF_SsHibfgPJ6BjzD1EoOebCkA40g4RqTWeak5Zv_CQ"
+            "value": "bTjpBUn6DxblEsJRdK0IabxW0mU7SiXk8aGl9hxA_6IdBk_HHcsYkA5Pj_66dzKd3v7EafrcNZpXOWvswYauCA"
           }
         }
       },
@@ -252,24 +171,26 @@
             "seq": 2,
             "keys": [
               {
-                "key_id": "anchor",
-                "alg": "Ed25519",
-                "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+                "kid": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+                "nbf": 4070908800
               },
               {
-                "key_id": "shared",
-                "alg": "Ed25519",
-                "public_key": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
-                "valid_from": "2099-01-01T00:00:00Z"
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "F0VTtFbd38aQjsqxwQH-arIeK6oGF3lbfUOmNIKZP9U",
+                "kid": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI",
+                "nbf": 4070908800
               }
             ],
-            "prev_declaration": "sha256:95f2a3a159ea2fb43950b1c6c0430b87158353bb2fa6655ae0a7cb6e2ae3bc8e"
+            "prev_declaration": "sha256:4c008bb2ffe68e8fbd363fd315f0b996c26d1558a2028f558af66e28bc017762"
           },
           "sig": {
-            "key_id": "anchor",
+            "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
             "alg": "Ed25519",
-            "value": "_7tHOcTmFSH3GPWyvIPtjtr_rYLijp3r3T7TTIFaxrKoosHFvQ4lUo2gOAivvw0YxMMBY4XJMCdTE0uxp3u0BQ"
+            "value": "Qkxlr1IO402v-Th9oWyivMlLUqKePl1pH_6jFkOakAtcMxG-80V3ob4kfPYkKp8rifRW6DeltBQymfLGxPvqBQ"
           }
         }
       }
@@ -277,8 +198,8 @@
   },
   "probes": [
     {
-      "name": "renamed public key uses first next named entry",
-      "history": "renamed",
+      "name": "incoming key uses first next named entry",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -288,16 +209,16 @@
           "next": null
         },
         "sig": {
-          "key_id": "new",
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "8D90gRtENeM3GwNZmui8mjZiu24_vehincaQYBKU00kD3BVP3jHQ9vgwopq9TamNadfYvYPG5vtEN3koVepECA"
+          "value": "XNMYL6qa1UdAktHswJLroP4VVJiOux-4sFgR3GlqEUjskBzonGyJKSG7KGo-m7BHzxFSSkOWNwUOCWWmsGbbCQ"
         }
       },
       "expected": "next"
     },
     {
-      "name": "old alias still verifies current",
-      "history": "renamed",
+      "name": "current key verifies current",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -307,7 +228,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "old",
+          "key_id": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
           "alg": "Ed25519",
           "value": "8D90gRtENeM3GwNZmui8mjZiu24_vehincaQYBKU00kD3BVP3jHQ9vgwopq9TamNadfYvYPG5vtEN3koVepECA"
         }
@@ -315,8 +236,8 @@
       "expected": "current"
     },
     {
-      "name": "absent alias cannot borrow identical public bytes",
-      "history": "renamed",
+      "name": "unlisted identifier cannot borrow a listed key",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -326,7 +247,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "absent",
+          "key_id": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8",
           "alg": "Ed25519",
           "value": "8D90gRtENeM3GwNZmui8mjZiu24_vehincaQYBKU00kD3BVP3jHQ9vgwopq9TamNadfYvYPG5vtEN3koVepECA"
         }
@@ -334,8 +255,8 @@
       "expected": "WIST2-E04"
     },
     {
-      "name": "alias from a later Block cannot supply authority",
-      "history": "renamed",
+      "name": "key from a later Block cannot supply authority",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -345,16 +266,16 @@
           "next": null
         },
         "sig": {
-          "key_id": "later",
+          "key_id": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI",
           "alg": "Ed25519",
-          "value": "XNMYL6qa1UdAktHswJLroP4VVJiOux-4sFgR3GlqEUjskBzonGyJKSG7KGo-m7BHzxFSSkOWNwUOCWWmsGbbCQ"
+          "value": "xNSnWJ8k_I96FR5MpCkNISmPIKt1QwlxRvbOqipR-T2qxxtTn4hIPrf4hyHUmtSSf9suWuy7x-UjlcyOV5qxDQ"
         }
       },
       "expected": "WIST2-E04"
     },
     {
-      "name": "renamed identifier is current at exact seal",
-      "history": "renamed",
+      "name": "incoming key is current at exact seal",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -364,16 +285,16 @@
           "next": null
         },
         "sig": {
-          "key_id": "new",
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "W2dygYR7gc6w32jIDpqexL5fJcWfiGE8IW7IItbwN5LaVxpRY1u3TfZKa4phL_KxxnxuuQeVCfu7z_Ql0UgbBQ"
+          "value": "-daSa4M4-til_81ezQwvkSRJwGB5st1OIl8mZN40y9wlyyWrdJ7zA7l2KcRX5bWt7biNjuC14JMZ8flsdJJxCg"
         }
       },
       "expected": "current"
     },
     {
-      "name": "retired alias cannot borrow current public bytes",
-      "history": "renamed",
+      "name": "retired key cannot verify at exact seal",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -383,7 +304,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "old",
+          "key_id": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
           "alg": "Ed25519",
           "value": "W2dygYR7gc6w32jIDpqexL5fJcWfiGE8IW7IItbwN5LaVxpRY1u3TfZKa4phL_KxxnxuuQeVCfu7z_Ql0UgbBQ"
         }
@@ -391,8 +312,8 @@
       "expected": "WIST2-E04"
     },
     {
-      "name": "renamed identifier before first contact is too late",
-      "history": "renamed",
+      "name": "incoming key before first contact is too late",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -402,16 +323,16 @@
           "next": null
         },
         "sig": {
-          "key_id": "new",
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "CvMKc6zKAG0omiL15CQTPfPrNXeBKBD_Vy9RwAyGecC0ivDVD6zzU_B3KdarpJsMoQ5DFH44B8HpIqIiX5B2Cw"
+          "value": "mcgF-FqwF_pqJm9GdZl7DTVTObGGLi6aoC6pdF0iTASK7XSFxJ4z7Bho80yNIINUUFCZI55zYDQxnzZTDHQBBQ"
         }
       },
       "expected": "WIST2-E04"
     },
     {
-      "name": "first contact resolves original named entry",
-      "history": "renamed",
+      "name": "first contact resolves original entry",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -421,7 +342,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "old",
+          "key_id": "AkXIZFzonb59ZmGwyKgi3H3BwMi6amevqdKQiLZhdtc",
           "alg": "Ed25519",
           "value": "CvMKc6zKAG0omiL15CQTPfPrNXeBKBD_Vy9RwAyGecC0ivDVD6zzU_B3KdarpJsMoQ5DFH44B8HpIqIiX5B2Cw"
         }
@@ -429,8 +350,8 @@
       "expected": "next"
     },
     {
-      "name": "invalid signature under permitted aliases rejects",
-      "history": "renamed",
+      "name": "invalid signature under a named entry rejects",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -440,7 +361,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "new",
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
           "value": "xNSnWJ8k_I96FR5MpCkNISmPIKt1QwlxRvbOqipR-T2qxxtTn4hIPrf4hyHUmtSSf9suWuy7x-UjlcyOV5qxDQ"
         }
@@ -448,8 +369,8 @@
       "expected": "WIST2-E04"
     },
     {
-      "name": "reused identifier verifies current bytes",
-      "history": "reused",
+      "name": "anchor key verifies current",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -459,50 +380,12 @@
           "next": null
         },
         "sig": {
-          "key_id": "shared",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
-          "value": "8D90gRtENeM3GwNZmui8mjZiu24_vehincaQYBKU00kD3BVP3jHQ9vgwopq9TamNadfYvYPG5vtEN3koVepECA"
+          "value": "uQDbHyw94CKWuw8I7cWdbcR9coikeTXOI9ZFL1trXZXy9AdHoptTrW-7cr8sY2M64V3BCOA0dfq7yKi4woGmDQ"
         }
       },
       "expected": "current"
-    },
-    {
-      "name": "reused identifier verifies first next bytes",
-      "history": "reused",
-      "envelope": {
-        "feed": {
-          "wist_version": "1.0.0",
-          "domain": "example.com",
-          "generated_at": "2026-08-09T12:30:00Z",
-          "deltas": [],
-          "next": null
-        },
-        "sig": {
-          "key_id": "shared",
-          "alg": "Ed25519",
-          "value": "XNMYL6qa1UdAktHswJLroP4VVJiOux-4sFgR3GlqEUjskBzonGyJKSG7KGo-m7BHzxFSSkOWNwUOCWWmsGbbCQ"
-        }
-      },
-      "expected": "next"
-    },
-    {
-      "name": "reused identifier cannot borrow later bytes",
-      "history": "reused",
-      "envelope": {
-        "feed": {
-          "wist_version": "1.0.0",
-          "domain": "example.com",
-          "generated_at": "2026-08-09T12:30:00Z",
-          "deltas": [],
-          "next": null
-        },
-        "sig": {
-          "key_id": "shared",
-          "alg": "Ed25519",
-          "value": "xNSnWJ8k_I96FR5MpCkNISmPIKt1QwlxRvbOqipR-T2qxxtTn4hIPrf4hyHUmtSSf9suWuy7x-UjlcyOV5qxDQ"
-        }
-      },
-      "expected": "WIST2-E04"
     },
     {
       "name": "excluded current entry permits first next",
@@ -516,7 +399,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "shared",
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
           "value": "XNMYL6qa1UdAktHswJLroP4VVJiOux-4sFgR3GlqEUjskBzonGyJKSG7KGo-m7BHzxFSSkOWNwUOCWWmsGbbCQ"
         }
@@ -524,7 +407,7 @@
       "expected": "next"
     },
     {
-      "name": "excluded current entry cannot borrow later bytes",
+      "name": "excluded current entry cannot borrow later key",
       "history": "excluded",
       "envelope": {
         "feed": {
@@ -535,7 +418,7 @@
           "next": null
         },
         "sig": {
-          "key_id": "shared",
+          "key_id": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI",
           "alg": "Ed25519",
           "value": "xNSnWJ8k_I96FR5MpCkNISmPIKt1QwlxRvbOqipR-T2qxxtTn4hIPrf4hyHUmtSSf9suWuy7x-UjlcyOV5qxDQ"
         }
@@ -543,8 +426,27 @@
       "expected": "WIST2-E04"
     },
     {
+      "name": "excluded entry supplies no authority under its own identifier",
+      "history": "excluded",
+      "envelope": {
+        "feed": {
+          "wist_version": "1.0.0",
+          "domain": "example.com",
+          "generated_at": "2026-08-09T12:30:00Z",
+          "deltas": [],
+          "next": null
+        },
+        "sig": {
+          "key_id": "ogRZbCR5KTrPFCAfuYmCMwj0w7Yuk3Lr6YWQWfpkbf0",
+          "alg": "Ed25519",
+          "value": "8D90gRtENeM3GwNZmui8mjZiu24_vehincaQYBKU00kD3BVP3jHQ9vgwopq9TamNadfYvYPG5vtEN3koVepECA"
+        }
+      },
+      "expected": "WIST2-E04"
+    },
+    {
       "name": "current succeeds without a following Declaration",
-      "history": "renamed",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -554,16 +456,16 @@
           "next": null
         },
         "sig": {
-          "key_id": "later",
+          "key_id": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI",
           "alg": "Ed25519",
-          "value": "5Wq6vlsr9y6eQwvA3VtUSZdyUT5TtaAxmwWjbPSqyatlWTy7xR40NT_DN0p8ywY3h9hwKPUt7wN0GBMdvjj7DQ"
+          "value": "kVNjQKqzGQ3SgpAJh_G87FldCM4fwrSyGhwVohNX219MCDapQR9fnSmXMF-l4T4sKqrdS_0Cr1IJYnWAQHUqBQ"
         }
       },
       "expected": "current"
     },
     {
-      "name": "retired bytes fail without a following Declaration",
-      "history": "renamed",
+      "name": "retired key fails without a following Declaration",
+      "history": "rotated",
       "envelope": {
         "feed": {
           "wist_version": "1.0.0",
@@ -573,9 +475,9 @@
           "next": null
         },
         "sig": {
-          "key_id": "new",
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
           "alg": "Ed25519",
-          "value": "p0gTTebeDyB5LEQ9drmIgP-1bZEH2-sOsyRZ2YchvFNYzmP8fytGwZISPatl2aK57_XBNYcYWlxBOUW949YsAQ"
+          "value": "5Wq6vlsr9y6eQwvA3VtUSZdyUT5TtaAxmwWjbPSqyatlWTy7xR40NT_DN0p8ywY3h9hwKPUt7wN0GBMdvjj7DQ"
         }
       },
       "expected": "WIST2-E04"

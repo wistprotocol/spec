@@ -4,31 +4,10 @@
     "block_number": 0,
     "prev_block_hash": "sha256:genesis",
     "sealed_at": "2026-08-02T13:00:00Z",
-    "merkle_root": "sha256:95654a634abe13f19746e080d15927f9868cd030acd9d46b4827a4e41931023d",
+    "merkle_root": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
     "entry_count": 4
   },
   "entries": [
-    {
-      "type": "publisher_delta",
-      "body": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-3",
-          "change_type": "attest",
-          "observed_at": "2026-08-02T12:00:00Z",
-          "prev": "sha256:93739e4b26be93d879f5ea69bfd029271259fcbcc1caf4f8a33723934aaa9485",
-          "meta": {
-            "lang": "en"
-          }
-        },
-        "sig": {
-          "key_id": "test-k1",
-          "alg": "Ed25519",
-          "value": "ii0WUT9yVxNmiW3b0GLjEiEXlhW3qhk8_7JVxSgNfGkqJUz1zUDJn0fGKG7Yuga9GKTLZnnO491GacXwFzTMAw"
-        }
-      }
-    },
     {
       "type": "publisher_delta",
       "body": {
@@ -44,30 +23,9 @@
           }
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "oTw7rpgSqnZ1EeTYcLsqVqI29PsIkQza3d8pC7yVZ9JGUokKhMXEwlM5a7L6Du99RF1811HS-xGqj2AcVUYJCw"
-        }
-      }
-    },
-    {
-      "type": "publisher_delta",
-      "body": {
-        "delta": {
-          "wist_version": "1.0.0",
-          "publisher": "example.com",
-          "url": "https://example.com/blog/post-2",
-          "change_type": "attest",
-          "observed_at": "2026-08-02T12:00:00Z",
-          "prev": "sha256:f6c045ed19f874b92378ef282175ac2e19dd11b25acae6c4b2264e165e6f4dd4",
-          "meta": {
-            "lang": "en"
-          }
-        },
-        "sig": {
-          "key_id": "test-k1",
-          "alg": "Ed25519",
-          "value": "wb3FB4b_Gqd09lXK71DRVO1o4Gv3W4HJwho29ZroZhZ4_YjBcbMDLy9uEaorhrmTjZEdiemo_Z9gKGUgD1W0Dg"
         }
       }
     },
@@ -94,9 +52,51 @@
           }
         },
         "sig": {
-          "key_id": "test-k1",
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
           "alg": "Ed25519",
           "value": "19vAYmF_OdKuBJwYBRS4BHskqn5zELhnGpds1N7ic0au8aM-Pe4RV9QJxz6N6QuXkgmKiPG1rdQ7j9Ntcx_zDg"
+        }
+      }
+    },
+    {
+      "type": "publisher_delta",
+      "body": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/blog/post-2",
+          "change_type": "attest",
+          "observed_at": "2026-08-02T12:00:00Z",
+          "prev": "sha256:f6c045ed19f874b92378ef282175ac2e19dd11b25acae6c4b2264e165e6f4dd4",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "wb3FB4b_Gqd09lXK71DRVO1o4Gv3W4HJwho29ZroZhZ4_YjBcbMDLy9uEaorhrmTjZEdiemo_Z9gKGUgD1W0Dg"
+        }
+      }
+    },
+    {
+      "type": "publisher_delta",
+      "body": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "url": "https://example.com/blog/post-3",
+          "change_type": "attest",
+          "observed_at": "2026-08-02T12:00:00Z",
+          "prev": "sha256:93739e4b26be93d879f5ea69bfd029271259fcbcc1caf4f8a33723934aaa9485",
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "ii0WUT9yVxNmiW3b0GLjEiEXlhW3qhk8_7JVxSgNfGkqJUz1zUDJn0fGKG7Yuga9GKTLZnnO491GacXwFzTMAw"
         }
       }
     }
@@ -104,6 +104,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "Xf0lNVWz4faLQgomfj2QTPWrRaceM0jZ0ecEp8duvuIvNHAWZ-cfWjzisIwfBX8FCpCNo_DnmNcii1vkp8tvCg"
+    "value": "kcyVAtCybJIB-UpYQfnRGijQ3KRSC5AIjusoN58b1eY_clwHvblf7geQuC-qXbqiz8fA0ebcwPiiIrMJDlTjCg"
   }
 }

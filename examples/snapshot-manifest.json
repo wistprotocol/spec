@@ -3,7 +3,7 @@
     "wist_version": "1.0.0",
     "snapshot_date": "2026-08-02",
     "log_position": 0,
-    "anchor_block_hash": "sha256:8b004247c4e1a8608b593c12dedc5e12d41b2fad4f8d634eb94b197225a7a14e",
+    "anchor_block_hash": "sha256:a83a94390a706189bdeac60724a010efc914806dfb709671425a1124e60df436",
     "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
     "state": {
       "path": "state.json",
@@ -35,6 +35,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "hQLY30pEd3MZwHz7iBw_2azau3vHhqs8Dp3tKen05twRgC-HOWBI2YqUd6u7PH98jPOxOalmkkGbmGwfML-tCw"
+    "value": "4CCysqW_0XRwvyDR8cRG1PUpw6WBi53VNzyK2E6HSSlap_K3sZkcww6cP4klZvbyTljfD3xNkdbIfKg73DV7Aw"
   }
 }

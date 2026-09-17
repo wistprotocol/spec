@@ -95,7 +95,8 @@
                 "domain_block_entries_max", "labeler_block_entries_max", "max_inclusion_blocks",
                 "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
                 "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
-                "recovery_window_days", "param_grace_days"
+                "recovery_window_days", "param_grace_days",
+                "declaration_activation_blocks"
               ]},
               "details": {
                 "type": "object",
@@ -110,7 +111,8 @@
                     "domain_block_entries_max", "labeler_block_entries_max", "max_inclusion_blocks",
                     "ingest_budget_bytes_day", "feed_window", "clock_skew_seconds",
                     "keyset_cache_ttl_seconds", "baseline_poll_seconds", "quota_base",
-                    "recovery_window_days", "param_grace_days"
+                    "recovery_window_days", "param_grace_days",
+                    "declaration_activation_blocks"
                   ]},
                   "value": {"type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991, "description": "Every numeric constant in this suite is an integer in the unit WIST-4 §5 states for it, and this is the one field through which any of them is ever rewritten; the range is WIST-1 §4's JCS integer domain."}
                 },
@@ -132,7 +134,8 @@
                   {"if": {"properties": {"parameter": {"const": "labeler_block_entries_max"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
                   {"if": {"properties": {"parameter": {"const": "max_inclusion_blocks"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
                   {"if": {"properties": {"parameter": {"const": "ingest_budget_bytes_day"}}}, "then": {"properties": {"value": {"minimum": 1048576}}}},
-                  {"if": {"properties": {"parameter": {"const": "quota_base"}}}, "then": {"properties": {"value": {"minimum": 1}}}}
+                  {"if": {"properties": {"parameter": {"const": "quota_base"}}}, "then": {"properties": {"value": {"minimum": 1}}}},
+                  {"if": {"properties": {"parameter": {"const": "declaration_activation_blocks"}}}, "then": {"properties": {"value": {"minimum": 0}}}}
                 ]
               }
             }

@@ -8,7 +8,7 @@
     "asserted_at": "2026-08-02T12:00:00Z"
   },
   "sig": {
-    "key_id": "test-k1",
+    "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
     "alg": "Ed25519",
     "value": "EWDKKDtLJSj26InmWXpEqbxZsFKzCnBno9_nm0bto_9oplcANbOoZma_Bq6bODdLLd5fQOEVhJYT-YAdLriaCQ"
   }

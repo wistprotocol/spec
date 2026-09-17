@@ -1,5 +1,5 @@
 {
-  "note": "WIST-1 \u00a75.2 historical verification, ordinary case, over key_ids alone: `declarations` carry seq, sealing height and keys; each Delta carries its sealing height and signer. `expected.key_set_at` is the Key Set resolved at each height present, `verifies` and `rejected` (WIST1-E02) the Deltas by that resolution. The recovery exception is exercised by recovery-settlement.json.",
+  "note": "WIST-1 \u00a75.2 historical verification, ordinary case, over key identifiers alone: `declarations` carry seq, sealing height and keys; each Delta carries its sealing height and signer. `expected.key_set_at` is the Key Set resolved at each height present, `verifies` and `rejected` (WIST1-E02) the Deltas by that resolution. The recovery exception is exercised by recovery-settlement.json.",
   "cases": [
     {
       "name": "rotation retiring the old key",

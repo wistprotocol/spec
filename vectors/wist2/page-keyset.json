@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 \u00a73.2 Key Set resolution for a sealed Page, over key_ids alone: `declarations` carry seq, sealing instant and keys, every one applicable; each Page carries generated_at and signer. Each `expected` row gives the Key Set current at generated_at, that of the first Block after it sealing a Declaration (the highest seq's where it seals several), and which of the two the Page verifies under (`current`, `next`, or null for WIST2-E04).",
+  "note": "WIST-2 \u00a73.2 Key Set resolution for a sealed Page, over key identifiers alone: `declarations` carry seq, sealing instant and keys, every one applicable; each Page carries generated_at and signer. Each `expected` row gives the Key Set current at generated_at, that of the first Block after it sealing a Declaration (the highest seq's where it seals several), and which of the two the Page verifies under (`current`, `next`, or null for WIST2-E04).",
   "cases": [
     {
       "name": "page cut after its declaration sealed",

@@ -726,7 +726,7 @@
     {
       "label": "signed by a key the Log does not hold",
       "height": 1,
-      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-02T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-r1\", \"alg\": \"Ed25519\", \"value\": \"D0KR6NHFtavIUpt-L9Zi-5vNKmYCamT1ZCIBGaixpBx5zoiBZsLtok6BpZQCHx5qgxFOS0LLMUy8JPPRnToFDA\"}}",
+      "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"suffix_list_update\", \"subject\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"effective_at\": \"2026-08-02T12:00:00Z\", \"details\": {\"sha256\": \"sha256:66329329e0d1ab1b4a6b160288cc9a5714870d594b17eae57cfd7d848926bb31\", \"bytes\": 513}}, \"sig\": {\"key_id\": \"test-log-r1\", \"alg\": \"Ed25519\", \"value\": \"D0KR6NHFtavIUpt-L9Zi-5vNKmYCamT1ZCIBGaixpBx5zoiBZsLtok6BpZQCHx5qgxFOS0LLMUy8JPPRnToFDA\"}}",
       "code": "WIST4-E11",
       "in_force_after": "first"
     },
