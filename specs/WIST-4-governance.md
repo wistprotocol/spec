@@ -71,8 +71,9 @@ the act's contract requires it, `details`. The five acts are:
 - `suffix_list_update` — the Public Suffix List snapshot every quota and
   capacity decision reads from the next Block on (§3.1).
 
-Every act is signed by the Aggregator under a Log key valid at the act's
-Block (WIST-3 §3.4). `effective_at` is a whole-second UTC instant with a
+Every act is signed by the Aggregator under a Log key valid at the
+height WIST-3 §3.4 fixes for authenticating it. `effective_at` is a
+whole-second UTC instant with a
 literal trailing `Z`, the form every Block `sealed_at` carries (WIST-3
 §3.1); it is descriptive of when the act takes effect and never the
 anchor of a window — a recovery window runs from the `sealed_at` of the
@@ -464,7 +465,9 @@ and ceiling as a Delta (WIST-2 §3.3).
 - `aggregator_key_add`: `key_id`, `alg` (`"Ed25519"`), and `public_key`
   (the raw Ed25519 public key, 43-character base64url); `subject` is the
   `key_id` (WIST-3 §3.4).
-- `aggregator_key_remove`: `key_id`; `subject` is the `key_id`.
+- `aggregator_key_remove`: `key_id`; `subject` is the `key_id`. An
+  authenticated key act of either kind that WIST-3 §3.4 lists as a
+  key-act failure fails its `details` contract (`WIST4-E04`).
 - `parameter_change`: `parameter`, one of the Identifier values in the
   table above, and `value` — an **integer** in that parameter's own unit,
   bounded by the table of bounds above where a fixed bound exists;
@@ -522,10 +525,13 @@ reject. This is the act's own version check, independent of any object
 it names.
 
 After field validation, authenticate the act under the Log key
-`sig.key_id` names, valid at the act's Block (WIST-3 §3.4), with WIST-1
-§4's profile. An act whose `sig.key_id` names no such key, or whose
+`sig.key_id` names, valid at the height WIST-3 §3.4 fixes — the height
+below the act's Block for a key act, the act's Block for every other —
+with WIST-1 §4's profile. An act whose `sig.key_id` names no such key,
+or whose
 signature does not verify under the key it names, is `WIST4-E11`.
-Authenticity takes precedence over semantic diagnostics.
+Authenticity takes precedence over semantic diagnostics, a key-act
+failure's `WIST4-E04` among them.
 
 An act rejected under `WIST1-E05`, `WIST4-E11` or `WIST4-E04`, or left
 unauthenticated, is ignored as every §7 rejection is: it changes no key
@@ -661,9 +667,9 @@ MUST NOT reuse them for another meaning.
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
 | WIST4-E03 | Registry Update rejected under §5, including a prospective schedule that fails a combination rule: a `parameter_change` naming an identifier §5 does not list, a value outside its §5 bound, or an amendment §4's Invariants or §5's unamendable rules forbid. Ignored during replay; the Registry value in force is unchanged. |
-| WIST4-E04 | Registry Update `details` contract violation (§5.1): a REQUIRED `details` member missing or malformed for its `action`, a `subject` outside the shape that action's contract fixes, a bare content digest, or personal data. Ignored as WIST4-E03. |
+| WIST4-E04 | Registry Update `details` contract violation (§5.1): a REQUIRED `details` member missing or malformed for its `action`, a `subject` outside the shape that action's contract fixes, a bare content digest, or personal data; or an authenticated key act that is a key-act failure under WIST-3 §3.4 — an `aggregator_key_add` whose `key_id` or note key ID was ever admitted, or an `aggregator_key_remove` of a `key_id` not valid at the previous height. Ignored as WIST4-E03. |
 | WIST4-E06 | Recomputation divergence: a published parameter value, quota or withdrawal state that does not equal the replayer's own §5 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E11 | Registry Update Envelope failure under §5.1: a field failure outside the act's `details` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields; a major version the validator does not implement; or an act not authenticated under a Log key valid at its Block. Ignored as WIST4-E03: no key registry, schedule or withdrawal state changes, and the containing Block stays valid. |
+| WIST4-E11 | Registry Update Envelope failure under §5.1: a field failure outside the act's `details` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields; a major version the validator does not implement; or an act not authenticated under a Log key valid at the height WIST-3 §3.4 fixes for it. Ignored as WIST4-E03: no key registry, schedule or withdrawal state changes, and the containing Block stays valid. |
 
 ## 8. Security Considerations
 
@@ -747,8 +753,9 @@ enters the Log.
 
 **Aggregator (governance side):**
 
-- [ ] Signs every Registry Update under a Log key valid at its Block and
-      admits or removes its own keys only in-band (§3, WIST-3 §3.4)
+- [ ] Signs every Registry Update under a Log key valid at the height
+      WIST-3 §3.4 fixes for it, admits or removes its own keys only
+      in-band and seals no key-act failure (§3, WIST-3 §3.4)
 - [ ] Changes parameters only via `parameter_change` with the grace
       period, validating the prospective schedule and the Block-size
       guarantee at sealing (§5)
@@ -778,8 +785,10 @@ enters the Log.
       inclusive, the greatest `effective_at` ≤ T prevailing among an
       identifier's amendments and Log order breaking an equal pair (§5)
 - [ ] Applies §5.1's Registry Update field, version and authenticity
-      checks and their precedence, and treats a repeated Registry Update
-      ID as idempotent (§5.1)
+      checks and their precedence, authenticating a key act under the
+      keys valid at the previous height, ignores a key-act failure as
+      `WIST4-E04`, and treats a repeated Registry Update ID as
+      idempotent (§5.1, WIST-3 §3.4)
 - [ ] Rejects a `parameter_change` that fails a bound, a combination
       rule, the Block-size guarantee or the grace period, preserving the
       accepted schedule (§5, §7)

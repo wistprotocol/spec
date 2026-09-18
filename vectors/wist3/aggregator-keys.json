@@ -1,0 +1,1912 @@
+{
+  "note": "WIST-3 \u00a73.4 and \u00a75, WIST-4 \u00a75.1: Aggregator key acts. A key act sealed in Block N authenticates under the keys valid at height N-1 (the genesis key alone before Block 0); every other Registry Update of Block N and Checkpoint N authenticate under the keys valid at N. An unauthenticated act is WIST4-E11; an authenticated key act that is a key-act failure is WIST4-E04, ignored, with the Block kept. Each history is a separate Log with its own Anchor and cumulative tree; `blocks` are in Log order, `entries` in canonical Entry order (\u00a73.3), `acts` carries one disposition per Entry index, `expected_state` the WIST-3 \u00a77 aggregator_key tuples a Consumer holds after the Block, and `valid_at` the key_ids valid at each listed height. `checkpoint` is the Checkpoint the Aggregator publishes; `checkpoint_cases` are candidates judged beside it. The parameter_change Entries are here only to fix the authentication height of a non-key act; their \u00a75 schedule rules are exercised by vectors/wist4/parameter-combinations.json.",
+  "histories": [
+    {
+      "name": "rotation",
+      "note": "WIST-3 \u00a73.4 end to end: a key admitted at Block 0 and removed at Block 1, every key-act failure the section lists, and the genesis key's own removal at Block 4.",
+      "log_id": "keys-rotation.example.org",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-rotation.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "public_key": "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg"
+          },
+          "created_at": "2026-08-30T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "Jkqx13qMcGn1mzrwEydc1Y67uLzHvxv4ebRaUqn9L_UVE58CwTyzQlzWpR2rytmsmgxORjNxqOGXfz8EmXcFBg"
+        }
+      },
+      "blocks": [
+        {
+          "block_number": 0,
+          "sealed_at": "2026-09-01T00:00:00Z",
+          "tree_size": 3,
+          "leaf_hashes": [
+            "0c8ac1e7f8f1fa9dee0b2c34610faeed649ff5aa5c94dfd038d43cfc8c70d72f",
+            "3a1260222af8ff4427dd9847127a40d06b33adc8cd9c45344a1a0862e8667bd0",
+            "fbf42a8121a1d031467730e15d14f3e8e364bb0113bf9e5806ca9bb226a982ad"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k2",
+                    "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "parameter_change",
+                  "subject": "quota_base",
+                  "details": {
+                    "parameter": "quota_base",
+                    "value": 1500
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "k2gzToAP98_gqTHb24Y1gkMlMuJ3mDn1Un1wAXK5lBKG2EpLkjzhoCtToGYa4SWfLzWOVlVr0-8NlnH6n2lyDA"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k3",
+                    "public_key": "u5BZeS6HOhLBfcKDqFL_1nZqG71llpbZC1e8spElRIA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "HqTuJSdq8mBERZbF7JPnaqS7Wrn35aUoP9cH571la28wRjpOI75S0qzW8Ip1T9E9tKcFaa79-w7hJHtnD_q0BA"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k2",
+              "signer_key_id": "test-agg-k1",
+              "code": null,
+              "why": "the genesis key admits a key: a key act of Block 0 authenticates under the keys valid at height -1, the genesis key alone"
+            },
+            {
+              "entry_index": 1,
+              "action": "parameter_change",
+              "subject": "quota_base",
+              "signer_key_id": "test-agg-k2",
+              "code": null,
+              "why": "the key this Block admits signs a non-key act of its own Block, which authenticates at height 0, where it is valid"
+            },
+            {
+              "entry_index": 2,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k3",
+              "signer_key_id": "test-agg-k2",
+              "code": "WIST4-E11",
+              "why": "the key this Block admits signs a key act of its own Block, which authenticates at height -1, where it is not valid"
+            }
+          ],
+          "checkpoint": "keys-rotation.example.org\n3\nFtHVyQ/BPA78aHFXElELtS+PABuSekrlVhPBHSHSfcU=\nblock_number 0\nsealed_at 2026-09-01T00:00:00Z\n\n\u2014 keys-rotation.example.org iurM4PMHBGOWhabFujUMc1bCksgEV9HdKhJgbuxg0x4NVREOM2Yk/dcwgQ163mhph0MqhItClvUcla86COoonTNxGwE=\n\u2014 keys-rotation.example.org eo6qz+OEyh5g/N3zLZAXb81mnePSVUYEdbHxxFTsP84kfdjNJlmr5jvBOcsE2eze3fV54Mhn3zS1jsdjnuv35NIggw4=\n",
+          "checkpoint_cases": [
+            {
+              "name": "the key admitted in this Block signs Checkpoint 0 alone",
+              "checkpoint": "keys-rotation.example.org\n3\nFtHVyQ/BPA78aHFXElELtS+PABuSekrlVhPBHSHSfcU=\nblock_number 0\nsealed_at 2026-09-01T00:00:00Z\n\n\u2014 keys-rotation.example.org eo6qz+OEyh5g/N3zLZAXb81mnePSVUYEdbHxxFTsP84kfdjNJlmr5jvBOcsE2eze3fV54Mhn3zS1jsdjnuv35NIggw4=\n",
+              "signer_key_ids": [
+                "test-agg-k2"
+              ],
+              "expected": "valid"
+            },
+            {
+              "name": "the key whose addition did not authenticate signs Checkpoint 0",
+              "checkpoint": "keys-rotation.example.org\n3\nFtHVyQ/BPA78aHFXElELtS+PABuSekrlVhPBHSHSfcU=\nblock_number 0\nsealed_at 2026-09-01T00:00:00Z\n\n\u2014 keys-rotation.example.org viHnCHwnXz7eB35LpImFyAG7N50N4G7J2+zrabAjo8XHbzC9y17n95G8W2Q72wwcNzFxutFYhLYjDmA1k6dpBq5XGAs=\n",
+              "signer_key_ids": [
+                "test-agg-k3"
+              ],
+              "expected": "WIST3-E03"
+            },
+            {
+              "name": "the genesis key signs Checkpoint 0 alone",
+              "checkpoint": "keys-rotation.example.org\n3\nFtHVyQ/BPA78aHFXElELtS+PABuSekrlVhPBHSHSfcU=\nblock_number 0\nsealed_at 2026-09-01T00:00:00Z\n\n\u2014 keys-rotation.example.org iurM4PMHBGOWhabFujUMc1bCksgEV9HdKhJgbuxg0x4NVREOM2Yk/dcwgQ163mhph0MqhItClvUcla86COoonTNxGwE=\n",
+              "signer_key_ids": [
+                "test-agg-k1"
+              ],
+              "expected": "valid"
+            }
+          ],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-k1",
+              "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k2",
+              "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+              0,
+              null
+            ]
+          ],
+          "why": "the published Checkpoint is a rotation Checkpoint: two signature lines, both under keys valid at height 0"
+        },
+        {
+          "block_number": 1,
+          "sealed_at": "2026-09-01T01:00:00Z",
+          "tree_size": 6,
+          "leaf_hashes": [
+            "0c8ac1e7f8f1fa9dee0b2c34610faeed649ff5aa5c94dfd038d43cfc8c70d72f",
+            "3a1260222af8ff4427dd9847127a40d06b33adc8cd9c45344a1a0862e8667bd0",
+            "fbf42a8121a1d031467730e15d14f3e8e364bb0113bf9e5806ca9bb226a982ad",
+            "44c4c96c71f0df4db7dc2ee1e711f8db639c2065107099d72e8497071f2d19b0",
+            "5f4aa12d81a09f70d630af7bd94972d805793ddebd8b0c9aafb68689ee0c92c7",
+            "76cd65fc99c8de909502905dfa9931c46bf8be6f6798aacf6476f30982eb3a34"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "parameter_change",
+                  "subject": "quota_base",
+                  "details": {
+                    "parameter": "quota_base",
+                    "value": 1600
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "hs9yan63NG0ijtv7Kapd8GQRpemHg-hrM_tN8ilyWRO4q0Y3CBBXpwVfKPKW5UlWmPJKrk6w1gJCdE8qwDRnCw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k4",
+                    "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "key_id": "test-agg-k2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "parameter_change",
+              "subject": "quota_base",
+              "signer_key_id": "test-agg-k2",
+              "code": "WIST4-E11",
+              "why": "the key this Block removes signs a non-key act of the same Block, which authenticates at height 1, where it is no longer valid"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k4",
+              "signer_key_id": "test-agg-k2",
+              "code": null,
+              "why": "the key this Block removes signs another key act of the same Block, which authenticates at height 0"
+            },
+            {
+              "entry_index": 2,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-k2",
+              "signer_key_id": "test-agg-k2",
+              "code": null,
+              "why": "a key signs its own removal: a key act of Block 1 authenticates at height 0, where the key is still valid"
+            }
+          ],
+          "checkpoint": "keys-rotation.example.org\n6\nvGDdvIjoWWUKFwjADFMd5xL6/wLMl+ab3N+RWybIdcs=\nblock_number 1\nsealed_at 2026-09-01T01:00:00Z\n\n\u2014 keys-rotation.example.org iurM4Pv25MmNt4tXjdb2KRNxO0mrLjPX8jolj1BF8dhMKVCwp7OzlmtUyeRWuMJO4j4Mrf40R/Vpv1tUX5v0YnX3vQo=\n",
+          "checkpoint_cases": [
+            {
+              "name": "the key removed in this Block signs Checkpoint 1 alone",
+              "checkpoint": "keys-rotation.example.org\n6\nvGDdvIjoWWUKFwjADFMd5xL6/wLMl+ab3N+RWybIdcs=\nblock_number 1\nsealed_at 2026-09-01T01:00:00Z\n\n\u2014 keys-rotation.example.org eo6qz20V1UvsVppYh5IKsCDpXOu1FCcbit9VvLyN8iUUsv7VDfRqxZLQICNgt8i0X54mFyF11RXMkN88dDvd0xZ/qAc=\n",
+              "signer_key_ids": [
+                "test-agg-k2"
+              ],
+              "expected": "WIST3-E03"
+            },
+            {
+              "name": "the key admitted in this Block signs Checkpoint 1 alone",
+              "checkpoint": "keys-rotation.example.org\n6\nvGDdvIjoWWUKFwjADFMd5xL6/wLMl+ab3N+RWybIdcs=\nblock_number 1\nsealed_at 2026-09-01T01:00:00Z\n\n\u2014 keys-rotation.example.org x6kjzqBUgKTafQ/3ZOAJfaONgYIRiLky2y/aGeJdpflrlxE61UshAnK6iO2/S9nyaHFFA8gzXH1WBUt68DBWc2UcOQ4=\n",
+              "signer_key_ids": [
+                "test-agg-k4"
+              ],
+              "expected": "valid"
+            }
+          ],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-k1",
+              "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k2",
+              "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+              0,
+              1
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k4",
+              "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+              1,
+              null
+            ]
+          ],
+          "why": "Checkpoint 1 authenticates under the keys valid at height 1, the set this Block's accepted key acts leave"
+        },
+        {
+          "block_number": 2,
+          "sealed_at": "2026-09-01T02:00:00Z",
+          "tree_size": 13,
+          "leaf_hashes": [
+            "0c8ac1e7f8f1fa9dee0b2c34610faeed649ff5aa5c94dfd038d43cfc8c70d72f",
+            "3a1260222af8ff4427dd9847127a40d06b33adc8cd9c45344a1a0862e8667bd0",
+            "fbf42a8121a1d031467730e15d14f3e8e364bb0113bf9e5806ca9bb226a982ad",
+            "44c4c96c71f0df4db7dc2ee1e711f8db639c2065107099d72e8497071f2d19b0",
+            "5f4aa12d81a09f70d630af7bd94972d805793ddebd8b0c9aafb68689ee0c92c7",
+            "76cd65fc99c8de909502905dfa9931c46bf8be6f6798aacf6476f30982eb3a34",
+            "1642505cb7535aa89a16f3ad9b5e5f13397a68eaead1faacce9bae8bc0eb9844",
+            "24baf46f32f7abaa3dbe394387e3320f987e30a5de2b8ab04aa67eb31cdbdde5",
+            "5d7b8048711b5bd26bc8f1672be283c19e1205022c81faf2527fc21ba4708457",
+            "6229bf676edd27a8d0e5fc61e9787f1e66f8e7bb0a88453c2499508b47caad32",
+            "9933c0de2b1ed163af35182fc98e96fdd03b5b265e42b907fd49dce2b0c5a480",
+            "a76c1ecb89d54a741b06d3cedb65d360e79e464bc4301edc3ba3813724729a1b",
+            "f56b9b48e2f66a5ff77a045fb950e87e0c1b47aa782eab39fd9fe5f42bef8649"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k10",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k10",
+                    "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "NBPM26YQLuK47w1GvkUKbzeCPic02RuvYTVYaGvmBJvIB4Ssy_Kfil7-Z4vC7ooKO8cYDYIUge55F8EABLqzCA"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "key_id": "test-agg-k2"
+                  },
+                  "effective_at": "2026-10-04T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "ygeVpfK-GdVdW1Fw_WTmvmg8l7WyFpJKPWM9sYfwFm_Y4keYPhBiSuetabbxEyFfDc57GIkBmoucDhlcNq-bDA"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k2",
+                    "public_key": "pzZMkba6EoLefuH8KwPPNYqyDBdzH4-NA-Uhb7zmcSU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "rxmsKSOuaSx50Xv8elXqugXNHoLBGf3goVoA2wcBJ14uqCLnoiBFUKoEJgN42XxueM1zr1eWVVoNNfVw538sBw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k4",
+                    "public_key": "7RbfuqYIfPxSfc2yhwb8EDMNagrTCjnjoquKbpvfCJA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "agqhgdoI3kdVvXwL9EGcLK7pUsROt4HeylIU4KRk7BKhsTMoOpjpJjwQ7zRVxZf8BhtxPF7Etoit5R8omJyiDA"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k5",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k5",
+                    "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k12",
+                  "details": {
+                    "key_id": "test-agg-k12"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "snFEM7fVYHSWz1KhJpO8IJTxyhZsklJYU6xsZEY6Di5a_TSTrPQzQO8hWe9XlEUkFZGOPeZLGIGruL5lGmyBBQ"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k11",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k11",
+                    "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "hyN_u18Q7vEN7z5GSk1GDtm-UUG01AcUbDX_nLvsqLd_55x7Rk_8NS25cB8rBvkgWQxka63shcp4LNhjg19LDQ"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k10",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "an addition whose note key ID equals that of a valid key: the same public key under a new key_id"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-k2",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "a removal naming a key_id already removed at a lower height; its own Registry Update ID is new, so WIST-4 \u00a75.1's idempotence does not apply and the act is evaluated"
+            },
+            {
+              "entry_index": 2,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k2",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "an addition naming a key_id removed at a lower height: removal is permanent and restores no validity"
+            },
+            {
+              "entry_index": 3,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k4",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "an addition naming a key_id currently valid"
+            },
+            {
+              "entry_index": 4,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k5",
+              "signer_key_id": "test-agg-k1",
+              "code": null,
+              "why": "the Block's one accepted key act: the failures beside it change no key registry state and the Block stays valid"
+            },
+            {
+              "entry_index": 5,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-k12",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "a removal naming a key_id never admitted"
+            },
+            {
+              "entry_index": 6,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k11",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "an addition whose note key ID equals that of a removed key, which stays in the admitted set"
+            }
+          ],
+          "checkpoint": "keys-rotation.example.org\n13\nxC582PKy5pCtU6oDEHH6p6lR/2sy+f5gU7mzwKMe+ME=\nblock_number 2\nsealed_at 2026-09-01T02:00:00Z\n\n\u2014 keys-rotation.example.org iurM4F3oB8/BCqoGvtODaaRaoRncxzLMLZVjCPCttDdOuWm7h3m/D9yVidtrodU3PyVowjubN+HGWb+k0GuuEpmARQg=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-k1",
+              "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k2",
+              "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+              0,
+              1
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k4",
+              "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+              1,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k5",
+              "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
+              2,
+              null
+            ]
+          ],
+          "why": "six key-act failures beside one accepted addition: each is ignored as WIST4-E04 and the Block stays valid"
+        },
+        {
+          "block_number": 3,
+          "sealed_at": "2026-09-01T03:00:00Z",
+          "tree_size": 21,
+          "leaf_hashes": [
+            "0c8ac1e7f8f1fa9dee0b2c34610faeed649ff5aa5c94dfd038d43cfc8c70d72f",
+            "3a1260222af8ff4427dd9847127a40d06b33adc8cd9c45344a1a0862e8667bd0",
+            "fbf42a8121a1d031467730e15d14f3e8e364bb0113bf9e5806ca9bb226a982ad",
+            "44c4c96c71f0df4db7dc2ee1e711f8db639c2065107099d72e8497071f2d19b0",
+            "5f4aa12d81a09f70d630af7bd94972d805793ddebd8b0c9aafb68689ee0c92c7",
+            "76cd65fc99c8de909502905dfa9931c46bf8be6f6798aacf6476f30982eb3a34",
+            "1642505cb7535aa89a16f3ad9b5e5f13397a68eaead1faacce9bae8bc0eb9844",
+            "24baf46f32f7abaa3dbe394387e3320f987e30a5de2b8ab04aa67eb31cdbdde5",
+            "5d7b8048711b5bd26bc8f1672be283c19e1205022c81faf2527fc21ba4708457",
+            "6229bf676edd27a8d0e5fc61e9787f1e66f8e7bb0a88453c2499508b47caad32",
+            "9933c0de2b1ed163af35182fc98e96fdd03b5b265e42b907fd49dce2b0c5a480",
+            "a76c1ecb89d54a741b06d3cedb65d360e79e464bc4301edc3ba3813724729a1b",
+            "f56b9b48e2f66a5ff77a045fb950e87e0c1b47aa782eab39fd9fe5f42bef8649",
+            "185dd55a188d645706efd643073e6d7012de0a08f7357c5e035691516300a408",
+            "6f7b3dc3d515d9172ff7b6fb8ac10a97563cf3df56146ccd2938ba2adbed2ad6",
+            "835dccc5fba664446a336b20f90b08d84ee4d01e1122d6b485aef13559cb2622",
+            "8a9003fc9e13a34226e02e620fd64bbfa9bf81092d50488f455c0beea01bae5a",
+            "a16944b5a06418090e855902048f1e34f819b12c442fe30ac2eed24d4de252d3",
+            "a19895ae1d420c314156e3b45c9539c83523e5f83c90e24f70b0312d483d979e",
+            "f529b1ba18ffcc8578512767226740c6a5e16a7d4b5a43afff45f7fc7995ce6f",
+            "f58353f51114ae64b76c16163d164bfba1709f4a76914fc3fa69e935b6797a5c"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "key_id": "test-agg-k4"
+                  },
+                  "effective_at": "2026-10-02T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "BHXmSGUukmlWD9BzQ0NeKv5MsTDKd8ppqc98FnHKs0lrIE3cwVQgG3b9l4_ae3mDDx2dSenB2cJY9-6XJmuZDA"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k6",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k6",
+                    "public_key": "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "m4rnzOomQwGAeW8HmAcKuInGzSzJqOkxIZ2HDq3_FAuP6J-4xGEiRjAtHpVEMof6d1H8h8ZK9IuP7H03B4OIAQ"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "key_id": "test-agg-k4"
+                  },
+                  "effective_at": "2026-10-03T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "yt7qRzhvMRpu9H6wvU0IoQRKiUpUv7HHTPpvFFyZXUfMCrYwHk8dzsOJF9caV58KCxEowze9lz8ssbvLBFqoBw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k7",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k7",
+                    "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "e00VzryHfzD4Wjzh-nE5Aum-FI8IOKSUR8y61KRApLcgl8Qz5jMrzwf2T5cWHb0LzG05jARXc6yb2jizdggdDQ"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k9",
+                  "details": {
+                    "key_id": "test-agg-k9"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "RIbU9Mi3_zLgzw-bZQLxY9eJAPnY_if_hHVo9VBtgDS7GPU_TPjn3uv1GaneKsNxowSjmFW6nGJaL7zb5w3VDg"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k6",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k6",
+                    "public_key": "btyrQM_Ngc01NSgE-GHA1dTRDYCplN2KafgOsjaJo9c"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "wjlBuEhiPWammueT8ahEw0wjB-6u2cdJ5rbHSncdhwXYX4taxThrK_RvyI3n_lLfFtpV1a-B38FkLwLA650-Cw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k9",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k9",
+                    "public_key": "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "wXlLKSN6POILG0pP7Q-8ozqxurgNFWrPNn50v0Va5aeHDkPSclahXhFHvHbZNPdYBn-W31vWov5UP0TRfGmXDg"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k8",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k8",
+                    "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "Yl3xidGLujE_9jiO5VJliuWjo9_g7Zef58K9k3cBLs0QehwVJrTX6YMnevwJoSIZkafWgbymUFQTpOElBylgDg"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-k4",
+              "signer_key_id": "test-agg-k1",
+              "code": null,
+              "why": "the first of two removals of one valid key_id in one Block"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k6",
+              "signer_key_id": "test-agg-k1",
+              "code": null,
+              "why": "one of two additions naming key_id test-agg-k6 in one Block; the lower Entry index is accepted"
+            },
+            {
+              "entry_index": 2,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-k4",
+              "signer_key_id": "test-agg-k1",
+              "code": null,
+              "why": "the second removal of that key_id: accepted, and it changes nothing"
+            },
+            {
+              "entry_index": 3,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k7",
+              "signer_key_id": "test-agg-k1",
+              "code": null,
+              "why": "one of two additions of one public key in one Block, a note key ID collision decided by Entry index"
+            },
+            {
+              "entry_index": 4,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-k9",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "a removal naming a key_id added in this very Block, which is not valid at the previous height"
+            },
+            {
+              "entry_index": 5,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k6",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "the other addition naming key_id test-agg-k6 in one Block; the higher Entry index fails"
+            },
+            {
+              "entry_index": 6,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k9",
+              "signer_key_id": "test-agg-k1",
+              "code": null,
+              "why": "an addition whose key this Block also tries to remove"
+            },
+            {
+              "entry_index": 7,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-k8",
+              "signer_key_id": "test-agg-k1",
+              "code": "WIST4-E04",
+              "why": "the other addition of that public key under a second key_id; the higher Entry index fails"
+            }
+          ],
+          "checkpoint": "keys-rotation.example.org\n21\nDpxLgPlOC2GIxNIIdud44C9Dbgqp6sJUP8+JO9CIR40=\nblock_number 3\nsealed_at 2026-09-01T03:00:00Z\n\n\u2014 keys-rotation.example.org iurM4O0aPNq5GU4f02aeS42O9Ucxk1grTuhWdnLzHwxRWbTCcLQcFiU6ZDZ5m1R6OAUkmzwgz6leZO0iQFPQ+4GWUww=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-k1",
+              "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k2",
+              "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+              0,
+              1
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k4",
+              "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+              1,
+              3
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k5",
+              "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
+              2,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k6",
+              "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
+              3,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k7",
+              "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
+              3,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k9",
+              "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
+              3,
+              null
+            ]
+          ],
+          "why": "the failures a Block decides against itself: two additions of one key_id, two of one public key, a removal of a key added here, and two removals of one valid key",
+          "tie_breaks": [
+            {
+              "reason": "two additions naming one key_id",
+              "accepted_entry_index": 1,
+              "accepted_key_id": "test-agg-k6",
+              "failed_entry_index": 5,
+              "failed_key_id": "test-agg-k6"
+            },
+            {
+              "reason": "two additions of one public key, colliding note key IDs",
+              "accepted_entry_index": 3,
+              "accepted_key_id": "test-agg-k7",
+              "failed_entry_index": 7,
+              "failed_key_id": "test-agg-k8"
+            }
+          ]
+        },
+        {
+          "block_number": 4,
+          "sealed_at": "2026-09-01T04:00:00Z",
+          "tree_size": 22,
+          "leaf_hashes": [
+            "0c8ac1e7f8f1fa9dee0b2c34610faeed649ff5aa5c94dfd038d43cfc8c70d72f",
+            "3a1260222af8ff4427dd9847127a40d06b33adc8cd9c45344a1a0862e8667bd0",
+            "fbf42a8121a1d031467730e15d14f3e8e364bb0113bf9e5806ca9bb226a982ad",
+            "44c4c96c71f0df4db7dc2ee1e711f8db639c2065107099d72e8497071f2d19b0",
+            "5f4aa12d81a09f70d630af7bd94972d805793ddebd8b0c9aafb68689ee0c92c7",
+            "76cd65fc99c8de909502905dfa9931c46bf8be6f6798aacf6476f30982eb3a34",
+            "1642505cb7535aa89a16f3ad9b5e5f13397a68eaead1faacce9bae8bc0eb9844",
+            "24baf46f32f7abaa3dbe394387e3320f987e30a5de2b8ab04aa67eb31cdbdde5",
+            "5d7b8048711b5bd26bc8f1672be283c19e1205022c81faf2527fc21ba4708457",
+            "6229bf676edd27a8d0e5fc61e9787f1e66f8e7bb0a88453c2499508b47caad32",
+            "9933c0de2b1ed163af35182fc98e96fdd03b5b265e42b907fd49dce2b0c5a480",
+            "a76c1ecb89d54a741b06d3cedb65d360e79e464bc4301edc3ba3813724729a1b",
+            "f56b9b48e2f66a5ff77a045fb950e87e0c1b47aa782eab39fd9fe5f42bef8649",
+            "185dd55a188d645706efd643073e6d7012de0a08f7357c5e035691516300a408",
+            "6f7b3dc3d515d9172ff7b6fb8ac10a97563cf3df56146ccd2938ba2adbed2ad6",
+            "835dccc5fba664446a336b20f90b08d84ee4d01e1122d6b485aef13559cb2622",
+            "8a9003fc9e13a34226e02e620fd64bbfa9bf81092d50488f455c0beea01bae5a",
+            "a16944b5a06418090e855902048f1e34f819b12c442fe30ac2eed24d4de252d3",
+            "a19895ae1d420c314156e3b45c9539c83523e5f83c90e24f70b0312d483d979e",
+            "f529b1ba18ffcc8578512767226740c6a5e16a7d4b5a43afff45f7fc7995ce6f",
+            "f58353f51114ae64b76c16163d164bfba1709f4a76914fc3fa69e935b6797a5c",
+            "6ac4e597d35a6b1d972c9b899144bca7c0dd040ab992a04dfb73f9b03f828cab"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k1",
+                  "details": {
+                    "key_id": "test-agg-k1"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k5",
+                  "alg": "Ed25519",
+                  "value": "9e0neRT6cdyqkKAFrYU77YAwtJH9jGYEDs1bm8q34qINRYcEDAaHmaTlnjnZ-PlG79ded0qrVsvzANgADK9KBg"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-k1",
+              "signer_key_id": "test-agg-k5",
+              "code": null,
+              "why": "the genesis key is removable like any other key, here by a key admitted in-band"
+            }
+          ],
+          "checkpoint": "keys-rotation.example.org\n22\nPSRP5oTb1NbOF8uRj7uCyk1H/3iUrnWXZp2mWxGpCG8=\nblock_number 4\nsealed_at 2026-09-01T04:00:00Z\n\n\u2014 keys-rotation.example.org 9m8vWeAIPB0xF4nyN8Aqt6Qg2exNnAVbAdbRMZ4U/gQXsO8TD1AgnGZrOxYA6RvRrJsgVs3889QmyfyC1TEotuvVLwU=\n",
+          "checkpoint_cases": [
+            {
+              "name": "the removed genesis key signs Checkpoint 4 alone",
+              "checkpoint": "keys-rotation.example.org\n22\nPSRP5oTb1NbOF8uRj7uCyk1H/3iUrnWXZp2mWxGpCG8=\nblock_number 4\nsealed_at 2026-09-01T04:00:00Z\n\n\u2014 keys-rotation.example.org iurM4B98euj2I8yPf+1rsb0cHr9I3pcWqVioOtn6ER3Dpg8QOvLNIiL2Fk3GoD630IMTMyRDg+f6tOS+0c4Ar5dcBw4=\n",
+              "signer_key_ids": [
+                "test-agg-k1"
+              ],
+              "expected": "WIST3-E03"
+            },
+            {
+              "name": "a valid key signs Checkpoint 4 beside the removed genesis key",
+              "checkpoint": "keys-rotation.example.org\n22\nPSRP5oTb1NbOF8uRj7uCyk1H/3iUrnWXZp2mWxGpCG8=\nblock_number 4\nsealed_at 2026-09-01T04:00:00Z\n\n\u2014 keys-rotation.example.org iurM4B98euj2I8yPf+1rsb0cHr9I3pcWqVioOtn6ER3Dpg8QOvLNIiL2Fk3GoD630IMTMyRDg+f6tOS+0c4Ar5dcBw4=\n\u2014 keys-rotation.example.org 9m8vWeAIPB0xF4nyN8Aqt6Qg2exNnAVbAdbRMZ4U/gQXsO8TD1AgnGZrOxYA6RvRrJsgVs3889QmyfyC1TEotuvVLwU=\n",
+              "signer_key_ids": [
+                "test-agg-k1",
+                "test-agg-k5"
+              ],
+              "expected": "valid"
+            }
+          ],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-k1",
+              "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+              0,
+              4
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k2",
+              "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+              0,
+              1
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k4",
+              "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+              1,
+              3
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k5",
+              "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
+              2,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k6",
+              "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
+              3,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k7",
+              "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
+              3,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-k9",
+              "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
+              3,
+              null
+            ]
+          ],
+          "why": "the genesis key is removed; Checkpoint 4 authenticates under the keys valid at height 4, which no longer include it"
+        }
+      ],
+      "valid_at": [
+        {
+          "height": -1,
+          "key_ids": [
+            "test-agg-k1"
+          ]
+        },
+        {
+          "height": 0,
+          "key_ids": [
+            "test-agg-k1",
+            "test-agg-k2"
+          ]
+        },
+        {
+          "height": 1,
+          "key_ids": [
+            "test-agg-k1",
+            "test-agg-k4"
+          ]
+        },
+        {
+          "height": 2,
+          "key_ids": [
+            "test-agg-k1",
+            "test-agg-k4",
+            "test-agg-k5"
+          ]
+        },
+        {
+          "height": 3,
+          "key_ids": [
+            "test-agg-k1",
+            "test-agg-k5",
+            "test-agg-k6",
+            "test-agg-k7",
+            "test-agg-k9"
+          ]
+        },
+        {
+          "height": 4,
+          "key_ids": [
+            "test-agg-k5",
+            "test-agg-k6",
+            "test-agg-k7",
+            "test-agg-k9"
+          ]
+        }
+      ],
+      "verified_head": 4,
+      "equivocation_cases": [
+        {
+          "name": "a differing Block 0 Checkpoint signed by a key since removed",
+          "block_number": 0,
+          "signer_key_ids": [
+            "test-agg-k2"
+          ],
+          "checkpoint": "keys-rotation.example.org\n3\nOXQ16hTmZMJKMB7zVdqniLL5ZhEZg53mgCH853LRHLA=\nblock_number 0\nsealed_at 2026-09-01T00:00:00Z\n\n\u2014 keys-rotation.example.org eo6qzxm1Iy23NiWwUTagQ/JehMypydAzIdzRzMkmMPt1fHgC4g13BR4N7x07zz6CIx+oCxH67iUkVqLXlEUpLGePYgQ=\n",
+          "why": "the key was valid at height 0, the height the offered Checkpoint states, and its later removal does not repudiate the signature",
+          "expected": "WIST3-E02"
+        },
+        {
+          "name": "a differing Block 0 Checkpoint signed by a key admitted later",
+          "block_number": 0,
+          "signer_key_ids": [
+            "test-agg-k5"
+          ],
+          "checkpoint": "keys-rotation.example.org\n3\nOXQ16hTmZMJKMB7zVdqniLL5ZhEZg53mgCH853LRHLA=\nblock_number 0\nsealed_at 2026-09-01T00:00:00Z\n\n\u2014 keys-rotation.example.org 9m8vWUymOCAnuhKdfYU/mYmVvnU50rQBLMrw+lrffj2A+K0G7ayCz44b1Zcw7a8tXsdV9mwYnAc/y0P8yTK/b/qB8Ac=\n",
+          "why": "the key was not valid at height 0, so the Checkpoint fails \u00a75's signature rule and is not evidence",
+          "expected": "WIST3-E03"
+        }
+      ],
+      "snapshot_state": {
+        "log_position": 22,
+        "block_number": 4,
+        "cases": [
+          {
+            "name": "every admitted key, removed keys included",
+            "entries": [
+              [
+                "aggregator_key",
+                "test-agg-k1",
+                "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+                0,
+                4
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k2",
+                "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+                0,
+                1
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k4",
+                "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+                1,
+                3
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k5",
+                "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
+                2,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k6",
+                "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
+                3,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k7",
+                "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
+                3,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k9",
+                "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
+                3,
+                null
+              ],
+              [
+                "parameter",
+                "quota_base",
+                "2026-10-01T00:00:00Z",
+                1500
+              ]
+            ],
+            "why": "an aggregator_key tuple exists for every key admitted at or below log_position, a removed key carrying its removal height",
+            "verifies": true
+          },
+          {
+            "name": "the tuple of a key removed below the head omitted",
+            "entries": [
+              [
+                "aggregator_key",
+                "test-agg-k1",
+                "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
+                0,
+                4
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k4",
+                "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+                1,
+                3
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k5",
+                "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
+                2,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k6",
+                "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
+                3,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k7",
+                "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
+                3,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k9",
+                "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
+                3,
+                null
+              ],
+              [
+                "parameter",
+                "quota_base",
+                "2026-10-01T00:00:00Z",
+                1500
+              ]
+            ],
+            "why": "a resuming Consumer evaluates key-act failures against removed keys and judges a lower Checkpoint under the keys valid at its own height, so the tuple outlives its key",
+            "verifies": false
+          },
+          {
+            "name": "the removed genesis key's tuple omitted",
+            "entries": [
+              [
+                "aggregator_key",
+                "test-agg-k2",
+                "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
+                0,
+                1
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k4",
+                "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
+                1,
+                3
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k5",
+                "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
+                2,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k6",
+                "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
+                3,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k7",
+                "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
+                3,
+                null
+              ],
+              [
+                "aggregator_key",
+                "test-agg-k9",
+                "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
+                3,
+                null
+              ],
+              [
+                "parameter",
+                "quota_base",
+                "2026-10-01T00:00:00Z",
+                1500
+              ]
+            ],
+            "why": "the genesis key is a key like any other once removed",
+            "verifies": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "keys exhausted",
+      "note": "WIST-3 \u00a73.4: a Block whose accepted removals leave no key valid at its height has no valid Checkpoint and is never applied.",
+      "log_id": "keys-exhausted.example.org",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-exhausted.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-m1",
+            "alg": "Ed25519",
+            "public_key": "1CHqFezGuGUNmHKaG_Fil7ppPOBY5BCs4N7n4IrrfhI"
+          },
+          "created_at": "2026-08-30T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "test-agg-m1",
+          "alg": "Ed25519",
+          "value": "1ENuDpTgPeutQx1JwCn3Om8yFs7gjSascRYA8Wef4VO3Fwousi4ELgjdSkOvrKBugnQCgqKcelODCiPLBmyvDg"
+        }
+      },
+      "blocks": [
+        {
+          "block_number": 0,
+          "sealed_at": "2026-09-02T00:00:00Z",
+          "tree_size": 1,
+          "leaf_hashes": [
+            "472a703eccc1e965df340324f2c73d8be46d9cad9e702f8f089a5ef5a09ee6f4"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-m2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-m2",
+                    "public_key": "vfMxF-qyOdRhc5Fkig-PS3EHmxxuzMdGSL5Kjo2QxS8"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-m1",
+                  "alg": "Ed25519",
+                  "value": "HQ6dgMy4PNbnGaE10c5aU-nz6fg1P3b7Pc4SsOH9BBR2OwKBLFYZDI1TrgcLe-KPLc6S4i8NC-BIF0G0a3V6DQ"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-m2",
+              "signer_key_id": "test-agg-m1",
+              "code": null,
+              "why": "an accepted addition under the genesis key"
+            }
+          ],
+          "checkpoint": "keys-exhausted.example.org\n1\nRypwPszB6WXfNAMk8sc9i+RtnK2ecC+PCJpe9aCe5vQ=\nblock_number 0\nsealed_at 2026-09-02T00:00:00Z\n\n\u2014 keys-exhausted.example.org H+g7TV4EdTT4FyarWpYaAzhOfR+s67Tuzy4vqUdbElWOvstQrtdLCKEPz3zM7EreuKL/oA8ks6uA56qj05GPKy7/qg0=\n\u2014 keys-exhausted.example.org IAABuSI/U8G7TpyeEchZb9UJngVdMb0U8Ujq7qvgBwnjbw78geGnyVPtBDCnsnncbNPnqK2M13bb/0clq9U7Jx5zHQA=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-m1",
+              "1CHqFezGuGUNmHKaG_Fil7ppPOBY5BCs4N7n4IrrfhI",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-m2",
+              "vfMxF-qyOdRhc5Fkig-PS3EHmxxuzMdGSL5Kjo2QxS8",
+              0,
+              null
+            ]
+          ],
+          "why": "the genesis key admits a second key"
+        },
+        {
+          "block_number": 1,
+          "sealed_at": "2026-09-02T01:00:00Z",
+          "tree_size": 3,
+          "leaf_hashes": [
+            "472a703eccc1e965df340324f2c73d8be46d9cad9e702f8f089a5ef5a09ee6f4",
+            "b3139ba80562c90d96082489e27513f53e513db9b7940dd726bfb92516e68a32",
+            "fd8633678f46367f9f0112dbca993109006af16e946918409f9bfade2d192359"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-m1",
+                  "details": {
+                    "key_id": "test-agg-m1"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-m1",
+                  "alg": "Ed25519",
+                  "value": "0gLUPLsztSvd2mBswYJ39uWL_x4radyjOpQ_Gcr34sLYe16TfaCBcH7FwzNPs7eV72O7p_74GPzxfkOzxuOuCg"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-m2",
+                  "details": {
+                    "key_id": "test-agg-m2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-m2",
+                  "alg": "Ed25519",
+                  "value": "UkiEnZs7qi8yawYGrPCzUK3pIKwAFkD9S56fIwUNJ02cGzIGBkzV-SnAKsXyV_cUtRRs6qRr18blBun65JePAw"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-m1",
+              "signer_key_id": "test-agg-m1",
+              "code": null,
+              "why": "the genesis key removes itself"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-m2",
+              "signer_key_id": "test-agg-m2",
+              "code": null,
+              "why": "the remaining key removes itself"
+            }
+          ],
+          "checkpoint": null,
+          "checkpoint_cases": [
+            {
+              "name": "Checkpoint 1 signed by the removed genesis key",
+              "checkpoint": "keys-exhausted.example.org\n3\n9liomd3t+BeWCeocFYBQU7tS3+Qu4Yf21zWQodhYiA4=\nblock_number 1\nsealed_at 2026-09-02T01:00:00Z\n\n\u2014 keys-exhausted.example.org H+g7TXBvjs9Y0AZol8UPyr30ZtZy3/HIWOIig9U6kS6aAN7krPuZ8x6QLP4TVpZgQcDane3rfuC2YqpMHe6g11H3LgE=\n",
+              "signer_key_ids": [
+                "test-agg-m1"
+              ],
+              "expected": "WIST3-E03"
+            },
+            {
+              "name": "Checkpoint 1 signed by the other removed key",
+              "checkpoint": "keys-exhausted.example.org\n3\n9liomd3t+BeWCeocFYBQU7tS3+Qu4Yf21zWQodhYiA4=\nblock_number 1\nsealed_at 2026-09-02T01:00:00Z\n\n\u2014 keys-exhausted.example.org IAABuQ7d2ZY8hdwQhiDtSwQzerYDbzXTiFomq/1zzDp2VDvPxcT/9pXlPjeGsztqhbZ+D2MKHrr9ZPI4/Cl34QhLVws=\n",
+              "signer_key_ids": [
+                "test-agg-m2"
+              ],
+              "expected": "WIST3-E03"
+            }
+          ],
+          "applied": false,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-m1",
+              "1CHqFezGuGUNmHKaG_Fil7ppPOBY5BCs4N7n4IrrfhI",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-m2",
+              "vfMxF-qyOdRhc5Fkig-PS3EHmxxuzMdGSL5Kjo2QxS8",
+              0,
+              null
+            ]
+          ],
+          "why": "both removals authenticate at height 0 and are accepted, so no key is valid at height 1: no Checkpoint 1 verifies, the Block is never applied, and the verified head stays at Block 0"
+        }
+      ],
+      "valid_at": [
+        {
+          "height": -1,
+          "key_ids": [
+            "test-agg-m1"
+          ]
+        },
+        {
+          "height": 0,
+          "key_ids": [
+            "test-agg-m1",
+            "test-agg-m2"
+          ]
+        },
+        {
+          "height": 1,
+          "key_ids": []
+        }
+      ],
+      "verified_head": 0
+    },
+    {
+      "name": "addition below removal",
+      "note": "WIST-3 \u00a73.4: a key removed at Block 1 signs both the removal and an addition sealed beside it; this history places the addition below the removal in canonical Entry order.",
+      "log_id": "keys-order-a.example.org",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-order-a.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-n1",
+            "alg": "Ed25519",
+            "public_key": "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc"
+          },
+          "created_at": "2026-08-30T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "test-agg-n1",
+          "alg": "Ed25519",
+          "value": "VH7kO93-CDE5n4gH8KlmbxYUjNRCwTbT7Kpkws7Hgc1nQXn1rHVjLf33xwhAFyr4MiUsUczuJnkpVvwjurAPBA"
+        }
+      },
+      "blocks": [
+        {
+          "block_number": 0,
+          "sealed_at": "2026-09-03T00:00:00Z",
+          "tree_size": 1,
+          "leaf_hashes": [
+            "44fe60869f7540c63ea72fcf34d2fa83f82f26af4ac4ab00bfb32233c02d5d7a"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n2",
+                    "public_key": "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n1",
+                  "alg": "Ed25519",
+                  "value": "izlWGYW3bMXdRaTbBtYLvyQ5-8QtwPFHvaPr_UmMtvnxWfFfclF3MkjA8k8svJhmLIxZWbNkKAwYGnzGxusQDw"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-n2",
+              "signer_key_id": "test-agg-n1",
+              "code": null,
+              "why": "an accepted addition under the genesis key"
+            }
+          ],
+          "checkpoint": "keys-order-a.example.org\n1\nRP5ghp91QMY+py/PNNL6g/gvJq9KxKsAv7MiM8AtXXo=\nblock_number 0\nsealed_at 2026-09-03T00:00:00Z\n\n\u2014 keys-order-a.example.org TcLWvK55FtQKH1dxZLJ5MEHz8SbUg+xD9j0npqg0feRcQDvPpVpWe2QuWZEKkOrufhV6M1bb1TA95BwDX+Dj0WQETQs=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-n1",
+              "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-n2",
+              "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
+              0,
+              null
+            ]
+          ],
+          "why": "the genesis key admits the key that Block 1 removes"
+        },
+        {
+          "block_number": 1,
+          "sealed_at": "2026-09-03T01:00:00Z",
+          "tree_size": 3,
+          "leaf_hashes": [
+            "44fe60869f7540c63ea72fcf34d2fa83f82f26af4ac4ab00bfb32233c02d5d7a",
+            "03aaea1bdb37843a4b31649776471e9d93363dd88d60a0f673bb8ca5e0fc1235",
+            "163d6561c3cf52273e69e224ef49478654cae9e88687b45f8845fdccd96875ef"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n3",
+                    "public_key": "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU"
+                  },
+                  "effective_at": "2026-10-01T00:11:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "qv-5j9lUMhZQ1c-DUrNfwjbDx6x6xTSvB_iNEk0_h0CpiV323GRJpqeViSwSHtXi-yGitvOsJRgWDg9tmx4WDw"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "key_id": "test-agg-n2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "vgTkmpVmJ8YHvzIvccSGUxu5kohsc1jpcoSMyY2j9qgbuUkGGmM1e5t8HzCaDJrWI7dusDzFyPuW4SclviVkBg"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-n3",
+              "signer_key_id": "test-agg-n2",
+              "code": null,
+              "why": "the same key admits its successor in the same Block"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-n2",
+              "signer_key_id": "test-agg-n2",
+              "code": null,
+              "why": "the key removes itself"
+            }
+          ],
+          "checkpoint": "keys-order-a.example.org\n3\nlOmYnBIT2+7GlZCVWOFr34PPrBEEGKwqAlAxKBC2SU8=\nblock_number 1\nsealed_at 2026-09-03T01:00:00Z\n\n\u2014 keys-order-a.example.org TcLWvPhtaVAWjX8fIc6nihoYfmZayZgTS8bz4TZlAjhjDo/NMP74HMYJ4xcofNHOmyn9SGDFzdvai4mg2P+TSJ4+kgI=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-n1",
+              "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-n2",
+              "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
+              0,
+              1
+            ],
+            [
+              "aggregator_key",
+              "test-agg-n3",
+              "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU",
+              1,
+              null
+            ]
+          ],
+          "why": "both key acts authenticate at height 0, where the removed key is still valid, and both are accepted whichever Entry index each holds"
+        }
+      ],
+      "valid_at": [
+        {
+          "height": -1,
+          "key_ids": [
+            "test-agg-n1"
+          ]
+        },
+        {
+          "height": 0,
+          "key_ids": [
+            "test-agg-n1",
+            "test-agg-n2"
+          ]
+        },
+        {
+          "height": 1,
+          "key_ids": [
+            "test-agg-n1",
+            "test-agg-n3"
+          ]
+        }
+      ],
+      "verified_head": 1
+    },
+    {
+      "name": "addition above removal",
+      "note": "WIST-3 \u00a73.4: a key removed at Block 1 signs both the removal and an addition sealed beside it; this history places the addition above the removal in canonical Entry order.",
+      "log_id": "keys-order-b.example.org",
+      "anchor": {
+        "anchor": {
+          "wist_version": "1.0.0",
+          "log_id": "keys-order-b.example.org",
+          "genesis_key": {
+            "key_id": "test-agg-n1",
+            "alg": "Ed25519",
+            "public_key": "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc"
+          },
+          "created_at": "2026-08-30T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "test-agg-n1",
+          "alg": "Ed25519",
+          "value": "gSnvteuHPfeoctVJKHyn_u9QSaL8iNVKIuq7RY9-1YivK00VjKvEBFb_a6vGpuH2wO7RkeRxF0AyN9FZ1c6GAA"
+        }
+      },
+      "blocks": [
+        {
+          "block_number": 0,
+          "sealed_at": "2026-09-03T00:00:00Z",
+          "tree_size": 1,
+          "leaf_hashes": [
+            "44fe60869f7540c63ea72fcf34d2fa83f82f26af4ac4ab00bfb32233c02d5d7a"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n2",
+                    "public_key": "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n1",
+                  "alg": "Ed25519",
+                  "value": "izlWGYW3bMXdRaTbBtYLvyQ5-8QtwPFHvaPr_UmMtvnxWfFfclF3MkjA8k8svJhmLIxZWbNkKAwYGnzGxusQDw"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-n2",
+              "signer_key_id": "test-agg-n1",
+              "code": null,
+              "why": "an accepted addition under the genesis key"
+            }
+          ],
+          "checkpoint": "keys-order-b.example.org\n1\nRP5ghp91QMY+py/PNNL6g/gvJq9KxKsAv7MiM8AtXXo=\nblock_number 0\nsealed_at 2026-09-03T00:00:00Z\n\n\u2014 keys-order-b.example.org aDEoOgXSqb6ZJESMemnTmUc0aZuVHSFCkQzFEZuAoUi4M0ple5J8IhEdYqWBl90zgmqxOqSDRjD5jOJ2I5wVuR6vxQ4=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-n1",
+              "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-n2",
+              "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
+              0,
+              null
+            ]
+          ],
+          "why": "the genesis key admits the key that Block 1 removes"
+        },
+        {
+          "block_number": 1,
+          "sealed_at": "2026-09-03T01:00:00Z",
+          "tree_size": 3,
+          "leaf_hashes": [
+            "44fe60869f7540c63ea72fcf34d2fa83f82f26af4ac4ab00bfb32233c02d5d7a",
+            "163d6561c3cf52273e69e224ef49478654cae9e88687b45f8845fdccd96875ef",
+            "735a3b10ebdc19aa0bc77386b8efb44e71e23d5be0833b320b484221a7db6b0a"
+          ],
+          "entries": [
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "key_id": "test-agg-n2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "vgTkmpVmJ8YHvzIvccSGUxu5kohsc1jpcoSMyY2j9qgbuUkGGmM1e5t8HzCaDJrWI7dusDzFyPuW4SclviVkBg"
+                }
+              }
+            },
+            {
+              "type": "registry_update",
+              "body": {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n3",
+                    "public_key": "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "-D7NVy049iB6kdkZ6N2Wi2nI6YnB151mEBcEURVIXRvA9ivhAXp-yPBcNZeSo_2C-_qztwSu0YYKr3PeLtNPCQ"
+                }
+              }
+            }
+          ],
+          "acts": [
+            {
+              "entry_index": 0,
+              "action": "aggregator_key_remove",
+              "subject": "test-agg-n2",
+              "signer_key_id": "test-agg-n2",
+              "code": null,
+              "why": "the key removes itself"
+            },
+            {
+              "entry_index": 1,
+              "action": "aggregator_key_add",
+              "subject": "test-agg-n3",
+              "signer_key_id": "test-agg-n2",
+              "code": null,
+              "why": "the same key admits its successor in the same Block"
+            }
+          ],
+          "checkpoint": "keys-order-b.example.org\n3\n+RvSvBNpGZVyg1i23gVETMxw8wQ0hsuFPolwtwYG7GM=\nblock_number 1\nsealed_at 2026-09-03T01:00:00Z\n\n\u2014 keys-order-b.example.org aDEoOiCB+wwkmeD1DHxutA6HqIXhRwVxzJohAbMnbz99Tu9rV7hGc6ARVQ7aMRCNZl17iYMPVFvG+YbfTUbOfNeSCgM=\n",
+          "checkpoint_cases": [],
+          "applied": true,
+          "expected_state": [
+            [
+              "aggregator_key",
+              "test-agg-n1",
+              "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
+              0,
+              null
+            ],
+            [
+              "aggregator_key",
+              "test-agg-n2",
+              "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
+              0,
+              1
+            ],
+            [
+              "aggregator_key",
+              "test-agg-n3",
+              "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU",
+              1,
+              null
+            ]
+          ],
+          "why": "both key acts authenticate at height 0, where the removed key is still valid, and both are accepted whichever Entry index each holds"
+        }
+      ],
+      "valid_at": [
+        {
+          "height": -1,
+          "key_ids": [
+            "test-agg-n1"
+          ]
+        },
+        {
+          "height": 0,
+          "key_ids": [
+            "test-agg-n1",
+            "test-agg-n2"
+          ]
+        },
+        {
+          "height": 1,
+          "key_ids": [
+            "test-agg-n1",
+            "test-agg-n3"
+          ]
+        }
+      ],
+      "verified_head": 1
+    }
+  ],
+  "same_registry_histories": [
+    "addition below removal",
+    "addition above removal"
+  ]
+}

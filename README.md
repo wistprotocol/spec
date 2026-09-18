@@ -109,6 +109,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0044](decisions/0044-fetch-bounds.md) — A fetch is bounded in destination, size and work
 - [ADR-0045](decisions/0045-key-directory.md) — The Key Set is a key directory with thumbprint identifiers, validity windows, a rotation commitment and an activation delay
 - [ADR-0046](decisions/0046-single-tree-log.md) — The Log is one RFC 6962 tree published as C2SP checkpoints and tiles (amends ADR-0004, supersedes ADR-0021)
+- [ADR-0047](decisions/0047-key-act-authentication-height.md) — Key acts authenticate under the previous height's keys
 
 ## Licenses
 

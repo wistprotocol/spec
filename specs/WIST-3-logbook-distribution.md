@@ -271,8 +271,10 @@ re-serves and exact duplicates install no additional state or signature.
 Every Declaration must pass its acceptance checks; on failure reject the
 whole Block with the applicable error, preserving the previously accepted
 prefix and all its state, including recovery windows due to settle in the
-rejected Block. Then apply `registry_update` Entries (key acts read at
-Block granularity — "valid at this Block's `sealed_at`" — under §3.4;
+rejected Block. Then apply `registry_update` Entries (key acts first, in
+canonical Entry index order, each authenticated under the keys valid at
+the previous height; then every other act, authenticated under the keys
+valid at this Block, §3.4;
 `parameter_change` validation and equal-effective-time precedence read
 canonical Entry index under WIST-4 §5; a `payload_withdrawal` naming a
 Delta this Block seals takes effect on that Delta as the Delta applies
@@ -320,20 +322,33 @@ without such verification. Anchors are content-addressed by
 publish in documentation or a package manifest.
 
 All subsequent Aggregator keys are admitted in-band: an
-`aggregator_key_add` Registry Update, signed by a key already valid at that
-Block, adds a key; `aggregator_key_remove`, signed the same way, retires
-one. Checkpoint N (§5) MUST be signed by a key that was valid at
-height N, where a `key_id` is **valid at height N** if it is the genesis
-key, or a validly-signed `aggregator_key_add` naming that `key_id` was
-sealed at a height ≤ N and no validly-signed `aggregator_key_remove`
-naming that `key_id` was sealed at any height ≤ N.
+`aggregator_key_add` Registry Update adds a key and an
+`aggregator_key_remove` retires one; the two are the **key acts**. A
+`key_id` is **valid at height N** if it is the genesis key, or an
+accepted `aggregator_key_add` naming it was sealed at a height ≤ N, and
+no accepted `aggregator_key_remove` naming it was sealed at any height
+≤ N. A key act is **accepted** when it passes WIST-4 §5.1's field
+validation, authenticates under the next paragraph's rule and is not a
+key-act failure (below). The key set valid at height −1 is the genesis key
+alone.
 
-Removal is permanent, not a toggle: once a validly-signed
-`aggregator_key_remove` for a `key_id` is sealed, that `key_id` is invalid
-at every later height, full stop — the Aggregator MUST NOT seal an
-`aggregator_key_add` naming a previously removed `key_id`, and a Consumer
-replaying the Log MUST reject one and MUST NOT treat it as restoring
-validity. An operator that
+**Authentication heights.** A key act sealed in Block N is authenticated
+under the keys valid at height N−1. Every other Registry Update sealed
+in Block N, and Checkpoint N (§5), is authenticated under the keys valid
+at height N, the set that results from all of Block N's accepted key
+acts. A key may therefore sign its own removal; a key added in Block N
+signs no key act of Block N and may sign Block N's other acts and
+Checkpoint N; a key removed in Block N may sign Block N's key acts and
+signs neither its other acts nor Checkpoint N. The key set valid
+at N does not depend on the order in which Block N's key acts are
+evaluated, except through the Entry-index tie-break between two
+additions (below). The genesis key is removable like any other key. A
+Block whose accepted removals leave no key valid at N has no valid
+Checkpoint N (§5) and is therefore never applied.
+
+Removal is permanent, not a toggle: a `key_id` removed at height N is
+invalid at every height ≥ N, and an `aggregator_key_add` naming it is a
+key-act failure (below) that restores no validity. An operator that
 needs that key's role again admits a fresh `key_id` instead; generating a
 new key costs nothing, and permanent retirement avoids any ambiguity
 about which of several add/remove events for the same `key_id` governs. A
@@ -351,11 +366,37 @@ verifier-key string [signed-note] defines,
 `<log_id>+<hex key ID>+base64(0x01 || public key)`, is the form in which
 a key is configured at a Witness. A `key_id` never appears in the note:
 a Consumer maps a signature line to a `key_id` by computing the note
-key ID of every key valid at the Checkpoint's height. The Aggregator
-therefore MUST NOT seal an `aggregator_key_add` whose key's note key ID
-equals that of any key previously admitted to the Log, the genesis key
-included, and a Consumer replaying the Log MUST reject one: a collision
-is the one case in which a signature line would name two keys.
+key ID of every key valid at the Checkpoint's height. An
+`aggregator_key_add` whose key's note key ID equals that of a key
+already admitted is therefore a key-act failure (below): a collision is
+the one case in which a signature line would name two keys.
+
+**Key-act failures.** Block N's authenticated key acts are evaluated in
+canonical Entry index order (§3.3) against the **admitted set**: the
+genesis key, every key an accepted `aggregator_key_add` admitted at a
+height below N, removed keys included, and every key an accepted
+`aggregator_key_add` at a lower Entry index in Block N admitted. A key
+act fails when it is:
+
+- an `aggregator_key_add` whose `key_id` names a key in the admitted
+  set, valid or removed;
+- an `aggregator_key_add` whose key's note key ID equals that of a key
+  in the admitted set, valid or removed — a public key repeated under a
+  new `key_id` is one instance; or
+- an `aggregator_key_remove` whose `key_id` is not valid at height N−1:
+  never admitted, removed at a lower height, or added in Block N.
+
+Of two additions of one `key_id`, or of one note key ID, in one Block,
+the one at the lower Entry index is thus accepted and the other fails.
+Two removals in one Block of a `key_id` valid at N−1 are both accepted,
+and the second changes nothing. An occurrence of an already accepted
+key act's ID is idempotent under WIST-4 §5.1 and is not evaluated. The
+Aggregator MUST NOT seal a key-act failure. A Consumer replaying the
+Log ignores one as `WIST4-E04` under WIST-4 §5.1: it changes no key
+registry state, and the containing Block stays valid. Authentication
+precedes this evaluation (WIST-4 §5.1), so a key act that does not
+authenticate is `WIST4-E11` whatever else it fails, and it joins
+neither the admitted set nor the tie-break.
 
 Key rotation does not repudiate the past. A signature made by a key that
 was valid when the signed object was sealed remains binding evidence
@@ -487,7 +528,13 @@ the root at *m* and the root at *n* from it as RFC 9162 §2.1.4.2
 defines, and accepted iff each equals the root hash the corresponding
 Checkpoint states. The proof is empty when *m* = 0 — the empty tree is a
 prefix of every tree — and when *m* = *n*, where the two roots MUST be
-equal; no proof exists from a larger size to a smaller one. The Log
+equal; no proof exists from a larger size to a smaller one. An empty
+proof exempts no root from comparison: the root reconstructed at size 0
+is `SHA-256("")` (above), the tree before Block 0 included, so a
+Checkpoint stating tree size 0 with any other root hash fails the
+Consistency Proof from size 0 as any root mismatch does — `WIST3-E02`
+when the Checkpoint is validly signed (§5) — and a verifier MUST compare
+the size-0 root rather than skip the empty proof. The Log
 serves no proof objects: a Consumer holding the tree hashes §6 serves
 computes either proof itself, and a proof it receives from another
 party is verified the same way.
@@ -666,7 +713,11 @@ A party holding a bundle SHOULD publish it widely; consumers verifying
 it MUST stop applying new data from that Aggregator (§9, `WIST3-E02`).
 Checkpoints signed by *any* key valid at their `block_number` count; an
 Aggregator cannot escape an equivocation proof by removing the signing
-key afterward (§3.4).
+key afterward (§3.4). A Consumer judging a Checkpoint at or below its
+verified head therefore uses the key set valid at that Checkpoint's own
+height, never the set valid at its head; after a Snapshot resume it
+computes that set from the `aggregator_key` tuples, which carry removed
+keys for this purpose (§7).
 
 **Detection is in-band; dissemination is partly so.** The proof is two
 small signed files anyone can verify, and "publish it widely" still
@@ -1401,8 +1452,8 @@ The state file is a signed Envelope whose inner object is `state`
 (schema:
 [`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json)),
 carrying `wist_version`, the `log_position` (= the manifest's), and
-`entries`: one tuple per item of live protocol state, each a JSON array
-whose first member is its kind. The kinds, their key fields and their
+`entries`: one tuple per item of live protocol state and per removed
+Aggregator key (below), each a JSON array whose first member is its kind. The kinds, their key fields and their
 value fields are:
 
 | Kind | Key fields | Value fields | Defined by |
@@ -1417,6 +1468,18 @@ value fields are:
 | `label` | labeler, subject, name | value or `null`, `asserted_at`, `expires_at` or `null`, `delta` or `null`, Label ID, sealing height | WIST-2 §3.3 |
 | `dispute` | Label ID, disputant | `reason` or `null`, `asserted_at`, sealing height | WIST-2 §3.3 |
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
+
+An `aggregator_key` tuple exists for every key admitted at or below
+`log_position`: the genesis key, with added height 0, and every key an
+accepted `aggregator_key_add` (§3.4) admitted, with that act's sealing
+height. A removed key's tuple MUST remain, carrying the sealing height of the accepted
+`aggregator_key_remove`; it is the one kind whose tuples outlive their
+item, because a resuming Consumer evaluates §3.4's key-act failures
+against removed keys and judges a lower Checkpoint under the keys valid
+at its own height (§5) exactly as a replaying one does. A tuple's key is
+valid at height *h* ≥ 0 iff its added height ≤ *h* and its removed height
+is `null` or greater than *h*; the set valid at height −1 is the genesis
+key alone (§3.4).
 
 A `parameter` tuple exists only for a parameter amended since genesis:
 Registry defaults are constants of this suite and are not restated. One
@@ -1500,8 +1563,9 @@ one of them as consistent and checks WIST-4 §5.1's contract only for
 an act naming a Delta it walked. The schema pins each kind's arity and member types
 ([`schemas/snapshot-state.schema.json`](../schemas/snapshot-state.schema.json));
 the table remains the normative inventory, and a state file omitting a
-kind with live instances at `log_position`, or carrying one this table
-does not name, does not verify.
+kind with live instances at `log_position`, omitting a removed key's
+`aggregator_key` tuple, or carrying a kind this table does not name,
+does not verify.
 
 Sharding applies to this artifact as to the tiers: when the manifest
 declares `shards`, the state file MAY be split on the same
@@ -1650,7 +1714,7 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
 | WIST3-E01 | A Checkpoint, tile, entry bundle or Public Suffix List snapshot missing at a source (§5, §6). Fetch it from another — a Mirror, the Aggregator or, for a head Checkpoint, a trusted Witness's monitoring endpoint; integrity never depends on the source. A Consumer holding a Checkpoint whose Entries no source serves keeps this code and applies nothing above its verified head (§5). |
-| WIST3-E02 | Chain divergence: a Consistency Proof that fails between two Checkpoints of the Log, two Checkpoints that equivocate under §5, or a Snapshot manifest whose `log_position` or `anchor_block_hash` is not what Checkpoint `block_number` states (§7, §8). Hard failure: preserve the Checkpoints — and, for a failed Consistency Proof, the tiles that reproduce the larger root — as an evidence bundle (§5), MUST NOT apply the data. |
+| WIST3-E02 | Chain divergence: a Consistency Proof that fails between two Checkpoints of the Log, or from the empty tree to a Checkpoint stating tree size 0 with a root other than §4's — that one Checkpoint is the whole evidence — two Checkpoints that equivocate under §5, or a Snapshot manifest whose `log_position` or `anchor_block_hash` is not what Checkpoint `block_number` states (§7, §8). Hard failure: preserve the Checkpoints — and, for a failed Consistency Proof, the tiles that reproduce the larger root — as an evidence bundle (§5), MUST NOT apply the data. |
 | WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules or sits at an archive path not its own (§6); a tile or entry bundle over its format size or not reproducing the tree its Checkpoint states (§3.1, §6); a Block over the size cap (§6, WIST-4 §5) or carrying an Entry over 65 535 octets (§3.3); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; a Block the Aggregator sealed over a bound is misbehavior no source repairs. |
 | WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
@@ -1783,7 +1847,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       rule: the self-declared host's own, else the nearest ancestor
       Publisher's, else the least non-ancestor domain in octet order
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
-      materialization rule, the `content_digest`, the state artifact and
+      materialization rule, the `content_digest`, the state artifact —
+      removed Aggregator keys included — and
       its `state_digest`, per-shard digests where sharded, and a
       `block_number`, `log_position` and `anchor_block_hash` that
       Checkpoint `block_number` states
@@ -1804,7 +1869,10 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       at or above the withdrawal's height, or withdraws it (§6.2, §7)
 - [ ] Seals no Block whose size (§6) exceeds the smallest cap WIST-4 §5
       puts in force for it
-- [ ] Publishes a Log Anchor and admits all later keys in-band (§3.4)
+- [ ] Publishes a Log Anchor, admits and removes all later keys in-band,
+      signs each key act under a key valid at the previous height and
+      every other act and the Checkpoint under a key valid at the
+      Block's own, and seals no key-act failure (§3.4)
 - [ ] Seals a `publisher_declaration` Entry for a domain before, or in
       the same Block as, the first Delta it authorizes, and never seals a
       Delta the Key Set resolved at its own Block no longer verifies
@@ -1844,8 +1912,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       bound and the accepted-schedule size checks (§6); rejects leap
       seconds in Log-comparable timestamps (§3.1, §7)
 - [ ] Verifies every Checkpoint between its head and the one it adopts —
-      parse, Consistency Proof, the Block's leaves against the root, the
-      Log's signature under the keys valid at its height — before
+      parse, Consistency Proof with the size-0 root compared (§4), the
+      Block's leaves against the root, the Log's signature under the keys valid at its height — before
       applying its Block (§5, §8)
 - [ ] When verifying an Inclusion Proof, derives sibling sides from
       `index` and `tree_size` rather than trusting side labels in the
@@ -1873,8 +1941,12 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Excludes deleted and withdrawn content from every materialization it
       produces, and removes withdrawn content from a local index it has
       already built (§6.2, §7)
-- [ ] Obtains the Anchor out-of-band and resolves signing keys by height
-      (§3.4)
+- [ ] Obtains the Anchor out-of-band and resolves signing keys by
+      height: key acts under the keys valid at the previous height,
+      every other act and the Checkpoint under those valid at the
+      Block's own; ignores key-act failures (`WIST4-E04`) and judges a
+      Checkpoint at or below its head under the keys valid at that
+      Checkpoint's height (§3.4, §5)
 - [ ] Rejects Blocks off the `sealed_at` grid, out of canonical Entry
       order, over the per-domain Entry capacity counted per
       Registrable Domain under the snapshot in force, obtained and
@@ -1895,7 +1967,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 Generated by `tools/gen_vectors.py`; verified by
 `tools/validate_examples.py`. Full files:
 [`vectors/wist3/block.json`](../vectors/wist3/block.json),
-[`vectors/wist3/inclusion-proof.json`](../vectors/wist3/inclusion-proof.json).
+[`vectors/wist3/inclusion-proof.json`](../vectors/wist3/inclusion-proof.json),
+[`vectors/wist3/aggregator-keys.json`](../vectors/wist3/aggregator-keys.json).
 
 Block 0 contains 4 `publisher_delta` Entries: the WIST-1 vector Delta and
 three `attest` Deltas for `post-2..4`, at leaf indexes 0 through 3 of a

@@ -200,9 +200,15 @@ def verify_consistency(m: int, n: int, m_root: bytes, n_root: bytes, path: list)
     by the exhaustive gen-vs-verify property test below). Raises ValueError
     on a proof that does not reconstruct both roots. `m == 0` (the empty
     tree is a prefix of every tree) and `m == n` both require an empty
-    `path` (WIST-3 §4)."""
+    `path` (WIST-3 §4). An empty proof exempts no root from comparison: the
+    root reconstructed at size 0 is SHA-256("") (§4), so a stated size-0 root
+    that is anything else fails here as any root mismatch does."""
     if not (0 <= m <= n):
         raise ValueError("require 0 <= m <= n")
+    if m == 0 and m_root != hashlib.sha256(b"").digest():
+        raise ValueError("the root reconstructed at size 0 is SHA-256(\"\")")
+    if n == 0 and n_root != hashlib.sha256(b"").digest():
+        raise ValueError("the root reconstructed at size 0 is SHA-256(\"\")")
     if m == 0 or m == n:
         if path:
             raise ValueError("a proof at m == 0 or m == n carries no nodes")
@@ -1822,6 +1828,13 @@ def _merkle_consistency_exhaustive():
                     raise AssertionError(f"m={m} n={n}: wrong old root still verified")
                 except ValueError:
                     pass
+            # WIST-3 §4: the empty proof still compares the size-0 root.
+            if m == 0 and n > 0:
+                try:
+                    verify_consistency(m, n, roots[n], roots[n], path)
+                    raise AssertionError(f"n={n}: a size-0 root other than SHA-256(\"\") still verified")
+                except ValueError:
+                    pass
     assert exercised == sum(range(1, 66)), "did not exercise every (m, n) pair"
 check("merkle-consistency-exhaustive", _merkle_consistency_exhaustive)
 
@@ -2293,6 +2306,15 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/checkpoints.json", "witness-a.example"): "an Ed25519 public key",
     ("vectors/wist3/checkpoints.json", "witness-b.example"): "an Ed25519 public key",
     ("vectors/wist3/checkpoints.json", "anchor_block_hash"): "root over Entries, which carry commitments only",
+    ("vectors/wist3/aggregator-keys.json", "public_key"):
+        "an Ed25519 Aggregator key, in a Log Anchor or an aggregator_key_add (WIST-3 §3.4)",
+    ("vectors/wist3/aggregator-keys.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/aggregator-keys.json", "leaf_hashes"):
+        "leaf hashes over Entries, which carry governance acts and no page content",
+    ("vectors/wist3/aggregator-keys.json", "expected_state"):
+        "WIST-3 §7 aggregator_key tuples: a key_id, an Ed25519 public key and two heights",
+    ("vectors/wist3/aggregator-keys.json", "entries"):
+        "WIST-3 §7 aggregator_key tuples in the Snapshot state cases, as above",
     ("vectors/wist3/block.json", "prev"): "a Delta ID",
     ("vectors/wist3/block.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/checkpoints.json", "prev"): "a Delta ID",
@@ -2930,6 +2952,21 @@ def _wist3_checkpoints():
                   and m["anchor_block_hash"] == "sha256:" + cp["root"].hex())
         result = "valid" if matches else "WIST3-E02"
         assert result == case["expected"], case["name"]
+
+    # WIST-3 §4, §5: a validly signed Checkpoint stating tree size 0 is judged
+    # by the Consistency Proof from the empty tree to itself, which compares
+    # the size-0 root rather than skipping the empty proof.
+    for case in v["size_zero_cases"]:
+        cp = verify_checkpoint(case["checkpoint"], log_id, keys)
+        assert cp["tree_size"] == 0, case["name"]
+        try:
+            verify_consistency(0, cp["tree_size"], cp["root"], cp["root"], [])
+            result = "valid"
+        except ValueError:
+            result = "WIST3-E02"
+        assert result == case["expected"], case["name"]
+    assert {c["expected"] for c in v["size_zero_cases"]} == {"valid", "WIST3-E02"}, \
+        "the size-0 cases must exercise both outcomes"
 check("vectors:wist3-checkpoints", _wist3_checkpoints)
 
 def _wist3_checkpoints_twin():
@@ -2962,6 +2999,14 @@ def _wist3_checkpoints_twin():
     cp_shrunk = verify_checkpoint(adopted_case["checkpoint"], log_id, keys, shrunk_roster)
     assert len(set(cp_shrunk["cosigners"])) < adopted_case["quorum"], \
         "dropping a trusted Witness from the roster did not lower the count below quorum"
+
+    # The size-0 rejection is the root comparison, not a signature failure:
+    # the Checkpoint verifies, and the same size and signature check pass once
+    # the stated root is the empty tree's.
+    diverging = next(c for c in v["size_zero_cases"] if c["expected"] == "WIST3-E02")
+    cp = verify_checkpoint(diverging["checkpoint"], log_id, keys)
+    assert cp["root"] != hashlib.sha256(b"").digest(), "the case states the empty-tree root"
+    verify_consistency(0, 0, hashlib.sha256(b"").digest(), hashlib.sha256(b"").digest(), [])
 check("negative:wist3-checkpoints", _wist3_checkpoints_twin)
 
 def _keyset_vector():
@@ -6885,6 +6930,514 @@ def _dc4_withdrawal_twin():
     raw = valid["envelope_json"].replace('"legal_basis"', '"legal_basis": "x", "legal_basis"', 1)
     assert _registry_update_eligibility(raw, validator)[0] == "WIST1-E05"
 check("negative:wist4-withdrawal", _dc4_withdrawal_twin)
+
+
+# WIST-3 §3.4: Aggregator key acts. Placed after `_registry_update_eligibility`
+# so that the Envelope partition has one implementation in this file; the key
+# validity, admitted-set and Checkpoint rules below are implemented here from
+# the prose, never read from tools/gen_vectors.py.
+KEY_ACTS = ("aggregator_key_add", "aggregator_key_remove")
+
+
+def _aggregator_keys_vector():
+    return json.loads((ROOT / "vectors/wist3/aggregator-keys.json").read_text())
+
+
+def _envelope_verifies(raw_pub: bytes, envelope: dict, inner: str = "update") -> bool:
+    """WIST-1 §4: the Envelope's signature over the JCS of its inner object."""
+    try:
+        Ed25519PublicKey.from_public_bytes(raw_pub).verify(
+            b64u_decode(envelope["sig"]["value"]), rfc8785.dumps(envelope[inner]))
+        return True
+    except (InvalidSignature, ValueError):
+        return False
+
+
+def _keys_valid_at(tuples, genesis_key_id: str, height: int) -> set:
+    """WIST-3 §3.4/§7: a tuple's key is valid at height h iff its added height
+    is <= h and its removed height is null or greater than h; the set valid at
+    height -1 is the genesis key alone."""
+    if height < 0:
+        return {genesis_key_id}
+    return {t[1] for t in tuples if t[3] <= height and (t[4] is None or t[4] > height)}
+
+
+def _verify_checkpoint_keyset(text: str, log_id: str, pubkeys: dict) -> dict:
+    """WIST-3 §5 where more than one Aggregator key may be valid at a height:
+    every Aggregator key signs under the Log's origin as its signer name, so a
+    line names a known key when its note key ID (§3.4) is one of theirs.
+    `pubkeys` maps key_id to the raw public key of a key valid at the
+    Checkpoint's height. Rejects as "WIST3-E03: ..." when no line under a key
+    of that set verifies, or when a line naming one of them fails."""
+    parsed = parse_checkpoint(text)
+    if parsed["origin"] != log_id:
+        raise ValueError("WIST3-E03: origin does not match the Log's log_id")
+    by_note_id = {note_key_id(log_id, raw): key_id for key_id, raw in pubkeys.items()}
+    verified = []
+    for name, kid, rest in parsed["signatures"]:
+        if name != log_id or kid not in by_note_id:
+            continue
+        if len(rest) != 64:
+            raise ValueError("WIST3-E03: signature blob is not a canonical 4+64-octet key_id||signature")
+        try:
+            Ed25519PublicKey.from_public_bytes(pubkeys[by_note_id[kid]]).verify(
+                rest, parsed["signed_bytes"])
+        except InvalidSignature:
+            raise ValueError("WIST3-E03: signature under a known key does not verify")
+        verified.append(by_note_id[kid])
+    if not verified:
+        raise ValueError("WIST3-E03: no verifying signature under a key valid at this height")
+    parsed["verified_key_ids"] = verified
+    return parsed
+
+
+def _replay_key_block(tuples, log_id, genesis_key_id, height, entries, validator,
+                      key_act_authentication="previous height", admitted="ever admitted",
+                      note_key_id_collisions=True, removal_reads="previous height",
+                      entry_order="ascending", other_act_authentication="own Block"):
+    """WIST-3 §3.4 over one Block: authenticated key acts first, in canonical
+    Entry index order, each read at height-1 and evaluated against the admitted
+    set, then every other act read at the height the accepted key acts leave.
+    Returns (`aggregator_key` tuples after the Block, one disposition per
+    Entry). The keyword arguments spell the readings §3.4 fixes; the mutation
+    twin flips each and requires the outcome to move."""
+    before = [list(t) for t in tuples]
+    after = [list(t) for t in before]
+    codes = [None] * len(entries)
+    key_act_indexes = [i for i, e in enumerate(entries)
+                       if e["body"]["update"]["action"] in KEY_ACTS]
+    if entry_order == "descending":
+        key_act_indexes = key_act_indexes[::-1]
+
+    if key_act_authentication == "previous height":
+        auth_set = _keys_valid_at(before, genesis_key_id, height - 1)
+    elif key_act_authentication == "assume authenticated":
+        auth_set = None
+    else:                               # "own Block": the set this Block leaves
+        provisional, _ = _replay_key_block(
+            tuples, log_id, genesis_key_id, height, entries, validator,
+            key_act_authentication="assume authenticated", admitted=admitted,
+            note_key_id_collisions=note_key_id_collisions, removal_reads=removal_reads,
+            entry_order=entry_order, other_act_authentication=other_act_authentication)
+        auth_set = _keys_valid_at(provisional, genesis_key_id, height)
+
+    public_before = {t[1]: t[2] for t in before}
+    admitted_note_ids = {note_key_id(log_id, b64u_decode(t[2])) for t in before
+                         if admitted == "ever admitted"
+                         or t[1] in _keys_valid_at(before, genesis_key_id, height - 1)}
+    for index in key_act_indexes:
+        body = entries[index]["body"]
+        code, doc = _registry_update_eligibility(json.dumps(body), validator)
+        if code is not None:
+            codes[index] = code
+            continue
+        if auth_set is not None:
+            signer = body["sig"]["key_id"]
+            raw = public_before.get(signer)
+            if signer not in auth_set or raw is None or not _envelope_verifies(b64u_decode(raw), body):
+                codes[index] = "WIST4-E11"
+                continue
+        named = doc["update"]["details"]["key_id"]
+        if doc["update"]["action"] == "aggregator_key_add":
+            public_key = doc["update"]["details"]["public_key"]
+            note_id = note_key_id(log_id, b64u_decode(public_key))
+            blocking = [t[1] for t in after
+                        if admitted == "ever admitted"
+                        or t[1] in _keys_valid_at(after, genesis_key_id, height - 1)]
+            if named in blocking or (note_key_id_collisions and note_id in admitted_note_ids):
+                codes[index] = "WIST4-E04"
+                continue
+            after.append(["aggregator_key", named, public_key, height, None])
+            admitted_note_ids.add(note_id)
+        else:
+            reference = _keys_valid_at(before, genesis_key_id, height - 1)
+            if removal_reads != "previous height":
+                reference = reference | {e["body"]["update"]["details"]["key_id"]
+                                         for e in entries
+                                         if e["body"]["update"]["action"] == "aggregator_key_add"}
+            if named not in reference:
+                codes[index] = "WIST4-E04"
+                continue
+            for tuple_ in after:
+                if tuple_[1] == named:
+                    tuple_[4] = height
+
+    other_set = (_keys_valid_at(after, genesis_key_id, height)
+                 if other_act_authentication == "own Block"
+                 else _keys_valid_at(before, genesis_key_id, height - 1))
+    public_after = {t[1]: t[2] for t in after}
+    for index, entry in enumerate(entries):
+        if entry["body"]["update"]["action"] in KEY_ACTS:
+            continue
+        code, _ = _registry_update_eligibility(json.dumps(entry["body"]), validator)
+        if code is None:
+            signer = entry["body"]["sig"]["key_id"]
+            raw = public_after.get(signer)
+            if signer not in other_set or raw is None or not _envelope_verifies(b64u_decode(raw), entry["body"]):
+                code = "WIST4-E11"
+        codes[index] = code
+    return after, codes
+
+
+def _canonical_entry_order(entries) -> bool:
+    """WIST-3 §3.3: one type group here, so canonical order is ascending
+    leaf-hash order."""
+    hashes = [leaf_hash(rfc8785.dumps(e)) for e in entries]
+    return hashes == sorted(hashes)
+
+
+def _replay_key_history(history, validator, **variant):
+    """Replay one Log of the vector: returns the per-Block dispositions, the
+    tuples after each Block, the key set and its public keys at each height,
+    the cumulative leaf hashes and the verified head. Each published
+    Checkpoint is verified here under the keys valid at its own height,
+    because only a Checkpoint that verifies applies its Block (WIST-3 §5);
+    every other comparison against the vector is the caller's."""
+    log_id = history["log_id"]
+    anchor = history["anchor"]["anchor"]
+    genesis_key_id = anchor["genesis_key"]["key_id"]
+    tuples = [["aggregator_key", genesis_key_id, anchor["genesis_key"]["public_key"], 0, None]]
+    states, dispositions, key_sets, pubkeys = {}, [], {-1: {genesis_key_id}}, {}
+    leaves, cumulative, head = [], {}, None
+    for block in history["blocks"]:
+        height = block["block_number"]
+        entries = block["entries"]
+        leaves = leaves + [leaf_hash(rfc8785.dumps(e)) for e in entries]
+        cumulative[height] = [h.hex() for h in leaves]
+        after, codes = _replay_key_block(tuples, log_id, genesis_key_id, height, entries,
+                                         validator, **variant)
+        dispositions.append(codes)
+        key_sets[height] = _keys_valid_at(after, genesis_key_id, height)
+        pubkeys[height] = {t[1]: b64u_decode(t[2]) for t in after if t[1] in key_sets[height]}
+        if block["checkpoint"] is not None:
+            parsed = _verify_checkpoint_keyset(block["checkpoint"], log_id, pubkeys[height])
+            root = merkle_root(leaves) if leaves else hashlib.sha256(b"").digest()
+            assert parsed["block_number"] == height and parsed["tree_size"] == len(leaves) \
+                and parsed["root"] == root and parsed["sealed_at"] == block["sealed_at"], \
+                f"{history['name']} block {height}: the Checkpoint does not state this Block"
+            head = height
+            tuples = after
+        states[height] = [list(t) for t in tuples]
+    return {"dispositions": dispositions, "states": states, "key_sets": key_sets,
+            "pubkeys": pubkeys, "head": head, "genesis_key_id": genesis_key_id,
+            "leaf_hashes": cumulative}
+
+
+def _wist3_aggregator_keys():
+    """WIST-3 §3.4, §5, §7 and WIST-4 §5.1: a key act sealed in Block N
+    authenticates under the keys valid at N-1, every other act of Block N and
+    Checkpoint N under the keys valid at N; an authenticated key act that is a
+    key-act failure is WIST4-E04 with the Block kept, and an unauthenticated
+    one is WIST4-E11."""
+    v = _aggregator_keys_vector()
+    validator = Draft202012Validator(
+        json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    anchor_schema = Draft202012Validator(
+        json.loads((ROOT / "schemas/log-anchor.schema.json").read_text()))
+    state_schema = Draft202012Validator(
+        json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
+    seen_codes, seen_ties, seen_unapplied = set(), 0, 0
+    seen_rotation, seen_ignored_line = 0, 0
+    origins = set()
+    for history in v["histories"]:
+        log_id = history["log_id"]
+        assert log_id not in origins, "two histories share one origin"
+        origins.add(log_id)
+        anchor_schema.validate(history["anchor"])
+        anchor = history["anchor"]["anchor"]
+        genesis = anchor["genesis_key"]
+        assert anchor["log_id"] == log_id, f"{history['name']}: the Anchor names another Log"
+        assert history["anchor"]["sig"]["key_id"] == genesis["key_id"] \
+            and _envelope_verifies(b64u_decode(genesis["public_key"]), history["anchor"], "anchor"), \
+            f"{history['name']}: the Anchor is not self-signed under its own genesis_key"
+
+        replay = _replay_key_history(history, validator)
+        # WIST-4 §5.1 makes a repeated Registry Update ID idempotent and §3.4
+        # leaves it unevaluated; no history relies on that, so every act here is
+        # a distinct ID and every disposition below is the §3.4 rule's.
+        ids = ["sha256:" + hashlib.sha256(rfc8785.dumps(e["body"]["update"])).hexdigest()
+               for block in history["blocks"] for e in block["entries"]]
+        assert len(ids) == len(set(ids)), f"{history['name']}: a Registry Update ID repeats"
+        expected_sets = {q["height"]: set(q["key_ids"]) for q in history["valid_at"]}
+        assert expected_sets[-1] == {genesis["key_id"]}, \
+            f"{history['name']}: the key set valid at height -1 is the genesis key alone"
+        previous_sealed = None
+        for block, codes in zip(history["blocks"], replay["dispositions"]):
+            height = block["block_number"]
+            where = f"{history['name']} block {height}"
+            entries = block["entries"]
+            assert all(e["type"] == "registry_update" for e in entries), where
+            assert _canonical_entry_order(entries), f"{where}: Entries are not in canonical order"
+            assert block["leaf_hashes"] == replay["leaf_hashes"][height], \
+                f"{where}: leaf_hashes is not the cumulative tree through this Block"
+            assert block["tree_size"] == len(block["leaf_hashes"]), where
+            for entry in entries:
+                code, _ = _registry_update_eligibility(json.dumps(entry["body"]), validator)
+                assert code is None, \
+                    f"{where}: an Entry fails WIST-4 §5.1 field validation ({code}); every " \
+                    "disposition in this family must come from the §3.4 rules"
+            sealed = log_seconds(block["sealed_at"])
+            assert sealed % 3600 == 0, f"{where}: sealed_at is off the hourly grid"
+            assert previous_sealed is None or sealed > previous_sealed, \
+                f"{where}: sealed_at is not strictly increasing"
+            previous_sealed = sealed
+            assert [a["entry_index"] for a in block["acts"]] == list(range(len(entries))), where
+            for act, code, entry in zip(block["acts"], codes, entries):
+                update = entry["body"]["update"]
+                assert act["action"] == update["action"] and act["subject"] == update["subject"] \
+                    and act["signer_key_id"] == entry["body"]["sig"]["key_id"], \
+                    f"{where}: act {act['entry_index']} does not describe its Entry"
+                assert code == act["code"], \
+                    f"{where}: act {act['entry_index']} replayed as {code}, vector says {act['code']}"
+                seen_codes.add(code)
+            assert replay["key_sets"][height] == expected_sets[height], \
+                f"{where}: the key set valid at this height"
+            assert block["applied"] == (block["checkpoint"] is not None), where
+            expected_state = sorted(map(json.dumps, replay["states"][height]))
+            assert expected_state == sorted(map(json.dumps, block["expected_state"])), \
+                f"{where}: the aggregator_key tuples the replay leaves"
+            assert all(t[0] == "aggregator_key" and len(t) == 5 for t in block["expected_state"]), where
+            if not block["applied"]:
+                seen_unapplied += 1
+                assert block["checkpoint_cases"] and all(
+                    case["expected"] == "WIST3-E03" for case in block["checkpoint_cases"]), \
+                    f"{where}: a Block no Checkpoint verifies must state the candidates it rejects"
+            for tie in block.get("tie_breaks", []):
+                seen_ties += 1
+                assert tie["accepted_entry_index"] < tie["failed_entry_index"], \
+                    f"{where}: the accepted act is not the lower Entry index"
+                assert codes[tie["accepted_entry_index"]] is None \
+                    and codes[tie["failed_entry_index"]] == "WIST4-E04", \
+                    f"{where}: the tie-break dispositions"
+            if block["applied"]:
+                published = _verify_checkpoint_keyset(block["checkpoint"], log_id,
+                                                      replay["pubkeys"][height])
+                seen_rotation += len(published["verified_key_ids"]) > 1
+            for case in block["checkpoint_cases"]:
+                try:
+                    parsed = _verify_checkpoint_keyset(case["checkpoint"], log_id,
+                                                       replay["pubkeys"][height])
+                    result = "valid"
+                    if case["expected"] == "valid" \
+                            and len(parsed["signatures"]) > len(parsed["verified_key_ids"]):
+                        seen_ignored_line += 1
+                except ValueError as e:
+                    assert "WIST3-E03" in str(e), f"{where}: {case['name']}: wrong code: {e}"
+                    result = "WIST3-E03"
+                assert result == case["expected"], \
+                    f"{where}: {case['name']}: got {result}, want {case['expected']}"
+        assert replay["head"] == history["verified_head"], \
+            f"{history['name']}: the verified head the replay leaves"
+
+        # WIST-3 §5: a Checkpoint at or below the verified head is judged under
+        # the keys valid at its own height, never the head's.
+        for case in history.get("equivocation_cases", []):
+            height = case["block_number"]
+            assert height <= history["verified_head"], case["name"]
+            held = next(b for b in history["blocks"] if b["block_number"] == height)
+            try:
+                parsed = _verify_checkpoint_keyset(case["checkpoint"], log_id,
+                                                   replay["pubkeys"][height])
+                differs = (parsed["signed_bytes"]
+                           != parse_checkpoint(held["checkpoint"])["signed_bytes"])
+                result = "WIST3-E02" if differs else "valid"
+            except ValueError as e:
+                assert "WIST3-E03" in str(e), f"{case['name']}: wrong code: {e}"
+                result = "WIST3-E03"
+            assert result == case["expected"], \
+                f"{history['name']}: {case['name']}: got {result}, want {case['expected']}"
+
+        # WIST-3 §7: the state artifact keeps a removed key's tuple, and a file
+        # that omits one does not verify.
+        if "snapshot_state" in history:
+            snapshot = history["snapshot_state"]
+            head_block = next(b for b in history["blocks"]
+                              if b["block_number"] == history["verified_head"])
+            assert snapshot["log_position"] == head_block["tree_size"] \
+                and snapshot["block_number"] == history["verified_head"], \
+                f"{history['name']}: the Snapshot position is not the verified head's"
+            complete = {json.dumps(t) for t in replay["states"][history["verified_head"]]}
+            # WIST-3 §7: an accepted parameter_change is live state at the head
+            # too — one tuple per amendment, keyed by identifier and effective_at.
+            for block, codes in zip(history["blocks"], replay["dispositions"]):
+                if not block["applied"]:
+                    continue
+                for entry, code in zip(block["entries"], codes):
+                    update = entry["body"]["update"]
+                    if code is None and update["action"] == "parameter_change":
+                        complete.add(json.dumps(["parameter", update["subject"],
+                                                 update["effective_at"],
+                                                 update["details"]["value"]]))
+            envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
+            saw_removed_tuple = False
+            for case in snapshot["cases"]:
+                envelope["state"]["entries"] = case["entries"]
+                envelope["state"]["log_position"] = snapshot["log_position"]
+                state_schema.validate(envelope)      # every case is schema-valid
+                carried = {json.dumps(t) for t in case["entries"]}
+                verifies = carried == complete
+                assert verifies == case["verifies"], \
+                    f"{history['name']}: snapshot state case {case['name']!r}"
+                if verifies:
+                    saw_removed_tuple = any(t[0] == "aggregator_key" and t[4] is not None
+                                            for t in case["entries"])
+                else:
+                    missing = [json.loads(t) for t in complete - carried]
+                    assert missing and all(t[0] == "aggregator_key" and t[4] is not None
+                                           for t in missing), \
+                        f"{history['name']}: {case['name']!r} omits a tuple that is not a removed key's"
+            assert saw_removed_tuple, "no verifying state file carries a removed key's tuple"
+
+    assert seen_codes == {None, "WIST4-E04", "WIST4-E11"}, \
+        f"the histories do not exercise every disposition: {sorted(map(str, seen_codes))}"
+    assert seen_ties >= 2 and seen_unapplied >= 1 and seen_rotation >= 1 and seen_ignored_line >= 1, \
+        "the vector must exercise both tie-breaks, a Block no Checkpoint verifies, a " \
+        "rotation Checkpoint whose two signature lines both verify under keys valid at " \
+        "its height, and a Checkpoint whose line from a key not valid there is ignored"
+
+    # WIST-3 §3.4: the key set at N does not depend on the order two key acts of
+    # one Block are evaluated in.
+    first, second = (next(h for h in v["histories"] if h["name"] == name)
+                     for name in v["same_registry_histories"])
+
+    def index_of(history, action):
+        return next(i for i, e in enumerate(history["blocks"][-1]["entries"])
+                    if e["body"]["update"]["action"] == action)
+
+    assert first["blocks"][-1]["expected_state"] == second["blocks"][-1]["expected_state"], \
+        "the two Entry orders leave different key registries"
+    assert (index_of(first, "aggregator_key_add") < index_of(first, "aggregator_key_remove")) \
+        != (index_of(second, "aggregator_key_add") < index_of(second, "aggregator_key_remove")), \
+        "both histories place the addition on the same side of the removal"
+
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    assert "A key act sealed in Block N is authenticated under the keys valid at height N−1." in prose
+    assert "The key set valid at height −1 is the genesis key alone." in prose
+    assert "A Consumer replaying the Log ignores one as `WIST4-E04`" in prose
+    assert "A removed key's tuple MUST remain" in prose
+check("vectors:wist3-aggregator-keys", _wist3_aggregator_keys)
+
+
+def _wist3_aggregator_keys_twin():
+    """Mutation twins: each reading WIST-3 §3.4 fixes, flipped, must move an
+    outcome the vector states, and a broken signature must be caught."""
+    v = _aggregator_keys_vector()
+    validator = Draft202012Validator(
+        json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    stated = {h["name"]: [[a["code"] for a in b["acts"]] for b in h["blocks"]]
+              for h in v["histories"]}
+    states = {h["name"]: [b["expected_state"] for b in h["blocks"]] for h in v["histories"]}
+
+    def outcome(variant):
+        seen = {}
+        for history in v["histories"]:
+            replay = _replay_key_history(history, validator, **variant)
+            seen[history["name"]] = (replay["dispositions"],
+                                     [replay["states"][b["block_number"]]
+                                      for b in history["blocks"]])
+        return seen
+
+    control = outcome({})
+    for name in stated:
+        assert control[name][0] == stated[name] and control[name][1] == states[name], \
+            f"positive control: {name}"
+    for variant in ({"key_act_authentication": "own Block"},
+                    {"other_act_authentication": "previous height"},
+                    {"admitted": "valid only"},
+                    {"note_key_id_collisions": False},
+                    {"removal_reads": "own Block"},
+                    {"entry_order": "descending"}):
+        try:
+            moved = outcome(variant) != control
+        except (AssertionError, ValueError):
+            moved = True                 # a Checkpoint the flipped reading cannot verify
+        assert moved, f"flipping {variant} changed no outcome the vector states"
+
+    # Each flip, at the Entry it is supposed to decide.
+    rotation = next(h for h in v["histories"] if h.get("equivocation_cases"))
+    genesis_key_id = rotation["anchor"]["anchor"]["genesis_key"]["key_id"]
+
+    def _flip(block, act_predicate, expected, **variant):
+        prior = [list(t) for t in rotation["blocks"][block["block_number"] - 1]["expected_state"]]
+        _, codes = _replay_key_block(prior, rotation["log_id"], genesis_key_id,
+                                     block["block_number"], block["entries"], validator, **variant)
+        act = next(a for a in block["acts"] if act_predicate(a))
+        assert act["code"] == "WIST4-E04", "the vector no longer states this failure"
+        assert codes[act["entry_index"]] == expected, \
+            f"flipping {variant} did not move act {act['entry_index']} of block " \
+            f"{block['block_number']}"
+
+    failures_block = next(b for b in rotation["blocks"]
+                          if sum(a["code"] == "WIST4-E04" for a in b["acts"]) == 6)
+    removed_key_id = next(t[1] for t in failures_block["expected_state"] if t[4] is not None)
+    _flip(failures_block,
+          lambda a: a["action"] == "aggregator_key_add" and a["subject"] == removed_key_id,
+          None, admitted="valid only")
+    collision = next(a for a in failures_block["acts"]
+                     if a["action"] == "aggregator_key_add" and a["code"] == "WIST4-E04"
+                     and a["subject"] not in [t[1] for t in failures_block["expected_state"]])
+    _flip(failures_block, lambda a: a["entry_index"] == collision["entry_index"],
+          None, note_key_id_collisions=False)
+
+    ties_block = next(b for b in rotation["blocks"] if b.get("tie_breaks"))
+    same_block_removal = next(a for a in ties_block["acts"]
+                              if a["action"] == "aggregator_key_remove" and a["code"] == "WIST4-E04")
+    _flip(ties_block, lambda a: a["entry_index"] == same_block_removal["entry_index"],
+          None, removal_reads="own Block")
+    prior = [list(t) for t in rotation["blocks"][ties_block["block_number"] - 1]["expected_state"]]
+    _, descending = _replay_key_block(prior, rotation["log_id"], genesis_key_id,
+                                      ties_block["block_number"], ties_block["entries"],
+                                      validator, entry_order="descending")
+    for tie in ties_block["tie_breaks"]:
+        assert descending[tie["accepted_entry_index"]] == "WIST4-E04" \
+            and descending[tie["failed_entry_index"]] is None, \
+            "evaluating the Block's key acts in descending Entry index left the same winner"
+
+    # The authentication height is what decides a key's own removal, and a
+    # signature that does not verify is WIST4-E11 rather than a key-act failure.
+    order_history = next(h for h in v["histories"] if h["name"] == v["same_registry_histories"][0])
+    block = order_history["blocks"][-1]
+    self_removal = next(a for a in block["acts"] if a["action"] == "aggregator_key_remove")
+    assert self_removal["code"] is None and self_removal["signer_key_id"] == self_removal["subject"], \
+        "the history does not carry a key signing its own removal"
+    prior = [["aggregator_key", t[1], t[2], t[3], t[4]]
+             for t in order_history["blocks"][-2]["expected_state"]]
+    _, flipped = _replay_key_block(prior, order_history["log_id"],
+                                   order_history["anchor"]["anchor"]["genesis_key"]["key_id"],
+                                   block["block_number"], block["entries"], validator,
+                                   key_act_authentication="own Block")
+    assert flipped[self_removal["entry_index"]] == "WIST4-E11", \
+        "reading a key act at its own Block did not break the key signing its own removal"
+
+    accepted = next(a for a in block["acts"] if a["code"] is None)
+    entries = copy.deepcopy(block["entries"])
+    tampered = bytearray(b64u_decode(entries[accepted["entry_index"]]["body"]["sig"]["value"]))
+    tampered[-1] ^= 0xFF
+    entries[accepted["entry_index"]]["body"]["sig"]["value"] = \
+        base64.urlsafe_b64encode(bytes(tampered)).rstrip(b"=").decode()
+    _, broken = _replay_key_block(prior, order_history["log_id"],
+                                  order_history["anchor"]["anchor"]["genesis_key"]["key_id"],
+                                  block["block_number"], entries, validator)
+    assert broken[accepted["entry_index"]] == "WIST4-E11", \
+        "an act whose signature does not verify was not WIST4-E11"
+
+    # WIST-3 §5: judging a lower Checkpoint under the head's key set instead of
+    # its own height's inverts both equivocation answers.
+    rotation = next(h for h in v["histories"] if h.get("equivocation_cases"))
+    replay = _replay_key_history(rotation, validator)
+    head = rotation["verified_head"]
+    head_pubkeys = replay["pubkeys"][head]
+    inverted = 0
+    for case in rotation["equivocation_cases"]:
+        try:
+            _verify_checkpoint_keyset(case["checkpoint"], rotation["log_id"], head_pubkeys)
+            result = "WIST3-E02"
+        except ValueError:
+            result = "WIST3-E03"
+        inverted += result != case["expected"]
+    assert inverted == len(rotation["equivocation_cases"]), \
+        "the head's key set answers these Checkpoints as their own height's does"
+check("negative:wist3-aggregator-keys", _wist3_aggregator_keys_twin)
 
 
 def _registrable_domain_vector():

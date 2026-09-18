@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a7\u00a74-6, 8-10: Checkpoint note form, Consistency Proofs, rollback, the three Equivocation forms, the archive path rule, Witness quorum (WIST-4 \u00a75 checkpoint_witness_quorum), and the \u00a78 step 5 Snapshot cold-start match, over one cumulative tree of 7 leaves (Block 0 of vectors/wist3/block.json, the empty Block 1 of empty-block.json, and Block 2 below).",
+  "note": "WIST-3 \u00a7\u00a74-6, 8-10: Checkpoint note form, Consistency Proofs, rollback, the three Equivocation forms, the archive path rule, Witness quorum (WIST-4 \u00a75 checkpoint_witness_quorum), the \u00a74 size-0 root comparison, and the \u00a78 step 5 Snapshot cold-start match, over one cumulative tree of 7 leaves (Block 0 of vectors/wist3/block.json, the empty Block 1 of empty-block.json, and Block 2 below). Each case list judges its own candidates: note_form_cases, size_zero_cases and equivocation_cases deliberately carry Checkpoints that contradict the blocks above them.",
   "log_id": "log.example.org",
   "blocks": [
     {
@@ -283,6 +283,16 @@
         "0c4245878fb9a755c10941a3a8730521d8069aa4c4aa35c53d40b3012be54afa"
       ],
       "expected": "WIST3-E02"
+    },
+    {
+      "name": "0 to 4 with a size-0 root other than SHA-256(\"\")",
+      "m": 0,
+      "n": 4,
+      "m_root": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+      "n_root": "sha256:8be4cab9c9c33fab692eb4aa5024e62a4f2c9a7e7d1faa85fcfdc004c7054be6",
+      "path": [],
+      "note": "WIST-3 \u00a74: the empty proof exempts no root from comparison. The root reconstructed at size 0 is SHA-256(\"\"), so a stated size-0 root that is some other tree's root fails the Consistency Proof from size 0 as any root mismatch does.",
+      "expected": "WIST3-E02"
     }
   ],
   "rollback_cases": [
@@ -419,6 +429,18 @@
         "anchor_block_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe"
       },
       "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n",
+      "expected": "WIST3-E02"
+    }
+  ],
+  "size_zero_cases": [
+    {
+      "name": "size-0 Checkpoint stating the empty-tree root",
+      "checkpoint": "log.example.org\n0\n47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\nblock_number 0\nsealed_at 2026-08-02T12:00:00Z\n\n\u2014 log.example.org sdtYE+H6pmS5Hzu8c108muoVDZ7PaOyx46CzTw8EYKNlstnptUChowhHX+Bf3dlkBeWC2A8Qf0cT5f8r/KwAJogQ+wM=\n",
+      "expected": "valid"
+    },
+    {
+      "name": "size-0 Checkpoint stating another tree's root",
+      "checkpoint": "log.example.org\n0\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T12:00:00Z\n\n\u2014 log.example.org sdtYE6FWGctWQr1dHL+H45TQaD/9fu2rYJ/sE9Z4Zwt8UGM0x2q/c/bSxSnKQ7WMm9GCva8AZ84oqA0RVZaW13VybQ8=\n",
       "expected": "WIST3-E02"
     }
   ]

@@ -2504,6 +2504,26 @@ consistency_cases = [
      "path": [h.hex() for h in consistency_4_7], "expected": "valid"},
     {"name": "4 to 7 with one node altered", "m": 4, "n": 7, "m_root": root_token(leaves),
      "n_root": root_token(leaves2), "path": [h.hex() for h in altered_4_7], "expected": "WIST3-E02"},
+    {"name": "0 to 4 with a size-0 root other than SHA-256(\"\")", "m": 0, "n": 4,
+     "m_root": root_token(leaves), "n_root": root_token(leaves2), "path": [],
+     "note": "WIST-3 §4: the empty proof exempts no root from comparison. The "
+             "root reconstructed at size 0 is SHA-256(\"\"), so a stated size-0 "
+             "root that is some other tree's root fails the Consistency Proof "
+             "from size 0 as any root mismatch does.",
+     "expected": "WIST3-E02"},
+]
+
+# WIST-3 §4, §5: the same rule where the size-0 root is a validly signed
+# Checkpoint's own. Block 0 of a Log states size 0 before any Entry is
+# sealed; a Checkpoint stating size 0 with another root is signed chain
+# divergence, and the one Checkpoint is the whole evidence.
+size_zero_cases = [
+    {"name": "size-0 Checkpoint stating the empty-tree root",
+     "checkpoint": checkpoint_note(LOG_ID, priv, 0, EMPTY_ROOT, 0, "2026-08-02T12:00:00Z"),
+     "expected": "valid"},
+    {"name": "size-0 Checkpoint stating another tree's root",
+     "checkpoint": checkpoint_note(LOG_ID, priv, 0, root_bytes, 0, "2026-08-02T12:00:00Z"),
+     "expected": "WIST3-E02"},
 ]
 
 ROLLBACK_EQUIVOCATING = checkpoint_note(LOG_ID, priv, 4, root_bytes, 1, "2026-08-02T14:30:00Z")
@@ -2594,10 +2614,14 @@ cold_start_cases = [
 write_json(WIST3 / "checkpoints.json", {
     "note": "WIST-3 §§4-6, 8-10: Checkpoint note form, Consistency Proofs, "
             "rollback, the three Equivocation forms, the archive path rule, "
-            "Witness quorum (WIST-4 §5 checkpoint_witness_quorum), and the "
+            "Witness quorum (WIST-4 §5 checkpoint_witness_quorum), the "
+            "§4 size-0 root comparison, and the "
             "§8 step 5 Snapshot cold-start match, over one cumulative tree "
             "of 7 leaves (Block 0 of vectors/wist3/block.json, the empty "
-            "Block 1 of empty-block.json, and Block 2 below).",
+            "Block 1 of empty-block.json, and Block 2 below). Each case list "
+            "judges its own candidates: note_form_cases, size_zero_cases and "
+            "equivocation_cases deliberately carry Checkpoints that "
+            "contradict the blocks above them.",
     "log_id": LOG_ID,
     "blocks": [
         {"block_number": 0, "checkpoint": block["checkpoint"], "entries": entries,
@@ -2615,8 +2639,484 @@ write_json(WIST3 / "checkpoints.json", {
     "witness_roster": witness_roster,
     "quorum_cases": quorum_cases,
     "cold_start_cases": cold_start_cases,
+    "size_zero_cases": size_zero_cases,
 })
 print("wist3 checkpoint vectors written")
+
+# --------------------------------------- WIST-3 §3.4: Aggregator key acts
+# Each history below is its own Log — its own Anchor, genesis key and
+# cumulative tree — so no two Checkpoints of one origin in this file state
+# different trees. Every Entry is a `registry_update`, so canonical Entry
+# order (§3.3) is ascending leaf-hash order inside the single type group,
+# and the Entry index the key-act tie-break reads is a position nobody
+# chose.
+KEY_ACT_GRACE_EFFECTIVE = "2026-10-01T00:00:00Z"  # > param_grace_days after every sealed_at below
+
+
+def agg_key(name: str):
+    """A deterministic Aggregator keypair for the key-act histories, derived
+    as `witness_keypair` derives a Witness's."""
+    return Ed25519PrivateKey.from_private_bytes(
+        hashlib.sha256(("wist aggregator " + name).encode()).digest())
+
+
+def raw_from_b64u(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def aggregator_signature_line(log_id: str, key, note_text: str) -> str:
+    """WIST-3 §3.4, §5: one Aggregator signature line over a Checkpoint's note
+    text — `base64(note key ID || Ed25519 signature)` under the Log's origin."""
+    kid = note_key_id(log_id, raw_public(key))
+    return "— %s %s\n" % (log_id, base64.b64encode(kid + key.sign(note_text.encode())).decode())
+
+
+def checkpoint_signed_by(log_id: str, keys: list, tree_size: int, root: bytes,
+                         block_number: int, sealed_at: str) -> str:
+    """WIST-3 §5: a Checkpoint note carrying one Aggregator signature line per
+    key of `keys`; a rotation Checkpoint carries more than one."""
+    text = "%s\n%d\n%s\nblock_number %d\nsealed_at %s\n" % (
+        log_id, tree_size, base64.b64encode(root).decode(), block_number, sealed_at)
+    return text + "\n" + "".join(aggregator_signature_line(log_id, k, text) for k in keys)
+
+
+def key_update(action: str, key_id: str, effective_at: str, public_key=None) -> dict:
+    """WIST-4 §5.1: the `details` contract of a key act; `subject` is the
+    `key_id` for both."""
+    details = ({"key_id": key_id} if action == "aggregator_key_remove"
+               else {"alg": "Ed25519", "key_id": key_id, "public_key": b64u(public_key)})
+    return {"wist_version": "1.0.0", "action": action, "subject": key_id,
+            "details": details, "effective_at": effective_at}
+
+
+def parameter_update(parameter: str, value: int, effective_at: str) -> dict:
+    return {"wist_version": "1.0.0", "action": "parameter_change", "subject": parameter,
+            "details": {"parameter": parameter, "value": value}, "effective_at": effective_at}
+
+
+def registry_entry(update: dict, signer, signer_key_id: str) -> dict:
+    return {"type": "registry_update",
+            "body": sign_envelope_with(signer, "update", update, signer_key_id)}
+
+
+def key_acts_applied(prior: dict, log_id: str, height: int, entries: list):
+    """WIST-3 §3.4 over one Block: authenticated key acts first, in canonical
+    Entry index order, each read at height-1 and evaluated against the
+    admitted set; then every other act, read at the height the accepted key
+    acts leave. Returns (state after the Block, per-Entry dispositions, the
+    key_ids valid at `height`)."""
+    state = {kid: dict(entry) for kid, entry in prior.items()}
+    valid_before = {kid for kid, entry in state.items() if entry["removed"] is None}
+    admitted_note_ids = {note_key_id(log_id, raw_from_b64u(entry["public_key"]))
+                         for entry in state.values()}
+    codes = [None] * len(entries)
+    for index, entry in enumerate(entries):
+        update = entry["body"]["update"]
+        if update["action"] not in ("aggregator_key_add", "aggregator_key_remove"):
+            continue
+        if entry["body"]["sig"]["key_id"] not in valid_before:
+            codes[index] = "WIST4-E11"
+            continue
+        named = update["details"]["key_id"]
+        if update["action"] == "aggregator_key_add":
+            public_key = update["details"]["public_key"]
+            kid = note_key_id(log_id, raw_from_b64u(public_key))
+            if named in state or kid in admitted_note_ids:
+                codes[index] = "WIST4-E04"
+                continue
+            state[named] = {"public_key": public_key, "added": height, "removed": None}
+            admitted_note_ids.add(kid)
+        elif named not in valid_before:
+            codes[index] = "WIST4-E04"
+        else:
+            state[named]["removed"] = height
+    valid_after = {kid for kid, entry in state.items() if entry["removed"] is None}
+    for index, entry in enumerate(entries):
+        if entry["body"]["update"]["action"] in ("aggregator_key_add", "aggregator_key_remove"):
+            continue
+        if entry["body"]["sig"]["key_id"] not in valid_after:
+            codes[index] = "WIST4-E11"
+    return state, codes, valid_after
+
+
+def key_state_tuples(state: dict) -> list:
+    """WIST-3 §7: one `aggregator_key` tuple per key ever admitted, a removed
+    key carrying the sealing height of its removal."""
+    return sorted(([["aggregator_key", kid, entry["public_key"], entry["added"], entry["removed"]]
+                    for kid, entry in state.items()]), key=lambda tuple_: tuple_[1])
+
+
+def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_priv,
+                created_at: str, privs: dict, specs: list, extra=None) -> dict:
+    """One signed Log: an Anchor, then a Block per spec, each carrying its
+    Entries in canonical order, the Checkpoint the Aggregator publishes, the
+    candidate Checkpoints §5 judges beside it, and the key registry the
+    replay leaves."""
+    genesis_public = b64u(raw_public(genesis_priv))
+    anchor_inner = {"wist_version": "1.0.0", "log_id": log_id,
+                    "genesis_key": {"key_id": genesis_key_id, "alg": "Ed25519",
+                                    "public_key": genesis_public},
+                    "created_at": created_at}
+    state = {genesis_key_id: {"public_key": genesis_public, "added": 0, "removed": None}}
+    valid_at = [{"height": -1, "key_ids": [genesis_key_id]}]
+    leaves, blocks = [], []
+    for height, spec in enumerate(specs):
+        annotated = sorted(spec["entries"], key=lambda a: leaf_hash(rfc8785.dumps(a["entry"])))
+        entries = [a["entry"] for a in annotated]
+        applied_state, codes, valid_after = key_acts_applied(state, log_id, height, entries)
+        leaves = leaves + [leaf_hash(rfc8785.dumps(e)) for e in entries]
+        root = merkle_tree_root(leaves) if leaves else EMPTY_ROOT
+        applied = spec.get("applied", True)
+        checkpoint = (checkpoint_signed_by(log_id, [privs[k] for k in spec["signers"]],
+                                           len(leaves), root, height, spec["sealed_at"])
+                      if spec.get("signers") else None)
+        cases = [{"name": case["name"],
+                  "checkpoint": checkpoint_signed_by(log_id, [privs[k] for k in case["signers"]],
+                                                     len(leaves), root, height, spec["sealed_at"]),
+                  "signer_key_ids": case["signers"], "expected": case["expected"]}
+                 for case in spec.get("checkpoint_cases", [])]
+        acts = [{"entry_index": index,
+                 "action": entries[index]["body"]["update"]["action"],
+                 "subject": entries[index]["body"]["update"]["subject"],
+                 "signer_key_id": entries[index]["body"]["sig"]["key_id"],
+                 "code": codes[index], "why": annotated[index]["why"]}
+                for index in range(len(entries))]
+        block = {"block_number": height, "sealed_at": spec["sealed_at"],
+                 "tree_size": len(leaves), "leaf_hashes": [h.hex() for h in leaves],
+                 "entries": entries, "acts": acts, "checkpoint": checkpoint,
+                 "checkpoint_cases": cases, "applied": applied,
+                 "expected_state": key_state_tuples(applied_state if applied else state),
+                 "why": spec["why"]}
+        if spec.get("tie_breaks"):
+            index_of = {rfc8785.dumps(e): i for i, e in enumerate(entries)}
+            ties = []
+            for tie in spec["tie_breaks"]:
+                low, high = sorted(index_of[rfc8785.dumps(e)] for e in tie["entries"])
+                ties.append({"reason": tie["reason"],
+                             "accepted_entry_index": low,
+                             "accepted_key_id": entries[low]["body"]["update"]["subject"],
+                             "failed_entry_index": high,
+                             "failed_key_id": entries[high]["body"]["update"]["subject"]})
+            block["tie_breaks"] = ties
+        blocks.append(block)
+        valid_at.append({"height": height, "key_ids": sorted(valid_after)})
+        if applied:
+            state = applied_state
+    history = {"name": name, "note": note, "log_id": log_id,
+               "anchor": sign_envelope_with(genesis_priv, "anchor", anchor_inner, genesis_key_id),
+               "blocks": blocks, "valid_at": valid_at,
+               "verified_head": max(b["block_number"] for b in blocks if b["applied"])}
+    history.update(extra or {})
+    return history
+
+
+def aggregator_key_vectors() -> dict:
+    histories = []
+
+    # ---- the rotation history: admission, removal, every key-act failure,
+    # the genesis key's own removal, and equivocation judged at the height
+    # the offered Checkpoint states.
+    rot_id = "keys-rotation.example.org"
+    material = {n: agg_key("rotation " + n) for n in
+                ("k1", "k2", "k3", "k4", "k5", "k6a", "k6b", "k7", "k9", "spare-a", "spare-b")}
+    K1, K2, K3, K4 = "test-agg-k1", "test-agg-k2", "test-agg-k3", "test-agg-k4"
+    K5, K6, K7, K8 = "test-agg-k5", "test-agg-k6", "test-agg-k7", "test-agg-k8"
+    K9, K10, K11, K12 = "test-agg-k9", "test-agg-k10", "test-agg-k11", "test-agg-k12"
+    privs = {K1: material["k1"], K2: material["k2"], K3: material["k3"],
+             K4: material["k4"], K5: material["k5"]}
+
+    def add(key_id, material_name, signer_key_id, effective_at=KEY_ACT_GRACE_EFFECTIVE):
+        return registry_entry(
+            key_update("aggregator_key_add", key_id, effective_at,
+                       raw_public(material[material_name])),
+            privs[signer_key_id], signer_key_id)
+
+    def remove(key_id, signer_key_id, effective_at=KEY_ACT_GRACE_EFFECTIVE):
+        return registry_entry(key_update("aggregator_key_remove", key_id, effective_at),
+                              privs[signer_key_id], signer_key_id)
+
+    def parameter(value, signer_key_id):
+        return registry_entry(parameter_update("quota_base", value, KEY_ACT_GRACE_EFFECTIVE),
+                              privs[signer_key_id], signer_key_id)
+
+    block0 = [
+        {"entry": add(K2, "k2", K1),
+         "why": "the genesis key admits a key: a key act of Block 0 authenticates "
+                "under the keys valid at height -1, the genesis key alone"},
+        {"entry": add(K3, "k3", K2),
+         "why": "the key this Block admits signs a key act of its own Block, which "
+                "authenticates at height -1, where it is not valid"},
+        {"entry": parameter(1500, K2),
+         "why": "the key this Block admits signs a non-key act of its own Block, "
+                "which authenticates at height 0, where it is valid"},
+    ]
+    block1 = [
+        {"entry": remove(K2, K2),
+         "why": "a key signs its own removal: a key act of Block 1 authenticates at "
+                "height 0, where the key is still valid"},
+        {"entry": add(K4, "k4", K2),
+         "why": "the key this Block removes signs another key act of the same Block, "
+                "which authenticates at height 0"},
+        {"entry": parameter(1600, K2),
+         "why": "the key this Block removes signs a non-key act of the same Block, "
+                "which authenticates at height 1, where it is no longer valid"},
+    ]
+    block2 = [
+        {"entry": add(K2, "spare-a", K1),
+         "why": "an addition naming a key_id removed at a lower height: removal is "
+                "permanent and restores no validity"},
+        {"entry": add(K4, "spare-b", K1),
+         "why": "an addition naming a key_id currently valid"},
+        {"entry": add(K10, "k4", K1),
+         "why": "an addition whose note key ID equals that of a valid key: the same "
+                "public key under a new key_id"},
+        {"entry": add(K11, "k2", K1),
+         "why": "an addition whose note key ID equals that of a removed key, which "
+                "stays in the admitted set"},
+        {"entry": remove(K12, K1),
+         "why": "a removal naming a key_id never admitted"},
+        {"entry": remove(K2, K1, "2026-10-04T00:00:00Z"),
+         "why": "a removal naming a key_id already removed at a lower height; its own "
+                "Registry Update ID is new, so WIST-4 §5.1's idempotence does not "
+                "apply and the act is evaluated"},
+        {"entry": add(K5, "k5", K1),
+         "why": "the Block's one accepted key act: the failures beside it change no "
+                "key registry state and the Block stays valid"},
+    ]
+    k6_lower, k6_upper = add(K6, "k6a", K1), add(K6, "k6b", K1)
+    k7_entry, k8_entry = add(K7, "k7", K1), add(K8, "k7", K1)
+    block3 = [
+        {"entry": k6_lower, "why": "one of two additions naming key_id " + K6 +
+                                   " in one Block; the lower Entry index is accepted"},
+        {"entry": k6_upper, "why": "the other addition naming key_id " + K6 +
+                                   " in one Block; the higher Entry index fails"},
+        {"entry": k7_entry, "why": "one of two additions of one public key in one Block, "
+                                   "a note key ID collision decided by Entry index"},
+        {"entry": k8_entry, "why": "the other addition of that public key under a second "
+                                   "key_id; the higher Entry index fails"},
+        {"entry": add(K9, "k9", K1),
+         "why": "an addition whose key this Block also tries to remove"},
+        {"entry": remove(K9, K1),
+         "why": "a removal naming a key_id added in this very Block, which is not "
+                "valid at the previous height"},
+        {"entry": remove(K4, K1, "2026-10-02T00:00:00Z"),
+         "why": "the first of two removals of one valid key_id in one Block"},
+        {"entry": remove(K4, K1, "2026-10-03T00:00:00Z"),
+         "why": "the second removal of that key_id: accepted, and it changes nothing"},
+    ]
+    block4 = [
+        {"entry": remove(K1, K5),
+         "why": "the genesis key is removable like any other key, here by a key "
+                "admitted in-band"},
+    ]
+
+    rotation = key_history(
+        "rotation",
+        "WIST-3 §3.4 end to end: a key admitted at Block 0 and removed at Block 1, "
+        "every key-act failure the section lists, and the genesis key's own removal "
+        "at Block 4.",
+        rot_id, K1, material["k1"], "2026-08-30T12:00:00Z", privs,
+        [
+            {"sealed_at": "2026-09-01T00:00:00Z", "entries": block0, "signers": [K1, K2],
+             "why": "the published Checkpoint is a rotation Checkpoint: two signature "
+                    "lines, both under keys valid at height 0",
+             "checkpoint_cases": [
+                 {"name": "the key admitted in this Block signs Checkpoint 0 alone",
+                  "signers": [K2], "expected": "valid"},
+                 {"name": "the key whose addition did not authenticate signs Checkpoint 0",
+                  "signers": [K3], "expected": "WIST3-E03"},
+                 {"name": "the genesis key signs Checkpoint 0 alone",
+                  "signers": [K1], "expected": "valid"},
+             ]},
+            {"sealed_at": "2026-09-01T01:00:00Z", "entries": block1, "signers": [K1],
+             "why": "Checkpoint 1 authenticates under the keys valid at height 1, the "
+                    "set this Block's accepted key acts leave",
+             "checkpoint_cases": [
+                 {"name": "the key removed in this Block signs Checkpoint 1 alone",
+                  "signers": [K2], "expected": "WIST3-E03"},
+                 {"name": "the key admitted in this Block signs Checkpoint 1 alone",
+                  "signers": [K4], "expected": "valid"},
+             ]},
+            {"sealed_at": "2026-09-01T02:00:00Z", "entries": block2, "signers": [K1],
+             "why": "six key-act failures beside one accepted addition: each is ignored "
+                    "as WIST4-E04 and the Block stays valid"},
+            {"sealed_at": "2026-09-01T03:00:00Z", "entries": block3, "signers": [K1],
+             "why": "the failures a Block decides against itself: two additions of one "
+                    "key_id, two of one public key, a removal of a key added here, and "
+                    "two removals of one valid key",
+             "tie_breaks": [
+                 {"reason": "two additions naming one key_id",
+                  "entries": [k6_lower, k6_upper]},
+                 {"reason": "two additions of one public key, colliding note key IDs",
+                  "entries": [k7_entry, k8_entry]},
+             ]},
+            {"sealed_at": "2026-09-01T04:00:00Z", "entries": block4, "signers": [K5],
+             "why": "the genesis key is removed; Checkpoint 4 authenticates under the "
+                    "keys valid at height 4, which no longer include it",
+             "checkpoint_cases": [
+                 {"name": "the removed genesis key signs Checkpoint 4 alone",
+                  "signers": [K1], "expected": "WIST3-E03"},
+                 {"name": "a valid key signs Checkpoint 4 beside the removed genesis key",
+                  "signers": [K1, K5], "expected": "valid"},
+             ]},
+        ])
+
+    # WIST-3 §5: a Checkpoint at or below the verified head is judged under the
+    # keys valid at its own height. Both candidates state Block 0's tree size
+    # and a different root, so only the signature decides.
+    divergent_root = hashlib.sha256(("divergent tree " + rot_id).encode()).digest()
+    size_0 = rotation["blocks"][0]["tree_size"]
+    sealed_0 = rotation["blocks"][0]["sealed_at"]
+    rotation["equivocation_cases"] = [
+        {"name": "a differing Block 0 Checkpoint signed by a key since removed",
+         "block_number": 0, "signer_key_ids": [K2],
+         "checkpoint": checkpoint_signed_by(rot_id, [privs[K2]], size_0, divergent_root, 0, sealed_0),
+         "why": "the key was valid at height 0, the height the offered Checkpoint "
+                "states, and its later removal does not repudiate the signature",
+         "expected": "WIST3-E02"},
+        {"name": "a differing Block 0 Checkpoint signed by a key admitted later",
+         "block_number": 0, "signer_key_ids": [K5],
+         "checkpoint": checkpoint_signed_by(rot_id, [privs[K5]], size_0, divergent_root, 0, sealed_0),
+         "why": "the key was not valid at height 0, so the Checkpoint fails §5's "
+                "signature rule and is not evidence",
+         "expected": "WIST3-E03"},
+    ]
+    # WIST-3 §7: the state a Snapshot at the head carries, and the omissions
+    # §7 says do not verify. The accepted parameter_change is live state too:
+    # one `parameter` tuple per amendment, keyed by identifier and
+    # `effective_at`.
+    head_state = rotation["blocks"][-1]["expected_state"] + [
+        ["parameter", entry["body"]["update"]["subject"],
+         entry["body"]["update"]["effective_at"],
+         entry["body"]["update"]["details"]["value"]]
+        for block in rotation["blocks"] if block["applied"]
+        for act, entry in zip(block["acts"], block["entries"])
+        if act["code"] is None and act["action"] == "parameter_change"]
+    rotation["snapshot_state"] = {
+        "log_position": rotation["blocks"][-1]["tree_size"],
+        "block_number": rotation["verified_head"],
+        "cases": [
+            {"name": "every admitted key, removed keys included", "entries": head_state,
+             "why": "an aggregator_key tuple exists for every key admitted at or below "
+                    "log_position, a removed key carrying its removal height",
+             "verifies": True},
+            {"name": "the tuple of a key removed below the head omitted",
+             "entries": [t for t in head_state if t[1] != K2],
+             "why": "a resuming Consumer evaluates key-act failures against removed "
+                    "keys and judges a lower Checkpoint under the keys valid at its "
+                    "own height, so the tuple outlives its key",
+             "verifies": False},
+            {"name": "the removed genesis key's tuple omitted",
+             "entries": [t for t in head_state if t[1] != K1],
+             "why": "the genesis key is a key like any other once removed",
+             "verifies": False},
+        ]}
+    histories.append(rotation)
+
+    # ---- a Block whose accepted removals leave no key valid at its height.
+    exh_id = "keys-exhausted.example.org"
+    M1, M2 = "test-agg-m1", "test-agg-m2"
+    exh = {M1: agg_key("exhausted m1"), M2: agg_key("exhausted m2")}
+    histories.append(key_history(
+        "keys exhausted",
+        "WIST-3 §3.4: a Block whose accepted removals leave no key valid at its "
+        "height has no valid Checkpoint and is never applied.",
+        exh_id, M1, exh[M1], "2026-08-30T12:00:00Z", exh,
+        [
+            {"sealed_at": "2026-09-02T00:00:00Z", "signers": [M1, M2],
+             "why": "the genesis key admits a second key",
+             "entries": [{"entry": registry_entry(
+                 key_update("aggregator_key_add", M2, KEY_ACT_GRACE_EFFECTIVE,
+                            raw_public(exh[M2])), exh[M1], M1),
+                 "why": "an accepted addition under the genesis key"}]},
+            {"sealed_at": "2026-09-02T01:00:00Z", "signers": [], "applied": False,
+             "why": "both removals authenticate at height 0 and are accepted, so no "
+                    "key is valid at height 1: no Checkpoint 1 verifies, the Block is "
+                    "never applied, and the verified head stays at Block 0",
+             "entries": [
+                 {"entry": registry_entry(key_update("aggregator_key_remove", M1,
+                                                     KEY_ACT_GRACE_EFFECTIVE), exh[M1], M1),
+                  "why": "the genesis key removes itself"},
+                 {"entry": registry_entry(key_update("aggregator_key_remove", M2,
+                                                     KEY_ACT_GRACE_EFFECTIVE), exh[M2], M2),
+                  "why": "the remaining key removes itself"},
+             ],
+             "checkpoint_cases": [
+                 {"name": "Checkpoint 1 signed by the removed genesis key",
+                  "signers": [M1], "expected": "WIST3-E03"},
+                 {"name": "Checkpoint 1 signed by the other removed key",
+                  "signers": [M2], "expected": "WIST3-E03"},
+             ]},
+        ]))
+
+    # ---- one removal and one addition in one Block, in both Entry orders.
+    # The acts are identical apart from the addition's effective_at, which is
+    # searched only to move the pair's leaf-hash order: §3.4's key set at N
+    # does not depend on the order two such acts are evaluated in.
+    N1, N2, N3 = "test-agg-n1", "test-agg-n2", "test-agg-n3"
+    order = {N1: agg_key("order n1"), N2: agg_key("order n2"), N3: agg_key("order n3")}
+    order_remove = registry_entry(
+        key_update("aggregator_key_remove", N2, KEY_ACT_GRACE_EFFECTIVE), order[N2], N2)
+    remove_leaf = leaf_hash(rfc8785.dumps(order_remove))
+    order_adds = {}
+    for minute in range(60):
+        candidate = registry_entry(
+            key_update("aggregator_key_add", N3, "2026-10-01T00:%02d:00Z" % minute,
+                       raw_public(order[N3])), order[N2], N2)
+        side = "below" if leaf_hash(rfc8785.dumps(candidate)) < remove_leaf else "above"
+        order_adds.setdefault(side, candidate)
+    assert set(order_adds) == {"below", "above"}, \
+        "no effective_at inside the search put the addition on each side of the removal"
+
+    for side, log_id in (("below", "keys-order-a.example.org"), ("above", "keys-order-b.example.org")):
+        histories.append(key_history(
+            "addition %s removal" % side,
+            "WIST-3 §3.4: a key removed at Block 1 signs both the removal and an "
+            "addition sealed beside it; this history places the addition %s the "
+            "removal in canonical Entry order." % side,
+            log_id, N1, order[N1], "2026-08-30T12:00:00Z", order,
+            [
+                {"sealed_at": "2026-09-03T00:00:00Z", "signers": [N1],
+                 "why": "the genesis key admits the key that Block 1 removes",
+                 "entries": [{"entry": registry_entry(
+                     key_update("aggregator_key_add", N2, KEY_ACT_GRACE_EFFECTIVE,
+                                raw_public(order[N2])), order[N1], N1),
+                     "why": "an accepted addition under the genesis key"}]},
+                {"sealed_at": "2026-09-03T01:00:00Z", "signers": [N1],
+                 "why": "both key acts authenticate at height 0, where the removed key "
+                        "is still valid, and both are accepted whichever Entry index "
+                        "each holds",
+                 "entries": [
+                     {"entry": order_remove, "why": "the key removes itself"},
+                     {"entry": order_adds[side],
+                      "why": "the same key admits its successor in the same Block"},
+                 ]},
+            ]))
+
+    return {
+        "note": "WIST-3 §3.4 and §5, WIST-4 §5.1: Aggregator key acts. A key act "
+                "sealed in Block N authenticates under the keys valid at height N-1 "
+                "(the genesis key alone before Block 0); every other Registry Update "
+                "of Block N and Checkpoint N authenticate under the keys valid at N. "
+                "An unauthenticated act is WIST4-E11; an authenticated key act that "
+                "is a key-act failure is WIST4-E04, ignored, with the Block kept. "
+                "Each history is a separate Log with its own Anchor and cumulative "
+                "tree; `blocks` are in Log order, `entries` in canonical Entry order "
+                "(§3.3), `acts` carries one disposition per Entry index, "
+                "`expected_state` the WIST-3 §7 aggregator_key tuples a Consumer "
+                "holds after the Block, and `valid_at` the key_ids valid at each "
+                "listed height. `checkpoint` is the Checkpoint the Aggregator "
+                "publishes; `checkpoint_cases` are candidates judged beside it. "
+                "The parameter_change Entries are here only to fix the "
+                "authentication height of a non-key act; their §5 schedule rules are "
+                "exercised by vectors/wist4/parameter-combinations.json.",
+        "histories": histories,
+        "same_registry_histories": ["addition below removal", "addition above removal"],
+    }
+
+
+write_json(WIST3 / "aggregator-keys.json", aggregator_key_vectors())
+print("wist3 aggregator key vectors written")
 
 # ---------------------------------------- WIST-3 §7: snapshot content digest
 # The record tuple carries Log-derived identifiers only — no page content — so
