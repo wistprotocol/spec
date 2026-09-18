@@ -8,15 +8,15 @@
   "properties": {
     "manifest": {
       "type": "object",
-      "required": ["wist_version", "snapshot_date", "block_number", "log_position", "anchor_block_hash",
+      "required": ["wist_version", "snapshot_date", "epoch_number", "tree_size", "root_hash",
                    "content_digest", "state", "files"],
       "additionalProperties": false,
       "properties": {
         "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
         "snapshot_date": {"type": "string", "format": "date"},
-        "block_number": {"type": "integer", "minimum": 0, "description": "The Block the Snapshot is taken at (WIST-3 §7)."},
-        "log_position": {"type": "integer", "minimum": 0, "description": "The tree size Checkpoint `block_number` states (WIST-3 §7)."},
-        "anchor_block_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The root hash of the tree at `log_position` (WIST-3 §7)."},
+        "epoch_number": {"type": "integer", "minimum": 0, "description": "The Epoch the Snapshot is taken at (WIST-3 §7)."},
+        "tree_size": {"type": "integer", "minimum": 0, "description": "The tree size Checkpoint `epoch_number` states (WIST-3 §7)."},
+        "root_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The root hash of the tree at `tree_size` (WIST-3 §7)."},
         "content_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "state": {
           "type": "object",

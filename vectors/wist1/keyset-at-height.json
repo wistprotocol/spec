@@ -85,7 +85,7 @@
           "d-above-old"
         ]
       },
-      "why": "\u00a75.2: the Key Set at height N is the highest-seq Declaration sealed at or below N, so a Delta signed by the retired key verifies below the rotation's Block and nowhere at or above it \u2014 the Block's own Declaration applies first (WIST-3 \u00a73.3) \u2014 while the new key verifies from that Block onward."
+      "why": "\u00a75.2: the Key Set at height N is the highest-seq Declaration sealed at or below N, so a Delta signed by the retired key verifies below the rotation's Epoch and nowhere at or above it \u2014 the Epoch's own Declaration applies first (WIST-3 \u00a73.3) \u2014 while the new key verifies from that Epoch onward."
     },
     {
       "name": "rotation keeping the old key",

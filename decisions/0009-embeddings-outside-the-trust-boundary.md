@@ -29,7 +29,7 @@ laptop-class consumer Tier 0 serves.
 The protocol carries no embeddings. Any party — the Aggregator
 included — MAY publish a signed **companion pack** (WIST-3 §7): vectors
 computed over a named Snapshot, binding the Snapshot's `content_digest`
-and `log_position`, self-describing its model (name, version, weights
+and `tree_size`, self-describing its model (name, version, weights
 hash, dim, quantization, metric, source field), and covering only
 records the bound digest covers — which excludes withdrawn records at
 publish time by construction.

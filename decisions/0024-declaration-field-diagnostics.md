@@ -4,7 +4,7 @@
 
 ## Context
 
-WIST-1 §5.2 makes failed Declaration acceptance invalidate its Block with
+WIST-1 §5.2 makes failed Declaration acceptance invalidate its Epoch with
 the failing check's error. Canonicalizable malformed fields have neither
 §4's canonicalization failure nor §5.2's semantic sequence/key-set failure.
 Malformed `valid_from` and Delta `observed_at` cannot support a time-bound
@@ -17,7 +17,7 @@ integer-range failures, and to missing, non-string or malformed Delta
 `observed_at`. Validate Declaration fields before sequencing, conflict
 comparison, idempotence and authentication. A re-serve retains the schema
 requirement even when its inner bytes match an accepted Declaration.
-Do not mutate signed fields. Block rejection remains atomic, including
+Do not mutate signed fields. Epoch rejection remains atomic, including
 settlement and changes for other domains. WIST-2 first-contact pull failures
 retain their `WIST2-E04` wrapper and noise accounting.
 
@@ -40,7 +40,7 @@ result without a valid comparison. A distinct code preserves those meanings.
 
 Validators must perform field checks before deriving Declaration state.
 The schema now restates the already-required safe-integer maximum for
-`seq`. Signed mutations and authenticated Block rejection cases in
+`seq`. Signed mutations and authenticated Epoch rejection cases in
 `vectors/wist1/declaration-fields.json` distinguish field errors, semantic
 errors, signature errors, idempotence and rollback. The reference exercises
 a documented subset of field formats; this evidence does not establish

@@ -1,7 +1,7 @@
 {
   "state": {
     "wist_version": "1.0.0",
-    "log_position": 0,
+    "tree_size": 0,
     "entries": [
       [
         "aggregator_key",
@@ -33,6 +33,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+    "value": "kukho3s-Y-ViMyifsvMiKXloqeGYw6AgcJDS4hAmEfwtNYndNpCanIm7u9mqa_IlhNsJyHaLW9Qf4MFHMkAnDw"
   }
 }

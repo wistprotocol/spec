@@ -1,6 +1,6 @@
 {
-  "description": "One Delta sealed independently by two Logs (WIST-3 \u00a78, \"Following more than one Log\"): identity is stable, a Consumer holding both deduplicates by Delta ID, and derived state stays per Log. log-a seals the Publisher's Declaration in Block 0 and the Delta in Block 1; log-b seals the same Declaration in Block 0, an empty heartbeat Block 1, and the same Delta in Block 2 \u2014 different heights, same Delta ID.",
-  "note": "Each Log entry's genesis_seed_hex is test-harness material, not protocol content: the Ed25519 seed behind that Log's genesis_key, included so a conformance harness can build that Log's own Snapshot artifacts (state/manifest/index) signed under the same key its Blocks are sealed with \u2014 the same role vectors/wist1/keypair.json's seed_hex plays for the Publisher's key. TEST ONLY \u2014 never use in production.",
+  "description": "One Delta sealed independently by two Logs (WIST-3 \u00a78, \"Following more than one Log\"): identity is stable, a Consumer holding both deduplicates by Delta ID, and derived state stays per Log. log-a seals the Publisher's Declaration in Epoch 0 and the Delta in Epoch 1; log-b seals the same Declaration in Epoch 0, an empty heartbeat Epoch 1, and the same Delta in Epoch 2 \u2014 different heights, same Delta ID.",
+  "note": "Each Log entry's genesis_seed_hex is test-harness material, not protocol content: the Ed25519 seed behind that Log's genesis_key, included so a conformance harness can build that Log's own Snapshot artifacts (state/manifest/index) signed under the same key its Epochs are sealed with \u2014 the same role vectors/wist1/keypair.json's seed_hex plays for the Publisher's key. TEST ONLY \u2014 never use in production.",
   "publisher_declaration": {
     "publisher": {
       "wist_version": "1.0.0",
@@ -80,9 +80,9 @@
         }
       },
       "genesis_seed_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "log-a\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-a WPNdKjnRvlH6MPn2vfJNK9BLqDtZCTC9HsQR7sXHMtZigL50zEg76kBQsLKtvmsWqebLJlRfU9Gql2qpGx4GsGO9wAI=\n",
+          "checkpoint": "log-a\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-a WPNdKgwQGEhuVRFnt7yhiCDRV0mmyurkqvisQvszY64WOpAHUG5unjw6OfaUgFObCef8H6MDeAvt+7V3CzpNJnnuEg4=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -111,7 +111,7 @@
           ]
         },
         {
-          "checkpoint": "log-a\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKjczOGeabi0bZlkjKM0FYN4aGymhnN+KL6b7984uOf52r27ZIIXxo7xQEA/D7NY6nJSOCQ1+EIbKPpkham1jOwM=\n",
+          "checkpoint": "log-a\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKpuegUCYQgD+t8GDr5fbkFGZ12qWHJ0DHm1sa7e8+Ih3R2igS6qj9TfCY7LHT3mQOeNngK9D6/oi340bF2A2bQI=\n",
           "entries": [
             {
               "type": "publisher_delta",
@@ -141,7 +141,7 @@
           ]
         }
       ],
-      "checkpoint": "log-a\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKjczOGeabi0bZlkjKM0FYN4aGymhnN+KL6b7984uOf52r27ZIIXxo7xQEA/D7NY6nJSOCQ1+EIbKPpkham1jOwM=\n",
+      "checkpoint": "log-a\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKpuegUCYQgD+t8GDr5fbkFGZ12qWHJ0DHm1sa7e8+Ih3R2igS6qj9TfCY7LHT3mQOeNngK9D6/oi340bF2A2bQI=\n",
       "tree_size": 2,
       "root": "sha256:61bd4773705084695c58707a9bd08c6764555e333660ccfe04a334f8fa325db9"
     },
@@ -165,9 +165,9 @@
         }
       },
       "genesis_seed_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "log-b\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-b Dgs9XsLijRmVVfAvxmj4XeUih1BG6woAG0XgztRfu9GuOqitpxHmRXmKdWqDutdib5wtUhMS2jmLb4SXBcpXA7t57QY=\n",
+          "checkpoint": "log-b\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-b Dgs9XlNyzdqkoYoWeyfokrwdaA7SLian7R1q01DtcfUOBKVa/Dbot9GnmOfwmb+PT7ff/7DNSRlCJz9IxhoP5kSKUQM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -196,11 +196,11 @@
           ]
         },
         {
-          "checkpoint": "log-b\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-b Dgs9XjXwO4ICK/0Lc73obwyeCFk3EXiQFkawkikPhlOvaXZEvW+uly4oSXWWl+HDKrfwrlvB2icnzOLGuzi1QATm0w4=\n",
+          "checkpoint": "log-b\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-b Dgs9XgV9BbPhzr0LXczniEjmh7bCxM2NxczCKrZI2/xXtAZ32AV6Q/KCYBRdxi/Pp36yXWJAYNPv0TaOS6Mh6NofXQY=\n",
           "entries": []
         },
         {
-          "checkpoint": "log-b\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9XkjKEMNsvI2HpELHZocFss+olioSJl6c5f6zsvwvxe9UFT/IH/FmJiuMRwVNqXGC1C3C9KZg66i+HXhfe/InjAU=\n",
+          "checkpoint": "log-b\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9Xn3qVVVz+gtYiS+hJLmOc/tICFqu/rDu+OnUtg+hZnXhJH7PQOaO6e8B+KXCiIKH1idiXROvNRpRHAzywBug1wE=\n",
           "entries": [
             {
               "type": "publisher_delta",
@@ -230,7 +230,7 @@
           ]
         }
       ],
-      "checkpoint": "log-b\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9XkjKEMNsvI2HpELHZocFss+olioSJl6c5f6zsvwvxe9UFT/IH/FmJiuMRwVNqXGC1C3C9KZg66i+HXhfe/InjAU=\n",
+      "checkpoint": "log-b\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9Xn3qVVVz+gtYiS+hJLmOc/tICFqu/rDu+OnUtg+hZnXhJH7PQOaO6e8B+KXCiIKH1idiXROvNRpRHAzywBug1wE=\n",
       "tree_size": 2,
       "root": "sha256:61bd4773705084695c58707a9bd08c6764555e333660ccfe04a334f8fa325db9"
     }

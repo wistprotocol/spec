@@ -21,7 +21,7 @@ its version string is unchanged; no implicit translation or legacy profile
 is introduced.
 
 This exception ends at the earlier of stable publication and the first Log
-sealing Blocks consumed by a third party. A draft label never exempts such
+sealing Epochs consumed by a third party. A draft label never exempts such
 a deployment. The frozen edition is immutable; corrections follow its
 errata policy, and substantive changes require a new major version and
 explicit adoption.

@@ -56,6 +56,6 @@ through that walk; discovery then cannot change its Page sources.
 Delta sequences, shared Feed/Page retries, independent Delta retries,
 unsuccessful responses and content-budget boundaries. Page cases distinguish
 admission authority from current/first-next sources using supplied sealing
-positions; they establish no Block inclusion or complete Page fields.
+positions; they establish no Epoch inclusion or complete Page fields.
 Recovery settlement and crash durability require live integration beyond
 these supplied ordinary-rotation sequences.

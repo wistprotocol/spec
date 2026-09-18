@@ -129,5 +129,5 @@ Declaration excludes does not suppress that fallback. Independent
 named-entry verification in each permitted source preserves both cases
 without borrowing historical authority. `vectors/wist2/page-bindings.json`
 distinguishes these predicates with signed Declaration chains and Page
-probes; supplied sealing positions do not establish authenticated Block
+probes; supplied sealing positions do not establish authenticated Epoch
 inclusion or recovery supersession.

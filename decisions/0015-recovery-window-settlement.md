@@ -5,7 +5,7 @@
 ## Context
 
 The recovery window is the suite's only answer to a stolen Publisher signing
-key. WIST-1 §5.2 gave it a start (the `sealed_at` of the Block sealing the
+key. WIST-1 §5.2 gave it a start (the `sealed_at` of the Epoch sealing the
 recovery Declaration), a length (`recovery_window_days`), a behavior
 (Deltas queued rather than sealed), and an outcome (the recovery Declaration
 takes effect, superseding "any ordinary rotation sealed during that
@@ -33,20 +33,20 @@ changes what a replaying party derives:
 ## Decision
 
 **Recovery ownership follows application order.** Validate and apply each
-domain's Declarations in ascending `(Block height, seq)` order, including
+domain's Declarations in ascending `(Epoch number, seq)` order, including
 signature and predecessor checks. The first accepted recovery owns the
 window; another recovery inside it cannot replace the owner or open another
 window. Canonical leaf-hash order is storage order and cannot choose the
-owner. Signed Block histories in `vectors/wist1/recovery-order.json` include
+owner. Signed Epoch histories in `vectors/wist1/recovery-order.json` include
 two recoveries whose sequence order reverses their leaf-hash order.
 
 **The owner freezes the recovery deadline.** Read `recovery_window_days`
-from the map in force at the owner Block, including amendments effective
+from the map in force at the owner Epoch, including amendments effective
 exactly at its `sealed_at`. Add that many 86,400-second days and retain the
 end through later amendments and recoveries inside the window. Recomputing
 from the current map could release queued Deltas early or extend their hold;
 reanchoring at a follower would let repeated rotations postpone settlement.
-A new window after settlement reads its own owner Block’s map.
+A new window after settlement reads its own owner Epoch’s map.
 `recovery_window_cases` in
 `vectors/wist4/parameter-combinations.json` distinguishes these readings
 with explicitly accepted parameter schedules and eligible recovery events;
@@ -58,16 +58,16 @@ groups. A group containing only re-serves of the current canonical
 `publisher` object is idempotent and installs no signature. Otherwise all
 canonical Envelopes, including signatures, must be identical; apply that
 Envelope once, subject to every acceptance check. Distinct first-install
-Envelopes invalidate the entire Block with `WIST1-E08`. This includes two
+Envelopes invalidate the entire Epoch with `WIST1-E08`. This includes two
 signatures over identical publisher bytes: an ordinary key and a recovery
 key can each authenticate those bytes but imply different window ownership.
 Initial Declarations and open recovery windows use the same rule; domains
-remain independent. A Declaration acceptance failure invalidates its Block
+remain independent. A Declaration acceptance failure invalidates its Epoch
 without committing any Entry or settlement. Check a structurally valid
 group's equality before its signatures; filtering bad signatures would
 silently select a member of a conflicting batch. Different failing domains
 may report different applicable diagnostics, since their processing order
-does not affect Block rejection or retained state. Signed cases and positive
+does not affect Epoch rejection or retained state. Signed cases and positive
 controls in `vectors/wist1/declaration-conflicts.json` exercise these rules.
 
 **Admission is the union.** A Delta is queued when it verifies under either
@@ -76,7 +76,7 @@ Declaration's own. The recovering Publisher keeps publishing; the
 compromised key's Deltas still reach the queue, where the settlement rejects
 them in the open rather than at an ingest no replaying party can see.
 Freeze both signing sets at the owner's application, including any
-same-Block predecessor; later competitors and legitimate followers replace
+same-Epoch predecessor; later competitors and legitimate followers replace
 neither admission source. WIST-1 §5.1 and
 [ADR-0023](0023-declaration-key-binding.md) retain complete named bindings,
 filter key usability and each timestamp bound before signature verification,
@@ -98,7 +98,7 @@ WIST-1 §5.1's E02/E01 binding distinction remains unchanged, and §3.2 assigns
 E03 when a verifying eligible binding has no covering source of its own.
 
 Settlement rechecks both bindings and scope against the recovery-chain head
-immediately before deadline-Block Declarations. Either authority failure
+immediately before deadline-Epoch Declarations. Either authority failure
 drops the queued copy with E13 after mandatory field checks. A surviving
 copy must still satisfy the Declaration applicable at actual sealing, where
 a scope failure is E03. Later scope expansion can permit a previously dropped
@@ -107,7 +107,7 @@ a permanent ID ban. Historical scope follows the same height-specific
 Declaration as historical keys, without rewriting earlier sealed authority.
 Signed histories in
 `vectors/wist1/recovery-scope.json` distinguish frozen source pairing,
-competitors, followers, settlement, deadline-Block changes and re-serving.
+competitors, followers, settlement, deadline-Epoch changes and re-serving.
 
 **Supersession covers everything outside the recovery chain.** At the
 window's end, every Declaration accepted after its owner while it is open,
@@ -128,7 +128,7 @@ the recovering Publisher extend its chain after a competing fresh identity
 without requiring the competitor's cooperation. It does not allow a fork
 from an earlier recovery-chain ancestor.
 
-Settle before applying Declarations in the first Block at or after the
+Settle before applying Declarations in the first Epoch at or after the
 window end, restoring the chain head as the only eligible predecessor.
 The same boundary governs admission. The sequence floor survives. A
 re-serve of the current canonical `publisher` object is idempotent, including
@@ -140,7 +140,7 @@ changes no accepted state and installs no new signature.
 Admission settlement restores its accepted recovery head, including pending
 legitimate followers, and retains its sequence floor. Queue revalidation uses
 the distinct head sealed inside the window. Persist completion of admission
-settlement so processing another pull or the first deadline Block cannot
+settlement so processing another pull or the first deadline Epoch cannot
 erase subsequently accepted replacements.
 
 Superseded competitors that have not sealed are removed from sealing
@@ -162,7 +162,7 @@ The first recovery in application order owns that window. A fresh
 replacement newly accepted after admission settlement has normal
 post-settlement admission semantics; its actual identity effect still follows
 Log application order, including any new window opened by an earlier Entry.
-Signed Declaration Envelopes with supplied admission events and Block traces in
+Signed Declaration Envelopes with supplied admission events and Epoch traces in
 `vectors/wist1/recovery-admission.json` exercise those distinctions without
 claiming live queue durability or complete Delta eligibility.
 
@@ -180,9 +180,9 @@ or recovery descendants. This rule holds in every open prefix, so
 settlement has no identity effects to undo. Signature eligibility remains
 a separate requirement.
 
-Declarations preceding the owner in its own Block are not competitors. A
+Declarations preceding the owner in its own Epoch are not competitors. A
 fresh predecessor resets normally, and the owner preserves that new identity.
-The entire opening Block still belongs to the Delta-queuing interval.
+The entire opening Epoch still belongs to the Delta-queuing interval.
 After settlement, a fresh Declaration naming the restored head resets
 normally unless another window has already opened in application order.
 
@@ -204,7 +204,7 @@ invalid author signatures. Separate Delta binding probes distinguish public
 key reuse, identifier renaming, `valid_from`, invalid signatures and later
 re-serving of a rejected Delta ID. Survivors are signature-eligible inputs,
 not proof of eventual inclusion.
-`vectors/wist1/recovery-heads.json` carries a signed hourly Block chain,
+`vectors/wist1/recovery-heads.json` carries a signed hourly Epoch chain,
 Declaration predecessors and independent candidate probes across settlement.
 It distinguishes accepted sequence from restored head, authenticates chain
 extensions past competitors, and rejects stale predecessors and recovery-key
@@ -220,7 +220,7 @@ inclusion would change the identity protection that justified accepting it.
 **Require every admitted competitor to seal before expiry.** This would
 retain public evidence of all competing attempts, but a candidate can arrive
 after the last eligible pre-deadline sealing slot. The existing cadence and
-Block capacity cannot guarantee that inclusion. Retaining the signed attempt
+Epoch capacity cannot guarantee that inclusion. Retaining the signed attempt
 as a different kind of evidence would require a separate protocol capability;
 this mechanism introduces none.
 
@@ -245,9 +245,9 @@ revocation gives all recovery authority failures the same queued-copy
 status and retry semantics; ordinary sealing scope rejection remains E03.
 
 **Take the first equal-sequence Entry and ignore its siblings.** Rejected
-because a Block would certify conflicting state transitions and leaf-hash
+because an Epoch would certify conflicting state transitions and leaf-hash
 order would select identity or recovery authority. Rejecting every sibling
-Entry but accepting the Block also discards a sealed Declaration whose
+Entry but accepting the Epoch also discards a sealed Declaration whose
 acceptance WIST-3 §3.3 requires. Unsealed submissions remain subject to
 ordinary admission checks; the conflict rule does not mandate their sealing.
 
@@ -287,7 +287,7 @@ later replacement to exceed it.
 successors of an old head could revive already replaced keys. Requiring the
 current chain head makes legitimate continuation serial.
 
-**Use canonical Entry index to break a same-Block recovery race.** Rejected
+**Use canonical Entry index to break a same-Epoch recovery race.** Rejected
 because Declaration predecessors and WIST-3 §3.3 application precedence read
 sequence numbers. A lower-sequence Declaration can be the authenticated
 predecessor of a higher-sequence Declaration even when stored after it.

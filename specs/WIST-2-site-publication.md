@@ -157,7 +157,7 @@ exactly one Page, never on two and never on none.
 **Verification of sealed pages.** Verify a Page under WIST-1 §4 using the
 signing entry whose `kid` equals its `sig.key_id` in the Declaration
 current at `generated_at`. If no usable named entry verifies, try the
-Declaration selected from the first following Block by the bridge below.
+Declaration selected from the first following Epoch by the bridge below.
 An absent current Declaration also permits this fallback. Each attempt
 MUST use that Declaration's own named entry. Finding `sig.key_id` in
 current does not suppress fallback when its entry fails verification. No
@@ -182,21 +182,21 @@ non-decreasing sequence §3.2 already requires of successive `feed.json`
 versions.
 
 WIST-1 §5.2's historical-verification procedure cannot be applied directly
-here: it resolves a Key Set by **Block height**, and Pages are never sealed
+here: it resolves a Key Set by **Epoch number**, and Pages are never sealed
 into the Log, so a Page has no height. The bridge is stated once, and it is
 the only conversion permitted: the Key Set current at a `generated_at` is
 the one declared by the domain's `publisher_declaration` Entry (WIST-3 §3.3)
 with the greatest `sealed_at` not later than that `generated_at` — the
-highest `seq` among them where one Block seals several, which is the Key
-Set WIST-1 §5.2 resolves at that Block's height — with
+highest `seq` among them where one Epoch seals several, which is the Key
+Set WIST-1 §5.2 resolves at that Epoch's height — with
 WIST-1 §5.2's recovery exception applied to that comparison exactly as it is
 applied to the by-height one, so a Declaration superseded by a recovery
 rotation is excluded here too. `sealed_at` is strictly increasing across
-Blocks (WIST-3 §3.1), so the ordering by `sealed_at` and the ordering by
+Epochs (WIST-3 §3.1), so the ordering by `sealed_at` and the ordering by
 height are the same ordering; what changes is only the key the Consumer
 looks the Declaration up by, because a Page carries a timestamp and not a
 height. Every input is in the Log, so two validators resolve the same Page
-to the same Key Set. Because that comparison is against a Block's
+to the same Key Set. Because that comparison is against an Epoch's
 `sealed_at`, `generated_at` carries the same whole-second, literal-`Z` form
 `sealed_at` does (`schemas/feed.schema.json`, WIST-3 §3.1): the two values
 compare directly, with no normalization step for two implementations to
@@ -212,16 +212,16 @@ Declaration before or beside the first Delta it authorizes (WIST-3 §3.3)
 and seals a Delta only where the Key Set at its height verifies it
 (WIST-1 §5.2); a Page is never sealed, so nothing holds it. The second
 resolution above closes the gap: fallback selects the Key Set of the
-**first** Block sealed after `generated_at` that seals an
+**first** Epoch sealed after `generated_at` that seals an
 applicable Declaration of the domain — the same recovery exception
 applied — the Publisher's own act attested one seal late. Where that
-Block seals several Declarations of the domain, the Key Set is the
+Epoch seals several Declarations of the domain, the Key Set is the
 highest `seq`'s, exactly as at a height: the lower one was the Key Set
-at no instant — WIST-1 §5.2 resolves the higher `seq` at that Block —
+at no instant — WIST-1 §5.2 resolves the higher `seq` at that Epoch —
 and a Page accepted under it would be one no Delta could ever have been
-sealed under. It is the first such Block and not any later one, so a
+sealed under. It is the first such Epoch and not any later one, so a
 Page cannot claim a key from a rotation two seals ahead; and both
-lookups read Blocks every validator holds, so two validators still
+lookups read Epochs every validator holds, so two validators still
 resolve one Page to one answer. A Page cut before the domain's first
 Declaration sealed resolves, by the same rule, to that Declaration's
 Key Set.
@@ -325,12 +325,12 @@ Set.
 **Which Label is current.** For each (labeler, subject, name), the
 Labeler's current Label at a height is the sealed Label with the
 greatest `asserted_at`, and among equal instants the one later in Log
-order (WIST-3 §3.3: ascending Block height, then Entry index). A current
+order (WIST-3 §3.3: ascending Epoch number, then Entry index). A current
 Label with `retracted` `true` means the Labeler asserts nothing about
 that subject under that name; every earlier Label stays sealed. A Label
 whose `asserted_at` is earlier than the current Label's is sealed and
 applies nothing. A current Label with an `expires_at` applies nothing
-at a Block whose `sealed_at` is at or after that instant — compared as
+at an Epoch whose `sealed_at` is at or after that instant — compared as
 instants, the Publisher timestamp converted exactly — and it stays the
 current Label, so an earlier unexpired Label does not return; a Labeler
 that wants the subject labeled again asserts anew. Consumers read
@@ -362,7 +362,7 @@ Envelope whose inner object is `dispute` (schema:
 [`schemas/dispute.schema.json`](../schemas/dispute.schema.json)),
 carrying `wist_version`, `disputant` — the disputing Publisher's
 Canonical Host, bound as a Label's `labeler` is — `label`, the disputed
-Label's ID, `log` and `height`, the `log_id` and Block height at which
+Label's ID, `log` and `height`, the `log_id` and Epoch number at which
 the disputant saw the Label sealed, an OPTIONAL `reason`, a Normalized
 URL where the disputant states its grounds, and `asserted_at`, read as
 a Label's. Those seven members and no others; the **Dispute ID** is the
@@ -612,10 +612,10 @@ On receiving a Ping for a known-or-new domain, the Aggregator:
    rejected with `WIST2-E03` and MUST NOT be sealed: the Aggregator cannot
    undertake to serve (WIST-3 §6.1) content it never received, and a Delta
    sealed without its Payload would have nothing to materialize.
-4. Queues accepted Deltas for the next log block (WIST-3 §3), and the
-   Payloads it verified for publication alongside the Block that seals
+4. Queues accepted Deltas for the next Epoch (WIST-3 §3), and the
+   Payloads it verified for publication alongside the Epoch that seals
    them (WIST-3 §6.1). A queued Delta is sealed only where it verifies
-   under the Key Set WIST-1 §5.2 resolves at the sealing Block: one whose
+   under the Key Set WIST-1 §5.2 resolves at the sealing Epoch: one whose
    signing key a Declaration accepted since the pull has retired is
    `WIST1-E02` at sealing, reported (§7.1) and not sealed, and its ID is
    pulled again once the Publisher re-signs it (step 2).
@@ -831,8 +831,8 @@ adjacent to the layout it walks.
 - [ ] Treats an ID as seen only once sealed or held accepted for sealing,
       and pulls a rejected ID again on the next pull (§5, WIST-1 §3.5)
 - [ ] Verifies a sealed Page against the Key Set current at its
-      `generated_at`, or that of the first Block after it sealing an
-      applicable Declaration — the highest `seq`'s where a Block seals
+      `generated_at`, or that of the first Epoch after it sealing an
+      applicable Declaration — the highest `seq`'s where an Epoch seals
       several (§3.2)
 - [ ] Applies the per-domain ingest budget to that walk, accounted per
       Registrable Domain, suspending and resuming across days rather
@@ -983,5 +983,5 @@ fixtures for this procedure.
 
 - [RFC 2119] / [RFC 8174] BCP 14 key words
 - WIST-1: Delta Format & Identity — Envelope, Delta ID, Key Set, scope rule
-- WIST-3: Logbook & Distribution — block queueing
+- WIST-3: Logbook & Distribution — Epoch queueing
 - WIST-4: Governance & Parameters — quotas, parameters, the Label Registry

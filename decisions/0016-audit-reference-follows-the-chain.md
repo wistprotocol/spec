@@ -37,15 +37,15 @@ one-penalty-per-Delta rule remain keyed by `audited_delta`.
 ### Extraction and scoring profile
 
 Read the extraction and band parameters listed in WIST-4 §5 at the audited
-Delta's Block for Record production, verdict recomputation and hard-hit scoring.
+Delta's Epoch for Record production, verdict recomputation and hard-hit scoring.
 This applies to ordinary and extension audits by Auditors and Observers.
 The reference Delta and later publication, checkpoint, reveal and query
 instants cannot move the profile.
 
 An unchanged Record therefore retains its extract- and link-band interpretation
-after a parameter change. Linking both dimensions to one audited Block keeps
+after a parameter change. Linking both dimensions to one audited Epoch keeps
 ordinary and extension Records comparable without requiring an Observer Record
-to have an individual sealing Block. Hard-hit scoring still uses extract bands
+to have an individual sealing Epoch. Hard-hit scoring still uses extract bands
 only; adding link thresholds creates no link-based hard hit. The reveal
 separately anchors its availability and scoring-window duration. Unicode interpretation and the delete mirror
 remain the document's fixed rules.
@@ -68,7 +68,7 @@ the Auditor's network budget.
 
 ### Publication timing
 
-There is no minimum delay from the audited Block to fetching. The
+There is no minimum delay from the audited Epoch to fetching. The
 Publisher controls when it sends its Ping and can wait for its content to
 propagate; `observed_at` asserts the page already matches the declaration.
 A stale edge can still produce a false inconsistency. Contradiction then
@@ -93,7 +93,7 @@ while several Deltas are audited can therefore produce several penalties.
 **Link thresholds at fetch, Record sealing or recomputation.** These anchors
 can give the same measurements different link verdicts after an amendment.
 Record sealing also supplies no individual anchor for Observer Records.
-The audited Block preserves one interpretation while the reference
+The audited Epoch preserves one interpretation while the reference
 change type continues to determine whether the link dimension applies.
 
 **A mandatory fetch delay.** A Publisher that already controls propagation

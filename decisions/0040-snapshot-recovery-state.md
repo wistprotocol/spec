@@ -18,15 +18,15 @@ the Consumer never saw.
 `declaration` carries the highest accepted `seq`. `recovery_window` carries
 the recovery-chain head's Declaration Envelope and its sealing height beside
 the owner height and window end. A resuming Consumer treats the head as an
-eligible predecessor and settles the window before the first Block at or
+eligible predecessor and settles the window before the first Epoch at or
 after its end, keeping the floor.
 
 ## Alternatives and consequences
 
 Reconstructing from the owner height would make every cold start replay up
-to a window of Blocks and leave the state artifact insufficient by design.
+to a window of Epochs and leave the state artifact insufficient by design.
 Carrying only the head's hash would leave the Consumer without the Key Set
-that verifies followers, and with no Block to fetch it from. Carrying the
+that verifies followers, and with no Epoch to fetch it from. Carrying the
 window's competitors adds nothing: settlement supersedes them, and a later
 Declaration naming one already fails predecessor eligibility, since only
 the current Declaration and the head are eligible. The pre-recovery Key

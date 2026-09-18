@@ -68,7 +68,7 @@ Records, the Auditor roster, Observers, canary commitments and reveals,
 sampling and selection, verdicts, confirmation, extension, coverage
 duties, reputation, sanctions, notices, appeals, rulings, lifts, evidence
 retention, the VRF and every parameter, error code, schema, Registry
-Update action, Block Entry type and Snapshot state tuple that served
+Update action, Entry type and Snapshot state tuple that served
 them are removed from WIST-1 through WIST-4. WIST-4 becomes the
 governance document: the Parameter Registry, parameter amendments,
 Aggregator key acts, Payload withdrawal, the constitutional invariants,
@@ -76,8 +76,8 @@ security and privacy considerations.
 
 Quota and inclusion no longer read a reputation. Every domain has the
 same Ping quota, `quota_base` per UTC day, and every accepted Delta is
-eligible for the next Block, bounded by `max_inclusion_blocks` and the
-per-domain Block capacity exactly as before. The per-domain ingest
+eligible for the next Epoch, bounded by `max_inclusion_epochs` and the
+per-domain Epoch capacity exactly as before. The per-domain ingest
 budget, the Delta caps and the clock rule are unchanged.
 
 ### Labelers are Publishers

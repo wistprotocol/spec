@@ -18,7 +18,7 @@ Publisher                 Aggregator                    Mirrors / Consumers
    │ writes delta to          │                               │
    │ /.well-known/      ──►   │ pulls, validates signature,   │
    │ and sends ping           │ dedups, queues                │
-   │                          │ seals hourly Block,     ──►   │ sync blocks,
+   │                          │ seals hourly Epoch,     ──►   │ sync Epochs,
    │                          │ signs, chains                 │ verify chain,
    │ signs labels about   ──►  │ seals them beside deltas ──►  │ apply to local index,
    │ other sites              │                               │ rank by own policy
@@ -30,7 +30,7 @@ Publisher                 Aggregator                    Mirrors / Consumers
 |-----|-------|--------|
 | [WIST-1](specs/WIST-1-delta-format.md) | Delta Format & Identity — the signed delta object, JCS canonicalization, domain-anchored Ed25519 keys | v1.0.0-draft |
 | [WIST-2](specs/WIST-2-site-publication.md) | Site Publication — `.well-known` layout, feed, ping + pull, unsigned-hint compatibility | v1.0.0-draft |
-| [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — blocks, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
+| [WIST-3](specs/WIST-3-logbook-distribution.md) | Logbook & Distribution — Epochs, Merkle proofs, checkpoints, snapshots and tiers, sync | v1.0.0-draft |
 | [WIST-4](specs/WIST-4-governance.md) | Governance & Parameters — governance acts, constitutional invariants, the Parameter Registry, the Label Registry | v1.0.0-draft |
 
 ## Repository layout
@@ -87,7 +87,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0018](decisions/0018-confirmation-and-sanctions.md) — Confirmation, sanction activations and due process
 - [ADR-0019](decisions/0019-audit-duty-accounting.md) — Audit duty accounting from authenticated Log prefixes
 - [ADR-0020](decisions/0020-parameter-schedules.md) — Parameter schedules preserve historical obligations
-- [ADR-0021](decisions/0021-block-frame-composition.md) — One Zstandard frame per Block file (superseded by ADR-0046)
+- [ADR-0021](decisions/0021-block-frame-composition.md) — One Zstandard frame per Block file, a removed object's former name (superseded by ADR-0046)
 - [ADR-0022](decisions/0022-log-timestamp-seconds.md) — Leap-free Log timestamps
 - [ADR-0023](decisions/0023-declaration-key-binding.md) — Unambiguous Declaration key binding and identity continuity
 - [ADR-0025](decisions/0025-canonical-base64url.md) — Canonical base64url at validation
@@ -110,6 +110,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0045](decisions/0045-key-directory.md) — The Key Set is a key directory with thumbprint identifiers, validity windows, a rotation commitment and an activation delay
 - [ADR-0046](decisions/0046-single-tree-log.md) — The Log is one RFC 6962 tree published as C2SP checkpoints and tiles (amends ADR-0004, supersedes ADR-0021)
 - [ADR-0047](decisions/0047-key-act-authentication-height.md) — Key acts authenticate under the previous height's keys
+- [ADR-0048](decisions/0048-epoch-terminology.md) — The interval between two Checkpoints is an Epoch, and wire names describe their values
 
 ## Licenses
 

@@ -1,5 +1,5 @@
 {
-  "note": "WIST-4 \u00a75.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and must name a Delta sealed at or below its Block whose signed publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs and a later withdrawal of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 \u00a77 withdrawal tuples the replay leaves, record_tuples the chain tips every sealed Delta moves, withdrawn or not, and materialized the sealed Deltas whose content materializes. resume replays acts at a Consumer that adopted the tuples at log_position and walked only the Deltas above it: an act naming a Delta it did not walk is accepted as consistent.",
+  "note": "WIST-4 \u00a75.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and must name a Delta sealed at or below its Epoch whose signed publisher is the subject (WIST4-E04 otherwise); the earliest accepted withdrawal's Epoch governs and a later withdrawal of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 \u00a77 withdrawal tuples the replay leaves, record_tuples the chain tips every sealed Delta moves, withdrawn or not, and materialized the sealed Deltas whose content materializes. resume replays acts at a Consumer that adopted the tuples at tree_size and walked only the Deltas above it: an act naming a Delta it did not walk is accepted as consistent.",
   "log_key": {
     "key_id": "test-agg-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
@@ -89,7 +89,7 @@
       "withdrawn_height": null
     },
     {
-      "label": "Delta sealed in the act's Block",
+      "label": "Delta sealed in the act's Epoch",
       "height": 4,
       "envelope_json": "{\"update\": {\"wist_version\": \"1.0.0\", \"action\": \"payload_withdrawal\", \"subject\": \"other.sample.org\", \"effective_at\": \"2026-08-05T12:00:00Z\", \"details\": {\"delta_id\": \"sha256:b7f0f61d7787d466e0b12a5dfb3e9ac4e7d1821fc59808c3822da8dd9cbb1541\", \"legal_basis\": \"court order 12/2026\", \"jurisdiction\": \"BR\"}}, \"sig\": {\"key_id\": \"test-agg-k1\", \"alg\": \"Ed25519\", \"value\": \"_zmQ7dsJhoCkwfDdfCRM1OH8BqLxOfPrz79dSGENcPaoEPwiID5wGlzJon6S8UG8CqweaIkbBzVRI3Yc7z0aBg\"}}",
       "code": null,
@@ -141,7 +141,7 @@
     "sha256:ad3cdc766223ac16fdae8beff5f8921512988c6c5d7d2c1a5d670f9433dbcb94"
   ],
   "resume": {
-    "log_position": 3,
+    "tree_size": 3,
     "adopted": [
       [
         "withdrawal",

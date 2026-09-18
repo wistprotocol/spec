@@ -30,7 +30,7 @@ and seals budgeted checkpoints of their Record-chain heads. A checkpoint
 authenticates a history without requiring transport of every Observer Record.
 
 Resolve simultaneous roster acts in stages. Validate removals against the
-pre-Block admitted roster, deduplicate identical acts and apply valid
+pre-Epoch admitted roster, deduplicate identical acts and apply valid
 removals together. A distinct subject or key not held in that roster makes
 the removal invalid. If several valid removals name the same incumbent,
 any for-cause removal establishes the readmission bar.
@@ -40,22 +40,23 @@ groups. Check remaining candidates against the resulting incumbent map;
 an admission displaces a same-subject registration candidate. Reject all
 cross-subject key-ID or public-key collisions among survivors and apply
 those left together. Rejected candidates are not retried. A released
-Observer key becomes available to another subject only in a later Block.
+Observer key becomes available to another subject only in a later Epoch.
 This prevents Entry position from selecting a roster winner.
 
 ### Checkpoint allocation
 
 Checkpoint slots are budgeted by the two-label suffix defined in WIST-4 §3.
 Sort suffixes by `SHA-256(suffix)`, breaking equal hashes by canonical
-suffix UTF-8 octets. Each epoch walks one budget from the position
-`epoch × budget mod S`, where S is the suffix count. Within a suffix,
-the selection hash uses the epoch and `auditor_id`, with canonical
+suffix UTF-8 octets. Each allocation period (then called an observer epoch)
+walks one budget from the position `period × budget mod S`, where S is the
+suffix count and `period` the allocation period's number. Within a suffix,
+the selection hash uses that number and `auditor_id`, with canonical
 `auditor_id` UTF-8 octets breaking ties.
 
-For an unchanged suffix set and budget, the walk bounds delay by
-`ceil(S / budget)` epochs. A fresh random ordering each epoch supplies
-no such bound; a fixed priority queue can starve every suffix past its
-budget. Roster churn requires the actual-opportunity checks below.
+For an unchanged suffix set and budget, the walk bounds delay by `ceil(S /
+budget)` allocation periods. A fresh random ordering each period supplies no
+such bound; a fixed priority queue can starve every suffix past its budget.
+Roster churn requires the actual-opportunity checks below.
 
 Admission evidence names the newest eligible checkpoint by greatest
 `(sealing height, Update ID)`, comparing IDs as raw digest octets.
@@ -91,24 +92,24 @@ Expired scoring windows cannot be renewed by recommitting the same Delta.
 
 ### Timing and availability
 
-The defaults are 24 Blocks of commitment lead, 24 Blocks per epoch,
-1,024 budgeted suffixes per epoch, a 168-Block base reveal minimum,
-1,440 Blocks of commitment lifetime, 1,024 leaves per commitment and
-eight commitments per planter suffix per epoch. WIST-4 §9 specifies
-their bounds and combinations; the reveal minimum also accounts for
-checkpoint rotation, adding no negative allowance for an empty roster.
+The defaults are 24 Epochs of commitment lead, 24 Epochs per allocation
+period, 1,024 budgeted suffixes per period, a 168-Epoch base reveal minimum,
+1,440 Epochs of commitment lifetime, 1,024 leaves per commitment and eight
+commitments per planter suffix per period. WIST-4 §9 specifies their bounds
+and combinations; the reveal minimum also accounts for checkpoint rotation,
+adding no negative allowance for an empty roster.
 
 The numeric minimum is insufficient under churn. Every bound Delta's
 coverage sealing allowance must finish below the reveal. Every originally
-represented suffix that remains represented must receive a budgeted epoch
+represented suffix that remains represented must receive a budgeted period
 ending after the last coverage deadline, with its fetch and sealing allowance
-finished below the reveal. Use actual epochs, rosters and anchored counts.
+finished below the reveal. Use actual periods, rosters and anchored counts.
 Churn may prevent readiness before expiry; an expired commitment scores
 nothing rather than bypassing these obligations.
 
 The domain serves revealed bytes and the relevant Reference Payloads for
 the scoring window. The window reads `payload_window_days` at the reveal:
-it includes the reveal's Block and closes when that many whole days have
+it includes the reveal's Epoch and closes when that many whole days have
 elapsed. Availability lapses; raw page bytes never enter the immutable Log.
 Self-signed registry acts are served at `/.well-known/wist/registry.json`;
 WIST-2 §3 supplies the pull and publication duties.
@@ -127,7 +128,7 @@ requires both demonstrated possession and a verdict two bands from the band
 derived over revealed bytes: `consistent` below the variance floor, or
 `inconsistent` at or above the consistency threshold. Intermediate bands
 and inputs for which WIST-4 §5 derives no band produce no hard hit.
-Extraction and band parameters read the audited Delta's Block, as described
+Extraction and band parameters read the audited Delta's Epoch, as described
 in [ADR-0016](0016-audit-reference-follows-the-chain.md).
 
 Count each Audit Record ID once, even when multiple checkpoints cover it.
@@ -141,7 +142,7 @@ Admission and score-based removal remain judgements; coverage failures
 retain their separate derivable consequences. There is no automatic
 promotion, scoreboard retention floor or mandatory decentralization schedule. Contradiction
 escalates sampling of the audited domain for 30 days from the extension's
-establishing Block; it does not itself establish Auditor divergence or
+establishing Epoch; it does not itself establish Auditor divergence or
 removal. Coverage accounting is described in
 [ADR-0019](0019-audit-duty-accounting.md).
 

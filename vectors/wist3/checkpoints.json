@@ -1,10 +1,10 @@
 {
-  "note": "WIST-3 \u00a7\u00a74-6, 8-10: Checkpoint note form, Consistency Proofs, rollback, the three Equivocation forms, the archive path rule, Witness quorum (WIST-4 \u00a75 checkpoint_witness_quorum), the \u00a74 size-0 root comparison, and the \u00a78 step 5 Snapshot cold-start match, over one cumulative tree of 7 leaves (Block 0 of vectors/wist3/block.json, the empty Block 1 of empty-block.json, and Block 2 below). Each case list judges its own candidates: note_form_cases, size_zero_cases and equivocation_cases deliberately carry Checkpoints that contradict the blocks above them.",
+  "note": "WIST-3 \u00a7\u00a74-6, 8-10: Checkpoint note form, Consistency Proofs, rollback, the three Equivocation forms, the archive path rule, Witness quorum (WIST-4 \u00a75 checkpoint_witness_quorum), the \u00a74 size-0 root comparison, and the \u00a78 step 5 Snapshot cold-start match, over one cumulative tree of 7 leaves (Epoch 0 of vectors/wist3/epoch.json, the empty Epoch 1 of empty-epoch.json, and Epoch 2 below). Each case list judges its own candidates: note_form_cases, size_zero_cases and equivocation_cases deliberately carry Checkpoints that contradict the epochs above them.",
   "log_id": "log.example.org",
-  "blocks": [
+  "epochs": [
     {
-      "block_number": 0,
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "epoch_number": 0,
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "entries": [
         {
           "type": "publisher_delta",
@@ -107,8 +107,8 @@
       ]
     },
     {
-      "block_number": 1,
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
+      "epoch_number": 1,
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYExOq9KbWklledbAdqTZV7pAWJd7OKWsbBAUuefcwosw5cj7cRVJ/kooDABRfQFfzc+yMQYpHfYHHdqoSFCzjQwA=\n",
       "entries": [],
       "leaf_hashes": [
         "75c6c8c2cb19db1247c531f326f1eb73f1be9c2f3275cf82792c194b3f259498",
@@ -118,8 +118,8 @@
       ]
     },
     {
-      "block_number": 2,
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n",
+      "epoch_number": 2,
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n",
       "entries": [
         {
           "type": "publisher_delta",
@@ -199,47 +199,47 @@
   "note_form_cases": [
     {
       "name": "six-line note text",
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\nextra_field 1\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\nextra_field 1\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "expected": "WIST3-E03"
     },
     {
       "name": "four-line note text",
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "expected": "WIST3-E03"
     },
     {
-      "name": "block_number with a leading zero",
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 01\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "name": "epoch_number with a leading zero",
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 01\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "expected": "WIST3-E03"
     },
     {
-      "name": "block_number with two spaces",
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number  0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "name": "epoch_number with two spaces",
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number  0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "expected": "WIST3-E03"
     },
     {
       "name": "sealed_at with fractional seconds",
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00.5Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00.5Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "expected": "WIST3-E03"
     },
     {
       "name": "origin not equal to the log_id",
-      "checkpoint": "not-log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "checkpoint": "not-log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "expected": "WIST3-E03"
     },
     {
       "name": "known-key signature fails",
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMvU=\n",
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0P8=\n",
       "expected": "WIST3-E03"
     },
     {
       "name": "extra signature line from an unknown signer",
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n\u2014 unknown-signer.example IyA9lharWJZknEFUxDS6NF229XT1xyp1ZibHCh8KqC8ENBgtE2nOJK3eDIEPkH9uxMj13zHlungXbKKhQbgtmzcZJgE=\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n\u2014 unknown-signer.example IyA9lou3tS1ZDs2NmDKkr8wF7+weecelRJZrcmDpjSoGCzqwZQsoV/y7vqiILYX2g8vdwAMXCh83zPGxKuOJQHynggs=\n",
       "expected": "valid"
     },
     {
       "name": "cosignature line from a Witness not in the roster",
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n\u2014 witness-outsider.example XUNx6gAAAABqb1twCjjALqmzRZr6zGmQKX/icj6/+CrQDycDBZvw8hyl7tIXJ6Ij0jPHG8hhWCLpYK+qkxa1Wxf2JtfhE9tQ+JbVDQ==\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n\u2014 witness-outsider.example XUNx6gAAAABqb1twQXnvRo4BH4d/j7dTAgC8v1MiSH/ssnY+TA3RHuQiiN1x1tqkKNksYKIJQd2MVUZnBlzgZncYtYlbn1eb7pm5Bw==\n",
       "expected": "valid"
     }
   ],
@@ -297,44 +297,44 @@
   ],
   "rollback_cases": [
     {
-      "name": "lower Checkpoint identical to the one verified at its block_number",
-      "verified_head_block_number": 2,
-      "verified_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
-      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
+      "name": "lower Checkpoint identical to the one verified at its epoch_number",
+      "verified_head_epoch_number": 2,
+      "verified_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYExOq9KbWklledbAdqTZV7pAWJd7OKWsbBAUuefcwosw5cj7cRVJ/kooDABRfQFfzc+yMQYpHfYHHdqoSFCzjQwA=\n",
+      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYExOq9KbWklledbAdqTZV7pAWJd7OKWsbBAUuefcwosw5cj7cRVJ/kooDABRfQFfzc+yMQYpHfYHHdqoSFCzjQwA=\n",
       "expected": "not_adopted"
     },
     {
       "name": "lower Checkpoint never retained",
-      "verified_head_block_number": 2,
+      "verified_head_epoch_number": 2,
       "verified_checkpoint": null,
-      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
+      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYExOq9KbWklledbAdqTZV7pAWJd7OKWsbBAUuefcwosw5cj7cRVJ/kooDABRfQFfzc+yMQYpHfYHHdqoSFCzjQwA=\n",
       "expected": "not_adopted"
     },
     {
-      "name": "lower Checkpoint whose note text differs from the one verified at its block_number",
-      "verified_head_block_number": 2,
-      "verified_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
-      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:30:00Z\n\n\u2014 log.example.org sdtYEx63RFRH8Qd/wesyrbQ1tY5p/rXEE6l3OJgeFEAuPseJt2PZj7O5eg5RTa0pGCogkCUnwl/Bp9sYH9akPUoKpgM=\n",
+      "name": "lower Checkpoint whose note text differs from the one verified at its epoch_number",
+      "verified_head_epoch_number": 2,
+      "verified_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYExOq9KbWklledbAdqTZV7pAWJd7OKWsbBAUuefcwosw5cj7cRVJ/kooDABRfQFfzc+yMQYpHfYHHdqoSFCzjQwA=\n",
+      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 1\nsealed_at 2026-08-02T14:30:00Z\n\n\u2014 log.example.org sdtYE2w41LhLCpHqNmXMXmYINiYT2sFmj2KEQe7Wt2peFivXp/YxuNXvehnf6ulklGBaD9oYjP4wKvdfQXV4cPhseQ8=\n",
       "expected": "WIST3-E02"
     }
   ],
   "equivocation_cases": [
     {
       "form": "same tree size, different root",
-      "checkpoint_1": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
-      "checkpoint_2": "log.example.org\n4\nVpxOcTRhUKPX1RkgPSgTPta9R83jHwmRWRBi/8NblcM=\nblock_number 7\nsealed_at 2026-08-02T16:00:00Z\n\n\u2014 log.example.org sdtYE7RcAkmmGUqmxHavrMzbQjRCdjTXQSX8iIb4FNnYs5Lb/BjHeFHDy8aCO3SLeiFnPpyIxdbUQ2c6a+M1hiKZhw0=\n",
+      "checkpoint_1": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
+      "checkpoint_2": "log.example.org\n4\nVpxOcTRhUKPX1RkgPSgTPta9R83jHwmRWRBi/8NblcM=\nepoch_number 7\nsealed_at 2026-08-02T16:00:00Z\n\n\u2014 log.example.org sdtYE/LQfyS43G5M6mC9dKycp6BVmFa7mo7q29vXG//4T5g9mCeE4YL7grO+6G6Cvjc1EHM8aKThI7YBIl+1MYjwUwY=\n",
       "expected": "WIST3-E02"
     },
     {
-      "form": "same block_number, same size and root, different sealed_at",
-      "checkpoint_1": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
-      "checkpoint_2": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:30:00Z\n\n\u2014 log.example.org sdtYE9urzBuvfpgDO1hL5QKccckkkCYqDM8liNx9iuTMkvPx/s+01ECT+MABsuPWSno9ETIBd92lcmm8TOhsPBVTCA8=\n",
+      "form": "same epoch_number, same size and root, different sealed_at",
+      "checkpoint_1": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
+      "checkpoint_2": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:30:00Z\n\n\u2014 log.example.org sdtYE5d9XBzqna6VI7+hGFy9xbdiSYhn4J5IfUvYlH6ijxvQ8lFDsUWyQFR2UnCcy3NDC4kEwcTkfz438K2Ko+TZ7Q0=\n",
       "expected": "WIST3-E02"
     },
     {
       "form": "different sizes, no Consistency Proof between them",
-      "checkpoint_1": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
-      "checkpoint_2": "log.example.org\n7\n1MpKDKnncBSv5lGwizyqvRaXcjFesoIJ2o6PGF9CivY=\nblock_number 8\nsealed_at 2026-08-02T17:00:00Z\n\n\u2014 log.example.org sdtYE0Rx4cS+zg/3gYV5aNTIzgandPshL7Mo32aoVG6gn4GihKzYTNtgYGndiGKmkih5jRqzGmeizxxbX7ONLEhqbgc=\n",
+      "checkpoint_1": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
+      "checkpoint_2": "log.example.org\n7\n1MpKDKnncBSv5lGwizyqvRaXcjFesoIJ2o6PGF9CivY=\nepoch_number 8\nsealed_at 2026-08-02T17:00:00Z\n\n\u2014 log.example.org sdtYE9IOSKatX3+6ODXb0tNPOgT0/jVeYMHjit9ZuB2zzr0KOzrH7KhvaGAxAA/OYIBmO9ieKlpE+RexMptsWbGj3AI=\n",
       "leaf_hashes_2": [
         "04400b2d15b3203820acc9225677aedbbee9bc1b4410e5c285466c746df1aa25",
         "094dd284ca8ac1fb36dec8501d600e7d6cc99e6498d2fa5ac93377137f1425b5",
@@ -349,15 +349,15 @@
   ],
   "archive_cases": [
     {
-      "name": "block_number 0 filed under the size-4 Block's own path, wrong path for the Log",
+      "name": "epoch_number 0 filed under the size-4 Epoch's own path, wrong path for the Log",
       "path": "/log/checkpoints/000000001",
-      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+      "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
       "expected": "WIST3-E03"
     },
     {
-      "name": "block_number 2 filed under its own path",
+      "name": "epoch_number 2 filed under its own path",
       "path": "/log/checkpoints/000000002",
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n",
       "expected": "valid"
     }
   ],
@@ -369,33 +369,33 @@
     {
       "name": "quorum 2, one trusted cosignature: short of quorum",
       "quorum": 2,
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n\u2014 witness-a.example t0bTbQAAAABqb1twCVSOZDk9roqOe197GeBWr8sBEiuGW1BQsN2DvwH2TnK9u0Xwb6uULwRYkVcxhBLJBkL5lD+LcV7NFN5otDR7Bg==\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n\u2014 witness-a.example t0bTbQAAAABqb1tw37gIX2tZi+v4uzr75iQHqNEGDJejSehB5qAKelRgVnGX7othYimRNhBuUF+JOb8OdW3JblUITg4/xVyOogxTDg==\n",
       "expected": "not_adopted"
     },
     {
       "name": "quorum 2, two distinct trusted cosignatures: adopted",
       "quorum": 2,
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n\u2014 witness-a.example t0bTbQAAAABqb1twCVSOZDk9roqOe197GeBWr8sBEiuGW1BQsN2DvwH2TnK9u0Xwb6uULwRYkVcxhBLJBkL5lD+LcV7NFN5otDR7Bg==\n\u2014 witness-b.example Sj08kQAAAABqb1twIJ8Ac3a9N0SyRT6Fvv/9cImwvF4K0IBQpGsQdhf6LIbg1bkZO5lM22yrSMKCAzKMrfO1FtrQer08loCGC02UAA==\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n\u2014 witness-a.example t0bTbQAAAABqb1tw37gIX2tZi+v4uzr75iQHqNEGDJejSehB5qAKelRgVnGX7othYimRNhBuUF+JOb8OdW3JblUITg4/xVyOogxTDg==\n\u2014 witness-b.example Sj08kQAAAABqb1tw5jxRl0EzqZUxq6bIj1PcvGzQrENgaY9vrhUk7eg8AI6IUk76brSQ/GVPl+MzofRFLXkJL2ZRhW2DCfQq0ge5AA==\n",
       "expected": "valid",
       "unwitnessed": false
     },
     {
       "name": "quorum 2, two cosignatures under the same trusted name: counts once",
       "quorum": 2,
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n\u2014 witness-a.example t0bTbQAAAABqb1twCVSOZDk9roqOe197GeBWr8sBEiuGW1BQsN2DvwH2TnK9u0Xwb6uULwRYkVcxhBLJBkL5lD+LcV7NFN5otDR7Bg==\n\u2014 witness-a.example t0bTbQAAAABqb1usoVPFeN249YVu8zn1PQ9C69oHsZQsLWNJCHC0IIryuBejjL95nW5Sl+smF6egzSeV0hKxD3EIj0j8frsPDyrdDw==\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n\u2014 witness-a.example t0bTbQAAAABqb1tw37gIX2tZi+v4uzr75iQHqNEGDJejSehB5qAKelRgVnGX7othYimRNhBuUF+JOb8OdW3JblUITg4/xVyOogxTDg==\n\u2014 witness-a.example t0bTbQAAAABqb1usZRIYTl5kK7bJYSOxx39TuklbWzakFuAx2feOmDJ2qJFOvUqr2qbOnJPEsBnnob0qQmCbSi7pSvv4G6eFBTF1Dg==\n",
       "expected": "not_adopted"
     },
     {
       "name": "quorum 1, one cosignature that fails to verify",
       "quorum": 1,
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n\u2014 witness-a.example t0bTbQAAAABqb1tw9lSOZDk9roqOe197GeBWr8sBEiuGW1BQsN2DvwH2TnK9u0Xwb6uULwRYkVcxhBLJBkL5lD+LcV7NFN5otDR7Bg==\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n\u2014 witness-a.example t0bTbQAAAABqb1twILgIX2tZi+v4uzr75iQHqNEGDJejSehB5qAKelRgVnGX7othYimRNhBuUF+JOb8OdW3JblUITg4/xVyOogxTDg==\n",
       "note": "WIST-3 \u00a75 defines a known key as the union of valid Aggregator keys and trusted Witness keys, and requires WIST3-E03 rejection of the whole Checkpoint when a line naming a known key fails to verify \u2014 read here to cover a failing trusted-Witness line too, not just a failing Aggregator line.",
       "expected": "WIST3-E03"
     },
     {
       "name": "quorum 0, no cosignature: adopted and unwitnessed",
       "quorum": 0,
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n",
       "expected": "valid",
       "unwitnessed": true
     }
@@ -404,43 +404,43 @@
     {
       "name": "manifest matches the archived Checkpoint",
       "manifest": {
-        "block_number": 2,
-        "log_position": 7,
-        "anchor_block_hash": "sha256:8be4cab9c9c33fab692eb4aa5024e62a4f2c9a7e7d1faa85fcfdc004c7054be6"
+        "epoch_number": 2,
+        "tree_size": 7,
+        "root_hash": "sha256:8be4cab9c9c33fab692eb4aa5024e62a4f2c9a7e7d1faa85fcfdc004c7054be6"
       },
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n",
       "expected": "valid"
     },
     {
-      "name": "manifest log_position does not match",
+      "name": "manifest tree_size does not match",
       "manifest": {
-        "block_number": 2,
-        "log_position": 4,
-        "anchor_block_hash": "sha256:8be4cab9c9c33fab692eb4aa5024e62a4f2c9a7e7d1faa85fcfdc004c7054be6"
+        "epoch_number": 2,
+        "tree_size": 4,
+        "root_hash": "sha256:8be4cab9c9c33fab692eb4aa5024e62a4f2c9a7e7d1faa85fcfdc004c7054be6"
       },
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n",
       "expected": "WIST3-E02"
     },
     {
-      "name": "manifest anchor_block_hash does not match",
+      "name": "manifest root_hash does not match",
       "manifest": {
-        "block_number": 2,
-        "log_position": 7,
-        "anchor_block_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe"
+        "epoch_number": 2,
+        "tree_size": 7,
+        "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe"
       },
-      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE42DEajnoYyV6Ox/G1txsE9mZresMlNertMDoS5jn2CzkxUWNhwtSZNZAxvdoXPe9YtcrGjFnuL///REqaMbmwI=\n",
+      "checkpoint": "log.example.org\n7\ni+TKucnDP6tpLrSqUCTmKk8smn59H6qF/P3ABMcFS+Y=\nepoch_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log.example.org sdtYE9EjhMxQ8Ds1REYsUO0bSbjt4qkVOOHysszXyD5tikYN4oKTULPuRvd8wMNPU5+FgnQyRCEc8YzP8GTj9EGLwQc=\n",
       "expected": "WIST3-E02"
     }
   ],
   "size_zero_cases": [
     {
       "name": "size-0 Checkpoint stating the empty-tree root",
-      "checkpoint": "log.example.org\n0\n47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\nblock_number 0\nsealed_at 2026-08-02T12:00:00Z\n\n\u2014 log.example.org sdtYE+H6pmS5Hzu8c108muoVDZ7PaOyx46CzTw8EYKNlstnptUChowhHX+Bf3dlkBeWC2A8Qf0cT5f8r/KwAJogQ+wM=\n",
+      "checkpoint": "log.example.org\n0\n47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\nepoch_number 0\nsealed_at 2026-08-02T12:00:00Z\n\n\u2014 log.example.org sdtYEw3y9s1Ksd4+RDxaAcbigZHqAasSKahjwBRhXZi0l9nqju+yF994SpTZzUJeJQy+6KdyRJC6doIMxsrtHV/z8Qc=\n",
       "expected": "valid"
     },
     {
       "name": "size-0 Checkpoint stating another tree's root",
-      "checkpoint": "log.example.org\n0\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T12:00:00Z\n\n\u2014 log.example.org sdtYE6FWGctWQr1dHL+H45TQaD/9fu2rYJ/sE9Z4Zwt8UGM0x2q/c/bSxSnKQ7WMm9GCva8AZ84oqA0RVZaW13VybQ8=\n",
+      "checkpoint": "log.example.org\n0\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T12:00:00Z\n\n\u2014 log.example.org sdtYEzdn15WiP1B/BoWpfKU/w9u5uMMMVaKkSpdYq/ZrdGealHXHzoF7ss9Bxeg/1gnHSMdgSY0gthTH7t7PTmLaqQc=\n",
       "expected": "WIST3-E02"
     }
   ]

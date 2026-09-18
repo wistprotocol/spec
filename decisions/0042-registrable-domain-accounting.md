@@ -8,7 +8,7 @@ WIST-1 §3.8 makes every Canonical Host a separate Publisher identity,
 and every bound the suite places on how much one party may publish was
 keyed on that identity: the Ping quota (WIST-2 §4, `quota_base` per UTC
 day), the ingest budget (WIST-2 §5, `ingest_budget_bytes_day`) and the
-per-domain Block capacity (WIST-3 §3.2, `domain_block_entries_max`).
+per-domain Epoch capacity (WIST-3 §3.2, `domain_epoch_entries_max`).
 Every one of them is defeated for free. A first-year domain costs cents
 at some registries; a hostname under a domain one already holds costs
 nothing; a subdomain on a shared host — `pages.dev`, `github.io`,
@@ -25,15 +25,15 @@ suffix are different parties. The list changes over time, so the
 revision read has to be fixed for a decision to replay.
 
 Identity granularity cannot be retrofitted after deployment: a Log that
-sealed Blocks under per-hostname capacity and switches the unit changes
-which sealed Blocks are valid, which is a new major version under
+sealed Epochs under per-hostname capacity and switches the unit changes
+which sealed Epochs are valid, which is a new major version under
 PUBLICATION.md. The unit has to be right before the deployment
 boundary.
 
 ## Decision
 
 - **Accounting is per Registrable Domain.** The Ping quota, the ingest
-  budget and the per-domain Block capacity are keyed on the Canonical
+  budget and the per-domain Epoch capacity are keyed on the Canonical
   Host's Registrable Domain under the Public Suffix List algorithm, both
   sections included: `a.example.com` and `b.example.com` share one
   unit; `alice.github.io` and `bob.github.io` are separate because the
@@ -44,11 +44,11 @@ boundary.
   Registry Update names a Public Suffix List snapshot by the SHA-256 of
   its octets and their count; the Aggregator serves the octets beside
   the Log and Mirrors retain them without expiry. An accepted act is in
-  force from the Block after its sealing Block. Before the first
+  force from the Epoch after its sealing Epoch. Before the first
   accepted act, every Canonical Host is its own unit, and an Aggregator
-  is advised to pin its first snapshot in Block 0. A Snapshot's
+  is advised to pin its first snapshot in Epoch 0. A Snapshot's
   `suffix_list` tuple carries the snapshot in force so a resuming
-  Consumer accounts the next Block as a replaying one does.
+  Consumer accounts the next Epoch as a replaying one does.
 - **Identity, signing and scope stay per Canonical Host.** A Publisher
   is still its hostname with its own Declaration, chain, scope and
   status endpoint; hosts sharing a unit share nothing else.
@@ -64,7 +64,7 @@ boundary.
   bound a bound on the unimaginative only.
 - **A built-in suffix list, or the list at a URL read live.** A built-in
   list freezes the revision at the edition and a live read gives two
-  Consumers two answers for one Block; neither replays identically.
+  Consumers two answers for one Epoch; neither replays identically.
   Pinning by digest with the file served beside the Log keeps the Log
   self-describing at the cost of one small immutable artifact per act.
 - **Registrable domain without the private section.** Treats every
@@ -73,8 +73,8 @@ boundary.
   customer to exhaust it a veto over the rest.
 - **A grace period on snapshot changes, as parameter amendments have.**
   A snapshot change merges or splits accounting units; the exposure is
-  one Block's capacity and one day's quota, and the act is public the
-  moment it seals. Immediate effect from the next Block was chosen for
+  one Epoch's capacity and one day's quota, and the act is public the
+  moment it seals. Immediate effect from the next Epoch was chosen for
   simplicity; a grace period can be added as a refinement if operators
   need notice.
 - **Keying the ingest budget per hostname while keying quota and

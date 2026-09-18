@@ -8,7 +8,7 @@ ADR-0041 made Labels the suite's only statement about another party:
 signed, sealed, carried to every Consumer, applied only by Consumers
 that subscribe. As first specified a Label had no end, no scope
 narrower than a URL, no stated strength, no answer path and no bound
-beyond the per-domain Block capacity every publication shares. Systems
+beyond the per-domain Epoch capacity every publication shares. Systems
 with that shape have failed in known ways. A moderation labeler at
 scale received two hundred thousand appeals in a year through a tool
 that treated an appeal as one more report; shared blocklists in
@@ -23,7 +23,7 @@ on how much one party can say.
 
 - **A Label can expire.** An OPTIONAL `expires_at`, a Publisher
   timestamp later than `asserted_at`, ends the Label's application at
-  the first Block whose `sealed_at` reaches it; the Label stays the
+  the first Epoch whose `sealed_at` reaches it; the Label stays the
   current one, so an earlier Label does not return. Tuples and the
   label table drop an expired Label and carry `expires_at` while it
   lives.
@@ -49,15 +49,15 @@ on how much one party can say.
   Label must be sealed in the Log the Aggregator seals. Nothing in the
   suite rules on a dispute — the Aggregator applies it to nothing and
   the Consumer's profile decides what a disputed Label is worth.
-- **A Labeler is bounded per Block.** `labeler_block_entries_max`
+- **A Labeler is bounded per Epoch.** `labeler_epoch_entries_max`
   (default 1 000) caps the `label` and `dispute` Entries of one
-  Registrable Domain per Block, inside the per-domain capacity and
-  never above it, and a Consumer rejects a Block over it as it rejects
+  Registrable Domain per Epoch, inside the per-domain capacity and
+  never above it, and a Consumer rejects an Epoch over it as it rejects
   one over the capacity.
 - **A default profile is recommended.** Count `wist:mismatch` and
   `wist:unavailable` only once they persist across two consecutive
-  Blocks, and ignore a Labeler with no sealed Entry within a configured
-  number of Blocks, 720 by default. Both read the Log alone.
+  Epochs, and ignore a Labeler with no sealed Entry within a configured
+  number of Epochs, 720 by default. Both read the Log alone.
 - **The Aggregator publishes labeler statistics.** A per-Labeler table
   of sealed Labels, retractions, distinct subjects and first-seen
   height, derived from Entry counts without reading any Label's
@@ -74,7 +74,7 @@ on how much one party can say.
   claim whatever the Labeler does.
 - **Definitions sealed in the Log.** Replayable, but a treatment is the
   Labeler's advice to Consumers rather than a fact about a subject, and
-  sealing every revision of every name's description would spend Blocks
+  sealing every revision of every name's description would spend Epochs
   on prose.
 - **A single Labeler-wide cap counted per Canonical Host.** Free
   subdomains would multiply it (ADR-0042); the cap is counted per
@@ -87,7 +87,7 @@ on how much one party can say.
 
 - Label objects carry nine members; label tuples carry `expires_at`,
   `delta` and the Label ID a dispute names, and the label table
-  `expires_at` and `delta`; Blocks carry a fifth Entry type; the
+  `expires_at` and `delta`; Epochs carry a fifth Entry type; the
   Registry carries a twenty-first parameter with a combination rule.
 - `vectors/wist2/labels.json` gains expiry, binding and Snapshot-instant
   cases; `vectors/wist2/disputes.json`, `vectors/wist2/label-definitions.json`

@@ -1,141 +1,141 @@
 {
-  "note": "WIST-3 \u00a73.1 whole-second literal-Z profile, including \u00a77 Snapshot state. Null epoch_seconds means reject, including invalid calendar dates. Field cases supply schema-valid structural baselines; mutating a signed value requires re-signing before testing signature verification. The schema-only leap-second check does not depend on format validation. The Checkpoint's `sealed_at` extension line (WIST-3 \u00a75) is no longer a JSON Schema field, so `checkpoint_field_case` supplies the note's own five lines and signature block instead, for a structural-only (parse_checkpoint, not verify_checkpoint) probe of the same three field_accept/field_reject/field_reject_non_ascii values.",
+  "note": "WIST-3 \u00a73.1 whole-second literal-Z profile, including \u00a77 Snapshot state. Null unix_seconds means reject, including invalid calendar dates. Field cases supply schema-valid structural baselines; mutating a signed value requires re-signing before testing signature verification. The schema-only leap-second check does not depend on format validation. The Checkpoint's `sealed_at` extension line (WIST-3 \u00a75) is no longer a JSON Schema field, so `checkpoint_field_case` supplies the note's own five lines and signature block instead, for a structural-only (parse_checkpoint, not verify_checkpoint) probe of the same three field_accept/field_reject/field_reject_non_ascii values.",
   "cases": [
     {
       "value": "0000-01-01T00:00:00Z",
-      "epoch_seconds": -62167219200
+      "unix_seconds": -62167219200
     },
     {
       "value": "0000-02-29T00:00:00Z",
-      "epoch_seconds": -62162121600
+      "unix_seconds": -62162121600
     },
     {
       "value": "1970-01-01T00:00:00Z",
-      "epoch_seconds": 0
+      "unix_seconds": 0
     },
     {
       "value": "1969-12-31T23:59:59Z",
-      "epoch_seconds": -1
+      "unix_seconds": -1
     },
     {
       "value": "2000-02-29T00:00:00Z",
-      "epoch_seconds": 951782400
+      "unix_seconds": 951782400
     },
     {
       "value": "2016-12-31T23:59:59Z",
-      "epoch_seconds": 1483228799
+      "unix_seconds": 1483228799
     },
     {
       "value": "2017-01-01T00:00:00Z",
-      "epoch_seconds": 1483228800
+      "unix_seconds": 1483228800
     },
     {
       "value": "9999-12-30T21:59:59Z",
-      "epoch_seconds": 253402207199
+      "unix_seconds": 253402207199
     },
     {
       "value": "9999-12-30T22:00:00Z",
-      "epoch_seconds": 253402207200
+      "unix_seconds": 253402207200
     },
     {
       "value": "9999-12-30T22:00:01Z",
-      "epoch_seconds": 253402207201
+      "unix_seconds": 253402207201
     },
     {
       "value": "9999-12-31T00:00:00Z",
-      "epoch_seconds": 253402214400
+      "unix_seconds": 253402214400
     },
     {
       "value": "9999-12-31T23:59:59Z",
-      "epoch_seconds": 253402300799
+      "unix_seconds": 253402300799
     },
     {
       "value": "2016-12-31T23:59:60Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31T23:59:61Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2017-01-01T00:00:60Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31T23:59:59.0Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31T23:59:59+00:00",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31t23:59:59z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31T24:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31T23:60:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "1900-02-29T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2017-02-29T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-13-01T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31T23:59:59Z\n",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "\uff12\uff10\uff11\uff16-12-31T23:59:59Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "2016-12-31T23:59:\uff15\uff19Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "9999-12-31T23:59:60Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "9999-12-31T24:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "9999-02-29T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "10000-01-01T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "-0001-12-31T23:59:59Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "0000-00-01T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "0000-01-00T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     },
     {
       "value": "0000-04-31T00:00:00Z",
-      "epoch_seconds": null
+      "unix_seconds": null
     }
   ],
   "distances": [
@@ -198,11 +198,11 @@
       "document": {
         "state": {
           "wist_version": "1.0.0",
-          "log_position": 0,
+          "tree_size": 0,
           "entries": [
             [
               "parameter",
-              "record_seal_blocks",
+              "record_seal_epochs",
               "2017-01-01T00:00:00Z",
               2
             ]
@@ -211,7 +211,7 @@
         "sig": {
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+          "value": "kukho3s-Y-ViMyifsvMiKXloqeGYw6AgcJDS4hAmEfwtNYndNpCanIm7u9mqa_IlhNsJyHaLW9Qf4MFHMkAnDw"
         }
       },
       "path": [
@@ -226,7 +226,7 @@
       "document": {
         "state": {
           "wist_version": "1.0.0",
-          "log_position": 0,
+          "tree_size": 0,
           "entries": [
             [
               "recovery_window",
@@ -241,7 +241,7 @@
         "sig": {
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+          "value": "kukho3s-Y-ViMyifsvMiKXloqeGYw6AgcJDS4hAmEfwtNYndNpCanIm7u9mqa_IlhNsJyHaLW9Qf4MFHMkAnDw"
         }
       },
       "path": [
@@ -256,7 +256,7 @@
       "document": {
         "state": {
           "wist_version": "1.0.0",
-          "log_position": 0,
+          "tree_size": 0,
           "entries": [
             [
               "label",
@@ -275,7 +275,7 @@
         "sig": {
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+          "value": "kukho3s-Y-ViMyifsvMiKXloqeGYw6AgcJDS4hAmEfwtNYndNpCanIm7u9mqa_IlhNsJyHaLW9Qf4MFHMkAnDw"
         }
       },
       "path": [
@@ -290,7 +290,7 @@
       "document": {
         "state": {
           "wist_version": "1.0.0",
-          "log_position": 0,
+          "tree_size": 0,
           "entries": [
             [
               "label",
@@ -309,7 +309,7 @@
         "sig": {
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+          "value": "kukho3s-Y-ViMyifsvMiKXloqeGYw6AgcJDS4hAmEfwtNYndNpCanIm7u9mqa_IlhNsJyHaLW9Qf4MFHMkAnDw"
         }
       },
       "path": [
@@ -324,7 +324,7 @@
       "document": {
         "state": {
           "wist_version": "1.0.0",
-          "log_position": 0,
+          "tree_size": 0,
           "entries": [
             [
               "dispute",
@@ -339,7 +339,7 @@
         "sig": {
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "nyaivXtzPdKBJTUiZ9ALR0RxJ2jdXph0oTWZXkmyrACzO2TYAmJoa_q036Haq_E-49BdhARDuY1kNoaU2tiFBA"
+          "value": "kukho3s-Y-ViMyifsvMiKXloqeGYw6AgcJDS4hAmEfwtNYndNpCanIm7u9mqa_IlhNsJyHaLW9Qf4MFHMkAnDw"
         }
       },
       "path": [
@@ -355,10 +355,10 @@
       "log.example.org",
       "4",
       "QFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=",
-      "block_number 0",
+      "epoch_number 0",
       "sealed_at 2026-08-02T13:00:00Z"
     ],
-    "sig_block": "\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+    "sig_block": "\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
     "sealed_at_line_index": 4
   },
   "field_accept": "2016-12-31T23:59:59Z",

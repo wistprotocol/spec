@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 section 7 tier1/labelers.parquet rows from sealed label Entries (statistics_cases: every sealed Label counts, retractions included, subjects distinct, first-seen the lowest height); WIST-3 section 3.2 and WIST-4 section 5 per-Labeler cap over label and dispute Entries beside the per-domain cap with no suffix-list snapshot in force, so every host is its own unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or wist:unavailable Label counts at a height only when it was current, unretracted and unexpired at that height and the one before (persistence_cases; expires_at_height is the first height whose Block instant reaches the expiry), and a Labeler with no sealed Entry within inactivity_blocks is ignored (inactivity_cases).",
+  "note": "WIST-3 section 7 tier1/labelers.parquet rows from sealed label Entries (statistics_cases: every sealed Label counts, retractions included, subjects distinct, first-seen the lowest height); WIST-3 section 3.2 and WIST-4 section 5 per-Labeler cap over label and dispute Entries beside the per-domain cap with no suffix-list snapshot in force, so every host is its own unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or wist:unavailable Label counts at a height only when it was current, unretracted and unexpired at that height and the one before (persistence_cases; expires_at_height is the first height whose Epoch instant reaches the expiry), and a Labeler with no sealed Entry within inactivity_epochs is ignored (inactivity_cases).",
   "statistics_cases": [
     {
       "label": "four sealed Labels of one Labeler and one of another",
@@ -68,8 +68,8 @@
   "cap_cases": [
     {
       "label": "labels at the labeler cap",
-      "labeler_block_entries_max": 2,
-      "domain_block_entries_max": 3,
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
       "entries": [
         {
           "type": "label",
@@ -84,8 +84,8 @@
     },
     {
       "label": "labels over the labeler cap",
-      "labeler_block_entries_max": 2,
-      "domain_block_entries_max": 3,
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
       "entries": [
         {
           "type": "label",
@@ -104,8 +104,8 @@
     },
     {
       "label": "a dispute counts with the labels",
-      "labeler_block_entries_max": 2,
-      "domain_block_entries_max": 3,
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
       "entries": [
         {
           "type": "label",
@@ -124,8 +124,8 @@
     },
     {
       "label": "Deltas do not count toward the labeler cap",
-      "labeler_block_entries_max": 2,
-      "domain_block_entries_max": 3,
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
       "entries": [
         {
           "type": "publisher_delta",
@@ -144,8 +144,8 @@
     },
     {
       "label": "labels and Deltas over the domain cap",
-      "labeler_block_entries_max": 2,
-      "domain_block_entries_max": 3,
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
       "entries": [
         {
           "type": "publisher_delta",
@@ -168,8 +168,8 @@
     },
     {
       "label": "two Labelers at the cap each",
-      "labeler_block_entries_max": 2,
-      "domain_block_entries_max": 3,
+      "labeler_epoch_entries_max": 2,
+      "domain_epoch_entries_max": 3,
       "entries": [
         {
           "type": "label",
@@ -193,7 +193,7 @@
   ],
   "persistence_cases": [
     {
-      "label": "counted from the second consecutive Block",
+      "label": "counted from the second consecutive Epoch",
       "events": [
         {
           "height": 5,
@@ -354,28 +354,28 @@
     {
       "label": "within the window",
       "last_sealed_height": 100,
-      "inactivity_blocks": 720,
+      "inactivity_epochs": 720,
       "height": 820,
       "applies": true
     },
     {
-      "label": "one Block past the window",
+      "label": "one Epoch past the window",
       "last_sealed_height": 100,
-      "inactivity_blocks": 720,
+      "inactivity_epochs": 720,
       "height": 821,
       "applies": false
     },
     {
       "label": "never sealed anything since genesis",
       "last_sealed_height": 0,
-      "inactivity_blocks": 720,
+      "inactivity_epochs": 720,
       "height": 721,
       "applies": false
     },
     {
       "label": "a short window",
       "last_sealed_height": 100,
-      "inactivity_blocks": 24,
+      "inactivity_epochs": 24,
       "height": 124,
       "applies": true
     }

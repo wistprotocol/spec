@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a7\u00a73.3/7, WIST-1 \u00a73.5: per case the sealed Deltas of one Log in Log order, the indices a replayer ignores, and the chain tip per (publisher, url) afterwards. A Delta marked eligible false fails a WIST-1 \u00a77 check at its Block and is ignored like a fork; the Block stays accepted.",
+  "note": "WIST-3 \u00a7\u00a73.3/7, WIST-1 \u00a73.5: per case the sealed Deltas of one Log in Log order, the indices a replayer ignores, and the chain tip per (publisher, url) afterwards. A Delta marked eligible false fails a WIST-1 \u00a77 check at its Epoch and is ignored like a fork; the Epoch stays accepted.",
   "cases": [
     {
       "label": "linear chain",

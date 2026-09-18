@@ -15,7 +15,7 @@ be ended by another Declaration. A thief holding the current signing key
 could rotate to keys of its own choosing at once, and the only answer
 was the offline recovery key. And a party holding the web host alone
 could publish a fresh identity that reset the domain's history in the
-Block that sealed it, leaving the owner no window in which a still-held
+Epoch that sealed it, leaving the owner no window in which a still-held
 signing or recovery key could reverse it. Separately, the Declaration's
 key entries were a WIST-specific shape that no JWKS tooling could read
 or produce.
@@ -54,8 +54,8 @@ or produce.
   neither the previous signing set nor its recovery keys, accepted
   outside a recovery window, is sealed but pending: it supplies no
   authority and does not become current until
-  `declaration_activation_blocks` Blocks (Parameter Registry, default
-  24) after its sealing Block. A Declaration signed by a key of the
+  `declaration_activation_epochs` Epochs (Parameter Registry, default
+  24) after its sealing Epoch. A Declaration signed by a key of the
   previous Key Set or its recovery keys, naming the previous current
   Declaration and sealed before that height, reverses the pending
   identity: it is discarded and never becomes current. The pending head
@@ -78,7 +78,7 @@ or produce.
 - **Committing to the successor's complete entries.** Would fix the
   successor's `nbf`/`exp` at commitment time; committing to the
   thumbprint set leaves the timing of the rotation to the rotation.
-- **A delay measured in time.** Blocks are what a replaying Consumer
+- **A delay measured in time.** Epochs are what a replaying Consumer
   can count without a clock; the recovery window is time-based because
   it bounds Delta queuing, whereas activation only orders Declarations.
 - **Delaying every Declaration.** An ordinary or recovery rotation is

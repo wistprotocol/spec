@@ -76,10 +76,10 @@ def note_key_id(name: str, raw_pub: bytes) -> bytes:
 
 
 def checkpoint_note(log_id: str, priv: Ed25519PrivateKey, raw_pub: bytes, tree_size: int,
-                    root: bytes, block_number: int, sealed_at: str) -> str:
+                    root: bytes, epoch_number: int, sealed_at: str) -> str:
     """WIST-3 §5: a signed Checkpoint note."""
-    text = "%s\n%d\n%s\nblock_number %d\nsealed_at %s\n" % (
-        log_id, tree_size, base64.b64encode(root).decode(), block_number, sealed_at)
+    text = "%s\n%d\n%s\nepoch_number %d\nsealed_at %s\n" % (
+        log_id, tree_size, base64.b64encode(root).decode(), epoch_number, sealed_at)
     kid = note_key_id(log_id, raw_pub)
     sig = priv.sign(text.encode())
     return text + "\n— %s %s\n" % (log_id, base64.b64encode(kid + sig).decode())
@@ -91,12 +91,12 @@ def root_token(leaves: list) -> str:
 
 
 def seal(log_id: str, priv: Ed25519PrivateKey, raw_pub: bytes, leaves: list,
-        wrapped_entries: list, block_number: int, sealed_at: str) -> tuple:
+        wrapped_entries: list, epoch_number: int, sealed_at: str) -> tuple:
     """WIST-3 §§3-5: extend the cumulative Log tree `leaves` with one
-    Block's entries and seal it. Returns (block, new_leaves)."""
+    Epoch's entries and seal it. Returns (epoch, new_leaves)."""
     new_leaves = leaves + [leaf_hash(rfc8785.dumps(e)) for e in wrapped_entries]
     root = merkle_tree_root(new_leaves) if new_leaves else EMPTY_ROOT
-    note = checkpoint_note(log_id, priv, raw_pub, len(new_leaves), root, block_number, sealed_at)
+    note = checkpoint_note(log_id, priv, raw_pub, len(new_leaves), root, epoch_number, sealed_at)
     return {"checkpoint": note, "entries": wrapped_entries}, new_leaves
 
 
@@ -151,9 +151,9 @@ wrapped_delta = {"type": "publisher_delta", "body": delta_envelope}
 
 
 def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_delta: bool) -> dict:
-    """log-a seals Declaration (Block 0) then the Delta (Block 1). log-b
-    inserts an empty heartbeat Block between the two, sealing the same
-    Delta one Block later — different heights, same Delta ID, per WIST-3
+    """log-a seals Declaration (Epoch 0) then the Delta (Epoch 1). log-b
+    inserts an empty heartbeat Epoch between the two, sealing the same
+    Delta one Epoch later — different heights, same Delta ID, per WIST-3
     §8: identity does not depend on height or Log.
     """
     priv, pub = keypair(seed)
@@ -166,28 +166,28 @@ def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_delta: boo
     anchor_envelope = sign_envelope(priv, "anchor", anchor, key_id)
 
     leaves = []
-    block0, leaves = seal(log_id, priv, pub, leaves, [wrapped_declaration], 0,
+    epoch0, leaves = seal(log_id, priv, pub, leaves, [wrapped_declaration], 0,
                           "2026-08-02T13:00:00Z")
-    blocks = [block0]
+    epochs = [epoch0]
     next_number, next_hour = 1, 14
 
     if heartbeat_before_delta:
         heartbeat, leaves = seal(log_id, priv, pub, leaves, [], next_number,
                                  f"2026-08-02T{next_hour:02d}:00:00Z")
-        blocks.append(heartbeat)
+        epochs.append(heartbeat)
         next_number, next_hour = next_number + 1, next_hour + 1
 
     delta_sealed_at = f"2026-08-02T{next_hour:02d}:00:00Z"
-    delta_block, leaves = seal(log_id, priv, pub, leaves, [wrapped_delta], next_number,
+    delta_epoch, leaves = seal(log_id, priv, pub, leaves, [wrapped_delta], next_number,
                                delta_sealed_at)
-    blocks.append(delta_block)
+    epochs.append(delta_epoch)
 
     return {
         "log_id": log_id,
         "anchor": anchor_envelope,
         "genesis_seed_hex": seed.hex(),
-        "blocks": blocks,
-        "checkpoint": blocks[-1]["checkpoint"],
+        "epochs": epochs,
+        "checkpoint": epochs[-1]["checkpoint"],
         "tree_size": len(leaves),
         "root": root_token(leaves),
     }
@@ -196,10 +196,10 @@ def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_delta: boo
 log_a = build_log("log-a", bytes([0xAA] * 32), "log-a-genesis", heartbeat_before_delta=False)
 log_b = build_log("log-b", bytes([0xBB] * 32), "log-b-genesis", heartbeat_before_delta=True)
 
-assert len(log_a["blocks"]) != len(log_b["blocks"]), \
+assert len(log_a["epochs"]) != len(log_b["epochs"]), \
     "the two Logs must seal the Delta at different heights"
-assert json.loads(rfc8785.dumps(log_a["blocks"][-1]["entries"][0])) == \
-       json.loads(rfc8785.dumps(log_b["blocks"][-1]["entries"][0])), \
+assert json.loads(rfc8785.dumps(log_a["epochs"][-1]["entries"][0])) == \
+       json.loads(rfc8785.dumps(log_b["epochs"][-1]["entries"][0])), \
     "the sealed Delta entry must be byte-identical across Logs"
 
 vector = {
@@ -207,9 +207,9 @@ vector = {
         "One Delta sealed independently by two Logs (WIST-3 §8, \"Following "
         "more than one Log\"): identity is stable, a Consumer holding both "
         "deduplicates by Delta ID, and derived state stays per Log. log-a "
-        "seals the Publisher's Declaration in Block 0 and the Delta in "
-        "Block 1; log-b seals the same Declaration in Block 0, an empty "
-        "heartbeat Block 1, and the same Delta in Block 2 — different "
+        "seals the Publisher's Declaration in Epoch 0 and the Delta in "
+        "Epoch 1; log-b seals the same Declaration in Epoch 0, an empty "
+        "heartbeat Epoch 1, and the same Delta in Epoch 2 — different "
         "heights, same Delta ID."
     ),
     "note": (
@@ -217,7 +217,7 @@ vector = {
         "protocol content: the Ed25519 seed behind that Log's genesis_key, "
         "included so a conformance harness can build that Log's own "
         "Snapshot artifacts (state/manifest/index) signed under the same "
-        "key its Blocks are sealed with — the same role vectors/wist1/"
+        "key its Epochs are sealed with — the same role vectors/wist1/"
         "keypair.json's seed_hex plays for the Publisher's key. TEST ONLY — "
         "never use in production."
     ),
@@ -236,5 +236,5 @@ vector = {
 
 write_json(OUT / "dedup.json", vector)
 print("multilog delta id:", delta_id)
-print("log-a head:", len(log_a["blocks"]) - 1, log_a["root"])
-print("log-b head:", len(log_b["blocks"]) - 1, log_b["root"])
+print("log-a head:", len(log_a["epochs"]) - 1, log_a["root"])
+print("log-b head:", len(log_b["epochs"]) - 1, log_b["root"])

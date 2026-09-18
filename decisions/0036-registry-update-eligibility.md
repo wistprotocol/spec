@@ -24,26 +24,27 @@ signing rule its action fixes (`WIST4-E11` unless the act's section registers
 another code, as §3.1 does for checkpoints and §7 for appeals). E11 precedes
 E04; field failures precede authenticity; authenticity precedes semantics. An
 act rejected at the gate is no candidate in §3.1's batch and changes no
-state; the containing Block stays valid. The schema's version, timestamp and
+state; the containing Epoch stays valid. The schema's version, timestamp and
 identifier patterns are exact whole-string patterns, and an `auditor_remove`
 subject carries the hostname shape an `auditor_admit` requires.
 
 A `payload_withdrawal` is authenticated under the Log key (WIST4-E11
 otherwise); its `delta_id` must name a Delta sealed at or below the act's
-Block whose signed `publisher` is the `subject`, or the act fails its
+Epoch whose signed `publisher` is the `subject`, or the act fails its
 `details` contract (WIST4-E04). Repeated withdrawals of one Delta are
-accepted, the earliest Block governing. Rejecting a withdrawal of an
+accepted, the earliest Epoch governing. Rejecting a withdrawal of an
 unsealed or foreign Delta keeps the act's `subject` truthful and gives every
 replayer one withdrawal height per Delta.
 
 Every Registry Update is identified by its ID: a repeated occurrence is
-idempotent for roster acts, checkpoints, attestations and canary acts as
-§7 already made it for process acts, so a re-sealed Entry never re-applies,
+idempotent for roster acts, checkpoints, attestations and canary acts as §7
+already made it for process acts, so a re-sealed Entry never re-applies,
 conflicts with itself or scores twice. Canary subjects keep §9.1's two-label
 hostname shape (WIST4-E04 otherwise), matching Observers and Auditors and
-the two-label suffix the epoch ration reads; a `leaves` below 1 is a
-contract failure (WIST4-E04) while one above `canary_leaves_max` is the
-parameter-dependent rejection (WIST4-E08).
+the two-label suffix the allocation-period ration (then called the epoch
+ration) reads; a `leaves` below 1 is a contract failure (WIST4-E04) while
+one above `canary_leaves_max` is the parameter-dependent rejection
+(WIST4-E08).
 
 ## Alternatives and consequences
 
@@ -52,8 +53,8 @@ diagnostic and no precedence, so two validators could report a malformed
 admission as E04, E07 or nothing. Assigning field failures to E04 would make
 one code cover both an action's contract and unrelated Envelope defects,
 which §10.1 already separates for Records (E09/E02). Letting a malformed or
-unauthenticated act into stage 1 would let anyone who can place bytes in a
-Block reject a same-subject admission without holding any key.
+unauthenticated act into stage 1 would let anyone who can place bytes in an
+Epoch reject a same-subject admission without holding any key.
 
 Reusing `WIST1-E01` for every failing signature would mislabel an act signed
 under the wrong key, whose signature may verify under a key the rule does not

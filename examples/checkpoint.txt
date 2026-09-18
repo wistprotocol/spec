@@ -1,7 +1,7 @@
 log.example.org
 4
 QFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=
-block_number 0
+epoch_number 0
 sealed_at 2026-08-02T13:00:00Z
 
-— log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=
+— log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=

@@ -1,5 +1,5 @@
 {
-  "description": "WIST-1 section 3.4 and WIST-4 section 5. Signed candidates with supplied inclusion contexts; amendments share the initial Block in listed order. Only the clock_skew_seconds parameter varies. Context timestamps do not prove Block inclusion. Clock relation outcomes assume other Delta obligations have passed; each new attempt captures its own context. Historical checked_at and sealing admitted_at are distractors.",
+  "description": "WIST-1 section 3.4 and WIST-4 section 5. Signed candidates with supplied inclusion contexts; amendments share the initial Epoch in listed order. Only the clock_skew_seconds parameter varies. Context timestamps do not prove Epoch inclusion. Clock relation outcomes assume other Delta obligations have passed; each new attempt captures its own context. Historical checked_at and sealing admitted_at are distractors.",
   "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "default": 600,
   "amendments": [

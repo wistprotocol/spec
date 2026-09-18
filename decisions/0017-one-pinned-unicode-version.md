@@ -76,11 +76,11 @@ different verdicts, and a party replaying the Log years later reproduces
 neither. It would leave §5's recomputability claim false in the ordinary
 case rather than the exotic one.
 
-**The version in force at the Block's `sealed_at`, as a Parameter Registry
+**The version in force at the Epoch's `sealed_at`, as a Parameter Registry
 value.** Recomputable, and it lets the suite move forward without a major
 version. Rejected for what it costs every replaying party: correct replay
 would require carrying every historical UCD release and selecting among
-them per Block, so the cheapest conforming Consumer stops being one that
+them per Epoch, so the cheapest conforming Consumer stops being one that
 reads a platform library and starts being one that ships a Unicode
 archive. The Registry's other values are integers a party compares; this
 one would be a data set a party must possess.

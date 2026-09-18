@@ -12,9 +12,9 @@ obvious remedies were rejected, so that the question is not reopened
 without meeting the arguments.
 
 Both remedies are real designs, not strawmen. **Sharding** partitions
-the Deltas of a Block among the roster, so total effort is the
+the Deltas of an Epoch among the roster, so total effort is the
 redundancy factor rather than N. A **fixed budget** has each Auditor
-audit the K Deltas in a Block with the smallest draws, so one Auditor's
+audit the K Deltas in an Epoch with the smallest draws, so one Auditor's
 bill never grows with the web. Either would let a small operator audit
 an arbitrarily large corpus.
 
@@ -28,25 +28,25 @@ each Auditor's bill — a `parameter_change` and an admission policy,
 no protocol change.
 
 **Sharding is rejected because it turns blind grinding into sighted
-grinding.** Block membership is the Aggregator's one remaining
-grinding dimension (§11). Under sampling that grind is blind: the
-Aggregator holds no Auditor key, so for a candidate Block hash it
-cannot compute anyone's selection — it can rerandomize, never choose.
-A shard assignment, to be verifiable, must be derivable from public
-inputs; then the Aggregator evaluates each candidate membership,
-sees exactly which one lands a target Delta in a captured Auditor's
-shard, and grinds with feedback until one does. Hiding the assignment
-instead requires a secret shared across the roster — distributed key
-generation, a liveness dependency for every Block, and a secret that
-capturing the same Auditors reveals anyway. The cost argument then
-closes the case: sharding at redundancy r and sampling at N × p = r
-fetch the same total volume. Same bill, and the assignment goes from
-unknowable to computable.
+grinding.** Epoch membership is the Aggregator's one remaining grinding
+dimension (§11). Under sampling that grind is blind: the Aggregator holds no
+Auditor key, so for a candidate Block hash (the former name of a per-Epoch
+header hash since removed) it cannot compute anyone's selection — it can
+rerandomize, never choose. A shard assignment, to be verifiable, must be
+derivable from public inputs; then the Aggregator evaluates each candidate
+membership, sees exactly which one lands a target Delta in a captured
+Auditor's shard, and grinds with feedback until one does. Hiding the
+assignment instead requires a secret shared across the roster — distributed
+key generation, a liveness dependency for every Epoch, and a secret that
+capturing the same Auditors reveals anyway. The cost argument then closes
+the case: sharding at redundancy r and sampling at N × p = r fetch the same
+total volume. Same bill, and the assignment goes from unknowable to
+computable.
 
 **A fixed budget is rejected because it hands the sampling rate to the
 attacker.** Under top-K, per-Delta scrutiny is K / M where M is the
-Block's Delta volume — and M is purchasable. A single Provisional
-domain may seal Deltas up to `domain_block_entries_max` per Block
+Epoch's Delta volume — and M is purchasable. A single Provisional
+domain may seal Deltas up to `domain_epoch_entries_max` per Epoch
 inside `ingest_budget_bytes_day` (WIST-3 §3.2, WIST-2 §5) — thousands
 a day — so M scales with domain registrations, at commodity prices,
 and a Delta stream of self-consistent junk pages is fully conforming:
@@ -85,7 +85,7 @@ can establish a coverage breach.
   unaffordable for a modest independent operator faster than the
   roster grows. The first response is the lever above. A budget-shaped
   scheme is admissible only with an anti-dilution rule that makes
-  per-Delta scrutiny independent of Block volume — which is the
+  per-Delta scrutiny independent of Epoch volume — which is the
   property the rate already has.
 - The bound is per-Log, not per-web. The suite already follows the
   Certificate Transparency model (ADR-0004), where no monitor watches

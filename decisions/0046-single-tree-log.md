@@ -4,9 +4,10 @@
 
 ## Context
 
-WIST-3 seals one Merkle tree per Block and chains the Blocks through
-`prev_block_hash`. Nothing outside this suite verifies that structure: a
-Consumer walks every Block backward from a Checkpoint, and §5 records that
+WIST-3 seals one Merkle tree per Epoch and chains the Epochs through
+the header hash formerly named `prev_block_hash`. Nothing outside this
+suite verifies that structure: a
+Consumer walks every Epoch backward from a Checkpoint, and §5 records that
 the first edition ships no witness layer, so an Aggregator's only check is
 that someone holds two contradicting Checkpoints and publishes them.
 
@@ -22,7 +23,7 @@ existing clients, existing witnesses and a split-view defence the suite
 currently names as future work; keeping the present shape means writing
 and operating all of it alone.
 
-The suite's own guarantees do not depend on the per-Block tree. They
+The suite's own guarantees do not depend on the per-Epoch tree. They
 depend on: an Entry's position being fixed once published, a Consumer
 being able to prove inclusion, an interval of the Log carrying a
 `sealed_at` a Consumer can anchor day counts to, the per-domain and
@@ -31,37 +32,37 @@ inside it, and the height a Snapshot is taken at.
 
 ## Decision
 
-- **One append-only tree, and a Block becomes an interval of it.** The
+- **One append-only tree, and an Epoch becomes an interval of it.** The
   Log is a single RFC 6962 tree whose leaves are the suite's Entries in
-  append order. A Block is redefined as the entries between two
+  append order. An Epoch is redefined as the entries between two
   consecutive checkpoints, identified by the tree size the checkpoint
-  states. `block_number` becomes the index of that interval, and every
-  rule written over a Block keeps its meaning over the interval:
+  states. `epoch_number` becomes the index of that interval, and every
+  rule written over an Epoch keeps its meaning over the interval:
   per-domain and per-Labeler capacity (WIST-3 §3.2, WIST-4 §5), the
-  inclusion ceiling and the discovery sealing deadline counted in Blocks,
+  inclusion ceiling and the discovery sealing deadline counted in Epochs,
   canonical Entry order within the interval (which now fixes the order
   leaves are appended in), the `sealed_at` grid, Snapshot heights, and
   §3.4's fork and succession path. `prev_block_hash` is replaced by an
   RFC 6962 consistency proof between the two tree sizes, which is the
   same statement — this interval extends that one — proved rather than
   asserted. The empty-tree deviation §4 records disappears with the
-  per-Block tree: a Log with no Entries is a tree of size zero.
+  per-Epoch tree: a Log with no Entries is a tree of size zero.
 - **Checkpoints are C2SP signed notes.** The checkpoint is a
   `tlog-checkpoint` note with the origin line, the tree size and the root
   hash, signed with Ed25519 under the `signed-note` signature format,
   carrying the interval's `sealed_at` as an extension line so the
   suite's day counts keep their anchor. It is issued at least hourly, so
-  an idle Log still produces the heartbeat empty Blocks give today.
+  an idle Log still produces the heartbeat empty Epochs give today.
   Equivocation becomes two notes for one tree size with different roots,
   and the evidence bundle stays the two files.
 - **Tiles are the static layout.** The Log publishes `tlog-tiles`
   paths, and the hourly stream is new entry bundles and the partial tiles
   above them. Snapshots and tier files are unchanged in purpose and
   shape: a materialized index over the Log up to a checkpoint's tree
-  size, with `log_position` reading as that size and `anchor_block_hash`
-  as the root it anchors to. The manifest states the Block number beside
-  them, because a tree size names no Block on its own: an empty Block
-  restates the size before it, and the state at two such Blocks differs
+  size, with `tree_size` reading as that size and `root_hash`
+  as the root it anchors to. The manifest states the Epoch number beside
+  them, because a tree size names no Epoch on its own: an empty Epoch
+  restates the size before it, and the state at two such Epochs differs
   by whatever their instants settle, expire or bring into force.
 - **Witness cosignatures, with a quorum the Registry distributes.** A
   checkpoint may carry witness cosignatures under `tlog-witness` and
@@ -106,7 +107,7 @@ inside it, and the height a Snapshot is taken at.
 
 ## Alternatives considered
 
-- **Keep the per-Block trees and add witnesses on top.** A witness would
+- **Keep the per-Epoch trees and add witnesses on top.** A witness would
   have to learn this suite's chaining rule to check that two Checkpoints
   are consistent, which is exactly the work the existing witness network
   will not do; the point of adopting the format is that a witness needs
@@ -114,10 +115,10 @@ inside it, and the height a Snapshot is taken at.
 - **One tree, but keep `prev_block_hash` beside the consistency proof.**
   Two statements of the same fact, one proved and one asserted, with a
   rule needed for the case where they disagree.
-- **Make the checkpoint interval the only notion and drop Blocks.** Every
+- **Make the checkpoint interval the only notion and drop Epochs.** Every
   count in the suite — capacity, the inclusion ceiling, the recovery
-  window's opening, Snapshot heights — is written in Blocks, and the
-  interval is what a Block already is.
+  window's opening, Snapshot heights — is written in Epochs, and the
+  interval is what an Epoch already is.
 - **Adopt COSE receipts now.** They would be a second, independently
   verifiable form of the same proof, and the first disagreement between
   the two encodings is a bug no Consumer can adjudicate.
@@ -125,7 +126,8 @@ inside it, and the height a Snapshot is taken at.
 ## Consequences
 
 - WIST-3 is revised throughout, and with it the affected WIST-4
-  parameters, the Block, checkpoint and Snapshot schemas, the examples and
+  parameters, the schemas — the per-Epoch file's schema, formerly the Block
+  schema, is removed — the examples and
   every Log vector. Existing sealed Logs do not carry forward: the change
   is made before the first deployment, under PUBLICATION.md.
 - Every verifying role gains tree, checkpoint, tile and cosignature

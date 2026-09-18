@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration: accepted means the Label validates and its label_id seals; fields and self are WIST2-E06; signature and binding keep WIST-1 codes. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Block's instant. binding_cases read a Label's delta against the subject record's anchor Delta: a bound Label applies only while the record stands on that Delta. The clock allowance over asserted_at is exercised by wist1/delta-clock-time.json.",
+  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration: accepted means the Label validates and its label_id seals; fields and self are WIST2-E06; signature and binding keep WIST-1 codes. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta against the subject record's anchor Delta: a bound Label applies only while the record stands on that Delta. The clock allowance over asserted_at is exercised by wist1/delta-clock-time.json.",
   "declaration": {
     "publisher": {
       "wist_version": "1.0.0",
@@ -1297,7 +1297,7 @@
       ]
     },
     {
-      "name": "equal instants break by Block height",
+      "name": "equal instants break by Epoch number",
       "sealed": [
         {
           "label": {
@@ -1342,7 +1342,7 @@
       ]
     },
     {
-      "name": "equal instants in one Block break by Entry index",
+      "name": "equal instants in one Epoch break by Entry index",
       "sealed": [
         {
           "label": {
@@ -1539,7 +1539,7 @@
       ]
     },
     {
-      "name": "a Label expired at the Snapshot's Block leaves no tuple",
+      "name": "a Label expired at the Snapshot's Epoch leaves no tuple",
       "sealed": [
         {
           "label": {

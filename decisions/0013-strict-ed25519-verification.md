@@ -6,9 +6,10 @@
 
 Every party in this suite decides the same question about the same bytes:
 does this signature verify? A Publisher's Delta, a Declaration, a Block
-header, a Checkpoint, an Audit Record and a Registry Update are all one
-construction (WIST-1 §4), so one answer to that question is the foundation
-the whole Log rests on.
+header (the former name of a signed per-Epoch object since removed), a
+Checkpoint, an Audit Record and a Registry Update are all one construction
+(WIST-1 §4), so one answer to that question is the foundation the whole Log
+rests on.
 
 RFC 8032 does not supply one answer. §5.1.7 states the verification
 equation as `[s]B = R + [k]A` and then permits a verifier to check the
@@ -24,7 +25,7 @@ precisely so that no two nodes disagree.
 Left unpinned, the divergence is not theoretical. A public key carrying a
 torsion component admits signatures that satisfy the cofactored equation
 and fail the cofactorless one, so two honest verifiers reading the same
-Block reach opposite conclusions about the same Entry. In a Log whose
+Epoch reach opposite conclusions about the same Entry. In a Log whose
 premise is that a Consumer verifies rather than trusts, that is a fork with
 no attacker required — and with an attacker, a small-order `A` is a key
 under which one signature verifies for many keys, in a suite that anchors
@@ -110,7 +111,7 @@ The reasoning is this ADR's, applied to the key set one layer up.
 ECVRF-EDWARDS25519-SHA512-TAI shares the RFC 8032 key format (§5.5), so the
 same small-order points are reachable; and §11's argument that an Auditor
 cannot steer its own selection rests on `beta` being the *unique* correct
-output for a Block, which a small-order key destroys — an Auditor could then
+output for an Epoch, which a small-order key destroys — an Auditor could then
 grind selection sets until one omitted the Deltas it preferred not to audit.
 Skipping the step is conforming under RFC 9381 read alone, which is why the
 requirement is stated in the suite rather than inherited.

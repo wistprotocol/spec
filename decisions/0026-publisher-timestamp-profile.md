@@ -65,7 +65,7 @@ or clock interpretation requires a new major version.
 `vectors/wist1/declaration-fields.json` contains signed positive and negative
 timestamp cases in both key arrays and Deltas, exact key-bound comparisons,
 strict predecessor-order and inclusive 600-second skew twins, and authenticated
-Block rejection through recovery settlement with separate acceptance cases.
+Epoch rejection through recovery settlement with separate acceptance cases.
 Historical insertions, equivalent offsets, wrong dates/minutes, unannounced
 future labels, a hypothetical negative-leap boundary, year zero, offset
 overflow beyond the written year range and sub-nanosecond fractions

@@ -1,7 +1,7 @@
 {
   "note": "WIST-3 Appendix A. The Log's static surface (\u00a76) for its tree at size 4: the Checkpoint, the level-0 partial tile, the entry bundle, and the empty Consistency Proof from the empty tree (size 0) to size 4.",
   "log_id": "log.example.org",
-  "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+  "checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nepoch_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log.example.org sdtYE8vuWCDm/cq+ecys3SaUa9pISiBhJ5uU2R14z0972skDNMaC1TgEIHH1vF9rbhoXxCOPiNeaEiDiQD6pOGPx0AA=\n",
   "entries": [
     {
       "type": "publisher_delta",

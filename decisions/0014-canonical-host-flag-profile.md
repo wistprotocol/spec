@@ -70,11 +70,11 @@ remain additional admission constraints.
 
 Publishers canonicalize before signing. Validators reject alternate signed
 spellings as WIST1-E14 before sequencing, conflicts, idempotence or signer
-selection, preserving original bytes and whole-Block rejection semantics.
+selection, preserving original bytes and whole-Epoch rejection semantics.
 Accepted Declaration identity comparison is therefore byte equality, with
 no second grouping algorithm or case-normalized predecessor representation.
 `vectors/wist1/declaration-hosts.json` supplies signed spelling cases and
-authenticated rejection/acceptance Blocks. Full UTS #46 mapping requires an
+authenticated rejection/acceptance Epochs. Full UTS #46 mapping requires an
 independent implementation; the Python reference explicitly limits its
 A-label eligibility checks to the documented fixture corpus.
 

@@ -69,15 +69,15 @@ the act's contract requires it, `details`. The five acts are:
 - `payload_withdrawal` — the removal of one Payload from distribution
   under WIST-3 §6.2.
 - `suffix_list_update` — the Public Suffix List snapshot every quota and
-  capacity decision reads from the next Block on (§3.1).
+  capacity decision reads from the next Epoch on (§3.1).
 
 Every act is signed by the Aggregator under a Log key valid at the
 height WIST-3 §3.4 fixes for authenticating it. `effective_at` is a
 whole-second UTC instant with a
-literal trailing `Z`, the form every Block `sealed_at` carries (WIST-3
+literal trailing `Z`, the form every Epoch `sealed_at` carries (WIST-3
 §3.1); it is descriptive of when the act takes effect and never the
 anchor of a window — a recovery window runs from the `sealed_at` of the
-Block sealing the recovery Declaration (WIST-1 §5.2). An act's `subject`
+Epoch sealing the recovery Declaration (WIST-1 §5.2). An act's `subject`
 is the parameter identifier, the key identifier, the Publisher's
 Canonical Host or the snapshot identifier its contract names (§5.1).
 
@@ -88,7 +88,7 @@ a hostname under a shared parent costs nothing: a subdomain of a hosting
 provider, or of a domain its operator already holds, is a free
 identity. Every bound this suite places on how much one party may
 publish — the Ping quota (WIST-2 §4), the ingest budget (WIST-2 §5) and
-the per-domain Block capacity (WIST-3 §3.2) — is therefore accounted
+the per-domain Epoch capacity (WIST-3 §3.2) — is therefore accounted
 per **Registrable Domain**, the unit the Public Suffix List draws
 between what a registry sells and what a registrant subdivides, and
 never per hostname. Hosts under a suffix the list's private section
@@ -104,32 +104,32 @@ force is pinned in the Log. A `suffix_list_update` names a snapshot by
 the exact file, and `details.bytes`, the octet count of that file;
 `subject` repeats the identifier (§5.1). The Aggregator MUST serve the
 named octets at `/log/suffix-lists/<hex>.dat` (WIST-3 §6) from the
-Block that seals the act, immutably and without expiry, and Mirrors
+Epoch that seals the act, immutably and without expiry, and Mirrors
 retain them as they retain Checkpoints; a served file whose SHA-256 is
 not the identifier is `WIST3-E03`, and one no source holds is
-`WIST3-E01`, which leaves every Block the snapshot governs unverifiable
+`WIST3-E01`, which leaves every Epoch the snapshot governs unverifiable
 until it is obtained. An act whose `bytes` disagrees with the named
 file's octet count fails its contract (`WIST4-E04`). An Aggregator MUST
 NOT seal an act naming a file it does not hold, since it could not
-serve the file from the sealing Block: at the Aggregator such an act
+serve the file from the sealing Epoch: at the Aggregator such an act
 fails its contract (`WIST4-E04`). A Consumer that cannot obtain the
 file an act names cannot check the act's `bytes` either, so it neither
-accepts nor ignores the act: it stops at the act's Block (`WIST3-E01`)
+accepts nor ignores the act: it stops at the act's Epoch (`WIST3-E01`)
 and resumes once the file is obtained, and a file obtained that does
 not hash to its name stops it the same way (`WIST3-E03`).
 
 **In force.** An accepted `suffix_list_update` is in force from the
-Block after its sealing Block: the snapshot in force at Block B is the
+Epoch after its sealing Epoch: the snapshot in force at Epoch B is the
 one named by the most recent accepted `suffix_list_update` sealed at a
 height below B, and the snapshot in force at an instant T is the one
 named by the most recent accepted act sealed at or before T — the same
-snapshot the first Block sealed after T reads. An act naming the
+snapshot the first Epoch sealed after T reads. An act naming the
 snapshot already in force is accepted and changes nothing, the height
 WIST-3 §7's tuple carries included: that height is the sealing height
 of the accepted act that put the snapshot in force. Before the
 first accepted act, no snapshot is in force and **every Canonical Host
 is its own Registrable Domain**; an Aggregator SHOULD seal its first
-`suffix_list_update` in Block 0, since until it does a free hostname is
+`suffix_list_update` in Epoch 0, since until it does a free hostname is
 a free quota. Where the name of the snapshot in force is needed by a
 Consumer resuming from a Snapshot, WIST-3 §7's `suffix_list` tuple
 carries it.
@@ -199,7 +199,7 @@ version of this suite — a fork that must win adoption on its own merits.
    quota and every domain the same inclusion eligibility (§5).
    Infrastructure services treating all Publishers identically, such as
    mirror bandwidth, are exempt.
-3. **The record is not rewritable.** Sealed Blocks and their commitments,
+3. **The record is not rewritable.** Sealed Epochs and their commitments,
    Labels and governance actions are immutable; corrections append to the
    Log. Payloads remain outside it and may be withdrawn only through a
    logged entry stating the legal basis (WIST-3 §6.2). Erasure rationale:
@@ -213,7 +213,7 @@ version of this suite — a fork that must win adoption on its own merits.
 
 Every numeric constant in the suite, with its normative default. Changes
 are made by `parameter_change` Registry Updates and MUST have
-`effective_at` ≥ 7 days after the Block's `sealed_at` (the grace period
+`effective_at` ≥ 7 days after the Epoch's `sealed_at` (the grace period
 — itself a parameter, changeable only by the same process). The
 **Identifier** column is the value `details.parameter` MUST carry
 (schema: `schemas/registry-update.schema.json`, §5.1).
@@ -223,26 +223,26 @@ after its `effective_at`, the endpoint included. The value of a
 parameter in force at T is that of the amendment naming it with the
 greatest `effective_at` ≤ T, or the Registry default where no such
 amendment exists; where two amendments share that `effective_at`, the
-one later in Log order (WIST-3 §3.3: ascending Block height, then Entry
+one later in Log order (WIST-3 §3.3: ascending Epoch number, then Entry
 index) prevails, being the Aggregator's later statement, and the other
 is superseded from the moment the later one seals and is never in
 force. Log order also fixes amendment validation below; two pending
 amendments for one identifier take effect each at its own instant
 (WIST-3 §7), so the one with the later `effective_at` prevails once that
 instant arrives even when it was sealed first. The endpoint is inclusive
-because the grace period lands exactly on the Block grid — `effective_at`
+because the grace period lands exactly on the Epoch grid — `effective_at`
 seven days after a `sealed_at` is itself a `sealed_at` — and WIST-3 §3.1
-reads the cadence "in force at the previous Block's `sealed_at`": a
-change effective at that instant governs the next Block, rather than
-leaving the Block sealed at `effective_at` under a value two readings
+reads the cadence "in force at the previous Epoch's `sealed_at`": a
+change effective at that instant governs the next Epoch, rather than
+leaving the Epoch sealed at `effective_at` under a value two readings
 could place on either side.
 
 **Validate the prospective schedule at sealing.** Process
-`parameter_change` candidates in ascending Block height and canonical
+`parameter_change` candidates in ascending Epoch number and canonical
 Entry index. A candidate is an act that passed §5.1's Envelope
 eligibility and precedence; one that fails them — a non-integer `value`,
 a malformed `effective_at` — is rejected there (`WIST4-E04`,
-`WIST4-E11`), ignored whether met before sealing or in a sealed Block,
+`WIST4-E11`), ignored whether met before sealing or in a sealed Epoch,
 and never reaches these checks. First apply their individual bounds,
 identifier and grace requirements. For a remaining candidate,
 tentatively add it to the accepted prefix, including amendments not yet
@@ -250,7 +250,7 @@ effective. At the sealing instant and at every `effective_at` at or
 after that instant in this tentative prefix, derive the complete
 parameter map by the in-force rule above and check every combination
 rule below against that map. Every combination rule reads one map;
-the only check that reads the sealed prefix is the Block-size guarantee
+the only check that reads the sealed prefix is the Epoch-size guarantee
 below, and no rule compares two successive maps. Between those instants
 the map is constant; after the final one it remains that final map. If
 any checked map violates a combination,
@@ -267,24 +267,24 @@ force when the candidate was sealed. Two amendments individually safe
 against today's values cannot jointly schedule an invalid future state.
 
 **Parameter reads for work already begun.** An anchor below means the
-parameter map in force at that Block's `sealed_at`. Once read, these
+parameter map in force at that Epoch's `sealed_at`. Once read, these
 values remain attached to that duty; recomputing at a later height does
 not move its endpoints. An amendment whose `effective_at` equals the
 anchor instant is included.
 
 | Use | Parameter anchor |
 |---|---|
-| WIST-1 §§3.2/3.6 sealed Delta and committed Payload size caps | Committing Delta's Block; unsealed attempts and sealing rechecks follow WIST-1 §3.6, **Size-cap parameter time** |
-| WIST-1 §3.4 Delta clock allowance | Committing Delta's Block, which also supplies the historical validation clock; unsealed attempts and sealing rechecks follow WIST-1 §3.4, **Clock parameter time** |
-| WIST-1 §5.2 recovery window length | Window owner Declaration's Block; freeze the end through later amendments and in-window recoveries |
-| WIST-2 §3.3 Label field caps | Sealing Block of the Label's `label` Entry; unsealed attempts follow the same rule as Deltas |
-| WIST-3 §3.2 cadence and per-domain capacity | The previous Block's `sealed_at` for the cadence; the sealing Block for the capacity |
+| WIST-1 §§3.2/3.6 sealed Delta and committed Payload size caps | Committing Delta's Epoch; unsealed attempts and sealing rechecks follow WIST-1 §3.6, **Size-cap parameter time** |
+| WIST-1 §3.4 Delta clock allowance | Committing Delta's Epoch, which also supplies the historical validation clock; unsealed attempts and sealing rechecks follow WIST-1 §3.4, **Clock parameter time** |
+| WIST-1 §5.2 recovery window length | Window owner Declaration's Epoch; freeze the end through later amendments and in-window recoveries |
+| WIST-2 §3.3 Label field caps | Sealing Epoch of the Label's `label` Entry; unsealed attempts follow the same rule as Deltas |
+| WIST-3 §3.2 cadence and per-domain capacity | The previous Epoch's `sealed_at` for the cadence; the sealing Epoch for the capacity |
 | WIST-3 §5 Witness quorum | The Checkpoint's own `sealed_at` |
 
 This table does not replace explicit reads elsewhere, including
-materialization at its stated height. Fixed block counts count actual
-successor Blocks; pinning a count does not pin the cadence of those
-Blocks.
+materialization at its stated height. Fixed Epoch counts count actual
+successor Epochs; pinning a count does not pin the cadence of those
+Epochs.
 
 **Every value the registry carries is an integer** in the unit its row
 states, inside −9 007 199 254 740 991 … 9 007 199 254 740 991 inclusive
@@ -310,8 +310,8 @@ recommended setting.
 
 | Parameter | Bound | What a value past it removes |
 |---|---|---|
-| `block_cadence_seconds` | ≥ 1 and ≤ 86 400 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` has a clock; above a day, "eligible for the next Block" is lawful staleness measured in weeks, and the read-side position sale §5's inclusion ceiling forbids returns through the cadence |
-| `block_decompressed_cap_bytes` | ≥ 65 537 | the octets one Entry of WIST-3 §3.3's largest admissible size occupies in an entry bundle (WIST-3 §6): below it the cap, not the format, decides which conforming Entries can be sealed, and the inclusion ceiling below can oblige an Aggregator to seal an Entry the cap forbids |
+| `epoch_cadence_seconds` | ≥ 1 and ≤ 86 400 | a cadence of zero seals no Epoch, so nothing anchored to `sealed_at` has a clock; above a day, "eligible for the next Epoch" is lawful staleness measured in weeks, and the read-side position sale §5's inclusion ceiling forbids returns through the cadence |
+| `epoch_cap_bytes` | ≥ 65 537 | the octets one Entry of WIST-3 §3.3's largest admissible size occupies in an entry bundle (WIST-3 §6): below it the cap, not the format, decides which conforming Entries can be sealed, and the inclusion ceiling below can oblige an Aggregator to seal an Entry the cap forbids |
 | `checkpoint_witness_quorum` | ≥ 0 | a negative count of Cosignatures is no threshold; at zero none is required and WIST-3 §5's unwitnessed interim applies |
 | `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails WIST-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
 | `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (WIST-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
@@ -319,15 +319,15 @@ recommended setting.
 | `summary_cap_bytes` | ≥ 12 | `JCS({"title":""})` is 12 octets and `title` is REQUIRED (WIST-3 §6.1), so below that no conforming `summary` exists and no content-bearing Delta can ever be sealed |
 | `url_cap_bytes` | ≥ 14 | `JCS("https://a.b/")` is 14 octets — the shortest Normalized URL under a two-label host; a one-label host's `https://a/` serializes to 12 and stays nameable — so below it no Delta under a registrable host can name any subject (WIST-1 §2, §3.2) |
 | `feed_window` | ≥ 1 | a Feed or Label Feed that can hold no ID leaves nothing discoverable to pull (WIST-2 §3.2, §3.4) |
-| `recovery_window_days` | ≥ 1 | a zero-length window contains no Block, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (WIST-1 §5.2, §4) |
-| `param_grace_days` | ≥ 1 | at zero a parameter changes in the Block that announces it, and the notice period this very section rests on is gone |
+| `recovery_window_days` | ≥ 1 | a zero-length window contains no Epoch, so no ordinary rotation is ever superseded and the recovery key stops being the answer to a stolen signing key (WIST-1 §5.2, §4) |
+| `param_grace_days` | ≥ 1 | at zero a parameter changes in the Epoch that announces it, and the notice period this very section rests on is gone |
 | `payload_window_days` | ≥ 30 | below, a Mirror may drop what it dislikes and call the absence expiry (WIST-3 §6.1) |
-| `mirror_retention_days` | ≥ 30 | below a month a Consumer resuming from the newest Snapshot may find the Blocks above it already gone from every Mirror (WIST-3 §6, §8) |
-| `record_seal_blocks` | ≥ 1 | at zero the Aggregator must seal what it discovered in the Block of the discovery itself, so every discovery is a breach the instant it completes (WIST-1 §5.2, WIST-2 §3.3) |
-| `declaration_activation_blocks` | ≥ 0 | at zero a fresh identity activates in the Block that seals it, the delay absent by choice; below zero it would activate before it is sealed, an order no replay can apply (WIST-1 §5.2) |
-| `domain_block_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (WIST-3 §3.2) |
-| `labeler_block_entries_max` | ≥ 1 | at zero no Label or dispute can seal and every Label Feed is dead weight (WIST-3 §3.2) |
-| `max_inclusion_blocks` | ≥ 1 | at zero an eligible Delta must seal in its eligibility Block itself, a deadline no Aggregator can meet for a Delta accepted mid-Block |
+| `mirror_retention_days` | ≥ 30 | below a month a Consumer resuming from the newest Snapshot may find the Epochs above it already gone from every Mirror (WIST-3 §6, §8) |
+| `record_seal_epochs` | ≥ 1 | at zero the Aggregator must seal what it discovered in the Epoch of the discovery itself, so every discovery is a breach the instant it completes (WIST-1 §5.2, WIST-2 §3.3) |
+| `declaration_activation_epochs` | ≥ 0 | at zero a fresh identity activates in the Epoch that seals it, the delay absent by choice; below zero it would activate before it is sealed, an order no replay can apply (WIST-1 §5.2) |
+| `domain_epoch_entries_max` | ≥ 1 | at zero no domain can seal anything and the Log carries only governance (WIST-3 §3.2) |
+| `labeler_epoch_entries_max` | ≥ 1 | at zero no Label or dispute can seal and every Label Feed is dead weight (WIST-3 §3.2) |
+| `max_inclusion_epochs` | ≥ 1 | at zero an eligible Delta must seal in its eligibility Epoch itself, a deadline no Aggregator can meet for a Delta accepted mid-Epoch |
 | `ingest_budget_bytes_day` | ≥ 1 048 576 | below one MiB the WIST-2 §3.2 walk cannot fetch a single capped Payload with its Feed page, and every backfill starves (WIST-2 §5) |
 | `quota_base` | ≥ 1 | at zero no Ping is ever accepted and publication depends on baseline polling alone (WIST-2 §4) |
 
@@ -336,18 +336,18 @@ individually in range but collapses a mechanism only in combination with
 another parameter's current value — a party replaying the Log MUST
 reject the `parameter_change` directly against the rule rather than apply
 it. The combinations the present table cannot express are named so that
-no party has to discover them: `block_decompressed_cap_bytes` MUST NOT be
-below the size of the largest Block through the candidate's own Block,
-measured as WIST-3 §6 defines a Block's size — the octets its Entries
-occupy in entry bundles — under the Block-size rule below; `links_cap_bytes`
+no party has to discover them: `epoch_cap_bytes` MUST NOT be
+below the size of the largest Epoch through the candidate's own Epoch,
+measured as WIST-3 §6 defines an Epoch's size — the octets its Entries
+occupy in entry bundles — under the Epoch-size rule below; `links_cap_bytes`
 MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 `JCS({"total":1,"urls":[…]})` around a single maximum-length URL literal
 — below it a page whose first link is long declares an empty prefix the
 budget rule then makes mandatory; `mirror_retention_days` MUST NOT be
 below `payload_window_days` divided by 6, so that a Consumer resuming
 from a Snapshot published inside the availability window finds the
-Blocks it needs; and `labeler_block_entries_max` MUST NOT exceed
-`domain_block_entries_max`, since a Labeler's Labels count against both
+Epochs it needs; and `labeler_epoch_entries_max` MUST NOT exceed
+`domain_epoch_entries_max`, since a Labeler's Labels count against both
 and a per-Labeler cap above the per-domain one bounds nothing (WIST-3
 §3.2). `recovery_window_days` is bounded by the Log's own clock
 as well: a `parameter_change` whose value, in 86,400-second days from the
@@ -358,26 +358,26 @@ because a window WIST-1 §5.2 cannot freeze cannot open. A window opened
 later than that `effective_at` can still reach past the range; WIST-1
 §5.2 then withholds the recovery Declaration from sealing.
 
-**Block-size guarantees include the sealed prefix.** For a candidate in
-Block B, let M be the greatest Block size (WIST-3 §6) among Blocks 0
+**Epoch-size guarantees include the sealed prefix.** For a candidate in
+Epoch B, let M be the greatest Epoch size (WIST-3 §6) among Epochs 0
 through B, including B's complete contents regardless of which Entries
 are accepted. Every prospective map checked for that candidate MUST have
-`block_decompressed_cap_bytes` ≥ M. Otherwise reject the candidate as
+`epoch_cap_bytes` ≥ M. Otherwise reject the candidate as
 `WIST4-E03`, preserving the accepted prefix. Later Entries do not change
 B's size input and cannot rescue a rejected candidate. Equality is valid.
 
 After all B's parameter candidates have been processed, every map at
 B's `sealed_at` and every accepted `effective_at` at or after it MUST
-still have a cap ≥ M. An Aggregator MUST constrain the complete Block it
+still have a cap ≥ M. An Aggregator MUST constrain the complete Epoch it
 seals to the smallest of those caps, even before a scheduled reduction
-takes effect. A later Block exceeding this bound is invalid; it does not
+takes effect. A later Epoch exceeding this bound is invalid; it does not
 revoke an earlier accepted amendment. A Consumer MUST NOT apply that
-Block (`WIST3-E03`). An increase permits larger Blocks only from its
+Epoch (`WIST3-E03`). An increase permits larger Epochs only from its
 `effective_at`, the endpoint included; replacing a pending reduction can
 relax the bound only when the replacement itself passes admission.
 
 Replay uses the actual sizes at each historical height, never the largest
-Block at the eventual query height to reconsider an earlier candidate.
+Epoch at the eventual query height to reconsider an earlier candidate.
 Restoration MUST preserve or reconstruct both this running maximum and
 the accepted schedule, including pending amendments. A value-only
 Registry snapshot cannot establish the historical size guarantee. The
@@ -403,51 +403,51 @@ attributable rather than routine.
 `quota_base` Pings per UTC day (WIST-2 §4), shared by every Canonical
 Host under it (§3.1) and the same for a domain on its first day and one
 a decade old. Every accepted Delta is eligible for the next
-Block, and an accepted Delta MUST be sealed no later than
-`max_inclusion_blocks` Blocks after the Block it became eligible for. A
+Epoch, and an accepted Delta MUST be sealed no later than
+`max_inclusion_epochs` Epochs after the Epoch it became eligible for. A
 Delta queued under WIST-1 §5.2's recovery window is not yet eligible:
 its eligibility, and with it this ceiling's clock, starts at the first
-Block at or after the window's end, after WIST-1 §5.2's revalidation.
-Eligibility is gated the same way by WIST-3 §3.2's per-domain Block
+Epoch at or after the window's end, after WIST-1 §5.2's revalidation.
+Eligibility is gated the same way by WIST-3 §3.2's per-domain Epoch
 capacity, accounted per Registrable Domain: where more of a Registrable
-Domain's Deltas are eligible for a Block than
-`domain_block_entries_max` admits, they take the capacity in acceptance
-order across its hosts, and a Delta the cap holds out of a Block becomes
-eligible for the first Block with room for it, which is where its
+Domain's Deltas are eligible for an Epoch than
+`domain_epoch_entries_max` admits, they take the capacity in acceptance
+order across its hosts, and a Delta the cap holds out of an Epoch becomes
+eligible for the first Epoch with room for it, which is where its
 ceiling's clock starts.
 The ceiling bounds the Aggregator's delay of a Delta whose turn has come,
 not the domain's rate: a backfill of 50 000 accepted Deltas seals over
-five Blocks at the default cap, and none of them is late. The ceiling
+five Epochs at the default cap, and none of them is late. The ceiling
 exists because both ends of the eligible-to-sealed gap are otherwise the
 Aggregator's, and operator revenue — subscriptions to the fresh stream —
 is proportional to the free stream's staleness: without a ceiling,
-"eligible for the next Block" bounds nothing and position *in time, on
+"eligible for the next Epoch" bounds nothing and position *in time, on
 the read side* is lawfully for sale, one hop removed from the payment
 Invariant 2 forbids. The duty is not derivable from the Log alone — the
 Log cannot see an acceptance the Aggregator shelved — but it is
 observable by every Publisher against its own status endpoint (WIST-2
 §7.1, which shows acceptance) and Feed, so a breach is a pattern any
-Publisher can document; and `block_cadence_seconds` carries a hard upper
+Publisher can document; and `epoch_cadence_seconds` carries a hard upper
 bound for the same reason, so the ceiling cannot be reconstituted by
-stretching the Block itself. A Label is sealed under the same eligibility
+stretching the Epoch itself. A Label is sealed under the same eligibility
 and ceiling as a Delta (WIST-2 §3.3).
 
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
-| Block sealing cadence | `block_cadence_seconds` | 1 hour | WIST-3 §3.2 |
-| Block size cap, in entry-bundle octets | `block_decompressed_cap_bytes` | 256 MiB | WIST-3 §6 |
+| Epoch sealing cadence | `epoch_cadence_seconds` | 1 hour | WIST-3 §3.2 |
+| Epoch size cap, in entry-bundle octets | `epoch_cap_bytes` | 256 MiB | WIST-3 §6 |
 | `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | WIST-1 §3.6 |
 | `links` size cap | `links_cap_bytes` | 4096 octets of `JCS(links)` | WIST-1 §3.6 |
 | Link `url` size cap | `link_url_cap_bytes` | 2048 octets of `JCS(url)` per link | WIST-1 §3.6 |
 | `summary` size cap | `summary_cap_bytes` | 2048 octets of `JCS(summary)` | WIST-1 §3.6 |
 | `url` size cap | `url_cap_bytes` | 2048 octets of `JCS(url)`; also a Label's `subject` (WIST-2 §3.3) | WIST-1 §3.2 |
 | Payload availability window | `payload_window_days` | 180 days | WIST-3 §6.1 |
-| Mirror Block retention floor | `mirror_retention_days` | 90 days | WIST-3 §6 |
+| Mirror Epoch retention floor | `mirror_retention_days` | 90 days | WIST-3 §6 |
 | Witness quorum | `checkpoint_witness_quorum` | 0 Witnesses | WIST-3 §5 |
-| Discovery sealing deadline | `record_seal_blocks` | 24 Blocks | WIST-1 §5.2, WIST-2 §3.3 |
-| Per-domain Block capacity (per Registrable Domain) | `domain_block_entries_max` | 10 000 Entries | WIST-3 §3.2 |
-| Per-Labeler Block cap (per Registrable Domain) | `labeler_block_entries_max` | 1 000 Entries | WIST-3 §3.2 |
-| Inclusion ceiling | `max_inclusion_blocks` | 4 Blocks | §5 |
+| Discovery sealing deadline | `record_seal_epochs` | 24 Epochs | WIST-1 §5.2, WIST-2 §3.3 |
+| Per-domain Epoch capacity (per Registrable Domain) | `domain_epoch_entries_max` | 10 000 Entries | WIST-3 §3.2 |
+| Per-Labeler Epoch cap (per Registrable Domain) | `labeler_epoch_entries_max` | 1 000 Entries | WIST-3 §3.2 |
+| Inclusion ceiling | `max_inclusion_epochs` | 4 Epochs | §5 |
 | Per-domain daily ingest budget | `ingest_budget_bytes_day` | 1 GiB | WIST-2 §5 |
 | Feed window | `feed_window` | 1000 IDs | WIST-2 §3.2, §3.4 |
 | Clock skew allowance | `clock_skew_seconds` | 10 minutes | WIST-1 §3.4 |
@@ -455,7 +455,7 @@ and ceiling as a Delta (WIST-2 §3.3).
 | Baseline feed poll interval | `baseline_poll_seconds` | 24 hours | WIST-2 §5 |
 | Ping quota (per Registrable Domain per UTC day) | `quota_base` | 1000 | §5, WIST-2 §4 |
 | Recovery window | `recovery_window_days` | 7 days | WIST-1 §5.2 |
-| Fresh-identity activation delay | `declaration_activation_blocks` | 24 Blocks | WIST-1 §5.2 |
+| Fresh-identity activation delay | `declaration_activation_epochs` | 24 Epochs | WIST-1 §5.2 |
 | Parameter change grace period | `param_grace_days` | 7 days | §5 |
 
 ### 5.1. Registry Update `details` Contract
@@ -472,24 +472,24 @@ and ceiling as a Delta (WIST-2 §3.3).
   table above, and `value` — an **integer** in that parameter's own unit,
   bounded by the table of bounds above where a fixed bound exists;
   `subject` is the identifier; `effective_at` MUST be ≥ `param_grace_days`
-  days after the Block's `sealed_at`, as stated above.
+  days after the Epoch's `sealed_at`, as stated above.
 - `payload_withdrawal`: `delta_id` (the Delta whose Payload is being
   withdrawn), `legal_basis`, and `jurisdiction` (WIST-3 §6.2); `subject` is
   the Publisher's domain. All three are REQUIRED. `delta_id` MUST name a
-  Delta sealed at or below the act's Block whose signed `publisher` is
+  Delta sealed at or below the act's Epoch whose signed `publisher` is
   `subject`; an act naming no such Delta, or another Publisher's, fails
   its `details` contract (`WIST4-E04`). A later withdrawal of an already
   withdrawn Delta is accepted and changes nothing: the earliest accepted
-  withdrawal's Block is the height every rule reads. An act sealed in
-  the same Block as the Delta it names applies to that Delta as the
+  withdrawal's Epoch is the height every rule reads. An act sealed in
+  the same Epoch as the Delta it names applies to that Delta as the
   Delta applies (WIST-3 §3.3): the Delta's content never materializes,
   its chain tip moves as any Delta's does, and the withdrawal's height
-  is the act's Block. A Consumer resuming from a Snapshot at
-  `log_position` holds no tuple naming the Deltas sealed at or below it
+  is the act's Epoch. A Consumer resuming from a Snapshot at
+  `tree_size` holds no tuple naming the Deltas sealed at or below it
   (WIST-3 §7), so it cannot check this contract for an act naming a
   Delta it never walked: it accepts such an act as consistent — the
   Aggregator checked the contract at sealing — and checks the contract
-  only for an act naming a Delta sealed above `log_position`.
+  only for an act naming a Delta sealed above `tree_size`.
 - `suffix_list_update`: `sha256`, the snapshot identifier (§3.1), and
   `bytes`, the octet count of the identified file, an integer ≥ 1;
   `subject` is the identifier and MUST equal `details.sha256`. Both are
@@ -513,9 +513,9 @@ and a leap second or a timestamp denoting no instant (WIST-3 §3.1), year
 zero included. E11 takes precedence over E04; field failures take
 precedence over authenticity and semantic diagnostics. Replay identifies
 every Registry Update by its ID (§2): an occurrence of an ID already
-accepted at a lower Block, or earlier in the same Block, is idempotent —
+accepted at a lower Epoch, or earlier in the same Epoch, is idempotent —
 it applies nothing and rejects nothing, so only the earliest sealing
-Block participates.
+Epoch participates.
 
 `wist_version` MUST contain exactly three dot-separated nonnegative ASCII
 decimal components, without leading zeros except `0` itself, prerelease
@@ -526,7 +526,7 @@ it names.
 
 After field validation, authenticate the act under the Log key
 `sig.key_id` names, valid at the height WIST-3 §3.4 fixes — the height
-below the act's Block for a key act, the act's Block for every other —
+below the act's Epoch for a key act, the act's Epoch for every other —
 with WIST-1 §4's profile. An act whose `sig.key_id` names no such key,
 or whose
 signature does not verify under the key it names, is `WIST4-E11`.
@@ -535,7 +535,7 @@ failure's `WIST4-E04` among them.
 
 An act rejected under `WIST1-E05`, `WIST4-E11` or `WIST4-E04`, or left
 unauthenticated, is ignored as every §7 rejection is: it changes no key
-registry, schedule or withdrawal state, and leaves the containing Block
+registry, schedule or withdrawal state, and leaves the containing Epoch
 valid.
 
 No `details` object may carry a bare digest of Payload content. A
@@ -582,8 +582,8 @@ A Label's optional `value` is an integer in micro-units (0 … 1 000 000)
 whose meaning the name's definer fixes; for the `wist` terms it is the
 Labeler's confidence, 1 000 000 where absent. A Label's `retracted`
 member, where `true`, withdraws the Labeler's earlier Label of the same
-name on the same subject; its `expires_at` ends its application at a
-Block instant; its `delta` binds it to one publication of a URL (WIST-2
+name on the same subject; its `expires_at` ends its application at an
+Epoch instant; its `delta` binds it to one publication of a URL (WIST-2
 §3.3).
 
 **Treatments.** What a Consumer does with a labeled subject is a
@@ -609,12 +609,12 @@ one sees the other.
 **A recommended default profile.** A Consumer profile is the Consumer's
 own; the following defaults are recommended for one that names nothing
 else. Count a `wist:mismatch` or `wist:unavailable` Label against a
-subject only once it has persisted across two consecutive Blocks — the
+subject only once it has persisted across two consecutive Epochs — the
 Label current, unretracted and unexpired at a height and at the height
 before it — since a page changes between a Labeler's fetch and the
-Publisher's next Delta and one Block's disagreement is the ordinary
+Publisher's next Delta and one Epoch's disagreement is the ordinary
 course of publication, not evidence. Ignore a Labeler with no sealed
-Entry of any type within a configured number of Blocks, 720 by default
+Entry of any type within a configured number of Epochs, 720 by default
 (thirty days at the default cadence): an unattended labeler is a set of
 opinions nobody stands behind. Both rules read the Log alone and are
 exercised by `vectors/wist3/label-tables.json`.
@@ -657,8 +657,8 @@ a Publisher-facing surface, so unlike WIST-1/WIST-2 codes they carry no
 status-endpoint duty. One rule spans the table: rejection under this
 registry rejects the *item* — the Registry Update is ignored during
 replay, contributing to nothing — and never invalidates the containing
-Block. Block validity is exclusively WIST-3 §3's; a registry that let one
-bad Entry void a sealed Block would hand any act a veto over every other
+Epoch. Epoch validity is exclusively WIST-3 §3's; a registry that let one
+bad Entry void a sealed Epoch would hand any act a veto over every other
 Entry sealed beside it. The codes `WIST4-E01`, `WIST4-E02`, `WIST4-E05`
 and `WIST4-E07` through `WIST4-E10` were registered by the Auditor
 mechanisms this revision removed and are retired; a later revision
@@ -668,8 +668,8 @@ MUST NOT reuse them for another meaning.
 |---------|--------------------------------------------------------------|
 | WIST4-E03 | Registry Update rejected under §5, including a prospective schedule that fails a combination rule: a `parameter_change` naming an identifier §5 does not list, a value outside its §5 bound, or an amendment §4's Invariants or §5's unamendable rules forbid. Ignored during replay; the Registry value in force is unchanged. |
 | WIST4-E04 | Registry Update `details` contract violation (§5.1): a REQUIRED `details` member missing or malformed for its `action`, a `subject` outside the shape that action's contract fixes, a bare content digest, or personal data; or an authenticated key act that is a key-act failure under WIST-3 §3.4 — an `aggregator_key_add` whose `key_id` or note key ID was ever admitted, or an `aggregator_key_remove` of a `key_id` not valid at the previous height. Ignored as WIST4-E03. |
-| WIST4-E06 | Recomputation divergence: a published parameter value, quota or withdrawal state that does not equal the replayer's own §5 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `log_position` it was computed at, since anyone replaying the Log can check the report. |
-| WIST4-E11 | Registry Update Envelope failure under §5.1: a field failure outside the act's `details` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields; a major version the validator does not implement; or an act not authenticated under a Log key valid at the height WIST-3 §3.4 fixes for it. Ignored as WIST4-E03: no key registry, schedule or withdrawal state changes, and the containing Block stays valid. |
+| WIST4-E06 | Recomputation divergence: a published parameter value, quota or withdrawal state that does not equal the replayer's own §5 recomputation. Not an Entry rejection — a falsified-index signal: the value MUST NOT be trusted, and the divergence SHOULD be published with the `tree_size` it was computed at, since anyone replaying the Log can check the report. |
+| WIST4-E11 | Registry Update Envelope failure under §5.1: a field failure outside the act's `details` and `subject` contract, including unknown members and malformed `wist_version`, `effective_at` or signature fields; a major version the validator does not implement; or an act not authenticated under a Log key valid at the height WIST-3 §3.4 fixes for it. Ignored as WIST4-E03: no key registry, schedule or withdrawal state changes, and the containing Epoch stays valid. |
 
 ## 8. Security Considerations
 
@@ -704,9 +704,9 @@ MUST NOT reuse them for another meaning.
   publication, so a corrected page is not carried under the old claim;
   the labeled domain can dispute in the Log, signed, beside the Label,
   so the answer reaches every Consumer the claim does; and a Labeler
-  seals at most `labeler_block_entries_max` Labels and disputes per
-  Block (§5, WIST-3 §3.2), so filling the commons with opinions costs
-  Blocks as filling it with publications does. None of them judges a
+  seals at most `labeler_epoch_entries_max` Labels and disputes per
+  Epoch (§5, WIST-3 §3.2), so filling the commons with opinions costs
+  Epochs as filling it with publications does. None of them judges a
   Label; each keeps the Consumer's judgement possible.
 - **Domain resale.** Buying a domain or its hosting conveys no history.
   WIST-1 §5.2 binds continuity to keys: a fresh identity is visible in
@@ -716,7 +716,7 @@ MUST NOT reuse them for another meaning.
   reads it from the activation height.
 - **Free hostnames.** A hostname under a domain one already holds, or
   under a hosting provider's suffix, costs nothing, so any bound keyed
-  per hostname is no bound. Quota, ingest budget and Block capacity are
+  per hostname is no bound. Quota, ingest budget and Epoch capacity are
   keyed per Registrable Domain (§3.1), which makes a thousand subdomains
   one unit and leaves a hosting provider's customers separate through
   the list's private section; the snapshot is pinned in the Log so the
@@ -757,14 +757,14 @@ enters the Log.
       WIST-3 §3.4 fixes for it, admits or removes its own keys only
       in-band and seals no key-act failure (§3, WIST-3 §3.4)
 - [ ] Changes parameters only via `parameter_change` with the grace
-      period, validating the prospective schedule and the Block-size
+      period, validating the prospective schedule and the Epoch-size
       guarantee at sealing (§5)
 - [ ] Withdraws a Payload only by a `payload_withdrawal` naming the
       Delta, the legal basis and the jurisdiction (§5.1, WIST-3 §6.2)
 - [ ] Applies the same Ping quota to every Registrable Domain and the
       same inclusion eligibility to every domain, and seals an accepted
-      Delta or Label within `max_inclusion_blocks` of its eligibility
-      Block (§5)
+      Delta or Label within `max_inclusion_epochs` of its eligibility
+      Epoch (§5)
 - [ ] Pins the Public Suffix List snapshot it accounts under with a
       `suffix_list_update`, serves every pinned snapshot at
       `/log/suffix-lists/<hex>.dat` without expiry, and keys quota,
@@ -790,11 +790,11 @@ enters the Log.
       `WIST4-E04`, and treats a repeated Registry Update ID as
       idempotent (§5.1, WIST-3 §3.4)
 - [ ] Rejects a `parameter_change` that fails a bound, a combination
-      rule, the Block-size guarantee or the grace period, preserving the
+      rule, the Epoch-size guarantee or the grace period, preserving the
       accepted schedule (§5, §7)
-- [ ] Reads a withdrawal from the earliest Block sealing it and applies
+- [ ] Reads a withdrawal from the earliest Epoch sealing it and applies
       WIST-3 §6.2 from that height (§5.1)
-- [ ] Reads the snapshot in force at a Block as the most recent accepted
+- [ ] Reads the snapshot in force at an Epoch as the most recent accepted
       `suffix_list_update` sealed below it, obtains and verifies the
       named octets, and derives Registrable Domains by §3.1's algorithm,
       every Canonical Host being its own before the first act (§3.1)

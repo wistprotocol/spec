@@ -186,12 +186,12 @@ def note_key_id(name: str, raw_pub: bytes) -> bytes:
     return hashlib.sha256(name.encode() + b"\x0a\x01" + raw_pub).digest()[:4]
 
 def checkpoint_note(log_id: str, key, tree_size: int, root: bytes,
-                    block_number: int, sealed_at: str) -> str:
+                    epoch_number: int, sealed_at: str) -> str:
     """WIST-3 §5: a signed Checkpoint note — the five-line text, a blank
     line, then the Log's signature line under `key` (signer name `log_id`,
     as §3.4 requires of every Aggregator key)."""
-    text = "%s\n%d\n%s\nblock_number %d\nsealed_at %s\n" % (
-        log_id, tree_size, base64.b64encode(root).decode(), block_number, sealed_at)
+    text = "%s\n%d\n%s\nepoch_number %d\nsealed_at %s\n" % (
+        log_id, tree_size, base64.b64encode(root).decode(), epoch_number, sealed_at)
     kid = note_key_id(log_id, raw_public(key))
     sig = key.sign(text.encode())
     return text + "\n— %s %s\n" % (log_id, base64.b64encode(kid + sig).decode())
@@ -202,7 +202,7 @@ def note_field(text: str, name: str):
     validate an untrusted note; see tools/validate_examples.py for that)."""
     lines = text.split("\n\n", 1)[0].split("\n")
     return {"origin": lines[0], "tree_size": int(lines[1]), "root": base64.b64decode(lines[2]),
-            "block_number": int(lines[3].split(" ", 1)[1]),
+            "epoch_number": int(lines[3].split(" ", 1)[1]),
             "sealed_at": lines[4].split(" ", 1)[1]}[name]
 
 def note_text_only(checkpoint_text: str) -> str:
@@ -235,27 +235,27 @@ def cosignature_line(name: str, key, checkpoint_text: str, timestamp: int) -> st
     return "— %s %s\n" % (name, base64.b64encode(payload).decode())
 
 def root_token(leaves: list) -> str:
-    """WIST-3 §3.1: a Block's root hash where this suite carries it in a
-    JSON member (`anchor_block_hash`, `final_block_hash`) — `"sha256:" +
+    """WIST-3 §3.1: an Epoch's root hash where this suite carries it in a
+    JSON member (`root_hash`, `final_root_hash`) — `"sha256:" +
     hex(root)` — reused here for `pinned_head`-style fixture pins, since a
-    Block has no hash apart from its root."""
+    Epoch has no hash apart from its root."""
     root = merkle_tree_root(leaves) if leaves else EMPTY_ROOT
     return "sha256:" + root.hex()
 
-def seal(log_id: str, key, leaves: list, entries: list, block_number: int,
+def seal(log_id: str, key, leaves: list, entries: list, epoch_number: int,
         sealed_at: str) -> tuple:
     """WIST-3 §§3-5: extend the cumulative Log tree `leaves` (leaf hashes of
-    every Entry sealed so far) with one Block's `entries` and seal it.
-    Returns (block, new_leaves), where `block` is `{"checkpoint": ...,
+    every Entry sealed so far) with one Epoch's `entries` and seal it.
+    Returns (epoch, new_leaves), where `epoch` is `{"checkpoint": ...,
     "entries": entries}`."""
     new_leaves = leaves + [leaf_hash(rfc8785.dumps(e)) for e in entries]
     root = merkle_tree_root(new_leaves) if new_leaves else EMPTY_ROOT
-    note = checkpoint_note(log_id, key, len(new_leaves), root, block_number, sealed_at)
+    note = checkpoint_note(log_id, key, len(new_leaves), root, epoch_number, sealed_at)
     return {"checkpoint": note, "entries": entries}, new_leaves
 
 def prefix_leaves(history: list) -> list:
-    """The cumulative Log tree's leaf hashes through a `blocks` prefix loaded
-    back from a previously written vector (WIST-3 §3.1: a Block is just the
+    """The cumulative Log tree's leaf hashes through a `epochs` prefix loaded
+    back from a previously written vector (WIST-3 §3.1: an Epoch is just the
     Entries between two Checkpoints, replayed here in Entry order)."""
     return [leaf_hash(rfc8785.dumps(e)) for blk in history for e in blk["entries"]]
 
@@ -475,7 +475,7 @@ def recovery_order_leaf(envelope):
     return leaf_hash(rfc8785.dumps(recovery_order_entry(envelope)))
 
 
-def recovery_order_case(name, reverse_leaves, split_blocks=False, ordinary_first=False):
+def recovery_order_case(name, reverse_leaves, split_epochs=False, ordinary_first=False):
     initial = sign_envelope("publisher", publisher, KID1)
     prefix = [initial]
     if ordinary_first:
@@ -496,20 +496,20 @@ def recovery_order_case(name, reverse_leaves, split_blocks=False, ordinary_first
     else:
         raise AssertionError("no discriminating recovery leaf order")
     batches = [[initial], prefix[1:] + [first, second]]
-    if split_blocks:
+    if split_epochs:
         batches = [[initial], [first], [second]]
-    blocks, tree_leaves = [], []
+    epochs, tree_leaves = [], []
     for height, batch in enumerate(batches):
         entries = sorted(map(recovery_order_entry, batch),
                          key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
-        block, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height,
+        epoch, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height,
                                   f"2026-08-04T{height:02d}:00:00Z")
-        blocks.append(block)
-    return {"name": name, "blocks": blocks, "pinned_head": root_token(tree_leaves),
+        epochs.append(epoch)
+    return {"name": name, "epochs": epochs, "pinned_head": root_token(tree_leaves),
             "expected": {"application_sequences": list(range(len(prefix) + 2)),
                          "owner_sequence": first_inner["seq"], "owner_height": 1,
                          "owner_declaration": decl_hash(first_inner),
-                         "opened_at": note_field(blocks[1]["checkpoint"], "sealed_at"),
+                         "opened_at": note_field(epochs[1]["checkpoint"], "sealed_at"),
                          "windows_opened": 1},
             "recovery_leaves_reversed": reverse_leaves}
 
@@ -517,17 +517,17 @@ def recovery_order_case(name, reverse_leaves, split_blocks=False, ordinary_first
 write_json(WIST1 / "recovery-order.json", {
     "note": "WIST-1 section 5.2 and WIST-3 section 3.3 recovery ownership over "
             "valid serial Declaration histories. The supplied Log key and pinned head "
-            "are trusted fixture inputs. All queries are at the final Block, strictly "
+            "are trusted fixture inputs. All queries are at the final Epoch, strictly "
             "inside the default seven-day recovery window; no settlement, conflicting "
             "candidate disposition or identity-reset result is asserted. The second "
             "recovery is signed by the recovery key installed by the first.",
     "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
     "recovery_window_days": 7,
-    "declaration_activation_blocks": 0,
+    "declaration_activation_epochs": 0,
     "cases": [
-        recovery_order_case("same Block reversed recovery leaves", True),
-        recovery_order_case("same Block ascending recovery leaves", False),
-        recovery_order_case("later Block does not reopen recovery", True, split_blocks=True),
+        recovery_order_case("same Epoch reversed recovery leaves", True),
+        recovery_order_case("same Epoch ascending recovery leaves", False),
+        recovery_order_case("later Epoch does not reopen recovery", True, split_epochs=True),
         recovery_order_case("ordinary predecessor before two recoveries", True, ordinary_first=True),
     ],
 })
@@ -578,12 +578,12 @@ def recovery_settlement_vectors():
     cases = []
     for name, window, effective, superseded in scenarios:
         events = [initial, owner] + window
-        blocks, tree_leaves = [], []
+        epochs, tree_leaves = [], []
         for height in range(170):
             entries = [recovery_order_entry(events[height])] if height < len(events) else []
-            block, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height,
+            epoch, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height,
                                       timestamp(height))
-            blocks.append(block)
+            epochs.append(epoch)
         served = []
         for index, (signer, key_id) in enumerate([
                 (priv, KID1), (priv3, KID3),
@@ -619,7 +619,7 @@ def recovery_settlement_vectors():
         bad["sig"]["value"] = b64u(raw)
         probes.append({"name": "invalid Declaration author signature",
                        "prefix_height": 0, "candidate": bad, "expected_result": "WIST1-E01"})
-        cases.append({"name": name, "blocks": blocks, "pinned_head": root_token(tree_leaves),
+        cases.append({"name": name, "epochs": epochs, "pinned_head": root_token(tree_leaves),
                       "initial_declaration": projection(initial),
                       "pre_recovery_keys": [KID1], "recovery_declaration": projection(owner),
                       "window_declarations": [projection(env) for env in window], "served": served,
@@ -677,21 +677,21 @@ def recovery_settlement_vectors():
     binding("scope granted only at settlement prevents queue admission", publisher["keys"], [K2], [K2],
             scoped_delta, False, False, (bare_scope, bare_scope, full_scope))
     write_json(WIST1 / "recovery-settlement.json", {
-        "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Blocks, "
+        "note": "WIST-1 section 5.2. Each case supplies 170 authenticated hourly Epochs, "
                 "opening recovery at height 1 and settling at height 169. Declaration projections "
-                "must match their signed Envelopes and Block Entries. Every key in each history "
+                "must match their signed Envelopes and Epoch Entries. Every key in each history "
                 "has a fixed window; separate binding_cases vary the windows and the frozen "
                 "admission and settlement scopes, each given as a domain and its subdomain_scope. "
                 "Every timestamp probe uses whole-second literal-Z values; this family does not "
                 "establish the broader RFC 3339 profile of observed_at. Signed served Deltas are "
                 "distinct new URLs received in array order at hour 10; their shape and signature "
-                "eligibility are exercised, not Payload availability, quotas or actual Block packing. "
+                "eligibility are exercised, not Payload availability, quotas or actual Epoch packing. "
                 "expected.eligible denotes signature-eligible survivors in acceptance order, not proof "
-                "of their eventual inclusion. Each probe independently replaces the next Block's "
+                "of their eventual inclusion. Each probe independently replaces the next Epoch's "
                 "Declaration as an unsealed candidate and must reject without changing its prefix. "
                 "Snapshot recovery is not established by these histories.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "recovery_window_days": 7, "declaration_activation_epochs": 0,
         "cases": cases, "binding_cases": binding_cases})
 
 
@@ -753,13 +753,13 @@ def recovery_binding_vectors():
                 recovery_keys=[R2]), KID2)
             follower = sign_envelope_with(priv3, "publisher", dict(owner["publisher"], seq=2,
                 prev_declaration=decl_hash(owner["publisher"]), keys=[key("c")]), KID3)
-            blocks, tree_leaves = [], []
+            epochs, tree_leaves = [], []
             for height, env in enumerate((initial, owner, follower)):
-                block, tree_leaves = seal("test-log-k1", priv, tree_leaves,
+                epoch, tree_leaves = seal("test-log-k1", priv, tree_leaves,
                                           [recovery_order_entry(env)], height,
                                           f"2026-08-04T{height:02d}:00:00Z")
-                blocks.append(block)
-            histories[history_name] = {"blocks": blocks, "pinned_head": root_token(tree_leaves)}
+                epochs.append(epoch)
+            histories[history_name] = {"epochs": epochs, "pinned_head": root_token(tree_leaves)}
 
             def add(label, signer, identifier, expected, observed_at=instant, damage=None):
                 inner = dict(delta, url="https://example.com/recovery/bindings", observed_at=observed_at)
@@ -798,7 +798,7 @@ def recovery_binding_vectors():
             add("offset equality", signers["b"], kids["b"], outcomes[1], observed_at=equivalent)
     write_json(WIST1 / "recovery-bindings.json", {
         "note": "WIST-1 sections 4, 5.1 and 5.2. Each history authenticates an initial Declaration, "
-                "a recovery owner and an ordinary recovery-chain follower in three hourly Blocks. "
+                "a recovery owner and an ordinary recovery-chain follower in three hourly Epochs. "
                 "The supplied Log key and pinned head are trusted fixture inputs. Every independent Delta "
                 "probe uses the prefix through prefix_height; the open window freezes the initial and "
                 "owner signing bindings even after the follower. accepted denotes only successful Delta "
@@ -808,7 +808,7 @@ def recovery_binding_vectors():
                 "accepted probes supply no live clock. "
                 "Reversed-array histories re-sign Declarations and rebuild authenticated hashes.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "recovery_window_days": 7, "declaration_activation_epochs": 0,
         "histories": histories, "cases": cases})
 
 
@@ -830,7 +830,7 @@ def recovery_heads_vectors():
     after = signed(recovered, 31, priv3, KID3, contact="mailto:after@example.com")
     events = {0: initial, 1: owner, 2: fresh, 3: follower, 4: fresh_again,
               5: recovered, 6: competitor, 169: after}
-    blocks, tree_leaves = [], []
+    epochs, tree_leaves = [], []
     leaves_before = []
     start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
     def timestamp(hour):
@@ -838,8 +838,8 @@ def recovery_heads_vectors():
     for height in range(171):
         leaves_before.append(list(tree_leaves))
         entries = [recovery_order_entry(events[height])] if height in events else []
-        block, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height, timestamp(height))
-        blocks.append(block)
+        epoch, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height, timestamp(height))
+        epochs.append(epoch)
     def state(current, head, floor, opened_at=1, windows=1):
         return {"current_declaration": decl_hash(current["publisher"]),
                 "recovery_head": decl_hash(head["publisher"]) if head else None,
@@ -901,7 +901,7 @@ def recovery_heads_vectors():
     raw = bytearray(base64.urlsafe_b64decode(bad_signature["sig"]["value"] + "=="))
     raw[0] ^= 1
     bad_signature["sig"]["value"] = b64u(raw)
-    probe("Block inclusion cannot replace author verification", 2, 3, bad_signature,
+    probe("Epoch inclusion cannot replace author verification", 2, 3, bad_signature,
           "WIST1-E01", state(fresh, owner, 10))
     probe("noncurrent recovery head re serve before settlement rejects", 6, 168,
           recovered, "WIST1-E08", state(competitor, recovered, 30))
@@ -913,10 +913,10 @@ def recovery_heads_vectors():
           recovered, "idempotent", state(recovered, None, 30))
     probe("superseded competitor re serve at settlement rejects", 168, 169,
           competitor, "WIST1-E08", state(recovered, None, 30))
-    probe("legitimate follower in deadline Block", 168, 169, after,
+    probe("legitimate follower in deadline Epoch", 168, 169, after,
           "ordinary_rotation", state(after, None, 31))
     obsolete = signed(competitor, 31, priv, KID1)
-    probe("superseded predecessor in deadline Block rejects", 168, 169, obsolete,
+    probe("superseded predecessor in deadline Epoch rejects", 168, 169, obsolete,
           "WIST1-E08", state(recovered, None, 30))
     low_seq = signed(recovered, 22, priv3, KID3)
     probe("settlement retains competing sequence floor", 168, 169, low_seq,
@@ -928,9 +928,9 @@ def recovery_heads_vectors():
           signed(competitor, 32, priv, KID1), "WIST1-E08", state(after, None, 31))
     competitor_recovery = signed(fresh, 11, priv4, KID4,
                                  recovery_keys=publisher["recovery_keys"])
-    branch_block, branch_leaves = seal("test-log-k1", priv, leaves_before[3],
+    branch_epoch, branch_leaves = seal("test-log-k1", priv, leaves_before[3],
                                        [recovery_order_entry(competitor_recovery)], 3, timestamp(3))
-    branch = {"blocks": blocks[:3] + [branch_block], "pinned_head": root_token(branch_leaves),
+    branch = {"epochs": epochs[:3] + [branch_epoch], "pinned_head": root_token(branch_leaves),
               "expected_state": state(competitor_recovery, owner, 11)}
     follows_named = signed(owner, 12, priv3, KID3)
     probe("ordinary follower preserves named head recovery set", 3, 4, follows_named,
@@ -953,15 +953,15 @@ def recovery_heads_vectors():
     ]
     write_json(WIST1 / "recovery-heads.json", {
         "note": "WIST-1 section 5.2 accepted sequence and recovery heads. The supplied "
-                "Log key and final pinned head authenticate one complete hourly Block chain. "
+                "Log key and final pinned head authenticate one complete hourly Epoch chain. "
                 "An optional branch index selects an independently pinned alternate history. "
                 "Queries replay through prefix_height, settle at candidate_sealed_at, then "
                 "evaluate one independent unsealed candidate. Rejection preserves the "
                 "post-settlement state. No invalid candidate is asserted to be a valid "
                 "sealed Entry. No identity or conflicting-batch result is asserted.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "declaration_activation_blocks": 0,
-        "blocks": blocks, "pinned_head": root_token(tree_leaves),
+        "recovery_window_days": 7, "declaration_activation_epochs": 0,
+        "epochs": epochs, "pinned_head": root_token(tree_leaves),
         "branches": [branch],
         "expected_prefix_states": [{"height": height, "state": expected}
                                    for height, expected in traces],
@@ -1000,31 +1000,31 @@ def recovery_admission_vectors():
     start = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc)
     def timestamp(hour, seconds=0):
         return (start + datetime.timedelta(hours=hour, seconds=seconds)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    def block(height, leaves, names):
+    def epoch(height, leaves, names):
         entries = sorted((recovery_order_entry(declarations[name]) for name in names),
                          key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
         return seal("test-log-k1", priv, leaves, entries, height, timestamp(height))
-    blocks, tree_leaves = [], []
+    epochs, tree_leaves = [], []
     for height in range(168):
-        result, tree_leaves = block(height, tree_leaves,
+        result, tree_leaves = epoch(height, tree_leaves,
                                     ["initial"] if height == 0 else ["owner"] if height == 1 else [])
-        blocks.append(result)
+        epochs.append(result)
     leaves168 = tree_leaves
 
     cases = []
     def case(name, accepted, sealed, retained, discarded, current, floor,
              post=None, log_current=None, log_floor=None, new_window=False, boundary=None,
              new_window_owner=None, log_reset=False, overdue=False):
-        before, leaves_before_169 = block(168, leaves168, sealed)
+        before, leaves_before_169 = epoch(168, leaves168, sealed)
         post = post or []
-        deadline, leaves_after_deadline = block(169, leaves_before_169,
+        deadline, leaves_after_deadline = epoch(169, leaves_before_169,
                                                 retained + [item[0] for item in post if item[1] != "WIST1-E08"])
         probes = [{"declaration": item, "expected": result} for item, result in post]
         cases.append({
             "name": name,
             "admitted_at": boundary or timestamp(167, 1),
             "admitted": accepted,
-            "last_inside_block": before,
+            "last_inside_epoch": before,
             "last_inside_pin": root_token(leaves_before_169),
             "expected_settlement": {"current": current, "floor": floor,
                                     "queue_source": "owner", "retained": retained,
@@ -1034,7 +1034,7 @@ def recovery_admission_vectors():
             "expected_after_repeat": {"current": post[-1][0] if post and post[-1][1] != "WIST1-E08" else current,
                                       "floor": declarations[post[-1][0]]["publisher"]["seq"]
                                       if post and post[-1][1] != "WIST1-E08" else floor},
-            "deadline_block": deadline,
+            "deadline_epoch": deadline,
             "deadline_pin": root_token(leaves_after_deadline),
             "expected_log": {"current": log_current or (post[-1][0] if post and post[-1][1] != "WIST1-E08" else current),
                              "floor": log_floor if log_floor is not None else (declarations[post[-1][0]]["publisher"]["seq"]
@@ -1045,8 +1045,8 @@ def recovery_admission_vectors():
         if new_window:
             cases[-1]["expected_window_owner"] = new_window_owner or "recovered"
         if discarded == ["fresh"]:
-            revival, leaves_revival = block(169, leaves_before_169, ["fresh"])
-            cases[-1]["forbidden_revival"] = {"block": revival, "pin": root_token(leaves_revival),
+            revival, leaves_revival = epoch(169, leaves_before_169, ["fresh"])
+            cases[-1]["forbidden_revival"] = {"epoch": revival, "pin": root_token(leaves_revival),
                                              "log_current": "fresh", "log_reset_height": 169}
     case("pending fresh competitor is removed", ["fresh"], [], [], ["fresh"], "owner", 2,
          post=[("fresh", "WIST1-E08")], log_floor=1)
@@ -1075,17 +1075,17 @@ def recovery_admission_vectors():
          ["fresh", "branch", "branch_recovery"], "owner", 4, log_floor=1,
          boundary=timestamp(2, 1), overdue=True)
     write_json(WIST1 / "recovery-admission.json", {
-        "note": "WIST-1 section 5.2. Shared signed hourly prefix plus each case's last inside Block "
-                "and deadline Block authenticate sealed Declaration state. Named signed admission "
+        "note": "WIST-1 section 5.2. Shared signed hourly prefix plus each case's last inside Epoch "
+                "and deadline Epoch authenticate sealed Declaration state. Named signed admission "
                 "candidates are separate supplied local events, not claims of inclusion. Admission "
-                "happens at admitted_at, including when later than last_inside_block. Settle at "
+                "happens at admitted_at, including when later than last_inside_epoch. Settle at "
                 "deadline, evaluate at_deadline candidates in order, then repeat admission settlement "
-                "before evaluating the deadline Block. No Delta, Payload, quota, Snapshot, durable "
+                "before evaluating the deadline Epoch. No Delta, Payload, quota, Snapshot, durable "
                 "storage or authenticated Audit Record eligibility is asserted.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "recovery_window_days": 7, "declaration_activation_epochs": 0,
         "deadline": timestamp(169),
-        "blocks": blocks, "pinned_head": root_token(tree_leaves),
+        "epochs": epochs, "pinned_head": root_token(tree_leaves),
         "declarations": declarations, "cases": cases,
     })
 
@@ -1098,7 +1098,7 @@ def declaration_conflict_vectors():
                      prev_declaration=decl_hash(previous["publisher"]), **changes)
         return sign_envelope_with(signer, "publisher", inner, key_id)
 
-    def block(leaves, height, batch):
+    def epoch(leaves, height, batch):
         entries = sorted(map(recovery_order_entry, batch),
                          key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
         instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=height)
@@ -1115,14 +1115,14 @@ def declaration_conflict_vectors():
     initial = sign_envelope("publisher", publisher, KID1)
     owner = signed(initial, 1, priv2, KID2, keys=[K2], recovery_keys=[R2])
     fresh = signed(owner, 2, keys=publisher["keys"])
-    blocks, tree_leaves = [], []
+    epochs, tree_leaves = [], []
     leaves_before = [[]]
     for height in range(169):
         batch = [initial] if height == 0 else [owner] if height == 1 else [fresh] if height == 2 else []
-        result, tree_leaves = block(tree_leaves, height, batch)
-        blocks.append(result)
+        result, tree_leaves = epoch(tree_leaves, height, batch)
+        epochs.append(result)
         leaves_before.append(tree_leaves)
-    prefixes = {"empty": [], "initial": blocks[:1], "open": blocks[:3], "deadline": blocks}
+    prefixes = {"empty": [], "initial": epochs[:1], "open": epochs[:3], "deadline": epochs}
     prefix_leaves = {"empty": leaves_before[0], "initial": leaves_before[1],
                      "open": leaves_before[3], "deadline": leaves_before[169]}
     initial_state = {"example.com": state(initial)}
@@ -1132,8 +1132,8 @@ def declaration_conflict_vectors():
     def add(name, prefix, batch, expected, result="accepted", isolated=(), invalid=(), **fields):
         history = prefixes[prefix]
         leaves = prefix_leaves[prefix]
-        candidate, candidate_leaves = block(leaves, len(history), batch)
-        cases.append({"name": name, "prefix": prefix, "block": candidate,
+        candidate, candidate_leaves = epoch(leaves, len(history), batch)
+        cases.append({"name": name, "prefix": prefix, "epoch": candidate,
                       "pinned_head": root_token(candidate_leaves),
                       "expected_results": [result], "expected_state": expected,
                       "signature_valid": [entry["body"] not in invalid for entry in candidate["entries"]],
@@ -1188,7 +1188,7 @@ def declaration_conflict_vectors():
         {"example.com": state(owner, floor=2, windows=1)})
     after_left = signed(owner, 3, priv3, KID3, contact="mailto:afterleft@example.com")
     after_right = signed(owner, 3, priv3, KID3, contact="mailto:afterright@example.com")
-    add("rejected deadline Block does not settle", "deadline", [after_left, after_right],
+    add("rejected deadline Epoch does not settle", "deadline", [after_left, after_right],
         open_state, "WIST1-E08",
         [(owner, after_left, "ordinary_rotation"), (owner, after_right, "ordinary_rotation")])
     invalid_author = sign_envelope_with(priv4, "publisher", ordinary["publisher"], KID1)
@@ -1200,7 +1200,7 @@ def declaration_conflict_vectors():
         initial_state, "WIST1-E01", [(initial, invalid_author, "WIST1-E01")], invalid=[invalid_author])
     add("current object and changed sibling conflict", "initial", [initial, alternate_initial],
         initial_state, "WIST1-E08")
-    add("initial and duplicate replacement in one Block", "empty", [initial, ordinary, ordinary],
+    add("initial and duplicate replacement in one Epoch", "empty", [initial, ordinary, ordinary],
         {"example.com": state(ordinary)})
     invalid_other = sign_envelope_with(priv4, "publisher", other["publisher"], KID1)
     add("different domains may report either failure", "initial", [invalid_other, ordinary, recovery_same],
@@ -1216,7 +1216,7 @@ def declaration_conflict_vectors():
         isolated=[(owner, fresh_settled, "fresh_identity")])
     write_json(WIST1 / "declaration-conflicts.json", {
         "note": "WIST-1 section 5.2 and WIST-3 section 3.3 equal-sequence Declaration groups. "
-                "Each case appends its Block to the named authenticated prefix; trusted fixture "
+                "Each case appends its Epoch to the named authenticated prefix; trusted fixture "
                 "inputs are the supplied Log key, pinned head and default seven-day window. "
                 "Expected state hashes commit to whole installed Envelopes, including signatures. "
                 "The deadline prefix ends one hour before settlement. Candidate classification "
@@ -1224,7 +1224,7 @@ def declaration_conflict_vectors():
                 "authorship against fixture key bindings, not eligibility or idempotent installation. "
                 "No Snapshot eligibility is asserted. Domain iteration order is immaterial to accepted state.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "recovery_window_days": 7, "declaration_activation_epochs": 0,
         "prefixes": prefixes, "cases": cases})
 
 
@@ -1378,8 +1378,8 @@ def declaration_field_vectors():
         ("positive leap boundary", (nbf_at("2016-12-31T23:59:59Z"), None), "2017-01-01T00:00:00Z", "key_bound_satisfied"),
         ("leap second not counted", (nbf_at("2017-01-01T00:00:00Z"), None), "2016-12-31T23:59:59.999Z", "WIST1-E02"),
         ("hypothetical deletion keeps 59", (nbf_at("2030-06-30T23:59:58Z"), None), "2030-06-30T23:59:59Z", "key_bound_satisfied"),
-        ("epoch origin", (0, None), "1970-01-01T00:00:00Z", "key_bound_satisfied"),
-        ("before the epoch precedes every window", (0, None), "1969-12-31T23:59:59.999Z", "WIST1-E02"),
+        ("Unix time origin", (0, None), "1970-01-01T00:00:00Z", "key_bound_satisfied"),
+        ("before the Unix time origin precedes every window", (0, None), "1969-12-31T23:59:59.999Z", "WIST1-E02"),
         ("year zero precedes every window", (0, None), "0000-01-01T00:00:00+23:59", "WIST1-E02"),
         ("last representable start", (253402300799, None), "9999-12-31T23:59:59Z", "key_bound_satisfied"),
         ("offset beyond the written year range", (253402300799, None), "9999-12-31T23:59:59.5-00:01", "key_bound_satisfied"),
@@ -1419,7 +1419,7 @@ def declaration_field_vectors():
         case["envelope"] = sign_envelope("delta", inner, KID1)
         relation_cases.append(case)
 
-    def block(leaves, height, batch):
+    def epoch(leaves, height, batch):
         entries = sorted(map(recovery_order_entry, batch),
                          key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
         instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=height)
@@ -1429,9 +1429,9 @@ def declaration_field_vectors():
     batches = []
     other = sign_envelope("publisher", dict(publisher, domain="other.example"), KID1)
     for case in cases:
-        batch, batch_leaves = block(prefix_leaves(conflicts["prefixes"]["initial"]), 1,
+        batch, batch_leaves = epoch(prefix_leaves(conflicts["prefixes"]["initial"]), 1,
                                     [other, case["envelope"]])
-        batches.append({"name": case["name"], "prefix": "initial", "block": batch,
+        batches.append({"name": case["name"], "prefix": "initial", "epoch": batch,
                         "pinned_head": root_token(batch_leaves),
                         "expected": "accepted" if case["expected"] == "ordinary_rotation" else case["expected"]})
     valid = sign_envelope("publisher", ordinary, KID1)
@@ -1444,16 +1444,16 @@ def declaration_field_vectors():
         ("repaired field accepts both sequences", [valid, sign_envelope_with(
             priv3, "publisher", dict(later, contact="mailto:security@example.com"), KID3)], "accepted"),
     ):
-        batch, batch_leaves = block(prefix_leaves(conflicts["prefixes"]["initial"]), 1, members + [other])
-        batches.append({"name": name, "prefix": "initial", "block": batch,
+        batch, batch_leaves = epoch(prefix_leaves(conflicts["prefixes"]["initial"]), 1, members + [other])
+        batches.append({"name": name, "prefix": "initial", "epoch": batch,
                         "pinned_head": root_token(batch_leaves), "expected": expected})
     for prefix in ("empty", "initial", "open", "deadline"):
         history = conflicts["prefixes"][prefix]
         current = initial if prefix in ("empty", "initial") else history[2]["entries"][0]["body"]
         env = json.loads(json.dumps(current))
         env["sig"]["unknown"] = True
-        batch, batch_leaves = block(prefix_leaves(history), len(history), [other, env])
-        batches.append({"name": "malformed re serve " + prefix, "prefix": prefix, "block": batch,
+        batch, batch_leaves = epoch(prefix_leaves(history), len(history), [other, env])
+        batches.append({"name": "malformed re serve " + prefix, "prefix": prefix, "epoch": batch,
                         "pinned_head": root_token(batch_leaves), "expected": "WIST1-E14"})
     for prefix in ("empty", "initial", "open", "deadline"):
         history = conflicts["prefixes"][prefix]
@@ -1462,9 +1462,9 @@ def declaration_field_vectors():
             inner = json.loads(json.dumps(current["publisher"]))
             inner[array][0]["nbf"] = -1
             env = sign_envelope("publisher", inner, KID1)
-            batch, batch_leaves = block(prefix_leaves(history), len(history), [other, env])
+            batch, batch_leaves = epoch(prefix_leaves(history), len(history), [other, env])
             batches.append({"name": "negative start rolls back " + array + " " + prefix,
-                            "prefix": prefix, "block": batch,
+                            "prefix": prefix, "epoch": batch,
                             "pinned_head": root_token(batch_leaves), "expected": "WIST1-E14"})
     write_json(WIST1 / "declaration-fields.json", {
         "note": "WIST-1 sections 3.4, 5.1 and 7. Signature-valid field mutations use the supplied fixture "
@@ -1481,9 +1481,9 @@ def declaration_field_vectors():
                 "position, chain availability and clock acquisition are supplied assumptions. Hostname coverage is limited to ASCII structural examples. No full field profile, "
                 "cryptographic key admission, Snapshot restoration or live service conformance is asserted.",
         "log_key": conflicts["log_key"], "author_key": b64u(pub_raw), "stored": initial,
-        "recovery_window_days": 7, "declaration_activation_blocks": 0,
+        "recovery_window_days": 7, "declaration_activation_epochs": 0,
         "prefixes": conflicts["prefixes"],
-        "cases": cases, "delta_cases": delta_cases, "block_cases": batches,
+        "cases": cases, "delta_cases": delta_cases, "epoch_cases": batches,
         "key_time_cases": key_time_cases, "elapsed_cases": elapsed_cases, "relation_cases": relation_cases})
 
 
@@ -1636,11 +1636,11 @@ def base64url_vectors():
         add(f"initial signature unused bits {bits}", publisher, signature_bits=bits)
         add(f"replacement signature unused bits {bits}", ordinary, initial, signature_bits=bits)
     conflicts = json.loads((WIST1 / "declaration-conflicts.json").read_text())
-    blocks = []
+    epochs = []
     for prefix in ("empty", "initial", "open", "deadline"):
         history = conflicts["prefixes"][prefix]
         current = initial if prefix in {"empty", "initial"} else next(
-            entry["body"] for block in history for entry in block["entries"]
+            entry["body"] for epoch in history for entry in epoch["entries"]
             if entry["body"]["publisher"]["seq"] == (1 if prefix == "deadline" else 2))
         malformed = json.loads(json.dumps(current))
         malformed["sig"]["value"] = alias(malformed["sig"]["value"], 1)
@@ -1649,21 +1649,21 @@ def base64url_vectors():
             members = [other, current] + ([malformed] if reject else [])
             entries = sorted(map(recovery_order_entry, members), key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
             instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=len(history))
-            block, block_leaves = seal("test-log-k1", priv, prefix_leaves(history), entries, len(history),
+            epoch, epoch_leaves = seal("test-log-k1", priv, prefix_leaves(history), entries, len(history),
                                        instant.isoformat().replace("+00:00", "Z"))
-            blocks.append({"name": prefix + (" rejects signature alias" if reject else " accepts canonical twin"),
-                           "prefix": prefix, "block": block, "pinned_head": root_token(block_leaves),
+            epochs.append({"name": prefix + (" rejects signature alias" if reject else " accepts canonical twin"),
+                           "prefix": prefix, "epoch": epoch, "pinned_head": root_token(epoch_leaves),
                            "expected": "WIST1-E14" if reject else "accepted"})
     write_json(WIST1 / "base64url.json", {
         "note": "WIST-1 section 2 canonical base64url. Field cases establish encoding/length only, not point "
                 "eligibility or signatures. Declaration author signatures are valid under author_key even when "
                 "permissive decoding is needed to inspect a rejected signature alias; acceptance never repairs it. "
-                "Each Block appends to its named authenticated prefix; rejection preserves all state and the "
+                "Each Epoch appends to its named authenticated prefix; rejection preserves all state and the "
                 "accepted head, including due settlement and other domains. Canonical twins exercise acceptance. "
                 "Full field formats, live services, transport wrappers and Snapshot restoration are not established.",
         "author_key": b64u(pub_raw), "log_key": conflicts["log_key"], "recovery_window_days": 7,
-        "declaration_activation_blocks": 0,
-        "fields": fields, "cases": cases, "prefixes": conflicts["prefixes"], "block_cases": blocks})
+        "declaration_activation_epochs": 0,
+        "fields": fields, "cases": cases, "prefixes": conflicts["prefixes"], "epoch_cases": epochs})
 
 
 base64url_vectors()
@@ -1721,56 +1721,56 @@ def declaration_host_vectors():
                           'envelope': sign_envelope('publisher', inner, KID1),
                           'expected': 'initial' if host['expected'] == 'well_formed' else 'WIST1-E14'})
     conflicts = json.loads((WIST1 / 'declaration-conflicts.json').read_text())
-    blocks = []
+    epochs = []
 
-    def add_block(name, prefix, members, expected, domains=None):
+    def add_epoch(name, prefix, members, expected, domains=None):
         history = conflicts['prefixes'][prefix]
         entries = sorted(map(recovery_order_entry, members), key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
         instant = datetime.datetime(2026, 8, 4, tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=len(history))
-        block, block_leaves = seal('test-log-k1', priv, prefix_leaves(history), entries, len(history),
+        epoch, epoch_leaves = seal('test-log-k1', priv, prefix_leaves(history), entries, len(history),
                                    instant.isoformat().replace('+00:00', 'Z'))
-        blocks.append({'name': name, 'prefix': prefix, 'block': block,
-                       'pinned_head': root_token(block_leaves), 'expected': expected,
+        epochs.append({'name': name, 'prefix': prefix, 'epoch': epoch,
+                       'pinned_head': root_token(epoch_leaves), 'expected': expected,
                        'expected_domains': sorted(domains) if domains is not None else None})
 
     for case in cases:
-        add_block(case['name'], 'empty', [case['envelope']],
+        add_epoch(case['name'], 'empty', [case['envelope']],
                   'accepted' if case['expected'] == 'initial' else 'WIST1-E14',
                   [case['envelope']['publisher']['domain']] if case['expected'] == 'initial' else None)
     initial = sign_envelope('publisher', publisher, KID1)
     other = sign_envelope('publisher', variant(domain='other.example'), KID1)
     for spelling in ('EXAMPLE.com', 'example.com.'):
         alias = sign_envelope('publisher', variant(domain=spelling), KID1)
-        add_block('canonical and alternate ' + spelling, 'empty', [initial, alias, other], 'WIST1-E14')
+        add_epoch('canonical and alternate ' + spelling, 'empty', [initial, alias, other], 'WIST1-E14')
     upper_idn = sign_envelope('publisher', variant(domain='bücher.example'), KID1)
     canonical_idn = sign_envelope('publisher', variant(domain='xn--bcher-kva.example'), KID1)
-    add_block('U label and A label identity', 'empty', [upper_idn, canonical_idn], 'WIST1-E14')
-    add_block('canonical duplicate identity', 'empty', [canonical_idn, canonical_idn], 'accepted', ['xn--bcher-kva.example'])
+    add_epoch('U label and A label identity', 'empty', [upper_idn, canonical_idn], 'WIST1-E14')
+    add_epoch('canonical duplicate identity', 'empty', [canonical_idn, canonical_idn], 'accepted', ['xn--bcher-kva.example'])
     sibling = sign_envelope('publisher', variant(domain='xn--bcher-kva.example', contact='other'), KID1)
-    add_block('canonical identity conflicts', 'empty', [canonical_idn, sibling], 'WIST1-E08')
-    add_block('distinct canonical identities', 'empty', [initial, canonical_idn, other], 'accepted',
+    add_epoch('canonical identity conflicts', 'empty', [canonical_idn, sibling], 'WIST1-E08')
+    add_epoch('distinct canonical identities', 'empty', [initial, canonical_idn, other], 'accepted',
               ['example.com', 'xn--bcher-kva.example', 'other.example'])
     for prefix in ('initial', 'open', 'deadline'):
         history = conflicts['prefixes'][prefix]
         current = initial if prefix == 'initial' else next(
-            entry['body'] for block in history for entry in block['entries']
+            entry['body'] for epoch in history for entry in epoch['entries']
             if entry['body']['publisher']['seq'] == (1 if prefix == 'deadline' else 2))
         malformed = dict(current['publisher'], subdomain_scope=['EXAMPLE.com'])
         bad = sign_envelope('publisher', malformed, KID1)
-        add_block(prefix + ' field before conflict and settlement', prefix, [current, bad, other], 'WIST1-E14')
-        add_block(prefix + ' canonical acceptance twin', prefix, [current, other], 'accepted',
+        add_epoch(prefix + ' field before conflict and settlement', prefix, [current, bad, other], 'WIST1-E14')
+        add_epoch(prefix + ' canonical acceptance twin', prefix, [current, other], 'accepted',
                   ['example.com', 'other.example'])
     write_json(WIST1 / 'declaration-hosts.json', {
         'note': 'WIST-1 sections 2 and 5.1 signed Canonical Host representation. Host cases distinguish '
                 'canonicalization from signed spelling eligibility. Every Declaration case has a valid '
                 'author signature but only expected initial cases have valid host fields. Each candidate '
-                'Block appends to its named authenticated prefix. Rejection preserves all state and the '
+                'Epoch appends to its named authenticated prefix. Rejection preserves all state and the '
                 'accepted head, including due recovery settlement. These fixtures do not establish full '
                 'Unicode mapping coverage, RFC 3339 eligibility, discovery, live service validation or '
                 'Snapshot recovery. Single label host acceptance asserts no suffix policy.',
         'author_key': b64u(pub_raw), 'log_key': conflicts['log_key'], 'recovery_window_days': 7,
-        'declaration_activation_blocks': 0,
-        'hosts': host_cases, 'cases': cases, 'prefixes': conflicts['prefixes'], 'block_cases': blocks})
+        'declaration_activation_epochs': 0,
+        'hosts': host_cases, 'cases': cases, 'prefixes': conflicts['prefixes'], 'epoch_cases': epochs})
 
 
 declaration_host_vectors()
@@ -1778,7 +1778,7 @@ declaration_host_vectors()
 # ------------------------------ WIST-1 §5.2: the Key Set at a sealing height
 # The ordinary resolution rule over key identifiers alone: a Delta sealed at height N
 # verifies under the highest-seq Declaration sealed at a height <= N, the
-# Block's own Declarations included (WIST-3 §3.3 applies them first). The
+# Epoch's own Declarations included (WIST-3 §3.3 applies them first). The
 # recovery exception is exercised by recovery-settlement.json.
 def keyset_at(declarations, height):
     applicable = [d for d in declarations if d["height"] <= height]
@@ -1812,9 +1812,9 @@ keyset_cases = [
          {"delta_id": "d-above-new", "height": 6, "signer": "k2"}],
         "§5.2: the Key Set at height N is the highest-seq Declaration sealed "
         "at or below N, so a Delta signed by the retired key verifies below "
-        "the rotation's Block and nowhere at or above it — the Block's own "
+        "the rotation's Epoch and nowhere at or above it — the Epoch's own "
         "Declaration applies first (WIST-3 §3.3) — while the new key "
-        "verifies from that Block onward."),
+        "verifies from that Epoch onward."),
     keyset_case(
         "rotation keeping the old key",
         [{"label": "genesis", "seq": 0, "height": 1, "keys": ["k1"]},
@@ -2157,7 +2157,7 @@ def page_keyset_current(declarations, generated_at_s):
 
 
 def page_keyset_next(declarations, generated_at_s):
-    """§3.2: the Key Set of the first Block after generated_at sealing a
+    """§3.2: the Key Set of the first Epoch after generated_at sealing a
     Declaration of the domain — the highest seq's where it seals several,
     the Key Set WIST-1 §5.2 resolves at that height."""
     after = [d for d in declarations if d["sealed_at_s"] > generated_at_s]
@@ -2223,7 +2223,7 @@ page_cases = [
         "retired key is under neither resolution, and the next Declaration "
         "after 200 is the second rotation, whose key k3 therefore verifies."),
     page_case(
-        "two rotations sealed in one block",
+        "two rotations sealed in one epoch",
         [{"label": "genesis", "seq": 0, "sealed_at_s": 100, "keys": ["k1"]},
          {"label": "rotation", "seq": 1, "sealed_at_s": 200, "keys": ["k2"]},
          {"label": "second rotation", "seq": 2, "sealed_at_s": 200, "keys": ["k3"]}],
@@ -2231,9 +2231,9 @@ page_cases = [
          {"page": 1, "generated_at_s": 150, "signer": "k2"},
          {"page": 2, "generated_at_s": 200, "signer": "k3"},
          {"page": 3, "generated_at_s": 200, "signer": "k2"}],
-        "§3.2: one Block seals seq 1 and seq 2, so both resolutions read the "
-        "Block's Key Set — the highest seq's, as WIST-1 §5.2 resolves it at "
-        "that height. k3 verifies under next for a Page cut before the Block "
+        "§3.2: one Epoch seals seq 1 and seq 2, so both resolutions read the "
+        "Epoch's Key Set — the highest seq's, as WIST-1 §5.2 resolves it at "
+        "that height. k3 verifies under next for a Page cut before the Epoch "
         "and under current for one cut at its instant; k2 was the Key Set at "
         "no instant and verifies under neither."),
 ]
@@ -2243,7 +2243,7 @@ write_json(WIST2V / "page-keyset.json", {
              "alone: `declarations` carry seq, sealing instant and keys, every "
              "one applicable; each Page carries generated_at and signer. Each "
              "`expected` row gives the Key Set current at generated_at, that "
-             "of the first Block after it sealing a Declaration (the highest "
+             "of the first Epoch after it sealing a Declaration (the highest "
              "seq's where it seals several), and which of the two the Page "
              "verifies under (`current`, `next`, or null for WIST2-E04)."),
     "cases": page_cases,
@@ -2284,7 +2284,7 @@ def page_binding_vectors():
     probe("incoming key uses first next named entry", "rotated", KID3, priv3, "next")
     probe("current key verifies current", "rotated", KID2, priv2, "current")
     probe("unlisted identifier cannot borrow a listed key", "rotated", KID5, priv2, "WIST2-E04")
-    probe("key from a later Block cannot supply authority", "rotated", KID4, priv4, "WIST2-E04")
+    probe("key from a later Epoch cannot supply authority", "rotated", KID4, priv4, "WIST2-E04")
     probe("incoming key is current at exact seal", "rotated", KID3, priv3, "current", "2026-08-09T13:00:00Z")
     probe("retired key cannot verify at exact seal", "rotated", KID2, priv2, "WIST2-E04", "2026-08-09T13:00:00Z")
     probe("incoming key before first contact is too late", "rotated", KID3, priv3, "WIST2-E04", "2026-08-09T11:00:00Z")
@@ -2297,7 +2297,7 @@ def page_binding_vectors():
     probe("current succeeds without a following Declaration", "rotated", KID4, priv4, "current", "2026-08-09T15:00:00Z")
     probe("retired key fails without a following Declaration", "rotated", KID3, priv3, "WIST2-E04", "2026-08-09T15:00:00Z")
     return dict(note="WIST-2 §3.2 named-entry verification over signed ordinary Declaration chains. "
-                "Sealing positions are supplied inputs, without Block inclusion or recovery proofs. "
+                "Sealing positions are supplied inputs, without Epoch inclusion or recovery proofs. "
                 "Empty Delta lists isolate signature/source selection; these are not publication or "
                 "Page-size fixtures. Future nbf values distinguish Pages from Delta filtering.",
                 histories=histories, probes=probes)
@@ -2316,7 +2316,7 @@ anchor = {
 write_json(EXAMPLES / "log-anchor.json", sign_envelope("anchor", anchor, "test-agg-k1"))
 print("wist3 log anchor example written")
 
-# ---------------------------------------------------------------- WIST-3: block
+# ---------------------------------------------------------------- WIST-3: epoch
 WIST3 = ROOT / "vectors" / "wist3"
 WIST3.mkdir(parents=True, exist_ok=True)
 
@@ -2351,7 +2351,7 @@ for n in (2, 3, 4):
 
 # WIST-3 §3.3: Entry order is canonical — grouped by type (all four here are
 # publisher_delta), ascending leaf-hash order within the group. None of the
-# attest chains reference each other inside the Block, so leaf-hash order
+# attest chains reference each other inside the Epoch, so leaf-hash order
 # and chain order impose no conflicting demand on this vector.
 entries.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
 
@@ -2359,13 +2359,13 @@ leaves = [leaf_hash(rfc8785.dumps(e)) for e in entries]
 n01 = node_hash(leaves[0], leaves[1])
 n23 = node_hash(leaves[2], leaves[3])
 root_bytes = node_hash(n01, n23)
-block_hash = "sha256:" + root_bytes.hex()
+epoch_hash = "sha256:" + root_bytes.hex()
 
 LOG_ID = anchor["log_id"]
 checkpoint_text = checkpoint_note(LOG_ID, priv, 4, root_bytes, 0, "2026-08-02T13:00:00Z")
 (EXAMPLES / "checkpoint.txt").write_text(checkpoint_text)
 
-block = {"checkpoint": checkpoint_text, "entries": entries}
+epoch = {"checkpoint": checkpoint_text, "entries": entries}
 
 inclusion_proof = {"index": 0, "tree_size": len(entries),
                    "path": [h.hex() for h in audit_path(0, leaves)]}
@@ -2375,7 +2375,7 @@ entry_bundle = entry_bundle_bytes([rfc8785.dumps(e) for e in entries])
 consistency_0_4 = consistency_proof(0, 4, leaves)
 assert consistency_0_4 == []
 
-write_json(WIST3 / "block.json", {
+write_json(WIST3 / "epoch.json", {
     "note": "WIST-3 Appendix A. The Log's static surface (§6) for its tree at size 4: "
             "the Checkpoint, the level-0 partial tile, the entry bundle, and the empty "
             "Consistency Proof from the empty tree (size 0) to size 4.",
@@ -2383,7 +2383,7 @@ write_json(WIST3 / "block.json", {
     "checkpoint": checkpoint_text,
     "entries": entries,
     "tree_size": 4,
-    "root": block_hash,
+    "root": epoch_hash,
     "leaf_hashes": [h.hex() for h in leaves],
     "tile_0_000_p_4": tile_0.hex(),
     "tile_0_000_p_4_path": tile_path(0, 0, 4),
@@ -2393,37 +2393,37 @@ write_json(WIST3 / "block.json", {
 })
 write_json(WIST3 / "inclusion-proof.json", inclusion_proof)
 
-# ------------------------------------------- WIST-3 §3.2, §4: the empty Block
-# A heartbeat Block carries no Entries, and §3.2 requires the Log to keep
-# sealing on cadence when nothing arrives: Block 1's Checkpoint restates
-# Block 0's tree size and root one cadence later. Every tree size in this
-# suite, the empty tree (before Block 0) included, is exactly RFC 6962's —
+# ------------------------------------------- WIST-3 §3.2, §4: the empty Epoch
+# A heartbeat Epoch carries no Entries, and §3.2 requires the Log to keep
+# sealing on cadence when nothing arrives: Epoch 1's Checkpoint restates
+# Epoch 0's tree size and root one cadence later. Every tree size in this
+# suite, the empty tree (before Epoch 0) included, is exactly RFC 6962's —
 # there is no deviation to contrast it with.
-block_1_checkpoint = checkpoint_note(LOG_ID, priv, 4, root_bytes, 1, "2026-08-02T14:00:00Z")
+epoch_1_checkpoint = checkpoint_note(LOG_ID, priv, 4, root_bytes, 1, "2026-08-02T14:00:00Z")
 consistency_4_4 = consistency_proof(4, 4, leaves)
 assert consistency_4_4 == []
-write_json(WIST3 / "empty-block.json", {
-    "note": "WIST-3 §3.2, §4: Block 1 of vectors/wist3/block.json's example Log is empty "
+write_json(WIST3 / "empty-epoch.json", {
+    "note": "WIST-3 §3.2, §4: Epoch 1 of vectors/wist3/epoch.json's example Log is empty "
             "— nothing eligible — so its Checkpoint restates the previous tree size and "
-            "root, one cadence later. The empty tree before Block 0 has size 0 and root "
+            "root, one cadence later. The empty tree before Epoch 0 has size 0 and root "
             "SHA-256(\"\") (RFC 6962 §2.1); the Consistency Proof from size 4 to size 4 is "
             "the equality of the two roots.",
     "empty_tree_size": 0,
     "empty_tree_root": "sha256:" + EMPTY_ROOT.hex(),
-    "block_0_root": block_hash,
-    "block_1": {"checkpoint": block_1_checkpoint, "entries": []},
+    "epoch_0_root": epoch_hash,
+    "epoch_1": {"checkpoint": epoch_1_checkpoint, "entries": []},
     "consistency_proof_4_to_4": [h.hex() for h in consistency_4_4],
 })
 
 # ----------------------------------- WIST-3 §§4-6, 8-10: Checkpoint vectors
-# One cumulative tree over the Appendix A Log: Block 0 (leaves 0-3, this
-# file's `block`/`leaves`/`root_bytes`), Block 1 (empty, `block_1_checkpoint`),
-# Block 2 (leaves 4-6, three more Entries, below). Hourly `sealed_at`.
+# One cumulative tree over the Appendix A Log: Epoch 0 (leaves 0-3, this
+# file's `epoch`/`leaves`/`root_bytes`), Epoch 1 (empty, `epoch_1_checkpoint`),
+# Epoch 2 (leaves 4-6, three more Entries, below). Hourly `sealed_at`.
 entries2 = [{"type": "publisher_delta", "body": attest_delta(n, synthetic_prior_id(n))}
            for n in (5, 6, 7)]
 entries2.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
-block2, leaves2 = seal(LOG_ID, priv, leaves, entries2, 2, "2026-08-02T15:00:00Z")
-checkpoint2 = block2["checkpoint"]
+epoch2, leaves2 = seal(LOG_ID, priv, leaves, entries2, 2, "2026-08-02T15:00:00Z")
+checkpoint2 = epoch2["checkpoint"]
 consistency_4_7 = consistency_proof(4, 7, leaves2)
 assert consistency_4_7, "the 4-to-7 proof must carry at least one node to be worth altering"
 altered_4_7 = list(consistency_4_7)
@@ -2448,11 +2448,11 @@ def bad_cosignature_line(name: str, key, checkpoint_text: str, timestamp: int) -
     payload = kid + timestamp.to_bytes(8, "big") + bytes(sig)
     return "— %s %s\n" % (name, base64.b64encode(payload).decode())
 
-# §5 note-form cases: a positive control (Block 0's Checkpoint) with one
+# §5 note-form cases: a positive control (Epoch 0's Checkpoint) with one
 # field at a time broken, plus two `valid` cases carrying a signature line
 # under a signer this check's roster does not know.
-_base_lines = note_text_only(block["checkpoint"]).rstrip("\n").split("\n")
-_sig_block = block["checkpoint"].split("\n\n", 1)[1]
+_base_lines = note_text_only(epoch["checkpoint"]).rstrip("\n").split("\n")
+_sig_block = epoch["checkpoint"].split("\n\n", 1)[1]
 
 def _note(lines) -> str:
     return "\n".join(lines) + "\n\n" + _sig_block
@@ -2461,7 +2461,7 @@ def _with_sealed_at(value: str) -> str:
     lines = list(_base_lines); lines[4] = "sealed_at " + value
     return _note(lines)
 
-def _with_block_number_line(value: str) -> str:
+def _with_epoch_number_line(value: str) -> str:
     lines = list(_base_lines); lines[3] = value
     return _note(lines)
 
@@ -2479,9 +2479,9 @@ note_form_cases = [
      "expected": "WIST3-E03"},
     {"name": "four-line note text", "checkpoint": _note(_base_lines[:-1]),
      "expected": "WIST3-E03"},
-    {"name": "block_number with a leading zero", "checkpoint": _with_block_number_line("block_number 01"),
+    {"name": "epoch_number with a leading zero", "checkpoint": _with_epoch_number_line("epoch_number 01"),
      "expected": "WIST3-E03"},
-    {"name": "block_number with two spaces", "checkpoint": _with_block_number_line("block_number  0"),
+    {"name": "epoch_number with two spaces", "checkpoint": _with_epoch_number_line("epoch_number  0"),
      "expected": "WIST3-E03"},
     {"name": "sealed_at with fractional seconds", "checkpoint": _with_sealed_at("2026-08-02T13:00:00.5Z"),
      "expected": "WIST3-E03"},
@@ -2514,7 +2514,7 @@ consistency_cases = [
 ]
 
 # WIST-3 §4, §5: the same rule where the size-0 root is a validly signed
-# Checkpoint's own. Block 0 of a Log states size 0 before any Entry is
+# Checkpoint's own. Epoch 0 of a Log states size 0 before any Entry is
 # sealed; a Checkpoint stating size 0 with another root is signed chain
 # divergence, and the one Checkpoint is the whole evidence.
 size_zero_cases = [
@@ -2529,14 +2529,14 @@ size_zero_cases = [
 ROLLBACK_EQUIVOCATING = checkpoint_note(LOG_ID, priv, 4, root_bytes, 1, "2026-08-02T14:30:00Z")
 
 rollback_cases = [
-    {"name": "lower Checkpoint identical to the one verified at its block_number",
-     "verified_head_block_number": 2, "verified_checkpoint": block_1_checkpoint,
-     "offered_checkpoint": block_1_checkpoint, "expected": "not_adopted"},
+    {"name": "lower Checkpoint identical to the one verified at its epoch_number",
+     "verified_head_epoch_number": 2, "verified_checkpoint": epoch_1_checkpoint,
+     "offered_checkpoint": epoch_1_checkpoint, "expected": "not_adopted"},
     {"name": "lower Checkpoint never retained",
-     "verified_head_block_number": 2, "verified_checkpoint": None,
-     "offered_checkpoint": block_1_checkpoint, "expected": "not_adopted"},
-    {"name": "lower Checkpoint whose note text differs from the one verified at its block_number",
-     "verified_head_block_number": 2, "verified_checkpoint": block_1_checkpoint,
+     "verified_head_epoch_number": 2, "verified_checkpoint": None,
+     "offered_checkpoint": epoch_1_checkpoint, "expected": "not_adopted"},
+    {"name": "lower Checkpoint whose note text differs from the one verified at its epoch_number",
+     "verified_head_epoch_number": 2, "verified_checkpoint": epoch_1_checkpoint,
      "offered_checkpoint": ROLLBACK_EQUIVOCATING, "expected": "WIST3-E02"},
 ]
 
@@ -2555,19 +2555,19 @@ _equiv_c_checkpoint = checkpoint_note(LOG_ID, priv, 7, merkle_tree_root(_equiv_c
                                       "2026-08-02T17:00:00Z")
 
 equivocation_cases = [
-    {"form": "same tree size, different root", "checkpoint_1": block["checkpoint"],
+    {"form": "same tree size, different root", "checkpoint_1": epoch["checkpoint"],
      "checkpoint_2": _equiv_a_checkpoint, "expected": "WIST3-E02"},
-    {"form": "same block_number, same size and root, different sealed_at",
-     "checkpoint_1": block["checkpoint"], "checkpoint_2": _equiv_b_checkpoint, "expected": "WIST3-E02"},
-    {"form": "different sizes, no Consistency Proof between them", "checkpoint_1": block["checkpoint"],
+    {"form": "same epoch_number, same size and root, different sealed_at",
+     "checkpoint_1": epoch["checkpoint"], "checkpoint_2": _equiv_b_checkpoint, "expected": "WIST3-E02"},
+    {"form": "different sizes, no Consistency Proof between them", "checkpoint_1": epoch["checkpoint"],
      "checkpoint_2": _equiv_c_checkpoint, "leaf_hashes_2": [h.hex() for h in _equiv_c_leaves],
      "expected": "WIST3-E02"},
 ]
 
 archive_cases = [
-    {"name": "block_number 0 filed under the size-4 Block's own path, wrong path for the Log",
-     "path": "/log/checkpoints/000000001", "checkpoint": block["checkpoint"], "expected": "WIST3-E03"},
-    {"name": "block_number 2 filed under its own path", "path": "/log/checkpoints/000000002",
+    {"name": "epoch_number 0 filed under the size-4 Epoch's own path, wrong path for the Log",
+     "path": "/log/checkpoints/000000001", "checkpoint": epoch["checkpoint"], "expected": "WIST3-E03"},
+    {"name": "epoch_number 2 filed under its own path", "path": "/log/checkpoints/000000002",
      "checkpoint": checkpoint2, "expected": "valid"},
 ]
 
@@ -2601,13 +2601,13 @@ quorum_cases = [
 
 cold_start_cases = [
     {"name": "manifest matches the archived Checkpoint",
-     "manifest": {"block_number": 2, "log_position": 7, "anchor_block_hash": root_token(leaves2)},
+     "manifest": {"epoch_number": 2, "tree_size": 7, "root_hash": root_token(leaves2)},
      "checkpoint": checkpoint2, "expected": "valid"},
-    {"name": "manifest log_position does not match",
-     "manifest": {"block_number": 2, "log_position": 4, "anchor_block_hash": root_token(leaves2)},
+    {"name": "manifest tree_size does not match",
+     "manifest": {"epoch_number": 2, "tree_size": 4, "root_hash": root_token(leaves2)},
      "checkpoint": checkpoint2, "expected": "WIST3-E02"},
-    {"name": "manifest anchor_block_hash does not match",
-     "manifest": {"block_number": 2, "log_position": 7, "anchor_block_hash": root_token(leaves)},
+    {"name": "manifest root_hash does not match",
+     "manifest": {"epoch_number": 2, "tree_size": 7, "root_hash": root_token(leaves)},
      "checkpoint": checkpoint2, "expected": "WIST3-E02"},
 ]
 
@@ -2617,18 +2617,18 @@ write_json(WIST3 / "checkpoints.json", {
             "Witness quorum (WIST-4 §5 checkpoint_witness_quorum), the "
             "§4 size-0 root comparison, and the "
             "§8 step 5 Snapshot cold-start match, over one cumulative tree "
-            "of 7 leaves (Block 0 of vectors/wist3/block.json, the empty "
-            "Block 1 of empty-block.json, and Block 2 below). Each case list "
+            "of 7 leaves (Epoch 0 of vectors/wist3/epoch.json, the empty "
+            "Epoch 1 of empty-epoch.json, and Epoch 2 below). Each case list "
             "judges its own candidates: note_form_cases, size_zero_cases and "
             "equivocation_cases deliberately carry Checkpoints that "
-            "contradict the blocks above them.",
+            "contradict the epochs above them.",
     "log_id": LOG_ID,
-    "blocks": [
-        {"block_number": 0, "checkpoint": block["checkpoint"], "entries": entries,
+    "epochs": [
+        {"epoch_number": 0, "checkpoint": epoch["checkpoint"], "entries": entries,
          "leaf_hashes": [h.hex() for h in leaves]},
-        {"block_number": 1, "checkpoint": block_1_checkpoint, "entries": [],
+        {"epoch_number": 1, "checkpoint": epoch_1_checkpoint, "entries": [],
          "leaf_hashes": [h.hex() for h in leaves]},
-        {"block_number": 2, "checkpoint": checkpoint2, "entries": entries2,
+        {"epoch_number": 2, "checkpoint": checkpoint2, "entries": entries2,
          "leaf_hashes": [h.hex() for h in leaves2]},
     ],
     "note_form_cases": note_form_cases,
@@ -2672,11 +2672,11 @@ def aggregator_signature_line(log_id: str, key, note_text: str) -> str:
 
 
 def checkpoint_signed_by(log_id: str, keys: list, tree_size: int, root: bytes,
-                         block_number: int, sealed_at: str) -> str:
+                         epoch_number: int, sealed_at: str) -> str:
     """WIST-3 §5: a Checkpoint note carrying one Aggregator signature line per
     key of `keys`; a rotation Checkpoint carries more than one."""
-    text = "%s\n%d\n%s\nblock_number %d\nsealed_at %s\n" % (
-        log_id, tree_size, base64.b64encode(root).decode(), block_number, sealed_at)
+    text = "%s\n%d\n%s\nepoch_number %d\nsealed_at %s\n" % (
+        log_id, tree_size, base64.b64encode(root).decode(), epoch_number, sealed_at)
     return text + "\n" + "".join(aggregator_signature_line(log_id, k, text) for k in keys)
 
 
@@ -2700,10 +2700,10 @@ def registry_entry(update: dict, signer, signer_key_id: str) -> dict:
 
 
 def key_acts_applied(prior: dict, log_id: str, height: int, entries: list):
-    """WIST-3 §3.4 over one Block: authenticated key acts first, in canonical
+    """WIST-3 §3.4 over one Epoch: authenticated key acts first, in canonical
     Entry index order, each read at height-1 and evaluated against the
     admitted set; then every other act, read at the height the accepted key
-    acts leave. Returns (state after the Block, per-Entry dispositions, the
+    acts leave. Returns (state after the Epoch, per-Entry dispositions, the
     key_ids valid at `height`)."""
     state = {kid: dict(entry) for kid, entry in prior.items()}
     valid_before = {kid for kid, entry in state.items() if entry["removed"] is None}
@@ -2748,7 +2748,7 @@ def key_state_tuples(state: dict) -> list:
 
 def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_priv,
                 created_at: str, privs: dict, specs: list, extra=None) -> dict:
-    """One signed Log: an Anchor, then a Block per spec, each carrying its
+    """One signed Log: an Anchor, then an Epoch per spec, each carrying its
     Entries in canonical order, the Checkpoint the Aggregator publishes, the
     candidate Checkpoints §5 judges beside it, and the key registry the
     replay leaves."""
@@ -2759,7 +2759,7 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
                     "created_at": created_at}
     state = {genesis_key_id: {"public_key": genesis_public, "added": 0, "removed": None}}
     valid_at = [{"height": -1, "key_ids": [genesis_key_id]}]
-    leaves, blocks = [], []
+    leaves, epochs = [], []
     for height, spec in enumerate(specs):
         annotated = sorted(spec["entries"], key=lambda a: leaf_hash(rfc8785.dumps(a["entry"])))
         entries = [a["entry"] for a in annotated]
@@ -2781,7 +2781,7 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
                  "signer_key_id": entries[index]["body"]["sig"]["key_id"],
                  "code": codes[index], "why": annotated[index]["why"]}
                 for index in range(len(entries))]
-        block = {"block_number": height, "sealed_at": spec["sealed_at"],
+        epoch = {"epoch_number": height, "sealed_at": spec["sealed_at"],
                  "tree_size": len(leaves), "leaf_hashes": [h.hex() for h in leaves],
                  "entries": entries, "acts": acts, "checkpoint": checkpoint,
                  "checkpoint_cases": cases, "applied": applied,
@@ -2797,15 +2797,15 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
                              "accepted_key_id": entries[low]["body"]["update"]["subject"],
                              "failed_entry_index": high,
                              "failed_key_id": entries[high]["body"]["update"]["subject"]})
-            block["tie_breaks"] = ties
-        blocks.append(block)
+            epoch["tie_breaks"] = ties
+        epochs.append(epoch)
         valid_at.append({"height": height, "key_ids": sorted(valid_after)})
         if applied:
             state = applied_state
     history = {"name": name, "note": note, "log_id": log_id,
                "anchor": sign_envelope_with(genesis_priv, "anchor", anchor_inner, genesis_key_id),
-               "blocks": blocks, "valid_at": valid_at,
-               "verified_head": max(b["block_number"] for b in blocks if b["applied"])}
+               "epochs": epochs, "valid_at": valid_at,
+               "verified_head": max(b["epoch_number"] for b in epochs if b["applied"])}
     history.update(extra or {})
     return history
 
@@ -2839,29 +2839,29 @@ def aggregator_key_vectors() -> dict:
         return registry_entry(parameter_update("quota_base", value, KEY_ACT_GRACE_EFFECTIVE),
                               privs[signer_key_id], signer_key_id)
 
-    block0 = [
+    epoch0 = [
         {"entry": add(K2, "k2", K1),
-         "why": "the genesis key admits a key: a key act of Block 0 authenticates "
+         "why": "the genesis key admits a key: a key act of Epoch 0 authenticates "
                 "under the keys valid at height -1, the genesis key alone"},
         {"entry": add(K3, "k3", K2),
-         "why": "the key this Block admits signs a key act of its own Block, which "
+         "why": "the key this Epoch admits signs a key act of its own Epoch, which "
                 "authenticates at height -1, where it is not valid"},
         {"entry": parameter(1500, K2),
-         "why": "the key this Block admits signs a non-key act of its own Block, "
+         "why": "the key this Epoch admits signs a non-key act of its own Epoch, "
                 "which authenticates at height 0, where it is valid"},
     ]
-    block1 = [
+    epoch1 = [
         {"entry": remove(K2, K2),
-         "why": "a key signs its own removal: a key act of Block 1 authenticates at "
+         "why": "a key signs its own removal: a key act of Epoch 1 authenticates at "
                 "height 0, where the key is still valid"},
         {"entry": add(K4, "k4", K2),
-         "why": "the key this Block removes signs another key act of the same Block, "
+         "why": "the key this Epoch removes signs another key act of the same Epoch, "
                 "which authenticates at height 0"},
         {"entry": parameter(1600, K2),
-         "why": "the key this Block removes signs a non-key act of the same Block, "
+         "why": "the key this Epoch removes signs a non-key act of the same Epoch, "
                 "which authenticates at height 1, where it is no longer valid"},
     ]
-    block2 = [
+    epoch2 = [
         {"entry": add(K2, "spare-a", K1),
          "why": "an addition naming a key_id removed at a lower height: removal is "
                 "permanent and restores no validity"},
@@ -2880,31 +2880,31 @@ def aggregator_key_vectors() -> dict:
                 "Registry Update ID is new, so WIST-4 §5.1's idempotence does not "
                 "apply and the act is evaluated"},
         {"entry": add(K5, "k5", K1),
-         "why": "the Block's one accepted key act: the failures beside it change no "
-                "key registry state and the Block stays valid"},
+         "why": "the Epoch's one accepted key act: the failures beside it change no "
+                "key registry state and the Epoch stays valid"},
     ]
     k6_lower, k6_upper = add(K6, "k6a", K1), add(K6, "k6b", K1)
     k7_entry, k8_entry = add(K7, "k7", K1), add(K8, "k7", K1)
-    block3 = [
+    epoch3 = [
         {"entry": k6_lower, "why": "one of two additions naming key_id " + K6 +
-                                   " in one Block; the lower Entry index is accepted"},
+                                   " in one Epoch; the lower Entry index is accepted"},
         {"entry": k6_upper, "why": "the other addition naming key_id " + K6 +
-                                   " in one Block; the higher Entry index fails"},
-        {"entry": k7_entry, "why": "one of two additions of one public key in one Block, "
+                                   " in one Epoch; the higher Entry index fails"},
+        {"entry": k7_entry, "why": "one of two additions of one public key in one Epoch, "
                                    "a note key ID collision decided by Entry index"},
         {"entry": k8_entry, "why": "the other addition of that public key under a second "
                                    "key_id; the higher Entry index fails"},
         {"entry": add(K9, "k9", K1),
-         "why": "an addition whose key this Block also tries to remove"},
+         "why": "an addition whose key this Epoch also tries to remove"},
         {"entry": remove(K9, K1),
-         "why": "a removal naming a key_id added in this very Block, which is not "
+         "why": "a removal naming a key_id added in this very Epoch, which is not "
                 "valid at the previous height"},
         {"entry": remove(K4, K1, "2026-10-02T00:00:00Z"),
-         "why": "the first of two removals of one valid key_id in one Block"},
+         "why": "the first of two removals of one valid key_id in one Epoch"},
         {"entry": remove(K4, K1, "2026-10-03T00:00:00Z"),
          "why": "the second removal of that key_id: accepted, and it changes nothing"},
     ]
-    block4 = [
+    epoch4 = [
         {"entry": remove(K1, K5),
          "why": "the genesis key is removable like any other key, here by a key "
                 "admitted in-band"},
@@ -2912,36 +2912,36 @@ def aggregator_key_vectors() -> dict:
 
     rotation = key_history(
         "rotation",
-        "WIST-3 §3.4 end to end: a key admitted at Block 0 and removed at Block 1, "
+        "WIST-3 §3.4 end to end: a key admitted at Epoch 0 and removed at Epoch 1, "
         "every key-act failure the section lists, and the genesis key's own removal "
-        "at Block 4.",
+        "at Epoch 4.",
         rot_id, K1, material["k1"], "2026-08-30T12:00:00Z", privs,
         [
-            {"sealed_at": "2026-09-01T00:00:00Z", "entries": block0, "signers": [K1, K2],
+            {"sealed_at": "2026-09-01T00:00:00Z", "entries": epoch0, "signers": [K1, K2],
              "why": "the published Checkpoint is a rotation Checkpoint: two signature "
                     "lines, both under keys valid at height 0",
              "checkpoint_cases": [
-                 {"name": "the key admitted in this Block signs Checkpoint 0 alone",
+                 {"name": "the key admitted in this Epoch signs Checkpoint 0 alone",
                   "signers": [K2], "expected": "valid"},
                  {"name": "the key whose addition did not authenticate signs Checkpoint 0",
                   "signers": [K3], "expected": "WIST3-E03"},
                  {"name": "the genesis key signs Checkpoint 0 alone",
                   "signers": [K1], "expected": "valid"},
              ]},
-            {"sealed_at": "2026-09-01T01:00:00Z", "entries": block1, "signers": [K1],
+            {"sealed_at": "2026-09-01T01:00:00Z", "entries": epoch1, "signers": [K1],
              "why": "Checkpoint 1 authenticates under the keys valid at height 1, the "
-                    "set this Block's accepted key acts leave",
+                    "set this Epoch's accepted key acts leave",
              "checkpoint_cases": [
-                 {"name": "the key removed in this Block signs Checkpoint 1 alone",
+                 {"name": "the key removed in this Epoch signs Checkpoint 1 alone",
                   "signers": [K2], "expected": "WIST3-E03"},
-                 {"name": "the key admitted in this Block signs Checkpoint 1 alone",
+                 {"name": "the key admitted in this Epoch signs Checkpoint 1 alone",
                   "signers": [K4], "expected": "valid"},
              ]},
-            {"sealed_at": "2026-09-01T02:00:00Z", "entries": block2, "signers": [K1],
+            {"sealed_at": "2026-09-01T02:00:00Z", "entries": epoch2, "signers": [K1],
              "why": "six key-act failures beside one accepted addition: each is ignored "
-                    "as WIST4-E04 and the Block stays valid"},
-            {"sealed_at": "2026-09-01T03:00:00Z", "entries": block3, "signers": [K1],
-             "why": "the failures a Block decides against itself: two additions of one "
+                    "as WIST4-E04 and the Epoch stays valid"},
+            {"sealed_at": "2026-09-01T03:00:00Z", "entries": epoch3, "signers": [K1],
+             "why": "the failures an Epoch decides against itself: two additions of one "
                     "key_id, two of one public key, a removal of a key added here, and "
                     "two removals of one valid key",
              "tie_breaks": [
@@ -2950,7 +2950,7 @@ def aggregator_key_vectors() -> dict:
                  {"reason": "two additions of one public key, colliding note key IDs",
                   "entries": [k7_entry, k8_entry]},
              ]},
-            {"sealed_at": "2026-09-01T04:00:00Z", "entries": block4, "signers": [K5],
+            {"sealed_at": "2026-09-01T04:00:00Z", "entries": epoch4, "signers": [K5],
              "why": "the genesis key is removed; Checkpoint 4 authenticates under the "
                     "keys valid at height 4, which no longer include it",
              "checkpoint_cases": [
@@ -2962,20 +2962,20 @@ def aggregator_key_vectors() -> dict:
         ])
 
     # WIST-3 §5: a Checkpoint at or below the verified head is judged under the
-    # keys valid at its own height. Both candidates state Block 0's tree size
+    # keys valid at its own height. Both candidates state Epoch 0's tree size
     # and a different root, so only the signature decides.
     divergent_root = hashlib.sha256(("divergent tree " + rot_id).encode()).digest()
-    size_0 = rotation["blocks"][0]["tree_size"]
-    sealed_0 = rotation["blocks"][0]["sealed_at"]
+    size_0 = rotation["epochs"][0]["tree_size"]
+    sealed_0 = rotation["epochs"][0]["sealed_at"]
     rotation["equivocation_cases"] = [
-        {"name": "a differing Block 0 Checkpoint signed by a key since removed",
-         "block_number": 0, "signer_key_ids": [K2],
+        {"name": "a differing Epoch 0 Checkpoint signed by a key since removed",
+         "epoch_number": 0, "signer_key_ids": [K2],
          "checkpoint": checkpoint_signed_by(rot_id, [privs[K2]], size_0, divergent_root, 0, sealed_0),
          "why": "the key was valid at height 0, the height the offered Checkpoint "
                 "states, and its later removal does not repudiate the signature",
          "expected": "WIST3-E02"},
-        {"name": "a differing Block 0 Checkpoint signed by a key admitted later",
-         "block_number": 0, "signer_key_ids": [K5],
+        {"name": "a differing Epoch 0 Checkpoint signed by a key admitted later",
+         "epoch_number": 0, "signer_key_ids": [K5],
          "checkpoint": checkpoint_signed_by(rot_id, [privs[K5]], size_0, divergent_root, 0, sealed_0),
          "why": "the key was not valid at height 0, so the Checkpoint fails §5's "
                 "signature rule and is not evidence",
@@ -2985,20 +2985,20 @@ def aggregator_key_vectors() -> dict:
     # §7 says do not verify. The accepted parameter_change is live state too:
     # one `parameter` tuple per amendment, keyed by identifier and
     # `effective_at`.
-    head_state = rotation["blocks"][-1]["expected_state"] + [
+    head_state = rotation["epochs"][-1]["expected_state"] + [
         ["parameter", entry["body"]["update"]["subject"],
          entry["body"]["update"]["effective_at"],
          entry["body"]["update"]["details"]["value"]]
-        for block in rotation["blocks"] if block["applied"]
-        for act, entry in zip(block["acts"], block["entries"])
+        for epoch in rotation["epochs"] if epoch["applied"]
+        for act, entry in zip(epoch["acts"], epoch["entries"])
         if act["code"] is None and act["action"] == "parameter_change"]
     rotation["snapshot_state"] = {
-        "log_position": rotation["blocks"][-1]["tree_size"],
-        "block_number": rotation["verified_head"],
+        "tree_size": rotation["epochs"][-1]["tree_size"],
+        "epoch_number": rotation["verified_head"],
         "cases": [
             {"name": "every admitted key, removed keys included", "entries": head_state,
              "why": "an aggregator_key tuple exists for every key admitted at or below "
-                    "log_position, a removed key carrying its removal height",
+                    "tree_size, a removed key carrying its removal height",
              "verifies": True},
             {"name": "the tuple of a key removed below the head omitted",
              "entries": [t for t in head_state if t[1] != K2],
@@ -3013,13 +3013,13 @@ def aggregator_key_vectors() -> dict:
         ]}
     histories.append(rotation)
 
-    # ---- a Block whose accepted removals leave no key valid at its height.
+    # ---- an Epoch whose accepted removals leave no key valid at its height.
     exh_id = "keys-exhausted.example.org"
     M1, M2 = "test-agg-m1", "test-agg-m2"
     exh = {M1: agg_key("exhausted m1"), M2: agg_key("exhausted m2")}
     histories.append(key_history(
         "keys exhausted",
-        "WIST-3 §3.4: a Block whose accepted removals leave no key valid at its "
+        "WIST-3 §3.4: an Epoch whose accepted removals leave no key valid at its "
         "height has no valid Checkpoint and is never applied.",
         exh_id, M1, exh[M1], "2026-08-30T12:00:00Z", exh,
         [
@@ -3031,8 +3031,8 @@ def aggregator_key_vectors() -> dict:
                  "why": "an accepted addition under the genesis key"}]},
             {"sealed_at": "2026-09-02T01:00:00Z", "signers": [], "applied": False,
              "why": "both removals authenticate at height 0 and are accepted, so no "
-                    "key is valid at height 1: no Checkpoint 1 verifies, the Block is "
-                    "never applied, and the verified head stays at Block 0",
+                    "key is valid at height 1: no Checkpoint 1 verifies, the Epoch is "
+                    "never applied, and the verified head stays at Epoch 0",
              "entries": [
                  {"entry": registry_entry(key_update("aggregator_key_remove", M1,
                                                      KEY_ACT_GRACE_EFFECTIVE), exh[M1], M1),
@@ -3049,7 +3049,7 @@ def aggregator_key_vectors() -> dict:
              ]},
         ]))
 
-    # ---- one removal and one addition in one Block, in both Entry orders.
+    # ---- one removal and one addition in one Epoch, in both Entry orders.
     # The acts are identical apart from the addition's effective_at, which is
     # searched only to move the pair's leaf-hash order: §3.4's key set at N
     # does not depend on the order two such acts are evaluated in.
@@ -3071,13 +3071,13 @@ def aggregator_key_vectors() -> dict:
     for side, log_id in (("below", "keys-order-a.example.org"), ("above", "keys-order-b.example.org")):
         histories.append(key_history(
             "addition %s removal" % side,
-            "WIST-3 §3.4: a key removed at Block 1 signs both the removal and an "
+            "WIST-3 §3.4: a key removed at Epoch 1 signs both the removal and an "
             "addition sealed beside it; this history places the addition %s the "
             "removal in canonical Entry order." % side,
             log_id, N1, order[N1], "2026-08-30T12:00:00Z", order,
             [
                 {"sealed_at": "2026-09-03T00:00:00Z", "signers": [N1],
-                 "why": "the genesis key admits the key that Block 1 removes",
+                 "why": "the genesis key admits the key that Epoch 1 removes",
                  "entries": [{"entry": registry_entry(
                      key_update("aggregator_key_add", N2, KEY_ACT_GRACE_EFFECTIVE,
                                 raw_public(order[N2])), order[N1], N1),
@@ -3089,22 +3089,22 @@ def aggregator_key_vectors() -> dict:
                  "entries": [
                      {"entry": order_remove, "why": "the key removes itself"},
                      {"entry": order_adds[side],
-                      "why": "the same key admits its successor in the same Block"},
+                      "why": "the same key admits its successor in the same Epoch"},
                  ]},
             ]))
 
     return {
         "note": "WIST-3 §3.4 and §5, WIST-4 §5.1: Aggregator key acts. A key act "
-                "sealed in Block N authenticates under the keys valid at height N-1 "
-                "(the genesis key alone before Block 0); every other Registry Update "
-                "of Block N and Checkpoint N authenticate under the keys valid at N. "
+                "sealed in Epoch N authenticates under the keys valid at height N-1 "
+                "(the genesis key alone before Epoch 0); every other Registry Update "
+                "of Epoch N and Checkpoint N authenticate under the keys valid at N. "
                 "An unauthenticated act is WIST4-E11; an authenticated key act that "
-                "is a key-act failure is WIST4-E04, ignored, with the Block kept. "
+                "is a key-act failure is WIST4-E04, ignored, with the Epoch kept. "
                 "Each history is a separate Log with its own Anchor and cumulative "
-                "tree; `blocks` are in Log order, `entries` in canonical Entry order "
+                "tree; `epochs` are in Log order, `entries` in canonical Entry order "
                 "(§3.3), `acts` carries one disposition per Entry index, "
                 "`expected_state` the WIST-3 §7 aggregator_key tuples a Consumer "
-                "holds after the Block, and `valid_at` the key_ids valid at each "
+                "holds after the Epoch, and `valid_at` the key_ids valid at each "
                 "listed height. `checkpoint` is the Checkpoint the Aggregator "
                 "publishes; `checkpoint_cases` are candidates judged beside it. "
                 "The parameter_change Entries are here only to fix the "
@@ -3123,9 +3123,9 @@ print("wist3 aggregator key vectors written")
 # the digest stays computable after a Payload is withdrawn, while `delta_id`
 # still pins the salted commitment that binds the content itself.
 #
-# Two records, so that the ordering rule is exercised. The second domain's Delta is not an Entry of the example Block:
+# Two records, so that the ordering rule is exercised. The second domain's Delta is not an Entry of the example Epoch:
 # this vector demonstrates §7's record encoding, not a materialization of
-# Block 0.
+# Epoch 0.
 REDUCED_URL = "https://reduced.example.org/notice"
 REDUCED_CONTENT = {
     "extract": "A second domain's notice.",
@@ -3190,8 +3190,8 @@ write_json(WIST3 / "snapshot-records.json", {
              "Payload is withdrawn (WIST-3 §6.2), while delta_id still names "
              "the Delta whose salted commitment binds the content. The "
              "reduced.example.org Delta is not an Entry of the example "
-             "Block; this vector publishes the record encoding, not a "
-             "materialization of Block 0. `links` is the tier1/links.parquet "
+             "Epoch; this vector publishes the record encoding, not a "
+             "materialization of Epoch 0. `links` is the tier1/links.parquet "
              "materialization: one (source_url, target_url, position) row "
              "per declared link of every live record, source_url the "
              "record's Normalized URL and target_url/position drawn in "
@@ -3202,7 +3202,7 @@ write_json(WIST3 / "snapshot-records.json", {
              "surviving in content_digest; the reduced.example.org record "
              "contributes no rows because its Payload declares no links."),
     "snapshot_date": "2026-08-02",
-    "log_position": 0,
+    "tree_size": 0,
     "record_fields": RECORD_FIELDS,
     "records": snapshot_records,
     "content_digest": snapshot_digest,
@@ -3274,7 +3274,7 @@ write_json(WIST3 / "chain-materialization.json", spaced_labels({
     "note": ("WIST-3 §§3.3/7, WIST-1 §3.5: per case the sealed Deltas of one Log in "
              "Log order, the indices a replayer ignores, and the chain tip per "
              "(publisher, url) afterwards. A Delta marked eligible false fails a "
-             "WIST-1 §7 check at its Block and is ignored like a fork; the Block "
+             "WIST-1 §7 check at its Epoch and is ignored like a fork; the Epoch "
              "stays accepted."),
     "cases": chain_cases,
 }))
@@ -3319,7 +3319,7 @@ write_json(WIST3 / "materialization-preference.json", spaced_labels({
 print("wist3 chain-materialization vector: %d cases" % len(chain_cases))
 
 # ------------------------------------------- WIST-3 §7: the state artifact
-# The protocol state at log_position, one tuple per live item, kinds and
+# The protocol state at tree_size, one tuple per live item, kinds and
 # fields per WIST-3 §7's table. Aligned with snapshot-records above: the same
 # two records (chain tips = their only Deltas) and the genesis Aggregator key.
 # No `parameter`, `withdrawal` or `label` tuples: nothing is amended,
@@ -3369,7 +3369,7 @@ def state_digest_of(entries) -> str:
     return "sha256:" + sha256_hex(b"".join(sorted(rfc8785.dumps(e) for e in entries)))
 
 
-state_inner = {"wist_version": "1.0.0", "log_position": 0, "entries": state_entries}
+state_inner = {"wist_version": "1.0.0", "tree_size": 0, "entries": state_entries}
 state_envelope = sign_envelope("state", state_inner, "test-agg-k1")
 write_json(EXAMPLES / "snapshot-state.json", state_envelope)
 state_bytes = rfc8785.dumps(state_envelope)
@@ -3380,9 +3380,9 @@ links_parquet_content = b"links-placeholder"
 manifest = {
     "wist_version": "1.0.0",
     "snapshot_date": "2026-08-02",
-    "block_number": 0,
-    "log_position": len(leaves),
-    "anchor_block_hash": block_hash,
+    "epoch_number": 0,
+    "tree_size": len(leaves),
+    "root_hash": epoch_hash,
     "content_digest": snapshot_digest,
     "state": {"path": "state.json", "sha256": sha256_hex(state_bytes),
               "bytes": len(state_bytes),
@@ -3414,7 +3414,7 @@ snapshot_index = {
     "updated_at": "2026-08-02T13:05:00Z",
     "snapshots": [
         {"snapshot_date": manifest["snapshot_date"],
-         "log_position": manifest["log_position"],
+         "tree_size": manifest["tree_size"],
          "manifest_url": "/snapshots/%s/manifest.json" % manifest["snapshot_date"],
          "content_digest": manifest["content_digest"]},
     ],
@@ -3422,8 +3422,8 @@ snapshot_index = {
 write_json(EXAMPLES / "snapshot-index.json",
            sign_envelope("index", snapshot_index, "test-agg-k1"))
 print("wist3 snapshot content digest:", snapshot_digest)
-print("wist3 block hash:", block_hash)
-print("wist3 merkle root:", block_hash)
+print("wist3 epoch hash:", epoch_hash)
+print("wist3 merkle root:", epoch_hash)
 print("wist3 leaves:", [l.hex() for l in leaves])
 print("wist3 nodes: n01=%s n23=%s" % (n01.hex(), n23.hex()))
 
@@ -3631,9 +3631,9 @@ def label_vectors():
     current = [
         current_case("greatest asserted_at wins whatever sealed later",
                      [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-02T12:00:00Z", 2, 0)], 0),
-        current_case("equal instants break by Block height",
+        current_case("equal instants break by Epoch number",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, 500000), sealed("2026-08-02T12:30:00Z", 2, 0, 700000)], 1),
-        current_case("equal instants in one Block break by Entry index",
+        current_case("equal instants in one Epoch break by Entry index",
                      [sealed("2026-08-02T12:30:00Z", 3, 4, 500000), sealed("2026-08-02T12:30:00Z", 3, 2, 700000)], 0),
         current_case("a later retraction leaves no tuple",
                      [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-03T09:00:00Z", 2, 0, retracted=True)], 1),
@@ -3643,7 +3643,7 @@ def label_vectors():
                      [sealed("2026-08-02T12:30:00Z", 1, 0), sealed("2026-08-02T14:30:01+02:00", 2, 0)], 1),
         current_case("an unexpired Label keeps its tuple",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T12:00:01Z")], 0),
-        current_case("a Label expired at the Snapshot's Block leaves no tuple",
+        current_case("a Label expired at the Snapshot's Epoch leaves no tuple",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T12:00:00Z")], 0),
         current_case("an expired Label is still the current one",
                      [sealed("2026-08-02T12:30:00Z", 1, 0, expires_at="2026-08-03T00:00:00Z"),
@@ -3666,7 +3666,7 @@ def label_vectors():
               "fields and self are WIST2-E06; signature and binding keep WIST-1 codes. current_cases "
               "replay sealed Labels of one (labeler, subject, name) and give the current Label at the "
               "end and the WIST-3 section 7 tuple the state carries, null where the current Label is "
-              "retracted or expired at sealed_at, the Snapshot Block's instant. binding_cases read a "
+              "retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a "
               "Label's delta against the subject record's anchor Delta: a bound Label applies only "
               "while the record stands on that Delta. The clock allowance over asserted_at is "
               "exercised by wist1/delta-clock-time.json."),
@@ -3848,7 +3848,7 @@ def label_table_vectors():
             expected = "WIST3-E03"
         elif per_labeler and max(per_labeler.values()) > labeler_cap:
             expected = "WIST3-E03"
-        return {"label": label, "labeler_block_entries_max": labeler_cap, "domain_block_entries_max": domain_cap,
+        return {"label": label, "labeler_epoch_entries_max": labeler_cap, "domain_epoch_entries_max": domain_cap,
                 "entries": entries, "expected": expected}
 
     def e(kind, domain):
@@ -3890,7 +3890,7 @@ def label_table_vectors():
         return {"height": height, "asserted_at": asserted_at, "retracted": retracted}
 
     persistence_cases = [
-        persistence_case("counted from the second consecutive Block", [ev(5, "2026-08-02T12:00:00Z")], [4, 5, 6, 7]),
+        persistence_case("counted from the second consecutive Epoch", [ev(5, "2026-08-02T12:00:00Z")], [4, 5, 6, 7]),
         persistence_case("a retraction stops the count",
                          [ev(5, "2026-08-02T12:00:00Z"), ev(7, "2026-08-02T13:00:00Z", True)], [5, 6, 7, 8]),
         persistence_case("re-asserted after a retraction",
@@ -3900,10 +3900,10 @@ def label_table_vectors():
         persistence_case("equal instants resolve in Log order",
                          [ev(5, "2026-08-02T12:00:00Z", True), ev(6, "2026-08-02T12:00:00Z")], [5, 6, 7]),
     ]
-    inactivity_cases = [{"label": label, "last_sealed_height": last, "inactivity_blocks": n, "height": h,
+    inactivity_cases = [{"label": label, "last_sealed_height": last, "inactivity_epochs": n, "height": h,
                          "applies": h - last <= n}
                         for label, last, n, h in (("within the window", 100, 720, 820),
-                                                  ("one Block past the window", 100, 720, 821),
+                                                  ("one Epoch past the window", 100, 720, 821),
                                                   ("never sealed anything since genesis", 0, 720, 721),
                                                   ("a short window", 100, 24, 124))]
     return spaced_labels({
@@ -3914,8 +3914,8 @@ def label_table_vectors():
                  "unit (cap_cases); WIST-4 section 6's recommended default profile: a wist:mismatch or "
                  "wist:unavailable Label counts at a height only when it was current, unretracted and "
                  "unexpired at that height and the one before (persistence_cases; expires_at_height is the "
-                 "first height whose Block instant reaches the expiry), and a Labeler with no sealed Entry "
-                 "within inactivity_blocks is ignored (inactivity_cases)."),
+                 "first height whose Epoch instant reaches the expiry), and a Labeler with no sealed Entry "
+                 "within inactivity_epochs is ignored (inactivity_cases)."),
         "statistics_cases": statistics_cases, "cap_cases": cap_cases, "persistence_cases": persistence_cases,
         "inactivity_cases": inactivity_cases})
 
@@ -3931,13 +3931,13 @@ def value_in_force(default, changes, t_s):
     if not live:
         return default, None
     i, c = max(live, key=lambda ic: (ic[1]["effective_at_s"],
-                                     ic[1]["block_number"], ic[1]["entry_index"]))
+                                     ic[1]["epoch_number"], ic[1]["entry_index"]))
     return c["value"], i
 
 
-def param_change(block_number, entry_index, effective_at_s, value):
-    return {"block_number": block_number, "entry_index": entry_index,
-            "sealed_at_s": block_number * HOUR_S, "effective_at_s": effective_at_s,
+def param_change(epoch_number, entry_index, effective_at_s, value):
+    return {"epoch_number": epoch_number, "entry_index": entry_index,
+            "sealed_at_s": epoch_number * HOUR_S, "effective_at_s": effective_at_s,
             "value": value}
 
 
@@ -3958,11 +3958,11 @@ parameter_cases = [
                [param_change(10, 0, 20 * DAY_S, 900),
                 param_change(11, 0, 15 * DAY_S, 1800)],
                [14 * DAY_S, 15 * DAY_S, 20 * DAY_S, 25 * DAY_S]),
-    param_case("equal-effective-at-across-blocks", 3600,
+    param_case("equal-effective-at-across-epochs", 3600,
                [param_change(10, 0, 20 * DAY_S, 900),
                 param_change(12, 0, 20 * DAY_S, 1800)],
                [20 * DAY_S - 1, 20 * DAY_S]),
-    param_case("equal-effective-at-in-one-block", 3600,
+    param_case("equal-effective-at-in-one-epoch", 3600,
                [param_change(10, 0, 20 * DAY_S, 900),
                 param_change(10, 3, 20 * DAY_S, 1800)],
                [20 * DAY_S]),
@@ -3985,16 +3985,16 @@ print("wist4 parameter-in-force vector written")
 # mirror_retention_days × 6 ≥ payload_window_days.
 PROSPECTIVE_DEFAULTS = {"links_cap_bytes": 4096, "link_url_cap_bytes": 2048,
                         "mirror_retention_days": 90, "payload_window_days": 180,
-                        "labeler_block_entries_max": 1000, "domain_block_entries_max": 10000}
+                        "labeler_epoch_entries_max": 1000, "domain_epoch_entries_max": 10000}
 PROSPECTIVE_FLOORS = {"links_cap_bytes": 21, "link_url_cap_bytes": 14,
                       "mirror_retention_days": 30, "payload_window_days": 30,
-                      "labeler_block_entries_max": 1, "domain_block_entries_max": 1}
+                      "labeler_epoch_entries_max": 1, "domain_epoch_entries_max": 1}
 
 
 def combinations_hold(values):
     return (values["links_cap_bytes"] >= values["link_url_cap_bytes"] + 21
             and values["mirror_retention_days"] * 6 >= values["payload_window_days"]
-            and values["labeler_block_entries_max"] <= values["domain_block_entries_max"])
+            and values["labeler_epoch_entries_max"] <= values["domain_epoch_entries_max"])
 
 
 def prospective_map(changes, at_s):
@@ -4002,14 +4002,14 @@ def prospective_map(changes, at_s):
     for parameter in result:
         eligible = [c for c in changes if c["parameter"] == parameter and c["effective_at_s"] <= at_s]
         if eligible:
-            chosen = max(eligible, key=lambda c: (c["effective_at_s"], c["block_height"], c["entry_index"]))
+            chosen = max(eligible, key=lambda c: (c["effective_at_s"], c["epoch_height"], c["entry_index"]))
             result[parameter] = chosen["value"]
     return result
 
 
 def prospective_acceptance(changes):
     accepted, rejected = [], []
-    for i, candidate in sorted(enumerate(changes), key=lambda pair: (pair[1]["block_height"], pair[1]["entry_index"])):
+    for i, candidate in sorted(enumerate(changes), key=lambda pair: (pair[1]["epoch_height"], pair[1]["entry_index"])):
         tentative = accepted + [candidate]
         instants = {candidate["sealed_at_s"]} | {c["effective_at_s"] for c in tentative
                                                  if c["effective_at_s"] >= candidate["sealed_at_s"]}
@@ -4032,7 +4032,7 @@ for label, rows, rejected in (
     ("intermediate replacement makes schedule valid", [(0, 0, "link_url_cap_bytes", 4000, 10), (1, 0, "link_url_cap_bytes", 1000, 11), (2, 0, "links_cap_bytes", 3000, 12)], []),
     ("same effective time conflicts", [(0, 0, "link_url_cap_bytes", 4000, 10), (1, 0, "links_cap_bytes", 3000, 10)], [1]),
     ("rejected candidate is not retried", [(0, 0, "link_url_cap_bytes", 4000, 10), (1, 0, "links_cap_bytes", 3000, 10), (2, 0, "link_url_cap_bytes", 1000, 10)], [1]),
-    ("canonical same Block order", [(0, 1, "link_url_cap_bytes", 4000, 10), (0, 0, "links_cap_bytes", 3000, 10)], [0]),
+    ("canonical same Epoch order", [(0, 1, "link_url_cap_bytes", 4000, 10), (0, 0, "links_cap_bytes", 3000, 10)], [0]),
     ("invalid bound cannot hide behind replacement", [(0, 0, "links_cap_bytes", 20, 10), (1, 0, "links_cap_bytes", 4096, 10)], [0]),
     ("grace period required", [(0, 0, "links_cap_bytes", 4000, 6)], [0]),
     ("aggregate cap exactly the link cap plus its structure", [(0, 0, "links_cap_bytes", 2069, 10)], []),
@@ -4040,13 +4040,13 @@ for label, rows, rejected in (
     ("retention exactly a sixth of the window", [(0, 0, "payload_window_days", 540, 10)], []),
     ("window raised after retention raised", [(0, 0, "mirror_retention_days", 120, 10), (1, 0, "payload_window_days", 720, 11)], []),
     ("retention lowered under a pending window", [(0, 0, "payload_window_days", 540, 10), (1, 0, "mirror_retention_days", 60, 10)], [1]),
-    ("labeler cap above the domain cap", [(0, 0, "labeler_block_entries_max", 20000, 10)], [0]),
-    ("labeler cap equal to the domain cap", [(0, 0, "labeler_block_entries_max", 10000, 10)], []),
-    ("domain cap lowered under the labeler cap", [(0, 0, "domain_block_entries_max", 500, 10)], [0]),
-    ("both caps lowered in order", [(0, 0, "labeler_block_entries_max", 200, 10), (1, 0, "domain_block_entries_max", 500, 11)], []),
-    ("domain cap lowered under a pending labeler cap", [(0, 0, "labeler_block_entries_max", 200, 12), (1, 0, "domain_block_entries_max", 150, 11)], [1]),
+    ("labeler cap above the domain cap", [(0, 0, "labeler_epoch_entries_max", 20000, 10)], [0]),
+    ("labeler cap equal to the domain cap", [(0, 0, "labeler_epoch_entries_max", 10000, 10)], []),
+    ("domain cap lowered under the labeler cap", [(0, 0, "domain_epoch_entries_max", 500, 10)], [0]),
+    ("both caps lowered in order", [(0, 0, "labeler_epoch_entries_max", 200, 10), (1, 0, "domain_epoch_entries_max", 500, 11)], []),
+    ("domain cap lowered under a pending labeler cap", [(0, 0, "labeler_epoch_entries_max", 200, 12), (1, 0, "domain_epoch_entries_max", 150, 11)], [1]),
 ):
-    changes = [{"block_height": day * 24, "entry_index": index, "sealed_at_s": day * DAY_S,
+    changes = [{"epoch_height": day * 24, "entry_index": index, "sealed_at_s": day * DAY_S,
                 "parameter": parameter, "value": value, "effective_at_s": effective * DAY_S}
                for day, index, parameter, value, effective in rows]
     got, accepted = prospective_acceptance(changes)
@@ -4055,7 +4055,7 @@ for label, rows, rejected in (
     prospective_cases.append({"label": label, "changes": changes, "rejected_indices": got,
         "maps": [{"at_s": t, "values": prospective_map(accepted, t)} for t in instants]})
 
-CLOCK_DEFAULTS = {"record_seal_blocks": 24, "recovery_window_days": 7,
+CLOCK_DEFAULTS = {"record_seal_epochs": 24, "recovery_window_days": 7,
                   "payload_window_days": 180, "param_grace_days": 7}
 
 
@@ -4066,11 +4066,11 @@ def clock_value(parameter, at_s, changes):
 
 clock_cases = []
 for label, parameter, anchor, changed, value, factor, start in (
-    ("discovery retains seal count", "record_seal_blocks", 10, 11, 48, 1, 200),
+    ("discovery retains seal count", "record_seal_epochs", 10, 11, 48, 1, 200),
     ("recovery window retains length", "recovery_window_days", 10, 11, 14, 86400, 10),
     ("availability retains span", "payload_window_days", 10, 11, 360, 86400, 10),
     ("grace retains span", "param_grace_days", 10, 11, 14, 86400, 10),
-    ("effective at anchor is included", "record_seal_blocks", 11, 11, 48, 1, 200),
+    ("effective at anchor is included", "record_seal_epochs", 11, 11, 48, 1, 200),
 ):
     changes = [{"parameter": parameter, "effective_at_s": changed, "value": value}]
     selected_value = clock_value(parameter, anchor, changes)
@@ -4088,11 +4088,11 @@ for parameter, value, schema_valid, combinations_hold_at_defaults in (
     ("payload_window_days", 30, True, True),
     ("payload_window_days", 541, True, False),
     ("links_cap_bytes", 2000, True, False),
-    ("labeler_block_entries_max", 0, False, True),
-    ("labeler_block_entries_max", 20000, True, False),
-    ("block_cadence_seconds", 86400, True, True),
-    ("block_decompressed_cap_bytes", "65537", False, True),
-    ("block_decompressed_cap_bytes", 65537.0, True, True),
+    ("labeler_epoch_entries_max", 0, False, True),
+    ("labeler_epoch_entries_max", 20000, True, False),
+    ("epoch_cadence_seconds", 86400, True, True),
+    ("epoch_cap_bytes", "65537", False, True),
+    ("epoch_cap_bytes", 65537.0, True, True),
 ):
     canonical = isinstance(value, str) or abs(value) <= 9007199254740991
     inner = {"wist_version": "1.0.0", "action": "parameter_change", "subject": parameter,
@@ -4109,109 +4109,109 @@ parameter_wire_cases.append({"label": "quota_base fractional effective_at",
     "envelope": sign_envelope("update", inner, "test-agg-k1"), "canonical_integer": True,
     "schema_valid": False, "combinations_hold_at_defaults": True, "sealed_disposition": "ignored"})
 
-BLOCK_CAP_DEFAULT = 256 * 1024 * 1024
-BLOCK_SIZE_FLOOR = 65537
+EPOCH_CAP_DEFAULT = 256 * 1024 * 1024
+EPOCH_SIZE_FLOOR = 65537
 
 
-def block_cap_at(changes, at_s):
+def epoch_cap_at(changes, at_s):
     eligible = [c for c in changes if c["effective_at_s"] <= at_s]
-    return max(eligible, key=lambda c: (c["effective_at_s"], c["block_height"], c["entry_index"]))["value"] if eligible else BLOCK_CAP_DEFAULT
+    return max(eligible, key=lambda c: (c["effective_at_s"], c["epoch_height"], c["entry_index"]))["value"] if eligible else EPOCH_CAP_DEFAULT
 
 
-def block_cap_bounds(changes, at_s):
-    values = [block_cap_at(changes, t) for t in {at_s} | {c["effective_at_s"] for c in changes if c["effective_at_s"] >= at_s}]
+def epoch_cap_bounds(changes, at_s):
+    values = [epoch_cap_at(changes, t) for t in {at_s} | {c["effective_at_s"] for c in changes if c["effective_at_s"] >= at_s}]
     return min(values), max(values)
 
 
-def block_cap_trace(blocks):
+def epoch_cap_trace(epochs):
     accepted, largest, probes = [], 0, []
-    for height, block in enumerate(blocks):
-        tentative_max = max(largest, block["jcs_bytes"])
+    for height, epoch in enumerate(epochs):
+        tentative_max = max(largest, epoch["jcs_bytes"])
         working = list(accepted)
         rejected = []
-        for index, amendment in enumerate(block["amendments"]):
-            change = dict(amendment, block_height=height, entry_index=index)
+        for index, amendment in enumerate(epoch["amendments"]):
+            change = dict(amendment, epoch_height=height, entry_index=index)
             trial = working + [change]
-            if not isinstance(change["value"], int) or change["value"] < BLOCK_SIZE_FLOOR or change["effective_at_s"] < block["sealed_at_s"] + 7 * DAY_S or block_cap_bounds(trial, block["sealed_at_s"])[0] < tentative_max:
+            if not isinstance(change["value"], int) or change["value"] < EPOCH_SIZE_FLOOR or change["effective_at_s"] < epoch["sealed_at_s"] + 7 * DAY_S or epoch_cap_bounds(trial, epoch["sealed_at_s"])[0] < tentative_max:
                 rejected.append(index)
             else:
                 working = trial
-        cap, _ = block_cap_bounds(working, block["sealed_at_s"])
+        cap, _ = epoch_cap_bounds(working, epoch["sealed_at_s"])
         valid = tentative_max <= cap
-        probes.append({"rejected_indices": rejected, "sealing_cap": cap, "block_valid": valid,
+        probes.append({"rejected_indices": rejected, "sealing_cap": cap, "epoch_valid": valid,
             "largest_bytes": tentative_max if valid else largest,
-            "transport_bound_before": BLOCK_CAP_DEFAULT if not probes else block_cap_bounds(accepted, blocks[height-1]["sealed_at_s"])[1]})
+            "transport_bound_before": EPOCH_CAP_DEFAULT if not probes else epoch_cap_bounds(accepted, epochs[height-1]["sealed_at_s"])[1]})
         if not valid:
-            assert height == len(blocks)-1
+            assert height == len(epochs)-1
             break
         accepted, largest = working, tentative_max
     return probes
 
 
-U2 = 2 * BLOCK_SIZE_FLOOR
-U3 = 3 * BLOCK_SIZE_FLOOR
-U4 = 4 * BLOCK_SIZE_FLOOR
-U8 = 8 * BLOCK_SIZE_FLOOR
+U2 = 2 * EPOCH_SIZE_FLOOR
+U3 = 3 * EPOCH_SIZE_FLOOR
+U4 = 4 * EPOCH_SIZE_FLOOR
+U8 = 8 * EPOCH_SIZE_FLOOR
 
-block_size_cases = []
+epoch_size_cases = []
 for label, rows, rejected, valid in (
-    ("reduction below a historical Block", [(0,U8,[]), (1,U2,[(U4,8)])], [[],[0]], [True,True]),
-    ("reduction includes its complete current Block", [(0,U8,[(U4,7)])], [[0]], [True]),
-    ("reduction equals the current Block size", [(0,U4,[(U4,7)]), (7,U4,[])], [[],[]], [True,True]),
-    ("pending reduction constrains an intervening Block", [(0,U2,[(U4,7)]), (1,U4+1,[])], [[],[]], [True,False]),
+    ("reduction below a historical Epoch", [(0,U8,[]), (1,U2,[(U4,8)])], [[],[0]], [True,True]),
+    ("reduction includes its complete current Epoch", [(0,U8,[(U4,7)])], [[0]], [True]),
+    ("reduction equals the current Epoch size", [(0,U4,[(U4,7)]), (7,U4,[])], [[],[]], [True,True]),
+    ("pending reduction constrains an intervening Epoch", [(0,U2,[(U4,7)]), (1,U4+1,[])], [[],[]], [True,False]),
     ("pending reduction equality before effectiveness", [(0,U2,[(U4,7)]), (1,U4,[])], [[],[]], [True,True]),
     ("increase is unavailable one second before effectiveness", [(0,U2,[(U4,7),(U8,8)]), (8,U4+1,[])], [[],[]], [True,False]),
     ("increase is available exactly at effectiveness", [(0,U2,[(U4,7),(U8,8)]), (8,U8,[])], [[],[]], [True,True]),
     ("rejected candidate is not rescued by later replacement", [(0,300000,[(U4,7),(U8,7)])], [[0]], [True]),
     ("same-time replacement relaxes a pending reduction", [(0,U2,[(U4,7),(U8,7)]), (1,U8,[])], [[],[]], [True,True]),
-    ("out-of-range candidate leaves the schedule unchanged", [(0,BLOCK_SIZE_FLOOR,[(BLOCK_SIZE_FLOOR-1,7),(BLOCK_SIZE_FLOOR,7)])], [[0]], [True]),
+    ("out-of-range candidate leaves the schedule unchanged", [(0,EPOCH_SIZE_FLOOR,[(EPOCH_SIZE_FLOOR-1,7),(EPOCH_SIZE_FLOOR,7)])], [[0]], [True]),
     ("restart retains a pending reduction and maximum", [(0,U4,[(U4,7)]), (1,U2,[]), (2,U2,[(U3,9)])], [[],[],[0]], [True,True,True]),
     ("later maximum never revalidates old acceptance", [(0,U2,[(U4,7)]), (1,U2,[(U8,7+1)]), (9,U8,[])], [[],[],[]], [True,True,True]),
-    ("verified pending increase permits transport above default", [(0,U2,[(2*BLOCK_CAP_DEFAULT,7)]), (7,BLOCK_CAP_DEFAULT+1,[])], [[],[]], [True,True]),
-    ("a fetched Block cannot raise its own bound", [(0,BLOCK_CAP_DEFAULT+1,[(2*BLOCK_CAP_DEFAULT,7)])], [[0]], [False]),
-    ("schema-invalid candidate is ignored and its Block stays valid", [(0,U2,[(str(U4),7),(U8,7)]), (7,U8,[])], [[0],[]], [True,True]),
+    ("verified pending increase permits transport above default", [(0,U2,[(2*EPOCH_CAP_DEFAULT,7)]), (7,EPOCH_CAP_DEFAULT+1,[])], [[],[]], [True,True]),
+    ("a fetched Epoch cannot raise its own bound", [(0,EPOCH_CAP_DEFAULT+1,[(2*EPOCH_CAP_DEFAULT,7)])], [[0]], [False]),
+    ("schema-invalid candidate is ignored and its Epoch stays valid", [(0,U2,[(str(U4),7),(U8,7)]), (7,U8,[])], [[0],[]], [True,True]),
 ):
-    blocks = [{"sealed_at_s":round(day*DAY_S), "jcs_bytes":size,
+    epochs = [{"sealed_at_s":round(day*DAY_S), "jcs_bytes":size,
         "amendments":[{"value":value,"effective_at_s":effective*DAY_S} for value,effective in amendments]}
         for day,size,amendments in rows]
     if label == "increase is unavailable one second before effectiveness":
-        blocks[-1]["sealed_at_s"] -= 1
-    probes = block_cap_trace(blocks)
+        epochs[-1]["sealed_at_s"] -= 1
+    probes = epoch_cap_trace(epochs)
     assert [p["rejected_indices"] for p in probes] == rejected, label
-    assert [p["block_valid"] for p in probes] == valid, label
-    block_size_cases.append({"label":label,"blocks":blocks,"expected":probes,
-        "restart_after":list(range(len(blocks)-1))})
+    assert [p["epoch_valid"] for p in probes] == valid, label
+    epoch_size_cases.append({"label":label,"epochs":epochs,"expected":probes,
+        "restart_after":list(range(len(epochs)-1))})
 
-block_transport_cases = []
+epoch_transport_cases = []
 for label, prefix_s, changes, rejected_changes, entries_bytes, valid in (
-    ("no verified prefix uses the Registry default", None, [], [], BLOCK_CAP_DEFAULT, True),
-    ("no verified prefix rejects entries above the Registry default", None, [], [], BLOCK_CAP_DEFAULT+1, False),
-    ("entries attributable to the Block at the transport bound", 7*DAY_S, [(BLOCK_SIZE_FLOOR,7)], [], BLOCK_SIZE_FLOOR, True),
-    ("entries attributable to the Block exceed the transport bound", 7*DAY_S, [(BLOCK_SIZE_FLOOR,7)], [], BLOCK_SIZE_FLOOR+1, False),
+    ("no verified prefix uses the Registry default", None, [], [], EPOCH_CAP_DEFAULT, True),
+    ("no verified prefix rejects entries above the Registry default", None, [], [], EPOCH_CAP_DEFAULT+1, False),
+    ("entries attributable to the Epoch at the transport bound", 7*DAY_S, [(EPOCH_SIZE_FLOOR,7)], [], EPOCH_SIZE_FLOOR, True),
+    ("entries attributable to the Epoch exceed the transport bound", 7*DAY_S, [(EPOCH_SIZE_FLOOR,7)], [], EPOCH_SIZE_FLOOR+1, False),
     ("the bound is the greatest cap at the prefix's last sealed_at", 10*DAY_S, [(U2,0)], [], U2, True),
     ("an accepted future effective_at raises the bound before it takes effect", 1*DAY_S,
-        [(BLOCK_SIZE_FLOOR,1),(2*BLOCK_CAP_DEFAULT,30)], [], BLOCK_CAP_DEFAULT+1, True),
-    ("a rejected candidate does not raise the bound", 5*DAY_S, [(BLOCK_SIZE_FLOOR,5)], [(U4,5)], U4, False),
+        [(EPOCH_SIZE_FLOOR,1),(2*EPOCH_CAP_DEFAULT,30)], [], EPOCH_CAP_DEFAULT+1, True),
+    ("a rejected candidate does not raise the bound", 5*DAY_S, [(EPOCH_SIZE_FLOOR,5)], [(U4,5)], U4, False),
 ):
-    amendments = [{"value":value,"effective_at_s":day*DAY_S,"block_height":0,"entry_index":i} for i,(value,day) in enumerate(changes)]
-    bound = BLOCK_CAP_DEFAULT if prefix_s is None else block_cap_bounds(amendments,prefix_s)[1]
-    block_transport_cases.append({"label":label,"prefix_sealed_at_s":prefix_s,"accepted_caps":amendments,
-        "rejected_caps":[{"value":value,"effective_at_s":day*DAY_S,"block_height":0,"entry_index":len(amendments)+j}
+    amendments = [{"value":value,"effective_at_s":day*DAY_S,"epoch_height":0,"entry_index":i} for i,(value,day) in enumerate(changes)]
+    bound = EPOCH_CAP_DEFAULT if prefix_s is None else epoch_cap_bounds(amendments,prefix_s)[1]
+    epoch_transport_cases.append({"label":label,"prefix_sealed_at_s":prefix_s,"accepted_caps":amendments,
+        "rejected_caps":[{"value":value,"effective_at_s":day*DAY_S,"epoch_height":0,"entry_index":len(amendments)+j}
             for j,(value,day) in enumerate(rejected_changes)],
         "entries_bytes":entries_bytes,"transport_bound":bound,
         "valid":valid,"error":None if valid else "WIST3-E03"})
 
 for label, values, entries_bytes, valid in (
-    ("Snapshot bootstrap with no accepted caps uses the Registry default", [], BLOCK_CAP_DEFAULT, True),
-    ("Snapshot bootstrap rejects entries above the Registry default", [], BLOCK_CAP_DEFAULT+1, False),
-    ("Snapshot bootstrap authenticated tuple raises the bound", [2*BLOCK_CAP_DEFAULT], 2*BLOCK_CAP_DEFAULT, True),
-    ("Snapshot bootstrap entries above the authenticated bound are rejected", [2*BLOCK_CAP_DEFAULT], 2*BLOCK_CAP_DEFAULT+1, False),
+    ("Snapshot bootstrap with no accepted caps uses the Registry default", [], EPOCH_CAP_DEFAULT, True),
+    ("Snapshot bootstrap rejects entries above the Registry default", [], EPOCH_CAP_DEFAULT+1, False),
+    ("Snapshot bootstrap authenticated tuple raises the bound", [2*EPOCH_CAP_DEFAULT], 2*EPOCH_CAP_DEFAULT, True),
+    ("Snapshot bootstrap entries above the authenticated bound are rejected", [2*EPOCH_CAP_DEFAULT], 2*EPOCH_CAP_DEFAULT+1, False),
 ):
-    block_transport_cases.append({"label":label,
+    epoch_transport_cases.append({"label":label,
         "snapshot_bootstrap":True,"prefix_sealed_at_s":None,
         "accepted_caps":[{"value":value} for value in values],"rejected_caps":[],
         "entries_bytes":entries_bytes,
-        "transport_bound":max([BLOCK_CAP_DEFAULT]+values),"valid":valid,
+        "transport_bound":max([EPOCH_CAP_DEFAULT]+values),"valid":valid,
         "error":None if valid else "WIST3-E03"})
 
 LOG_TIMESTAMP_MAX_S = 253402300799
@@ -4237,7 +4237,7 @@ for label, changes, openings, probes in [
     amendments, rejected_amendments = [], []
     for i, (sealed, effective, value) in enumerate(changes):
         amendment = {"parameter": "recovery_window_days", "value": value,
-                     "block_height": i, "entry_index": 0,
+                     "epoch_height": i, "entry_index": 0,
                      "sealed_at_s": sealed * 86400, "effective_at_s": effective * 86400}
         if effective * 86400 + value * 86400 > RECOVERY_LIMIT_S:
             rejected_amendments.append(dict(amendment, code="WIST4-E03"))
@@ -4266,13 +4266,13 @@ assert [[e["sealable"] for e in c["eligible_recoveries"]] for c in recovery_wind
 assert [len(c["rejected_amendments"]) for c in recovery_window_cases] == [0, 0, 0, 0, 0, 0, 0, 1, 0]
 
 write_json(WIST4 / "parameter-combinations.json", spaced_labels({
-    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. block_size_cases and block_transport_cases: the Block-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract. clock_cases: a parameter read for work already begun stays attached to its anchor.",
+    "note": "WIST-4 §5 combination rules. prospective_cases: candidates processed in Log order against every prospective map, the rejected indices and the resulting maps at each effective instant. epoch_size_cases and epoch_transport_cases: the Epoch-size guarantee over the sealed prefix and the transport bound it fixes. recovery_window_cases: the Log timestamp range over recovery_window_days. wire_cases: the wire integer domain and the details contract. clock_cases: a parameter read for work already begun stays attached to its anchor.",
     "prospective_defaults": PROSPECTIVE_DEFAULTS,
     "prospective_floors": PROSPECTIVE_FLOORS,
     "prospective_cases": prospective_cases,
-    "block_cap_default": BLOCK_CAP_DEFAULT,
-    "block_size_cases": block_size_cases,
-    "block_transport_cases": block_transport_cases,
+    "epoch_cap_default": EPOCH_CAP_DEFAULT,
+    "epoch_size_cases": epoch_size_cases,
+    "epoch_transport_cases": epoch_transport_cases,
     "recovery_window_base_s": RECOVERY_BASE_S,
     "recovery_window_cases": recovery_window_cases,
     "wire_public_key": b64u(pub_raw),
@@ -4318,7 +4318,7 @@ def withdrawal_vectors():
         act("subject not a host", "WIST4-E04", subject="not a host!"),
         act("subject is another Publisher", "WIST4-E04", subject="other.sample.org"),
         act("Delta sealed above the act", "WIST4-E04", delta_id=d2, subject="other.sample.org", height=2),
-        act("Delta sealed in the act's Block", None, delta_id=d2, subject="other.sample.org", height=4,
+        act("Delta sealed in the act's Epoch", None, delta_id=d2, subject="other.sample.org", height=4,
             withdrawn_height=4),
         act("repeated withdrawal keeps the first height", None, height=6,
             details={"delta_id": d1, "legal_basis": "second order", "jurisdiction": "BR"},
@@ -4328,7 +4328,7 @@ def withdrawal_vectors():
     state_tuples = [["withdrawal", d1, "site.sample.net", 3], ["withdrawal", d2, "other.sample.org", 4]]
     record_tuples = [["record", d["publisher"], d["url"], d["delta_id"]] for d in sealed]
     resume = {
-        "log_position": 3,
+        "tree_size": 3,
         "adopted": [["withdrawal", d1, "site.sample.net", 3]],
         "walked_deltas": [d for d in sealed if d["height"] > 3],
         "act_cases": [
@@ -4346,12 +4346,12 @@ def withdrawal_vectors():
     }
     return spaced_labels({
         "note": ("WIST-4 §5.1: a payload_withdrawal is authenticated under the Log key (WIST4-E11 otherwise) and "
-                 "must name a Delta sealed at or below its Block whose signed publisher is the subject "
-                 "(WIST4-E04 otherwise); the earliest accepted withdrawal's Block governs and a later withdrawal "
+                 "must name a Delta sealed at or below its Epoch whose signed publisher is the subject "
+                 "(WIST4-E04 otherwise); the earliest accepted withdrawal's Epoch governs and a later withdrawal "
                  "of the same Delta changes nothing. Acts replay in order; state_tuples are the WIST-3 §7 "
                  "withdrawal tuples the replay leaves, record_tuples the chain tips every sealed Delta moves, "
                  "withdrawn or not, and materialized the sealed Deltas whose content materializes. resume "
-                 "replays acts at a Consumer that adopted the tuples at log_position and walked only the Deltas "
+                 "replays acts at a Consumer that adopted the tuples at tree_size and walked only the Deltas "
                  "above it: an act naming a Delta it did not walk is accepted as consistent."),
         "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)}, "sealed_deltas": sealed,
         "act_cases": acts, "state_tuples": state_tuples, "record_tuples": record_tuples,
@@ -4543,7 +4543,7 @@ def registrable_domain_vectors():
             unit = registrable_domain(e["domain"], rules[force_at[height]])[0]
             counts[unit] = counts.get(unit, 0) + 1
         expected = "WIST3-E03" if max(counts.values()) > cap else None
-        return {"label": label, "height": height, "domain_block_entries_max": cap, "entries": entries,
+        return {"label": label, "height": height, "domain_epoch_entries_max": cap, "entries": entries,
                 "expected": expected}
 
     capacity_cases = [
@@ -4597,24 +4597,24 @@ def registrable_domain_vectors():
                           ("a.hosts.sample.net", True, 4), ("a.hosts.sample.net", True, 4),
                           ("b.hosts.sample.net", True, 4), ("c.hosts.sample.net", False, 4)])]
 
-    state_tuples = [{"log_position": 0, "entries": [["suffix_list", ids["first"], 0]]},
-                    {"log_position": 2, "entries": [["suffix_list", ids["first"], 0]]},
-                    {"log_position": 3, "entries": [["suffix_list", ids["second"], 3]]},
-                    {"log_position": 6, "entries": [["suffix_list", ids["second"], 3]]}]
+    state_tuples = [{"tree_size": 0, "entries": [["suffix_list", ids["first"], 0]]},
+                    {"tree_size": 2, "entries": [["suffix_list", ids["first"], 0]]},
+                    {"tree_size": 3, "entries": [["suffix_list", ids["second"], 3]]},
+                    {"tree_size": 6, "entries": [["suffix_list", ids["second"], 3]]}]
     return spaced_labels({
         "note": ("WIST-4 §3.1, WIST-2 §4, WIST-3 §3.2 and §7. lists are Public Suffix List snapshots as octets "
                  "(text is the exact UTF-8 file). official_cases transcribe the Public Suffix List project's "
                  "checkPublicSuffix cases over the first snapshot: host is the input's Canonical Host (null where "
                  "it has none), expected the project's answer and registrable the Registrable Domain, the host "
                  "itself where the list leaves none. domain_cases read a host under a named snapshot or under "
-                 "none. act_cases replay in Block order under the Log key: a suffix_list_update is in force from "
-                 "the Block after its sealing Block (in_force lists the snapshot in force at each height). "
+                 "none. act_cases replay in Epoch order under the Log key: a suffix_list_update is in force from "
+                 "the Epoch after its sealing Epoch (in_force lists the snapshot in force at each height). "
                  "capacity_cases count publisher_delta and label Entries per Registrable Domain under the "
-                 "snapshot in force at the Block; quota_cases apply quota_base to the noise Pings of one UTC day "
+                 "snapshot in force at the Epoch; quota_cases apply quota_base to the noise Pings of one UTC day "
                  "per Registrable Domain in order, each Ping under the snapshot in force at its own height where "
                  "one is given; an act carrying consumer names a file no source holds, which fails its contract "
                  "at the Aggregator and stops a Consumer with WIST3-E01; state_tuples are the WIST-3 §7 "
-                 "suffix_list tuple at a log_position."),
+                 "suffix_list tuple at a tree_size."),
         "log_key": {"key_id": "test-agg-k1", "public_key": b64u(pub_raw)},
         "lists": lists, "official_cases": official_suffix_cases(rules["first"]), "domain_cases": domain_cases,
         "act_cases": acts, "in_force": in_force, "capacity_cases": capacity_cases, "quota_cases": quota_cases,
@@ -4653,7 +4653,7 @@ write_json(ROOT / "vectors/wist3/tile-bounds.json", {
     "note": "WIST-3 §6 static-file octet bounds and §3.3's per-Entry bound. A Consumer stops "
             "reading a response before buffering bytes past a bound; equality with a bound is "
             "permitted, and every excess is WIST3-E03. The entry bundle case states its bound "
-            "and declared size arithmetically, per §6's 'sum over the Block's Entries of each "
+            "and declared size arithmetically, per §6's 'sum over the Epoch's Entries of each "
             "JCS length plus two' formula, rather than embedding 16 777 472 literal octets.",
     "tile": {
         "bound_bytes": TILE_BOUND_BYTES,
@@ -4672,7 +4672,7 @@ write_json(ROOT / "vectors/wist3/tile-bounds.json", {
     },
 })
 
-def epoch_seconds(ts: str) -> int:
+def unix_seconds(ts: str) -> int:
     """RFC 3339 UTC -> integer POSIX seconds (86400 s/day, no leap seconds)."""
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:[0-5][0-9]Z", ts, re.ASCII):
         raise ValueError("invalid Log timestamp")
@@ -4696,8 +4696,8 @@ for value, seconds in (
     ("9999-12-31T00:00:00Z", 253402214400),
     ("9999-12-31T23:59:59Z", 253402300799),
 ):
-    assert epoch_seconds(value) == seconds
-    timestamp_cases.append({"value": value, "epoch_seconds": seconds})
+    assert unix_seconds(value) == seconds
+    timestamp_cases.append({"value": value, "unix_seconds": seconds})
 timestamp_invalid = [
     "2016-12-31T23:59:60Z", "2016-12-31T23:59:61Z", "2017-01-01T00:00:60Z",
     "2016-12-31T23:59:59.0Z", "2016-12-31T23:59:59+00:00",
@@ -4712,12 +4712,12 @@ timestamp_invalid = [
 ]
 for value in timestamp_invalid:
     try:
-        epoch_seconds(value)
+        unix_seconds(value)
     except ValueError:
         pass
     else:
         raise AssertionError(value)
-    timestamp_cases.append({"value": value, "epoch_seconds": None})
+    timestamp_cases.append({"value": value, "unix_seconds": None})
 
 timestamp_fields = []
 for stem, path in (
@@ -4727,7 +4727,7 @@ for stem, path in (
     timestamp_fields.append({"schema": stem + ".schema.json", "document": json.loads((EXAMPLES / (stem + ".json")).read_text()), "path": path})
 timestamp_probe = "2017-01-01T00:00:00Z"
 for entry, path in (
-    (["parameter", "record_seal_blocks", timestamp_probe, 2], [2]),
+    (["parameter", "record_seal_epochs", timestamp_probe, 2], [2]),
     (["recovery_window", "example.com", 1, timestamp_probe, {}, 1], [3]),
     (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, timestamp_probe, None, None, "sha256:" + "0" * 64, 1], [5]),
     (["label", "labeler.example", "https://example.com/blog/post-1", "wist:spam", None, "2026-08-02T12:00:00Z", timestamp_probe, None, "sha256:" + "0" * 64, 1], [6]),
@@ -4741,7 +4741,7 @@ checkpoint_note_lines = checkpoint_text.split("\n\n", 1)[0].split("\n")
 checkpoint_sig_block = checkpoint_text.split("\n\n", 1)[1]
 
 write_json(ROOT / "vectors/wist3/timestamps.json", {
-    "note": "WIST-3 §3.1 whole-second literal-Z profile, including §7 Snapshot state. Null epoch_seconds means reject, including invalid calendar dates. Field cases supply schema-valid structural baselines; mutating a signed value requires re-signing before testing signature verification. The schema-only leap-second check does not depend on format validation. The Checkpoint's `sealed_at` extension line (WIST-3 §5) is no longer a JSON Schema field, so `checkpoint_field_case` supplies the note's own five lines and signature block instead, for a structural-only (parse_checkpoint, not verify_checkpoint) probe of the same three field_accept/field_reject/field_reject_non_ascii values.",
+    "note": "WIST-3 §3.1 whole-second literal-Z profile, including §7 Snapshot state. Null unix_seconds means reject, including invalid calendar dates. Field cases supply schema-valid structural baselines; mutating a signed value requires re-signing before testing signature verification. The schema-only leap-second check does not depend on format validation. The Checkpoint's `sealed_at` extension line (WIST-3 §5) is no longer a JSON Schema field, so `checkpoint_field_case` supplies the note's own five lines and signature block instead, for a structural-only (parse_checkpoint, not verify_checkpoint) probe of the same three field_accept/field_reject/field_reject_non_ascii values.",
     "cases": timestamp_cases,
     "distances": [{"from": "2016-12-31T23:59:59Z", "to": "2017-01-01T00:00:00Z", "seconds": 1}],
     "field_cases": timestamp_fields,
@@ -5110,7 +5110,7 @@ def delta_attribution_vectors():
                        1: [ordinary], 2: [owner], 3: [competitor], 4: [follower], 171: [reset]}
     authors_at = {0: keys[0], 1: keys[2], 2: keys[3], 3: keys[3], 4: keys[5],
                   170: keys[5], 171: keys[6], 172: keys[6]}
-    blocks, tips, envelopes, probes = [], {}, {}, []
+    epochs, tips, envelopes, probes = [], {}, {}, []
     tree_leaves = []
     for height in range(173):
         entries = [{"type": "publisher_declaration", "body": env}
@@ -5130,8 +5130,8 @@ def delta_attribution_vectors():
             tips[child] = decl_hash(env["delta"])
         entries.sort(key=lambda e: ((0 if e["type"] == "publisher_declaration" else 2),
                                      leaf_hash(rfc8785.dumps(e))))
-        block, tree_leaves = seal("log-key", priv, tree_leaves, entries, height, timestamp(height))
-        blocks.append(block)
+        epoch, tree_leaves = seal("log-key", priv, tree_leaves, entries, height, timestamp(height))
+        epochs.append(epoch)
         if height in (0, 1, 3, 4, 170, 171):
             def probe(name, domain, key, expected, stage=None, **fields):
                 stage = stage or ("admission" if height in (3, 4) else "sealing")
@@ -5173,13 +5173,13 @@ def delta_attribution_vectors():
              "Declarations supplied; accepted means those checks only. No live discovery or transport is exercised. "
              "The authenticated hourly history uses the default seven-day recovery window and supplies an "
              "independently pinned head; its Deltas exercise sealing bindings and chain ownership. Probes run "
-             "after the named Block's Declaration stage and accepted Deltas, using that prefix's sources/tips; "
+             "after the named Epoch's Declaration stage and accepted Deltas, using that prefix's sources/tips; "
              "their later observed_at is a supplied test timestamp, not an inclusion claim. Clock, Payload, "
              "quotas and Payloads remain separate. Identity projections exercise owner/reset attribution: whether "
              "the Publisher identity current at at_height is the one that signed at reference_height. "
              "Version cases assume a validator of this exact draft implementing only wire major 1.",
         cases=cases, log_key=dict(key_id="log-key", public_key=b64u(pub_raw)),
-        recovery_window_days=7, declaration_activation_blocks=0, blocks=blocks,
+        recovery_window_days=7, declaration_activation_epochs=0, epochs=epochs,
         pinned_head=root_token(tree_leaves), probes=probes,
         projection_cases=[
             dict(at_height=4, reference_height=0, publisher=parent, expected_current_identity=True),
@@ -5242,13 +5242,13 @@ def recovery_scope_vectors():
         restored = replace(deadline, 7, [owner_binding], hosts[1:], owner_key)
         declarations = {0: [initial], 1: [prior, owner], 2: [competitor], 3: [follower],
                         168: [latest], 169: [deadline], 170: [restored]}
-        blocks, tree_leaves = [], []
+        epochs, tree_leaves = [], []
         for height in range(171):
             entries = [recovery_order_entry(env) for env in declarations.get(height, [])]
             entries.sort(key=lambda entry: leaf_hash(rfc8785.dumps(entry)))
-            block, tree_leaves = seal("log-key", priv, tree_leaves, entries, height, timestamp(height))
-            blocks.append(block)
-        histories[name] = dict(blocks=blocks, pinned_head=root_token(tree_leaves))
+            epoch, tree_leaves = seal("log-key", priv, tree_leaves, entries, height, timestamp(height))
+            epochs.append(epoch)
+        histories[name] = dict(epochs=epochs, pinned_head=root_token(tree_leaves))
 
         def add(label, height, stage, signer, host, expected, observed_at=later,
                 identifier=None, damage=None):
@@ -5309,10 +5309,10 @@ def recovery_scope_vectors():
         add("settlement malformed field", 169, "settlement", owner_key, domain,
             "WIST1-E14", damage="encoding")
     return dict(note="WIST-1 sections 3.2, 5.1 and 5.2. Authenticated hourly Declaration histories "
-        "open recovery at height 1 after a same-Block ordinary predecessor, accept a competitor and "
+        "open recovery at height 1 after a same-Epoch ordinary predecessor, accept a competitor and "
         "a legitimate follower, accept a higher-sequence competitor at 168, settle at 169, then apply "
-        "a scope-removing Declaration in that same deadline Block. Height 170 grants scopes again. "
-        "Admission and sealing probes run after the named Block's Declaration stage; settlement probes "
+        "a scope-removing Declaration in that same deadline Epoch. Height 170 grants scopes again. "
+        "Admission and sealing probes run after the named Epoch's Declaration stage; settlement probes "
         "run immediately before height 169's Declaration stage. Queued-copy probes reuse height-1 "
         "authority-eligible Envelopes; damaged settlement probes are conditional stage inputs and do not "
         "claim prior queue acceptance. "
@@ -5320,7 +5320,7 @@ def recovery_scope_vectors():
         "inputs, not claimed live validation times. Chains, clocks, Payload, quotas, durable queue/status "
         "effects and actual Delta inclusion are not exercised. Trusted Log key and pinned heads are "
         "fixture inputs. Signature-invalid twins are checked independently by the reference.",
-        log_key=dict(key_id="log-key", public_key=b64u(pub_raw)), recovery_window_days=7, declaration_activation_blocks=0,
+        log_key=dict(key_id="log-key", public_key=b64u(pub_raw)), recovery_window_days=7, declaration_activation_epochs=0,
         histories=histories, probes=probes)
 
 
@@ -5445,7 +5445,7 @@ def declaration_refresh_vectors():
         "Declaration bytes. An absent numeric limit means a sufficient content budget. "
         "Declaration request counts include initial or periodic discovery. Optional sealed entries "
         "supply the authenticated-prefix context held fixed during a Page walk; they do not prove "
-        "Block inclusion. Optional empty Pages isolate authentication, not Page cardinality or publication. "
+        "Epoch inclusion. Optional empty Pages isolate authentication, not Page cardinality or publication. "
         "Resume and recovery "
         "settlement, complete HTTP resource bounds, sealing and durability require separate integration.",
         domain=domain, now="2026-08-09T14:01:00Z", payload=payload, cases=cases)
@@ -5759,11 +5759,11 @@ def delta_cap_time_vectors():
 
     ranks = dict(publisher_declaration=0, registry_update=1, publisher_delta=2)
 
-    def block(height, leaves, entries):
+    def epoch(height, leaves, entries):
         entries = sorted(entries, key=lambda entry: (ranks[entry['type']], leaf_hash(rfc8785.dumps(entry))))
         return seal('test-log-k1', priv, leaves, entries, height, at(height * 3600))
 
-    blocks, tree_leaves = [], []
+    epochs, tree_leaves = [], []
     leaves_before = []
     for height in range(509):
         entries = []
@@ -5782,8 +5782,8 @@ def delta_cap_time_vectors():
         entries.extend(dict(type='publisher_delta', body=obj['envelope'])
                        for obj in objects.values() if obj['sealed_height'] == height)
         leaves_before.append(tree_leaves)
-        current, tree_leaves = block(height, tree_leaves, entries)
-        blocks.append(current)
+        current, tree_leaves = epoch(height, tree_leaves, entries)
+        epochs.append(current)
 
     def result(obj, caps, with_payload=True):
         body = obj['envelope']['delta']
@@ -5816,7 +5816,7 @@ def delta_cap_time_vectors():
                                prefix_height=replay, checked_at=at(replay * 3600), restart=True,
                                expected_profile=caps, expected_delta=result(obj, caps, False), expected=result(obj, caps)))
 
-    invalid_blocks = []
+    invalid_epochs = []
     for name, obj in objects.items():
         if name.startswith('later') and name.endswith('1'):
             body = dict(obj['envelope']['delta'])
@@ -5825,13 +5825,13 @@ def delta_cap_time_vectors():
                             observed_at='2026-08-04T01:00:00Z')
                 del body['prev']
             envelope = sign_envelope('delta', body, KID1)
-            candidate, candidate_leaves = block(169, leaves_before[169],
+            candidate, candidate_leaves = epoch(169, leaves_before[169],
                                                 [dict(type='publisher_delta', body=envelope)])
-            invalid_blocks.append(dict(name=name, block=candidate, pinned_head=root_token(candidate_leaves),
+            invalid_epochs.append(dict(name=name, epoch=candidate, pinned_head=root_token(candidate_leaves),
                                        payload=obj['payload'], expected=result(obj, low)))
-    return dict(note='WIST-1 section 3.6 and WIST-4 section 5. One authenticated hourly history supplies a Declaration, cap amendments and unique content-bearing Deltas. Amendments have at least seven days of grace; lower link caps precede lower aggregate caps, and larger aggregate caps precede larger link caps. Probes independently check caps at each stage, not admission membership or permission to re-admit included IDs; admission probes resume their retained attempt across a boundary, sealing probes recheck objects under a supplied earlier valid cap profile, and historical probes retrieve the committing Delta profile from its actual inclusion. Repeating a probe with restart reconstructs inputs from the pinned prefix, not current defaults. Invalid candidate Blocks branch from height 168. Cap checks, signatures, inclusion and commitments are exercised; live queue mutation, crash durability, HTTP retrieval and complete governance acceptance are not established.',
+    return dict(note='WIST-1 section 3.6 and WIST-4 section 5. One authenticated hourly history supplies a Declaration, cap amendments and unique content-bearing Deltas. Amendments have at least seven days of grace; lower link caps precede lower aggregate caps, and larger aggregate caps precede larger link caps. Probes independently check caps at each stage, not admission membership or permission to re-admit included IDs; admission probes resume their retained attempt across a boundary, sealing probes recheck objects under a supplied earlier valid cap profile, and historical probes retrieve the committing Delta profile from its actual inclusion. Repeating a probe with restart reconstructs inputs from the pinned prefix, not current defaults. Invalid candidate Epochs branch from height 168. Cap checks, signatures, inclusion and commitments are exercised; live queue mutation, crash durability, HTTP retrieval and complete governance acceptance are not established.',
                 log_key=dict(key_id='test-log-k1', public_key=b64u(pub_raw)), defaults=defaults,
-                blocks=blocks, pinned_head=root_token(tree_leaves), objects=objects, probes=probes, invalid_blocks=invalid_blocks)
+                epochs=epochs, pinned_head=root_token(tree_leaves), objects=objects, probes=probes, invalid_epochs=invalid_epochs)
 
 
 write_json(WIST1 / 'delta-cap-time.json', delta_cap_time_vectors())
@@ -6112,8 +6112,8 @@ def delta_clock_time_vectors():
                 None if observed_scaled <= (2 + allowance(instant + 2)) * 10**20 else 'WIST1-E06',
                 started_at=at(instant + 2), completed_at=at(instant + 3))
     return dict(description='WIST-1 section 3.4 and WIST-4 section 5. Signed candidates with supplied '
-                'inclusion contexts; amendments share the initial Block in listed order. Only the '
-                'clock_skew_seconds parameter varies. Context timestamps do not prove Block inclusion. '
+                'inclusion contexts; amendments share the initial Epoch in listed order. Only the '
+                'clock_skew_seconds parameter varies. Context timestamps do not prove Epoch inclusion. '
                 'Clock relation outcomes assume other Delta obligations have passed; each new attempt '
                 'captures its own context. Historical checked_at and sealing admitted_at are distractors.',
                 public_key=b64u(pub_raw), default=600, amendments=amendments, probes=probes)
@@ -6337,8 +6337,8 @@ def key_directory_vectors():
     window("overlap incoming key at its nbf", overlap, priv3, KID3, timestamp(10, 1800), "accepted")
     window("overlap incoming key without exp far later", overlap, priv3, KID3, "2030-01-01T00:00:00Z", "accepted")
     window("overlap outgoing key signature under incoming kid", overlap, priv, KID3, timestamp(10, 1800), "WIST1-E01")
-    window("nbf zero admits the epoch", [jwk(pub_raw, 0)], priv, KID1, "1970-01-01T00:00:00Z", "accepted")
-    window("instant before the epoch precedes every nbf", [jwk(pub_raw, 0)], priv, KID1, "1969-12-31T23:59:59.999Z", "WIST1-E02")
+    window("nbf zero admits the Unix time origin", [jwk(pub_raw, 0)], priv, KID1, "1970-01-01T00:00:00Z", "accepted")
+    window("instant before the Unix time origin precedes every nbf", [jwk(pub_raw, 0)], priv, KID1, "1969-12-31T23:59:59.999Z", "WIST1-E02")
     window("nbf at the last NumericDate", [jwk(pub_raw, 253402300799)], priv, KID1, "9999-12-31T23:59:59Z", "accepted")
     window("recovery only key supplies no authority", bounded, priv2, KID2, timestamp(10), "WIST1-E02")
 
@@ -6377,7 +6377,7 @@ def key_directory_vectors():
                variant(seq=1, prev_declaration=stored_hash, next_keys=fingerprint_of([{"kid": KID3}])),
                priv, KID1, "ordinary_rotation")
 
-    # Signed hourly Block histories for the activation delay.
+    # Signed hourly Epoch histories for the activation delay.
     initial = sign_envelope_with(priv, "publisher", publisher, KID1)
     def signed(previous, seq, signer, kid, **changes):
         inner = dict(previous["publisher"], seq=seq,
@@ -6392,12 +6392,12 @@ def key_directory_vectors():
     second_fresh = signed(fresh, 3, priv4, KID4, keys=[K4])
 
     def history(events, length, **fields):
-        blocks, tree_leaves = [], []
+        epochs, tree_leaves = [], []
         for height in range(length):
             entries = [recovery_order_entry(events[height])] if height in events else []
-            block, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height, timestamp(height))
-            blocks.append(block)
-        return dict(blocks=blocks, pinned_head=root_token(tree_leaves), **fields)
+            epoch, tree_leaves = seal("test-log-k1", priv, tree_leaves, entries, height, timestamp(height))
+            epochs.append(epoch)
+        return dict(epochs=epochs, pinned_head=root_token(tree_leaves), **fields)
 
     def state(current, pending=None, activation=None, floor=0, reset=None, window_end=None):
         return {"current_declaration": decl_hash(current["publisher"]),
@@ -6419,7 +6419,7 @@ def key_directory_vectors():
             (3, state(initial, fresh, 26, 1)),
             (4, state(recovery_reversal, floor=2, window_end=timestamp(4 + 168))),
             (5, state(recovery_reversal, floor=2, window_end=timestamp(4 + 168)))]),
-        "activation delay zero": history({0: initial, 2: fresh}, 4, declaration_activation_blocks=0,
+        "activation delay zero": history({0: initial, 2: fresh}, 4, declaration_activation_epochs=0,
                                          expected_states=[(1, state(initial)), (2, state(fresh, floor=1, reset=2)),
                                                           (3, state(fresh, floor=1, reset=2))]),
     }
@@ -6471,15 +6471,15 @@ def key_directory_vectors():
                 "field and uniqueness rules. window_cases judge a Delta's key check under the supplied "
                 "Declaration alone: accepted means the named binding is inside its window and verifies. "
                 "commitment_cases evaluate fetched against stored as declaration-binding.json does. "
-                "Each history is an authenticated hourly Block chain; expected_states hold after the "
+                "Each history is an authenticated hourly Epoch chain; expected_states hold after the "
                 "named height applies, snapshot_tuples are the WIST-3 section 7 tuples at that height, "
-                "rejections apply a candidate to the next Block after prefix_height and must leave the "
+                "rejections apply a candidate to the next Epoch after prefix_height and must leave the "
                 "prefix state unchanged when rejected, and delta_probes judge only the key check against "
                 "the Declaration current after prefix_height. The parameter map is a trusted fixture "
-                "input; a history's own declaration_activation_blocks overrides the file default. No live "
+                "input; a history's own declaration_activation_epochs overrides the file default. No live "
                 "transport, queue, Payload or quota behavior is established.",
         "log_key": {"key_id": "test-log-k1", "public_key": b64u(pub_raw)},
-        "recovery_window_days": 7, "declaration_activation_blocks": 24,
+        "recovery_window_days": 7, "declaration_activation_epochs": 24,
         "thumbprints": thumbprints, "fingerprints": fingerprints, "dns_record": dns_record,
         "entry_cases": entry_cases, "window_cases": window_cases, "commitment_cases": commitment_cases,
         "histories": histories, "snapshot_tuples": snapshot_tuples, "rejections": rejections,

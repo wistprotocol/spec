@@ -1,17 +1,17 @@
 {
-  "note": "WIST-1 section 5.2 and WIST-3 section 3.3 recovery ownership over valid serial Declaration histories. The supplied Log key and pinned head are trusted fixture inputs. All queries are at the final Block, strictly inside the default seven-day recovery window; no settlement, conflicting candidate disposition or identity-reset result is asserted. The second recovery is signed by the recovery key installed by the first.",
+  "note": "WIST-1 section 5.2 and WIST-3 section 3.3 recovery ownership over valid serial Declaration histories. The supplied Log key and pinned head are trusted fixture inputs. All queries are at the final Epoch, strictly inside the default seven-day recovery window; no settlement, conflicting candidate disposition or identity-reset result is asserted. The second recovery is signed by the recovery key installed by the first.",
   "log_key": {
     "key_id": "test-log-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
   },
   "recovery_window_days": 7,
-  "declaration_activation_blocks": 0,
+  "declaration_activation_epochs": 0,
   "cases": [
     {
-      "name": "same Block reversed recovery leaves",
-      "blocks": [
+      "name": "same Epoch reversed recovery leaves",
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -54,7 +54,7 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n3\n/1uyCLJWQIly8hKOB1jNFE1ZM9qyZBvU2vV8nHNwDJY=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/ZitzONMNoDoK1fvAfWaSNaIBUxs4mglUbZ15ZINEVXNjb1Hnl8N2t5PHOlF5yBW+wemtGTJu+ggJ3ZnmtDbAwA=\n",
+          "checkpoint": "test-log-k1\n3\n/1uyCLJWQIly8hKOB1jNFE1ZM9qyZBvU2vV8nHNwDJY=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/TUd2img1lj3ZqpMrM6jJybCZ8YanH5vg5woYLjpYHtHvEoS7Rm5rmvNbHfpXCfngJM4pco5PUOhOfqW5+4NMQY=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -153,10 +153,10 @@
       "recovery_leaves_reversed": true
     },
     {
-      "name": "same Block ascending recovery leaves",
-      "blocks": [
+      "name": "same Epoch ascending recovery leaves",
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -199,7 +199,7 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n3\nWzzHIYilrjlhhuQrLKCF8NZ777ni89FN6yYuHiWjdT4=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/aQ0kv6GXb43GGOtwNg66a0ogRx/2IDjpx66tJ6UfMfDAu//XmDrtIu4P8LBaXJct4Wl9SCgwKN0/YiUtF6VeQk=\n",
+          "checkpoint": "test-log-k1\n3\nWzzHIYilrjlhhuQrLKCF8NZ777ni89FN6yYuHiWjdT4=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/er8eTcsuCWKEnHet3dAzGXKqi/F7AKwrGIJKB4hEjvasJ8hHF0uw+BRX2BWzMVis167SqqyN7R5DfopogsaQQE=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -298,10 +298,10 @@
       "recovery_leaves_reversed": false
     },
     {
-      "name": "later Block does not reopen recovery",
-      "blocks": [
+      "name": "later Epoch does not reopen recovery",
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -344,7 +344,7 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n2\nErHKL6wB9FpLXt9AVW1KI0jmbzsLdPqGBTXPPA/b4jA=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/fR3jCOBhbYiCUmdlMstIGqY7KWX5B1bq4Mpq87GbhXpHO68CF8M6F5x3FP1aFQH34+vE289GRSOajIoIBHzNwM=\n",
+          "checkpoint": "test-log-k1\n2\nErHKL6wB9FpLXt9AVW1KI0jmbzsLdPqGBTXPPA/b4jA=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/bT+KJHvLO26wafJvLV47/dlpWFTGO77Da2shckvskFBAEhPahDln9LbonsiY2YcsFZVJb5eswQgHDp7YEMYUgQ=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -388,7 +388,7 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n3\ngnPb9/TmUoavDx0mtRQePCh7rdWhxL4mMWRcBC2b/ho=\nblock_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/bvuTP07bY/Oe+N7fvvgFurtgbde3DMWYXySGu2v5iznymrGSjsnRYVSDp44jLPdvLpLENOpDfHnJllkFdUM7QM=\n",
+          "checkpoint": "test-log-k1\n3\ngnPb9/TmUoavDx0mtRQePCh7rdWhxL4mMWRcBC2b/ho=\nepoch_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/UWz+u9EEXK8NGrEM9VaK/3OE6O/Sn2Wx/lfH+KO2vfEM6X+xpBx9aDyCRjsZoPWtxOYoRS6XszTSs4kaikrvg0=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -449,9 +449,9 @@
     },
     {
       "name": "ordinary predecessor before two recoveries",
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -494,7 +494,7 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n4\nKIoPnrJpvZ8uRR+wF/OdQ5BPAYmarRqq9uGosyxbnOo=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/eoCkgY2zpX+11PPhe52K0d8Oiz5UQVYamkvKBv9LaPTvs1lF29jVTzGBCT1Y5HRiMIUYAcn1CL+3LXO3ToaDAE=\n",
+          "checkpoint": "test-log-k1\n4\nKIoPnrJpvZ8uRR+wF/OdQ5BPAYmarRqq9uGosyxbnOo=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/dtBL8N3QrR0xRMFOHMnIossn5pjUNL7aodCvuKJJneU/q5NdnCVRVmx2NbNHtgpVBdgabQyXZA6rwy9J+5VAw4=\n",
           "entries": [
             {
               "type": "publisher_declaration",

@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 \u00a73.2 named-entry verification over signed ordinary Declaration chains. Sealing positions are supplied inputs, without Block inclusion or recovery proofs. Empty Delta lists isolate signature/source selection; these are not publication or Page-size fixtures. Future nbf values distinguish Pages from Delta filtering.",
+  "note": "WIST-2 \u00a73.2 named-entry verification over signed ordinary Declaration chains. Sealing positions are supplied inputs, without Epoch inclusion or recovery proofs. Empty Delta lists isolate signature/source selection; these are not publication or Page-size fixtures. Future nbf values distinguish Pages from Delta filtering.",
   "histories": {
     "rotated": [
       {
@@ -255,7 +255,7 @@
       "expected": "WIST2-E04"
     },
     {
-      "name": "key from a later Block cannot supply authority",
+      "name": "key from a later Epoch cannot supply authority",
       "history": "rotated",
       "envelope": {
         "feed": {

@@ -4,6 +4,10 @@
 
 ## Context
 
+"Block", "Block file" and `block-frames.json` are former names of removed
+objects: before ADR-0046 each interval of the Log now called an Epoch was
+one signed Block object, served as one Zstandard-compressed Block file.
+
 WIST-3 §6 binds a Block file's declared decompressed size to its canonical
 Block bytes. Zstandard also permits concatenated and skippable frames.
 A trailing empty frame or skippable metadata can leave the decompressed

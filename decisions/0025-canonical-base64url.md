@@ -27,7 +27,7 @@ verification. Declaration field validation still precedes sequencing,
 conflict comparison and idempotence; malformed unused keys reject the
 Declaration, while canonically encoded unusable points remain governed by
 §4's exclusion rule. Preserve existing object dispositions and transport
-wrappers, including first-contact `WIST2-E04` and invalid-Block-file
+wrappers, including first-contact `WIST2-E04` and invalid-object
 `WIST3-E03`. No order among unrelated failures is introduced.
 
 Compare public-key membership by decoded bytes after validation. Canonical

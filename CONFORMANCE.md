@@ -33,7 +33,7 @@ difference and verify the existing case on both versions.
 
 Field validation and diagnostic precedence are defined by WIST-1 §§3.4,
 5.1 and 7 and [ADR-0024](decisions/0024-declaration-field-diagnostics.md).
-`declaration-fields.json` covers signed field mutations and atomic Block
+`declaration-fields.json` covers signed field mutations and atomic Epoch
 rejection. Admission, historical replay, sealing and durable restoration
 must adopt those checks. The reference's structural, ASCII-host and Publisher
 timestamp checks do not establish complete hostname, Delta chain/clock,
@@ -49,7 +49,7 @@ authenticated Delta history and durable service adoption remain required.
 Canonical encoding and its diagnostics are defined by WIST-1 §2 and
 [ADR-0025](decisions/0025-canonical-base64url.md). `base64url.json` checks
 unused bits independently of decoder policy, schema agreement, noncanonical key spellings,
-field-before-conflict/idempotence ordering and atomic Block rejection.
+field-before-conflict/idempotence ordering and atomic Epoch rejection.
 The key-eligibility reference uses this decoder. Complete field formats,
 role admission/replay/sealing/restoration and transport-wrapper integration
 remain unvalidated by this corpus.
@@ -66,7 +66,7 @@ nor Publisher timestamp format conformance.
 Canonical Host backends must remain pinned to Unicode 16.0 even when their
 package versions or default data change. `declaration-hosts.json` includes
 U+1C89/U+1C8A (assigned in Unicode 16) and U+1E6C0 (disallowed in Unicode 16),
-with signed A-label counterparts and authenticated Block rejection. A backend
+with signed A-label counterparts and authenticated Epoch rejection. A backend
 that admits `xn--uv5h.example` violates WIST-1 §2 despite accepting every
 older hostname example. The external anchor is the
 [Unicode 16 IDNA Mapping Table](https://www.unicode.org/Public/idna/16.0.0/IdnaMappingTable.txt):
@@ -137,7 +137,7 @@ withdrawal sealing, Payload destruction and Snapshot exclusion require
 integration validation.
 
 **Registrable domains.** WIST-4 §3.1, WIST-2 §4 and WIST-3 §3.2 key the
-Ping quota, the ingest budget and the per-domain Block capacity on the
+Ping quota, the ingest budget and the per-domain Epoch capacity on the
 Registrable Domain under a pinned Public Suffix List snapshot, and draft
 [ADR-0042](decisions/0042-registrable-domain-accounting.md) records why.
 `vectors/wist4/registrable-domain.json` carries two fixture snapshots,
@@ -207,7 +207,7 @@ range. The specified clock is independent of physical UTC leap events.
 `declaration-fields.json` exercises signed field mutations in both key
 arrays and Delta `observed_at`, preserved recovery-key protection, exact
 inclusive key bounds, isolated signed E06/E07 clock-skew and predecessor
-comparison twins, and authenticated whole-Block rejection through due
+comparison twins, and authenticated whole-Epoch rejection through due
 settlement. Historical insertion labels and their offset equivalents
 reject; wrong dates/minutes, future dates, a hypothetical negative-leap
 boundary, arbitrary fractions beyond common parser limits and offset/year
@@ -272,7 +272,7 @@ bindings without broadening the permitted source Key Set.
 Full validation also requires authenticated applicable Declaration history,
 including recovery supersession. Both timestamp lookups read sealed Entries;
 an accepted but unsealed Declaration does not establish the first following
-Block's Key Set. Verification over supplied key sets alone does not establish
+Epoch's Key Set. Verification over supplied key sets alone does not establish
 these source-selection obligations or Page publication and immutability.
 
 **Resolved Page named-entry fallback — WIST-2 §3.2 and draft ADR-0023.**
@@ -283,7 +283,7 @@ forbidden later sources and absence of a following Declaration.
 Signature-invalid twins and reversed source order check rejection and
 ordering independence; future `nbf` values distinguish Page verification
 from Delta filtering. Sealing positions are
-supplied inputs, not authenticated Block evidence. Empty Delta lists isolate
+supplied inputs, not authenticated Epoch evidence. Empty Delta lists isolate
 key/source selection and establish no Page-size or publication conformance.
 Full role validation still requires authenticated inclusion and recovery
 supersession, live refresh, durable source provenance and immutable Page
@@ -292,18 +292,18 @@ publication.
 ### Authenticated recovery state
 
 WIST-1 §5.2 and WIST-4 §5 freeze each recovery window’s length at its
-owner Block’s in-force parameter map. `recovery_window_cases` in
+owner Epoch’s in-force parameter map. `recovery_window_cases` in
 `vectors/wist4/parameter-combinations.json` exercises exact effective-time
 and settlement boundaries, later shortening/lengthening, in-window followers,
 new windows, the largest representable window, an amendment rejected for
 ending past the Log timestamp range (WIST4-E03) and an opening near the
 range end that cannot seal. Accepted amendments and eligible recovery events
 are supplied inputs; integrated replay must derive them from authenticated
-history before applying the rule, and a Block sealing an unsealable
+history before applying the rule, and an Epoch sealing an unsealable
 recovery Declaration is rejected under WIST1-E08.
 
 WIST-1 §5.2 and WIST-3 §3.3 select recovery ownership in ascending
-`(Block height, seq)` order. `vectors/wist1/recovery-order.json` exercises
+`(Epoch number, seq)` order. `vectors/wist1/recovery-order.json` exercises
 signed Declarations and predecessor links in authenticated Checkpoint
 histories,
 including reversed leaf-hash order. WIST-1 §5.2 separately retains the highest
@@ -321,11 +321,11 @@ integration validation.
 and probes ordinary/recovery followers across competitors, stale predecessor
 rejection, named-predecessor classification, the deadline transition and
 idempotent re-serving of the restored lower-sequence head. Its reference
-validates Declaration authorship separately from Block inclusion. It asserts
+validates Declaration authorship separately from Epoch inclusion. It asserts
 no identity-reset or conflicting-batch result.
 
 WIST-1 §5.2 and WIST-3 §3.3 reject conflicting equal-sequence Declaration
-groups as an entire Block under `WIST1-E08`, preserving the accepted prefix
+groups as an entire Epoch under `WIST1-E08`, preserving the accepted prefix
 and state. Only already-current publisher re-serves or identical first-install
 Envelopes are nonconflicting; differing signatures cannot choose a new
 Declaration's ordinary/recovery authority by leaf order.
@@ -337,13 +337,13 @@ admissibility.
 
 WIST-1 §5.2 preserves the recovery owner's identity from its application
 onward: in-window fresh competitors cause no reset in any prefix, a fresh
-predecessor earlier in the owner's Block resets normally, and so does a
+predecessor earlier in the owner's Epoch resets normally, and so does a
 valid fresh replacement after settlement unless a new window has opened.
 The identity projections of `vectors/wist1/delta-attribution.json`
 exercise which Publisher identity is current at a height; Snapshot resume
 conformance is not established.
 
-`vectors/wist1/recovery-settlement.json` authenticates seven 170-Block hourly
+`vectors/wist1/recovery-settlement.json` authenticates seven 170-Epoch hourly
 histories through the settlement boundary, with admissible fresh competitors,
 ordinary descendants and legitimate ordinary/recovery followers. Signed
 rejection twins enforce recovery-key protection, predecessor eligibility and
@@ -431,7 +431,7 @@ Declaration/key history; enforce Publisher/URL predecessors and logical Feed
 association before idempotence; preserve domain-scoped recovery queues and
 chain tips across restart; derive Label authorship and materialization
 from the same author. Update every dependent
-ID, signature, Payload path, Block and Snapshot when changing fixture bytes.
+ID, signature, Payload path, Epoch and Snapshot when changing fixture bytes.
 Existing signed objects without the field fail this exact draft, even when
 they say `1.0.0`. Passing supplied-source or conditional projection tests
 establishes neither live discovery nor integrated process conformance.
@@ -441,12 +441,12 @@ establishes neither live discovery nor integrated process conformance.
 WIST-1 §3.2/§5.2 and draft ADR-0015 pair each frozen recovery-admission
 Declaration's scope with its complete signing bindings. A candidate cannot
 borrow scope across sources. Settlement checks the newest recovery-chain
-Declaration before deadline-Block Declarations and drops either binding or
+Declaration before deadline-Epoch Declarations and drops either binding or
 scope failures with E13; actual sealing checks its own applicable Declaration.
 Historical scope remains tied to the Delta's sealing height.
 
 `vectors/wist1/recovery-scope.json` authenticates differing-scope Declaration
-histories and independently verifies signed stage probes, including same-Block
+histories and independently verifies signed stage probes, including same-Epoch
 source selection, repeated keys, exact timestamp bounds, deadline changes,
 re-serving and signature-invalid twins. These probes supply validation stages;
 they do not prove complete Delta admission, chain/clock eligibility, durable
@@ -470,7 +470,7 @@ introduce a new first installation.
 Dropped queue copies must not permanently suppress their IDs or leave invalid
 chain tips: test re-serving after authority changes, including after restart.
 Queue validation must also cover Deltas accepted before the recovery opening
-but excluded from intermediate Blocks by capacity. They still require recovery
+but excluded from intermediate Epochs by capacity. They still require recovery
 settlement, including E13 rejection and deadline-based inclusion-turn accounting.
 Movement between pending and recovery queues must preserve original acceptance
 order across both populations; canonical leaf order is only storage order.
@@ -489,7 +489,7 @@ Declaration from a recovery follower when both authenticate with the same
 public key: only a candidate naming the recovery-chain head may advance it.
 Persistent restoration must repair or reject a summary that classified the
 former as the latter, using authenticated sealed history and retained pending
-admissions. A partial Block must not erase still-pending recovery continuations
+admissions. A partial Epoch must not erase still-pending recovery continuations
 from admission state. Test independent sequence-floor persistence through
 settlement, current-object idempotence below that floor, malformed re-serves,
 and rollback when a head write fails after a floor update.
@@ -498,7 +498,7 @@ Capacity validation must also exercise two pending Declarations for one domain
 that name different eligible heads. Sealing a higher sequence while retaining
 a lower sequence can make the lower candidate permanently ineligible under
 WIST-1 §5.2. Predecessor closure alone does not prevent this: a valid subsequent
-Block and continued queue progress must be demonstrated after capacity deferral.
+Epoch and continued queue progress must be demonstrated after capacity deferral.
 
 WIST-1 §5.2 and draft ADR-0015 resolve the fate of competing Declarations
 admitted inside recovery but still unsealed at expiry. Remove those superseded
@@ -513,7 +513,7 @@ Checkpoint histories. It distinguishes
 the pending admission head from the sealed queue-settlement source, ordinary
 and recovery descendants, legitimate pending followers, a last-second admission,
 exact-deadline replacement, repeated settlement and an already-sealed competitor.
-Signed alternate Blocks demonstrate why Log validation alone cannot detect the
+Signed alternate Epochs demonstrate why Log validation alone cannot detect the
 forbidden revival. A pending recovery-signed follower first sealed after expiry
 opens a new window at that sealing instant if none is open. The first such
 follower owns the window; later Entries inherit its protection. Supersession
@@ -523,9 +523,9 @@ already-incurred latency violation.
 Independent role consumption and live adoption remain required. Demonstrate
 atomic restoration/removal with queue, status, seen-ID and chain-tip effects;
 preserve completion of admission settlement across reopen and the first deadline
-Block so later accepted replacements are not overwritten or their new Deltas
+Epoch so later accepted replacements are not overwritten or their new Deltas
 revalidated as copies from the closed window. Exercise capacity-deferred
-Declaration chains and failure/retry before committing a new Block. The signed
+Declaration chains and failure/retry before committing a new Epoch. The signed
 traces establish Declaration stages and selected source identity, not full
 Delta eligibility, actual E13 processing, inclusion turns, Payload availability,
 quotas or Snapshot restoration.
@@ -552,20 +552,20 @@ arithmetic checks do not establish live-service behavior.
 | WIST-1 §4 canonicalization | Correctly rounded binary64 edge cases, fractional JSON values in signed objects and rejection outside the finite range |
 | WIST-1 §5.2 Declaration key binding | Initial admission, replacement and historical replay consume `declaration-binding.json`; duplicate keys and thumbprint mismatches reject, and the authenticated public key's set membership fixes its identity/recovery class |
 | WIST-1 §5.1/§5.2 Delta recovery bindings | Consume `recovery-bindings.json` with independent signature and timestamp implementations. Preserve frozen source provenance and complete bindings in admission, authenticated replay and durable restoration; distinguish E14 fields, E02 absence of eligible authority and E01 failed signatures without borrowing the union for sealing or historical verification. Exercise complete Delta/chain and live-clock eligibility separately. |
-| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Block Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
+| WIST-1 §5.2 recovery ownership and heads | Replay consumes `recovery-order.json`, `recovery-heads.json` and `declaration-conflicts.json`, authenticating each Declaration against its eligible named predecessor, retaining the accepted sequence floor and settling before deadline-Epoch Declarations. Reject conflicting groups and failed Declaration acceptance atomically; canonical storage order cannot choose a winner or replace a recovery owner. Snapshot state requires the resolution listed above. |
 | WIST-1 §5.1/§5.2 key directory and activation | Consume `key-directory.json`: recompute every thumbprint and fingerprint, apply the entry field rules before uniqueness, admit Deltas only inside a binding's window, enforce `next_keys` on ordinary rotations, and replay the histories so that a pending identity supplies no authority, activates at its frozen height and is discarded on reversal. Snapshot resumption requires the `pending_declaration` tuple. Live discovery, the DNS record's retrieval and integrated role behavior remain separate obligations. |
-| WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Block inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
+| WIST-1 §5.2 recovery settlement | Consume `recovery-settlement.json`, authenticating Declaration acceptance separately from Epoch inclusion and verifying full Delta key bindings. Preserve the fixed admission union, named recovery chain, original queue order and WIST1-E13 status effects. Demonstrate durable queue recovery, applicable quotas, Payload availability and actual survivor sealing; signature eligibility alone does not establish these duties. |
 | WIST-2 §§3–5, 7 Feed pulls | Domain mismatch and unusable-Feed classification; Declaration refresh before counting signature failure; seen-ID bookkeeping; Page creation/sealing timestamps |
 | WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label or Dispute ID, sealing as `label` and `dispute` Entries under the inclusion ceiling, the per-domain capacity and the per-Labeler cap, `tier1/labels.parquet`, `tier1/disputes.parquet`, `tier1/labelers.parquet` and the `label` and `dispute` tuples from authenticated Log replay, expiry and Delta binding applied at materialization |
 | WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota and ingest-budget application per Registrable Domain under the snapshot in force |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change pull timing without creating a duty; redirect termination and authority restrictions under live pulls |
-| WIST-3 §§5–6 publication | Every Entry below the Checkpoint's tree size durably stored and retrievable at its tile path before that Checkpoint is published; Payload replication before the Block; the partial tiles and entry bundle the head's tree size requires served while that head stands, and every full tile, entry bundle and archived Checkpoint retained from genesis |
+| WIST-3 §§5–6 publication | Every Entry below the Checkpoint's tree size durably stored and retrievable at its tile path before that Checkpoint is published; Payload replication before the Epoch; the partial tiles and entry bundle the head's tree size requires served while that head stands, and every full tile, entry bundle and archived Checkpoint retained from genesis |
 | WIST-3 §§3.1, 3.3, 6 transport parsing | Independent decoding of tiles and entry bundles, including the big-endian uint16 length prefix, a partial tile or bundle and the fallback to the full one; recomputation against a verified Checkpoint's root rather than trust in the source; refusal to buffer past the 8 192-octet tile bound, the 16 777 472-octet entry-bundle bound, the 65 535-octet Entry bound and the derived transport bound, with equality permitted; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples; the full four-digit Gregorian year range, including late December 9999 independently of library timestamp limits |
-| WIST-3 §§3.4, 5 Checkpoint notes | Independent signed-note parsing: exactly five lines, the origin equal to the Anchor's `log_id`, the extension lines rejected on any octet of deviation, unknown signature lines ignored and a line naming a known key required to verify; the note key ID derived per §3.4 and an `aggregator_key_add` colliding with an admitted key's note key ID rejected in replay. `vectors/wist3/aggregator-keys.json` supplies the multi-key side of the rule — the note key ID of every key valid at the height, a rotation Checkpoint carrying two verifying lines, a line from a key removed at that Block or admitted after it, and both collision forms — leaving unvalidated the Witness-side configuration of a rotated verifier key and the serving of Checkpoints across a rotation |
-| WIST-3 §§4–5 proofs and head adoption | Consistency Proofs generated and verified by independent implementations across every tree size, including the empty-tree and equal-size cases and the size-0 root compared rather than the empty proof skipped; every Checkpoint from the verified head to the adopted one verified in `block_number` order; a lower `block_number` rejected as rollback and an equal one with differing note text treated as equivocation; each of §5's three equivocation forms recognized from its stated evidence bundle |
+| WIST-3 §§3.4, 5 Checkpoint notes | Independent signed-note parsing: exactly five lines, the origin equal to the Anchor's `log_id`, the extension lines rejected on any octet of deviation, unknown signature lines ignored and a line naming a known key required to verify; the note key ID derived per §3.4 and an `aggregator_key_add` colliding with an admitted key's note key ID rejected in replay. `vectors/wist3/aggregator-keys.json` supplies the multi-key side of the rule — the note key ID of every key valid at the height, a rotation Checkpoint carrying two verifying lines, a line from a key removed at that Epoch or admitted after it, and both collision forms — leaving unvalidated the Witness-side configuration of a rotated verifier key and the serving of Checkpoints across a rotation |
+| WIST-3 §§4–5 proofs and head adoption | Consistency Proofs generated and verified by independent implementations across every tree size, including the empty-tree and equal-size cases and the size-0 root compared rather than the empty proof skipped; every Checkpoint from the verified head to the adopted one verified in `epoch_number` order; a lower `epoch_number` rejected as rollback and an equal one with differing note text treated as equivocation; each of §5's three equivocation forms recognized from its stated evidence bundle |
 | WIST-3 §5, WIST-4 §5 Witness quorum | Cosignatures verified against a Consumer-configured Witness roster, distinct trusted names counted against `checkpoint_witness_quorum` as in force at the Checkpoint's `sealed_at`, a short-of-quorum Checkpoint neither adopted nor reported as an error, and every acceptance made while the quorum is 0 recorded as unwitnessed with the retained Checkpoint |
-| WIST-3 §§7–8 Snapshot position | A manifest's `block_number` and `log_position` both reconciled against the archived Checkpoint at cold start and at every later manifest read, and the transport bound bootstrapped from the manifest's authenticated parameter tuples |
-| WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Checkpoints at the correct height, including rejected keys. `vectors/wist3/aggregator-keys.json` replays the key acts themselves: each read at the height §3.4 fixes, every key-act failure ignored as `WIST4-E04` with its Block kept, a Block whose accepted removals leave no valid key never applied, a Checkpoint at or below the head judged under the keys valid at its own height, and the `aggregator_key` tuples §7 keeps for removed keys. Not supplied: an operating Log rotating across serving and Snapshot production, the Aggregator-side refusal to seal a key-act failure, and a successor Anchor's `predecessor` carry |
+| WIST-3 §§7–8 Snapshot position | A manifest's `epoch_number` and `tree_size` both reconciled against the archived Checkpoint at cold start and at every later manifest read, and the transport bound bootstrapped from the manifest's authenticated parameter tuples |
+| WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Checkpoints at the correct height, including rejected keys. `vectors/wist3/aggregator-keys.json` replays the key acts themselves: each read at the height §3.4 fixes, every key-act failure ignored as `WIST4-E04` with its Epoch kept, an Epoch whose accepted removals leave no valid key never applied, a Checkpoint at or below the head judged under the keys valid at its own height, and the `aggregator_key` tuples §7 keeps for removed keys. Not supplied: an operating Log rotating across serving and Snapshot production, the Aggregator-side refusal to seal a key-act failure, and a successor Anchor's `predecessor` carry |
 | WIST-4 §5 inclusion | Acceptance and per-domain turn accounting under backlog, overload and recovery; the Log alone does not reveal acceptance time |
 | WIST-4 §§3, 5.1 governance | Key registration and removal, parameter schedules, withdrawals and suffix-list snapshots sealed, served, replayed and restored across the three roles, including per-Registrable-Domain capacity rejection in a replaying Consumer |
 
@@ -581,7 +581,7 @@ WIST-1 §3.1, ADR-0028 and [PUBLICATION.md](PUBLICATION.md) permit incompatible
 revisions of the unreleased draft under `wist_version = 1.0.0`. Validators and
 compatibility claims must identify an exact specification commit and enforce
 its complete field set. The exception ends on stable publication or the first
-Log sealing Blocks consumed by a third party, whichever happens first.
+Log sealing Epochs consumed by a third party, whichever happens first.
 
 The signed version cases in `delta-attribution.json` exercise current fields,
 a same-version object lacking its Publisher, unknown fields and an
@@ -601,7 +601,7 @@ revalidation of an ID after another candidate changes authority. Eleven Page
 cases exercise the shared Feed/Page attempt, unsealed-source exclusion,
 current/first-next selection, unsuccessful responses, independent Delta retries
 and the exact content-budget boundary. Supplied Declaration sealing positions
-hold the Page source prefix fixed; they do not establish Block inclusion.
+hold the Page source prefix fixed; they do not establish Epoch inclusion.
 
 These vectors do not establish complete HTTP ingestion, authenticated Page
 source reconstruction, complete Page fields/publication, recovery settlement,
@@ -635,9 +635,9 @@ do not establish version support for other objects or complete chain replay.
 
 WIST-1 §3.6, WIST-4 §5 and ADR-0020 fix admission-attempt, sealing and
 historical cap profiles. `vectors/wist1/delta-cap-time.json` supplies 509
-signed hourly Blocks, 24 signed content-bearing Deltas with complete
+signed hourly Epochs, 24 signed content-bearing Deltas with complete
 Payloads, one attestation, 264 stage probes and six invalid signed
-candidate Blocks. The reference verifies Block
+candidate Epochs. The reference verifies Epoch
 chaining, ordering, signatures, roots and pinned heads; it derives profiles
 from signed amendments and recomputes IDs, commitments and JCS sizes.
 Separate Delta-only and retrieved-Payload results distinguish all five caps
@@ -648,7 +648,7 @@ The fixture checks amendment signatures, grace and the affected size
 combinations; it does not establish complete governance acceptance.
 Restart probes reconstruct supplied inputs in memory, not durable state.
 Integrated roles must independently consume these vectors and enforce
-attempt-profile retention, candidate-Block rechecks and historical
+attempt-profile retention, candidate-Epoch rechecks and historical
 inclusion profiles. Live queue rejection and successor handling, HTTP
 retrieval, crash recovery and cross-Log validation remain unexercised. Supplied-cap field vectors
 alone establish no temporal adoption.
@@ -687,24 +687,24 @@ insufficient, and accepted Payload distribution must preserve original bytes.
 
 ## Historical Delta clock parameter time
 
-WIST-1 §3.4, WIST-4 §5 and draft ADR-0020 select the committing Block's
+WIST-1 §3.4, WIST-4 §5 and draft ADR-0020 select the committing Epoch's
 `sealed_at` for both the historical clock and `clock_skew_seconds` anchor.
 Unsealed attempts freeze their clock and accepted schedule; sealing rechecks
-against the candidate Block. Later clocks or amendments cannot repair an
+against the candidate Epoch. Later clocks or amendments cannot repair an
 invalid inclusion or invalidate an earlier valid one.
 
 `vectors/wist1/delta-clock-time.json` supplies signed Deltas and parameter
 candidates with explicit inclusion contexts. Its independent reference checks
 signatures, amendment eligibility for this unbounded parameter, exact rational
 clock comparisons, amendment endpoints, frozen attempts and alternate anchors.
-These supplied contexts establish no Block inclusion, complete Declaration or
+These supplied contexts establish no Epoch inclusion, complete Declaration or
 Delta eligibility, live queue behavior or restart conformance. Each role must
 bind the check to authenticated history and exercise sealing and replay.
 
 ## Mirror-list signing-key time
 
 WIST-3 §5 defines a signed `mirrors` Envelope but makes `updated_at`
-descriptive and "compared to nothing". Its list names no Block height,
+descriptive and "compared to nothing". Its list names no Epoch number,
 while §3.4 defines Log-key validity at a height. Resolve which key state
 authenticates the list across additions/removals and how stale lists are
 handled, with signed rotation vectors before claiming authenticated

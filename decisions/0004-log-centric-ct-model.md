@@ -1,6 +1,6 @@
 # ADR-0004: Append-only hash-chained log with signed checkpoints (CT model)
 
-**Status:** draft, amended by [ADR-0046](0046-single-tree-log.md) (2026-09-17: the Log is one RFC 6962 tree published as C2SP checkpoints and tiles, a Block is an interval of it, and a consistency proof replaces the hash chain between Blocks) · **Date:** 2026-08-02
+**Status:** draft, amended by [ADR-0046](0046-single-tree-log.md) (2026-09-17: the Log is one RFC 6962 tree published as C2SP checkpoints and tiles, an Epoch is an interval of it, and a consistency proof replaces the hash chain between Epochs) · **Date:** 2026-08-02
 
 ## Context
 
@@ -11,7 +11,7 @@ show history — and it must be replaceable.
 ## Decision
 
 All system events (deltas, audits, governance) are sequenced into an
-append-only, hash-chained, signed log with per-block Merkle roots and
+append-only, hash-chained, signed log with per-Epoch Merkle roots and
 signed checkpoints, following the Certificate Transparency model.
 
 ## Consequences

@@ -40,15 +40,15 @@ shown here.
   path that declares its Key Set (§5.1).
 - **Payload**: the content a Delta describes — the page's main text and its
   structured summary — carried as a separate, unsigned file alongside the
-  Block (WIST-3 §6.1). A Payload is never part of a Delta, of a Block, or of
+  Epoch (WIST-3 §6.1). A Payload is never part of a Delta, of an Epoch, or of
   the Log.
 - **Payload Commitment**: the salted keyed hash of a Payload's content that
   a Delta carries in place of that content (§3.6).
 - **Envelope**: the JSON container `{"<inner>": {...}, "sig": {...}}` that
   pairs an inner object with a detached signature. Every signed object in
-  the suite is signed the one way §4 defines, and every one but the Log
-  Block (WIST-3 §3.1) carries exactly this shape; the Block adds `entries`
-  beside its signed `header`, which §4 accounts for.
+  the suite is signed the one way §4 defines, and every one but the
+  Checkpoint (WIST-3 §5), which §4 accounts for, carries exactly this
+  shape.
 - **Canonical Bytes**: the octet sequence produced by applying JCS
   [RFC 8785] to the inner object.
 - **Delta ID**: `"sha256:"` followed by the lowercase hex SHA-256 of a
@@ -107,7 +107,7 @@ key whose point §4 excludes. The signature-field check also applies when
 idempotence would otherwise waive signature verification. Existing
 object-level rejection rules and transport wrappers remain in force;
 the object's encoding diagnostic identifies the underlying failure, including
-beneath first-contact `WIST2-E04` or invalid-Block-file `WIST3-E03` handling.
+beneath first-contact `WIST2-E04` or invalid-object `WIST3-E03` handling.
 Delta diagnostic precedence is specified in §7; this establishes no
 precedence between unrelated failures in other objects.
 
@@ -149,7 +149,7 @@ rewrite a version field during validation. See
 [ADR-0030](../decisions/0030-delta-version-eligibility.md).
 
 **Draft revisions and extensibility.** Before stable publication or the first
-Log sealing Blocks consumed by a third party, whichever occurs first,
+Log sealing Epochs consumed by a third party, whichever occurs first,
 incompatible draft revisions MAY retain the unreleased version `1.0.0`,
 including when they add required fields. The rules of the exact specification
 commit being implemented determine acceptance, not the shared version string.
@@ -162,7 +162,7 @@ major version. Within each revision, objects MUST NOT carry fields not defined
 by that revision. Every schema in the suite therefore
 sets `additionalProperties: false` on each object whose full field set a
 document of this suite defines, and a minor version never adds a field. Two
-places are deliberately open, and both delegate rather than extend: a Block
+places are deliberately open, and both delegate rather than extend: an Epoch
 Entry's `body` (WIST-3 §3.3), which is an Envelope validated in full by its
 own schema, and a Registry Update's `details` (WIST-4 §5.1), whose shape is
 fixed per `action` and never licensed to carry what that section's closing
@@ -265,9 +265,9 @@ through the attempt, including retrieval and Declaration retries. A new
 attempt takes a new clock and schedule.
 
 Before sealing a queued Delta, the Aggregator MUST repeat this check using
-the candidate Block's `sealed_at` as the clock and the accepted schedule at
+the candidate Epoch's `sealed_at` as the clock and the accepted schedule at
 that instant. For a sealed Delta, every validator MUST use its committing
-Block's `sealed_at` for both the clock and the parameter anchor. An amendment
+Epoch's `sealed_at` for both the clock and the parameter anchor. An amendment
 effective exactly then participates; later amendments, replay time and
 `observed_at` do not replace either value. Historical clock eligibility therefore requires no supplied
 wall clock. This rule checks the Publisher's timestamp against Log time;
@@ -414,14 +414,14 @@ parameter map per validation attempt:
   or rejection reads a new map; resuming the same attempt requires retaining
   its map or reconstructing it from its clock and authenticated prefix.
 - Before sealing, the Aggregator MUST recheck every candidate Delta and its
-  retrieved Payload against the map in force at the candidate Block's
+  retrieved Payload against the map in force at the candidate Epoch's
   `sealed_at`. Admission does not freeze eligibility for sealing; pending
   amendments do not constrain a candidate before they become effective.
   A cap failure retains §3.2/§3.6's diagnostic and prevents inclusion;
   §3.5 governs successors whose predecessor cannot be included.
 - For a Delta sealed in the Log being verified, every validator MUST use
-  the map in force at its Block's `sealed_at`, reconstructed from the
-  authenticated accepted schedule through that Block. Retain this profile
+  the map in force at its Epoch's `sealed_at`, reconstructed from the
+  authenticated accepted schedule through that Epoch. Retain this profile
   for later Payload retrieval, verification, replay and restart. A Payload
   retains its own committing Delta's profile wherever it is read.
 
@@ -526,7 +526,7 @@ including explicitly listed hostnames outside its ancestry.
 
 Every Canonical Host is a separate Publisher identity. It is not a
 separate accounting unit: the Ping quota, the ingest budget and the
-per-domain Block capacity are keyed on the host's Registrable Domain
+per-domain Epoch capacity are keyed on the host's Registrable Domain
 under the Public Suffix List snapshot in force (WIST-4 §3.1), so two
 hosts under one registrable name share those bounds while sharing no
 key, chain or scope.
@@ -581,7 +581,7 @@ has no canonicalization either, and is `WIST1-E05`. A finite double,
 integral or not, always has one: a validator MUST NOT reject a number
 merely for carrying a fractional part, since §9.1 leaves the `details` of
 several Registry Update actions unconstrained and one such member would
-otherwise make an entire Block unverifiable.
+otherwise make an entire Epoch unverifiable.
 
 **What verification means, exactly.** RFC 8032 §5.1.7 leaves choices open
 that a Log cannot leave open: two verifiers resolving them differently
@@ -776,7 +776,7 @@ formats; `nbf` and `exp` are integers, never timestamp strings. A valid
 encoding that fails cryptographic key or signature verification is
 governed by §4 and §5.2, not this syntax error.
 
-Perform this field validation before Declaration sequencing, same-Block
+Perform this field validation before Declaration sequencing, same-Epoch
 conflict comparison, idempotence or signer resolution, including for a
 re-serve of the current `publisher` object. Do not repair, strip, coerce or
 normalize signed members to make a malformed Envelope acceptable. Invalid
@@ -784,7 +784,7 @@ JCS input remains `WIST1-E05`. For a structurally valid Declaration, §5.2's
 semantic sequence, predecessor and key-set checks retain `WIST1-E08`;
 for example, absence of `prev_declaration` at `seq` > 0 is that semantic
 error, while a present malformed hash is `WIST1-E14`. A failed Declaration
-field check during Block replay rejects the whole Block under §5.2,
+field check during Epoch replay rejects the whole Epoch under §5.2,
 including its tentative settlements and other domains' transitions.
 First-contact Declaration pull failure remains wrapped as `WIST2-E04`
 under WIST-2 §5; `WIST1-E14` identifies the underlying field failure.
@@ -950,7 +950,7 @@ identity. Recovery-key protection still applies to the resulting
 classification. The rule does not authorize
 an incoming recovery key to authenticate its own installation.
 
-**Same-Block Declaration conflicts.** For each domain, process the Block's
+**Same-Epoch Declaration conflicts.** For each domain, process the Epoch's
 Declarations in groups of equal `seq`, in ascending `seq`, after settling
 any due recovery window. Evaluate each group against the state after all
 lower-sequence groups, before applying any member of this group. If every
@@ -960,7 +960,7 @@ every member MUST have identical canonical Envelope bytes, including `sig`;
 validate and apply that one Envelope once. Exact repeats have no additional
 effect. For structurally valid Envelopes, test group equality before any
 member's signature; do not filter invalid signatures to select a winner.
-Distinct Envelopes in such a group invalidate the entire Block
+Distinct Envelopes in such a group invalidate the entire Epoch
 under `WIST1-E08`, even if each would be admissible alone, or they differ
 only in signatures over the same `publisher` object. This applies to initial
 (`seq` 0) Declarations and inside recovery windows as well as outside them.
@@ -969,15 +969,15 @@ MUST NOT select a winner or make another member an idempotent re-serve by
 installing the first member. A repeated Envelope does not waive any ordinary
 sequence, predecessor, key or signature check on its first installation.
 
-An Aggregator MUST NOT seal a Block with a conflicting Declaration group.
-A Consumer encountering one MUST reject the entire Block, retaining its
-previous accepted prefix and state; no Entry or settlement from that Block
-takes effect. The same whole-Block rejection applies when a Declaration
-fails its acceptance checks during Block replay, with that check's error
+An Aggregator MUST NOT seal an Epoch with a conflicting Declaration group.
+A Consumer encountering one MUST reject the entire Epoch, retaining its
+previous accepted prefix and state; no Entry or settlement from that Epoch
+takes effect. The same whole-Epoch rejection applies when a Declaration
+fails its acceptance checks during Epoch replay, with that check's error
 code. If different domains have different acceptance failures, a validator
 MAY report any of those applicable error codes; no cross-domain diagnostic
 order is required. Rejection and retained state MUST agree regardless of
-which error is reported. This rule governs sealed Blocks; it assigns no
+which error is reported. This rule governs sealed Epochs; it assigns no
 winner among unsealed submissions or obligation to seal a rejected candidate.
 
 **Accepted sequence and recovery heads.** For each domain, retain the
@@ -986,7 +986,7 @@ Supersession MUST NOT decrease that sequence floor: every new Declaration,
 including a legitimate recovery follower, MUST exceed it. A rejected
 candidate and an idempotent re-serve change neither the floor nor any head.
 For Log replay, acceptance here means acceptance in ascending
-`(Block height, seq)` application order; unsealed submissions are not part
+`(Epoch number, seq)` application order; unsealed submissions are not part
 of the replayed floor.
 
 Without an open recovery window or a pending head (below), only the
@@ -1003,12 +1003,12 @@ ordinary or recovery rotation against it. A fresh identity, or a replacement
 of a competitor, does not join the recovery chain. A later recovery rotation
 inside the window does not change its owner or deadline.
 
-For Delta queuing, the window contains Blocks from its opening Block through
+For Delta queuing, the window contains Epochs from its opening Epoch through
 those whose `sealed_at` is strictly earlier than its end. Declaration
 competition instead starts immediately after the owner's application in
-ascending `(Block height, seq)` order. A Declaration applied earlier in the
-opening Block is a predecessor, not a competitor, and is not superseded by
-this window. Before applying any Declaration in the first Block at or after that end, settle the window: make its
+ascending `(Epoch number, seq)` order. A Declaration applied earlier in the
+opening Epoch is a predecessor, not a competitor, and is not superseded by
+this window. Before applying any Declaration in the first Epoch at or after that end, settle the window: make its
 recovery-chain head current, supersede its accepted non-chain competitors, and close the
 window without changing the sequence floor. Only the restored current head
 is then an eligible predecessor; a superseded competitor is `WIST1-E08`.
@@ -1026,9 +1026,9 @@ even when they have not sealed. Queue revalidation still uses only the last
 recovery-chain Declaration sealed strictly before the deadline, as specified
 below. An unsealed follower MUST NOT supply that queue-settlement authority.
 Closing the admission window is persistent: later pulls and the first
-deadline Block MUST NOT repeat that admission transition over replacements
+deadline Epoch MUST NOT repeat that admission transition over replacements
 already accepted after it. The sealed-history window closes separately when
-a valid Block at or after the deadline applies.
+a valid Epoch at or after the deadline applies.
 
 Remove every superseded, still-unsealed non-chain Declaration from the
 eligible sealing set, including ordinary, fresh and recovery descendants of
@@ -1038,11 +1038,11 @@ competing act from becoming a fresh identity or a new recovery merely through
 delayed inclusion. Supersession adds no new rejection diagnostic; a re-serve
 remains subject to the retained admission floor and current-object idempotence.
 Previously sealed competitors remain in the Log and undergo normal replay
-supersession. A Consumer cannot infer unsealed admission history from a Block;
+supersession. A Consumer cannot infer unsealed admission history from an Epoch;
 the removal duty belongs to the Aggregator that accepted those copies.
 
 Retain pending legitimate recovery-chain followers in predecessor order.
-They remain subject to every acceptance check at their actual sealing Block,
+They remain subject to every acceptance check at their actual sealing Epoch,
 whose sequence floor excludes unsealed admission. In particular, a retained
 recovery-signed follower first applied at or after the old deadline opens a
 new window if none is then open; the first recovery in application order
@@ -1077,10 +1077,10 @@ and rejection twins appear in `vectors/wist1/recovery-settlement.json`.
 **Pending identities and activation.** A fresh identity accepted outside
 an open recovery window does not take effect at once. It is sealed as a
 `publisher_declaration` Entry and becomes the domain's **pending head**;
-the current Declaration is unchanged. Read `declaration_activation_blocks`
+the current Declaration is unchanged. Read `declaration_activation_epochs`
 (Parameter Registry, default 24) from the parameter map in force at the
-Block sealing the first pending Declaration and freeze the **activation
-height**: that Block's height plus the parameter. While a pending head
+Epoch sealing the first pending Declaration and freeze the **activation
+height**: that Epoch's height plus the parameter. While a pending head
 exists, the eligible predecessors are the current Declaration and the
 pending head. A replacement naming the pending head is authenticated,
 classified and checked against it as its predecessor, opens no recovery
@@ -1101,12 +1101,12 @@ Key Set resolution. This is the **reversal**, the answer a Publisher that
 still holds a listed signing or recovery key gives to a Declaration
 published from its web host alone. A recovery rotation that reverses a
 pending head opens a recovery window as any recovery rotation does.
-Before applying any Declaration in the Block at the activation height,
+Before applying any Declaration in the Epoch at the activation height,
 activate: the pending head becomes current, the pending state ends, and
 the domain's identity resets at that height, so a party reading its
 history from the Log reads it from the activation height. With
-`declaration_activation_blocks` at 0 the activation height is the sealing
-height itself and the fresh identity activates in the Block that seals it.
+`declaration_activation_epochs` at 0 the activation height is the sealing
+height itself and the fresh identity activates in the Epoch that seals it.
 
 A pending Declaration supplies no authority: a Delta signed under its
 keys is `WIST1-E02` until activation, and Deltas continue to verify under
@@ -1127,17 +1127,17 @@ by what signs it, using the authenticated public key resolved above:
   Accepted; the identity is preserved.
 - Signed by a key in the previous Declaration's `recovery_keys` — a
   **recovery rotation**. The recovery window (Parameter Registry:
-  `recovery_window_days`, 7 days) opens at the `sealed_at` of the Block
+  `recovery_window_days`, 7 days) opens at the `sealed_at` of the Epoch
   sealing that Declaration's own `publisher_declaration` Entry, and during
   it the domain's Deltas are queued rather than sealed. Read
   `recovery_window_days` from the parameter map in force at that opening
-  Block, including amendments effective exactly then. Freeze the end at
-  that Block’s `sealed_at` plus that many 86,400-second days. Later parameter
+  Epoch, including amendments effective exactly then. Freeze the end at
+  that Epoch’s `sealed_at` plus that many 86,400-second days. Later parameter
   amendments and in-window recovery rotations MUST NOT move the end. An end
   later than `9999-12-31T23:59:59Z`, the last instant a Log timestamp
   denotes (WIST-3 §3.1), cannot be frozen: an Aggregator MUST NOT seal a
-  recovery Declaration whose window would end there, and a Block sealing
-  one is rejected as a whole under `WIST1-E08`, exactly as a Block sealing
+  recovery Declaration whose window would end there, and an Epoch sealing
+  one is rejected as a whole under `WIST1-E08`, exactly as an Epoch sealing
   a superseded Declaration; WIST-4 §5 keeps `recovery_window_days`
   amendments inside that range from their own `effective_at`.
   A Delta is queued
@@ -1149,7 +1149,7 @@ by what signs it, using the authenticated public key resolved above:
   in the open rather than at an ingest no replaying party can see.
   Freeze both source Declarations, including their signing bindings and scopes,
   at the owner's application, including any lower-sequence predecessor in the
-  same Block. Later in-window Declarations,
+  same Epoch. Later in-window Declarations,
   including legitimate recovery-chain followers, MUST NOT replace either
   admission source. Apply §5.1's complete-binding check across these two
   sources, preserving reused identifiers and their distinct validity bounds.
@@ -1173,7 +1173,7 @@ by what signs it, using the authenticated public key resolved above:
   signing bindings and scope of that chain's newest Declaration — the recovery
   Declaration's own unless a legitimate follower was sealed inside the window.
   This source is fixed immediately before applying any Declarations in the
-  first Block at or after the deadline. Admission at or after the deadline
+  first Epoch at or after the deadline. Admission at or after the deadline
   first performs this settlement; new candidates use the then-current
   Declaration, including any replacements already accepted at admission.
   After mandatory field checks, a queued copy failing either the complete
@@ -1188,9 +1188,9 @@ by what signs it, using the authenticated public key resolved above:
   A Delta signed by the superseded signing key is exactly the case this
   settles: if the recovery rotated that key out, the Delta dies with it,
   which is the point of the rotation. The survivors become eligible
-  (WIST-4 §5) for the first Block whose `sealed_at` is at or after the
+  (WIST-4 §5) for the first Epoch whose `sealed_at` is at or after the
   window's end, in their original acceptance order, and the WIST-4 §5
-  inclusion ceiling counts from that Block — a queued Delta is out of
+  inclusion ceiling counts from that Epoch — a queued Delta is out of
   the ceiling's reach while the window holds it, or the window and the
   ceiling would be two MUSTs one Aggregator cannot both keep.
   The window is derived from the Declaration's own sealing height, so a
@@ -1201,7 +1201,7 @@ by what signs it, using the authenticated public key resolved above:
   a duty with a deadline for the same reason: on
   discovering a served recovery Declaration that verifies — by pull, by
   hint, or by the Publisher's Ping — the Aggregator MUST seal its Entry
-  within the number of Blocks `record_seal_blocks` fixes (WIST-4 §5's
+  within the number of Epochs `record_seal_epochs` fixes (WIST-4 §5's
   discovery sealing deadline, default 24). Supersession of a still-unsealed
   non-chain copy at the recovery deadline cancels that copy's remaining
   sealing duty, without excusing a sealing-latency violation already incurred
@@ -1217,7 +1217,7 @@ by what signs it, using the authenticated public key resolved above:
   that ultimately answers an Aggregator that sits on recoveries.
   Two recovery Declarations sealed inside one open window — two holders
   of recovery keys, or one holder twice — are resolved in ascending
-  `(Block height, seq)` order for that domain. Within a Block, validate
+  `(Epoch number, seq)` order for that domain. Within an Epoch, validate
   and apply Declarations in ascending `seq`, including their signatures
   and predecessor links, before selecting the first accepted recovery
   Declaration as the window owner. The canonical leaf-hash storage index
@@ -1248,8 +1248,8 @@ anyone buy an aged domain and inherit its history.
 **Historical verification.** Accepted Declarations are sealed into the Log
 as `publisher_declaration` Entries (WIST-3 §3.3), except unsealed non-chain
 copies removed by recovery supersession above. The Key Set applicable to a
-`publisher_delta` Entry sealed in Block N is the Declaration current for
-its signed `delta.publisher` domain once Block N's Declaration Entries,
+`publisher_delta` Entry sealed in Epoch N is the Declaration current for
+its signed `delta.publisher` domain once Epoch N's Declaration Entries,
 settlements and activations have applied under this section: normally the
 domain's highest-`seq` Declaration Entry sealed at a height ≤ N — except
 that a recovery Declaration which took effect under the Compromise
@@ -1262,7 +1262,7 @@ superseded, reversed and not-yet-activated Declarations from the "highest
 legitimately follows it) as applicable instead, for every height from the
 recovery Declaration's own sealing height onward. Because `seq`,
 `prev_declaration`, each Declaration's signer, Entry order, the recovery
-window's own anchor — the `sealed_at` of the Block sealing the recovery
+window's own anchor — the `sealed_at` of the Epoch sealing the recovery
 Declaration — and the activation height, derived from a sealing height,
 are all present in the Log itself, this resolution — ordinary case,
 recovery exception and activation alike — is fully deterministic from log
@@ -1275,7 +1275,7 @@ verification under §3.2. A later scope change does not revise authority at
 an earlier Delta's sealing height. Deltas cannot seal during an open recovery
 window. Recovery settlement does not exempt a survivor from revalidation
 against the Declaration applicable at its actual sealing height, including
-Declarations in the deadline Block. A scope failure at sealing is `WIST1-E03`;
+Declarations in the deadline Epoch. A scope failure at sealing is `WIST1-E03`;
 a Consumer ignores such an Entry and advances no chain tip. A settlement
 survivor is therefore only authority-eligible, not guaranteed inclusion.
 
@@ -1283,14 +1283,14 @@ The Key Set so resolved is the one a sealed Delta MUST verify under, and
 it is not always the one the Aggregator ingested against. Ingest
 verifies a Delta against the Key Set current at the pull; a Declaration
 accepted between that pull and the seal can retire the key that signed
-it; and WIST-3 §3.3 applies a Block's Declaration Entries before its
-Deltas, so a Delta sealed in the same Block as — or above — the
+it; and WIST-3 §3.3 applies an Epoch's Declaration Entries before its
+Deltas, so a Delta sealed in the same Epoch as — or above — the
 Declaration retiring its signing key fails under the resolution above on
 every replay. An Aggregator therefore MUST NOT seal a Delta that does not
 verify under the Key Set resolved at its sealing height, the sealing
-Block's own Declaration Entries included. While the Block it queued the
+Epoch's own Declaration Entries included. While the Epoch it queued the
 Delta for is still open, sealing the Delta there and the Declaration in
-the next Block satisfies this — Block membership is the Aggregator's
+the next Epoch satisfies this — Epoch membership is the Aggregator's
 choice — and otherwise the Delta is rejected with `WIST1-E02` at
 sealing, reported through the status endpoint (WIST-2 §7.1), and never
 sealed. The Publisher's remedy is to re-sign the Delta under its new Key
@@ -1403,7 +1403,7 @@ WIST2-E03 remain required. See
 | WIST1-E05 | Invalid canonicalization: the object is not valid JCS input. For a number this means it denotes no IEEE-754 double — a magnitude beyond the finite range, or a form outside JSON's grammar (§4). A finite double is always canonicalizable, fractional part included |
 | WIST1-E06 | `observed_at` exceeds the clock plus active signed allowance selected by §3.4 |
 | WIST1-E07 | `prev` chain violation: missing, not sealed at a lower Log position (§3.5), wrong Publisher or URL, non-monotonic `observed_at`, a fork (a later Delta naming a `prev` an earlier Delta has already claimed) rejected in favor of the first-sealed Delta, or a named `prev` that remains unavailable after the validator attempts retrieval per WIST-2 §3.1 |
-| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded and pending Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in a Block (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2, including a fresh identity naming the current Declaration beside a pending head; an ordinary rotation that neither keeps nor installs the predecessor's `next_keys` commitment (§5.2); the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z` (§5.2) |
+| WIST1-E08 | Declaration sequence or recovery-key violation (`seq` not greater than the highest accepted, including superseded and pending Declarations, except an idempotent re-serve of the current Declaration's own `publisher` object (§5.2); a conflicting same-domain, same-sequence Declaration group in an Epoch (§5.2); `prev_declaration` absent when `seq` > 0 or not naming an eligible predecessor under §5.2, including a fresh identity naming the current Declaration beside a pending head; an ordinary rotation that neither keeps nor installs the predecessor's `next_keys` commitment (§5.2); the named predecessor's nonempty `recovery_keys` changed without a signature from that set; or a repeated `key_id` anywhere in the Declaration, or the same `public_key` named in both `keys` and `recovery_keys`); a recovery Declaration whose window would end after `9999-12-31T23:59:59Z` (§5.2) |
 | WIST1-E09 | Content-bearing change type with no commitment: a `new` or an `update` that omits `payload` (§3.3). Rejected and never sealed; the Delta claims content while committing to none |
 | WIST1-E10 | Payload commitment mismatch: a retrieved Payload does not reproduce the Delta's `payload.commitment` under the salt it carries, or the octet length of `JCS(content)` is not exactly `payload.bytes` |
 | WIST1-E11 | `url` exceeds `url_cap_bytes` octets |
@@ -1447,8 +1447,8 @@ mismatched Payload is the one at fault (WIST-3 §9, `WIST3-E03`).
   by itself: §5.2 classifies a replacing Declaration by what signs it,
   and one signed by neither the previous Key Set nor the previous
   `recovery_keys` is a fresh identity, visible in the Log as such, outside
-  an open recovery window, and pending for `declaration_activation_blocks`
-  Blocks, during which any still-held signing or recovery key reverses it
+  an open recovery window, and pending for `declaration_activation_epochs`
+  Epochs, during which any still-held signing or recovery key reverses it
   (§5.2). A competing fresh Declaration inside that window
   cannot take over the recovering identity or reset it (§5.2). A
   party that acquires a domain's hosting without also acquiring a
@@ -1611,12 +1611,12 @@ copies already served.
       applicable semantic error, retaining retrieval/refresh prerequisites
       and object/stage dispositions
 - [ ] Rejects non-monotonic Declarations and resolves historical Key Sets
-      by Block height (§5.2)
+      by Epoch number (§5.2)
 - [ ] Enforces `next_keys` on ordinary rotations, holds a fresh identity
       pending until its activation height with no authority meanwhile, and
       discards it on reversal (§5.2)
 - [ ] Seals a Delta only where it verifies under the Key Set resolved at
-      its sealing height, the sealing Block's own Declarations included —
+      its sealing height, the sealing Epoch's own Declarations included —
       a Delta a later-accepted Declaration stranded is `WIST1-E02`, not
       sealed (§5.2)
 - [ ] Compares URLs and hosts only after normalization (§2)

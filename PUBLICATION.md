@@ -71,7 +71,7 @@ under [Deployment boundary](#deployment-boundary) for that edition.
 
 ## Deployment boundary
 
-From the first Log sealing Blocks consumed by a third party, the deployed
+From the first Log sealing Epochs consumed by a third party, the deployed
 edition's normative text is fixed, even if its label still says draft.
 Record corrections in that edition's errata ledger. An erratum cannot break
 an implementation conforming to the existing text and must express a rule

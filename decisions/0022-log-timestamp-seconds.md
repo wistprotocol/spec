@@ -4,11 +4,12 @@
 
 ## Context
 
-WIST-3 §3.1 requires whole-second UTC timestamps. WIST-4 §6.1 converts
-them to integer seconds with exactly 86,400 seconds per day and no leap
-seconds. RFC 3339 also represents an inserted leap second with `:60`;
-accepting that spelling without a mapping leaves clock comparisons and
-cadence checks dependent on a parser's normalization.
+WIST-3 §3.1 requires whole-second UTC timestamps. WIST-4 §6.1 converts them
+to integer Unix seconds: exactly 86,400 seconds per day from
+1970-01-01T00:00:00Z and no leap seconds. RFC 3339 also represents an
+inserted leap second with `:60`; accepting that spelling without a mapping
+leaves clock comparisons and cadence checks dependent on a parser's
+normalization.
 
 ## Decision
 
@@ -21,7 +22,7 @@ Digits are ASCII as in RFC 3339; its four-digit year range includes `0000`.
 Gregorian year zero is a leap year. A parser's narrower date range does
 not change the profile.
 
-This profile applies to Block and Checkpoint `sealed_at`, Feed
+This profile applies to Checkpoint `sealed_at`, Feed
 `generated_at`, Audit Record `fetched_at`, Registry Update `effective_at`,
 notice `appeal_deadline`, and every Snapshot state timestamp specified by
 WIST-3 §7 in that same form. Calendar validity remains required in addition
@@ -39,7 +40,7 @@ emit a value in the specified profile.
 
 ## Verification
 
-`vectors/wist3/timestamps.json` exercises integer epoch conversion,
+`vectors/wist3/timestamps.json` exercises Unix-seconds conversion,
 calendar boundaries, leap-second rejection and field-level mutations in
 all affected schemas, including the timestamp positions in Snapshot tuples.
 Year-zero and non-ASCII-digit cases distinguish library acceptance from

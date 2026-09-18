@@ -26,11 +26,11 @@ An index is also not an archive. Archives have specific exemptions
 a permanent archive takes on archival legal exposure without archival legal
 protection.
 
-Carrying extract bytes inside the signed object and inside sealed Blocks
+Carrying extract bytes inside the signed object and inside sealed Epochs
 would put that text permanently beyond any operator's ability to withdraw
-it. It would also make the erasure path expensive: Block files would stop
-being byte-immutable, and every mirror and Consumer would have to handle
-re-serialisation and partially-removed entries during verification.
+it. It would also make the erasure path expensive: the Log's static files
+would stop being byte-immutable, and every mirror and Consumer would have to
+handle re-serialisation and partially-removed entries during verification.
 
 ## Decision
 
@@ -40,8 +40,8 @@ Signed objects commit to content; they do not carry it.
   `summary` (HMAC-SHA256 under a per-Delta random salt of at least 128
   bits), not their bytes.
 - The bytes and the salt travel as **content-addressed payload files
-  alongside** the Block, in the same hourly synchronisation, served as
-  static files exactly as Blocks are.
+  alongside** the Epoch, in the same hourly synchronisation, served as
+  static files exactly as Epochs are.
 - Payloads are erasable. A withdrawal is recorded in the Log as a signed
   redaction entry naming its legal basis, following the same due process
   the suite already uses for sanctions: notice, evidence, public and
@@ -61,7 +61,7 @@ demonstrate that it corresponds to the commitment in the Log.
 - Personal data leaves the immutable structure by construction, which is
   the design the EDPB guidance recommends, rather than by a promise to
   delete later.
-- Blocks stay byte-immutable and mirrors stay dumb file servers. Erasure
+- Epochs stay byte-immutable and mirrors stay dumb file servers. Erasure
   costs a file deletion plus a Log entry, not a re-serialisation of
   history.
 - The publisher remains cryptographically bound to what it declared for as
@@ -88,11 +88,11 @@ demonstrate that it corresponds to the commitment in the Log.
 
 ## Alternatives considered
 
-- **Redaction in place** — keep extracts in Blocks and remove bytes on
+- **Redaction in place** — keep extracts in Epochs and remove bytes on
   request, preserving entry hashes. Legally this is the workaround tier
   rather than the recommended design, and operationally it is worse: it
-  breaks byte-immutable Block files and pushes re-serialisation into every
-  mirror and Consumer.
+  breaks the Log's byte-immutable static files and pushes
+  re-serialisation into every mirror and Consumer.
 - **Crypto-shredding** — encrypt extracts and destroy keys on request.
   Unsuited to indefinite retention because the encryption ages, and
   meaningless for this system in any case, since the content is published
@@ -103,4 +103,4 @@ demonstrate that it corresponds to the commitment in the Log.
 - **Status quo, with a takedown process only** — defensible by precedent,
   since large public web corpora operate this way, but it declines a fix
   that is inexpensive while the specification is in draft and expensive
-  once sealed Blocks and mirrors exist.
+  once sealed Epochs and mirrors exist.

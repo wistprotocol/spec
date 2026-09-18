@@ -1,11 +1,11 @@
 {
-  "note": "WIST-1 sections 5.1 and 5.2. thumbprints are RFC 7638 known answers; fingerprints and dns_record apply the Key Set fingerprint. entry_cases are initial Declarations judged on field and uniqueness rules. window_cases judge a Delta's key check under the supplied Declaration alone: accepted means the named binding is inside its window and verifies. commitment_cases evaluate fetched against stored as declaration-binding.json does. Each history is an authenticated hourly Block chain; expected_states hold after the named height applies, snapshot_tuples are the WIST-3 section 7 tuples at that height, rejections apply a candidate to the next Block after prefix_height and must leave the prefix state unchanged when rejected, and delta_probes judge only the key check against the Declaration current after prefix_height. The parameter map is a trusted fixture input; a history's own declaration_activation_blocks overrides the file default. No live transport, queue, Payload or quota behavior is established.",
+  "note": "WIST-1 sections 5.1 and 5.2. thumbprints are RFC 7638 known answers; fingerprints and dns_record apply the Key Set fingerprint. entry_cases are initial Declarations judged on field and uniqueness rules. window_cases judge a Delta's key check under the supplied Declaration alone: accepted means the named binding is inside its window and verifies. commitment_cases evaluate fetched against stored as declaration-binding.json does. Each history is an authenticated hourly Epoch chain; expected_states hold after the named height applies, snapshot_tuples are the WIST-3 section 7 tuples at that height, rejections apply a candidate to the next Epoch after prefix_height and must leave the prefix state unchanged when rejected, and delta_probes judge only the key check against the Declaration current after prefix_height. The parameter map is a trusted fixture input; a history's own declaration_activation_epochs overrides the file default. No live transport, queue, Payload or quota behavior is established.",
   "log_key": {
     "key_id": "test-log-k1",
     "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
   },
   "recovery_window_days": 7,
-  "declaration_activation_blocks": 24,
+  "declaration_activation_epochs": 24,
   "thumbprints": [
     {
       "name": "RFC 8037 appendix A.3 key",
@@ -1573,7 +1573,7 @@
       "expected": "WIST1-E01"
     },
     {
-      "name": "nbf zero admits the epoch",
+      "name": "nbf zero admits the Unix time origin",
       "declaration": {
         "publisher": {
           "wist_version": "1.0.0",
@@ -1638,7 +1638,7 @@
       "expected": "accepted"
     },
     {
-      "name": "instant before the epoch precedes every nbf",
+      "name": "instant before the Unix time origin precedes every nbf",
       "declaration": {
         "publisher": {
           "wist_version": "1.0.0",
@@ -2686,9 +2686,9 @@
   ],
   "histories": {
     "activated": {
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -2731,11 +2731,11 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Rzm8Vf3VC9nPotrcNpnV9rVAOPBCnt+CsU66JhxAaJyRzYgAmzQePUlvaZ882CMdvuLPk1OvqCmKGlQ8wlL6gU=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/XY061DLLeiXVAnh6dqCYA4pmELmN+nz2gG+qK/B+ddk+uLtfH66F2JBCRWitQ/zxscuWnU/2Hhm1i9fd2Bp9Q0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/cu5/ZkeW5oUrvflpdG3slIY3SHO8pS3q4f5IrWz9pf7K+dHXzN3yjSTXme3amYUX/SiJmWQ4AozdLbdIzp5Iww=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/Xt6SmxrTq6XEAMdyKHwxi21XIX+RHhX8EDAb28cjZZLk9+aeJQX3cJL08Eo/r065r+ITiaW6JNEh0tAsAnf5AQ=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -2779,103 +2779,103 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/eY04pzc03DkBOeEeNGqxvYxXhvu8LxktwvXw8wF9Q8234ygKtsMN1iYxpEsOAXVDsEHLSghw/IgKwRpSGs0DwA=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/UWCGr6cIVlr05uYHRM2WafvWfMQIEtwy7IdUOphzZad5Kj/1ET7f8OAfehhyBH2tJw13ZFPAmQOVgt337WnyQI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/XTJwv2vL0+wVhhnyBsq1LVELhuY4KptEDrKJCIJ1c+6otd8N1B6hhEUkGYKiz7JFdsBLpjpRw/NheOcY9rOngM=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/WY3Jqw6FH5430FYhe2FiKFujfqjzWHX6KegvYGWA9sUv7a0R4ti6np40Rbm8bFZIASpcnlm+AWq1dE/Pq3J7wQ=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/Xk41NrWtkv/wGyjiIUFlDI2V1D1qfvLGsAoZfSgr8Ygo1u49p/k2bV3Z4phfsUuhqh04hiNMucwd2ACM90v7AM=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/cTev6yylYrjsdT28K0JgRcwEn8qYYflgAMLwluNBBocYXPm3i+9WasaWL2rt92uy80u5LcLljk3In1LJMibhQo=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 6\nsealed_at 2026-08-04T06:00:00Z\n\n\u2014 test-log-k1 UEeC/Wx/bj3SjA6xLrBUV50YVTb70rZyjxhKq8fdrcZuexJuaI66JO+839OjDu48Kda9khlETcnA77L+I7d0JsWC6wE=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 6\nsealed_at 2026-08-04T06:00:00Z\n\n\u2014 test-log-k1 UEeC/UCWaW8I/EdTETte/3rZ6RYS7wKISpPUdpdmmdOwW2hFpPlUhdPwLY0/bL5VlQiiM0+K+QpGPNIpfQHwBVbYzAw=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 7\nsealed_at 2026-08-04T07:00:00Z\n\n\u2014 test-log-k1 UEeC/Z39ygFRCehQjAOyrAFxeOp5rIukJsSt84p+B3mEV7o6jYSxD2K6M3mY7aL4WhaZ3ExyYTd9nvrRhFaVFL80PgM=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 7\nsealed_at 2026-08-04T07:00:00Z\n\n\u2014 test-log-k1 UEeC/ThCaiyEZ6AJXjVmScKu5zLBJarBL7NfB/lmrpliW9zarslyHFL+Yd1jLvdFkwDc3TjTH9VxaN1sqoXAU8oDYQA=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 8\nsealed_at 2026-08-04T08:00:00Z\n\n\u2014 test-log-k1 UEeC/QpAyRTKlK69BB1vzx2IqGunpSNWKfszBw+ERezqGv665RFscNy6zentJoCFOnYNleydJ6ZnLtPMJ/PgwP+VzAs=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 8\nsealed_at 2026-08-04T08:00:00Z\n\n\u2014 test-log-k1 UEeC/X+FrVglMKvaqAj0Cr7GO7KSPK2PHlAHPDe6sOpsGyD0BYNiEs26cAFbpwXrAc6egNpWBIbiCtO1JYHT3usYzgs=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 9\nsealed_at 2026-08-04T09:00:00Z\n\n\u2014 test-log-k1 UEeC/QgeWehgRwLAvRQd+ELG/Ql5WJlZe/IGKE5jr7GGvon6/lpoyccUZiAvrz85C8flYV1YlIUfzIa2j2GPDDsZPQg=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 9\nsealed_at 2026-08-04T09:00:00Z\n\n\u2014 test-log-k1 UEeC/WER6mRjmRvwdswJ9k29pMQOZ4+msi4S3aIIg0Y+zGMEToU8lH0I+mLganVzztA0L9kgKvD/ma6rzQ6LDwBfnAQ=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 10\nsealed_at 2026-08-04T10:00:00Z\n\n\u2014 test-log-k1 UEeC/ViOIajlqMe0rSDcWy34WYbO9dDhkazUu5zMGorHQrR/ptNn7t/oTWPTL1Uaus8VTcniOWo4cFdjmJF5KBUygg4=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 10\nsealed_at 2026-08-04T10:00:00Z\n\n\u2014 test-log-k1 UEeC/WHzZ2vryN2BBGyqLJYcRXIytM06iQ28PD2R3uwuK32Dx2t8CRsdfTks8bZYprROu5RZVg9e+LMnH4/V5oClyw8=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 11\nsealed_at 2026-08-04T11:00:00Z\n\n\u2014 test-log-k1 UEeC/UTxvKzkxweNBLfIrVHP6GT4wOcX4t0cBqvWOmD+FaFq7YtIcKTVpOMy9Y7kA/S4szKMmeRZ3XRQMggctxMj/QI=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 11\nsealed_at 2026-08-04T11:00:00Z\n\n\u2014 test-log-k1 UEeC/eiaL9YiJDMpCV4XIcywpfWwVhZ+e6FWM+WDylEMx8dnNrJ/1qyx2rFqEzyebrdOsJDfhMl1I/qABgwtFn2NQAA=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 12\nsealed_at 2026-08-04T12:00:00Z\n\n\u2014 test-log-k1 UEeC/b2FgLuB045/Fdg6qv6BAVXR/TRS4W7WJGiqc9DzjPucbTF9zBebqu71pkLA4lEYVRQKNYoav3jy7fAJMJae9AI=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 12\nsealed_at 2026-08-04T12:00:00Z\n\n\u2014 test-log-k1 UEeC/SY9JfZDXKHVAKUmiomTYyGCTB9hypXOQh3gnqCEmwUpIlXk+MqqIj3WyejawvVgnV+Gbs/aV6gq9sSlhUIJKwM=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 13\nsealed_at 2026-08-04T13:00:00Z\n\n\u2014 test-log-k1 UEeC/aE1prtSrBx3P5JU1/Bm/2rsq5zFvGuHmb7DlqpaBvvuWjHu5G0dvq8oxxEBqTdaTMgXoD6umBZleJ6F1jhMcQw=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 13\nsealed_at 2026-08-04T13:00:00Z\n\n\u2014 test-log-k1 UEeC/ZIc0fNS15JzcBe2tMquxxm9V4u7ZznfRzca5u9yX8WpFHME9yI7HOm4105icweSInK1ehZZzJkdLO75r/mwgAo=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 14\nsealed_at 2026-08-04T14:00:00Z\n\n\u2014 test-log-k1 UEeC/f8Jr8qdDgz9bR2NvctDPh2EJvTd+TASYPnMvA4JWMcyQFiiKZ4rtCm9iQDBOBk8lURF77bXv28X91qe+/gI4AI=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 14\nsealed_at 2026-08-04T14:00:00Z\n\n\u2014 test-log-k1 UEeC/UTehl4/EHnJnE6R2TQpdzYPPhPLV0ydLdXX9qfcxiII/0yURpCef7/wBRgOki3x46zwUh1BNG7HOU1BvxYLkAI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 15\nsealed_at 2026-08-04T15:00:00Z\n\n\u2014 test-log-k1 UEeC/QrTyjRc0XZAyBy09lbw+kyahdkxm6eu4HDQSZITbnUEfvhpF06o2nmYUbJ00x9UaZncQ6H8Ltle/BJRzfMEGgc=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 15\nsealed_at 2026-08-04T15:00:00Z\n\n\u2014 test-log-k1 UEeC/ea5CZ8IOIHJFQLpPjKjT4TrUavLJXMUSat6+N79X9JarLqs6up6JI1Qtw4WZBbuprfQBnwAaAurwxV7Xn62NgA=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 16\nsealed_at 2026-08-04T16:00:00Z\n\n\u2014 test-log-k1 UEeC/WWH28iR1eS1vcLi9evkcUsN3KMmfP97ewMV3TTsrimGThjVbf7DhlFI9p1C7jVe+o2cgmE0cLSP9XC9in5G8Qg=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 16\nsealed_at 2026-08-04T16:00:00Z\n\n\u2014 test-log-k1 UEeC/cqDwtGjTYAUrAYP3LLJpF/70ydF6NVTvdQi8H0ov58dyQa9lEFecN/1Ej2EQbucSd5IhdC2vKWz/r9fe68R8Q8=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 17\nsealed_at 2026-08-04T17:00:00Z\n\n\u2014 test-log-k1 UEeC/Vq5wVhVYUKlugu9IlIyutjjZPSqf3nxZklhk/Bo5m03S8FBIxWhfB+aANccV+fSIVJYB04giEdSmaUn9Wn6WAI=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 17\nsealed_at 2026-08-04T17:00:00Z\n\n\u2014 test-log-k1 UEeC/bTRCQeb0dt/GiuTq9DMTwYgHnqZqNxxWwakiZCqiTKBGHZOqUWBJv6FboRcfWt4sLv10nV3sTvHVQT5Y5Vlwwc=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 18\nsealed_at 2026-08-04T18:00:00Z\n\n\u2014 test-log-k1 UEeC/VWpqkyB/hGEhi0+UcJPGrKMUyv/Ad+gqfDndWUr9HksNP/RbqZvxq8ll6Rt4pMD3sQPZX2qn1rpK2MgYflYYwU=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 18\nsealed_at 2026-08-04T18:00:00Z\n\n\u2014 test-log-k1 UEeC/WF1JoC0JDOctalGmVAminTpjiqYpC5QDHFXxNhQDNuOPBSW/C4q0vLl9QD6aow9vB5NHucg2+fP7sn6oE+wLQM=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 19\nsealed_at 2026-08-04T19:00:00Z\n\n\u2014 test-log-k1 UEeC/bZipagSY/aBByS8sScPiQA+Xq5uXrDHueWY97cO+QOpejkY/VdU7qDdNBi/vVsfg7rT9rV17FkzDIfuqlsoQwE=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 19\nsealed_at 2026-08-04T19:00:00Z\n\n\u2014 test-log-k1 UEeC/WWIjr4NlovoSziikk24XTb7xmOHVQYf71FLG9UIvdhSQjnWwnOi7nBp4pgVsylquMSZdbfpcpoRJoq9VhTifAw=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 20\nsealed_at 2026-08-04T20:00:00Z\n\n\u2014 test-log-k1 UEeC/alHB+tSyMWuSJuujO73Wk3YWUoNo729qQyDp1fukd4QrQbDPfnVTUXLzxTcEPiWwVHQ5SX0jy3qz9spWs7OvQI=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 20\nsealed_at 2026-08-04T20:00:00Z\n\n\u2014 test-log-k1 UEeC/bAg2pjSBbbFLYAO63lhz85fdGm9Q4wscKMhnRMoHQJWK67LoACgu6ZsWHyfrmybcfzagSHHfy30fy5bEgnLgQ8=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 21\nsealed_at 2026-08-04T21:00:00Z\n\n\u2014 test-log-k1 UEeC/Y9BC9PdiKp/ckmGWc7MaMGJT4Rb2t32s9CCXhUEuRXCMhzz3dVCPQIZOnuWDubPoPMvhZDibcnpbEyu0M5bggM=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 21\nsealed_at 2026-08-04T21:00:00Z\n\n\u2014 test-log-k1 UEeC/Q/n3jg9f1TpuivMoE+1XhFw7CAQ09V6xHSY5tOQ3enG+6gwC+Sif6TuKY9L3PZErwZjxetNmuD/x3+vYFN4Gw0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 22\nsealed_at 2026-08-04T22:00:00Z\n\n\u2014 test-log-k1 UEeC/W6saKfK6xh6E6JT83zO7dTH9B+SUcRlmznpaH6QMyt+1HG/VTc//6VofS6iHuZSNMwwdfwcn2Pm2yZ7Vuy3SQo=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 22\nsealed_at 2026-08-04T22:00:00Z\n\n\u2014 test-log-k1 UEeC/d3DqlLvEker6pMNyftx3arHQqLSUln7EEq19pxhE/Bjzd/1FZXIQhnZMoCDSWR16UZoe+R7MdesUYY4zTu5Ewc=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 23\nsealed_at 2026-08-04T23:00:00Z\n\n\u2014 test-log-k1 UEeC/WpcktnqccP47QXy/nns4+LNv+vw+OQZZAjWvnw92XrNxrIs/TiQkdTfjoj9n8KJF7E7I9/KsfQAvTidI8lQeAg=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 23\nsealed_at 2026-08-04T23:00:00Z\n\n\u2014 test-log-k1 UEeC/W7i9qN7Ip1PbI5Pw1pINKlNbLY+K38YOVpZb8ZkGJxMPSimnSH5nohe4KtoVOXQ1QbujN4rESavpmJnqbIlmAI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 24\nsealed_at 2026-08-05T00:00:00Z\n\n\u2014 test-log-k1 UEeC/bQ6SIbx3z4FRUOyQF+W/CHORMY4Hoa770rLfBE23rN8S5rCZQeqoU1LbUsuqNXBJFE5IM+Hck6/1THK8eZxTA4=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 24\nsealed_at 2026-08-05T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UwXMJEqMLbJtGpwUXOqMxEZV2y2/3MYMhGxWtzTjjhK4vFrjTasqG+pOo+aF2pbgbXaUgRU2w64FYXZ8Csj+g0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 25\nsealed_at 2026-08-05T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Yb9EKLMhtLmmtbb6u+ga2J+f8bNrG+gqW01Y8uIW5hFW25ozZimKGsHNqLQNGSH2FV/kn6CU57FPBItV716yAM=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 25\nsealed_at 2026-08-05T01:00:00Z\n\n\u2014 test-log-k1 UEeC/fioepcs+4wwXRVCDMYX2ViyEGXnrQqORNl0B6FFgBTDzJWGTe4KC6FaUlPDNGxUD5MJfCto/ZSueBXeHSJclQw=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 26\nsealed_at 2026-08-05T02:00:00Z\n\n\u2014 test-log-k1 UEeC/ZRkm4opBcwkNxI3CPB2GX5a+SvP6PpK2MZOYtWr5wiPhwKavWjAyvwdgL6EtY/GL1FQh1TrSbvGGHnMO9YkBgg=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 26\nsealed_at 2026-08-05T02:00:00Z\n\n\u2014 test-log-k1 UEeC/ZReI92j3H1hN14rHYiMUxKnxPYXoxKmVosVW3b4E0BCNYzReWh/XKZgY8ulldYkwLz8IVtk3H3TNOfvpuGuPAU=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 27\nsealed_at 2026-08-05T03:00:00Z\n\n\u2014 test-log-k1 UEeC/VfzUFGvZ4sbbcriPzsqMFomoBlK4fqeHCncgxvXS0QmcJG4QULYNevukTc8Q0mFsPAcZngkR8KTuQgTRGT4hAA=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 27\nsealed_at 2026-08-05T03:00:00Z\n\n\u2014 test-log-k1 UEeC/SLqy0USyIu7w2JjzI5dIvDwfWO+GAP4k6bKRvrTSi8pMX3kfCDnJKhaYqzI95cMrSLLKfEUrJmant6M0ZqAhQI=\n",
           "entries": []
         }
       ],
@@ -2939,9 +2939,9 @@
       ]
     },
     "pending follower": {
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -2984,11 +2984,11 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Rzm8Vf3VC9nPotrcNpnV9rVAOPBCnt+CsU66JhxAaJyRzYgAmzQePUlvaZ882CMdvuLPk1OvqCmKGlQ8wlL6gU=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/XY061DLLeiXVAnh6dqCYA4pmELmN+nz2gG+qK/B+ddk+uLtfH66F2JBCRWitQ/zxscuWnU/2Hhm1i9fd2Bp9Q0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/cu5/ZkeW5oUrvflpdG3slIY3SHO8pS3q4f5IrWz9pf7K+dHXzN3yjSTXme3amYUX/SiJmWQ4AozdLbdIzp5Iww=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/Xt6SmxrTq6XEAMdyKHwxi21XIX+RHhX8EDAb28cjZZLk9+aeJQX3cJL08Eo/r065r+ITiaW6JNEh0tAsAnf5AQ=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3032,7 +3032,7 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/Vv+BwdjMAXShW94fXD360fH3+TgW8Rtw3yWarkRjw3UzVstO0TFFJh3ZbpiCdd+Fu11spGTAluUrns+Zbr/Kg8=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/cLZ+NZIRxXKFDCuxfOAiNJHh0OsiEO/USj6+A+17axCqMHdQiI8EuSlNAobRugCSGxITBlp12wGQC+WMWg5WwU=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3076,99 +3076,99 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/ezcUB+UJ6uCbkZnh3spY3Z41ua2IjYcy2lInpzIYx6SYPrcb42ick4TiXq6oIkli0O0ySpcyiidKZXGIbV+nww=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/XSct9VHNW7Bp9SNApGQxMR92K4c564MAozvsnZW80+8VOGclgmI+Xkt5vnKMyb/2pmrozobUh3r1f8q5SIJkAk=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/f8G/8sgy5o0ZSrAXHFZAfVgAKkapM9nHOSySJbHOunbY/lQskjeoDpzhbbAWjlElqvuM+C/rv8cMdSlzz0oAQc=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/cgU5PjVrg6DqAX9anFRzhgSpc65EFY+SsBB5L1QUOBD4XP6bsUwEdmJzxe4G8mER9yT5QCrBAxJHy+ZOH3Gjg0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 6\nsealed_at 2026-08-04T06:00:00Z\n\n\u2014 test-log-k1 UEeC/YtFpIhDneXSAwtyasLcZWW8Y8FygPSdyV+DHeTtiRcgtXx2ahq1RrQuXs5FrgEPo/Xh+YTZBtA/kEkKwjlAtAs=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 6\nsealed_at 2026-08-04T06:00:00Z\n\n\u2014 test-log-k1 UEeC/a8ZPScyf444Ir4lRNztZ49/jishnnzcMTxz3DIxCIVL1tMUvqs0qYGd0NrUX3wRC8/UhuGesSifll8rG9Y/vwc=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 7\nsealed_at 2026-08-04T07:00:00Z\n\n\u2014 test-log-k1 UEeC/VvOvHhVCOaLgRgncTyYXK1XgFQoNjUjj0Exrnp90uZCDzaOldQp07kbUwI6Bo7tG3Nmc8vQJ9jSFxXN55IhAw4=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 7\nsealed_at 2026-08-04T07:00:00Z\n\n\u2014 test-log-k1 UEeC/XQrMdC4rmom/8B6py+daL85yPQmX8hCCG9URJdYKEcdDdBoNGQcW3JnGLM31DjGWbXPEUkSxi37JWYVJaOpswI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 8\nsealed_at 2026-08-04T08:00:00Z\n\n\u2014 test-log-k1 UEeC/VIu8G1T2ekNM3FCcHwY07e0cpjXuurNKdQunAIODYihgTkTVchAeXyptMVD+YOG2sD3GEuvd1ULZZQo5ZIP2Qc=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 8\nsealed_at 2026-08-04T08:00:00Z\n\n\u2014 test-log-k1 UEeC/cEOdanzRuz5qDapLXnaEnEUtjj6wEgEyow0YYONz+LbsiZDR7lDN/IQw2+HPyCFD9UR1nVm6lXv+pLHgIaS3AA=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 9\nsealed_at 2026-08-04T09:00:00Z\n\n\u2014 test-log-k1 UEeC/UHi+0wawoVY1U4bECWgmB8wcwomMKK9kTumF9ODtwvFTib2qeteYSpHbO3HDsk9Mhnh9rE2QM+KnMZoQ6e0hQ4=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 9\nsealed_at 2026-08-04T09:00:00Z\n\n\u2014 test-log-k1 UEeC/bN3/IS+by+oYo/XHB018n/Jvl6L3VaiQ87qIS4NeO2k/OmaCkyBRIdsZHI5yLL2z4YELq6fjioc/X5BPzC2zwg=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 10\nsealed_at 2026-08-04T10:00:00Z\n\n\u2014 test-log-k1 UEeC/d54f5BWH/b5FcK8MHMNGWGRwtsMUWYIc4DeXi4QETV4zofy2oOn8DU9OCQo149CvyFQiVI0i0b0ws5oQ1eS4wg=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 10\nsealed_at 2026-08-04T10:00:00Z\n\n\u2014 test-log-k1 UEeC/U37COqFWncmJfR2iwshbQf2exFgfhZSta5kmt+y8XIZ6iMa7oZFYT+ZDxyatUDg2fhJNeDhs69jAnBOSJPScQk=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 11\nsealed_at 2026-08-04T11:00:00Z\n\n\u2014 test-log-k1 UEeC/XwgGroaa+ngEe9Y5/ke6BNPWyFL0Tg4/gwPTOPvYrFxSolsnx3GPAluQciR3rbaYl9KZBy4Etv9H1I8jhsAGAg=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 11\nsealed_at 2026-08-04T11:00:00Z\n\n\u2014 test-log-k1 UEeC/V/U52ym75hPQvW+eNlGugXJqftQq2eAMboopJYVkqDrGNb5K7J+UINEzi5X3rr/RtZpyUvXMuiOCu3mknsbHgQ=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 12\nsealed_at 2026-08-04T12:00:00Z\n\n\u2014 test-log-k1 UEeC/UAH/S5Rw94jLLdzxEevDLtA3Y9K8EbrlszYZQdRMYwVeUTuY15sbU/XDngJf2mASAdqlHlru7hRxmKzEjH6SgU=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 12\nsealed_at 2026-08-04T12:00:00Z\n\n\u2014 test-log-k1 UEeC/SM10us8swFPabYn8EBtmxCaLVh77ci6p6GQqq7vH2RjWRlcqaIRhAdA3t12jD1E61OB/oLijto5EVGbAbDalgs=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 13\nsealed_at 2026-08-04T13:00:00Z\n\n\u2014 test-log-k1 UEeC/ZGFt0gNzHg8SF7pB+lDXa8HvDrC4GbHMbcFqHcSGw2GMSaOLcNMT6U8jNbLnSwEP2Q8SFrSo4LzPvSf/flTXAE=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 13\nsealed_at 2026-08-04T13:00:00Z\n\n\u2014 test-log-k1 UEeC/Y7SpJHCtD1w93CqDz6MHKwd/58T2Wp95gjC75IYvADMsPWV5P/oWlTg0HAbIipQnYrhV3nHwC2BJbR7a0MWogE=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 14\nsealed_at 2026-08-04T14:00:00Z\n\n\u2014 test-log-k1 UEeC/buvjWpffmqWCb2s3sdKweALN5mi0I87J+lfSz8nQPF4pPH1si3nOFYC+mtweCHlCzQx56cELtk8Sdvq0suXTAs=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 14\nsealed_at 2026-08-04T14:00:00Z\n\n\u2014 test-log-k1 UEeC/XJLqFrhUIg8h8sIV/73KrX+imxUI3dXCmzm0mM7pOGBtVi3K0yDKu4Adjzloq6dcIrAPNl9UREzhozlj8D8JgA=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 15\nsealed_at 2026-08-04T15:00:00Z\n\n\u2014 test-log-k1 UEeC/bYJINYxPX3POxWJ4DJ7EbK8yRxSZZ1SDxsWLwYw4SadyecihvyJ9bjAS32gT871PiyVJHzJFjvfxk9QTY5kfQs=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 15\nsealed_at 2026-08-04T15:00:00Z\n\n\u2014 test-log-k1 UEeC/Z4JXYJSMeN194mrCOqQk6qFBy1t5hqWLCKYKN5lk5S4vrltCFv1Po4k17UtTKwsqoQRiOnegCl93Sb9cPtgKAg=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 16\nsealed_at 2026-08-04T16:00:00Z\n\n\u2014 test-log-k1 UEeC/bOeJw4ANehzu9FALmpbpBKRRH8Yk0Kz7GmKCA358hmx6LoPoPqh15/GmjmV+g4MrZbvrtvvxDDz+j5gZggKSgY=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 16\nsealed_at 2026-08-04T16:00:00Z\n\n\u2014 test-log-k1 UEeC/SZ/5RQtH9fnP0AonXnAPa3/UBONMq36aRHUpauYLq9LOs+a2ZzMwp5my2Yd311tptfo6TrWDd3qZzYwXrk5Bgs=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 17\nsealed_at 2026-08-04T17:00:00Z\n\n\u2014 test-log-k1 UEeC/Wc0X6Mw3rrLCuZ6lYXRUJWSp6uJJ1bg34iF47jOJh5gg4him/WsWSB9TXB3i/XCRaMntyf+84yGtWfoFpr4bgE=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 17\nsealed_at 2026-08-04T17:00:00Z\n\n\u2014 test-log-k1 UEeC/Z1NmeJwH5aWiUlcweMCQPWdawXMU4eLLL1u6cDO5zgj/QqQOiH+cd3aBiA7tuTuqMsQMdb49p9vvvU81d7+tQc=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 18\nsealed_at 2026-08-04T18:00:00Z\n\n\u2014 test-log-k1 UEeC/XpDhSTSMVgswss4ihmfYxaXHHmaICvRRFaBiL5birYYCwNuE0VUpugWxtGijQndeS/gQidNmhobSwF+maFGrgE=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 18\nsealed_at 2026-08-04T18:00:00Z\n\n\u2014 test-log-k1 UEeC/ciuKcrFvMp1NxBzSEBaR+y2ecg8i03bj6lMeNSNFhJ3vuaQeAwcFucEqDlafJ+pnwnb0oJLZuJVqPzBRvf9PgY=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 19\nsealed_at 2026-08-04T19:00:00Z\n\n\u2014 test-log-k1 UEeC/aFIkuLcJKrM6GxT2l2wTnwvACALYoTlpbRX3LqQg+wXbwTMR4a8tZ+oZLRb5osfovh0FWMnJhmBQlconXLDBAI=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 19\nsealed_at 2026-08-04T19:00:00Z\n\n\u2014 test-log-k1 UEeC/Wpr1R4DXu/iPeM0r4bGQ6SuzCST6fteQ4Uh7lZvPgf4G/+wkd51qVkxCWOkzRPFLekYVvsbkabKkhNTaB/s4Ak=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 20\nsealed_at 2026-08-04T20:00:00Z\n\n\u2014 test-log-k1 UEeC/dg2p+7F84gfeHSvyviMWdEtNO1qN6sHKMZgmFMlPyozXhSPJmLVlxY+72IQ/Vu5YSE/iVm/MpHV5XTCXfvKHQw=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 20\nsealed_at 2026-08-04T20:00:00Z\n\n\u2014 test-log-k1 UEeC/eLSkfAt8vkZuFLnMVurKz90SRpzSZMWRH2misDxgbsE1So4Ad+ixoVtDztsw3ZXnN3Cc1fl7C1+kHeAQSVmqgM=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 21\nsealed_at 2026-08-04T21:00:00Z\n\n\u2014 test-log-k1 UEeC/V2GTlSJlTm8dW5WAuVIxyiYM+0i9rkKV4+dFyd6Pk9LrJzIel1DL4ZxvcRhawxCLijRZpalBit6cVQKBsk/dAQ=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 21\nsealed_at 2026-08-04T21:00:00Z\n\n\u2014 test-log-k1 UEeC/dLSZxZ85qvYqXWyJuY9xUD6bjutl4j08FA5C3rdTrrPZljvF48Q1II3lYz8ZBrCs/PuPryHhhUL+x/nL6l6Xgs=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 22\nsealed_at 2026-08-04T22:00:00Z\n\n\u2014 test-log-k1 UEeC/VKfpkZdEHOhDi/21vryuo8plPX8UVPSDqIZfKot1oDPq/Za/RAFn43SUXN4vw8AC2aBu2moS8rVh3dGFrBaugM=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 22\nsealed_at 2026-08-04T22:00:00Z\n\n\u2014 test-log-k1 UEeC/TPtx9cwZpG3LyLGaMvGqE3W81rl5/ON8GSJJBpP7qZF2egZhBD/i9JiY3nPhcd6gML7KFLLRBtnxdcqJQ/t2g8=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 23\nsealed_at 2026-08-04T23:00:00Z\n\n\u2014 test-log-k1 UEeC/RRE672N/WFT12loWa3NHr6xTzmkPJZlYCFdCrcbKcjMGYh+afFzNyVx+C0L8V3Y9UpcKpHMQCPros3kxEkVEAo=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 23\nsealed_at 2026-08-04T23:00:00Z\n\n\u2014 test-log-k1 UEeC/deklBdIqG32RxsJBE5DRX5lKnsPjtvn6GXaT7IzXxgI+rpWYofOqupEMHw2yy+WDhccKTgwv2yoFmVh/NWC2QU=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 24\nsealed_at 2026-08-05T00:00:00Z\n\n\u2014 test-log-k1 UEeC/V8+0AeBrdOvxUDn6iiP0IWOSCfYOjwjCu59v5bOHMl+PEjAnno2wrcBN18BTK4TOuGlZJ0QRSfH6Mf81hc/OAg=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 24\nsealed_at 2026-08-05T00:00:00Z\n\n\u2014 test-log-k1 UEeC/V0PFfDcfJCVU9/BQs0h/ZL5nSFrRFJykA/CA0dCtC3IEHxnd+7W4CLLhJrKvSnv8xqTcD68ss2yzNswrNFn+AA=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 25\nsealed_at 2026-08-05T01:00:00Z\n\n\u2014 test-log-k1 UEeC/bonEIUT6fsPcg5DjLKhEJ6WR0FnhJWQsFRC7NCGlORa1dfDjbCzQhfJCjpU9kkdw4Oy8JlR/txaMJGU3Uun4Q8=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 25\nsealed_at 2026-08-05T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Zs8FjM9P4K62BFUrvzkpuZG24wXfG2aSOHyCF5EbjklB86LJMDe989WvyfRZIm/wjBB4Y1ma90GEU6OV6RRgwU=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 26\nsealed_at 2026-08-05T02:00:00Z\n\n\u2014 test-log-k1 UEeC/ZE+j/YirBDKWlX/ksDqwzY3a5jhHiQivHqxr7tIkzgtgfmLGmBzY/ub8BZ12ui5jnDWKqPy44wAQVbMuCZwTww=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 26\nsealed_at 2026-08-05T02:00:00Z\n\n\u2014 test-log-k1 UEeC/UHI/7i2nvM6bF3rW6kdi0bFzMoa/yFnBKMtBi3BgEfUIDsZ87v8YXcJZa6DO4pKai5F1il3fmQsDda0N8EwGgc=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nblock_number 27\nsealed_at 2026-08-05T03:00:00Z\n\n\u2014 test-log-k1 UEeC/RY4kcwoKmrpiiDbtjbVbfmmgGwTKLDZlKc7fGizoQ5jC3I/OjKVmkch3io/cLIrE0Zk27/K2iZ9ow7iUTIOPQw=\n",
+          "checkpoint": "test-log-k1\n3\noYQVVazb3DEMWumFQYd+c/pml/DVkoK5KUltilGd9dM=\nepoch_number 27\nsealed_at 2026-08-05T03:00:00Z\n\n\u2014 test-log-k1 UEeC/dRydZyrAs7WFp+YE/oxCaj5XEVpoY3w9wnRcpXuhzZOnE6PL74+yHYyr1bvfU5079nvk4ExXsENdkmsMXJ26gI=\n",
           "entries": []
         }
       ],
@@ -3210,9 +3210,9 @@
       ]
     },
     "reversed by a signing key": {
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3255,11 +3255,11 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Rzm8Vf3VC9nPotrcNpnV9rVAOPBCnt+CsU66JhxAaJyRzYgAmzQePUlvaZ882CMdvuLPk1OvqCmKGlQ8wlL6gU=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/XY061DLLeiXVAnh6dqCYA4pmELmN+nz2gG+qK/B+ddk+uLtfH66F2JBCRWitQ/zxscuWnU/2Hhm1i9fd2Bp9Q0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/cu5/ZkeW5oUrvflpdG3slIY3SHO8pS3q4f5IrWz9pf7K+dHXzN3yjSTXme3amYUX/SiJmWQ4AozdLbdIzp5Iww=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/Xt6SmxrTq6XEAMdyKHwxi21XIX+RHhX8EDAb28cjZZLk9+aeJQX3cJL08Eo/r065r+ITiaW6JNEh0tAsAnf5AQ=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3303,11 +3303,11 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/eY04pzc03DkBOeEeNGqxvYxXhvu8LxktwvXw8wF9Q8234ygKtsMN1iYxpEsOAXVDsEHLSghw/IgKwRpSGs0DwA=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/UWCGr6cIVlr05uYHRM2WafvWfMQIEtwy7IdUOphzZad5Kj/1ET7f8OAfehhyBH2tJw13ZFPAmQOVgt337WnyQI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/fTYXTd0mYwreA9TXl4Kp2FVtzMgVpZ/c0TmfSrdlQbb/JI8wAA5L2z30AsvK/nrEvLnMUUOYwoKcoi6UdseJQU=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/eSYEaXhy8ljSsWvV3cHzqebJKTp8wJh3wTAws99FHw2FsZEf42TQD1tpScaaZcRfDfeNS0L3mYch3cAqdIi3Ac=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3351,95 +3351,95 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/RWcbuaRqXRWi9wsAWGzuTXJEgAxfyAdmafQV35kEiUam0+YEL0jSrfj5r+Tdida6Rwf16fRfyTd4+G27QshcQ0=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/T/0lDS3uNPBtYr6lcZrbh4g7oAcWxcYhcBPp8Pjjei1RgNOKcO+617DnflA08B/SE70b16zPPlZtLIwGaNlJAU=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 6\nsealed_at 2026-08-04T06:00:00Z\n\n\u2014 test-log-k1 UEeC/UaJjQd4y3hIgGlkYembXoI9r0tTuMmDfLbTaWqvaczG0lCH84OZ5ag250dTIRpdUbYKDiU3bYVQHvJM0mWY3Qs=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 6\nsealed_at 2026-08-04T06:00:00Z\n\n\u2014 test-log-k1 UEeC/VO5AbnVWJxyKz7Lrv3Xk/JBPuwCqeoiAhxu63odnLoFJYMsh0Ns4TCK4jsMXMYdjxf+bzN29me/rrVD2YlECAU=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 7\nsealed_at 2026-08-04T07:00:00Z\n\n\u2014 test-log-k1 UEeC/UxEjD8Sptma/bDsIhJKcCVd5joUocYtm5ChXXRAsHaHPPy5rm36dRKiHUuO9Btqx3cQQyd+7NP9T3WbkulEGgs=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 7\nsealed_at 2026-08-04T07:00:00Z\n\n\u2014 test-log-k1 UEeC/fCshYcrJNbwlWN/QnCtkZCemIScB2sIP6YdCIAXedX1QjNr8uC5jXtzUDxMGT4iIzTmZ1HxmnTG2WZ1nWwPDgI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 8\nsealed_at 2026-08-04T08:00:00Z\n\n\u2014 test-log-k1 UEeC/anuEVb8mLxLCWNToHimr1qIcyDb0vpyg7D3uhf+wFLLZ9akSu/9Q4q9f4ERhyqxZdBlQk53izCRZWAxaEpbqg0=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 8\nsealed_at 2026-08-04T08:00:00Z\n\n\u2014 test-log-k1 UEeC/dvkEmR6mY1PuZnnyN2Uh4STDpDYjSLmf0UjvRoQb4IFnyaoEXcj5XhYM5QqU92Ry5iPFqXJCfgSK3T3OKO86QI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 9\nsealed_at 2026-08-04T09:00:00Z\n\n\u2014 test-log-k1 UEeC/dNTPt6QufTWvRdquSJP6BYPJlsxlcXNVzM7RGoa1tMDlxhV5TQmjvdjr4GR5CdyVutJV6KioPSr7sAB4mhntA8=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 9\nsealed_at 2026-08-04T09:00:00Z\n\n\u2014 test-log-k1 UEeC/estXXxQjHDVBjBhDcI6oNdIoS9Bcy96IXd1rwPUlq7Rrk/7LdrtSbX0gn5XZ6VkBHkpwWGFn2XIAs7fqKT4OQM=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 10\nsealed_at 2026-08-04T10:00:00Z\n\n\u2014 test-log-k1 UEeC/eh4RHF9MxWlhzt5EEYQV2cy0KXqLPlUCFo/o22RZCpn84ayJgZTBSMztnTE2k6JXxiMKNzHkVR+YgXYP+gA2QE=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 10\nsealed_at 2026-08-04T10:00:00Z\n\n\u2014 test-log-k1 UEeC/V55GYtK8XRSQMwfZ/w1fWzktOMLcWlR/YP8i0FDixVCvPAy24UTHACUIQSBycYSq8KhsdsyJ8XQ7GgoL9rSpQk=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 11\nsealed_at 2026-08-04T11:00:00Z\n\n\u2014 test-log-k1 UEeC/Y2UBvIFC7mJX0nRkmjEKxRtFaSPVYjapj9Ga1warYC6kX49jfNwoUSiggqVNDlQ/Bk6O9LBpsDlM+gMQ/uBmQQ=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 11\nsealed_at 2026-08-04T11:00:00Z\n\n\u2014 test-log-k1 UEeC/VUjDKdgZNuNvm0PdT5/wHx/YAxMmZpSFs+WQjePVB9TbqW74bBgOyBPAaxofYj/gfNM2p+1yRzC+rYXIl187wc=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 12\nsealed_at 2026-08-04T12:00:00Z\n\n\u2014 test-log-k1 UEeC/XRWxr6nFO+a8LywA3ZdPnDjVWngwxuB88OvcQzjCw+0+r4sTdiFr9ZbLOvKi6GB8IBZ9JHkL+rsWVbdUKMIVQY=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 12\nsealed_at 2026-08-04T12:00:00Z\n\n\u2014 test-log-k1 UEeC/Q8k3vazruBQmA81es5gpztqVzWCnbKohZujuOpCsC6dxljXkhHJnd4LYk+jw1mNUQtOxCGq8dpPuJpAZ9mtaw4=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 13\nsealed_at 2026-08-04T13:00:00Z\n\n\u2014 test-log-k1 UEeC/X/jCedq0vz/o5G01YQj51HKe72qzwa9pms4kIvL9cjldyqyQfH1beTY1C03vj8eKvJ4kBk9IiWGTRnaaijLGwM=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 13\nsealed_at 2026-08-04T13:00:00Z\n\n\u2014 test-log-k1 UEeC/QyKs2PQ4VjvDSO6pJDVqbDQLs3FVWCS3bePst4reyt910lMlc/6GGo0fK2G2wPLvX/IiYgrjKcTUBLESJQ7EQs=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 14\nsealed_at 2026-08-04T14:00:00Z\n\n\u2014 test-log-k1 UEeC/SSTyGzMeE77zgytFGmW/1pegJRxG8EUInkYegsGIycoKTXIfLNVuW/kgFocVQa6akFTw0Qfd7EDIlwFDtrqUAQ=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 14\nsealed_at 2026-08-04T14:00:00Z\n\n\u2014 test-log-k1 UEeC/crLfahGtKmUx3dtzj41NmsDwCsqQNBWsKF3fGgcBDbojnvZbI+qVR305pHGIeiRZz1+k97pwqxCQUdXceCTLgs=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 15\nsealed_at 2026-08-04T15:00:00Z\n\n\u2014 test-log-k1 UEeC/Xznbut7lPHcTTHnChIEuDhy8oiGk4lwfOyAiEoImTn8UNGBIKYEKhg29RCnYtZC1vLoeqDzn9fFG5PnSz8F5QU=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 15\nsealed_at 2026-08-04T15:00:00Z\n\n\u2014 test-log-k1 UEeC/UXLRQWbqt83zvTveWeLN8pTjxITq8d98yR63J5UKYXfYKaezfT/JSwOVMVD3sL2Ihipucgr9QRkxPCGSbOdbQA=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 16\nsealed_at 2026-08-04T16:00:00Z\n\n\u2014 test-log-k1 UEeC/ZEixOJr7kelSlTDCiq9Zt57ukdkd7n2kiGOKhaA2WWwEyzc9XU/nymE1udJqOd4sLi0QF/CLo7aAHYAlAWjVgw=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 16\nsealed_at 2026-08-04T16:00:00Z\n\n\u2014 test-log-k1 UEeC/WpQlV7oD2jkmf2RLsyv1axGIuDDbaWYjFPQY1VqFt7FBfB0cRIsu+Q3sbFXa36cLbpRvpnuYEO+QV966EosuAw=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 17\nsealed_at 2026-08-04T17:00:00Z\n\n\u2014 test-log-k1 UEeC/Yx3FAOcVKv1GtqYKQV6LPboZH/AEcd7HkWPsnnQX6o81WtqGFJ2TaKT9zFWagsxR0BNA4iWjsvFGGTxZjXcYwk=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 17\nsealed_at 2026-08-04T17:00:00Z\n\n\u2014 test-log-k1 UEeC/eOHqQvWJwI5naTTTcHhGriTYMoHcddILi95nkDUdsdTVViltl0WWjcLMatFNfWcSE2n+lP6sv8K8jt3Pc1VFg4=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 18\nsealed_at 2026-08-04T18:00:00Z\n\n\u2014 test-log-k1 UEeC/ULAdwf/QsYiNiUFHbM+9Ba6h4rFtpX37gJMTKmYDwAf8g2K3EoMtCPkiavbTXsGlSIwCZcAvhA8Bydb65c98gw=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 18\nsealed_at 2026-08-04T18:00:00Z\n\n\u2014 test-log-k1 UEeC/Z6Nrw8PogImFXaEv6LViRUmXCtiob2UWG8U6aiN0TGyb4n0X/4n1shuBuW48mqgCdED5RgFpyqrhwAK0X2nQgI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 19\nsealed_at 2026-08-04T19:00:00Z\n\n\u2014 test-log-k1 UEeC/SFGN0Dy5RRomvSr6RrqCCQ+346+cprdT67bHt2dXNvoma6tzzjJxnepgUoITtb3n9GoZOVzwB6Wi+cTnWdVbgg=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 19\nsealed_at 2026-08-04T19:00:00Z\n\n\u2014 test-log-k1 UEeC/dbJdDumcCqrs4NQ5I6qhzS0W3WnfVizS/9aDoY+mDwqFl+CpHbtenj5BkiMgHzmitN/2hJMPCfXFQa5tqkjOAw=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 20\nsealed_at 2026-08-04T20:00:00Z\n\n\u2014 test-log-k1 UEeC/V9o1w2fuOXN3z3mCrRBSrNFhxMKQPENGmnoc8misVVlK4kXp/R8HepikLwkuQWB9Yfy8UeFWaYNqPryDeOIVgM=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 20\nsealed_at 2026-08-04T20:00:00Z\n\n\u2014 test-log-k1 UEeC/VGmHZ3QLbO1rKLWYS2jeharegxgx5BD6HmlxOoG3/V4smepLSVSZNffFoua1QyBTI9wzSeJOzfxhGchwF6iHwk=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 21\nsealed_at 2026-08-04T21:00:00Z\n\n\u2014 test-log-k1 UEeC/StD1WJcyRrcv8fuJEBB192X8nQKWB/ZcQ9iFwrI4ziaUPe++bAZalG0Lo4u0uUMvrXIimib99oeC/3bBVfpUAE=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 21\nsealed_at 2026-08-04T21:00:00Z\n\n\u2014 test-log-k1 UEeC/bEtTnVFkeR4sNCvX5YX8sKHM2j8vWsaAdLuej7oaSUnd919HWCeEHNl6Oy3p1eyIZ3irM4mvYps1sF3ajtcegs=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 22\nsealed_at 2026-08-04T22:00:00Z\n\n\u2014 test-log-k1 UEeC/TPv3ibdsZFJ2eK4NweEqb/qVV6agpWtPKF+IzgPbVlSPFgiwMjedNAOdByC383ZbyuNycyEH9sH9hwYraBQOg4=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 22\nsealed_at 2026-08-04T22:00:00Z\n\n\u2014 test-log-k1 UEeC/aQ4Ck4reWl9npA9tuYsRwrXEOc0HvJJbmHHiRn7xSewSPcYK3uGtl2tR5bkGupMReFN2KJEx9CeMiml5CmqPg0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 23\nsealed_at 2026-08-04T23:00:00Z\n\n\u2014 test-log-k1 UEeC/XpEdIjqhWIDcReW+AHxsMLMZSLLWak8w3CPCoyhoMzM7izbvDSihAU48Ocvi5V+jIbG9pluoqdegnNMi6OhiAM=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 23\nsealed_at 2026-08-04T23:00:00Z\n\n\u2014 test-log-k1 UEeC/RXK3bXJ97qaVFc+m9/nGrj12VLFTakh1QPbufL5qyxH6A1L/vx2QDcI9plKmOXJUMJoU72saUuF/WMJ2xOn+wQ=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 24\nsealed_at 2026-08-05T00:00:00Z\n\n\u2014 test-log-k1 UEeC/ekS6ISzpgQ15mUT/23MiKiTNWJdDmIgBNt1p7dv5nLdknsWE0+nRk5ddkggQy5suFaebajADNiLHxCaWzn3xwQ=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 24\nsealed_at 2026-08-05T00:00:00Z\n\n\u2014 test-log-k1 UEeC/eW9jttLcaSN0B8jt49w9Vb6PneqJBbRoxyg6rCjtqYrmQlrJiWLvd8E4jHd9ofAQXy4FHAuhsX/8AMP7q650QQ=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 25\nsealed_at 2026-08-05T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Y28EvyIRraXW6l9nCKz1LGpNYk8Y9ZifAefJ4WC4cPruOF/E4+O/Nvdvv7moSZch8gUeunHt5RBPb/iYVS+Fg8=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 25\nsealed_at 2026-08-05T01:00:00Z\n\n\u2014 test-log-k1 UEeC/RTDq3vdkfV+Gm6GX1FEuhUyXV4uYZL9IcWfGNJGPDlvm4Fm4uiwiIIWmdHstrMXdbRAuaEVdmk8FUMcylFYVww=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 26\nsealed_at 2026-08-05T02:00:00Z\n\n\u2014 test-log-k1 UEeC/cJDeeuw9KdNQyUoDu7GhDxRnDe+37va4SoP1tefiZGWZPQOMveewq/QtXRNUWv/Ko2z0+8k8XcyejJzptETGA4=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 26\nsealed_at 2026-08-05T02:00:00Z\n\n\u2014 test-log-k1 UEeC/RxukrKhXORvXWBCFRp08pkxHG63PT0OBuOGExG9OzZ+I5eXaK61hFVvQRO2C03PTkBOZFdHOyjirS4BLmfhIgI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nblock_number 27\nsealed_at 2026-08-05T03:00:00Z\n\n\u2014 test-log-k1 UEeC/bz46jFEZQjN71ZBoZSDuAss0lLj7a7U0NW7+syHRS52RplFXr96q/yrh89lPhlefJ7VBFpIcURDj7lIUuoN8gY=\n",
+          "checkpoint": "test-log-k1\n3\ngasg+yx7ClO0Y74mwxCSOmsu1Z6SXFhWqXSkllJEb1s=\nepoch_number 27\nsealed_at 2026-08-05T03:00:00Z\n\n\u2014 test-log-k1 UEeC/QjMjrE3/opGUoJIlNESZxj3LwE2ATxoL43oIjhD/aID6wBjcnjj2w6V7JY6cf+frMrOt+N640P0Jr8zdkE6NAs=\n",
           "entries": []
         }
       ],
@@ -3492,9 +3492,9 @@
       ]
     },
     "reversed by a recovery key": {
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3537,11 +3537,11 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Rzm8Vf3VC9nPotrcNpnV9rVAOPBCnt+CsU66JhxAaJyRzYgAmzQePUlvaZ882CMdvuLPk1OvqCmKGlQ8wlL6gU=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/XY061DLLeiXVAnh6dqCYA4pmELmN+nz2gG+qK/B+ddk+uLtfH66F2JBCRWitQ/zxscuWnU/2Hhm1i9fd2Bp9Q0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/cu5/ZkeW5oUrvflpdG3slIY3SHO8pS3q4f5IrWz9pf7K+dHXzN3yjSTXme3amYUX/SiJmWQ4AozdLbdIzp5Iww=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/Xt6SmxrTq6XEAMdyKHwxi21XIX+RHhX8EDAb28cjZZLk9+aeJQX3cJL08Eo/r065r+ITiaW6JNEh0tAsAnf5AQ=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3585,11 +3585,11 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/eY04pzc03DkBOeEeNGqxvYxXhvu8LxktwvXw8wF9Q8234ygKtsMN1iYxpEsOAXVDsEHLSghw/IgKwRpSGs0DwA=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/UWCGr6cIVlr05uYHRM2WafvWfMQIEtwy7IdUOphzZad5Kj/1ET7f8OAfehhyBH2tJw13ZFPAmQOVgt337WnyQI=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n3\nQ2faqOOuaDOxszQN2rgMXiEogdvdZ2xOrx+D66XhVxo=\nblock_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/fsGbANvjVpnho+TgB3hOwKI1nmQmogfq2JmdZR1pCZyZyIC4DltXRUn3FhFsmeA0y6AEv1Uvmr7vJcstd+lxwQ=\n",
+          "checkpoint": "test-log-k1\n3\nQ2faqOOuaDOxszQN2rgMXiEogdvdZ2xOrx+D66XhVxo=\nepoch_number 4\nsealed_at 2026-08-04T04:00:00Z\n\n\u2014 test-log-k1 UEeC/Q9TDUr9I8vWqDS0B6b9Cio2bOWj1a72Vt0aBkNeF/3exsMjSyAXl8uLjmxIsEq+cAwq23T0tP/PrMTiZXYsIQw=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3633,7 +3633,7 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n3\nQ2faqOOuaDOxszQN2rgMXiEogdvdZ2xOrx+D66XhVxo=\nblock_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/f3pNzAqMDTfwDIQ5pMHzRyIx1OofuQ42t6HZzD35wB0fB9LrsfoUKgmTl8yx2aBI1VC4MYl4iiK550quuHMVwE=\n",
+          "checkpoint": "test-log-k1\n3\nQ2faqOOuaDOxszQN2rgMXiEogdvdZ2xOrx+D66XhVxo=\nepoch_number 5\nsealed_at 2026-08-04T05:00:00Z\n\n\u2014 test-log-k1 UEeC/Ua8ZOptXY9Pdb+ridxQd6x7/uob8graQWwFbVmddLiNTzYV5YdinwgoW0/wj3PdlPQvLkGtdqZZ5EmY4LHd1Q8=\n",
           "entries": []
         }
       ],
@@ -3675,9 +3675,9 @@
       ]
     },
     "activation delay zero": {
-      "blocks": [
+      "epochs": [
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/U46c7zd0RMU+KlUWcEUIUIJoOsp0bSIEjjyVC+hT06oxro2Mastce9/MqqOs/RqJuP9y0ivcGw7GbI9B8aVbQ0=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 0\nsealed_at 2026-08-04T00:00:00Z\n\n\u2014 test-log-k1 UEeC/UhgPduWeh7aIppw2UGoqChAj8GbIu8GFe5ltNPe5ae+8qwFTG5ALWZhnajZnDYm3yzaYQ8Te9QHVmdGZIjMswM=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3720,11 +3720,11 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nblock_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/Rzm8Vf3VC9nPotrcNpnV9rVAOPBCnt+CsU66JhxAaJyRzYgAmzQePUlvaZ882CMdvuLPk1OvqCmKGlQ8wlL6gU=\n",
+          "checkpoint": "test-log-k1\n1\nd6op3W40+b4NvTAyhcRuY0d8C569MPZXjVr4m+eCZZY=\nepoch_number 1\nsealed_at 2026-08-04T01:00:00Z\n\n\u2014 test-log-k1 UEeC/XY061DLLeiXVAnh6dqCYA4pmELmN+nz2gG+qK/B+ddk+uLtfH66F2JBCRWitQ/zxscuWnU/2Hhm1i9fd2Bp9Q0=\n",
           "entries": []
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/cu5/ZkeW5oUrvflpdG3slIY3SHO8pS3q4f5IrWz9pf7K+dHXzN3yjSTXme3amYUX/SiJmWQ4AozdLbdIzp5Iww=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 2\nsealed_at 2026-08-04T02:00:00Z\n\n\u2014 test-log-k1 UEeC/Xt6SmxrTq6XEAMdyKHwxi21XIX+RHhX8EDAb28cjZZLk9+aeJQX3cJL08Eo/r065r+ITiaW6JNEh0tAsAnf5AQ=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -3768,12 +3768,12 @@
           ]
         },
         {
-          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nblock_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/eY04pzc03DkBOeEeNGqxvYxXhvu8LxktwvXw8wF9Q8234ygKtsMN1iYxpEsOAXVDsEHLSghw/IgKwRpSGs0DwA=\n",
+          "checkpoint": "test-log-k1\n2\nkyiMgoSNjq2QFE6HZXmjvRAgbls5JMTOGWURQzNoqMs=\nepoch_number 3\nsealed_at 2026-08-04T03:00:00Z\n\n\u2014 test-log-k1 UEeC/UWCGr6cIVlr05uYHRM2WafvWfMQIEtwy7IdUOphzZad5Kj/1ET7f8OAfehhyBH2tJw13ZFPAmQOVgt337WnyQI=\n",
           "entries": []
         }
       ],
       "pinned_head": "sha256:93288c82848d8ead90144e876579a3bd10206e5b3924c4ce196511433368a8cb",
-      "declaration_activation_blocks": 0,
+      "declaration_activation_epochs": 0,
       "expected_states": [
         {
           "height": 1,
