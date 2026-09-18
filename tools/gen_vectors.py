@@ -2506,13 +2506,19 @@ consistency_cases = [
      "n_root": root_token(leaves2), "path": [h.hex() for h in altered_4_7], "expected": "WIST3-E02"},
 ]
 
-rollback_case = {
-    "note": "WIST-3 §5, §10: rollback protection names the behavior but no "
-            "error code (confirmed against §9's Error Registry and §10's "
-            "Rollback bullet); this vector records the plain rejection.",
-    "verified_head_block_number": 2, "offered_checkpoint": block_1_checkpoint,
-    "expected": "reject",
-}
+ROLLBACK_EQUIVOCATING = checkpoint_note(LOG_ID, priv, 4, root_bytes, 1, "2026-08-02T14:30:00Z")
+
+rollback_cases = [
+    {"name": "lower Checkpoint identical to the one verified at its block_number",
+     "verified_head_block_number": 2, "verified_checkpoint": block_1_checkpoint,
+     "offered_checkpoint": block_1_checkpoint, "expected": "not_adopted"},
+    {"name": "lower Checkpoint never retained",
+     "verified_head_block_number": 2, "verified_checkpoint": None,
+     "offered_checkpoint": block_1_checkpoint, "expected": "not_adopted"},
+    {"name": "lower Checkpoint whose note text differs from the one verified at its block_number",
+     "verified_head_block_number": 2, "verified_checkpoint": block_1_checkpoint,
+     "offered_checkpoint": ROLLBACK_EQUIVOCATING, "expected": "WIST3-E02"},
+]
 
 _equiv_a_entries = [{"type": "publisher_delta", "body": attest_delta(n, synthetic_prior_id(n))}
                     for n in (105, 106, 107, 108)]
@@ -2603,7 +2609,7 @@ write_json(WIST3 / "checkpoints.json", {
     ],
     "note_form_cases": note_form_cases,
     "consistency_cases": consistency_cases,
-    "rollback_case": rollback_case,
+    "rollback_cases": rollback_cases,
     "equivocation_cases": equivocation_cases,
     "archive_cases": archive_cases,
     "witness_roster": witness_roster,

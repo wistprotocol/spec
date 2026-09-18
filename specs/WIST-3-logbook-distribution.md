@@ -597,8 +597,14 @@ Entries' absence is the Aggregator's to remedy.
   chain divergence (`WIST3-E02`), evidenced below. An Entry not covered
   by a Checkpoint the Consumer has verified MUST NOT be applied.
 - A Consumer MUST reject a Checkpoint whose `block_number` is lower than
-  the highest it has already verified (rollback protection); one with
-  the same `block_number` MUST have identical note text, or the two
+  the highest it has already verified (rollback protection): it keeps
+  its verified head, adopts nothing from the offered Checkpoint and
+  fetches the head from another source. The rejection has no error
+  code and the Checkpoint is not evidence, because the Log signs a
+  Checkpoint at every Block and a source serving an old one has shown
+  only that it is behind. A Checkpoint whose `block_number` the
+  Consumer has already verified, the head's or a lower one it retains,
+  MUST have note text identical to the verified one, or the two
   equivocate (below).
 - A Consumer SHOULD treat the log as stale, and SHOULD warn, when
   `sealed_at` of the newest Checkpoint it can accept lags the current
@@ -1653,6 +1659,12 @@ A Checkpoint short of the Witness quorum has no code: §5 makes it a
 wait, not a fault — the Consumer keeps its verified head, retries and
 reports staleness as §5 directs — and an implementation MUST NOT report
 it under `WIST3-E02` or `WIST3-E03`.
+
+A Checkpoint below the verified head has no code either: §5's rollback
+rule rejects it as a stale source, and an implementation MUST NOT
+report it under `WIST3-E02` or `WIST3-E03` unless its note text differs
+from the Checkpoint the Consumer verified at that `block_number`, which
+is equivocation (`WIST3-E02`).
 
 ## 10. Security Considerations
 

@@ -2881,12 +2881,16 @@ def _wist3_checkpoints():
             result = "WIST3-E02"
         assert result == case["expected"], case["name"]
 
-    rc = v["rollback_case"]
-    offered = parse_checkpoint(rc["offered_checkpoint"])["block_number"]
-    assert offered < rc["verified_head_block_number"], \
-        "rollback vector does not offer a Checkpoint below the verified head"
-    assert rc["expected"] == "reject", \
-        "§5/§9/§10 name no error code for rollback; only a plain rejection is recorded"
+    for case in v["rollback_cases"]:
+        offered = verify_checkpoint(case["offered_checkpoint"], log_id, keys)
+        assert offered["block_number"] < case["verified_head_block_number"], case["name"]
+        result = "not_adopted"
+        if case["verified_checkpoint"] is not None:
+            held = verify_checkpoint(case["verified_checkpoint"], log_id, keys)
+            assert held["block_number"] == offered["block_number"], case["name"]
+            if case["verified_checkpoint"].split("\n\n", 1)[0] != case["offered_checkpoint"].split("\n\n", 1)[0]:
+                result = "WIST3-E02"
+        assert result == case["expected"], case["name"]
 
     for case in v["equivocation_cases"]:
         cp1 = verify_checkpoint(case["checkpoint_1"], log_id, keys)

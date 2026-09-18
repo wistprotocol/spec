@@ -285,12 +285,29 @@
       "expected": "WIST3-E02"
     }
   ],
-  "rollback_case": {
-    "note": "WIST-3 \u00a75, \u00a710: rollback protection names the behavior but no error code (confirmed against \u00a79's Error Registry and \u00a710's Rollback bullet); this vector records the plain rejection.",
-    "verified_head_block_number": 2,
-    "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
-    "expected": "reject"
-  },
+  "rollback_cases": [
+    {
+      "name": "lower Checkpoint identical to the one verified at its block_number",
+      "verified_head_block_number": 2,
+      "verified_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
+      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
+      "expected": "not_adopted"
+    },
+    {
+      "name": "lower Checkpoint never retained",
+      "verified_head_block_number": 2,
+      "verified_checkpoint": null,
+      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
+      "expected": "not_adopted"
+    },
+    {
+      "name": "lower Checkpoint whose note text differs from the one verified at its block_number",
+      "verified_head_block_number": 2,
+      "verified_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log.example.org sdtYE/P2RzEoEJH7V1SZmH3omeqONEWe8BYSSU953lce3ZE66gCNihgpD5Cm6tRMLQmBak2CbQuD0Grcb2b5xOfy8AI=\n",
+      "offered_checkpoint": "log.example.org\n4\nQFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=\nblock_number 1\nsealed_at 2026-08-02T14:30:00Z\n\n\u2014 log.example.org sdtYEx63RFRH8Qd/wesyrbQ1tY5p/rXEE6l3OJgeFEAuPseJt2PZj7O5eg5RTa0pGCogkCUnwl/Bp9sYH9akPUoKpgM=\n",
+      "expected": "WIST3-E02"
+    }
+  ],
   "equivocation_cases": [
     {
       "form": "same tree size, different root",
