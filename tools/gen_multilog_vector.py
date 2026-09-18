@@ -6,7 +6,7 @@ Logs with distinct genesis keys, at different heights.
 Never uses wall-clock or randomness: fixed seeds, fixed timestamps.
 Re-running always produces byte-identical output.
 """
-import base64, hashlib, hmac, json, pathlib
+import base64, calendar, hashlib, hmac, json, pathlib, time
 
 import rfc8785
 from cryptography.hazmat.primitives import serialization
@@ -41,6 +41,33 @@ def sign_envelope(priv: Ed25519PrivateKey, inner_name: str, inner: dict, key_id:
     sig = priv.sign(canonical)
     return {inner_name: inner,
             "sig": {"key_id": key_id, "alg": "Ed25519", "value": b64u(sig)}}
+
+
+def kid_of_x(x: str) -> str:
+    """WIST-1 §5.1: the RFC 7638 thumbprint of an Ed25519 OKP JWK, computed over
+    the entry's `x` string as written (mirrors gen_vectors.py)."""
+    return b64u(hashlib.sha256(rfc8785.dumps({"crv": "Ed25519", "kty": "OKP", "x": x})).digest())
+
+
+def kid_of(raw: bytes) -> str:
+    return kid_of_x(b64u(raw))
+
+
+def nbf_at(instant: str) -> int:
+    """A whole-second UTC instant as the NumericDate integer WIST-1 §5.1 uses."""
+    return calendar.timegm(time.strptime(instant, "%Y-%m-%dT%H:%M:%SZ"))
+
+
+def jwk_x(x: str, nbf, exp=None) -> dict:
+    entry = {"kty": "OKP", "crv": "Ed25519", "x": x, "kid": kid_of_x(x),
+             "nbf": nbf_at(nbf) if isinstance(nbf, str) else nbf}
+    if exp is not None:
+        entry["exp"] = nbf_at(exp) if isinstance(exp, str) else exp
+    return entry
+
+
+def jwk(raw: bytes, nbf, exp=None) -> dict:
+    return jwk_x(b64u(raw), nbf, exp)
 
 
 def note_key_id(name: str, raw_pub: bytes) -> bytes:
@@ -86,14 +113,15 @@ pub_priv, pub_pub = keypair(PUB_SEED)
 DOMAIN = "example.com"
 DELTA_URL = "https://example.com/shared-post"
 
+PUB_KID = kid_of(pub_pub)
+
 declaration = {
     "wist_version": "1.0.0",
     "domain": DOMAIN,
-    "keys": [{"key_id": "pub-k1", "alg": "Ed25519", "public_key": b64u(pub_pub),
-              "valid_from": "2026-08-02T00:00:00Z"}],
+    "keys": [jwk(pub_pub, "2026-08-02T00:00:00Z")],
     "seq": 0,
 }
-declaration_envelope = sign_envelope(pub_priv, "publisher", declaration, "pub-k1")
+declaration_envelope = sign_envelope(pub_priv, "publisher", declaration, PUB_KID)
 
 CONTENT = {
     "extract": "Sealed once, read from two Logs.",
@@ -116,7 +144,7 @@ delta = {
 }
 delta_canonical = rfc8785.dumps(delta)
 delta_id = "sha256:" + sha256_hex(delta_canonical)
-delta_envelope = sign_envelope(pub_priv, "delta", delta, "pub-k1")
+delta_envelope = sign_envelope(pub_priv, "delta", delta, PUB_KID)
 
 wrapped_declaration = {"type": "publisher_declaration", "body": declaration_envelope}
 wrapped_delta = {"type": "publisher_delta", "body": delta_envelope}

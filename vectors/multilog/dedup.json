@@ -7,18 +7,19 @@
       "domain": "example.com",
       "keys": [
         {
-          "key_id": "pub-k1",
-          "alg": "Ed25519",
-          "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
-          "valid_from": "2026-08-02T00:00:00Z"
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+          "kid": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
+          "nbf": 1785628800
         }
       ],
       "seq": 0
     },
     "sig": {
-      "key_id": "pub-k1",
+      "key_id": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
       "alg": "Ed25519",
-      "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+      "value": "L0dVgcg42qhP_14m7RUI_6Ga6FODd5OLb_fr9FccGmSeAZLiDRY7RjNUBvgW4RFG6uFhgk0Xbq8Zv99Mmt_jAg"
     }
   },
   "delta": {
@@ -38,7 +39,7 @@
       }
     },
     "sig": {
-      "key_id": "pub-k1",
+      "key_id": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
       "alg": "Ed25519",
       "value": "b3vPH5wwRZAyCF1yGSsERifNtzLEw3hRiqs6gYwSN_-p9SftoZ13ltBVd-4kBsNUuktXTSCkDlQ0FkrSIjSvCg"
     }
@@ -81,7 +82,7 @@
       "genesis_seed_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "blocks": [
         {
-          "checkpoint": "log-a\n1\nXcbEGltOZhDp2QFXhbv2DY5/T1EPC1/U7YIZodq6dtY=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-a WPNdKpBWFEZ6jDXN5mtHsi2IE4/vRIP7P3PDXjPPX9XVTpH18jtj5Mk3OQV/FK6KMU7Zv8eZmE84v3zzEx+sritNgAQ=\n",
+          "checkpoint": "log-a\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-a WPNdKjnRvlH6MPn2vfJNK9BLqDtZCTC9HsQR7sXHMtZigL50zEg76kBQsLKtvmsWqebLJlRfU9Gql2qpGx4GsGO9wAI=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -91,25 +92,26 @@
                   "domain": "example.com",
                   "keys": [
                     {
-                      "key_id": "pub-k1",
-                      "alg": "Ed25519",
-                      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
-                      "valid_from": "2026-08-02T00:00:00Z"
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+                      "kid": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
+                      "nbf": 1785628800
                     }
                   ],
                   "seq": 0
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
                   "alg": "Ed25519",
-                  "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+                  "value": "L0dVgcg42qhP_14m7RUI_6Ga6FODd5OLb_fr9FccGmSeAZLiDRY7RjNUBvgW4RFG6uFhgk0Xbq8Zv99Mmt_jAg"
                 }
               }
             }
           ]
         },
         {
-          "checkpoint": "log-a\n2\nQkDEQ32gXw+OPQx44R+ZQfOIDdA9tVmzuxEHNkvqOrM=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKmsFlv+DNi7k/bKKtXrX7qJtfZqv1rVaZTfsYoLFarR6bf/OJTsWKXHSIB1DKuZ5sHSHh8sxBGHriup7/XvB0w4=\n",
+          "checkpoint": "log-a\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKjczOGeabi0bZlkjKM0FYN4aGymhnN+KL6b7984uOf52r27ZIIXxo7xQEA/D7NY6nJSOCQ1+EIbKPpkham1jOwM=\n",
           "entries": [
             {
               "type": "publisher_delta",
@@ -130,7 +132,7 @@
                   }
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
                   "alg": "Ed25519",
                   "value": "b3vPH5wwRZAyCF1yGSsERifNtzLEw3hRiqs6gYwSN_-p9SftoZ13ltBVd-4kBsNUuktXTSCkDlQ0FkrSIjSvCg"
                 }
@@ -139,9 +141,9 @@
           ]
         }
       ],
-      "checkpoint": "log-a\n2\nQkDEQ32gXw+OPQx44R+ZQfOIDdA9tVmzuxEHNkvqOrM=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKmsFlv+DNi7k/bKKtXrX7qJtfZqv1rVaZTfsYoLFarR6bf/OJTsWKXHSIB1DKuZ5sHSHh8sxBGHriup7/XvB0w4=\n",
+      "checkpoint": "log-a\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-a WPNdKjczOGeabi0bZlkjKM0FYN4aGymhnN+KL6b7984uOf52r27ZIIXxo7xQEA/D7NY6nJSOCQ1+EIbKPpkham1jOwM=\n",
       "tree_size": 2,
-      "root": "sha256:4240c4437da05f0f8e3d0c78e11f9941f3880dd03db559b3bb1107364bea3ab3"
+      "root": "sha256:61bd4773705084695c58707a9bd08c6764555e333660ccfe04a334f8fa325db9"
     },
     {
       "log_id": "log-b",
@@ -165,7 +167,7 @@
       "genesis_seed_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "blocks": [
         {
-          "checkpoint": "log-b\n1\nXcbEGltOZhDp2QFXhbv2DY5/T1EPC1/U7YIZodq6dtY=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-b Dgs9XqFKeNG2gKRRBSFeew5wyLr4Y2yAHIzDOcnIvBM5bxnBPgsWQRAsXua71pxXcPgZbU9W34Abw+PgZ4m9WgDTWgI=\n",
+          "checkpoint": "log-b\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nblock_number 0\nsealed_at 2026-08-02T13:00:00Z\n\n\u2014 log-b Dgs9XsLijRmVVfAvxmj4XeUih1BG6woAG0XgztRfu9GuOqitpxHmRXmKdWqDutdib5wtUhMS2jmLb4SXBcpXA7t57QY=\n",
           "entries": [
             {
               "type": "publisher_declaration",
@@ -175,29 +177,30 @@
                   "domain": "example.com",
                   "keys": [
                     {
-                      "key_id": "pub-k1",
-                      "alg": "Ed25519",
-                      "public_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
-                      "valid_from": "2026-08-02T00:00:00Z"
+                      "kty": "OKP",
+                      "crv": "Ed25519",
+                      "x": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
+                      "kid": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
+                      "nbf": 1785628800
                     }
                   ],
                   "seq": 0
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
                   "alg": "Ed25519",
-                  "value": "vKWhLcGdWiivR4ASDyyiGfM8AHcnMhkPwlwCiayFk0o_E4QBl7YW4ZI-jE6Pu9TH1m4Ng1rAXcNkX935DZ43Cw"
+                  "value": "L0dVgcg42qhP_14m7RUI_6Ga6FODd5OLb_fr9FccGmSeAZLiDRY7RjNUBvgW4RFG6uFhgk0Xbq8Zv99Mmt_jAg"
                 }
               }
             }
           ]
         },
         {
-          "checkpoint": "log-b\n1\nXcbEGltOZhDp2QFXhbv2DY5/T1EPC1/U7YIZodq6dtY=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-b Dgs9Xv3wqcQqfdpYdrKoM6Kgst23+koK3DoQxjOWVfdEGTwCIKn8lJlobIDZlbbEnRyRTTnBrAM4D24EckeNI4fO3A8=\n",
+          "checkpoint": "log-b\n1\n3y4hLmv85BKZOF23d/hpyXj1Np7kZs6BQr5UwNzrUAI=\nblock_number 1\nsealed_at 2026-08-02T14:00:00Z\n\n\u2014 log-b Dgs9XjXwO4ICK/0Lc73obwyeCFk3EXiQFkawkikPhlOvaXZEvW+uly4oSXWWl+HDKrfwrlvB2icnzOLGuzi1QATm0w4=\n",
           "entries": []
         },
         {
-          "checkpoint": "log-b\n2\nQkDEQ32gXw+OPQx44R+ZQfOIDdA9tVmzuxEHNkvqOrM=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9Xp7UtflFM/G5wg0CrNiQ/mkLu7arc5RNOFtVYFMTt0g2uMN6CyreygyOTyCMBltDcnpW+dzDirw9idIbARm4Twg=\n",
+          "checkpoint": "log-b\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9XkjKEMNsvI2HpELHZocFss+olioSJl6c5f6zsvwvxe9UFT/IH/FmJiuMRwVNqXGC1C3C9KZg66i+HXhfe/InjAU=\n",
           "entries": [
             {
               "type": "publisher_delta",
@@ -218,7 +221,7 @@
                   }
                 },
                 "sig": {
-                  "key_id": "pub-k1",
+                  "key_id": "vaJPtef-vPnGAIWE19qlMPDYWGaER3zeeJM_3r1WO7E",
                   "alg": "Ed25519",
                   "value": "b3vPH5wwRZAyCF1yGSsERifNtzLEw3hRiqs6gYwSN_-p9SftoZ13ltBVd-4kBsNUuktXTSCkDlQ0FkrSIjSvCg"
                 }
@@ -227,9 +230,9 @@
           ]
         }
       ],
-      "checkpoint": "log-b\n2\nQkDEQ32gXw+OPQx44R+ZQfOIDdA9tVmzuxEHNkvqOrM=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9Xp7UtflFM/G5wg0CrNiQ/mkLu7arc5RNOFtVYFMTt0g2uMN6CyreygyOTyCMBltDcnpW+dzDirw9idIbARm4Twg=\n",
+      "checkpoint": "log-b\n2\nYb1Hc3BQhGlcWHB6m9CMZ2RVXjM2YMz+BKM0+PoyXbk=\nblock_number 2\nsealed_at 2026-08-02T15:00:00Z\n\n\u2014 log-b Dgs9XkjKEMNsvI2HpELHZocFss+olioSJl6c5f6zsvwvxe9UFT/IH/FmJiuMRwVNqXGC1C3C9KZg66i+HXhfe/InjAU=\n",
       "tree_size": 2,
-      "root": "sha256:4240c4437da05f0f8e3d0c78e11f9941f3880dd03db559b3bb1107364bea3ab3"
+      "root": "sha256:61bd4773705084695c58707a9bd08c6764555e333660ccfe04a334f8fa325db9"
     }
   ],
   "expected": {

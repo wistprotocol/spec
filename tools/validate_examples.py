@@ -2327,10 +2327,13 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
     ("vectors/multilog/dedup.json", "root"): "root over Entries, which carry commitments only",
     ("vectors/multilog/dedup.json", "delta_id"): "a Delta ID",
-    ("vectors/multilog/dedup.json", "public_key"): "an Ed25519 public key",
+    ("vectors/multilog/dedup.json", "public_key"): "an Ed25519 public key (the Log genesis key)",
     ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
     ("vectors/multilog/dedup.json", "salt"): "the salt: from a CSPRNG, never derived from what it keys",
     ("vectors/multilog/dedup.json", "genesis_seed_hex"): "the vector's test signing seed",
+    ("vectors/multilog/dedup.json", "x"): "an Ed25519 public key",
+    ("vectors/multilog/dedup.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    ("vectors/multilog/dedup.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/declaration-hosts.json", 'author_key'): 'the fixture author public key',
     ("vectors/wist1/declaration-hosts.json", 'public_key'): 'an Ed25519 public key',
     ("vectors/wist1/declaration-hosts.json", 'value'): 'an Ed25519 signature',
@@ -4695,6 +4698,67 @@ def _key_directory_vectors():
 
 
 check("vectors:wist1-key-directory", _key_directory_vectors)
+
+
+def _multilog_declaration_and_delta_signatures():
+    """The multi-Log dedup vector's Publisher Declaration and every sealed
+    Delta Envelope — the top-level copies and every copy a Log seals in its
+    Blocks — validate against their schemas and verify under the Key Set
+    the Declaration itself declares (WIST-1 §5.1)."""
+    formats = FormatChecker(formats=[])
+    publisher_validator = Draft202012Validator(
+        json.loads((ROOT / "schemas/publisher.schema.json").read_text()), format_checker=formats)
+    delta_validator = Draft202012Validator(
+        json.loads((ROOT / "schemas/delta.schema.json").read_text()), format_checker=formats)
+    v = json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text())
+
+    def verify_declaration(envelope):
+        publisher_validator.validate(envelope)
+        inner = envelope["publisher"]
+        assert _key_entry_error(inner) is None, "declaration key entries fail §5.1 checks"
+        assert _declaration_binding_result(None, envelope) == "initial", \
+            "declaration is not an accepted first (seq 0) self-signed Declaration"
+        return inner
+
+    def verify_delta(envelope, declaration_inner):
+        delta_validator.validate(envelope)
+        assert _delta_key_check(declaration_inner, envelope) == "accepted", \
+            "Delta does not verify under the declared Key Set"
+
+    declaration_inner = verify_declaration(v["publisher_declaration"])
+    verify_delta(v["delta"], declaration_inner)
+
+    seen_declarations = seen_deltas = 0
+    for log in v["logs"]:
+        for block in log["blocks"]:
+            for entry in block["entries"]:
+                if entry["type"] == "publisher_declaration":
+                    assert verify_declaration(entry["body"]) == declaration_inner
+                    seen_declarations += 1
+                elif entry["type"] == "publisher_delta":
+                    verify_delta(entry["body"], declaration_inner)
+                    seen_deltas += 1
+    assert seen_declarations == len(v["logs"]), "expected one sealed Declaration per Log"
+    assert seen_deltas == len(v["logs"]), "expected one sealed Delta per Log"
+check("vectors:multilog-declaration-signatures", _multilog_declaration_and_delta_signatures)
+
+
+def _multilog_declaration_signature_twin():
+    """A tampered Declaration signature must fail verification: the check
+    above is not vacuously true because every signature in the fixture
+    happens to verify."""
+    v = json.loads((ROOT / "vectors" / "multilog" / "dedup.json").read_text())
+    tampered = copy.deepcopy(v["publisher_declaration"])
+    tampered["publisher"]["seq"] = 1
+    try:
+        Ed25519PublicKey.from_public_bytes(
+            b64u_decode(tampered["publisher"]["keys"][0]["x"])).verify(
+                b64u_decode(tampered["sig"]["value"]), rfc8785.dumps(tampered["publisher"]))
+    except InvalidSignature:
+        pass
+    else:
+        raise AssertionError("a mutated Declaration verified unchanged")
+check("negative:multilog-declaration-signature", _multilog_declaration_signature_twin)
 
 
 def _recovery_heads_resume_twin():
