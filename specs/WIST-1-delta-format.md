@@ -6,7 +6,7 @@
 
 WIST is an open, verifiable, push-based web index. Sites publish signed
 **deltas** describing new, updated, deleted or unchanged URLs. Aggregators
-sequence them into a public, hash-chained Log (WIST-3), from which Consumers
+sequence them into a public, append-only Log (WIST-3), from which Consumers
 materialize a local index.
 
 This document defines the two foundational objects of the suite:
@@ -663,18 +663,20 @@ object in WIST is built exactly as above: the Envelope's single
 inner object is canonicalized with JCS, those Canonical Bytes are signed
 with Ed25519, and the signature is detached into `sig`. Where WIST-2, WIST-3
 and WIST-4 define new signed objects — the Feed and its Pages, the Publisher
-Declaration, the Block header, the Checkpoint, the Log Anchor, the
+Declaration, the Log Anchor, the
 Snapshot Index and Manifest, the Label, the Registry Update — this
 rule applies unchanged, and each of those documents names only which inner
 object it wraps. A verifier that implements it once implements it for the
 whole suite, and there is no per-object signing variant to get wrong.
 
-The Log Block (WIST-3 §3.1) is the one object that carries a second member
-beside its signed one, and it does not except the rule: the inner object is
-`header`, and `entries` sits alongside it, authenticated indirectly through
-the `merkle_root` and `entry_count` the header commits to. A verifier signs
-and checks `JCS(header)` exactly as it would any other inner object, and
-recomputes those two fields over `entries` before using them.
+The Checkpoint (WIST-3 §5) is the one signed object outside this
+construction: it is a signed note in the C2SP formats WIST-3 §5 names,
+signed with the same Ed25519 Aggregator keys over the note text rather
+than over JCS bytes, so that Witnesses and generic transparency-log
+clients verify it unmodified. A Log Entry carries no signature of its
+own: it is a leaf of the tree (WIST-3 §3.3, §4), authenticated by an
+Inclusion Proof against a Checkpoint, and the Envelope inside it is
+verified under this construction.
 
 Because identity is content-derived, resubmitting an identical Delta
 yields the same Delta ID; validators MUST treat duplicates as idempotent
@@ -683,7 +685,7 @@ Bytes are distinct objects.
 
 The Payload is outside all three constructions. Canonical Bytes cover the
 Delta's `payload` commitment, never the content it commits to, so the
-Delta ID, the signature, and every Merkle root and Block Hash derived from
+Delta ID, the signature, and every Merkle root derived from
 them are computed without the content and stay valid when the content is
 withdrawn (WIST-3 §6.2). A Payload is authenticated by recomputing the
 commitment (§3.6), not by any signature of its own.

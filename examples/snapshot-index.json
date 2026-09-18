@@ -5,7 +5,7 @@
     "snapshots": [
       {
         "snapshot_date": "2026-08-02",
-        "log_position": 0,
+        "log_position": 4,
         "manifest_url": "/snapshots/2026-08-02/manifest.json",
         "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
       }
@@ -14,6 +14,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "VneEbi5IE7LU7nmV32cvfTTLOxxOhR4ckObCzbqaUeD7rsnebRNNTRfU0zozg3Z9P1XKcPRJxG_y_gPNXok7Cg"
+    "value": "EOBZlwcgWDc79mzzGelRG34UvCnUJn64XK1l6-wnEEMSdc6CH-jOUkN2lE6pRA_D4N8KmH0CAPiX6HqXfcIEBQ"
   }
 }

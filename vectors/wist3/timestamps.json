@@ -1,5 +1,5 @@
 {
-  "note": "WIST-3 \u00a73.1 whole-second literal-Z profile, including \u00a77 Snapshot state. Null epoch_seconds means reject, including invalid calendar dates. Field cases supply schema-valid structural baselines; mutating a signed value requires re-signing before testing signature verification. The schema-only leap-second check does not depend on format validation.",
+  "note": "WIST-3 \u00a73.1 whole-second literal-Z profile, including \u00a77 Snapshot state. Null epoch_seconds means reject, including invalid calendar dates. Field cases supply schema-valid structural baselines; mutating a signed value requires re-signing before testing signature verification. The schema-only leap-second check does not depend on format validation. The Checkpoint's `sealed_at` extension line (WIST-3 \u00a75) is no longer a JSON Schema field, so `checkpoint_field_case` supplies the note's own five lines and signature block instead, for a structural-only (parse_checkpoint, not verify_checkpoint) probe of the same three field_accept/field_reject/field_reject_non_ascii values.",
   "cases": [
     {
       "value": "0000-01-01T00:00:00Z",
@@ -146,142 +146,6 @@
     }
   ],
   "field_cases": [
-    {
-      "schema": "block.schema.json",
-      "document": {
-        "header": {
-          "wist_version": "1.0.0",
-          "block_number": 0,
-          "prev_block_hash": "sha256:genesis",
-          "sealed_at": "2026-08-02T13:00:00Z",
-          "merkle_root": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
-          "entry_count": 4
-        },
-        "entries": [
-          {
-            "type": "publisher_delta",
-            "body": {
-              "delta": {
-                "wist_version": "1.0.0",
-                "publisher": "example.com",
-                "url": "https://example.com/blog/post-4",
-                "change_type": "attest",
-                "observed_at": "2026-08-02T12:00:00Z",
-                "prev": "sha256:61d3ec1981bd3e63268d9f66a7d8717191228d914ccbd36e8b7187932b26a418",
-                "meta": {
-                  "lang": "en"
-                }
-              },
-              "sig": {
-                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-                "alg": "Ed25519",
-                "value": "oTw7rpgSqnZ1EeTYcLsqVqI29PsIkQza3d8pC7yVZ9JGUokKhMXEwlM5a7L6Du99RF1811HS-xGqj2AcVUYJCw"
-              }
-            }
-          },
-          {
-            "type": "publisher_delta",
-            "body": {
-              "delta": {
-                "wist_version": "1.0.0",
-                "publisher": "example.com",
-                "url": "https://example.com/blog/post-1",
-                "change_type": "new",
-                "observed_at": "2026-08-02T12:00:00Z",
-                "payload": {
-                  "commitment": "hmac-sha256:25d23a19718b942a02241f8aae07a3837b9e648fb3836dd9623c3aa8ce4702b3",
-                  "alg": "HMAC-SHA256",
-                  "bytes": 263
-                },
-                "meta": {
-                  "lang": "en",
-                  "topics": [
-                    "software"
-                  ],
-                  "license": "CC-BY-4.0"
-                }
-              },
-              "sig": {
-                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-                "alg": "Ed25519",
-                "value": "19vAYmF_OdKuBJwYBRS4BHskqn5zELhnGpds1N7ic0au8aM-Pe4RV9QJxz6N6QuXkgmKiPG1rdQ7j9Ntcx_zDg"
-              }
-            }
-          },
-          {
-            "type": "publisher_delta",
-            "body": {
-              "delta": {
-                "wist_version": "1.0.0",
-                "publisher": "example.com",
-                "url": "https://example.com/blog/post-2",
-                "change_type": "attest",
-                "observed_at": "2026-08-02T12:00:00Z",
-                "prev": "sha256:f6c045ed19f874b92378ef282175ac2e19dd11b25acae6c4b2264e165e6f4dd4",
-                "meta": {
-                  "lang": "en"
-                }
-              },
-              "sig": {
-                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-                "alg": "Ed25519",
-                "value": "wb3FB4b_Gqd09lXK71DRVO1o4Gv3W4HJwho29ZroZhZ4_YjBcbMDLy9uEaorhrmTjZEdiemo_Z9gKGUgD1W0Dg"
-              }
-            }
-          },
-          {
-            "type": "publisher_delta",
-            "body": {
-              "delta": {
-                "wist_version": "1.0.0",
-                "publisher": "example.com",
-                "url": "https://example.com/blog/post-3",
-                "change_type": "attest",
-                "observed_at": "2026-08-02T12:00:00Z",
-                "prev": "sha256:93739e4b26be93d879f5ea69bfd029271259fcbcc1caf4f8a33723934aaa9485",
-                "meta": {
-                  "lang": "en"
-                }
-              },
-              "sig": {
-                "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
-                "alg": "Ed25519",
-                "value": "ii0WUT9yVxNmiW3b0GLjEiEXlhW3qhk8_7JVxSgNfGkqJUz1zUDJn0fGKG7Yuga9GKTLZnnO491GacXwFzTMAw"
-              }
-            }
-          }
-        ],
-        "sig": {
-          "key_id": "test-agg-k1",
-          "alg": "Ed25519",
-          "value": "kcyVAtCybJIB-UpYQfnRGijQ3KRSC5AIjusoN58b1eY_clwHvblf7geQuC-qXbqiz8fA0ebcwPiiIrMJDlTjCg"
-        }
-      },
-      "path": [
-        "header",
-        "sealed_at"
-      ]
-    },
-    {
-      "schema": "checkpoint.schema.json",
-      "document": {
-        "checkpoint": {
-          "wist_version": "1.0.0",
-          "block_number": 0,
-          "block_hash": "sha256:a83a94390a706189bdeac60724a010efc914806dfb709671425a1124e60df436",
-          "sealed_at": "2026-08-02T13:00:00Z"
-        },
-        "sig": {
-          "key_id": "test-agg-k1",
-          "alg": "Ed25519",
-          "value": "EaINDMfCcmqvey51O-JmD-lVlcIQwxMcVCRO2JbwsG5B_M_zhsYLCG2cKeNvYY5Niry8ol-2WOrqhLr3UlRYDA"
-        }
-      },
-      "path": [
-        "checkpoint",
-        "sealed_at"
-      ]
-    },
     {
       "schema": "feed.schema.json",
       "document": {
@@ -486,6 +350,17 @@
       ]
     }
   ],
+  "checkpoint_field_case": {
+    "note_lines": [
+      "log.example.org",
+      "4",
+      "QFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=",
+      "block_number 0",
+      "sealed_at 2026-08-02T13:00:00Z"
+    ],
+    "sig_block": "\u2014 log.example.org sdtYE3sC+pqTYkG+mPK+2W1Gsyc2Tczo7830B1OWJtk4bxhVsSEPdchtNpC/ogHFCSEkM9W7pkRLzkdp3TePrvOkMgo=\n",
+    "sealed_at_line_index": 4
+  },
   "field_accept": "2016-12-31T23:59:59Z",
   "field_reject": "2016-12-31T23:59:60Z",
   "field_reject_non_ascii": "\uff12\uff10\uff11\uff16-12-31T23:59:59Z"

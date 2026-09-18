@@ -20,7 +20,7 @@
           "type": "string",
           "format": "date-time",
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$(?![\\s\\S])",
-          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form block.schema.json fixes for `sealed_at` (WIST-3 §3.1). Every window this field takes part in is compared against a Block `sealed_at` — the WIST-4 §5 grace period above all — so the two are written in one form and compare without normalization. It states when the act takes effect; WIST-1 §5.2 runs the recovery window from the `sealed_at` of the Block sealing the Entry."
+          "description": "RFC 3339 UTC at whole-second precision with a literal trailing Z, the form WIST-3 §3.1 fixes for `sealed_at`. Every window this field takes part in is compared against a Block `sealed_at` — the WIST-4 §5 grace period above all — so the two are written in one form and compare without normalization. It states when the act takes effect; WIST-1 §5.2 runs the recovery window from the `sealed_at` of the Block sealing the Entry."
         }
       }
     },
@@ -89,6 +89,7 @@
             "properties": {
               "subject": {"enum": [
                 "block_cadence_seconds", "block_decompressed_cap_bytes",
+                "checkpoint_witness_quorum",
                 "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
                 "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
                 "mirror_retention_days", "record_seal_blocks",
@@ -105,6 +106,7 @@
                 "properties": {
                   "parameter": {"enum": [
                     "block_cadence_seconds", "block_decompressed_cap_bytes",
+                    "checkpoint_witness_quorum",
                     "extract_cap_bytes", "links_cap_bytes", "link_url_cap_bytes",
                     "summary_cap_bytes", "url_cap_bytes", "payload_window_days",
                     "mirror_retention_days", "record_seal_blocks",
@@ -118,7 +120,8 @@
                 },
                 "allOf": [
                   {"if": {"properties": {"parameter": {"const": "block_cadence_seconds"}}}, "then": {"properties": {"value": {"minimum": 1, "maximum": 86400}}}},
-                  {"if": {"properties": {"parameter": {"const": "block_decompressed_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 1024}}}},
+                  {"if": {"properties": {"parameter": {"const": "block_decompressed_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 65537}}}},
+                  {"if": {"properties": {"parameter": {"const": "checkpoint_witness_quorum"}}}, "then": {"properties": {"value": {"minimum": 0}}}},
                   {"if": {"properties": {"parameter": {"const": "extract_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 2}}}},
                   {"if": {"properties": {"parameter": {"const": "links_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 21}}}},
                   {"if": {"properties": {"parameter": {"const": "link_url_cap_bytes"}}}, "then": {"properties": {"value": {"minimum": 14}}}},

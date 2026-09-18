@@ -22,7 +22,7 @@
             "additionalProperties": false,
             "properties": {
               "snapshot_date": {"type": "string", "format": "date"},
-              "log_position": {"type": "integer", "minimum": 0},
+              "log_position": {"type": "integer", "minimum": 0, "description": "The tree size Checkpoint `block_number` states for this Snapshot, restated from its manifest (WIST-3 §6, §7)."},
               "manifest_url": {"type": "string", "pattern": "^[^\\s\"]{1,500}/manifest\\.json$"},
               "content_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
             }

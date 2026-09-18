@@ -132,7 +132,7 @@ require live tests against a serving Publisher.
 the `payload_withdrawal` contract. The reference checks each act against
 the schema and Log key, resolves `delta_id` against the supplied sealed
 Deltas, keeps the earliest accepted withdrawal's height and validates the
-resulting WIST-3 §7 `withdrawal` tuples. Signed Block histories, live
+resulting WIST-3 §7 `withdrawal` tuples. Signed Checkpoint histories, live
 withdrawal sealing, Payload destruction and Snapshot exclusion require
 integration validation.
 
@@ -304,7 +304,8 @@ recovery Declaration is rejected under WIST1-E08.
 
 WIST-1 §5.2 and WIST-3 §3.3 select recovery ownership in ascending
 `(Block height, seq)` order. `vectors/wist1/recovery-order.json` exercises
-signed Declarations and predecessor links in authenticated Block chains,
+signed Declarations and predecessor links in authenticated Checkpoint
+histories,
 including reversed leaf-hash order. WIST-1 §5.2 separately retains the highest
 accepted sequence through settlement and defines eligible predecessor heads.
 WIST-3 §7 and draft [ADR-0040](decisions/0040-snapshot-recovery-state.md)
@@ -316,7 +317,7 @@ that dropping the floor or the head changes one; live Snapshot production
 from authenticated replay and Consumer adoption of the tuples require
 integration validation.
 
-`vectors/wist1/recovery-heads.json` authenticates a complete hourly Block chain
+`vectors/wist1/recovery-heads.json` authenticates a complete hourly Checkpoint history
 and probes ordinary/recovery followers across competitors, stale predecessor
 rejection, named-predecessor classification, the deadline transition and
 idempotent re-serving of the restored lower-sequence head. Its reference
@@ -331,7 +332,8 @@ Declaration's ordinary/recovery authority by leaf order.
 `vectors/wist1/declaration-conflicts.json` exercises signed sibling and
 signature conflicts, initial and open-window cases, idempotence, independent
 domains and atomic rejection. Service admission and replay must adopt these
-rules; a Block signature alone does not establish Declaration admissibility.
+rules; a Checkpoint signature alone does not establish Declaration
+admissibility.
 
 WIST-1 §5.2 preserves the recovery owner's identity from its application
 onward: in-window fresh competitors cause no reset in any prefix, a fresh
@@ -418,7 +420,7 @@ physical redirect and Mirror hosts do not determine this association.
 `vectors/wist1/delta-attribution.json` exercises shared and distinct keys,
 copied bindings, author tampering, missing/ineligible author sources, literal
 nonancestor scope, canonical host fields, Feed association and exact-draft
-version acceptance. Its signed hourly Block history authenticates ordinary
+version acceptance. Its signed hourly Checkpoint history authenticates ordinary
 rotation, recovery ownership/competition/followers, settlement and fresh reset,
 with scoped chain and binding probes. Identity projections test which
 Publisher identity is current at a height.
@@ -507,7 +509,7 @@ cannot infer an unpublished admission time: a removed competitor could otherwise
 pass its Log's post-deadline acceptance checks and acquire a new identity effect.
 `vectors/wist1/recovery-admission.json` supplies signed Declaration Envelopes
 with separately supplied chronological admission events and authenticated hourly
-Block histories. It distinguishes
+Checkpoint histories. It distinguishes
 the pending admission head from the sealed queue-settlement source, ordinary
 and recovery descendants, legitimate pending followers, a last-second admission,
 exact-deadline replacement, repeated settlement and an already-sealed competitor.
@@ -557,9 +559,13 @@ arithmetic checks do not establish live-service behavior.
 | WIST-2 §§3.3, 5 Labels | Live Label Feed pulls under the ingest budget, `WIST2-E06` reporting with the Label or Dispute ID, sealing as `label` and `dispute` Entries under the inclusion ceiling, the per-domain capacity and the per-Labeler cap, `tier1/labels.parquet`, `tier1/disputes.parquet`, `tier1/labelers.parquet` and the `label` and `dispute` tuples from authenticated Log replay, expiry and Delta binding applied at materialization |
 | WIST-2 §7 and WIST-4 §5 quotas | Error-code accounting, `WIST2-E05` exclusion, UTC-day anchor and live quota and ingest-budget application per Registrable Domain under the snapshot in force |
 | WIST-2 §§6, 8 scheduling and redirects | Hints change pull timing without creating a duty; redirect termination and authority restrictions under live pulls |
-| WIST-3 §§5–6 publication | Durable Block publication before its Checkpoint; Payload replication before the Block |
-| WIST-3 §§3.1, 6 transport parsing | Independent decoding of the Block-frame vectors and general compressed/checksummed frames; rejection of extra frames, skippable data and trailing bytes; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples; the full four-digit Gregorian year range, including late December 9999 independently of library timestamp limits. The raw-frame reference in `tools/block_frames.py` does not implement entropy decoding or checksum verification. |
-| WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Blocks and Checkpoints at the correct height, including rejected keys |
+| WIST-3 §§5–6 publication | Every Entry below the Checkpoint's tree size durably stored and retrievable at its tile path before that Checkpoint is published; Payload replication before the Block; the partial tiles and entry bundle the head's tree size requires served while that head stands, and every full tile, entry bundle and archived Checkpoint retained from genesis |
+| WIST-3 §§3.1, 3.3, 6 transport parsing | Independent decoding of tiles and entry bundles, including the big-endian uint16 length prefix, a partial tile or bundle and the fallback to the full one; recomputation against a verified Checkpoint's root rather than trust in the source; refusal to buffer past the 8 192-octet tile bound, the 16 777 472-octet entry-bundle bound, the 65 535-octet Entry bound and the derived transport bound, with equality permitted; leap-second rejection in all Log-comparable timestamp fields and Snapshot tuples; the full four-digit Gregorian year range, including late December 9999 independently of library timestamp limits |
+| WIST-3 §§3.4, 5 Checkpoint notes | Independent signed-note parsing: exactly five lines, the origin equal to the Anchor's `log_id`, the extension lines rejected on any octet of deviation, unknown signature lines ignored and a line naming a known key required to verify; the note key ID derived per §3.4 and an `aggregator_key_add` colliding with an admitted key's note key ID rejected in replay |
+| WIST-3 §§4–5 proofs and head adoption | Consistency Proofs generated and verified by independent implementations across every tree size, including the empty-tree and equal-size cases; every Checkpoint from the verified head to the adopted one verified in `block_number` order; a lower `block_number` rejected as rollback and an equal one with differing note text treated as equivocation; each of §5's three equivocation forms recognized from its stated evidence bundle |
+| WIST-3 §5, WIST-4 §5 Witness quorum | Cosignatures verified against a Consumer-configured Witness roster, distinct trusted names counted against `checkpoint_witness_quorum` as in force at the Checkpoint's `sealed_at`, a short-of-quorum Checkpoint neither adopted nor reported as an error, and every acceptance made while the quorum is 0 recorded as unwitnessed with the retained Checkpoint |
+| WIST-3 §§7–8 Snapshot position | A manifest's `block_number` and `log_position` both reconciled against the archived Checkpoint at cold start and at every later manifest read, and the transport bound bootstrapped from the manifest's authenticated parameter tuples |
+| WIST-3 §§3.4, 5 Log key succession | A rotated Aggregator key authenticates Checkpoints at the correct height, including rejected keys |
 | WIST-4 §5 inclusion | Acceptance and per-domain turn accounting under backlog, overload and recovery; the Log alone does not reveal acceptance time |
 | WIST-4 §§3, 5.1 governance | Key registration and removal, parameter schedules, withdrawals and suffix-list snapshots sealed, served, replayed and restored across the three roles, including per-Registrable-Domain capacity rejection in a replaying Consumer |
 

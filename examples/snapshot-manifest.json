@@ -2,8 +2,9 @@
   "manifest": {
     "wist_version": "1.0.0",
     "snapshot_date": "2026-08-02",
-    "log_position": 0,
-    "anchor_block_hash": "sha256:a83a94390a706189bdeac60724a010efc914806dfb709671425a1124e60df436",
+    "block_number": 0,
+    "log_position": 4,
+    "anchor_block_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
     "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
     "state": {
       "path": "state.json",
@@ -35,6 +36,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "4CCysqW_0XRwvyDR8cRG1PUpw6WBi53VNzyK2E6HSSlap_K3sZkcww6cP4klZvbyTljfD3xNkdbIfKg73DV7Aw"
+    "value": "g1amw7Z7py1E3Y26PV25aBduoRzLwDqqxYIDuCG-DUDzKmAQ27kudQRQG8-U35X_2-hr2BYECBCuOlHpNEhFBQ"
   }
 }

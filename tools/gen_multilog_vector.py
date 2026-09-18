@@ -12,11 +12,13 @@ import rfc8785
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from merkle import leaf_hash, node_hash
+from merkle import leaf_hash, merkle_root as merkle_tree_root, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "vectors" / "multilog"
 OUT.mkdir(parents=True, exist_ok=True)
+
+EMPTY_ROOT = hashlib.sha256(b"").digest()
 
 
 def b64u(b: bytes) -> str:
@@ -41,39 +43,34 @@ def sign_envelope(priv: Ed25519PrivateKey, inner_name: str, inner: dict, key_id:
             "sig": {"key_id": key_id, "alg": "Ed25519", "value": b64u(sig)}}
 
 
-def merkle_root_of(wrapped_entries: list) -> str:
-    """WIST-3 §4, over empty and non-empty entry lists alike."""
-    if not wrapped_entries:
-        return "sha256:" + leaf_hash(b"").hex()
-    leaves = [leaf_hash(rfc8785.dumps(e)) for e in wrapped_entries]
-    level = leaves
-    while len(level) > 1:
-        nxt = []
-        for i in range(0, len(level), 2):
-            if i + 1 < len(level):
-                nxt.append(node_hash(level[i], level[i + 1]))
-            else:
-                nxt.append(level[i])
-        level = nxt
-    return "sha256:" + level[0].hex()
+def note_key_id(name: str, raw_pub: bytes) -> bytes:
+    """[signed-note] note key ID (WIST-3 §3.4)."""
+    return hashlib.sha256(name.encode() + b"\x0a\x01" + raw_pub).digest()[:4]
 
 
-def seal_block(priv: Ed25519PrivateKey, key_id: str, block_number: int, prev_block_hash: str,
-               sealed_at: str, wrapped_entries: list) -> tuple:
-    header = {
-        "wist_version": "1.0.0",
-        "block_number": block_number,
-        "prev_block_hash": prev_block_hash,
-        "sealed_at": sealed_at,
-        "merkle_root": merkle_root_of(wrapped_entries),
-        "entry_count": len(wrapped_entries),
-    }
-    header_canonical = rfc8785.dumps(header)
-    block_hash = "sha256:" + sha256_hex(header_canonical)
-    sig = priv.sign(header_canonical)
-    block = {"header": header, "entries": wrapped_entries,
-             "sig": {"key_id": key_id, "alg": "Ed25519", "value": b64u(sig)}}
-    return block, block_hash
+def checkpoint_note(log_id: str, priv: Ed25519PrivateKey, raw_pub: bytes, tree_size: int,
+                    root: bytes, block_number: int, sealed_at: str) -> str:
+    """WIST-3 §5: a signed Checkpoint note."""
+    text = "%s\n%d\n%s\nblock_number %d\nsealed_at %s\n" % (
+        log_id, tree_size, base64.b64encode(root).decode(), block_number, sealed_at)
+    kid = note_key_id(log_id, raw_pub)
+    sig = priv.sign(text.encode())
+    return text + "\n— %s %s\n" % (log_id, base64.b64encode(kid + sig).decode())
+
+
+def root_token(leaves: list) -> str:
+    root = merkle_tree_root(leaves) if leaves else EMPTY_ROOT
+    return "sha256:" + root.hex()
+
+
+def seal(log_id: str, priv: Ed25519PrivateKey, raw_pub: bytes, leaves: list,
+        wrapped_entries: list, block_number: int, sealed_at: str) -> tuple:
+    """WIST-3 §§3-5: extend the cumulative Log tree `leaves` with one
+    Block's entries and seal it. Returns (block, new_leaves)."""
+    new_leaves = leaves + [leaf_hash(rfc8785.dumps(e)) for e in wrapped_entries]
+    root = merkle_tree_root(new_leaves) if new_leaves else EMPTY_ROOT
+    note = checkpoint_note(log_id, priv, raw_pub, len(new_leaves), root, block_number, sealed_at)
+    return {"checkpoint": note, "entries": wrapped_entries}, new_leaves
 
 
 def write_json(path: pathlib.Path, obj: dict) -> None:
@@ -140,43 +137,38 @@ def build_log(log_id: str, seed: bytes, key_id: str, heartbeat_before_delta: boo
     }
     anchor_envelope = sign_envelope(priv, "anchor", anchor, key_id)
 
-    block0, hash0 = seal_block(priv, key_id, 0, "sha256:genesis",
-                                "2026-08-02T13:00:00Z", [wrapped_declaration])
+    leaves = []
+    block0, leaves = seal(log_id, priv, pub, leaves, [wrapped_declaration], 0,
+                          "2026-08-02T13:00:00Z")
     blocks = [block0]
-    prev_hash, next_number, next_hour = hash0, 1, 14
+    next_number, next_hour = 1, 14
 
     if heartbeat_before_delta:
-        heartbeat, hash_hb = seal_block(priv, key_id, next_number, prev_hash,
-                                         f"2026-08-02T{next_hour:02d}:00:00Z", [])
+        heartbeat, leaves = seal(log_id, priv, pub, leaves, [], next_number,
+                                 f"2026-08-02T{next_hour:02d}:00:00Z")
         blocks.append(heartbeat)
-        prev_hash, next_number, next_hour = hash_hb, next_number + 1, next_hour + 1
+        next_number, next_hour = next_number + 1, next_hour + 1
 
     delta_sealed_at = f"2026-08-02T{next_hour:02d}:00:00Z"
-    delta_block, delta_hash = seal_block(priv, key_id, next_number, prev_hash,
-                                          delta_sealed_at, [wrapped_delta])
+    delta_block, leaves = seal(log_id, priv, pub, leaves, [wrapped_delta], next_number,
+                               delta_sealed_at)
     blocks.append(delta_block)
-
-    checkpoint = {
-        "wist_version": "1.0.0",
-        "block_number": next_number,
-        "block_hash": delta_hash,
-        "sealed_at": delta_sealed_at,
-    }
-    checkpoint_envelope = sign_envelope(priv, "checkpoint", checkpoint, key_id)
 
     return {
         "log_id": log_id,
         "anchor": anchor_envelope,
         "genesis_seed_hex": seed.hex(),
         "blocks": blocks,
-        "checkpoint": checkpoint_envelope,
+        "checkpoint": blocks[-1]["checkpoint"],
+        "tree_size": len(leaves),
+        "root": root_token(leaves),
     }
 
 
 log_a = build_log("log-a", bytes([0xAA] * 32), "log-a-genesis", heartbeat_before_delta=False)
 log_b = build_log("log-b", bytes([0xBB] * 32), "log-b-genesis", heartbeat_before_delta=True)
 
-assert log_a["blocks"][-1]["header"]["block_number"] != log_b["blocks"][-1]["header"]["block_number"], \
+assert len(log_a["blocks"]) != len(log_b["blocks"]), \
     "the two Logs must seal the Delta at different heights"
 assert json.loads(rfc8785.dumps(log_a["blocks"][-1]["entries"][0])) == \
        json.loads(rfc8785.dumps(log_b["blocks"][-1]["entries"][0])), \
@@ -216,5 +208,5 @@ vector = {
 
 write_json(OUT / "dedup.json", vector)
 print("multilog delta id:", delta_id)
-print("log-a head:", log_a["blocks"][-1]["header"]["block_number"], log_a["checkpoint"]["checkpoint"]["block_hash"])
-print("log-b head:", log_b["blocks"][-1]["header"]["block_number"], log_b["checkpoint"]["checkpoint"]["block_hash"])
+print("log-a head:", len(log_a["blocks"]) - 1, log_a["root"])
+print("log-b head:", len(log_b["blocks"]) - 1, log_b["root"])

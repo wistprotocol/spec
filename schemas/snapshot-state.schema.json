@@ -13,7 +13,7 @@
       "description": "The protocol state at log_position, as one tuple per live item. Each tuple is a JSON array whose first member names its kind; WIST-3 §7's table is the normative inventory of kinds and their fields, in prose, on the pattern WIST-4 §5.1 sets for Registry Update details. Every field is Log-derived — no page content — so the state_digest over these tuples survives any withdrawal.",
       "properties": {
         "wist_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
-        "log_position": {"type": "integer", "minimum": 0},
+        "log_position": {"type": "integer", "minimum": 0, "description": "The manifest's `log_position`, the tree size Checkpoint `block_number` states (WIST-3 §7)."},
         "entries": {
           "type": "array",
           "items": {

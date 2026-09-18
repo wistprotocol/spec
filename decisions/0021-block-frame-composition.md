@@ -1,6 +1,6 @@
 # ADR-0021: One Zstandard frame per Block file
 
-**Status:** draft · **Date:** 2026-09-10
+**Status:** draft, superseded by [ADR-0046](0046-single-tree-log.md) (2026-09-17: the Log is one RFC 6962 tree published as C2SP tiles and entry bundles, so no Block file and no Zstandard frame exists to compose) · **Date:** 2026-09-10
 
 ## Context
 

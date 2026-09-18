@@ -7,7 +7,7 @@ An open, verifiable, push-based web index protocol for local AI agents.
 
 Sites publish signed **deltas** about their own URLs, and signed
 **labels** about other sites; an **aggregator** sequences them into a
-public, hash-chained, append-only log (the Certificate Transparency
+public, append-only log (the Certificate Transparency
 model); **consumers** download a compact snapshot once, then follow an
 hourly delta stream — and query everything locally, ranking under a
 policy of their own choosing. Consumers verify signatures and hashes
@@ -70,7 +70,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0001](decisions/0001-jcs-canonicalization.md) — JCS (RFC 8785) for canonicalization
 - [ADR-0002](decisions/0002-ed25519-domain-anchored-identity.md) — Ed25519 keys anchored to the domain
 - [ADR-0003](decisions/0003-ping-plus-pull.md) — Publication is ping + pull, never content push
-- [ADR-0004](decisions/0004-log-centric-ct-model.md) — Append-only hash-chained log with signed checkpoints (CT model)
+- [ADR-0004](decisions/0004-log-centric-ct-model.md) — Append-only hash-chained log with signed checkpoints (CT model) (amended by ADR-0046)
 - [ADR-0005](decisions/0005-odbl-for-tier-data.md) — ODbL for public tier data
 - [ADR-0006](decisions/0006-no-self-declared-importance.md) — No self-declared importance anywhere in the protocol
 - [ADR-0007](decisions/0007-content-payloads-outside-the-log.md) — Content payloads outside the immutable log
@@ -87,7 +87,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0018](decisions/0018-confirmation-and-sanctions.md) — Confirmation, sanction activations and due process
 - [ADR-0019](decisions/0019-audit-duty-accounting.md) — Audit duty accounting from authenticated Log prefixes
 - [ADR-0020](decisions/0020-parameter-schedules.md) — Parameter schedules preserve historical obligations
-- [ADR-0021](decisions/0021-block-frame-composition.md) — One Zstandard frame per Block file
+- [ADR-0021](decisions/0021-block-frame-composition.md) — One Zstandard frame per Block file (superseded by ADR-0046)
 - [ADR-0022](decisions/0022-log-timestamp-seconds.md) — Leap-free Log timestamps
 - [ADR-0023](decisions/0023-declaration-key-binding.md) — Unambiguous Declaration key binding and identity continuity
 - [ADR-0025](decisions/0025-canonical-base64url.md) — Canonical base64url at validation
@@ -104,6 +104,11 @@ family, the independent anchor its verification rests on.
 - [ADR-0039](decisions/0039-scoped-host-materialization.md) — Scoped-host materialization preference
 - [ADR-0040](decisions/0040-snapshot-recovery-state.md) — Snapshot recovery state carries the floor and the chain head
 - [ADR-0041](decisions/0041-signed-publications.md) — The Payload is the publication, no Auditor role, Labelers as Publishers, ranking at consumption (supersedes ADR-0010, 0011, 0012, 0016, 0018, 0019, 0035, 0037)
+- [ADR-0042](decisions/0042-registrable-domain-accounting.md) — Quota and capacity are accounted per registrable domain
+- [ADR-0043](decisions/0043-label-accountability.md) — Labels expire, bind, are defined, are disputed and are bounded
+- [ADR-0044](decisions/0044-fetch-bounds.md) — A fetch is bounded in destination, size and work
+- [ADR-0045](decisions/0045-key-directory.md) — The Key Set is a key directory with thumbprint identifiers, validity windows, a rotation commitment and an activation delay
+- [ADR-0046](decisions/0046-single-tree-log.md) — The Log is one RFC 6962 tree published as C2SP checkpoints and tiles (amends ADR-0004, supersedes ADR-0021)
 
 ## Licenses
 

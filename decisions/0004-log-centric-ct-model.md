@@ -1,6 +1,6 @@
 # ADR-0004: Append-only hash-chained log with signed checkpoints (CT model)
 
-**Status:** draft · **Date:** 2026-08-02
+**Status:** draft, amended by [ADR-0046](0046-single-tree-log.md) (2026-09-17: the Log is one RFC 6962 tree published as C2SP checkpoints and tiles, a Block is an interval of it, and a consistency proof replaces the hash chain between Blocks) · **Date:** 2026-08-02
 
 ## Context
 

@@ -278,6 +278,7 @@ anchor instant is included.
 | WIST-1 §5.2 recovery window length | Window owner Declaration's Block; freeze the end through later amendments and in-window recoveries |
 | WIST-2 §3.3 Label field caps | Sealing Block of the Label's `label` Entry; unsealed attempts follow the same rule as Deltas |
 | WIST-3 §3.2 cadence and per-domain capacity | The previous Block's `sealed_at` for the cadence; the sealing Block for the capacity |
+| WIST-3 §5 Witness quorum | The Checkpoint's own `sealed_at` |
 
 This table does not replace explicit reads elsewhere, including
 materialization at its stated height. Fixed block counts count actual
@@ -309,7 +310,8 @@ recommended setting.
 | Parameter | Bound | What a value past it removes |
 |---|---|---|
 | `block_cadence_seconds` | ≥ 1 and ≤ 86 400 | a cadence of zero seals no Block, so nothing anchored to `sealed_at` has a clock; above a day, "eligible for the next Block" is lawful staleness measured in weeks, and the read-side position sale §5's inclusion ceiling forbids returns through the cadence |
-| `block_decompressed_cap_bytes` | ≥ 1024 | a Consumer MUST reject a frame declaring more than the cap without decompressing it (WIST-3 §6), so below the octets an empty Block occupies no Block can be applied at all — and WIST-3 §3.2 requires an Aggregator to be able to seal an empty Block as the chain's heartbeat |
+| `block_decompressed_cap_bytes` | ≥ 65 537 | the octets one Entry of WIST-3 §3.3's largest admissible size occupies in an entry bundle (WIST-3 §6): below it the cap, not the format, decides which conforming Entries can be sealed, and the inclusion ceiling below can oblige an Aggregator to seal an Entry the cap forbids |
+| `checkpoint_witness_quorum` | ≥ 0 | a negative count of Cosignatures is no threshold; at zero none is required and WIST-3 §5's unwitnessed interim applies |
 | `extract_cap_bytes` | ≥ 2 | `JCS("")` is 2 octets, so below that even an empty `extract` exceeds the cap, every Payload fails WIST-1 §3.6's size check, and no content-bearing Delta can ever be sealed |
 | `links_cap_bytes` | ≥ 21 | `JCS({"total":0,"urls":[]})` is 21 octets and `links` is REQUIRED (WIST-3 §6.1), so below that no conforming Payload exists and no content-bearing Delta can ever be sealed |
 | `link_url_cap_bytes` | ≥ 14 | below the 14 octets of `JCS("https://a.b/")` — the shortest Normalized URL under a two-label host; a one-label host's `https://a/` serializes to 12 and stays declarable (WIST-1 §2) — no link under a registrable host can be declared |
@@ -335,8 +337,8 @@ reject the `parameter_change` directly against the rule rather than apply
 it. The combinations the present table cannot express are named so that
 no party has to discover them: `block_decompressed_cap_bytes` MUST NOT be
 below the size of the largest Block through the candidate's own Block,
-measured as the octet length of `JCS(Block)` including its header,
-Entries and signature, under the Block-size rule below; `links_cap_bytes`
+measured as WIST-3 §6 defines a Block's size — the octets its Entries
+occupy in entry bundles — under the Block-size rule below; `links_cap_bytes`
 MUST NOT be below `link_url_cap_bytes` + 21, the structural octets of
 `JCS({"total":1,"urls":[…]})` around a single maximum-length URL literal
 — below it a page whose first link is long declares an empty prefix the
@@ -356,7 +358,7 @@ later than that `effective_at` can still reach past the range; WIST-1
 §5.2 then withholds the recovery Declaration from sealing.
 
 **Block-size guarantees include the sealed prefix.** For a candidate in
-Block B, let M be the greatest `JCS(Block)` octet length among Blocks 0
+Block B, let M be the greatest Block size (WIST-3 §6) among Blocks 0
 through B, including B's complete contents regardless of which Entries
 are accepted. Every prospective map checked for that candidate MUST have
 `block_decompressed_cap_bytes` ≥ M. Otherwise reject the candidate as
@@ -378,7 +380,8 @@ Block at the eventual query height to reconsider an earlier candidate.
 Restoration MUST preserve or reconstruct both this running maximum and
 the accepted schedule, including pending amendments. A value-only
 Registry snapshot cannot establish the historical size guarantee. The
-pre-decompression bound is specified separately in WIST-3 §6.
+transport bound a Consumer applies while fetching is specified
+separately in WIST-3 §6.
 
 Every remaining identifier carries no additional parameter-specific
 bound, and each is named here so that "exactly those bounds" above is a
@@ -431,7 +434,7 @@ and ceiling as a Delta (WIST-2 §3.3).
 | Parameter | Identifier | Default | Defined in |
 |---|---|---|---|
 | Block sealing cadence | `block_cadence_seconds` | 1 hour | WIST-3 §3.2 |
-| Block decompressed size cap | `block_decompressed_cap_bytes` | 256 MiB | WIST-3 §6 |
+| Block size cap, in entry-bundle octets | `block_decompressed_cap_bytes` | 256 MiB | WIST-3 §6 |
 | `extract` size cap | `extract_cap_bytes` | 32768 octets of `JCS(extract)` | WIST-1 §3.6 |
 | `links` size cap | `links_cap_bytes` | 4096 octets of `JCS(links)` | WIST-1 §3.6 |
 | Link `url` size cap | `link_url_cap_bytes` | 2048 octets of `JCS(url)` per link | WIST-1 §3.6 |
@@ -439,6 +442,7 @@ and ceiling as a Delta (WIST-2 §3.3).
 | `url` size cap | `url_cap_bytes` | 2048 octets of `JCS(url)`; also a Label's `subject` (WIST-2 §3.3) | WIST-1 §3.2 |
 | Payload availability window | `payload_window_days` | 180 days | WIST-3 §6.1 |
 | Mirror Block retention floor | `mirror_retention_days` | 90 days | WIST-3 §6 |
+| Witness quorum | `checkpoint_witness_quorum` | 0 Witnesses | WIST-3 §5 |
 | Discovery sealing deadline | `record_seal_blocks` | 24 Blocks | WIST-1 §5.2, WIST-2 §3.3 |
 | Per-domain Block capacity (per Registrable Domain) | `domain_block_entries_max` | 10 000 Entries | WIST-3 §3.2 |
 | Per-Labeler Block cap (per Registrable Domain) | `labeler_block_entries_max` | 1 000 Entries | WIST-3 §3.2 |
@@ -797,4 +801,4 @@ enters the Log.
 - WIST-1: Delta Format & Identity — key rotation, scope rule, §6 absence
 - WIST-2: Site Publication — quotas, hints, Labels
 - WIST-3: Logbook & Distribution — entry envelope, checkpoints,
-  immutability, Block Hash (WIST-3 §3.1)
+  immutability, the tree size and root hash a Checkpoint states (WIST-3 §§3.1, 5)

@@ -4,15 +4,21 @@
 
 ## 1. Introduction
 
-The Logbook is an append-only sequence of signed, hash-chained Blocks
-containing accepted Deltas (WIST-1), Labels (WIST-2 §3.3) and governance
-actions (WIST-4). Consumers verify the chain and recompute derived artifacts.
-The Certificate Transparency [RFC 6962] design rationale is recorded in
-[ADR-0004](../decisions/0004-log-centric-ct-model.md).
+The Logbook is one append-only RFC 6962 Merkle tree whose leaves are
+accepted Deltas and Declarations (WIST-1), Labels and disputes (WIST-2
+§3.3) and governance actions (WIST-4), published as C2SP checkpoints and
+tiles so that generic transparency-log clients and Witnesses read it
+with no knowledge of this suite. Consumers verify the tree and recompute
+derived artifacts. The Certificate Transparency [RFC 6962] design
+rationale is recorded in
+[ADR-0004](../decisions/0004-log-centric-ct-model.md) and the adoption
+of the C2SP formats in
+[ADR-0046](../decisions/0046-single-tree-log.md).
 
-This document defines the Block format, the Merkle tree and inclusion
-proofs, checkpoints and anti-equivocation, the static distribution layout,
-snapshots and tiers, and the consumer synchronization procedure.
+This document defines Blocks as intervals of the tree, the Entry format,
+the tree and its proofs, Checkpoints, Witnesses and anti-equivocation,
+the static distribution layout, snapshots and tiers, and the consumer
+synchronization procedure.
 
 ## 2. Conventions and Terminology
 
@@ -22,12 +28,16 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 [RFC 2119] [RFC 8174] when, and only when, they appear in all capitals, as
 shown here.
 
-- **Log** (the **Logbook**): the append-only sequence of Blocks this
-  document defines, from the genesis Block onward. "The Log" always means
-  the whole chain, never one Aggregator's current view of it.
-- **Block**: one sealed batch of log Entries with a signed header.
+- **Log** (the **Logbook**): the append-only RFC 6962 Merkle tree this
+  document defines, whose leaves are the Entries in the order they were
+  appended. "The Log" always means the whole tree, never one
+  Aggregator's current view of it.
+- **Block**: the Entries between two consecutive Checkpoints — the
+  leaves from the previous Checkpoint's tree size up to, excluding, its
+  own — sealed together under one `sealed_at` (§3).
 - **Entry**: one typed item in a Block (`publisher_delta`,
-  `publisher_declaration`, `label`, or `registry_update`).
+  `publisher_declaration`, `label`, `dispute` or `registry_update`), and
+  one leaf of the tree.
 - **Log Anchor**: the self-signed document that identifies a Log by its
   `log_id` and declares its `genesis_key`; it is the Log's out-of-band
   trust root, obtained through a channel the Consumer trusts rather than
@@ -36,7 +46,13 @@ shown here.
   is the only Aggregator key not admitted in-band; every later one is
   added and retired by Registry Updates the genesis key's chain of
   successors signs (§3.4).
-- **Checkpoint**: the Aggregator's signed statement of the latest Block.
+- **Checkpoint**: the Aggregator's signed statement of the tree at one
+  size — a signed note in the C2SP checkpoint format, carrying the
+  Block's number and `sealed_at` (§5). Checkpoint N ends Block N.
+- **Witness**: a party that cosigns a Checkpoint after verifying it
+  consistent with every Checkpoint of the same Log it cosigned before,
+  under the C2SP witness protocol; a **Cosignature** is the signature
+  line it adds (§5).
 - **Consumer**: any party that synchronizes the Log and materializes an
   index from it (§8). A Consumer trusts no Aggregator and no Mirror: it
   verifies signatures, hashes and commitments for itself.
@@ -44,7 +60,10 @@ shown here.
 - **Snapshot**: a signed, derived materialization of log state at a Block.
 - **Tier**: a size/completeness layer of a Snapshot (Tier 0 compact,
   Tier 1 full extracts and the link graph).
-- **Inclusion Proof**: a Merkle path proving an Entry is in a Block.
+- **Inclusion Proof**: a Merkle audit path proving an Entry is a leaf of
+  the tree a Checkpoint states (§4).
+- **Consistency Proof**: the RFC 6962 proof that the tree one Checkpoint
+  states extends the tree an earlier one states (§4).
 - **Payload**: the content a Delta commits to (WIST-1 §3.6), distributed
   alongside the Block that seals that Delta and not inside it (§6.1).
 - **Withdrawal**: the logged removal of a Payload from distribution,
@@ -52,28 +71,44 @@ shown here.
 
 Terms from WIST-1 (Envelope, Delta, Delta ID, Canonical Bytes, Payload,
 Publisher, Aggregator) and WIST-2 (Feed) keep their defined meanings. Every
-signed object in this document is constructed exactly as WIST-1 §4 requires —
+signed object in this document except the Checkpoint is constructed exactly as WIST-1 §4 requires —
 inner object canonicalized with JCS, signed with Ed25519, signature
 detached — and carries `wist_version` (WIST-1 §3.1) and the WIST-1 §4 signature
-block (`key_id`, `alg`, `value`).
+block (`key_id`, `alg`, `value`). The Checkpoint is a signed note under
+the C2SP formats §5 names, signed by the same Aggregator keys (§3.4).
+
+In the vocabulary of RFC 9943 (SCITT), the Aggregator is the
+Transparency Service, a Publisher an Issuer, the URL a Delta is about
+(WIST-1 §3.2) the Subject, the admission rules (WIST-1 §7, WIST-2 §5,
+§3 of this document) the Registration Policy, and an Inclusion Proof
+against a cosigned Checkpoint the Receipt. The mapping places the suite
+for a reader arriving from SCITT and adds no object: a COSE-encoded
+Receipt is OPTIONAL and undefined in this edition, because it would be
+a second encoding of the proof §4 already defines.
 
 ## 3. Block Format
 
-A Block is an Envelope-like object with `header`, `entries`, and `sig`
-(schema: [`schemas/block.schema.json`](../schemas/block.schema.json)).
+A Block is the interval of the Log between two consecutive Checkpoints.
+Write `size(N)` for the tree size Checkpoint N states (§5), with
+`size(-1)` = 0: Block N's Entries are the leaves with indexes from
+`size(N-1)` up to, excluding, `size(N)`, and its `entry_count` is
+`size(N) - size(N-1)`, derived and never carried. No object represents a
+Block: Checkpoint N is its signed statement, and its Entries are served
+as §6 describes.
 
-### 3.1. Header
+### 3.1. Identity and `sealed_at`
 
-| Field | Rule |
+Checkpoint N states, for Block N:
+
+| Value | Rule |
 |-------------------|------------------------------------------------------|
 | `block_number` | Sequential from 0, no gaps. |
-| `prev_block_hash` | Block Hash of block N−1; the literal `sha256:genesis` for block 0. |
+| tree size | `size(N)` ≥ `size(N-1)`; equality is an empty Block. |
+| root hash | Root of the tree at `size(N)` (§4); the tree at `size(N-1)` is its prefix, which a Consistency Proof verifies (§5). |
 | `sealed_at` | RFC 3339 UTC at **whole-second precision with a literal trailing `Z`**; strictly increasing across blocks. |
-| `merkle_root` | Root over `entries` (§4). |
-| `entry_count` | MUST equal `entries.length`. |
 
-`sealed_at` MUST match `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$`
-(`schemas/block.schema.json`): no fractional seconds, and no numeric offset
+`sealed_at` MUST match `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$`:
+no fractional seconds, and no numeric offset
 even one equal to zero. A Block whose `sealed_at` carries either MUST be
 rejected. RFC 3339 permits both, but every day count in the suite — a
 recovery window (WIST-1 §5.2), the availability window (§6.1), a parameter's
@@ -103,23 +138,36 @@ rather than an operator's choice. The first Block after a `parameter_change` to
 `block_cadence_seconds` takes effect lands on the new grid; the Anchor's
 own `created_at` is not a Block and is unconstrained.
 
-The **Block Hash** is `"sha256:" + hex(SHA-256(JCS(header)))` — the header
-alone. The Aggregator signs those same canonical bytes; `sig.key_id` names
-an Aggregator key admitted per §3.4.
+A Block is identified by its number; what its Checkpoint states about
+the tree is the pair (tree size, root hash), which an empty Block shares
+with the Block before it (§3.2), and there is no Block hash apart from
+the root. Where this suite
+carries a Block's root hash in a JSON member — `anchor_block_hash` (§7),
+`final_block_hash` (§3.4) — it is `"sha256:" + hex(root hash)`, the
+same 32 octets the Checkpoint's root hash line carries in base64 (§5).
 
-The header commits to the Block's contents through `merkle_root` and
-`entry_count`, so a verifier holding only a header and a Checkpoint can
-authenticate the header, and then authenticate any Entry against it with an
-Inclusion Proof (§4). Entries are transported inside the Block file but are
-not covered by the signature directly; a verifier that downloads them MUST
-recompute `merkle_root` and check `entry_count` before use.
+Checkpoint N commits to the Block's Entries through the tree: a verifier
+holding Checkpoints N−1 and N knows the Block's leaf range and
+authenticates any Entry against Checkpoint N with an Inclusion Proof
+(§4). Entries are transported unsigned (§6); a verifier that downloads a
+Block's Entries MUST verify, before use, that their leaf hashes occupy
+that range in the tree whose root Checkpoint N states — an Inclusion
+Proof per Entry, or the recomputation of that root from the tree hashes
+it holds, which is the same check made once.
 
 ### 3.2. Sealing
 
 Blocks are sealed at a fixed cadence (Parameter Registry, WIST-4 §5;
-default: hourly). A Block MAY be empty (`entry_count: 0`); empty blocks
-keep the chain's heartbeat observable. Once sealed, a Block is immutable
-forever.
+default: hourly): at a grid instant of §3.1 the Aggregator appends the
+Block's Entries to the tree in the order §3.3 fixes and issues its
+Checkpoint (§5). The Aggregator MUST issue a Checkpoint at every grid
+instant, an empty Block — a Checkpoint restating the previous tree size
+— where nothing is eligible; empty blocks keep the Log's heartbeat
+observable, and a replaying Consumer, which sees only the Checkpoints
+issued, checks each against the grid and does not reject a missed
+instant (§5 gives the staleness signal). Once sealed, a Block is
+immutable forever: its Entries' leaf indexes never change and no later
+Checkpoint omits them.
 
 **Per-domain Block capacity.** A Block MUST NOT carry more than
 `domain_block_entries_max` (Parameter Registry; default 10 000)
@@ -188,15 +236,24 @@ is normative in WIST-4, of `label` and `dispute` in WIST-2, and of
 `publisher_delta` and `publisher_declaration` in WIST-1. Validators MUST reject Blocks containing
 unknown Entry types under the current major version.
 
+**An Entry fits one leaf.** An Entry's JCS serialization — its leaf
+data (§4) — MUST NOT exceed 65 535 octets, the largest length the
+16-bit prefix of an entry bundle can carry ([tlog-tiles], §6). The
+Aggregator MUST NOT seal a larger Entry, and a Consumer replaying the
+Log MUST reject a Block that contains one (`WIST3-E03`).
+
 **Entry order is canonical.** Within a Block, Entries MUST appear grouped
 by type in the fixed order `publisher_declaration`, `registry_update`,
 `publisher_delta`, `label`, `dispute`, and within each group in ascending octet
 order of each Entry's Merkle leaf hash (§4). A Consumer replaying the Log
 MUST reject a Block ordered otherwise. The rule exists for the same
-reason as the `sealed_at` grid (§3.1): Entry order feeds `merkle_root`
-and `merkle_root` feeds the Block Hash, and a free permutation of
-Entries would let one set of Entries seal under many hashes. Canonical
-order leaves the Aggregator its one real choice, Block membership.
+reason as the `sealed_at` grid (§3.1): Entry order fixes each leaf's
+index, and with it the root hash every Checkpoint from N on states, and
+a free permutation of Entries would let one set of Entries seal under
+many roots. Canonical order leaves the Aggregator its one real choice,
+Block membership. An Entry's leaf index (§4) is `size(N-1)` plus its
+position in this order, so Log order — ascending Block height, then
+Entry index — is ascending leaf index.
 
 Storage order and application order are therefore decoupled, and
 **application order** is defined, not inherited: within a Block, apply
@@ -248,7 +305,7 @@ A Log is identified by its **Log Anchor**, a self-signed document whose
 inner object is `anchor` (schema:
 [`schemas/log-anchor.schema.json`](../schemas/log-anchor.schema.json)),
 served at `/log/anchor.json`. It declares `wist_version`, the `log_id` (the
-Log's hostname identity), the `genesis_key` — an object carrying that key's
+Log's hostname identity, and the origin line of its Checkpoints, §5), the `genesis_key` — an object carrying that key's
 `key_id`, `alg` and raw base64url `public_key` — and `created_at`, the
 instant the Log was established. The Anchor is self-signed: its `sig.key_id`
 MUST name its own `genesis_key`, and a Consumer MUST reject an Anchor whose
@@ -265,7 +322,7 @@ publish in documentation or a package manifest.
 All subsequent Aggregator keys are admitted in-band: an
 `aggregator_key_add` Registry Update, signed by a key already valid at that
 Block, adds a key; `aggregator_key_remove`, signed the same way, retires
-one. A Block sealed at height N MUST be signed by a key that was valid at
+one. Checkpoint N (§5) MUST be signed by a key that was valid at
 height N, where a `key_id` is **valid at height N** if it is the genesis
 key, or a validly-signed `aggregator_key_add` naming that `key_id` was
 sealed at a height ≤ N and no validly-signed `aggregator_key_remove`
@@ -283,6 +340,23 @@ about which of several add/remove events for the same `key_id` governs. A
 Consumer replaying the Log from the Anchor can therefore compute the set
 of valid keys at every height without external input.
 
+**An Aggregator key as a note signer.** A Checkpoint is a signed note
+(§5), and an Aggregator key signs it under the Ed25519 signature type of
+[signed-note]: the key name is the Log's origin, its `log_id` (§5), for
+every Aggregator key, as [tlog-checkpoint] recommends; the note key ID
+is `SHA-256(key name || 0x0A || 0x01 || 32-byte public key)[:4]`, the
+derivation [signed-note] gives that type; and the signature line's
+value is `base64(key ID || Ed25519 signature over the note text)`. The
+verifier-key string [signed-note] defines,
+`<log_id>+<hex key ID>+base64(0x01 || public key)`, is the form in which
+a key is configured at a Witness. A `key_id` never appears in the note:
+a Consumer maps a signature line to a `key_id` by computing the note
+key ID of every key valid at the Checkpoint's height. The Aggregator
+therefore MUST NOT seal an `aggregator_key_add` whose key's note key ID
+equals that of any key previously admitted to the Log, the genesis key
+included, and a Consumer replaying the Log MUST reject one: a collision
+is the one case in which a signature line would name two keys.
+
 Key rotation does not repudiate the past. A signature made by a key that
 was valid when the signed object was sealed remains binding evidence
 forever — including for the equivocation proof of §5. An Aggregator MUST
@@ -295,8 +369,12 @@ parties can extend, which §5 makes detectable and nothing here makes
 recoverable. Both end the same way: the Log stops being the place where
 this commons continues. The continuation is a **successor Log**: a new
 Anchor whose optional `predecessor` names the ended Log's `log_id` and
-the exact Block — `final_block_number`, `final_block_hash` — at which it
-ended. The successor Anchor is a trust root like any Anchor: obtained
+the exact Block — `final_block_number`, and `final_block_hash`, the root
+hash Checkpoint `final_block_number` states in the `sha256:` form of
+§3.1 — at which it ended. The successor's `log_id` MUST differ from its
+predecessor's: the origin names one tree at every Witness and Consumer
+(§5), and the successor's tree begins empty. The successor Anchor is a
+trust root like any Anchor: obtained
 and verified out-of-band (§3.4 above), believed because Consumers and
 Publishers choose it, not because the old chain — which by
 hypothesis can no longer say anything trustworthy — endorses it.
@@ -337,41 +415,43 @@ deliberately does not make. A major-version migration uses the same
 field: a v2 Log naming a v1 predecessor is a continuation, and WIST-1
 §1's "reject unknown major versions" governs objects, not history.
 
-## 4. Merkle Tree and Inclusion Proofs
+## 4. Merkle Tree, Inclusion and Consistency Proofs
 
-The tree over a Block's Entries uses the RFC 6962 hashing discipline:
+The Log is one RFC 6962 Merkle tree over SHA-256, with that RFC's
+hashing discipline:
 
 ```
 leaf  = SHA-256(0x00 || JCS(entry))
 node  = SHA-256(0x01 || left || right)
 ```
 
-Leaves are the Entries in Block order. Levels are built pairwise,
-left-to-right; **an unpaired final node is promoted unchanged to the next
-level**. The root of a single-entry Block is that Entry's leaf hash. The
-`merkle_root` of an empty Block is `"sha256:" + hex(SHA-256(0x00))` (the
-leaf hash of zero bytes).
+A leaf's data is the Entry object's JCS serialization (RFC 8785), so an
+Entry's leaf hash is a function of the Entry alone. Leaves are the
+Entries in Log order (§3.3), indexed from 0. Levels are built pairwise,
+left-to-right; **an unpaired final node is promoted unchanged to the
+next level**, which yields RFC 6962 §2.1's `MTH` at every tree size.
+The root of a single-leaf tree is that leaf's hash, and the root of the
+empty tree — the Log before its first Entry, tree size 0 — is
+`SHA-256("")`, as RFC 6962 §2.1 defines:
+`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+Every tree size, the empty one included, is exactly RFC 6962's, so an
+existing RFC 6962 or C2SP implementation verifies this Log unmodified.
 
-> **Deviation from RFC 6962.** For the empty tree, RFC 6962 defines
-> MTH({}) = SHA-256(""), while this specification uses the leaf hash of
-> zero bytes: SHA-256(0x00) =
-> `6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d`.
-> Non-empty trees are identical to RFC 6962. Implementers wiring in an
-> existing Certificate Transparency library MUST special-case empty Blocks.
-
-An Inclusion Proof for Entry *i* of a Block with *n* Entries is
-`{"index": i, "entry_count": n, "path": [<hex sibling hash>, ...]}`.
-Sibling **sides are not carried in the proof**: they are derived from
-`index` and `entry_count`, exactly as in RFC 6962, so that a proof
-authenticates the Entry's *position* as well as its membership.
+An Inclusion Proof for the Entry at leaf index *i* in the tree of size
+*n* is `{"index": i, "tree_size": n, "path": [<hex sibling hash>, ...]}`:
+`index` is the leaf index in the Log, never the Entry's position in its
+Block, and `tree_size` is the size a Checkpoint states. Sibling **sides
+are not carried in the proof**: they are derived from `index` and
+`tree_size`, exactly as in RFC 6962, so that a proof authenticates the
+Entry's *position* as well as its membership.
 
 Verification MUST reconstruct the audit path exactly as RFC 6962 §2.1.1
-defines it (the `PATH(m, D[n])` function, with `entry_count` as the tree
-size *n* and `index` as *m*), applying this specification's leaf and
-node hashing (above). Concretely: start with `h = leaf(JCS(entry))` and
-walk from leaf to root, tracking the current node's own index within its
-level, `fn` (initially `index`), and the index of the last node at that
-level, `sn` (initially `entry_count - 1`). While `sn > 0`:
+defines it (the `PATH(m, D[n])` function, with `tree_size` as the tree
+size *n* and `index` as *m*), applying the leaf and node hashing above.
+Concretely: start with `h = leaf(JCS(entry))` and walk from leaf to
+root, tracking the current node's own index within its level, `fn`
+(initially `index`), and the index of the last node at that level, `sn`
+(initially `tree_size - 1`). While `sn > 0`:
 
 ```
 if fn is odd:               # fn is a right child
@@ -385,55 +465,115 @@ fn = fn div 2; sn = sn div 2
 ```
 
 The walk terminates when `sn == 0`; the resulting hash is accepted iff
-`"sha256:" + hex(h) == merkle_root`.
+`h` equals the root hash the Checkpoint states.
 
 A verifier MUST reject a proof when:
 
-- `index >= entry_count` or `index < 0`;
-- the proof's `entry_count` differs from the Block header's
-  `entry_count`, so that a forged tree size cannot reshape the
+- `index >= tree_size` or `index < 0`;
+- the proof's `tree_size` differs from the tree size of the Checkpoint
+  it is verified against, so that a forged tree size cannot reshape the
   derivation;
 - the walk needs a `path` element beyond the ones supplied (it runs out
   of siblings before `sn == 0`), or terminates with `path` elements left
   unconsumed.
 
-Because the sides are derived from `index` and `entry_count` rather than
+Because the sides are derived from `index` and `tree_size` rather than
 read from the proof, a proof authenticates the Entry's position as well
 as its membership.
 
+A **Consistency Proof** from tree size *m* to tree size *n*, 0 ≤ *m* ≤ *n*,
+is RFC 6962 §2.1.2's `PROOF(m, D[n])`. It is verified by reconstructing
+the root at *m* and the root at *n* from it as RFC 9162 §2.1.4.2
+defines, and accepted iff each equals the root hash the corresponding
+Checkpoint states. The proof is empty when *m* = 0 — the empty tree is a
+prefix of every tree — and when *m* = *n*, where the two roots MUST be
+equal; no proof exists from a larger size to a smaller one. The Log
+serves no proof objects: a Consumer holding the tree hashes §6 serves
+computes either proof itself, and a proof it receives from another
+party is verified the same way.
+
 Inclusion Proofs let a light client verify "this Delta is in the log"
-holding only a Block header, a Checkpoint, and the proof — the header is
-authenticated by the Aggregator signature over its canonical bytes (§3.1)
-and by the Checkpoint's `block_hash`.
+holding only a Checkpoint and the proof: the Checkpoint is authenticated
+by the Aggregator's signature and the Cosignatures it carries (§5), and
+the proof binds the Entry to the root it states.
 
 ## 5. Checkpoints and Anti-Equivocation
 
-The Aggregator publishes a signed Checkpoint (schema:
-[`schemas/checkpoint.schema.json`](../schemas/checkpoint.schema.json)) at
-the fixed URL `/log/checkpoint.json` after sealing each Block: the
-`block_number`, that Block's `block_hash`, and its `sealed_at`. It MUST
-NOT publish the Checkpoint for Block N before Block N, and every lower
-Block, is durably stored and retrievable at its §6 path. A Checkpoint
-for Block N MUST be signed by a `key_id` valid at height N in the sense
-§3.4 gives that phrase, and a Consumer verifies it against that same key
-set: the Checkpoint is a statement about one Block, so the keys that
-could have sealed the Block are exactly the keys that can speak for it.
-The Consumer's order follows from that — the key set valid at N is what
-the Blocks up to N establish, so a Checkpoint's signature is checked
-after those Blocks are walked and verified, not before. Nothing rests on
-the earlier check: each Block authenticates itself under §3.4, and the
-Checkpoint's `block_hash` binds it to the one at N. A Checkpoint is
-a permanent signed commitment to one Block Hash: published ahead of a
-Block the Aggregator can still lose, it is honored only by re-sealing
-byte-identical bytes — the same header over the same Entries — and is
-otherwise contradicted by whatever Block N is sealed next, which is
-equivocation against itself. A Consumer holding a Checkpoint whose Block
-no source serves has a `WIST3-E01` it cannot clear, never a `WIST3-E02`:
-the Checkpoint is evidence of what the Aggregator committed to, and the
-Block's absence is the Aggregator's to remedy.
+After sealing each Block the Aggregator publishes its **Checkpoint**: a
+signed note [signed-note] in the C2SP checkpoint format
+[tlog-checkpoint], served at the current-head URL and archived per
+Block at the paths §6 assigns. Its note text is exactly five lines:
 
-- Mirrors MUST retain every Checkpoint they have ever served.
-- Consumers SHOULD fetch Checkpoints from more than one Mirror and
+```
+<origin>
+<tree size>
+<root hash>
+block_number <block_number>
+sealed_at <sealed_at>
+```
+
+The first three are the lines [tlog-checkpoint] defines. The origin is
+the Log's `log_id` (§3.4) verbatim, which is the schema-less URL form
+that format recommends; the tree size is `size(N)`; the root hash is
+the root of the tree at that size (§4) in the base64 encoding that
+format specifies. The last two are that format's extension lines, which
+it leaves opaque and this document fixes: line 4 is the string
+`block_number`, one space (U+0020) and the Block's number as an ASCII
+decimal with no leading zeroes (`0` for Block 0); line 5 is the string
+`sealed_at`, one space and the Block's `sealed_at` in the §3.1 profile.
+They are extension lines rather than members of a signed object so that
+a checkpoint-format client parses the Checkpoint unchanged and a Witness
+cosigns it unchanged; the cosignature formats make no statement about
+extension lines [tlog-cosignature], which is why what the Log attests
+and what a Witness attests are stated separately below.
+
+A Consumer parses a Checkpoint as [signed-note] and [tlog-checkpoint]
+define and then reads the extension lines by the rules above. A
+Checkpoint whose note text has more or fewer than five lines, whose
+origin is not the Anchor's `log_id`, whose line 4 or 5 differs from the
+form above in any octet — a leading zero, a second space, a `sealed_at`
+outside the §3.1 profile — or whose text or signature lines do not
+parse under those formats is not this Log's Checkpoint: it is rejected
+as `WIST3-E03`, and nothing in it is evidence.
+
+**The Log's signature.** A Checkpoint MUST carry at least one signature
+line under an Aggregator key valid at height N in the sense §3.4 gives
+that phrase, N being the `block_number` line, in the signer form §3.4
+defines; it MAY carry more than one, as during a rotation. A Consumer
+treats as known exactly the Aggregator keys valid at N and the Witness
+keys it trusts, ignores every other signature line as [signed-note]
+requires, and MUST reject the Checkpoint (`WIST3-E03`) when a line
+naming a known key fails to verify; the number of signature lines it
+accepts follows [signed-note]. The signature is checked after the
+Blocks up to N are walked, because the keys that can speak for Block N
+are the ones the Log establishes at N: the Consumer parses the note,
+fetches the Entries below `size(N)` it does not hold (§6), verifies
+them against the tree the note states (§3.1) and that tree's
+consistency with its verified head (below), applies Block N's Registry
+Updates, computes the key set valid at N and verifies the signature
+under it. Nothing rests on the order — the Entries establish the key
+set only once a signature under that set closes the loop, and a
+Checkpoint the loop does not close is applied by nobody. Cosignatures
+change none of this: a Checkpoint's identity is its note text, whatever
+signature lines it carries, and the Aggregator republishes the same
+Checkpoint with each Cosignature it obtains.
+
+The Aggregator MUST NOT publish Checkpoint N before every Entry with a
+leaf index below `size(N)` is durably stored and retrievable at its §6
+path. A Checkpoint is a permanent signed commitment to one root at one
+size: published ahead of Entries the Aggregator can still lose, it is
+honored only by serving byte-identical Entries and is otherwise
+contradicted by whatever the Log serves next, which is equivocation
+against itself. A Consumer holding a Checkpoint whose Entries no source
+serves has a `WIST3-E01` it cannot clear, never a `WIST3-E02`: the
+Checkpoint is evidence of what the Aggregator committed to, and the
+Entries' absence is the Aggregator's to remedy.
+
+- Mirrors MUST retain every Checkpoint they have ever served, with every
+  signature line it carried.
+- Consumers SHOULD fetch Checkpoints from more than one source — Mirrors,
+  and the monitoring endpoint each trusted Witness serves under
+  [tlog-witness] — and
   SHOULD retain the Checkpoints they act on. The instruction is
   performable because Mirrors are discoverable in-band: the Aggregator
   SHOULD publish `/log/mirrors.json` — an Envelope whose inner object is
@@ -449,54 +589,114 @@ Block's absence is the Aggregator's to remedy.
   meant to catch the Aggregator equivocating: its value is bootstrap
   convenience, and independence of at least one comparison source is
   the property that matters.
-- A Consumer MUST verify that the Block Hash of the Block it treats as the
-  chain head equals the `block_hash` of the Checkpoint it is syncing to,
-  and MUST verify the chain backward from that head via `prev_block_hash`.
-  A Block that is not reachable by this backward walk MUST NOT be applied.
+- A Consumer MUST verify every Checkpoint from its verified head to the
+  one it adopts, in `block_number` order: each extends the tree of the
+  previous one — a Consistency Proof between the two sizes (§4) — and
+  each Block's Entries are the leaves `size(N-1)` through `size(N) - 1`
+  of that tree (§3.1). A Checkpoint that fails the Consistency Proof is
+  chain divergence (`WIST3-E02`), evidenced below. An Entry not covered
+  by a Checkpoint the Consumer has verified MUST NOT be applied.
 - A Consumer MUST reject a Checkpoint whose `block_number` is lower than
-  the highest it has already verified (rollback protection).
+  the highest it has already verified (rollback protection); one with
+  the same `block_number` MUST have identical note text, or the two
+  equivocate (below).
 - A Consumer SHOULD treat the log as stale, and SHOULD warn, when
-  `sealed_at` of the newest Checkpoint lags the current time by more than
-  three times the sealing cadence (§3.2); empty Blocks make this signal
-  reliable.
+  `sealed_at` of the newest Checkpoint it can accept lags the current
+  time by more than three times the sealing cadence (§3.2); empty Blocks
+  make this signal reliable.
 
-**Equivocation** is two Checkpoints, both validly signed by the
-Aggregator, with the same `block_number` and different `block_hash`. The
-evidence bundle is exactly those two Checkpoint files — self-contained,
-portable, verifiable by anyone with the Aggregator's public key. A party
-holding such a bundle SHOULD publish it widely; consumers verifying it
-MUST stop applying new data from that Aggregator (§9, `WIST3-E02`). Checkpoints
-signed by *any* key valid at their `block_number` count; an Aggregator
-cannot escape an equivocation proof by removing the signing key afterward
-(§3.4).
+**Witnesses.** A Checkpoint MAY carry Cosignatures: signature lines a
+Witness adds under [tlog-cosignature] after verifying, through
+[tlog-witness], that the Checkpoint is consistent with every Checkpoint
+of this origin it cosigned before. A Cosignature attests the first three
+lines of the note and nothing about the extension lines
+[tlog-cosignature]; what it adds is that the tree the Aggregator signed
+is the one the Witness saw, so a Consumer holding a cosigned Checkpoint
+knows that no Consumer sharing that Witness was served a different tree
+at that size. Which Witnesses a Consumer trusts is its configuration —
+the tuples of Witness name, public key and cosignature version
+[tlog-cosignature] describes, obtained as the Anchor is (§3.4) — and how
+many it requires is the Parameter Registry's `checkpoint_witness_quorum`
+(WIST-4 §5; default 0), read as in force at the Checkpoint's
+`sealed_at`: a Consumer MUST NOT act on a Checkpoint carrying verified
+Cosignatures from fewer than that many distinct trusted Witness names.
+A Checkpoint short of the quorum is neither evidence nor an error: the
+Consumer keeps its verified head and retries, and the staleness rule
+above applies while it stays short. The quorum applies to the
+Checkpoint a Consumer adopts as its head; the Checkpoints between its
+previous head and that one are verified by the Log's signature and by
+recomputation against the head's tree (above), which the head's
+Cosignatures cover. The Aggregator submits each Checkpoint to the
+Witnesses it uses through [tlog-witness]'s `add-checkpoint` call and
+republishes it with the Cosignatures returned; which Witnesses it uses
+is its choice and no Consumer's trust source, for the reason the Mirror
+list is not (above).
 
-The division of labor here is deliberate and worth stating exactly:
-**detection is in-band, dissemination is not.** The proof is two small
-signed files anyone can verify, but no channel this specification
-defines carries it — "publish it widely" names no venue, and v1
-deliberately ships no gossip or witness layer (the mechanism CT grew
-for exactly this), because in-band objects cannot be added within a
-major version and a half-specified witness protocol would be worse
-than a recorded absence. Two consequences follow honestly. The
-self-incrimination guarantee is scoped: an Aggregator that partitions
-its audiences perfectly — distinct Checkpoints to distinct populations
-that never compare notes — is caught only when a bundle crosses the
-partition, which multi-Mirror fetching (above) makes likely but
-nothing here makes certain. And the remedy runs on evidence, not
-plumbing: a proof, however it traveled, justifies the fork/succession
-path (§3.4) everywhere it lands. A witness layer is v2's to add.
+While `checkpoint_witness_quorum` is 0 — the value this edition starts
+at, before any Witness cosigns the Log — a Consumer that accepts a
+Checkpoint carrying no Cosignature from a Witness it trusts MUST record
+that acceptance as unwitnessed with the Checkpoint it retains and
+SHOULD report it as it reports a stale Log. The interim is stated here
+rather than left implicit because an unwitnessed Checkpoint is exactly
+the split view the quorum exists to exclude.
+
+**Equivocation** is two Checkpoints of one Log, each validly signed
+under an Aggregator key valid at the height its `block_number` line
+states (§3.4), that state the same tree size and different root
+hashes, or the same `block_number` and a different tree size, root hash
+or `sealed_at`. The first form is the one [tlog-checkpoint] forbids a
+log to sign and a Witness refuses to cosign; the second is this suite's
+own, because a Block's bounds and instant decide capacity, application
+order and every day count (§3), and two partitions of one tree are two
+states. The evidence bundle is exactly those two Checkpoint files —
+self-contained, portable, verifiable by anyone with the Anchor and the
+Log's key acts. A third form needs more: two Checkpoints of different
+sizes between which no Consistency Proof exists — the smaller's root is
+not the root of the larger tree's prefix at that size, a tree size
+below the previous Checkpoint's included — where the evidence is both
+Checkpoints and the tree hashes (§6) that reproduce the larger root,
+from which anyone recomputes the prefix root the smaller contradicts.
+A party holding a bundle SHOULD publish it widely; consumers verifying
+it MUST stop applying new data from that Aggregator (§9, `WIST3-E02`).
+Checkpoints signed by *any* key valid at their `block_number` count; an
+Aggregator cannot escape an equivocation proof by removing the signing
+key afterward (§3.4).
+
+**Detection is in-band; dissemination is partly so.** The proof is two
+small signed files anyone can verify, and "publish it widely" still
+names no venue. What a Witness quorum adds is prevention rather than a
+channel: a Witness cosigns nothing inconsistent with what it cosigned
+before, so a split view reaches a Consumer applying the quorum only if
+that many trusted Witnesses saw it — which is why a quorum of one
+operator's Witnesses is not a quorum, and why the roster is the
+Consumer's. Two limits remain. Below the quorum, and for every
+Checkpoint accepted unwitnessed, an Aggregator that partitions its
+audiences perfectly — distinct Checkpoints to distinct populations that
+never compare notes — is caught only when a bundle crosses the
+partition, which multi-source fetching (above) makes likely but nothing
+here makes certain. And the remedy runs on evidence, not plumbing: a
+proof, however it traveled, justifies the fork/succession path (§3.4)
+everywhere it lands.
 
 ## 6. Static Layout
 
 The log is distributed as static files. Transport is out of scope: any
 HTTP server, CDN, torrent, or IPFS gateway works, because every file
-except `/log/checkpoint.json` and `/snapshots/index.json` is immutable and
+except `/checkpoint` and `/snapshots/index.json` is immutable and
 integrity is verified by hash, signature, or commitment, never by source.
 
 The paths below are rooted at the Log's **Service Origin**,
 `https://<log_id>/` (§3.4) — which is how a party holding a Log Anchor
 needs no second discovery channel: the Anchor's `log_id` names the host,
-and everything else is a path. Mirrors re-serve the same paths at their
+and everything else is a path. The Service Origin is also the tiled-log
+*prefix* of [tlog-tiles], so that the Checkpoint's origin line,
+`<log_id>`, is the scheme-less prefix that format recommends and a
+client of that format reads the Log from the Anchor alone: the head
+Checkpoint at `/checkpoint`, the tree's hashes at
+`/tile/<L>/<N>[.p/<W>]` and its Entries at `/tile/entries/<N>[.p/<W>]`,
+each exactly as [tlog-tiles] defines the path, the content and the
+`Content-Type`. The suite's own files sit under `/log/`, `/payloads/`
+and `/snapshots/`. Mirrors re-serve the same paths at their
 own origins. Two endpoints are dynamic and exist only at the Service
 Origin, never on a Mirror: the Ingest Endpoint `POST
 https://<log_id>/ingest` (WIST-2 §4) and the status endpoint `GET
@@ -505,11 +705,15 @@ Payload files are immutable in the same sense — their bytes never change —
 but they are the one class of file that may cease to be served, under §6.2.
 
 ```
+/checkpoint                             (mutable, small, signed note; the current head — §5, [tlog-tiles])
+/tile/0/000                             (immutable; a full level-0 tile: 256 leaf hashes — [tlog-tiles])
+/tile/0/001.p/44                        (a partial tile, here for tree size 300; deletable once the full tile exists)
+/tile/1/000.p/1
+/tile/entries/000                       (immutable; an entry bundle: the leaf data of 256 Entries — [tlog-tiles])
+/tile/entries/001.p/44
 /log/anchor.json                        (immutable, signed; a copy of the §3.4 trust root)
-/log/checkpoint.json                    (mutable, small, signed; the current head — §5)
-/log/checkpoints/000000000.json         (immutable; every Checkpoint published — §5)
-/log/blocks/000000000.json.zst          (immutable; zero-padded 9-digit block number)
-/log/blocks/000000001.json.zst
+/log/checkpoints/000000000              (note text immutable; every Checkpoint published, zero-padded 9-digit block number — §5)
+/log/checkpoints/000000001
 ...
 /log/suffix-lists/7d33b504….dat         (immutable; a pinned Public Suffix List snapshot, WIST-4 §3.1)
 /payloads/6cac5bdd….json                (one per content-bearing Delta — §6.1)
@@ -526,19 +730,47 @@ out-of-band trust root, and a Consumer MUST NOT accept the copy served at
 this path without the verification §3.4 requires; a file an operator serves
 about itself is not a trust root because of where it sits.
 
-**Block files.** A Block file is the JCS canonical bytes of the Block
-object — `header`, `entries` and `sig` — compressed in exactly one standard
-Zstandard frame ([RFC 8878] §3.1.1). The frame MUST start at the first byte
-and end at the last byte of the file, including its optional checksum.
-Concatenated frames, skippable frames at any position, and trailing bytes
-MUST be rejected as `WIST3-E03`, even if they add no decompressed output.
-The size declaration belongs to that single frame, not to a prefix or a
-concatenation of frames. The compression level is unconstrained, but the
-frame MUST declare its decompressed size (zstandard's `Frame_Content_Size`),
-and that size MUST
-NOT exceed the applicable Block-size bound in WIST-4 §5 (Registry
-default 256 MiB). Before fetching a Block, a Consumer derives a transport
-bound from its already verified prefix: the greatest
+**Checkpoints.** `/checkpoint` is the head Checkpoint, served with
+`Content-Type: text/plain; charset=utf-8` and headers that prevent
+caching beyond a few seconds [tlog-tiles].
+`/log/checkpoints/<block_number>`, the number zero-padded to nine
+digits, is the archive: Checkpoint N as a signed note, served with the
+same `Content-Type`, carrying every signature line the Aggregator has
+obtained for it. The Aggregator MAY rewrite an archive file to add
+Cosignatures (§5) and MUST NOT alter its note text. A file at that path
+whose `block_number` line is not the path's number is `WIST3-E03`.
+
+**Tiles and entry bundles.** The tree is served as [tlog-tiles] tiles —
+256 hashes of 32 octets per full tile, a partial tile of the width the
+tree size requires at its right edge — and the Entries as that format's
+entry bundles: each leaf's data, the JCS serialization of the Entry
+(§4), prefixed by its length as a big-endian uint16, so that each entry
+hashes to the corresponding hash of the level-0 tile. Both are octets
+the tree fixes, byte-identical at every source, and compressed, if at
+all, at the HTTP layer as [tlog-tiles] provides. A Consumer verifies a
+tile or bundle only by recomputation against the root a verified
+Checkpoint states (§3.1, §4); one that does not reproduce it is
+`WIST3-E03`. The Log serves no proof objects (§4). The Aggregator MUST
+serve, for the tree size its head Checkpoint states, the partial tiles
+and the partial entry bundle that size requires, and MAY delete a
+partial tile or bundle once the full one exists [tlog-tiles]; a
+Consumer MUST NOT fetch a partial tile or bundle without a verified
+Checkpoint whose size requires it, and falls back to the full one
+[tlog-tiles].
+
+**Block size.** The size of Block N is the number of octets its Entries
+occupy in entry bundles: the sum, over Block N's Entries, of the length
+of each JCS serialization plus two. It MUST NOT exceed the applicable
+`block_decompressed_cap_bytes` (WIST-4 §5; Registry default 256 MiB):
+the Aggregator seals under the caps that section names, and a Consumer
+MUST reject a Block that exceeds them (`WIST3-E03`). The cap counts
+octets after any HTTP content-coding is removed, which is the sense in
+which the identifier says *decompressed*, and it bounds what a Consumer
+fetches to apply a Block: the Block's own octets, the remainder of the
+at most two bundles it shares with its neighbours — each bundle at most
+256 leaves of 65 537 octets (§3.3) — and 32 octets of level-0 tile per
+leaf with the tiles above them. Before fetching a Block, a Consumer
+derives a transport bound from its already verified prefix: the greatest
 `block_decompressed_cap_bytes` in the map at that prefix's last
 `sealed_at` and at every accepted future `effective_at`. With no verified
 Block, use the Registry default. Accepted pending amendments participate;
@@ -546,35 +778,31 @@ rejected candidates and the Block being fetched do not. This bound also
 covers historical Block fetches because each accepted cap covers the
 entire sealed prefix (WIST-4 §5). A Consumer restoring from a Snapshot uses
 its authenticated parameter tuples, including pending amendments (§7),
-and the verified Block at `log_position` as its prefix. To fetch that
-Block itself before its timestamp is verified, use the greatest of the
-Registry default and every cap value in those authenticated tuples. This
+and its manifest's Block `block_number` as its prefix. This
 bootstrap bound cannot be raised by unauthenticated state. The size
 guarantee itself still requires the reconstruction WIST-4 §5 specifies.
 
-A Consumer MUST reject a frame with no declared size or a declared size
-above that transport bound without decompressing it, and MUST abort
-streaming decompression before emitting bytes beyond the bound (§10).
-The actual decompressed length MUST equal the declared length. These
-failures are `WIST3-E03`. Equality with the bound is permitted. A frame's
-own header timestamp, a Mirror's claim or the local wall clock MUST NOT
-raise the pre-decompression bound.
+A Consumer MUST stop reading a response before buffering bytes beyond
+the limit (§10) when a tile exceeds 8 192 octets, an entry bundle
+exceeds 16 777 472 octets — 256 leaves of 65 537 — or the entries
+attributable to the Block being fetched, those whose leaf indexes lie
+in its range, exceed the transport bound. These failures are
+`WIST3-E03`. Equality with a bound is permitted. A Mirror's claim or
+the local wall clock MUST NOT raise a bound.
 
-After decompression and authentication, replay the Block's parameter
-candidates and check its actual JCS size against WIST-4 §5's current and
-prospective bounds before applying it. The transport bound alone does
+After authentication, replay the Block's parameter candidates and check
+its size against WIST-4 §5's current and prospective bounds before
+applying it. The transport bound alone does
 not authorize use of a scheduled increase before its effective instant,
 and cannot excuse exceeding an already accepted pending reduction.
 
-Because compression parameters are not constrained, Block *files* are not
-byte-comparable across Mirrors. Integrity is recovered on the far side of
-decompression: recompute `merkle_root` over `entries`, check `entry_count`,
-recompute the Block Hash over `JCS(header)`, and verify the signature
-against those same bytes (§3.1). §12's Mirror obligation is therefore to
-serve content that verifies, not identical octets. The one class of file
-for which the two coincide is the Snapshot tier files, whose octets a
-signed manifest hashes directly (§7): those a Mirror MUST serve unchanged,
-because nothing else authenticates them.
+Every file is verified rather than trusted, and §12's Mirror obligation
+is to serve octets that verify: a tile or bundle by recomputation
+against the Checkpoint's root, a Checkpoint by its signature lines
+(§5), a signed object by its signature, a Payload by its commitment
+(§6.1). Only the Snapshot tier files carry no verification of their
+own: a signed manifest hashes their octets directly (§7), so those a
+Mirror MUST serve unchanged.
 
 **Discovery.** `/snapshots/index.json` (schema:
 [`schemas/snapshot-index.schema.json`](../schemas/snapshot-index.schema.json))
@@ -589,21 +817,27 @@ against a second, independently signed statement of what that Snapshot
 contains. An Aggregator MUST remove an entry from the index when it stops
 serving that Snapshot; a withdrawal (§6.2) is the case that forces it.
 
-**Retention.** The Aggregator MUST keep every Block from genesis
-retrievable at its `/log/blocks/` path. Replay from the Log Anchor is what
+**Retention.** The Log is never pruned: its minimum index under
+[tlog-tiles] is 0, and the Aggregator MUST keep every entry bundle and
+every full tile from genesis retrievable at its path. Replay from the Log Anchor is what
 makes key validity (§3.4), the parameter schedule (WIST-4 §5) and
-historical signature verification recomputable, so a Log missing a Block in the middle is a Log
+historical signature verification recomputable, so a Log missing an Entry in the middle is a Log
 no party can verify from the Anchor at all. The Aggregator MUST likewise
 retain every Checkpoint it has published, at
-`/log/checkpoints/<block_number>.json` with the block number zero-padded to
-nine digits: `/log/checkpoint.json` names the current head and is
-overwritten, so without the archive an equivocation proof (§5) would rest
-on whoever happened to have kept the superseded copy.
+`/log/checkpoints/<block_number>` (above): `/checkpoint` names the
+current head and is overwritten, so without the archive an equivocation
+proof (§5) would rest on whoever happened to have kept the superseded
+copy, and a Consumer, which verifies every Checkpoint between its head
+and the one it adopts (§5), would have nothing to verify.
 
-A Mirror that serves a Block MUST retain it for at least the Mirror
+A Mirror **serves Block N** when it serves Checkpoint N and every entry
+bundle and tile whose leaf range meets Block N's. A Mirror that serves
+a Block MUST retain it for at least the Mirror
 retention floor (Parameter Registry: `mirror_retention_days`; default 90
 days), measured from its first service of that Block with the value in
-force at that instant. Later amendments do not shorten that obligation.
+force at that instant, and while it serves the Log's head it serves the
+partial tiles and bundle that head requires (above). Later amendments
+do not shorten that obligation.
 This lets an evidence bundle be assembled after the fact rather
 than only while an operator finds it convenient. §5's obligation on
 Checkpoints is stricter and this floor does not relax it: a Mirror retains
@@ -622,9 +856,11 @@ not hash to its name is `WIST3-E03`, and one no source holds is
 `WIST3-E01`: the Consumer cannot check the per-domain capacity of any
 Block that snapshot governs until it obtains the file.
 
-**Sizing.** The Log's permanent volume is the Entries it seals:
-Declarations, governance acts, Deltas and Labels. An idle Log accrues one
-empty Block per cadence and nothing else, so storage growth is a function
+**Sizing.** The Log's permanent volume is the Entries it seals —
+Declarations, governance acts, Deltas, Labels and disputes — plus the
+tiles above them, under 33 octets per leaf across every level, and one
+Checkpoint per Block. An idle Log accrues one
+Checkpoint per cadence and nothing else, so storage growth is a function
 of what Publishers and Labelers publish and of the cadence alone.
 
 ### 6.1. Payloads
@@ -659,12 +895,11 @@ octet caps on `extract`, `links` and `summary` and the relationship
 between them and `bytes`; a Payload is unsigned, so nothing here is
 authenticated except by recomputing that commitment.
 
-Payloads are fetched in the same synchronisation pass as Blocks, from the
-same static file servers, by the same unauthenticated GETs. They are
-**not** covered by the Block signature and **not** covered by the Merkle
-root; nothing in a Block's header, hash, or inclusion proofs depends on
-them, which is exactly why a Block stays byte-immutable when a Payload is
-withdrawn.
+Payloads are fetched in the same synchronisation pass as entry bundles,
+from the same static file servers, by the same unauthenticated GETs. They
+are **not** covered by the tree: no leaf hash, root or Inclusion Proof
+depends on them, which is exactly why the tree is untouched when a
+Payload is withdrawn.
 
 A Consumer MUST verify each Payload against its Delta's `commitment` and
 `bytes` (WIST-1 §3.6) before applying its content, and MUST NOT apply
@@ -681,13 +916,14 @@ part of its per-URL chain. The Consumer applies what the Delta itself
 says — the URL, the change type, the observation time — and materializes
 no content for it.
 
-**Availability window.** An Aggregator and any Mirror serving a Block MUST
+**Availability window.** An Aggregator and any Mirror serving a Block (§6) MUST
 serve that Block's Payloads for at least the payload availability window
 (Parameter Registry; default 180 days), except for Payloads withdrawn
-under §6.2, and MUST NOT serve the Block before every Payload its
-content-bearing Deltas commit to, less those withdrawn, is retrievable
-at its path: Payloads replicate first, and the Block follows, the same
-order §5 fixes between a Block and its Checkpoint, so a Payload is never
+under §6.2, and MUST NOT serve Checkpoint N before every Payload Block
+N's content-bearing Deltas commit to, less those withdrawn, is
+retrievable at its path: Payloads replicate first, then the Entries,
+then the Checkpoint, extending the order §5 fixes between the Entries
+and their Checkpoint, so a Payload is never
 absent at a Mirror merely because replication has not reached it. A
 Payload that is absent without a withdrawal entry is a
 `WIST3-E05` fault against that Mirror; this is what distinguishes a lawful
@@ -836,13 +1072,23 @@ this section quantifies over one Log.
 A Snapshot is a derived artifact: the materialized state of the log up to
 Block N. Its `manifest.json` (schema:
 [`schemas/snapshot-manifest.schema.json`](../schemas/snapshot-manifest.schema.json))
-is signed by the Aggregator and declares `snapshot_date`, `log_position`
-(= N), `anchor_block_hash` (the Block Hash of Block N), `content_digest`
+is signed by the Aggregator and declares `snapshot_date`, `block_number`
+(= N), `log_position` (= `size(N)`, the tree size Checkpoint N states,
+§3), `anchor_block_hash` (the root hash of the tree at `log_position`,
+in the `sha256:` form of §3.1), `content_digest`
 (below), `state` (the state artifact, below), optionally `shards`
 (below), and `files` — one entry per artifact, each carrying its `path`
 relative to the manifest, its `sha256`, its `bytes`, the `tier` (`0` or
 `1`) it belongs to, and, where the manifest declares `shards`, its
-`shard` index.
+`shard` index. `block_number` is carried because a tree size names no
+Block on its own: an empty Block restates the size before it (§3.2),
+and the state at two such Blocks can differ by whatever their
+`sealed_at` instants settle, expire or bring into force. Throughout
+this section "at `log_position`" means at Block N — over the Entries
+whose leaf index is below `log_position`, with Block N's `sealed_at` as
+the instant — and "above" or "below" `log_position` means above or
+below Block N. Every height a Snapshot carries, in this section's
+tuples and tables, is a Block number, never a tree size.
 
 - **Tier 0** — summaries of every live record: SQLite (FTS5) + Parquet.
   Sized for any laptop; answers most agent queries alone.
@@ -1083,14 +1329,14 @@ the Parameter Registry values that decide them are read as of
 **What the digest does not say.** It describes a record set, not a height.
 Two `log_position`s whose live sets are identical digest identically, which
 is correct — they are the same state. The height is carried by
-`log_position` and bound to a single chain by `anchor_block_hash`, the
-Block Hash of Block `log_position`, which §8 checks against the chain the
-Consumer verified. A Consumer that rebuilds to a height whose live set
+`block_number` and `log_position` and bound to a single tree by
+`anchor_block_hash`, the root hash at `log_position`, which §8 checks
+against the Checkpoint the Consumer verified. A Consumer that rebuilds to a height whose live set
 differs therefore sees a `content_digest` mismatch (`WIST3-E04`) rather than
 silent agreement; one that rebuilds to a different height whose live set is
 the same agrees, and is right to, since the manifest's `log_position`
-already says which height was meant. A manifest from a forked chain shows
-an `anchor_block_hash` the Consumer's chain does not produce (`WIST3-E02`),
+already says which height was meant. A manifest from a forked Log shows
+an `anchor_block_hash` the Consumer's tree does not produce (`WIST3-E02`),
 whatever its digest says. Nor does the digest speak for a
 non-conforming builder: it proves two parties materialized the same
 records, not that either verified the Payloads it indexed, which §6.1
@@ -1278,73 +1524,82 @@ above, treats its coverage as partial.
 3. Download the listed files — all of them, or, under a manifest that
    declares `shards` (§7), the state file and any subset of shards —
    and verify each SHA-256 and byte size.
-4. Fetch `/log/checkpoint.json`; verify signature.
-5. Download Blocks `log_position + 1 .. checkpoint.block_number`. A Block
-   a Mirror does not hold is `WIST3-E01`: fetch it from another Mirror,
+4. Load the state artifact (§7): verify its signature and its
+   `log_position`, and adopt its tuples as the protocol state at Block
+   `block_number` — key registries, Declarations, parameters, the
+   Public Suffix List snapshot in force (whose octets the Consumer
+   fetches from `/log/suffix-lists/` and verifies by their identifier
+   before it checks the next Block's per-domain capacity, WIST-4
+   §3.1), withdrawals, Labels, chain tips. Every Entry applied below
+   is validated against this state exactly as a replaying Consumer
+   validates against state it derived itself: a signature under a key
+   the state does not admit, a Delta whose `prev` is not the chain tip
+   the state carries, a Label older than the one the state holds for its
+   triple, all fail as they would on full replay. A `recovery_window` tuple makes its head an
+   eligible predecessor beside the current Declaration, and the Consumer
+   settles it before applying the first Block at or after its end exactly
+   as WIST-1 §5.2 directs: the head becomes current and the `declaration`
+   tuple's sequence floor stays. A `pending_declaration` tuple makes its
+   head an eligible predecessor beside the current Declaration, supplies
+   no Delta authority, and activates or is reversed at the heights
+   WIST-1 §5.2 fixes.
+5. Fetch `/log/checkpoints/<block_number>` (§6) and verify it as §5
+   requires under the `aggregator_key` tuples just loaded; verify that
+   it states tree size `log_position` and the root hash
+   `anchor_block_hash` carries (§3.1). A mismatch is chain divergence
+   (`WIST3-E02`), not a corrupt file: it means the Snapshot describes a
+   different tree from the one the Log signs. This Checkpoint is the
+   Consumer's verified head.
+6. Fetch `/checkpoint` (SHOULD: from ≥ 2 sources, the monitoring
+   endpoint of each trusted Witness among them, §5) and every archived
+   Checkpoint between the head and it. A Checkpoint, tile or entry
+   bundle a source does not hold is `WIST3-E01`: fetch it from another,
    since integrity never depends on the source.
-6. Verify each Block: chain (`prev_block_hash`), signature, `merkle_root`
-   recomputation, `entry_count`.
-7. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
-   and that each Block's `prev_block_hash` matches the Block Hash of its
-   predecessor, walking backward from the head to `log_position`.
-8. Verify that the manifest's `anchor_block_hash` is the Block Hash of
-   Block `log_position` on that same chain: against the `prev_block_hash`
-   of Block `log_position + 1` when one was downloaded, or against the
-   Checkpoint's `block_hash` when the Snapshot is already at the head. A
-   mismatch is chain divergence (`WIST3-E02`), not a corrupt file: it means
-   the Snapshot describes a different chain from the one just verified.
+7. Verify each Checkpoint above the head, in `block_number` order, as
+   §5 requires: parse it; fetch the entry bundles covering its Block's
+   leaves and the tiles the two proofs need (§6); verify the Consistency
+   Proof from the previous Checkpoint's tree size and the Block's leaves
+   against its root (§3.1, §4); apply the Block's Registry Updates; then
+   verify the Log's signature under the key set valid at its height.
+8. Choose the Checkpoint to adopt: the newest verified one, the head of
+   step 5 included, carrying the Witness quorum §5 requires, recorded as
+   unwitnessed where §5's interim applies. Entries above its tree size
+   are not applied. If none carries the quorum the Consumer has no state
+   to act on and retries (§5).
 9. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
-   in those Blocks whose Payload has not been withdrawn (§6.2); verify
-   each against its Delta's commitment and `bytes` (§6.1).
-10. Load the state artifact (§7): verify its signature and its
-    `log_position`, and adopt its tuples as the protocol state at
-    `log_position` — key registries, Declarations, parameters, the
-    Public Suffix List snapshot in force (whose octets the Consumer
-    fetches from `/log/suffix-lists/` and verifies by their identifier
-    before it checks the next Block's per-domain capacity, WIST-4
-    §3.1), withdrawals, Labels, chain tips. Every Entry applied in the next step
-    is validated against this state exactly as a replaying Consumer
-    validates against state it derived itself: a signature under a key
-    the state does not admit, a Delta whose `prev` is not the chain tip
-    the state carries, a Label older than the one the state holds for its
-    triple, all fail as they would on full replay. A `recovery_window` tuple makes its head an
-    eligible predecessor beside the current Declaration, and the Consumer
-    settles it before applying the first Block at or after its end exactly
-    as WIST-1 §5.2 directs: the head becomes current and the `declaration`
-    tuple's sequence floor stays. A `pending_declaration` tuple makes its
-    head an eligible predecessor beside the current Declaration, supplies
-    no Delta authority, and activates or is reversed at the heights
-    WIST-1 §5.2 fixes.
-11. Apply Entries in order to the local index, materializing content only
-    from Payloads that verified.
+   in the Blocks up to it whose Payload has not been withdrawn (§6.2);
+   verify each against its Delta's commitment and `bytes` (§6.1).
+10. Apply Entries in order to the local index, Block by Block,
+    materializing content only from Payloads that verified.
 
 A Consumer that also replays the Log from genesis MAY recompute the
 Snapshot's `content_digest` and `state_digest` (§7) and compare them with
 the manifest's. Doing so needs no Payload and no tier file, so it is
-available to any party holding the Blocks — including one checking an
+available to any party holding the Entries — including one checking an
 Aggregator it does not otherwise sync from — and it is what keeps the
 state artifact an assertion anyone can falsify rather than testimony a
 cold-starting Consumer must take on trust.
 
 **Continuous operation:**
 
-1. Fetch `checkpoint.json` (SHOULD: from ≥ 2 Mirrors). A Checkpoint whose
+1. Fetch `/checkpoint` (SHOULD: from ≥ 2 sources, §5). A Checkpoint whose
    `block_number` is lower than the highest already verified MUST be
-   rejected (§5's rollback rule) before any Block is downloaded against it,
-   and the Consumer SHOULD warn if the newest Checkpoint's `sealed_at` lags
-   the current time by more than three sealing cadences (§5) — a stale head
-   and a rolled-back head are the two ways a Mirror can leave a Consumer
-   verifying correctly against the wrong end of the chain.
-2. Download missing Blocks; verify as above.
-3. Verify that the head Block's Block Hash equals `checkpoint.block_hash`,
-   and that each Block's `prev_block_hash` matches the Block Hash of its
-   predecessor, walking backward from the head to `log_position`.
+   rejected (§5's rollback rule) before any tile or bundle is fetched
+   against it, and the Consumer SHOULD warn if the newest Checkpoint's
+   `sealed_at` lags the current time by more than three sealing cadences
+   (§5) — a stale head and a rolled-back head are the two ways a Mirror
+   can leave a Consumer verifying correctly against the wrong end of the
+   tree.
+2. Fetch the archived Checkpoints between the verified head and it, and
+   verify each as cold start's step 7 does.
+3. Choose the Checkpoint to adopt as cold start's step 8 does; short of
+   the quorum, keep the verified head and retry (§5).
 4. Fetch and verify the corresponding Payloads (§6.1).
 5. Apply.
 
-Payload fetching never gates chain verification: a Consumer that cannot
+Payload fetching never gates tree verification: a Consumer that cannot
 obtain some Payloads still verifies, applies, and advances over the
-Blocks, and simply materializes no content for the affected Deltas. Chain
+Blocks, and simply materializes no content for the affected Deltas. Tree
 integrity and content availability are separate failures, and only the
 first is ever a reason to stop.
 
@@ -1353,7 +1608,7 @@ Block distance from its position to the newest Checkpoint against the
 distance covered by the newest Snapshot, and chooses whichever costs less
 to process. Both paths converge to identical state — the record tuples by
 `content_digest`, the protocol state by `state_digest`, each recomputable
-from the Blocks alone (§7) — so the choice is purely economic. Without
+from the Entries alone (§7) — so the choice is purely economic. Without
 the state artifact the sentence before this one would be false: record
 tuples alone carry no key registry, no governance state and no chain
 tips, and the two paths would converge only on content while disagreeing
@@ -1388,16 +1643,38 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 
 | Code | Meaning and required behavior |
 |---------|--------------------------------------------------------------|
-| WIST3-E01 | Block missing at a Mirror. Fetch from another Mirror; integrity never depends on the source. |
-| WIST3-E02 | Chain divergence (hash mismatch or conflicting Checkpoints, head Block Hash does not match the Checkpoint's `block_hash`, or a Snapshot manifest whose `anchor_block_hash` is not the Block Hash of Block `log_position` on the verified chain — §8). Hard failure: preserve both Checkpoints as an evidence bundle (§5), MUST NOT apply the data. |
-| WIST3-E03 | Invalid Block file (hash or signature failure, invalid frame composition, missing or false declared frame size, or exceeded transport or accepted-schedule size bound — §6, WIST-4 §5); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another Mirror if needed, before concluding misbehavior. |
+| WIST3-E01 | A Checkpoint, tile, entry bundle or Public Suffix List snapshot missing at a source (§5, §6). Fetch it from another — a Mirror, the Aggregator or, for a head Checkpoint, a trusted Witness's monitoring endpoint; integrity never depends on the source. A Consumer holding a Checkpoint whose Entries no source serves keeps this code and applies nothing above its verified head (§5). |
+| WIST3-E02 | Chain divergence: a Consistency Proof that fails between two Checkpoints of the Log, two Checkpoints that equivocate under §5, or a Snapshot manifest whose `log_position` or `anchor_block_hash` is not what Checkpoint `block_number` states (§7, §8). Hard failure: preserve the Checkpoints — and, for a failed Consistency Proof, the tiles that reproduce the larger root — as an evidence bundle (§5), MUST NOT apply the data. |
+| WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules or sits at an archive path not its own (§6); a tile or entry bundle over its format size or not reproducing the tree its Checkpoint states (§3.1, §6); a Block over the size cap (§6, WIST-4 §5) or carrying an Entry over 65 535 octets (§3.3); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; a Block the Aggregator sealed over a bound is misbehavior no source repairs. |
 | WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `log_position`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `log_position`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
+A Checkpoint short of the Witness quorum has no code: §5 makes it a
+wait, not a fault — the Consumer keeps its verified head, retries and
+reports staleness as §5 directs — and an implementation MUST NOT report
+it under `WIST3-E02` or `WIST3-E03`.
+
 ## 10. Security Considerations
 
-- **Equivocation** is the Aggregator's only meaningful attack, and §5
-  makes it self-incriminating at the cost of two small signed files.
+- **Equivocation** is the Aggregator's only meaningful attack. §5
+  makes it self-incriminating at the cost of two small signed files,
+  and a Witness quorum makes it unreachable: a Consumer requiring
+  `checkpoint_witness_quorum` Cosignatures adopts a split view only if
+  that many of its trusted Witnesses cosigned both sides, which the
+  Witness protocol forbids each of them to do. Below the quorum, and at
+  the quorum of 0 this edition starts at, the defence is the evidence
+  bundle alone (§5).
+- **What a Cosignature does not cover.** A Witness attests the origin,
+  tree size and root hash and makes no statement about the extension
+  lines [tlog-cosignature], so two Checkpoints agreeing on the tree and
+  differing in `block_number` or `sealed_at` — §5's second form of
+  equivocation, which moves Block bounds and day counts — pass every
+  Witness and are caught by the evidence bundle alone. Only the Log's
+  own signature binds those lines, which is why it is a [signed-note]
+  Ed25519 signature over the whole note text (§3.4) rather than a
+  cosignature type. A Witness roster the Log distributed would let the
+  Aggregator choose its own auditors, which is why the roster is the
+  Consumer's configuration (§5).
 - **Rollback.** A Mirror serving stale data cannot regress a Consumer:
   block numbers are monotonic and Consumers never accept a Checkpoint
   older than one they hold.
@@ -1424,9 +1701,10 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
   is visible as a Delta whose content no party can verify rather than as a Mirror
   fault; WIST-2 §5 closes the honest path by requiring the Aggregator to
   reject such a Delta instead of sealing it.
-- **Compression bombs.** The verified-prefix transport bound (§6; default
-  256 MiB) MUST be enforced while decompressing, before emitting bytes
-  beyond the limit.
+- **Compression bombs.** The tile and entry-bundle format sizes and the
+  verified-prefix transport bound (§6) MUST be enforced while a response
+  is read, before buffering bytes beyond the limit and whatever
+  content-coding the transport applied.
 - **Key rotation repudiation.** Without an in-band, height-scoped notion
   of key validity, an Aggregator caught equivocating could retire the
   signing key and claim the proof no longer identifies a currently
@@ -1465,12 +1743,19 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 - [ ] Seals Blocks per §3 (sequential numbering, strict `sealed_at`
       monotonicity on the cadence grid, whole-second `sealed_at` ending
-      in `Z`, canonical Entry order, the per-domain Entry capacity,
-      correct Block Hash and Merkle root)
-- [ ] Publishes a Checkpoint per sealed Block at the fixed URL, never
-      before the Block it names and every lower Block are durably stored
-      and served (§5)
-- [ ] Serves the static layout of §6 with immutable Block files
+      in `Z`, canonical Entry order, the per-domain Entry capacity, no
+      Entry over 65 535 octets, and a Checkpoint stating the tree's true
+      size and root)
+- [ ] Publishes a Checkpoint per sealed Block at `/checkpoint` and in
+      the archive, as the five-line signed note of §5 under a key valid
+      at its height, never before every Entry below its tree size is
+      durably stored and served (§5, §6)
+- [ ] Serves the static layout of §6: the [tlog-tiles] tiles and entry
+      bundles at the Service Origin's root, the partial ones its head
+      requires, never pruned
+- [ ] Submits each Checkpoint to the Witnesses it uses and republishes
+      it, at `/checkpoint` and in the archive, with the Cosignatures
+      returned and its note text unchanged (§5, §6)
 - [ ] Serves every sealed Delta's Payload at `/payloads/<delta-id-hex>.json`
       from no later than the Block that seals it, for at least the
       availability window, byte-identical to what it verified at ingest
@@ -1487,15 +1772,17 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Publisher's, else the least non-ancestor domain in octet order
 - [ ] Produces Snapshots whose manifests satisfy §7, including the
       materialization rule, the `content_digest`, the state artifact and
-      its `state_digest`, per-shard digests where sharded, and an
-      `anchor_block_hash` equal to the Block Hash of Block `log_position`
+      its `state_digest`, per-shard digests where sharded, and a
+      `block_number`, `log_position` and `anchor_block_hash` that
+      Checkpoint `block_number` states
 - [ ] Treats any companion pack it publishes itself as a Snapshot
       artifact for §6.2's withdrawal obligations (§7)
 - [ ] Publishes `/snapshots/index.json`, signed, newest first, agreeing
       with each manifest it points to, and removes an entry when it stops
       serving that Snapshot (§6)
-- [ ] Retains every Block from genesis and every Checkpoint it has
-      published, the latter at `/log/checkpoints/<block_number>.json` (§6)
+- [ ] Retains every entry bundle and full tile from genesis and every
+      Checkpoint it has published, the latter at
+      `/log/checkpoints/<block_number>` (§6)
 - [ ] Serves every Public Suffix List snapshot a sealed
       `suffix_list_update` names at `/log/suffix-lists/<hex>.dat`, from
       the sealing Block and without expiry, and counts the per-domain
@@ -1503,9 +1790,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       (§3.2, §6, WIST-4 §3.1)
 - [ ] Rebuilds a Snapshot superseded by a withdrawal at a `log_position`
       at or above the withdrawal's height, or withdraws it (§6.2, §7)
-- [ ] Emits each Block in exactly one standard Zstandard frame with no
-      trailing data, declares its complete decompressed size and never
-      exceeds the decompressed cap (§6)
+- [ ] Seals no Block whose size (§6) exceeds the smallest cap WIST-4 §5
+      puts in force for it
 - [ ] Publishes a Log Anchor and admits all later keys in-band (§3.4)
 - [ ] Seals a `publisher_declaration` Entry for a domain before, or in
       the same Block as, the first Delta it authorizes, and never seals a
@@ -1520,20 +1806,21 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 **Mirror:**
 
-- [ ] Serves content that verifies: a Block file that decompresses to a
-      Block reproducing its Block Hash, `merkle_root` and `entry_count`,
-      and a signed object whose canonical bytes reproduce its signature —
-      not necessarily the origin's octets, which compression settings make
-      Mirror-specific (§6)
+- [ ] Serves tiles, entry bundles and Checkpoints byte-identical to the
+      origin's, and signed objects whose canonical bytes reproduce their
+      signatures (§6)
 - [ ] Serves Snapshot tier files byte-identical to origin, since only the
       manifest's per-file `sha256` authenticates them (§6, §7)
-- [ ] Retains every Block it serves for at least `mirror_retention_days`
+- [ ] Retains every Block it serves — its Checkpoint and the bundles and
+      tiles meeting its leaves — for at least `mirror_retention_days`
       (§6)
-- [ ] Retains all Checkpoints ever served, without expiry (§5, §6)
+- [ ] Retains all Checkpoints ever served, with every signature line
+      they carried, without expiry (§5, §6)
 - [ ] Serves the Public Suffix List snapshots the Blocks it serves read
       and name, without expiry (§6)
 - [ ] Serves the Payloads of every Block it serves for at least the
-      availability window, never serves a Block before its Payloads, and
+      availability window, never serves a Checkpoint before its Block's
+      Payloads, and
       stops serving one only after a `payload_withdrawal` is sealed for
       it (§6.1, §6.2)
 - [ ] Stops serving any Snapshot artifact containing withdrawn content,
@@ -1541,31 +1828,36 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 
 **Consumer:**
 
-- [ ] Rejects Block files containing anything beyond one standard Zstandard
-      frame and applies declared, actual and accepted-schedule size checks
-      (§6); rejects leap seconds in Log-comparable timestamps (§3.1, §7)
-- [ ] Verifies chain, signatures, Merkle roots, and entry counts on every
-      Block before applying (§8)
+- [ ] Applies the tile and entry-bundle format sizes, the transport
+      bound and the accepted-schedule size checks (§6); rejects leap
+      seconds in Log-comparable timestamps (§3.1, §7)
+- [ ] Verifies every Checkpoint between its head and the one it adopts —
+      parse, Consistency Proof, the Block's leaves against the root, the
+      Log's signature under the keys valid at its height — before
+      applying its Block (§5, §8)
 - [ ] When verifying an Inclusion Proof, derives sibling sides from
-      `index` and `entry_count` rather than trusting side labels in the
+      `index` and `tree_size` rather than trusting side labels in the
       proof, and rejects a shape-mismatched `path`, an `index` out of
-      range, or a proof `entry_count` that disagrees with the Block
-      header's (§4)
-- [ ] Binds the head Block to the Checkpoint and walks the chain backward
-      from it (§5, §8)
+      range, or a proof `tree_size` that disagrees with the Checkpoint's
+      (§4)
+- [ ] Adopts as head only a Checkpoint carrying the Witness quorum in
+      force, counted over a roster it configured out-of-band, and records
+      an acceptance under quorum 0 as unwitnessed (§5)
 - [ ] Rejects Checkpoints older than the highest already verified, before
-      downloading Blocks against them (§5, §8)
+      fetching tiles or bundles against them (§5, §8)
 - [ ] Warns when the newest Checkpoint's `sealed_at` lags the current time
       by more than three sealing cadences (§5, §8)
 - [ ] Verifies manifest hashes/sizes before using a Snapshot, checks the
       manifest against the `/snapshots/index.json` entry that named it, and
-      binds `anchor_block_hash` to the chain it verified (§8)
+      binds `block_number`, `log_position` and `anchor_block_hash` to the
+      Checkpoint it verified (§8)
 - [ ] Verifies every Payload against its Delta's commitment and `bytes`
       before materializing its content, and never lets a missing Payload
       stop chain verification (§6.1, §8)
 - [ ] Implements all five Error Registry behaviors, including evidence
       preservation on divergence (§9)
-- [ ] Enforces the streaming decompression cap (§10)
+- [ ] Enforces the format sizes and the transport bound while reading
+      (§6, §10)
 - [ ] Excludes deleted and withdrawn content from every materialization it
       produces, and removes withdrawn content from a local index it has
       already built (§6.2, §7)
@@ -1574,8 +1866,8 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Rejects Blocks off the `sealed_at` grid, out of canonical Entry
       order, over the per-domain Entry capacity counted per
       Registrable Domain under the snapshot in force, obtained and
-      verified by its identifier, or over the per-Labeler cap (§3.1–§3.3,
-      §6, WIST-4 §3.1)
+      verified by its identifier, over the per-Labeler cap, or carrying
+      an Entry over 65 535 octets (§3.1–§3.3, §6, WIST-4 §3.1)
 - [ ] On cold start from a Snapshot, loads the state artifact and
       validates subsequent Entries against it; on a sharded Snapshot,
       verifies each held shard's digest and treats coverage as partial
@@ -1594,9 +1886,10 @@ Generated by `tools/gen_vectors.py`; verified by
 [`vectors/wist3/inclusion-proof.json`](../vectors/wist3/inclusion-proof.json).
 
 Block 0 contains 4 `publisher_delta` Entries: the WIST-1 vector Delta and
-three `attest` Deltas for `post-2..4`. Their positions follow §3.3's
+three `attest` Deltas for `post-2..4`, at leaf indexes 0 through 3 of a
+tree of size 4. Their positions follow §3.3's
 canonical order — one type group, ascending leaf-hash order — which puts
-the WIST-1 vector Delta at entry 3; the other positions contain the
+the WIST-1 vector Delta at leaf 3; the other positions contain the
 `attest` Deltas. No Entry’s position is chosen.
 
 **Leaf hashes (hex):**
@@ -1615,32 +1908,28 @@ n01 = node(leaf0, leaf1) = 6c77758a2c40c6247022f51bbc43b3bb515ea01c783abd0861b4f
 n23 = node(leaf2, leaf3) = a99ad975eda3a87b3956b765d2333052d0f355836e87c2d5b5976647c492200c
 ```
 
-**Merkle root:**
+**Root hash of the tree at size 4**, as `anchor_block_hash` carries it
+(§3.1) and as the Checkpoint's third line carries it (§5):
 
 ```
 sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe
+QFlA15AqcOzWKgHEOOyV5SUMCtWA2LiJAzWFMMEg274=
 ```
 
-**Block Hash (over JCS of the header):**
-
-```
-sha256:a83a94390a706189bdeac60724a010efc914806dfb709671425a1124e60df436
-```
-
-**Inclusion proof for entry 0** — `index 0, entry_count 4 → siblings
+**Inclusion proof for leaf 0** — `index 0, tree_size 4 → siblings
 leaf1 then n23, both right-hand` (derived, not carried in the proof):
 
 ```
 h = leaf0
-h = node(h, leaf1)   → aa0d6e7e...  (= n01)   # fn=0 < sn=3: sibling on the right
-h = node(h, n23)     → 95654a63...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
+h = node(h, leaf1)   → 6c77758a...  (= n01)   # fn=0 < sn=3: sibling on the right
+h = node(h, n23)     → 405940d7...  (= root)  # fn=0 < sn=1: sibling on the right  ✓
 ```
 
 Entry 3's Payload is [`examples/payload.json`](../examples/payload.json),
 served at `/payloads/37e4e7246e5bcb20781adf26611128bb3b7b8d9b9ceff02f2630cdb645266860.json`. It contributes to none of the
 hashes above: every figure here is computed over Entries that carry the
 commitment alone, which is why withdrawing that Payload leaves the leaf,
-the root, the Block Hash, and this proof untouched.
+the root, the Checkpoint, and this proof untouched.
 
 This worked example only exercises `index` 0, which — being a uniform
 left-child at every level — cannot by itself distinguish a correct
@@ -1649,13 +1938,28 @@ verifier from one that only handles the uniform-left/uniform-right cases.
 correctness evidence: it verifies every `index` for every tree size 1..64
 against a freshly generated audit path.
 
+The vector also fixes the Log's static surface for this tree (§6): the
+level-0 partial tile `/tile/0/000.p/4`, the 128 octets `leaf0 || leaf1
+|| leaf2 || leaf3`; the entry bundle `/tile/entries/000.p/4`, the four
+Entries' JCS serializations each prefixed by its big-endian uint16
+length; and the Consistency Proof from size 0 to size 4, which is empty
+(§4). Block 1 is empty: Checkpoint 1 restates size 4 and the root above
+one cadence later, and the Consistency Proof from 4 to 4 is the
+equality of the two roots. The empty tree — the Log before Block 0 —
+has size 0 and the root §4 gives.
+
 The corresponding Checkpoint is
-[`examples/checkpoint.json`](../examples/checkpoint.json). The example
+[`examples/checkpoint.txt`](../examples/checkpoint.txt): the five-line
+note of §5 — the `log_id` of
+[`examples/log-anchor.json`](../examples/log-anchor.json), `4`, the
+base64 root above, `block_number 0` and `sealed_at
+2026-08-02T13:00:00Z` — followed by the Log's signature line under the
+example Aggregator key in the signer form §3.4 fixes. The example
 manifest ([`examples/snapshot-manifest.json`](../examples/snapshot-manifest.json))
 uses synthetic file hashes — the SHA-256 of the literal strings
 `tier0-placeholder` / `tier1-placeholder` — so the vector is verifiable
-without shipping binary artifacts. Its `anchor_block_hash` is the Block
-Hash above, Block 0 being its `log_position`.
+without shipping binary artifacts. Its `block_number` is 0, its
+`log_position` 4 and its `anchor_block_hash` the root above.
 
 Its `content_digest` is computed over the two records in
 [`vectors/wist3/snapshot-records.json`](../vectors/wist3/snapshot-records.json),
@@ -1674,7 +1978,16 @@ corresponding discovery index, carrying the same `snapshot_date`,
 - [RFC 6962] Certificate Transparency — Merkle hashing discipline,
   checkpoint/equivocation model
 - [RFC 8785] JSON Canonicalization Scheme (JCS)
-- [RFC 8878](https://www.rfc-editor.org/rfc/rfc8878.html) Zstandard
-  Compression and the `application/zstd` Media Type
+- [RFC 9162](https://www.rfc-editor.org/rfc/rfc9162.html) Certificate
+  Transparency Version 2.0 — consistency proof verification (§4)
+- [RFC 9943](https://www.rfc-editor.org/rfc/rfc9943.html) SCITT
+  architecture — vocabulary mapping (§2)
+- [signed-note](https://c2sp.org/signed-note@v1.0.0) ·
+  [tlog-checkpoint](https://c2sp.org/tlog-checkpoint@v1.0.0) ·
+  [tlog-cosignature](https://c2sp.org/tlog-cosignature) ·
+  [tlog-witness](https://c2sp.org/tlog-witness) ·
+  [tlog-tiles](https://c2sp.org/tlog-tiles) — the C2SP Checkpoint,
+  signature, Cosignature, Witness and tiled-log formats (§3.3, §3.4,
+  §5, §6)
 - WIST-1: Delta Format & Identity · WIST-2: Site Publication ·
   WIST-4: Governance & Parameters

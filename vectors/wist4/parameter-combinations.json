@@ -2141,7 +2141,7 @@
       "sealed_disposition": "candidate"
     },
     {
-      "label": "block_decompressed_cap_bytes value '4096'",
+      "label": "block_decompressed_cap_bytes value '65537'",
       "envelope": {
         "update": {
           "wist_version": "1.0.0",
@@ -2150,13 +2150,13 @@
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "block_decompressed_cap_bytes",
-            "value": "4096"
+            "value": "65537"
           }
         },
         "sig": {
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "pA4TUGkoFoUzgzFWptH6yOAcGPWf09KzZgEROjpppUo9ODmDnbLdTjXw0TwPvIiR0nIcmZPah0flgqisUiGSDQ"
+          "value": "XmmKy4eQtutDAJrqEM3gzr46kah-P_A8dYeQPaBWLveJlyzdwncYlfUph2_eUZj9jFB-btyVxJ5lOPJdxEweAQ"
         }
       },
       "canonical_integer": true,
@@ -2165,7 +2165,7 @@
       "sealed_disposition": "ignored"
     },
     {
-      "label": "block_decompressed_cap_bytes value 4096.0",
+      "label": "block_decompressed_cap_bytes value 65537.0",
       "envelope": {
         "update": {
           "wist_version": "1.0.0",
@@ -2174,13 +2174,13 @@
           "effective_at": "2026-08-12T00:00:00Z",
           "details": {
             "parameter": "block_decompressed_cap_bytes",
-            "value": 4096.0
+            "value": 65537.0
           }
         },
         "sig": {
           "key_id": "test-agg-k1",
           "alg": "Ed25519",
-          "value": "e28P4GAqbGoZmv8WW4oSTl_2b37kUi_TdUuBx3zyXwe1wfFpwfjCxUpYkqWarE0cy8XgKnGrv9GiXgjNh-F-DA"
+          "value": "cDGDFswi6nk-ZJIO0jPsxdyWLepXrMk1UT1nGRAniU-j6yK4tek9WudIPMNVURMnsU5BOM0hzJIpJOA-7H1AAQ"
         }
       },
       "canonical_integer": true,

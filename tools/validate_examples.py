@@ -12,8 +12,7 @@ from jsonschema.exceptions import ValidationError
 
 import ed25519_curve
 import link_extraction
-from block_frames import decode_raw_fixture
-from merkle import audit_path, leaf_hash, merkle_root, node_hash
+from merkle import audit_path, consistency_proof, leaf_hash, merkle_root, node_hash
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 failures = []
@@ -50,6 +49,8 @@ def canonical_b64u_decode(value):
     return (number >> unused).to_bytes(len(value) * 6 // 8, "big")
 
 
+SEALED_AT_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"
+
 def log_seconds(value):
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:[0-5][0-9]Z", value, re.ASCII):
         raise ValueError("invalid Log timestamp")
@@ -60,6 +61,199 @@ def log_seconds(value):
         tzinfo=datetime.timezone.utc)
     elapsed = instant - datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
     return (elapsed.days - (146097 if year == 0 else 0)) * 86400 + elapsed.seconds
+
+def note_key_id(name: str, raw_pub: bytes) -> bytes:
+    """[signed-note] note key ID (WIST-3 §3.4), computed independently of
+    tools/gen_vectors.py's identical formula."""
+    return hashlib.sha256(name.encode() + b"\x0a\x01" + raw_pub).digest()[:4]
+
+
+def parse_checkpoint(text: str) -> dict:
+    """Parse a Checkpoint note per WIST-3 §5 / [signed-note] / [tlog-checkpoint],
+    independently of gen_vectors.py's signing helper. Raises ValueError
+    ("WIST3-E03: ...") on any structural defect. A signature line's blob
+    need only decode to at least a 4-octet key ID plus a signature: §5
+    "ignores every other signature line as [signed-note] requires", so the
+    68-octet Aggregator shape (and the 76-octet Witness cosignature shape)
+    are enforced only for a line naming a known key, in `verify_checkpoint`.
+    Does not authenticate a signature — see `verify_checkpoint`."""
+    if "\n\n" not in text:
+        raise ValueError("WIST3-E03: no blank line between note text and signatures")
+    header, sigblock = text.split("\n\n", 1)
+    lines = header.split("\n")
+    if len(lines) != 5:
+        raise ValueError(f"WIST3-E03: note text has {len(lines)} lines, not 5")
+    origin, size_line, root_line, bn_line, sealed_line = lines
+    if not re.fullmatch(r"0|[1-9][0-9]*", size_line):
+        raise ValueError("WIST3-E03: tree size is not a canonical decimal")
+    tree_size = int(size_line)
+    try:
+        root = base64.b64decode(root_line, validate=True)
+    except Exception as e:
+        raise ValueError(f"WIST3-E03: root hash does not parse as base64: {e}")
+    if base64.b64encode(root).decode() != root_line:
+        raise ValueError("WIST3-E03: root hash is not canonical base64")
+    m = re.fullmatch(r"block_number (0|[1-9][0-9]*)", bn_line)
+    if not m:
+        raise ValueError("WIST3-E03: malformed block_number line")
+    block_number = int(m.group(1))
+    m = re.fullmatch(r"sealed_at (.+)", sealed_line)
+    if not m or not re.fullmatch(SEALED_AT_PATTERN.strip("^$"), m.group(1)):
+        raise ValueError("WIST3-E03: sealed_at line outside the §3.1 profile")
+    sealed_at = m.group(1)
+
+    sig_lines = sigblock.split("\n")
+    if sig_lines and sig_lines[-1] == "":
+        sig_lines.pop()
+    if not sig_lines:
+        raise ValueError("WIST3-E03: no signature line")
+    signatures = []
+    for line in sig_lines:
+        if not line.startswith("— "):
+            raise ValueError("WIST3-E03: signature line missing the em-dash-space prefix")
+        rest = line[2:]
+        if " " not in rest:
+            raise ValueError("WIST3-E03: malformed signature line")
+        name, sig_b64 = rest.rsplit(" ", 1)
+        try:
+            blob = base64.b64decode(sig_b64, validate=True)
+        except Exception as e:
+            raise ValueError(f"WIST3-E03: signature does not parse as base64: {e}")
+        if base64.b64encode(blob).decode() != sig_b64:
+            raise ValueError("WIST3-E03: signature blob is not canonical base64")
+        if len(blob) < 5:
+            raise ValueError("WIST3-E03: signature blob shorter than a 4-octet key ID plus a signature")
+        signatures.append((name, blob[:4], blob[4:]))
+
+    return {
+        "origin": origin, "tree_size": tree_size, "root": root,
+        "block_number": block_number, "sealed_at": sealed_at,
+        "signed_bytes": (header + "\n").encode(), "signatures": signatures,
+    }
+
+
+def witness_key_id(name: str, raw_pub: bytes) -> bytes:
+    """[tlog-cosignature]'s note key ID for a Witness key: the [signed-note]
+    formula (WIST-3 §3.4) with type byte 0x04, not the Aggregator's 0x01 —
+    computed independently of gen_vectors.py's identical formula."""
+    return hashlib.sha256(name.encode() + b"\x0a\x04" + raw_pub).digest()[:4]
+
+
+def verify_cosignature(raw_pub: bytes, note_text: bytes, blob: bytes) -> int:
+    """[tlog-cosignature] cosignature/v1: verify a Witness cosignature line
+    value against the Checkpoint's bare note text (WIST-3 §5's five lines,
+    no signature block). Raises ValueError/InvalidSignature on any defect;
+    returns the signed Unix timestamp on success."""
+    if len(blob) != 76:
+        raise ValueError("cosignature blob is not a canonical 4+8+64-octet key_id||time||signature")
+    timestamp = int.from_bytes(blob[4:12], "big")
+    message = b"cosignature/v1\ntime %d\n" % timestamp + note_text
+    Ed25519PublicKey.from_public_bytes(raw_pub).verify(blob[12:], message)
+    return timestamp
+
+
+def verify_checkpoint(text: str, log_id: str, keys: dict, witness_keys: dict = None) -> dict:
+    """WIST-3 §5: parse and authenticate a Checkpoint. `keys` maps a signer
+    name to its raw Ed25519 Aggregator public key; `witness_keys`, if given,
+    maps a trusted Witness name to its raw Ed25519 public key. A Checkpoint
+    MUST carry a verifying signature under a known Aggregator key, keyed by
+    the note key ID [signed-note] derives. A line naming a known key —
+    Aggregator or trusted Witness — that fails to verify also rejects the
+    whole Checkpoint ("WIST3-E03: ..."); every other line is ignored, as
+    [signed-note] requires. Returns the parsed note plus `"cosigners"`, the
+    names of every trusted Witness whose cosignature verified — the caller's
+    own concern (quorum, WIST-4 §5 `checkpoint_witness_quorum`) is not
+    decided here."""
+    parsed = parse_checkpoint(text)
+    if parsed["origin"] != log_id:
+        raise ValueError("WIST3-E03: origin does not match the Log's log_id")
+    verified = False
+    cosigners = []
+    for name, kid, rest in parsed["signatures"]:
+        raw_pub = keys.get(name)
+        if raw_pub is not None and note_key_id(name, raw_pub) == kid:
+            if len(rest) != 64:
+                raise ValueError("WIST3-E03: signature blob is not a canonical 4+64-octet key_id||signature")
+            try:
+                Ed25519PublicKey.from_public_bytes(raw_pub).verify(rest, parsed["signed_bytes"])
+                verified = True
+            except InvalidSignature:
+                raise ValueError("WIST3-E03: signature under a known key does not verify")
+            continue
+        wraw = (witness_keys or {}).get(name)
+        if wraw is not None and witness_key_id(name, wraw) == kid:
+            try:
+                verify_cosignature(wraw, parsed["signed_bytes"], kid + rest)
+                cosigners.append(name)
+            except (ValueError, InvalidSignature):
+                raise ValueError("WIST3-E03: cosignature under a known Witness key does not verify")
+    if not verified:
+        raise ValueError("WIST3-E03: no verifying signature under a known key")
+    parsed["cosigners"] = cosigners
+    return parsed
+
+
+def verify_consistency(m: int, n: int, m_root: bytes, n_root: bytes, path: list):
+    """RFC 9162 §2.1.4.2 consistency-proof verification: reconstruct both
+    `m_root` and `n_root` from `path`, independently of
+    merkle.consistency_proof (which only *generates* a proof — used solely
+    by the exhaustive gen-vs-verify property test below). Raises ValueError
+    on a proof that does not reconstruct both roots. `m == 0` (the empty
+    tree is a prefix of every tree) and `m == n` both require an empty
+    `path` (WIST-3 §4)."""
+    if not (0 <= m <= n):
+        raise ValueError("require 0 <= m <= n")
+    if m == 0 or m == n:
+        if path:
+            raise ValueError("a proof at m == 0 or m == n carries no nodes")
+        if m == n and m_root != n_root:
+            raise ValueError("equal sizes must share one root")
+        return
+    proof = list(path)
+    node, last_node = m - 1, n - 1
+    while node % 2 == 1:
+        node //= 2
+        last_node //= 2
+    if node:
+        if not proof:
+            raise ValueError("consistency path exhausted")
+        new_hash = old_hash = proof.pop(0)
+    else:
+        new_hash = old_hash = m_root
+    while last_node:
+        if node % 2 == 1:
+            if not proof:
+                raise ValueError("consistency path exhausted")
+            nxt = proof.pop(0)
+            old_hash = node_hash(nxt, old_hash)
+            new_hash = node_hash(nxt, new_hash)
+        elif node < last_node:
+            if not proof:
+                raise ValueError("consistency path exhausted")
+            nxt = proof.pop(0)
+            new_hash = node_hash(new_hash, nxt)
+        node //= 2
+        last_node //= 2
+    if old_hash != m_root:
+        raise ValueError("old root does not reconstruct")
+    if new_hash != n_root:
+        raise ValueError("new root does not reconstruct")
+    if proof:
+        raise ValueError("trailing consistency-path nodes")
+
+
+def block_sealed_at(block: dict) -> str:
+    """A Block's `sealed_at`, read from its Checkpoint's extension line
+    (WIST-3 §3.1) rather than a per-Block header field, which no longer
+    exists. Structural parse only (`parse_checkpoint`) - callers that need
+    the Checkpoint's signature authenticated call `verify_checkpoint`."""
+    return parse_checkpoint(block["checkpoint"])["sealed_at"]
+
+
+def block_number(block: dict) -> int:
+    """A Block's `block_number`, read from its Checkpoint (WIST-3 §3.1)."""
+    return parse_checkpoint(block["checkpoint"])["block_number"]
+
 
 def verify_inclusion(block, proof):
     """RFC 6962 audit-path verification (WIST-3 §4).
@@ -74,10 +268,16 @@ def verify_inclusion(block, proof):
     consuming nothing. This is what makes a proof authenticate `index`
     itself, not just membership: an attacker cannot relabel `index` without
     changing which siblings the walk demands.
+
+    `block` carries `tree_size` and `root` directly (as `vectors/wist3/block.json`
+    does, and as the exhaustive property test below constructs synthetically)
+    rather than a Checkpoint note - a caller that must authenticate a
+    Checkpoint first calls `verify_checkpoint` and checks its `tree_size`/
+    `root` against `block`'s before calling this.
     """
-    idx, n, path = proof["index"], proof["entry_count"], proof["path"]
+    idx, n, path = proof["index"], proof["tree_size"], proof["path"]
     assert 0 <= idx < n, "index out of range"
-    assert n == block["header"]["entry_count"], "entry_count mismatch"
+    assert n == block["tree_size"], "tree_size mismatch"
     h = leaf_hash(rfc8785.dumps(block["entries"][idx]))
     fn, sn, p = idx, n - 1, 0
     while sn > 0:
@@ -90,7 +290,7 @@ def verify_inclusion(block, proof):
         # else: fn == sn, fn even -> lone node, promoted unchanged, no proof consumed
         fn //= 2; sn //= 2
     assert p == len(path), "unused path elements"
-    assert "sha256:" + h.hex() == block["header"]["merkle_root"], "root mismatch"
+    assert "sha256:" + h.hex() == block["root"], "root mismatch"
 
 # 1. Schema validation: examples/<stem>.json <-> schemas/<stem>.schema.json
 EXAMPLE_SCHEMA = {"label-feed": "feed"}
@@ -106,8 +306,7 @@ for example in sorted((ROOT / "examples").glob("*.json")):
 
 INNER_KEY = {
     "delta.json": "delta", "publisher.json": "publisher", "feed.json": "feed",
-    "block.json": None,  # block signs its header only — checked separately
-    "checkpoint.json": "checkpoint", "snapshot-manifest.json": "manifest",
+    "snapshot-manifest.json": "manifest",
     "snapshot-index.json": "index", "snapshot-state.json": "state",
     "registry-update.json": "update", "label.json": "label", "label-feed.json": "feed",
     "label-definition.json": "definition", "dispute.json": "dispute",
@@ -885,7 +1084,7 @@ def _schema_node_at(schema_file, path):
 # A declaration pointing at a check that never reads it is an orphan and fails.
 #
 # Only a check listed in COVERAGE_ASSERTED may be named, because only those
-# make that assertion. Paths are ROOT-relative: `examples/block.json` and
+# make that assertion. Paths are ROOT-relative: `examples/delta.json` and
 # `vectors/wist3/block.json` are different locations and are declared separately.
 COVERAGE_ASSERTED = {"payload:commitment"}
 
@@ -901,20 +1100,18 @@ SALTED_COMMITMENT_VALUES = {
     ("vectors/wist1/delta-cap-time.json", "commitment"): "payload:commitment",    # (ROOT-relative file, key) -> proving check
     ("examples/delta.json", "commitment"): "payload:commitment",
     ("vectors/wist1/key-directory.json", "commitment"): "payload:commitment",
-    ("examples/block.json", "commitment"): "payload:commitment",
     ("vectors/wist1/envelope.json", "commitment"): "payload:commitment",
     ("vectors/wist1/recovery-settlement.json", "commitment"): "payload:commitment",
     ("vectors/wist1/recovery-bindings.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta.canonical", "commitment"): "payload:commitment",
     ("vectors/wist3/block.json", "commitment"): "payload:commitment",
-    ("vectors/wist3/block-frames.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/checkpoints.json", "commitment"): "payload:commitment",
     ("vectors/wist1/declaration-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-diagnostics.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist2/declaration-refresh.json", "commitment"): "payload:commitment",
     ("vectors/wist1/delta-attribution.json", "commitment"): "payload:commitment",
     ("vectors/wist1/recovery-scope.json", "commitment"): "payload:commitment",
-    ("vectors/wist3/timestamps.json", "commitment"): "payload:commitment",
     ("vectors/multilog/dedup.json", "commitment"): "payload:commitment",
 }
 
@@ -1247,24 +1444,34 @@ if (wist3 / "block.json").exists():
                 else:
                     nxt.append(level[i])
             level = nxt
-        root = "sha256:" + level[0].hex()
-        assert root == block["header"]["merkle_root"], "merkle root mismatch"
+        root = level[0] if level else hashlib.sha256(b"").digest()
+        assert "sha256:" + root.hex() == block["root"], "merkle root mismatch"
+        cp = verify_checkpoint(block["checkpoint"], block["log_id"],
+                               {block["log_id"]: load_test_pubkey()})
+        assert cp["root"] == root, "checkpoint root does not match the recomputed tree"
+        assert cp["tree_size"] == block["tree_size"] == len(leaves), "tree_size mismatch"
         proof = json.loads((wist3 / "inclusion-proof.json").read_text())
         verify_inclusion(block, proof)
     check("vectors:wist3", _dc3)
 
 def _block_checks():
-    block = json.loads((ROOT / "examples" / "block.json").read_text())
-    cp = json.loads((ROOT / "examples" / "checkpoint.json").read_text())
-    assert block["header"]["entry_count"] == len(block["entries"]), "entry_count mismatch"
-    # Block Hash definition lives in WIST-3 §3.1: header only.
-    signed_bytes = rfc8785.dumps(block["header"])
-    block_hash = "sha256:" + hashlib.sha256(signed_bytes).hexdigest()
-    assert cp["checkpoint"]["block_hash"] == block_hash, "checkpoint does not bind block"
-    assert cp["checkpoint"]["block_number"] == block["header"]["block_number"], "block_number mismatch"
-    Ed25519PublicKey.from_public_bytes(load_test_pubkey()).verify(
-        b64u_decode(block["sig"]["value"]), signed_bytes)
-check("blockhash+binding+entrycount", _block_checks)
+    """WIST-3 §5: the example Checkpoint is bound to the example Block and
+    verifies under the Anchor's genesis key."""
+    checkpoint_text = (ROOT / "examples" / "checkpoint.txt").read_text()
+    anchor_env = json.loads((ROOT / "examples" / "log-anchor.json").read_text())
+    anchor = anchor_env["anchor"]
+    log_id = anchor["log_id"]
+    genesis_pub = b64u_decode(anchor["genesis_key"]["public_key"])
+    Ed25519PublicKey.from_public_bytes(genesis_pub).verify(
+        b64u_decode(anchor_env["sig"]["value"]), rfc8785.dumps(anchor))
+    cp = verify_checkpoint(checkpoint_text, log_id, {log_id: genesis_pub})
+    block = json.loads((ROOT / "vectors" / "wist3" / "block.json").read_text())
+    assert block["log_id"] == log_id, "the example Block is not this Anchor's Log"
+    assert checkpoint_text == block["checkpoint"], \
+        "examples/checkpoint.txt is not the example Block's Checkpoint"
+    assert cp["tree_size"] == len(block["entries"]) == block["tree_size"], "tree_size mismatch"
+    assert cp["block_number"] == 0, "the example Checkpoint is not Block 0's"
+check("checkpoint+binding+treesize", _block_checks)
 
 RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at"]
 
@@ -1317,13 +1524,14 @@ def _snapshot_content_digest():
     dates = [s["snapshot_date"] for s in index["snapshots"]]
     assert dates == sorted(dates, reverse=True), "the index is not newest first"
 
-    # `anchor_block_hash` binds the Snapshot to one chain (§7, §8).
-    block = json.loads((ROOT / "examples" / "block.json").read_text())
-    assert manifest["log_position"] == block["header"]["block_number"], \
-        "the example manifest is not positioned at the example Block"
-    assert manifest["anchor_block_hash"] == "sha256:" + hashlib.sha256(
-        rfc8785.dumps(block["header"])).hexdigest(), \
-        "anchor_block_hash is not the Block Hash of Block log_position"
+    # `anchor_block_hash` binds the Snapshot to one chain (§7, §8): it is the
+    # root hash of the tree at `log_position` (WIST-3 §3.1), independently
+    # of the `block_number`/`log_position` distinction §7's schema draws.
+    block = json.loads((ROOT / "vectors" / "wist3" / "block.json").read_text())
+    assert manifest["log_position"] == block["tree_size"], \
+        "the example manifest is not positioned at the example Block's tree size"
+    assert manifest["anchor_block_hash"] == block["root"], \
+        "anchor_block_hash is not the root hash at log_position"
 
     # No page content in the preimage. Withdrawal destroys the Payload and its
     # salt (§6.2); a digest that needed either could never be recomputed after
@@ -1545,7 +1753,7 @@ def _merkle_exhaustive():
     same path under every other in-range `index` (position is
     authenticated, not just membership), and (c) rejects it with one
     sibling removed or one appended (the path's length is bound to
-    `index`/`entry_count`, not read off the proof).
+    `index`/`tree_size`, not read off the proof).
     """
     def _expect_reject(block, proof):
         try:
@@ -1553,7 +1761,7 @@ def _merkle_exhaustive():
         except Exception:
             return
         raise AssertionError(
-            f"expected rejection, got acceptance: entry_count={proof['entry_count']} "
+            f"expected rejection, got acceptance: tree_size={proof['tree_size']} "
             f"claimed_index={proof['index']} path_len={len(proof['path'])}")
 
     exercised = 0
@@ -1561,10 +1769,10 @@ def _merkle_exhaustive():
         entries = [{"i": j} for j in range(n)]
         leaves = [leaf_hash(rfc8785.dumps(e)) for e in entries]
         root = "sha256:" + merkle_root(leaves).hex()
-        block = {"header": {"entry_count": n, "merkle_root": root}, "entries": entries}
+        block = {"tree_size": n, "root": root, "entries": entries}
         for idx in range(n):
             path_hex = [h.hex() for h in audit_path(idx, leaves)]
-            proof = {"index": idx, "entry_count": n, "path": path_hex}
+            proof = {"index": idx, "tree_size": n, "path": path_hex}
             verify_inclusion(block, proof)                    # (a) correct proof verifies
             exercised += 1
             for other in range(n):                            # (b) position authentication
@@ -1576,6 +1784,46 @@ def _merkle_exhaustive():
             _expect_reject(block, {**proof, "path": path_hex + [filler]})  # path too long
     assert exercised == sum(range(1, 65)), "did not exercise every (n, index) pair"
 check("merkle-exhaustive", _merkle_exhaustive)
+
+def _merkle_consistency_exhaustive():
+    """Property test for verify_consistency (RFC 9162 §2.1.4.2), the one
+    place this file uses merkle.consistency_proof: that function only
+    *generates* a proof, so pairing it with an independently implemented
+    verifier here — for every (m, n) with 0 <= m <= n <= 64 — is what lets
+    this test catch a bug in either side without both sharing one mistake.
+    Every valid proof must verify, and removing or appending one node, or
+    reconstructing against a wrong root, must not.
+    """
+    exercised = 0
+    for n in range(0, 65):
+        entries = [{"i": j} for j in range(n)]
+        leaves = [leaf_hash(rfc8785.dumps(e)) for e in entries]
+        roots = [merkle_root(leaves[:k]) if k else hashlib.sha256(b"").digest()
+                 for k in range(n + 1)]
+        for m in range(0, n + 1):
+            proof = [h.hex() for h in consistency_proof(m, n, leaves)]
+            path = [bytes.fromhex(h) for h in proof]
+            verify_consistency(m, n, roots[m], roots[n], path)          # (a) valid proof verifies
+            exercised += 1
+            if path:
+                try:
+                    verify_consistency(m, n, roots[m], roots[n], path[:-1])
+                    raise AssertionError(f"m={m} n={n}: truncated proof still verified")
+                except ValueError:
+                    pass
+                try:
+                    verify_consistency(m, n, roots[m], roots[n], path + [path[0]])
+                    raise AssertionError(f"m={m} n={n}: padded proof still verified")
+                except ValueError:
+                    pass
+            if m > 0 and roots[m] != roots[n]:
+                try:
+                    verify_consistency(m, n, roots[n], roots[n], path)
+                    raise AssertionError(f"m={m} n={n}: wrong old root still verified")
+                except ValueError:
+                    pass
+    assert exercised == sum(range(1, 66)), "did not exercise every (m, n) pair"
+check("merkle-consistency-exhaustive", _merkle_consistency_exhaustive)
 
 # Transcribed verbatim from the Certificate Transparency reference
 # implementation (transparency-dev/merkle: testonly/constants.go leaf
@@ -1596,14 +1844,13 @@ _CT_ROOTS = [
 
 def _merkle_ct_reference():
     """External known-answer anchor for tools/merkle.py: the exhaustive
-    property test above proves
-    generation and verification agree with *each other*, but two sides of
-    one authorship can share one misreading — only answers published by an
-    independent implementation prove the hashes themselves are RFC 6962's.
-    The empty-tree constant is asserted too, because WIST-3 deviates from
-    it deliberately (a heartbeat Block's root is SHA-256(0x00), see
-    vectors/wist3/empty-block.json) and the deviation only stays honest
-    while the reference value it deviates from is pinned beside it.
+    property test above proves generation and verification agree with
+    *each other*, but two sides of one authorship can share one
+    misreading — only answers published by an independent implementation
+    prove the hashes themselves are RFC 6962's. The empty-tree constant
+    (`SHA-256("")`, WIST-3 §4) is asserted too: every tree size in this
+    suite, the empty tree before Block 0 included, is exactly RFC 6962's
+    (see vectors/wist3/empty-block.json).
     """
     assert leaf_hash(b"").hex() == \
         "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
@@ -1913,7 +2160,7 @@ def _dc4_parameter_wire_range():
     spellings = [c for c in v["wire_cases"] if c["envelope"]["update"]["details"]["parameter"] == "block_decompressed_cap_bytes"]
     assert [(type(c["envelope"]["update"]["details"]["value"]), c["schema_valid"]) for c in spellings] == [(str, False), (float, True)], \
         "a string value fails the details contract; an integral decimal spelling is the integer it denotes"
-    assert spellings[1]["envelope"]["update"]["details"]["value"] == 4096 and spellings[1]["sealed_disposition"] == "candidate"
+    assert spellings[1]["envelope"]["update"]["details"]["value"] == 65537 and spellings[1]["sealed_disposition"] == "candidate"
     fractional = next(c for c in v["wire_cases"] if c["envelope"]["update"]["effective_at"].endswith(".5Z"))
     assert not fractional["schema_valid"] and fractional["sealed_disposition"] == "ignored"
     prose4 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-4-governance.md").read_text())
@@ -1944,15 +2191,9 @@ NON_CONTENT_DIGESTS = {
         "a Key Set fingerprint (WIST-1 §5.1): SHA-256 over a JSON array of JWK thumbprints, no content",
     ("feed.schema.json", "properties/feed/properties/deltas/items"):
         "Delta IDs",
-    ("block.schema.json", "properties/header/properties/prev_block_hash"):
-        "SHA-256 of a Block header",
     ("log-anchor.schema.json",
      "properties/anchor/properties/predecessor/properties/final_block_hash"):
         "SHA-256 of a Block header (the predecessor Log's final Block, WIST-3 §3.4)",
-    ("block.schema.json", "properties/header/properties/merkle_root"):
-        "root over Entries, which carry commitments and no content",
-    ("checkpoint.schema.json", "properties/checkpoint/properties/block_hash"):
-        "SHA-256 of a Block header",
     ("status.schema.json", "properties/rejections/items/properties/delta_id"):
         "a Delta ID",
     ("snapshot-manifest.schema.json",
@@ -2017,11 +2258,6 @@ NON_CONTENT_VALUES = {
 
     ("vectors/wist4/parameter-combinations.json", "wire_public_key"): "an Ed25519 public key",
     ("vectors/wist4/parameter-combinations.json", "value"): "an Ed25519 signature when opaque",
-    ("examples/block.json", "merkle_root"): "root over Entries, which carry commitments only",
-    ("examples/block.json", "prev"): "a Delta ID",
-    ("examples/block.json", "value"): "an Ed25519 signature",
-    ("examples/checkpoint.json", "block_hash"): "SHA-256 of a Block header",
-    ("examples/checkpoint.json", "value"): "an Ed25519 signature",
         ("examples/delta.json", "value"): "an Ed25519 signature",
     ("examples/feed.json", "deltas"): "Delta IDs",
     ("examples/feed.json", "value"): "an Ed25519 signature",
@@ -2053,28 +2289,27 @@ NON_CONTENT_VALUES = {
         ("vectors/wist1/id.txt", None): "the WIST-1 vector's Delta ID",
     ("vectors/wist1/keypair.json", "seed_hex"): "the test signing seed",
     ("vectors/wist1/keypair.json", "public_key"): "an Ed25519 public key",
-        ("vectors/wist3/block.json", "merkle_root"): "root over Entries, which carry commitments only",
+        ("vectors/wist3/block.json", "root"): "root over Entries, which carry commitments only",
+    ("vectors/wist3/block.json", "leaf_hashes"): "leaf hashes over Entries, which carry commitments only",
+    ("vectors/wist3/checkpoints.json", "leaf_hashes"): "leaf hashes over Entries, which carry commitments only",
+    ("vectors/wist3/checkpoints.json", "m_root"): "root over Entries, which carry commitments only",
+    ("vectors/wist3/checkpoints.json", "n_root"): "root over Entries, which carry commitments only",
+    ("vectors/wist3/checkpoints.json", "path"): "Merkle sibling hashes over Entries",
+    ("vectors/wist3/checkpoints.json", "leaf_hashes_2"): "leaf hashes over Entries, which carry commitments only",
+    ("vectors/wist3/checkpoints.json", "witness-a.example"): "an Ed25519 public key",
+    ("vectors/wist3/checkpoints.json", "witness-b.example"): "an Ed25519 public key",
+    ("vectors/wist3/checkpoints.json", "anchor_block_hash"): "root over Entries, which carry commitments only",
     ("vectors/wist3/block.json", "prev"): "a Delta ID",
     ("vectors/wist3/block.json", "value"): "an Ed25519 signature",
-    ("vectors/wist3/block-frames.json", "merkle_root"): "root over Entries carrying commitments",
-    ("vectors/wist3/block-frames.json", "prev"): "a Delta ID",
-    ("vectors/wist3/block-frames.json", "value"): "an Ed25519 signature",
-    ("vectors/wist3/timestamps.json", "merkle_root"): "root over Entries carrying commitments",
-    ("vectors/wist3/timestamps.json", "prev"): "a Delta ID",
+    ("vectors/wist3/checkpoints.json", "prev"): "a Delta ID",
+    ("vectors/wist3/checkpoints.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/timestamps.json", "value"): "an Ed25519 signature",
-    ("vectors/wist3/timestamps.json", "block_hash"): "SHA-256 of a Block header",
     ("vectors/wist3/timestamps.json", "deltas"): "Delta IDs in the Feed schema fixture",
-    ("vectors/wist3/empty-block.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist3/empty-block.json", "block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist3/empty-block.json", "merkle_root"):
-        "the empty tree's root, SHA-256(0x00) — no Entry, and therefore no content, in its preimage (WIST-3 §4)",
-    ("vectors/wist3/empty-block.json", "rfc6962_empty_root"):
-        "the RFC 6962 empty-tree constant this suite deviates from, published so the deviation is checkable (WIST-3 §4)",
-    ("vectors/wist3/empty-block.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/empty-block.json", "empty_tree_root"):
+        "the empty tree's root (WIST-3 §4): SHA-256(\"\"), the RFC 6962 empty-tree constant",
+    ("vectors/wist3/empty-block.json", "block_0_root"): "root over Entries, which carry commitments only",
     ("vectors/wist3/inclusion-proof.json", "path"): "Merkle sibling hashes over Entries",
-        ("vectors/multilog/dedup.json", "block_hash"): "SHA-256 of a Block header",
-    ("vectors/multilog/dedup.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/multilog/dedup.json", "merkle_root"): "root over Entries, which carry commitments only",
+    ("vectors/multilog/dedup.json", "root"): "root over Entries, which carry commitments only",
     ("vectors/multilog/dedup.json", "delta_id"): "a Delta ID",
     ("vectors/multilog/dedup.json", "public_key"): "an Ed25519 public key",
     ("vectors/multilog/dedup.json", "value"): "an Ed25519 signature",
@@ -2085,16 +2320,12 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-hosts.json", 'value'): 'an Ed25519 signature',
     ("vectors/wist1/declaration-hosts.json", 'prev_declaration'): 'SHA-256 of the original predecessor publisher object',
     ("vectors/wist1/declaration-hosts.json", 'pinned_head'): 'the authenticated candidate Block header hash',
-    ("vectors/wist1/declaration-hosts.json", 'prev_block_hash'): 'the previous Block header hash',
-    ("vectors/wist1/declaration-hosts.json", 'merkle_root'): 'the Merkle root of original Declaration Entries',
     ("vectors/wist1/base64url.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/base64url.json", "encoded"): "an encoding or malformed field probe",
     ("vectors/wist1/base64url.json", "public_key"): "a public key or malformed public-key encoding",
     ("vectors/wist1/base64url.json", "value"): "a signature or rejected signature alias",
     ("vectors/wist1/base64url.json", "prev_declaration"): "SHA-256 of the original predecessor publisher object",
     ("vectors/wist1/base64url.json", "pinned_head"): "the authenticated candidate Block header hash",
-    ("vectors/wist1/base64url.json", "prev_block_hash"): "the previous Block header hash",
-    ("vectors/wist1/base64url.json", "merkle_root"): "the Merkle root of original Declaration Entries",
     ("vectors/wist1/declaration-binding.json", "x"): "an Ed25519 public key",
     ("vectors/wist1/declaration-key-eligibility.json", "x"): "an Ed25519 public key or excluded public point encoding",
     ("vectors/wist1/declaration-key-eligibility.json", "value"): "an Ed25519 signature",
@@ -2135,8 +2366,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/delta-cap-time.json", "prev"): "the signed predecessor Delta ID",
     ("vectors/wist1/delta-cap-time.json", "id"): "SHA-256 of a signed Delta",
     ("vectors/wist1/delta-cap-time.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist1/delta-cap-time.json", "prev_block_hash"): "SHA-256 of the previous Block header",
-    ("vectors/wist1/delta-cap-time.json", "merkle_root"): "the authenticated Entry Merkle root",
     ("vectors/wist1/delta-cap-time.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/delta-cap-time.json", "value"): "an Ed25519 signature or integer parameter value",
     ("vectors/wist1/delta-cap-time.json", "salt"): "the Payload commitment salt",
@@ -2157,36 +2386,26 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/recovery-admission.json", "last_inside_pin"): "the trusted last pre-deadline Block hash",
     ("vectors/wist1/recovery-admission.json", "deadline_pin"): "the trusted deadline Block hash",
     ("vectors/wist1/recovery-admission.json", "pin"): "the trusted alternate deadline Block hash",
-    ("vectors/wist1/recovery-admission.json", "prev_block_hash"): "SHA-256 of the preceding Block header",
-    ("vectors/wist1/recovery-admission.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/recovery-scope.json", "value"): "an Ed25519 signature or malformed encoding",
     ("vectors/wist1/recovery-scope.json", "prev_declaration"): "the authenticated predecessor Declaration hash",
     ("vectors/wist1/recovery-scope.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist1/recovery-scope.json", "prev_block_hash"): "the preceding Block header hash",
-    ("vectors/wist1/recovery-scope.json", "merkle_root"): "the Declaration Entry Merkle root",
     ("vectors/wist1/delta-attribution.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/delta-attribution.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/delta-attribution.json", "delta_ids"): "SHA-256 of each original signed inner Delta",
     ("vectors/wist1/delta-attribution.json", "prev"): "the authenticated predecessor Delta ID",
     ("vectors/wist1/delta-attribution.json", "prev_declaration"): "the authenticated predecessor Declaration hash",
     ("vectors/wist1/delta-attribution.json", "pinned_head"): "the independently trusted Block head",
-    ("vectors/wist1/delta-attribution.json", "prev_block_hash"): "the preceding Block hash",
-    ("vectors/wist1/delta-attribution.json", "merkle_root"): "the Block Entry Merkle root",
 
     ("vectors/wist1/declaration-fields.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-fields.json", "value"): "an Ed25519 signature or malformed signature-field probe",
     ("vectors/wist1/declaration-fields.json", "author_key"): "the fixture author public key",
     ("vectors/wist1/declaration-fields.json", "prev_declaration"): "SHA-256 of a predecessor publisher object",
     ("vectors/wist1/declaration-fields.json", "pinned_head"): "the trusted candidate Block header hash",
-    ("vectors/wist1/declaration-fields.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist1/declaration-fields.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/declaration-conflicts.json", "public_key"): "an Ed25519 public key",
     ("vectors/wist1/declaration-conflicts.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-conflicts.json", "prev_declaration"): "SHA-256 of a named predecessor publisher object",
     ("vectors/wist1/declaration-conflicts.json", "pinned_head"): "the trusted final Block header hash",
     ("vectors/wist1/declaration-conflicts.json", "expected_accepted_head"): "the accepted Block header hash after batch validation",
-    ("vectors/wist1/declaration-conflicts.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist1/declaration-conflicts.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/declaration-conflicts.json", "current_envelope"): "SHA-256 of the installed Declaration Envelope including signature",
     ("vectors/wist1/declaration-conflicts.json", "recovery_envelope"): "SHA-256 of the recovery-chain Declaration Envelope including signature",
     ("vectors/wist1/declaration-conflicts.json", "first_candidate"): "SHA-256 of a Declaration Envelope used to discriminate leaf order",
@@ -2195,13 +2414,9 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/recovery-bindings.json", "value"): "an Ed25519 signature or malformed signature encoding",
     ("vectors/wist1/recovery-bindings.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
     ("vectors/wist1/recovery-bindings.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist1/recovery-bindings.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist1/recovery-bindings.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/recovery-settlement.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-settlement.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
     ("vectors/wist1/recovery-settlement.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist1/recovery-settlement.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist1/recovery-settlement.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/recovery-settlement.json", "label"): "SHA-256 of a publisher object",
     ("vectors/wist1/recovery-settlement.json", "predecessor"): "SHA-256 of a named predecessor publisher object",
     ("vectors/wist1/recovery-settlement.json", "effective_declaration"): "SHA-256 of the effective publisher object",
@@ -2215,8 +2430,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/recovery-heads.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/recovery-heads.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
     ("vectors/wist1/recovery-heads.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist1/recovery-heads.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist1/recovery-heads.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/recovery-heads.json", "current_declaration"): "SHA-256 of the current publisher object",
     ("vectors/wist1/recovery-heads.json", "recovery_head"): "SHA-256 of the recovery-chain publisher object",
     ("vectors/wist1/recovery-order.json", "public_key"): "an Ed25519 public key",
@@ -2227,10 +2440,6 @@ NON_CONTENT_VALUES = {
         "SHA-256 over the recovery owner's publisher object (WIST-1 section 5.2)",
     ("vectors/wist1/recovery-order.json", "pinned_head"):
         "the trusted final Block header hash (WIST-3 section 3.1)",
-    ("vectors/wist1/recovery-order.json", "prev_block_hash"):
-        "SHA-256 of a Block header (WIST-3 section 3.1)",
-    ("vectors/wist1/recovery-order.json", "merkle_root"):
-        "the Merkle root of Declaration Entries (WIST-3 section 4)",
     ("vectors/wist1/declaration-binding.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-binding.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 section 5.2)",
@@ -2271,7 +2480,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/declaration-sequence.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/declaration-sequence.json", "prev_declaration"):
         "SHA-256 over a Declaration's publisher object (WIST-1 §5.2) — keys, domain and scope, no page content",
-    ("examples/block.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("examples/delta.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("examples/dispute.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("examples/feed.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
@@ -2308,8 +2516,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/label-definitions.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist2/labels.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist2/page-bindings.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/wist3/block-frames.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist3/block.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    ("vectors/wist3/checkpoints.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist3/timestamps.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("examples/publisher.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
     ("vectors/wist1/base64url.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
@@ -2343,8 +2551,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/key-directory.json", "value"): "an Ed25519 signature",
     ("vectors/wist1/key-directory.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
     ("vectors/wist1/key-directory.json", "pinned_head"): "the trusted final Block header hash",
-    ("vectors/wist1/key-directory.json", "prev_block_hash"): "SHA-256 of a Block header",
-    ("vectors/wist1/key-directory.json", "merkle_root"): "the Merkle root of Declaration Entries",
     ("vectors/wist1/key-directory.json", "current_declaration"): "SHA-256 of the current publisher object",
     ("vectors/wist1/key-directory.json", "pending_head"): "SHA-256 of the pending head publisher object",
     ("vectors/wist1/recovery-heads.json", "x"): "an Ed25519 public key or a deliberately excluded or malformed point encoding",
@@ -2368,9 +2574,6 @@ NON_CONTENT_VALUES = {
     ("vectors/wist1/recovery-settlement.json", "recovery_keys"): "thumbprints of a projected Declaration's entries (WIST-1 §5.1), no page content",
     ("vectors/wist1/recovery-settlement.json", "signer"): "thumbprints of a projected Declaration's entries (WIST-1 §5.1), no page content",
     ("vectors/wist1/keypair.json", "kid"): "the test key's JWK thumbprint (WIST-1 §5.1)",
-    ("vectors/multilog/dedup.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/multilog/dedup.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
-    ("vectors/multilog/dedup.json", "x"): "an Ed25519 public key",
 }
 
 
@@ -2392,6 +2595,9 @@ def _spec_derived_constants():
     out.update(h.hex() for h in leaves)           # WIST-3 App A's leaf and node figures
     out.add(node_hash(leaves[0], leaves[1]).hex())
     out.add(node_hash(leaves[2], leaves[3]).hex())
+    root = node_hash(node_hash(leaves[0], leaves[1]), node_hash(leaves[2], leaves[3]))
+    out.add(root.hex())                            # WIST-3 App A's Checkpoint root line
+    out.add(base64.b64encode(root).decode())        # same root, base64 as the Checkpoint carries it
     return out
 
 # In prose there are no keys, so base64url detection needs a shape rule that
@@ -2581,33 +2787,184 @@ def _dc2_feed_domain_mismatch_code():
 check("spec:wist2-feed-domain-mismatch", _dc2_feed_domain_mismatch_code)
 
 def _wist3_empty_block():
-    """WIST-3 §4: the empty tree, and the Block that carries it.
-
-    The suite deviates from RFC 6962 here — SHA-256(0x00) rather than
-    SHA-256 of the empty string — and an implementation wiring in a CT
-    library inherits the other constant without noticing, which is exactly
-    the bug that shipped once. Both constants are recomputed here.
-    """
+    """WIST-3 §3.2, §4: the empty tree before Block 0, and Block 1 of the
+    Appendix A Log (WIST-3 §4's `size(N) == size(N-1)` empty Block), which
+    restates Block 0's tree size and root a cadence later."""
     v = json.loads((ROOT / "vectors" / "wist3" / "empty-block.json").read_text())
-    block = v["block"]
-    assert block["entries"] == [], "the empty-Block vector carries Entries"
-    assert block["header"]["entry_count"] == 0
-    assert block["header"]["merkle_root"] == \
-        "sha256:" + hashlib.sha256(b"\x00").hexdigest(), "empty root is not SHA-256(0x00)"
-    assert v["rfc6962_empty_root"] == "sha256:" + hashlib.sha256(b"").hexdigest()
-    assert v["rfc6962_empty_root"] != block["header"]["merkle_root"], \
-        "the deviation the vector exists to pin has collapsed"
-    canonical = rfc8785.dumps(block["header"])
-    assert v["block_hash"] == "sha256:" + hashlib.sha256(canonical).hexdigest(), \
-        "block_hash is not SHA-256 over the header's JCS bytes"
-    Ed25519PublicKey.from_public_bytes(load_test_pubkey()).verify(
-        b64u_decode(block["sig"]["value"]), canonical)
-    Draft202012Validator(
-        json.loads((ROOT / "schemas" / "block.schema.json").read_text())).validate(block)
+    assert v["empty_tree_size"] == 0
+    assert v["empty_tree_root"] == "sha256:" + hashlib.sha256(b"").hexdigest(), \
+        "the empty tree's root is not RFC 6962's MTH of the empty sequence"
+    block0 = json.loads((ROOT / "vectors" / "wist3" / "block.json").read_text())
+    assert v["block_0_root"] == block0["root"], "block_0_root does not match block.json's root"
+
+    anchor_env = json.loads((ROOT / "examples" / "log-anchor.json").read_text())
+    log_id = anchor_env["anchor"]["log_id"]
+    genesis_pub = b64u_decode(anchor_env["anchor"]["genesis_key"]["public_key"])
+    block1 = v["block_1"]
+    assert block1["entries"] == [], "Block 1 of the empty-Block vector carries Entries"
+    cp0 = verify_checkpoint(block0["checkpoint"], log_id, {log_id: genesis_pub})
+    cp1 = verify_checkpoint(block1["checkpoint"], log_id, {log_id: genesis_pub})
+    assert cp1["tree_size"] == cp0["tree_size"] == block0["tree_size"], \
+        "Block 1 does not restate Block 0's tree size"
+    assert cp1["root"] == cp0["root"] and "sha256:" + cp1["root"].hex() == v["block_0_root"], \
+        "Block 1 does not restate Block 0's root"
+    assert cp1["block_number"] == cp0["block_number"] + 1
+    assert cp1["sealed_at"] > cp0["sealed_at"], "Block 1 is not sealed strictly later"
+
+    assert v["consistency_proof_4_to_4"] == [], \
+        "a Consistency Proof between equal tree sizes carries no nodes (WIST-3 §4)"
+    verify_consistency(cp0["tree_size"], cp1["tree_size"], cp0["root"], cp1["root"],
+                       [bytes.fromhex(h) for h in v["consistency_proof_4_to_4"]])
+
     prose = re.sub(r"\s+", " ",
                    (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
-    assert "A Block MAY be empty (`entry_count: 0`)" in prose
+    assert "equality is an empty Block" in prose
 check("vectors:wist3-empty-block", _wist3_empty_block)
+
+def _checkpoint_vector():
+    return json.loads((ROOT / "vectors" / "wist3" / "checkpoints.json").read_text())
+
+def _cp_keys(v):
+    anchor_env = json.loads((ROOT / "examples" / "log-anchor.json").read_text())
+    log_id = anchor_env["anchor"]["log_id"]
+    genesis_pub = b64u_decode(anchor_env["anchor"]["genesis_key"]["public_key"])
+    assert log_id == v["log_id"], "checkpoints.json's log_id does not match the example Log"
+    return log_id, {log_id: genesis_pub}
+
+def _cp_witness_keys(v):
+    return {name: b64u_decode(pub) for name, pub in v["witness_roster"].items()}
+
+def _wist3_checkpoints():
+    """WIST-3 §§4-6, 8-10: Checkpoint note form, Consistency Proofs,
+    rollback, the three Equivocation forms (§5), the archive path rule
+    (§6), Witness quorum (§5, WIST-4 §5 `checkpoint_witness_quorum`), and
+    the §8 step 5 Snapshot cold-start match — over one cumulative tree of
+    7 leaves."""
+    v = _checkpoint_vector()
+    log_id, keys = _cp_keys(v)
+    witness_keys = _cp_witness_keys(v)
+
+    for case in v["note_form_cases"]:
+        try:
+            cp = verify_checkpoint(case["checkpoint"], log_id, keys, witness_keys)
+            result = "valid"
+        except ValueError as e:
+            assert "WIST3-E03" in str(e), f"{case['name']}: wrong code: {e}"
+            result = "WIST3-E03"
+        assert result == case["expected"], f"{case['name']}: got {result}, want {case['expected']}"
+        if result == "valid":
+            assert cp["cosigners"] == [], \
+                f"{case['name']}: a line from an untrusted signer was counted as a cosigner"
+
+    blocks = {b["block_number"]: b for b in v["blocks"]}
+    cumulative = []
+    for bn in sorted(blocks):
+        b = blocks[bn]
+        cp = verify_checkpoint(b["checkpoint"], log_id, keys)
+        assert cp["block_number"] == bn, f"block {bn}: block_number mismatch"
+        cumulative += [leaf_hash(rfc8785.dumps(e)) for e in b["entries"]]
+        assert cp["tree_size"] == len(cumulative) == len(b["leaf_hashes"]), \
+            f"block {bn}: tree_size does not match the cumulative Entry count"
+        assert [h.hex() for h in cumulative] == b["leaf_hashes"], \
+            f"block {bn}: leaf_hashes does not match the cumulative Entries"
+        assert cp["root"] == merkle_root(cumulative), f"block {bn}: root does not match the cumulative tree"
+    assert len(cumulative) == 7, "the vector's cumulative tree is not 7 leaves"
+
+    for case in v["consistency_cases"]:
+        m_root = bytes.fromhex(case["m_root"].split(":", 1)[1])
+        n_root = bytes.fromhex(case["n_root"].split(":", 1)[1])
+        path = [bytes.fromhex(h) for h in case["path"]]
+        try:
+            verify_consistency(case["m"], case["n"], m_root, n_root, path)
+            result = "valid"
+        except ValueError:
+            result = "WIST3-E02"
+        assert result == case["expected"], case["name"]
+
+    rc = v["rollback_case"]
+    offered = parse_checkpoint(rc["offered_checkpoint"])["block_number"]
+    assert offered < rc["verified_head_block_number"], \
+        "rollback vector does not offer a Checkpoint below the verified head"
+    assert rc["expected"] == "reject", \
+        "§5/§9/§10 name no error code for rollback; only a plain rejection is recorded"
+
+    for case in v["equivocation_cases"]:
+        cp1 = verify_checkpoint(case["checkpoint_1"], log_id, keys)
+        cp2 = verify_checkpoint(case["checkpoint_2"], log_id, keys)
+        if case["form"].startswith("same tree size"):
+            assert cp1["tree_size"] == cp2["tree_size"] and cp1["root"] != cp2["root"], case["form"]
+        elif case["form"].startswith("same block_number"):
+            assert cp1["block_number"] == cp2["block_number"], case["form"]
+            assert cp1["tree_size"] == cp2["tree_size"] and cp1["root"] == cp2["root"], case["form"]
+            assert cp1["sealed_at"] != cp2["sealed_at"], case["form"]
+        else:
+            leaves2 = [bytes.fromhex(h) for h in case["leaf_hashes_2"]]
+            assert merkle_root(leaves2) == cp2["root"], \
+                "leaf_hashes_2 does not reproduce checkpoint_2's root"
+            assert merkle_root(leaves2[:cp1["tree_size"]]) != cp1["root"], \
+                "checkpoint_1's root is a valid prefix of checkpoint_2's tree: not equivocation"
+        assert case["expected"] == "WIST3-E02"
+
+    for case in v["archive_cases"]:
+        cp = verify_checkpoint(case["checkpoint"], log_id, keys)
+        m = re.fullmatch(r"/log/checkpoints/(\d{9})", case["path"])
+        assert m, f"{case['name']}: path does not match §6's archive form"
+        result = "valid" if int(m.group(1)) == cp["block_number"] else "WIST3-E03"
+        assert result == case["expected"], case["name"]
+
+    for case in v["quorum_cases"]:
+        try:
+            cp = verify_checkpoint(case["checkpoint"], log_id, keys, witness_keys)
+        except ValueError as e:
+            assert "WIST3-E03" in str(e), f"{case['name']}: wrong code: {e}"
+            assert case["expected"] == "WIST3-E03", case["name"]
+            continue
+        adopted = len(set(cp["cosigners"])) >= case["quorum"]
+        result = "valid" if adopted else "not_adopted"
+        assert result == case["expected"], f"{case['name']}: got {result}, want {case['expected']}"
+        if "unwitnessed" in case:
+            assert (len(cp["cosigners"]) == 0) == case["unwitnessed"], case["name"]
+
+    for case in v["cold_start_cases"]:
+        cp = verify_checkpoint(case["checkpoint"], log_id, keys)
+        m = case["manifest"]
+        matches = (m["log_position"] == cp["tree_size"]
+                  and m["anchor_block_hash"] == "sha256:" + cp["root"].hex())
+        result = "valid" if matches else "WIST3-E02"
+        assert result == case["expected"], case["name"]
+check("vectors:wist3-checkpoints", _wist3_checkpoints)
+
+def _wist3_checkpoints_twin():
+    """Mutation twin: the checker above must notice a genuinely broken
+    Consistency Proof node, and must count a Witness's cosignature only
+    under the trusted roster it is actually given."""
+    v = _checkpoint_vector()
+    log_id, keys = _cp_keys(v)
+    witness_keys = _cp_witness_keys(v)
+
+    good = next(c for c in v["consistency_cases"] if c["name"] == "4 to 7")
+    m_root = bytes.fromhex(good["m_root"].split(":", 1)[1])
+    n_root = bytes.fromhex(good["n_root"].split(":", 1)[1])
+    path = [bytes.fromhex(h) for h in good["path"]]
+    verify_consistency(good["m"], good["n"], m_root, n_root, path)  # positive control
+    broken = list(path)
+    broken[0] = bytes([broken[0][0] ^ 1]) + broken[0][1:]
+    try:
+        verify_consistency(good["m"], good["n"], m_root, n_root, broken)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a corrupted Consistency Proof node still verified")
+
+    adopted_case = next(c for c in v["quorum_cases"]
+                        if c["name"] == "quorum 2, two distinct trusted cosignatures: adopted")
+    cp = verify_checkpoint(adopted_case["checkpoint"], log_id, keys, witness_keys)
+    assert len(set(cp["cosigners"])) >= adopted_case["quorum"], "positive control: expected adoption"
+    shrunk_roster = {n: p for n, p in witness_keys.items() if n != "witness-b.example"}
+    cp_shrunk = verify_checkpoint(adopted_case["checkpoint"], log_id, keys, shrunk_roster)
+    assert len(set(cp_shrunk["cosigners"])) < adopted_case["quorum"], \
+        "dropping a trusted Witness from the roster did not lower the count below quorum"
+check("negative:wist3-checkpoints", _wist3_checkpoints_twin)
 
 def _keyset_vector():
     return json.loads((ROOT / "vectors" / "wist1" / "keyset-at-height.json").read_text())
@@ -3103,42 +3460,40 @@ check("vectors:wist1-declaration-key-eligibility", _declaration_key_eligibility_
 
 def _recovery_order_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-order.json").read_text())
-    schemas = {name: Draft202012Validator(json.loads(
-        (ROOT / f"schemas/{name}.schema.json").read_text()))
-        for name in ("block", "publisher")}
-    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
+    publisher_schema = Draft202012Validator(json.loads(
+        (ROOT / "schemas/publisher.schema.json").read_text()))
+    log_id = vector["log_key"]["key_id"]
+    keys = {log_id: b64u_decode(vector["log_key"]["public_key"])}
     reversed_same_block = ascending_same_block = later_block = ordinary_prefix = False
     for case in vector["cases"]:
-        previous_hash, stored, previous_time = "sha256:genesis", None, None
+        stored, previous_time = None, None
+        leaves = []
         sequences, recoveries = [], []
         for height, block in enumerate(case["blocks"]):
-            schemas["block"].validate(block)
-            header, entries = block["header"], block["entries"]
-            assert header["block_number"] == height
-            assert header["prev_block_hash"] == previous_hash
-            assert header["entry_count"] == len(entries)
-            instant = log_seconds(header["sealed_at"])
+            cp = verify_checkpoint(block["checkpoint"], log_id, keys)
+            entries = block["entries"]
+            assert cp["block_number"] == height
+            instant = log_seconds(cp["sealed_at"])
             assert previous_time is None or instant > previous_time
             previous_time = instant
-            encoded = rfc8785.dumps(header)
-            assert block["sig"]["key_id"] == vector["log_key"]["key_id"]
-            log_key.verify(b64u_decode(block["sig"]["value"]), encoded)
             hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
             assert hashes == sorted(hashes)
-            assert header["merkle_root"] == "sha256:" + merkle_root(hashes).hex()
-            previous_hash = "sha256:" + hashlib.sha256(encoded).hexdigest()
+            leaves.extend(hashes)
+            assert cp["tree_size"] == len(leaves)
+            root = merkle_root(leaves) if leaves else hashlib.sha256(b"").digest()
+            assert cp["root"] == root
             assert all(entry["type"] == "publisher_declaration" for entry in entries)
             candidates = [entry["body"] for entry in entries]
             assert len({env["publisher"]["domain"] for env in candidates}) == 1
             assert len({env["publisher"]["seq"] for env in candidates}) == len(candidates), \
                 "ownership fixtures must not settle conflicting-candidate disposition"
             for incoming in sorted(candidates, key=lambda env: env["publisher"]["seq"]):
-                schemas["publisher"].validate(incoming)
+                publisher_schema.validate(incoming)
                 assert stored is None or incoming["publisher"]["domain"] == stored["publisher"]["domain"]
                 result = _declaration_binding_result(stored, incoming)
                 assert result in {"initial", "ordinary_rotation", "recovery_rotation"}, case["name"]
                 if result == "recovery_rotation":
-                    recoveries.append((height, header["sealed_at"], incoming,
+                    recoveries.append((height, cp["sealed_at"], incoming,
                                        hashes[candidates.index(incoming)]))
                     invalid_signature = copy.deepcopy(incoming)
                     signature = bytearray(b64u_decode(incoming["sig"]["value"]))
@@ -3151,11 +3506,12 @@ def _recovery_order_vectors():
                         "initial", "ordinary_rotation", "recovery_rotation", "fresh_identity"}
                 sequences.append(incoming["publisher"]["seq"])
                 stored = incoming
-        assert previous_hash == case["pinned_head"]
+        final_root = merkle_root(leaves) if leaves else hashlib.sha256(b"").digest()
+        assert "sha256:" + final_root.hex() == case["pinned_head"]
         assert len(recoveries) == 2
         owner_height, opened_at, owner, first_leaf = recoveries[0]
         next_height, _, successor, next_leaf = recoveries[1]
-        assert log_seconds(case["blocks"][-1]["header"]["sealed_at"]) < (
+        assert log_seconds(cp["sealed_at"]) < (
             log_seconds(opened_at) + vector["recovery_window_days"] * 86400)
         initial = case["blocks"][0]["entries"][0]["body"]["publisher"]
         assert successor["sig"]["key_id"] not in {
@@ -3178,39 +3534,47 @@ def _recovery_order_vectors():
 check("vectors:wist1-recovery-order", _recovery_order_vectors)
 
 def _declaration_history_blocks(vector, blocks, pinned, entry_types=("publisher_declaration",)):
-    validator = Draft202012Validator(json.loads((ROOT / "schemas/block.schema.json").read_text()))
-    previous, previous_time = "sha256:genesis", None
-    log_key = Ed25519PublicKey.from_public_bytes(b64u_decode(vector["log_key"]["public_key"]))
+    """Replays a Log's Blocks (WIST-3 §§3-5): each Block's Checkpoint is
+    authenticated under `vector["log_key"]`; tree size and root are
+    recomputed from the cumulative leaf sequence, since no Block object
+    carries them (WIST-3 §3 - "No object represents a Block"); Entries
+    within a Block are position-checked against the canonical type order.
+    Returns `(checkpoint, publisher_declaration bodies)` per Block, where
+    `checkpoint` is `parse_checkpoint`'s dict (its `sealed_at`/`block_number`
+    keys read the same as the old per-Block header did)."""
+    log_id = vector["log_key"]["key_id"]
+    keys = {log_id: b64u_decode(vector["log_key"]["public_key"])}
+    ranks = {name: rank for rank, name in enumerate(
+        ("publisher_declaration", "registry_update", "publisher_delta", "label"))}
+    previous_time = None
+    leaves = []
     authenticated = []
     for height, block in enumerate(blocks):
-        validator.validate(block)
-        header, entries = block["header"], block["entries"]
-        instant = log_seconds(header["sealed_at"])
+        cp = verify_checkpoint(block["checkpoint"], log_id, keys)
+        entries = block["entries"]
+        instant = log_seconds(cp["sealed_at"])
         assert previous_time is None or instant == previous_time + 3600
-        assert header["block_number"] == height and header["prev_block_hash"] == previous
-        assert block["sig"]["key_id"] == vector["log_key"]["key_id"]
-        log_key.verify(b64u_decode(block["sig"]["value"]), rfc8785.dumps(header))
-        assert header["entry_count"] == len(entries)
+        assert cp["block_number"] == height
         hashes = [leaf_hash(rfc8785.dumps(entry)) for entry in entries]
-        ranks = {name: rank for rank, name in enumerate(
-            ("publisher_declaration", "registry_update", "publisher_delta", "label"))}
         positions = [(ranks[entry["type"]], hashed) for entry, hashed in zip(entries, hashes)]
         assert positions == sorted(positions)
-        root = merkle_root(hashes) if hashes else hashlib.sha256(b"\x00").digest()
-        assert header["merkle_root"] == "sha256:" + root.hex()
+        leaves.extend(hashes)
+        assert cp["tree_size"] == len(leaves)
+        root = merkle_root(leaves) if leaves else hashlib.sha256(b"").digest()
+        assert cp["root"] == root
         assert all(entry["type"] in entry_types for entry in entries)
-        authenticated.append((header, [entry["body"] for entry in entries
-                                       if entry["type"] == "publisher_declaration"]))
-        previous = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
+        authenticated.append((cp, [entry["body"] for entry in entries
+                                   if entry["type"] == "publisher_declaration"]))
         previous_time = instant
-    assert previous == pinned
+    final_root = merkle_root(leaves) if leaves else hashlib.sha256(b"").digest()
+    assert "sha256:" + final_root.hex() == pinned
     return authenticated
 
 
 def _recovery_history_reference(vector, field_error=None, activation_blocks=None):
     validators = {name: Draft202012Validator(json.loads(
         (ROOT / f"schemas/{name}.schema.json").read_text()))
-        for name in ("publisher", "block")}
+        for name in ("publisher",)}
     delay = vector.get("declaration_activation_blocks", 24) if activation_blocks is None else activation_blocks
 
     def digest(envelope):
@@ -3371,7 +3735,8 @@ def _declaration_conflict_vectors():
             reversed_leaves.add(case["sibling_leaves_reversed"])
         diagnostics = set()
         for reverse_domains in (False, True):
-            states, accepted_head = {}, "sha256:genesis"
+            states = {}
+            accepted_head = "sha256:" + hashlib.sha256(b"").hexdigest()
             for header, candidates in authenticated:
                 before = copy.deepcopy(states)
                 result, updated = apply_block(states, header, candidates, reverse_domains)
@@ -3384,7 +3749,7 @@ def _declaration_conflict_vectors():
                     reordered_result, reordered = apply_block(states, header, list(reversed(candidates)), reverse_domains)
                     assert (reordered_result, reordered) == (result, updated), case["name"]
                 if result == "accepted":
-                    states, accepted_head = updated, digest(header)
+                    states, accepted_head = updated, "sha256:" + header["root"].hex()
                 else:
                     assert updated == before, "rejected Block changed Declaration or settlement state"
             assert summaries(states) == case["expected_state"], case["name"]
@@ -3482,11 +3847,10 @@ def _declaration_host_vectors():
         history = vector['prefixes'][case['prefix']]
         blocks = _declaration_history_blocks(vector, history + [case['block']], case['pinned_head'])
         for reverse_domains in (False, True):
-            states, accepted_head = {}, 'sha256:genesis'
+            states = {}
             for header, entries in blocks[:-1]:
                 result, states = apply_block(states, header, entries, reverse_domains)
                 assert result == 'accepted', case['name']
-                accepted_head = 'sha256:' + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
             before = copy.deepcopy(states)
             header, entries = blocks[-1]
             result, updated = apply_block(states, header, entries, reverse_domains)
@@ -3494,7 +3858,7 @@ def _declaration_host_vectors():
             assert states == before
             assert apply_block(states, header, list(reversed(entries)), reverse_domains) == (result, updated)
             if result != 'accepted':
-                assert updated == before and accepted_head == header['prev_block_hash']
+                assert updated == before
             else:
                 assert sorted(updated) == case['expected_domains'], case['name']
                 for state in updated.values():
@@ -3652,11 +4016,10 @@ def _declaration_field_vectors():
         history = vector["prefixes"][case["prefix"]]
         authenticated = _declaration_history_blocks(vector, history + [case["block"]], case["pinned_head"])
         for reverse_domains in (False, True):
-            states, accepted_head = {}, "sha256:genesis"
+            states = {}
             for header, candidates in authenticated[:-1]:
                 result, states = apply_block(states, header, candidates, reverse_domains)
                 assert result == "accepted", case["name"]
-                accepted_head = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
             before = copy.deepcopy(states)
             header, candidates = authenticated[-1]
             result, updated = apply_block(states, header, candidates, reverse_domains)
@@ -3665,7 +4028,6 @@ def _declaration_field_vectors():
             assert apply_block(states, header, list(reversed(candidates)), reverse_domains) == (result, updated)
             if result != "accepted":
                 assert updated == before, "rejected fields changed state or settled recovery"
-                assert accepted_head == case["block"]["header"]["prev_block_hash"]
             else:
                 assert set(updated) == {"example.com", "other.example"}
                 expected_env = max((env for env in candidates if env["publisher"]["domain"] == "example.com"),
@@ -3710,7 +4072,7 @@ def _base64url_vectors():
 
     for path in (ROOT / "schemas").glob("*.json"):
         visit(json.loads(path.read_text()), path.name)
-    assert {kind: len(items) for kind, items in nodes.items()} == {"x": 7, "signature": 14, "salt": 1}
+    assert {kind: len(items) for kind, items in nodes.items()} == {"x": 7, "signature": 12, "salt": 1}
 
     def encoding_result(value, kind):
         try:
@@ -3776,11 +4138,10 @@ def _base64url_vectors():
     for case in vector["block_cases"]:
         history = vector["prefixes"][case["prefix"]]
         blocks = _declaration_history_blocks(vector, history + [case["block"]], case["pinned_head"])
-        states, accepted_head = {}, "sha256:genesis"
+        states = {}
         for header, entries in blocks[:-1]:
             result, states = apply_block(states, header, entries)
             assert result == "accepted", case["name"]
-            accepted_head = "sha256:" + hashlib.sha256(rfc8785.dumps(header)).hexdigest()
         before = copy.deepcopy(states)
         header, entries = blocks[-1]
         result, updated = apply_block(states, header, entries)
@@ -3788,7 +4149,7 @@ def _base64url_vectors():
         assert states == before
         assert apply_block(states, header, list(reversed(entries)), True) == (result, updated)
         if result == "WIST1-E14":
-            assert updated == before and accepted_head == header["prev_block_hash"]
+            assert updated == before
         else:
             assert "other.example" in updated
             if case["prefix"] == "deadline":
@@ -3870,7 +4231,7 @@ def _wist1_recovery_settlement():
         assert case["pre_recovery_keys"] == initial["keys"]
         assert states[1]["windows"] == states[-1]["windows"] == 1
         assert states[168]["chain"] is not None and states[169]["chain"] is None
-        assert log_seconds(case["blocks"][169]["header"]["sealed_at"]) == log_seconds(states[1]["end"])
+        assert log_seconds(block_sealed_at(case["blocks"][169])) == log_seconds(states[1]["end"])
         head = states[-1]["current"]
         assert digest(head["publisher"]) == expected["effective_declaration"], name
         assert [key["kid"] for key in head["publisher"]["keys"]] == expected["effective_keys"]
@@ -3904,7 +4265,7 @@ def _wist1_recovery_settlement():
             height = probe["prefix_height"] + 1
             state = copy.deepcopy(states[height - 1])
             before = copy.deepcopy(state)
-            spelling = case["blocks"][height]["header"]["sealed_at"]
+            spelling = block_sealed_at(case["blocks"][height])
             result = apply(state, probe["candidate"], log_seconds(spelling), spelling, height)
             assert result == probe["expected_result"], (name, probe["name"], result)
             assert state == before, "rejected candidate changed its prefix"
@@ -3922,6 +4283,8 @@ check("vectors:wist1-recovery-settlement", _wist1_recovery_settlement)
 def _recovery_binding_vectors():
     vector = json.loads((ROOT / "vectors/wist1/recovery-bindings.json").read_text())
     original = copy.deepcopy(vector)
+    log_id = vector["log_key"]["key_id"]
+    log_keys = {log_id: b64u_decode(vector["log_key"]["public_key"])}
     formats = FormatChecker(formats=[])
     formats.checks("wist-canonical-host")(_declaration_host_format)
     formats.checks("wist-publisher-timestamp")(_publisher_timestamp_format)
@@ -3973,7 +4336,7 @@ def _recovery_binding_vectors():
         classifications = []
         for header, declarations in authenticated:
             block = history["blocks"][header["block_number"]]
-            assert verifies(vector["log_key"], block, "header")
+            verify_checkpoint(block["checkpoint"], log_id, log_keys)
             assert len(declarations) == 1
             envelope = declarations[0]
             result = declaration_result(current, envelope)
@@ -4001,8 +4364,15 @@ def _recovery_binding_vectors():
         else:
             raise AssertionError("unauthenticated recovery binding history accepted")
         damaged = copy.deepcopy(history["blocks"][-1])
-        damaged["header"]["sealed_at"] = "2026-08-09T00:00:00Z"
-        assert not verifies(vector["log_key"], damaged, "header")
+        cp_lines = damaged["checkpoint"].split("\n")
+        cp_lines[4] = "sealed_at 2026-08-09T00:00:00Z"
+        damaged["checkpoint"] = "\n".join(cp_lines)
+        try:
+            verify_checkpoint(damaged["checkpoint"], log_id, log_keys)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("tampered sealed_at retained a verifying signature")
 
     outcomes, exercised_prefixes, seen_names = set(), set(), set()
     for case in vector["cases"]:
@@ -4058,7 +4428,7 @@ def _recovery_heads_vectors():
         selected_states = branch_states[probe["branch"]] if "branch" in probe else states
         state = copy.deepcopy(selected_states[probe["prefix_height"]])
         instant = log_seconds(probe["candidate_sealed_at"])
-        assert instant > log_seconds(selected["blocks"][probe["prefix_height"]]["header"]["sealed_at"])
+        assert instant > log_seconds(block_sealed_at(selected["blocks"][probe["prefix_height"]]))
         result = apply(state, probe["candidate"], instant, probe["candidate_sealed_at"],
                        probe["prefix_height"] + 1)
         assert result == probe["expected_result"], probe["name"]
@@ -4108,7 +4478,9 @@ def _recovery_heads_vectors():
         if target == "author":
             blocks[3]["entries"][0]["body"]["sig"]["value"] = blocks[2]["entries"][0]["body"]["sig"]["value"]
         elif target == "header":
-            blocks[5]["header"]["sealed_at"] = blocks[4]["header"]["sealed_at"]
+            lines5, lines4 = blocks[5]["checkpoint"].split("\n"), blocks[4]["checkpoint"].split("\n")
+            lines5[4] = lines4[4]
+            blocks[5]["checkpoint"] = "\n".join(lines5)
         elif target == "predecessor":
             blocks[3]["entries"][0]["body"]["publisher"]["prev_declaration"] = digest(
                 blocks[2]["entries"][0]["body"])
@@ -4216,7 +4588,7 @@ def _key_directory_vectors():
         state = copy.deepcopy(replayed[case["history"]][case["prefix_height"]])
         before = copy.deepcopy(state)
         instant = log_seconds(case["candidate_sealed_at"])
-        assert instant == log_seconds(history["blocks"][case["prefix_height"]]["header"]["sealed_at"]) + 3600
+        assert instant == log_seconds(block_sealed_at(history["blocks"][case["prefix_height"]])) + 3600
         result = engines[case["history"]](state, case["candidate"], instant, case["candidate_sealed_at"],
                                           case["prefix_height"] + 1)
         assert result == case["expected"], case["name"]
@@ -4265,7 +4637,9 @@ def _key_directory_vectors():
         if target == "author":
             blocks[2]["entries"][0]["body"]["sig"]["value"] = blocks[0]["entries"][0]["body"]["sig"]["value"]
         elif target == "header":
-            blocks[5]["header"]["sealed_at"] = blocks[4]["header"]["sealed_at"]
+            lines5, lines4 = blocks[5]["checkpoint"].split("\n"), blocks[4]["checkpoint"].split("\n")
+            lines5[4] = lines4[4]
+            blocks[5]["checkpoint"] = "\n".join(lines5)
         else:
             del blocks[10]
         _, _, replay, _ = _recovery_history_reference(vector, activation_blocks=24)
@@ -4327,7 +4701,7 @@ def _parameter_registry_enum():
         overlap = ids & found
         assert not overlap, f"§5 lists {sorted(overlap)} in more than one row"
         ids |= found
-    assert rows == 22, f"{rows} Parameter Registry rows parsed; the table has twenty-two"
+    assert rows == 23, f"{rows} Parameter Registry rows parsed; the table has twenty-three"
     schema = json.loads((ROOT / "schemas" / "registry-update.schema.json").read_text())
     enum = None
     for branch in schema["allOf"]:
@@ -4410,8 +4784,8 @@ def _parameter_bounds():
             f"§5's bounds table gives {names[0]} no parseable bound: {cells[1]!r}"
         assert cells[2], f"§5's bounds table gives {names[0]} no stated consequence"
         published[names[0]] = (lo, hi)
-    assert len(published) == 19, \
-        f"{len(published)} bounds parsed from §5; the table has nineteen"
+    assert len(published) == 20, \
+        f"{len(published)} bounds parsed from §5; the table has twenty"
     enforced = _parameter_change_bounds()
     assert published == enforced, (
         "§5's published bounds and the schema's differ:\n"
@@ -4486,9 +4860,7 @@ def _parameter_bounds():
     for name in ("url_cap_bytes", "link_url_cap_bytes"):
         assert enforced[name][0] == len(rfc8785.dumps("https://a.b/")), \
             f"the {name} floor is not the octet length of the shortest two-label Normalized URL"
-    empty_block = json.loads((ROOT / "examples" / "block.json").read_text())
-    empty_block["entries"] = []
-    empty_block["header"]["entry_count"] = 0
+    empty_block = json.loads((ROOT / "vectors/wist3/empty-block.json").read_text())["block_1"]
     assert enforced["block_decompressed_cap_bytes"][0] >= len(rfc8785.dumps(empty_block)), (
         "the Block decompressed cap floor is below the size of an empty Block, which "
         "WIST-3 §3.2 requires an Aggregator to be able to seal")
@@ -4636,36 +5008,34 @@ check("schema:wist4-suffix-list-update", _dc4_suffix_list_update)
 
 
 def _dc4_sealed_at_precision():
-    """Every window in the suite runs on Block `sealed_at`, in whole seconds.
+    """Every window in the suite runs on Checkpoint `sealed_at`, in whole
+    seconds.
 
-    A Block sealed at `...:00.500Z` or `...+00:00` would make the conversion
-    to integer seconds a rounding decision, and one rounded half-second can
-    move a grace period or a recovery window across a Block boundary. The
-    constraint therefore lives in the Block schema, not in prose downstream.
+    A Checkpoint sealed at `...:00.500Z` or `...+00:00` would make the
+    conversion to integer seconds a rounding decision, and one rounded
+    half-second can move a grace period or a recovery window across a Block
+    boundary. WIST-3 §5 fixes the `sealed_at` extension line to this exact
+    form, checked here independently of `parse_checkpoint`'s own use of
+    `SEALED_AT_PATTERN` (a pattern that rejected everything would satisfy the
+    negative cases below and look like a passing guard).
     """
-    import copy
-    import re
-    schema = json.loads((ROOT / "schemas" / "block.schema.json").read_text())
-    pat = schema["properties"]["header"]["properties"]["sealed_at"].get("pattern")
-    assert pat == r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$", \
-        "block.schema.json does not constrain sealed_at to whole seconds + Z"
-    block = json.loads((ROOT / "examples" / "block.json").read_text())
-    assert re.match(pat, block["header"]["sealed_at"]), \
-        "the example Block does not satisfy its own sealed_at pattern"
-    v = Draft202012Validator(schema)
-    # Positive control. Without it, a pattern that rejects everything would
-    # satisfy the negative cases below and look like a passing guard.
-    assert v.is_valid(block), "the shipped Block no longer validates against its schema"
-    # Negative controls. `is_valid` returns a bool; `iter_errors` returns a
-    # generator, which is truthy even when it yields nothing — asserting on it
-    # directly would pass for every input, valid ones included.
+    text = (ROOT / "examples" / "checkpoint.txt").read_text()
+    lines = text.split("\n\n", 1)[0].split("\n")
+    assert len(lines) == 5, "the example Checkpoint's note text is not 5 lines"
+    sealed_line = lines[4]
+    m = re.fullmatch(r"sealed_at (.+)", sealed_line)
+    assert m, "the example Checkpoint has no sealed_at extension line"
+    assert re.fullmatch(SEALED_AT_PATTERN.strip("^$"), m.group(1)), \
+        "the example Checkpoint's sealed_at does not satisfy its own §3.1 pattern"
     for bad in ("2026-08-02T13:00:00.500Z", "2026-08-02T13:00:00+00:00",
                 "2026-08-02T13:00:00", "2026-08-02t13:00:00z"):
-        candidate = copy.deepcopy(block)
-        candidate["header"]["sealed_at"] = bad
-        assert not v.is_valid(candidate), f"schema accepts non-exact sealed_at {bad!r}"
-        assert list(v.iter_errors(candidate)), \
-            f"schema produced no error for non-exact sealed_at {bad!r}"
+        candidate = "\n".join(lines[:4] + ["sealed_at " + bad]) + text[text.index("\n\n"):]
+        try:
+            parse_checkpoint(candidate)
+        except ValueError as e:
+            assert "WIST3-E03" in str(e), f"non-exact sealed_at {bad!r} rejected for the wrong reason"
+        else:
+            raise AssertionError(f"parse_checkpoint accepts non-exact sealed_at {bad!r}")
     wist3 = (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text()
     assert "whole-second precision" in wist3, "WIST-3 §3.1 does not state the constraint"
 check("schema:wist4-sealed-at-precision", _dc4_sealed_at_precision)
@@ -4682,11 +5052,8 @@ check("schema:wist4-sealed-at-precision", _dc4_sealed_at_precision)
 # that nothing recomputable is decided by comparing it to the Log's own clock.
 ANCHORED = "anchored to a Block `sealed_at`"
 PUBLISHER_TIMESTAMP_PATTERN = '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$(?![\\s\\S])'
-SEALED_AT_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9]Z$"
 
 TIMESTAMP_FIELDS = {
-    ("block.schema.json", "properties/header/properties/sealed_at"): ANCHORED,
-    ("checkpoint.schema.json", "properties/checkpoint/properties/sealed_at"): ANCHORED,
     ("feed.schema.json", "properties/feed/properties/generated_at"): ANCHORED,
     ("registry-update.schema.json", "properties/update/properties/effective_at"): ANCHORED,
     ("delta.schema.json", "properties/delta/properties/observed_at"):
@@ -4773,7 +5140,7 @@ def _timestamp_anchoring():
     WIST-4 §4 states that every window and admission test reads a Block
     `sealed_at`. A `date-time` field that takes part in such a comparison and
     is not constrained to that field's own form reopens, one field at a time,
-    exactly what block.schema.json's pattern closed: an Aggregator writing
+    exactly what the Checkpoint `sealed_at` pattern closed: an Aggregator writing
     `effective_at` a month in the past would put a parameter in force before
     the act existed, and every recomputing party agreed. So this enumerates
     every `date-time` in every schema, in both directions, and requires each
@@ -4813,8 +5180,8 @@ def _timestamp_anchoring():
     assert not stale, ("declarations for date-time fields that do not exist:\n  "
                        + "\n  ".join(f"{f}: {p}" for f, p in stale))
     anchored = {k for k, v in TIMESTAMP_FIELDS.items() if v is ANCHORED}
-    assert len(anchored) == 4, \
-        f"{len(anchored)} anchored timestamps; the class has four members"
+    assert len(anchored) == 2, \
+        f"{len(anchored)} anchored timestamps; the class has two members"
 
     # Mutation proof, on the field the grace-period window reads:
     # the pattern must reject exactly the forms RFC 3339 permits and WIST-3 §3.1
@@ -4991,27 +5358,29 @@ def _single_discovery_channel():
 check("spec:single-discovery-channel", _single_discovery_channel)
 
 
-def _block_frame_vectors():
-    vector = json.loads((ROOT / "vectors/wist3/block-frames.json").read_text())
-    assert vector["block"] == json.loads((ROOT / "examples/block.json").read_text())
-    canonical = rfc8785.dumps(vector["block"])
-    fragments = {name: bytes.fromhex(value) for name, value in vector["fragments_hex"].items()}
-    for case in vector["cases"]:
-        raw = b"".join(fragments[name] for name in case["parts"])
-        try:
-            decoded = decode_raw_fixture(raw, case["bound"])
-        except ValueError:
-            result = "WIST3-E03"
-        else:
-            assert decoded == canonical, case["label"]
-            result = "valid"
-        assert result == case["expected"], case["label"]
-    for tail in ("empty", "skippable empty", "skippable payload"):
-        assert decode_raw_fixture(fragments["block"], len(canonical)) == canonical
-        assert any(case["parts"] == ["block", tail] and case["expected"] == "WIST3-E03"
-                   for case in vector["cases"]), tail
+def _tile_bound_vectors():
+    """WIST-3 §6, §3.3: a Consumer stops reading before buffering past a tile,
+    entry bundle, or Entry JCS bound; equality with a bound is permitted."""
+    vector = json.loads((ROOT / "vectors/wist3/tile-bounds.json").read_text())
+    tile = vector["tile"]
+    assert len(bytes.fromhex(tile["at_bound_hex"])) == tile["bound_bytes"]
+    assert tile["at_bound_expected"] == "valid"
+    assert len(bytes.fromhex(tile["over_bound_hex"])) == tile["bound_bytes"] + 1
+    assert tile["over_bound_expected"] == "WIST3-E03"
+    bundle = vector["entry_bundle"]
+    assert bundle["bound_bytes"] == 256 * 65537
+    assert bundle["at_bound_declared_bytes"] == bundle["bound_bytes"]
+    assert bundle["at_bound_expected"] == "valid"
+    assert bundle["over_bound_declared_bytes"] == bundle["bound_bytes"] + 1
+    assert bundle["over_bound_expected"] == "WIST3-E03"
+    entry_jcs = vector["entry_jcs"]
+    assert entry_jcs["bound_bytes"] == 65535
+    assert len(rfc8785.dumps(entry_jcs["at_bound_entry"])) == entry_jcs["bound_bytes"]
+    assert entry_jcs["at_bound_expected"] == "valid"
+    assert len(rfc8785.dumps(entry_jcs["over_bound_entry"])) == entry_jcs["bound_bytes"] + 1
+    assert entry_jcs["over_bound_expected"] == "WIST3-E03"
 
-check("vectors:wist3-block-frames", _block_frame_vectors)
+check("vectors:wist3-tile-bounds", _tile_bound_vectors)
 
 def _log_timestamp_vectors():
     vector = json.loads((ROOT / "vectors/wist3/timestamps.json").read_text())
@@ -5039,7 +5408,26 @@ def _log_timestamp_vectors():
         if case["schema"] == "snapshot-state.schema.json":
             identity += (case["document"]["state"]["entries"][0][0],)
         exercised.add(identity)
-    assert len(exercised) == 9, "all four fields and five Snapshot timestamp positions required"
+    assert len(exercised) == 7, "both remaining schema fields and five Snapshot timestamp positions required"
+
+    cp = vector["checkpoint_field_case"]
+    idx = cp["sealed_at_line_index"]
+    base_lines = cp["note_lines"]
+    sig_block = cp["sig_block"]
+    parse_checkpoint("\n".join(base_lines) + "\n\n" + sig_block)  # positive control
+    for value, expected in ((vector["field_accept"], True), (vector["field_reject"], False),
+                            (vector["field_reject_non_ascii"], False)):
+        lines = list(base_lines)
+        lines[idx] = "sealed_at " + value
+        candidate = "\n".join(lines) + "\n\n" + sig_block
+        try:
+            parse_checkpoint(candidate)
+            accepted = True
+        except ValueError as e:
+            assert "WIST3-E03" in str(e), f"sealed_at {value!r} rejected for the wrong reason"
+            accepted = False
+        assert accepted == expected, ("checkpoint sealed_at", value)
+
     snapshot = json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text())
     def patterns(node):
         if isinstance(node, dict):
@@ -5404,8 +5792,9 @@ def _signed_delta_appendices():
     leaves = [leaf_hash(rfc8785.dumps(entry)) for entry in block["entries"]]
     for index, value in enumerate(leaves):
         assert f"leaf{index} = {value.hex()}" in prose
-    assert block["header"]["merkle_root"] in prose
-    assert "sha256:" + hashlib.sha256(rfc8785.dumps(block["header"])).hexdigest() in prose
+    cp = parse_checkpoint(block["checkpoint"])
+    assert "sha256:" + cp["root"].hex() in prose
+    assert base64.b64encode(cp["root"]).decode() in prose
     for index in (0, 2):
         assert hashlib.sha256(b"\x01" + leaves[index] + leaves[index + 1]).hexdigest() in prose
     assert f"/payloads/{delta_id[7:]}.json" in prose
@@ -5558,9 +5947,9 @@ def _recovery_admission_vectors():
     classifications, removed_kinds, revival_count = set(), set(), 0
     for case in vector["cases"]:
         admitted_at = log_seconds(case["admitted_at"])
-        assert log_seconds(vector["blocks"][1]["header"]["sealed_at"]) < admitted_at < deadline
+        assert log_seconds(block_sealed_at(vector["blocks"][1])) < admitted_at < deadline
         preceding = max(index for index, block in enumerate(vector["blocks"])
-                        if log_seconds(block["header"]["sealed_at"]) < admitted_at)
+                        if log_seconds(block_sealed_at(block)) < admitted_at)
         admission = copy.deepcopy(prefix_states[preceding])
         accepted_chain, kinds = {identity(prefix["chain"])}, {}
         for label in case["admitted"]:
@@ -5583,7 +5972,7 @@ def _recovery_admission_vectors():
         sealed_names = {name(entry["body"]) for entry in inside["entries"]}
         assert sealed_names <= set(case["admitted"])
         if sealed_names:
-            assert admitted_at < log_seconds(inside["header"]["sealed_at"])
+            assert admitted_at < log_seconds(block_sealed_at(inside))
         sealed_prefix = vector["blocks"] + [inside]
         sealed = replay(sealed_prefix, case["last_inside_pin"])[-1]
         queue_source = name(sealed["chain"])
@@ -5597,7 +5986,7 @@ def _recovery_admission_vectors():
         actual = dict(compact(admission), queue_source=queue_source, retained=retained, removed=removed)
         assert actual == expected, (case["name"], actual, expected)
         assert admission["reset_height"] == prefix["reset_height"]
-        elapsed_blocks = sum(log_seconds(block["header"]["sealed_at"]) > admitted_at
+        elapsed_blocks = sum(log_seconds(block_sealed_at(block)) > admitted_at
                              for block in sealed_prefix)
         assert elapsed_blocks in {0, 1, 166}
         overdue = elapsed_blocks > 24 and any(kinds[label] == "recovery_rotation" for label in removed)
@@ -6072,7 +6461,7 @@ def _delta_cap_time_vectors():
                 update = doc['update']
                 assert doc['sig']['key_id'] == vector['log_key']['key_id']
                 assert update['action'] == 'parameter_change'
-                assert log_seconds(update['effective_at']) >= log_seconds(block['header']['sealed_at']) + 7 * 86400
+                assert log_seconds(update['effective_at']) >= log_seconds(block_sealed_at(block)) + 7 * 86400
                 amendments.append((height, index, update))
             else:
                 ident = 'sha256:' + hashlib.sha256(rfc8785.dumps(doc['delta'])).hexdigest()
@@ -6093,7 +6482,7 @@ def _delta_cap_time_vectors():
         return result
 
     for height, _, update in amendments:
-        for at in {log_seconds(blocks[height]['header']['sealed_at'])} | {
+        for at in {log_seconds(block_sealed_at(blocks[height]))} | {
                 log_seconds(candidate['effective_at']) for sealed, _, candidate in amendments if sealed <= height}:
             caps = parameters(at, height)
             assert caps['links_cap_bytes'] >= caps['link_url_cap_bytes'] + 21
@@ -6123,11 +6512,11 @@ def _delta_cap_time_vectors():
         public.verify(b64u_decode(obj['envelope']['sig']['value']), rfc8785.dumps(body))
         assert obj['id'] == 'sha256:' + hashlib.sha256(rfc8785.dumps(body)).hexdigest()
         assert body['publisher'] == 'example.com' and body['url'].startswith('https://example.com/')
-        assert publisher_instant(body['observed_at']) <= log_seconds(blocks[obj['sealed_height']]['header']['sealed_at'])
+        assert publisher_instant(body['observed_at']) <= log_seconds(block_sealed_at(blocks[obj['sealed_height']]))
         assert body['payload']['commitment'] == _commit(obj['payload']['salt'], obj['payload']['content'])
         assert body['payload']['bytes'] == len(rfc8785.dumps(obj['payload']['content']))
         assert inclusion[obj['id']] == obj['sealed_height']
-        instant = log_seconds(blocks[obj['sealed_height']]['header']['sealed_at'])
+        instant = log_seconds(block_sealed_at(blocks[obj['sealed_height']]))
         assert diagnose(obj, parameters(instant, obj['sealed_height'])) is None, name
 
     stages, outcomes = collections.Counter(), collections.Counter()
@@ -6138,14 +6527,14 @@ def _delta_cap_time_vectors():
             assert log_seconds(probe['completed_at']) >= at
         elif probe['stage'] == 'sealing':
             prefix = probe['candidate_height']
-            at = log_seconds(blocks[prefix]['header']['sealed_at'])
+            at = log_seconds(block_sealed_at(blocks[prefix]))
             admission = log_seconds(probe['admitted_at'])
             assert admission < at
             assert diagnose(obj, parameters(admission, 168)) is None
         else:
             assert probe['stage'] == 'historical'
             prefix = inclusion[obj['id']]
-            at = log_seconds(blocks[prefix]['header']['sealed_at'])
+            at = log_seconds(block_sealed_at(blocks[prefix]))
             assert probe['prefix_height'] >= prefix and log_seconds(probe['checked_at']) >= at
         caps = parameters(at, prefix)
         assert caps == probe['expected_profile'], probe['name']
@@ -6165,10 +6554,10 @@ def _delta_cap_time_vectors():
         obj = dict(envelope=doc, payload=case['payload'])
         assert doc['delta']['payload']['commitment'] == _commit(case['payload']['salt'], case['payload']['content'])
         assert doc['delta']['change_type'] == 'new' and 'prev' not in doc['delta']
-        assert publisher_instant(doc['delta']['observed_at']) <= log_seconds(candidate['header']['sealed_at'])
+        assert publisher_instant(doc['delta']['observed_at']) <= log_seconds(block_sealed_at(candidate))
         assert all(entry['body']['delta']['url'] != doc['delta']['url']
                    for block in blocks[:169] for entry in block['entries'] if entry['type'] == 'publisher_delta')
-        cap = parameters(log_seconds(candidate['header']['sealed_at']), 168)
+        cap = parameters(log_seconds(block_sealed_at(candidate)), 168)
         assert diagnose(obj, cap) == case['expected'] and case['expected'] is not None
     deltas = {obj['id']: obj['envelope']['delta'] for obj in vector['objects'].values()}
     for entry in blocks[169]['entries']:
@@ -7054,8 +7443,6 @@ def _dispute_vectors():
         assert case["state_tuple"] == expected, case["name"]
         envelope["state"]["entries"] = [expected]
         state.validate(envelope)
-    block = json.loads((ROOT / "schemas/block.schema.json").read_text())
-    assert "dispute" in block["properties"]["entries"]["items"]["properties"]["type"]["enum"]
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     assert "the disputed Label's `subject` MUST lie under the disputant's authority" in prose
     assert "an Aggregator MUST NOT reject a dispute for naming another Log" in prose

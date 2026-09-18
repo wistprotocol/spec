@@ -74,3 +74,81 @@ def audit_path(index: int, leaves: list) -> list:
             return rec(m - k, d[k:]) + [merkle_root(d[:k])]
 
     return rec(index, list(leaves))
+
+
+def _perfect_root(leaves: list, start: int, count: int) -> bytes:
+    """MTH over leaves[start:start+count] where count is a power of two."""
+    level = leaves[start:start + count]
+    while len(level) > 1:
+        level = [node_hash(level[i], level[i + 1])
+                 for i in range(0, len(level), 2)]
+    return level[0]
+
+
+def consistency_proof(m: int, n: int, leaves: list) -> list:
+    """RFC 6962 §2.1.2 PROOF(m, D[n]) over a list of leaf hashes.
+
+    Empty when m == 0 (the empty tree is a prefix of every tree) and when
+    m == n, where the two roots are equal instead (WIST-3 §4).
+    """
+    if not (0 <= m <= n <= len(leaves)):
+        raise ValueError("require 0 <= m <= n <= len(leaves)")
+    if m == 0 or m == n:
+        return []
+
+    def sub(m: int, d: list, b: bool) -> list:
+        if m == len(d):
+            return [] if b else [merkle_root(d)]
+        k = 1
+        while k * 2 < len(d):
+            k *= 2
+        if m <= k:
+            return sub(m, d[:k], b) + [merkle_root(d[k:])]
+        return sub(m - k, d[k:], False) + [merkle_root(d[:k])]
+
+    return sub(m, list(leaves), True)
+
+
+def tile_hashes(leaves: list, level: int) -> list:
+    """The [tlog-tiles] hashes at tree level `level`: the roots of the
+    complete 2**level-leaf subtrees, left to right. An incomplete trailing
+    subtree contributes no hash at this level."""
+    width = 1 << level
+    return [_perfect_root(leaves, i, width)
+            for i in range(0, len(leaves) - len(leaves) % width, width)]
+
+
+def tile_bytes(hashes: list) -> bytes:
+    """A [tlog-tiles] tile: its hashes concatenated, 32 octets each."""
+    return b"".join(hashes)
+
+
+def entry_bundle_bytes(entries_jcs: list) -> bytes:
+    """A [tlog-tiles] entry bundle (WIST-3 §6): each Entry's JCS
+    serialization prefixed by its length as a big-endian uint16."""
+    out = bytearray()
+    for data in entries_jcs:
+        if len(data) > 0xFFFF:
+            raise ValueError("Entry exceeds the 65 535-octet bound (WIST-3 §3.3)")
+        out += len(data).to_bytes(2, "big") + data
+    return bytes(out)
+
+
+def tile_path_index(n: int) -> str:
+    """[tlog-tiles]'s path encoding of a tile index: three-digit groups,
+    every group but the last prefixed with `x`."""
+    groups = []
+    while True:
+        groups.append("%03d" % (n % 1000))
+        n //= 1000
+        if not n:
+            break
+    groups.reverse()
+    return "/".join(["x" + g for g in groups[:-1]] + [groups[-1]])
+
+
+def tile_path(level: int, index: int, width: int = 0) -> str:
+    """`/tile/<L>/<N>` or `/tile/entries/<N>`, with `.p/<W>` for a partial
+    tile. `level` is the tile level, or the string `entries`."""
+    path = "/tile/%s/%s" % (level, tile_path_index(index))
+    return path + (".p/%d" % width if width else "")

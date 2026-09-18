@@ -48,8 +48,8 @@ inside it, and the height a Snapshot is taken at.
   per-Block tree: a Log with no Entries is a tree of size zero.
 - **Checkpoints are C2SP signed notes.** The checkpoint is a
   `tlog-checkpoint` note with the origin line, the tree size and the root
-  hash, signed with Ed25519 under the `tlog-cosignature` note signature
-  format, carrying the interval's `sealed_at` as an extension line so the
+  hash, signed with Ed25519 under the `signed-note` signature format,
+  carrying the interval's `sealed_at` as an extension line so the
   suite's day counts keep their anchor. It is issued at least hourly, so
   an idle Log still produces the heartbeat empty Blocks give today.
   Equivocation becomes two notes for one tree size with different roots,
@@ -59,7 +59,10 @@ inside it, and the height a Snapshot is taken at.
   above them. Snapshots and tier files are unchanged in purpose and
   shape: a materialized index over the Log up to a checkpoint's tree
   size, with `log_position` reading as that size and `anchor_block_hash`
-  as the root it anchors to.
+  as the root it anchors to. The manifest states the Block number beside
+  them, because a tree size names no Block on its own: an empty Block
+  restates the size before it, and the state at two such Blocks differs
+  by whatever their instants settle, expire or bring into force.
 - **Witness cosignatures, with a quorum the Registry distributes.** A
   checkpoint may carry witness cosignatures under `tlog-witness` and
   `tlog-cosignature`. The verifier-side quorum policy is distributed
@@ -70,6 +73,28 @@ inside it, and the height a Snapshot is taken at.
   checkpoint. The project operates the first witness and applies to
   witness-network.org, because a quorum of one operator's witnesses is
   not a quorum.
+- **The C2SP surface sits at the origin's root.** `tlog-tiles` recommends
+  that the origin line be the schema-less URL prefix the tiles are served
+  under, so the checkpoint, the tiles and the entry bundles are served at
+  the root of the Log's `log_id` and the origin is that `log_id`. The
+  suite's own endpoints keep their existing prefixes; a generic C2SP
+  client needs none of them. The Log's own signature on a checkpoint is a
+  `signed-note` Ed25519 signature (type `0x01`), which covers the
+  extension lines the suite's day counts depend on; the cosignature type
+  is the Witnesses'.
+- **An Entry fits an entry bundle.** `tlog-tiles` length-prefixes a
+  leaf's data with a uint16, so an Entry's serialization is bounded at
+  65 535 octets and an Aggregator MUST NOT seal a larger one. The bound
+  is the format's, not a policy choice, and no Entry the suite defines
+  approaches it.
+- **The Witness roster is the Consumer's, the threshold is the Log's
+  floor.** Which Witnesses a Consumer trusts is its own configuration,
+  obtained as the Log Anchor is, never from the Log: an Aggregator that
+  named its own Witnesses would be choosing the parties meant to catch it
+  equivocating, which is why the Mirror list is already advisory. The
+  Parameter Registry carries the quorum threshold alone, and it is a
+  minimum: a Consumer MAY require more Cosignatures, or specific
+  Witnesses, under a verifier-side policy of its own.
 - **SCITT vocabulary, receipts deferred.** The specification maps its
   terms to RFC 9943's — the Aggregator is the Transparency Service, a
   Publisher the Issuer, a Delta's subject the Subject, the admission rules
