@@ -2046,7 +2046,7 @@ def _replay_block_size(default, blocks, restart_after=()):
         for index, change in enumerate(block["amendments"]):
             candidate = dict(change,block_height=height,entry_index=index)
             proposed = trial+[candidate]
-            valid = isinstance(candidate["value"], int) and 1024 <= candidate["value"] <= 9007199254740991 and candidate["effective_at_s"]-block["sealed_at_s"] >= 7*86400
+            valid = isinstance(candidate["value"], int) and 65537 <= candidate["value"] <= 9007199254740991 and candidate["effective_at_s"]-block["sealed_at_s"] >= 7*86400
             if valid and all(cap >= maximum for cap in _block_size_maps(default,proposed,block["sealed_at_s"])):
                 trial = proposed
             else:
@@ -2076,20 +2076,9 @@ def _dc4_block_sizes():
         if case.get("snapshot_bootstrap"):
             bound = max([v["block_cap_default"]]+[c["value"] for c in case["accepted_caps"]])
         assert bound == case["transport_bound"], case["label"]
-        declared = case["declared_bytes"]
-        if declared is None or declared > bound:
-            stage = "frame"
-        else:
-            total = 0
-            for chunk in case["decoded_chunk_bytes"]:
-                if chunk > bound-total:
-                    stage = "stream"
-                    break
-                total += chunk
-            else:
-                stage = "decoded" if total == declared else "length"
-        assert stage == case["result"], case["label"]
-        assert (None if stage == "decoded" else "WIST3-E03") == case["error"], case["label"]
+        valid = case["entries_bytes"] <= bound
+        assert valid == case["valid"], case["label"]
+        assert (None if valid else "WIST3-E03") == case["error"], case["label"]
 check("vectors:wist4-block-size-schedule", _dc4_block_sizes)
 
 
@@ -2108,8 +2097,13 @@ def _dc4_block_sizes_twin():
     pending = cases["pending reduction constrains an intervening Block"]
     assert pending["blocks"][-1]["jcs_bytes"] < v["block_cap_default"]
     assert not pending["expected"][-1]["block_valid"]
-    transport = next(c for c in v["block_transport_cases"] if c["label"] == "future increase enlarges the transport bound")
-    assert transport["declared_bytes"] > v["block_cap_default"] and transport["result"] == "decoded"
+    transport = next(c for c in v["block_transport_cases"] if c["label"] == "an accepted future effective_at raises the bound before it takes effect")
+    assert transport["entries_bytes"] > v["block_cap_default"] and transport["valid"]
+    excluded = next(c for c in v["block_transport_cases"] if c["label"] == "a rejected candidate does not raise the bound")
+    assert not excluded["valid"]
+    with_rejected = max(_block_size_maps(v["block_cap_default"],
+        excluded["accepted_caps"] + excluded["rejected_caps"], excluded["prefix_sealed_at_s"]))
+    assert with_rejected > excluded["transport_bound"] and excluded["entries_bytes"] <= with_rejected
 check("negative:wist4-block-size-schedule", _dc4_block_sizes_twin)
 
 def _dc4_parameter_clocks():

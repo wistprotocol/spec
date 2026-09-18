@@ -3610,6 +3610,7 @@ parameter_wire_cases.append({"label": "quota_base fractional effective_at",
     "schema_valid": False, "combinations_hold_at_defaults": True, "sealed_disposition": "ignored"})
 
 BLOCK_CAP_DEFAULT = 256 * 1024 * 1024
+BLOCK_SIZE_FLOOR = 65537
 
 
 def block_cap_at(changes, at_s):
@@ -3631,7 +3632,7 @@ def block_cap_trace(blocks):
         for index, amendment in enumerate(block["amendments"]):
             change = dict(amendment, block_height=height, entry_index=index)
             trial = working + [change]
-            if not isinstance(change["value"], int) or change["value"] < 1024 or change["effective_at_s"] < block["sealed_at_s"] + 7 * DAY_S or block_cap_bounds(trial, block["sealed_at_s"])[0] < tentative_max:
+            if not isinstance(change["value"], int) or change["value"] < BLOCK_SIZE_FLOOR or change["effective_at_s"] < block["sealed_at_s"] + 7 * DAY_S or block_cap_bounds(trial, block["sealed_at_s"])[0] < tentative_max:
                 rejected.append(index)
             else:
                 working = trial
@@ -3647,23 +3648,28 @@ def block_cap_trace(blocks):
     return probes
 
 
+U2 = 2 * BLOCK_SIZE_FLOOR
+U3 = 3 * BLOCK_SIZE_FLOOR
+U4 = 4 * BLOCK_SIZE_FLOOR
+U8 = 8 * BLOCK_SIZE_FLOOR
+
 block_size_cases = []
 for label, rows, rejected, valid in (
-    ("reduction below a historical Block", [(0,8192,[]), (1,2048,[(4096,8)])], [[],[0]], [True,True]),
-    ("reduction includes its complete current Block", [(0,8192,[(4096,7)])], [[0]], [True]),
-    ("reduction equals the current Block size", [(0,4096,[(4096,7)]), (7,4096,[])], [[],[]], [True,True]),
-    ("pending reduction constrains an intervening Block", [(0,2048,[(4096,7)]), (1,4097,[])], [[],[]], [True,False]),
-    ("pending reduction equality before effectiveness", [(0,2048,[(4096,7)]), (1,4096,[])], [[],[]], [True,True]),
-    ("increase is unavailable one second before effectiveness", [(0,2048,[(4096,7),(8192,8)]), (8,4097,[])], [[],[]], [True,False]),
-    ("increase is available exactly at effectiveness", [(0,2048,[(4096,7),(8192,8)]), (8,8192,[])], [[],[]], [True,True]),
-    ("rejected candidate is not rescued by later replacement", [(0,5000,[(4096,7),(8192,7)])], [[0]], [True]),
-    ("same-time replacement relaxes a pending reduction", [(0,2048,[(4096,7),(8192,7)]), (1,8192,[])], [[],[]], [True,True]),
-    ("out-of-range candidate leaves the schedule unchanged", [(0,2048,[(1023,7),(8192,7)])], [[0]], [True]),
-    ("restart retains a pending reduction and maximum", [(0,4096,[(4096,7)]), (1,2048,[]), (2,2048,[(3072,9)])], [[],[],[0]], [True,True,True]),
-    ("later maximum never revalidates old acceptance", [(0,2048,[(4096,7)]), (1,2048,[(8192,7+1)]), (9,8192,[])], [[],[],[]], [True,True,True]),
-    ("verified pending increase permits transport above default", [(0,2048,[(2*BLOCK_CAP_DEFAULT,7)]), (7,BLOCK_CAP_DEFAULT+1,[])], [[],[]], [True,True]),
+    ("reduction below a historical Block", [(0,U8,[]), (1,U2,[(U4,8)])], [[],[0]], [True,True]),
+    ("reduction includes its complete current Block", [(0,U8,[(U4,7)])], [[0]], [True]),
+    ("reduction equals the current Block size", [(0,U4,[(U4,7)]), (7,U4,[])], [[],[]], [True,True]),
+    ("pending reduction constrains an intervening Block", [(0,U2,[(U4,7)]), (1,U4+1,[])], [[],[]], [True,False]),
+    ("pending reduction equality before effectiveness", [(0,U2,[(U4,7)]), (1,U4,[])], [[],[]], [True,True]),
+    ("increase is unavailable one second before effectiveness", [(0,U2,[(U4,7),(U8,8)]), (8,U4+1,[])], [[],[]], [True,False]),
+    ("increase is available exactly at effectiveness", [(0,U2,[(U4,7),(U8,8)]), (8,U8,[])], [[],[]], [True,True]),
+    ("rejected candidate is not rescued by later replacement", [(0,300000,[(U4,7),(U8,7)])], [[0]], [True]),
+    ("same-time replacement relaxes a pending reduction", [(0,U2,[(U4,7),(U8,7)]), (1,U8,[])], [[],[]], [True,True]),
+    ("out-of-range candidate leaves the schedule unchanged", [(0,BLOCK_SIZE_FLOOR,[(BLOCK_SIZE_FLOOR-1,7),(BLOCK_SIZE_FLOOR,7)])], [[0]], [True]),
+    ("restart retains a pending reduction and maximum", [(0,U4,[(U4,7)]), (1,U2,[]), (2,U2,[(U3,9)])], [[],[],[0]], [True,True,True]),
+    ("later maximum never revalidates old acceptance", [(0,U2,[(U4,7)]), (1,U2,[(U8,7+1)]), (9,U8,[])], [[],[],[]], [True,True,True]),
+    ("verified pending increase permits transport above default", [(0,U2,[(2*BLOCK_CAP_DEFAULT,7)]), (7,BLOCK_CAP_DEFAULT+1,[])], [[],[]], [True,True]),
     ("a fetched Block cannot raise its own bound", [(0,BLOCK_CAP_DEFAULT+1,[(2*BLOCK_CAP_DEFAULT,7)])], [[0]], [False]),
-    ("schema-invalid candidate is ignored and its Block stays valid", [(0,2048,[("4096",7),(8192,7)]), (7,8192,[])], [[0],[]], [True,True]),
+    ("schema-invalid candidate is ignored and its Block stays valid", [(0,U2,[(str(U4),7),(U8,7)]), (7,U8,[])], [[0],[]], [True,True]),
 ):
     blocks = [{"sealed_at_s":round(day*DAY_S), "jcs_bytes":size,
         "amendments":[{"value":value,"effective_at_s":effective*DAY_S} for value,effective in amendments]}
@@ -3677,31 +3683,36 @@ for label, rows, rejected, valid in (
         "restart_after":list(range(len(blocks)-1))})
 
 block_transport_cases = []
-for label, prefix_s, changes, declared, chunks, stage in (
-    ("genesis rejects above default before decompression", None, [], BLOCK_CAP_DEFAULT+1, [], "frame"),
-    ("missing declared size is rejected", None, [], None, [], "frame"),
-    ("exact transport bound is allowed", 7*DAY_S, [(4096,7)], 4096, [2048,2048], "decoded"),
-    ("declared excess is rejected before decompression", 7*DAY_S, [(4096,7)], 4097, [], "frame"),
-    ("false small declaration cannot overrun the bound", 7*DAY_S, [(4096,7)], 4096, [2048,2049], "stream"),
-    ("false declaration within the bound still fails", 7*DAY_S, [(4096,7)], 3000, [2048,1024], "length"),
-    ("future increase enlarges the transport bound", 0, [(2*BLOCK_CAP_DEFAULT,7)], BLOCK_CAP_DEFAULT+1, [BLOCK_CAP_DEFAULT,1], "decoded"),
-    ("superseded increase cannot enlarge transport", 7*DAY_S, [(8192,7),(4096,7)], 4097, [], "frame"),
-    ("expired larger cap cannot enlarge transport", 8*DAY_S, [(8192,7),(4096,8)], 4097, [], "frame"),
-    ("future smaller cap does not lower transport early", 0, [(4096,7)], 8192, [8192], "decoded"),
+for label, prefix_s, changes, rejected_changes, entries_bytes, valid in (
+    ("no verified prefix uses the Registry default", None, [], [], BLOCK_CAP_DEFAULT, True),
+    ("no verified prefix rejects entries above the Registry default", None, [], [], BLOCK_CAP_DEFAULT+1, False),
+    ("entries attributable to the Block at the transport bound", 7*DAY_S, [(BLOCK_SIZE_FLOOR,7)], [], BLOCK_SIZE_FLOOR, True),
+    ("entries attributable to the Block exceed the transport bound", 7*DAY_S, [(BLOCK_SIZE_FLOOR,7)], [], BLOCK_SIZE_FLOOR+1, False),
+    ("the bound is the greatest cap at the prefix's last sealed_at", 10*DAY_S, [(U2,0)], [], U2, True),
+    ("an accepted future effective_at raises the bound before it takes effect", 1*DAY_S,
+        [(BLOCK_SIZE_FLOOR,1),(2*BLOCK_CAP_DEFAULT,30)], [], BLOCK_CAP_DEFAULT+1, True),
+    ("a rejected candidate does not raise the bound", 5*DAY_S, [(BLOCK_SIZE_FLOOR,5)], [(U4,5)], U4, False),
 ):
     amendments = [{"value":value,"effective_at_s":day*DAY_S,"block_height":0,"entry_index":i} for i,(value,day) in enumerate(changes)]
     bound = BLOCK_CAP_DEFAULT if prefix_s is None else block_cap_bounds(amendments,prefix_s)[1]
     block_transport_cases.append({"label":label,"prefix_sealed_at_s":prefix_s,"accepted_caps":amendments,
-        "declared_bytes":declared,"decoded_chunk_bytes":chunks,"transport_bound":bound,
-        "result":stage,"error":None if stage=="decoded" else "WIST3-E03"})
+        "rejected_caps":[{"value":value,"effective_at_s":day*DAY_S,"block_height":0,"entry_index":len(amendments)+j}
+            for j,(value,day) in enumerate(rejected_changes)],
+        "entries_bytes":entries_bytes,"transport_bound":bound,
+        "valid":valid,"error":None if valid else "WIST3-E03"})
 
-for values, declared, result in (([], BLOCK_CAP_DEFAULT+1, "frame"), ([2*BLOCK_CAP_DEFAULT], BLOCK_CAP_DEFAULT+1, "decoded"), ([4096], 8192, "decoded")):
-    block_transport_cases.append({"label":"Snapshot bootstrap caps " + str(values),
+for label, values, entries_bytes, valid in (
+    ("Snapshot bootstrap with no accepted caps uses the Registry default", [], BLOCK_CAP_DEFAULT, True),
+    ("Snapshot bootstrap rejects entries above the Registry default", [], BLOCK_CAP_DEFAULT+1, False),
+    ("Snapshot bootstrap authenticated tuple raises the bound", [2*BLOCK_CAP_DEFAULT], 2*BLOCK_CAP_DEFAULT, True),
+    ("Snapshot bootstrap entries above the authenticated bound are rejected", [2*BLOCK_CAP_DEFAULT], 2*BLOCK_CAP_DEFAULT+1, False),
+):
+    block_transport_cases.append({"label":label,
         "snapshot_bootstrap":True,"prefix_sealed_at_s":None,
-        "accepted_caps":[{"value":value} for value in values],
-        "declared_bytes":declared,"decoded_chunk_bytes":[declared] if result=="decoded" else [],
-        "transport_bound":max([BLOCK_CAP_DEFAULT]+values),"result":result,
-        "error":None if result=="decoded" else "WIST3-E03"})
+        "accepted_caps":[{"value":value} for value in values],"rejected_caps":[],
+        "entries_bytes":entries_bytes,
+        "transport_bound":max([BLOCK_CAP_DEFAULT]+values),"valid":valid,
+        "error":None if valid else "WIST3-E03"})
 
 LOG_TIMESTAMP_MAX_S = 253402300799
 RECOVERY_BASE_S = 1_800_000_000

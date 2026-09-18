@@ -764,15 +764,15 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 8192,
+          "jcs_bytes": 524296,
           "amendments": []
         },
         {
           "sealed_at_s": 86400,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 691200
             }
           ]
@@ -783,7 +783,7 @@
           "rejected_indices": [],
           "sealing_cap": 268435456,
           "block_valid": true,
-          "largest_bytes": 8192,
+          "largest_bytes": 524296,
           "transport_bound_before": 268435456
         },
         {
@@ -792,7 +792,7 @@
           ],
           "sealing_cap": 268435456,
           "block_valid": true,
-          "largest_bytes": 8192,
+          "largest_bytes": 524296,
           "transport_bound_before": 268435456
         }
       ],
@@ -805,10 +805,10 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 8192,
+          "jcs_bytes": 524296,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             }
           ]
@@ -821,7 +821,7 @@
           ],
           "sealing_cap": 268435456,
           "block_valid": true,
-          "largest_bytes": 8192,
+          "largest_bytes": 524296,
           "transport_bound_before": 268435456
         }
       ],
@@ -832,33 +832,33 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 4096,
+          "jcs_bytes": 262148,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             }
           ]
         },
         {
           "sealed_at_s": 604800,
-          "jcs_bytes": 4096,
+          "jcs_bytes": 262148,
           "amendments": []
         }
       ],
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 4096,
+          "largest_bytes": 262148,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 4096,
+          "largest_bytes": 262148,
           "transport_bound_before": 268435456
         }
       ],
@@ -871,33 +871,33 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             }
           ]
         },
         {
           "sealed_at_s": 86400,
-          "jcs_bytes": 4097,
+          "jcs_bytes": 262149,
           "amendments": []
         }
       ],
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": false,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         }
       ],
@@ -910,33 +910,33 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             }
           ]
         },
         {
           "sealed_at_s": 86400,
-          "jcs_bytes": 4096,
+          "jcs_bytes": 262148,
           "amendments": []
         }
       ],
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 4096,
+          "largest_bytes": 262148,
           "transport_bound_before": 268435456
         }
       ],
@@ -949,37 +949,37 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             },
             {
-              "value": 8192,
+              "value": 524296,
               "effective_at_s": 691200
             }
           ]
         },
         {
           "sealed_at_s": 691199,
-          "jcs_bytes": 4097,
+          "jcs_bytes": 262149,
           "amendments": []
         }
       ],
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": false,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         }
       ],
@@ -992,37 +992,37 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             },
             {
-              "value": 8192,
+              "value": 524296,
               "effective_at_s": 691200
             }
           ]
         },
         {
           "sealed_at_s": 691200,
-          "jcs_bytes": 8192,
+          "jcs_bytes": 524296,
           "amendments": []
         }
       ],
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 8192,
+          "sealing_cap": 524296,
           "block_valid": true,
-          "largest_bytes": 8192,
+          "largest_bytes": 524296,
           "transport_bound_before": 268435456
         }
       ],
@@ -1035,14 +1035,14 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 5000,
+          "jcs_bytes": 300000,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             },
             {
-              "value": 8192,
+              "value": 524296,
               "effective_at_s": 604800
             }
           ]
@@ -1053,9 +1053,9 @@
           "rejected_indices": [
             0
           ],
-          "sealing_cap": 8192,
+          "sealing_cap": 524296,
           "block_valid": true,
-          "largest_bytes": 5000,
+          "largest_bytes": 300000,
           "transport_bound_before": 268435456
         }
       ],
@@ -1066,37 +1066,37 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             },
             {
-              "value": 8192,
+              "value": 524296,
               "effective_at_s": 604800
             }
           ]
         },
         {
           "sealed_at_s": 86400,
-          "jcs_bytes": 8192,
+          "jcs_bytes": 524296,
           "amendments": []
         }
       ],
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 8192,
+          "sealing_cap": 524296,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 8192,
+          "sealing_cap": 524296,
           "block_valid": true,
-          "largest_bytes": 8192,
+          "largest_bytes": 524296,
           "transport_bound_before": 268435456
         }
       ],
@@ -1109,14 +1109,14 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 65537,
           "amendments": [
             {
-              "value": 1023,
+              "value": 65536,
               "effective_at_s": 604800
             },
             {
-              "value": 8192,
+              "value": 65537,
               "effective_at_s": 604800
             }
           ]
@@ -1127,9 +1127,9 @@
           "rejected_indices": [
             0
           ],
-          "sealing_cap": 8192,
+          "sealing_cap": 65537,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 65537,
           "transport_bound_before": 268435456
         }
       ],
@@ -1140,25 +1140,25 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 4096,
+          "jcs_bytes": 262148,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             }
           ]
         },
         {
           "sealed_at_s": 86400,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": []
         },
         {
           "sealed_at_s": 172800,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 3072,
+              "value": 196611,
               "effective_at_s": 777600
             }
           ]
@@ -1167,25 +1167,25 @@
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 4096,
+          "largest_bytes": 262148,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 4096,
+          "largest_bytes": 262148,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [
             0
           ],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 4096,
+          "largest_bytes": 262148,
           "transport_bound_before": 268435456
         }
       ],
@@ -1199,50 +1199,50 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 4096,
+              "value": 262148,
               "effective_at_s": 604800
             }
           ]
         },
         {
           "sealed_at_s": 86400,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": 8192,
+              "value": 524296,
               "effective_at_s": 691200
             }
           ]
         },
         {
           "sealed_at_s": 777600,
-          "jcs_bytes": 8192,
+          "jcs_bytes": 524296,
           "amendments": []
         }
       ],
       "expected": [
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 4096,
+          "sealing_cap": 262148,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 8192,
+          "sealing_cap": 524296,
           "block_valid": true,
-          "largest_bytes": 8192,
+          "largest_bytes": 524296,
           "transport_bound_before": 268435456
         }
       ],
@@ -1256,7 +1256,7 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
               "value": 536870912,
@@ -1275,7 +1275,7 @@
           "rejected_indices": [],
           "sealing_cap": 268435456,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
@@ -1322,21 +1322,21 @@
       "blocks": [
         {
           "sealed_at_s": 0,
-          "jcs_bytes": 2048,
+          "jcs_bytes": 131074,
           "amendments": [
             {
-              "value": "4096",
+              "value": "262148",
               "effective_at_s": 604800
             },
             {
-              "value": 8192,
+              "value": 524296,
               "effective_at_s": 604800
             }
           ]
         },
         {
           "sealed_at_s": 604800,
-          "jcs_bytes": 8192,
+          "jcs_bytes": 524296,
           "amendments": []
         }
       ],
@@ -1345,16 +1345,16 @@
           "rejected_indices": [
             0
           ],
-          "sealing_cap": 8192,
+          "sealing_cap": 524296,
           "block_valid": true,
-          "largest_bytes": 2048,
+          "largest_bytes": 131074,
           "transport_bound_before": 268435456
         },
         {
           "rejected_indices": [],
-          "sealing_cap": 8192,
+          "sealing_cap": 524296,
           "block_valid": true,
-          "largest_bytes": 8192,
+          "largest_bytes": 524296,
           "transport_bound_before": 268435456
         }
       ],
@@ -1365,200 +1365,147 @@
   ],
   "block_transport_cases": [
     {
-      "label": "genesis rejects above default before decompression",
+      "label": "no verified prefix uses the Registry default",
       "prefix_sealed_at_s": null,
       "accepted_caps": [],
-      "declared_bytes": 268435457,
-      "decoded_chunk_bytes": [],
+      "rejected_caps": [],
+      "entries_bytes": 268435456,
       "transport_bound": 268435456,
-      "result": "frame",
-      "error": "WIST3-E03"
-    },
-    {
-      "label": "missing declared size is rejected",
-      "prefix_sealed_at_s": null,
-      "accepted_caps": [],
-      "declared_bytes": null,
-      "decoded_chunk_bytes": [],
-      "transport_bound": 268435456,
-      "result": "frame",
-      "error": "WIST3-E03"
-    },
-    {
-      "label": "exact transport bound is allowed",
-      "prefix_sealed_at_s": 604800,
-      "accepted_caps": [
-        {
-          "value": 4096,
-          "effective_at_s": 604800,
-          "block_height": 0,
-          "entry_index": 0
-        }
-      ],
-      "declared_bytes": 4096,
-      "decoded_chunk_bytes": [
-        2048,
-        2048
-      ],
-      "transport_bound": 4096,
-      "result": "decoded",
+      "valid": true,
       "error": null
     },
     {
-      "label": "declared excess is rejected before decompression",
+      "label": "no verified prefix rejects entries above the Registry default",
+      "prefix_sealed_at_s": null,
+      "accepted_caps": [],
+      "rejected_caps": [],
+      "entries_bytes": 268435457,
+      "transport_bound": 268435456,
+      "valid": false,
+      "error": "WIST3-E03"
+    },
+    {
+      "label": "entries attributable to the Block at the transport bound",
       "prefix_sealed_at_s": 604800,
       "accepted_caps": [
         {
-          "value": 4096,
+          "value": 65537,
           "effective_at_s": 604800,
           "block_height": 0,
           "entry_index": 0
         }
       ],
-      "declared_bytes": 4097,
-      "decoded_chunk_bytes": [],
-      "transport_bound": 4096,
-      "result": "frame",
-      "error": "WIST3-E03"
+      "rejected_caps": [],
+      "entries_bytes": 65537,
+      "transport_bound": 65537,
+      "valid": true,
+      "error": null
     },
     {
-      "label": "false small declaration cannot overrun the bound",
+      "label": "entries attributable to the Block exceed the transport bound",
       "prefix_sealed_at_s": 604800,
       "accepted_caps": [
         {
-          "value": 4096,
+          "value": 65537,
           "effective_at_s": 604800,
           "block_height": 0,
           "entry_index": 0
         }
       ],
-      "declared_bytes": 4096,
-      "decoded_chunk_bytes": [
-        2048,
-        2049
-      ],
-      "transport_bound": 4096,
-      "result": "stream",
+      "rejected_caps": [],
+      "entries_bytes": 65538,
+      "transport_bound": 65537,
+      "valid": false,
       "error": "WIST3-E03"
     },
     {
-      "label": "false declaration within the bound still fails",
-      "prefix_sealed_at_s": 604800,
+      "label": "the bound is the greatest cap at the prefix's last sealed_at",
+      "prefix_sealed_at_s": 864000,
       "accepted_caps": [
         {
-          "value": 4096,
-          "effective_at_s": 604800,
+          "value": 131074,
+          "effective_at_s": 0,
           "block_height": 0,
           "entry_index": 0
         }
       ],
-      "declared_bytes": 3000,
-      "decoded_chunk_bytes": [
-        2048,
-        1024
-      ],
-      "transport_bound": 4096,
-      "result": "length",
-      "error": "WIST3-E03"
+      "rejected_caps": [],
+      "entries_bytes": 131074,
+      "transport_bound": 131074,
+      "valid": true,
+      "error": null
     },
     {
-      "label": "future increase enlarges the transport bound",
-      "prefix_sealed_at_s": 0,
+      "label": "an accepted future effective_at raises the bound before it takes effect",
+      "prefix_sealed_at_s": 86400,
       "accepted_caps": [
+        {
+          "value": 65537,
+          "effective_at_s": 86400,
+          "block_height": 0,
+          "entry_index": 0
+        },
         {
           "value": 536870912,
-          "effective_at_s": 604800,
+          "effective_at_s": 2592000,
           "block_height": 0,
-          "entry_index": 0
+          "entry_index": 1
         }
       ],
-      "declared_bytes": 268435457,
-      "decoded_chunk_bytes": [
-        268435456,
-        1
-      ],
+      "rejected_caps": [],
+      "entries_bytes": 268435457,
       "transport_bound": 536870912,
-      "result": "decoded",
+      "valid": true,
       "error": null
     },
     {
-      "label": "superseded increase cannot enlarge transport",
-      "prefix_sealed_at_s": 604800,
+      "label": "a rejected candidate does not raise the bound",
+      "prefix_sealed_at_s": 432000,
       "accepted_caps": [
         {
-          "value": 8192,
-          "effective_at_s": 604800,
+          "value": 65537,
+          "effective_at_s": 432000,
           "block_height": 0,
           "entry_index": 0
-        },
+        }
+      ],
+      "rejected_caps": [
         {
-          "value": 4096,
-          "effective_at_s": 604800,
+          "value": 262148,
+          "effective_at_s": 432000,
           "block_height": 0,
           "entry_index": 1
         }
       ],
-      "declared_bytes": 4097,
-      "decoded_chunk_bytes": [],
-      "transport_bound": 4096,
-      "result": "frame",
+      "entries_bytes": 262148,
+      "transport_bound": 65537,
+      "valid": false,
       "error": "WIST3-E03"
     },
     {
-      "label": "expired larger cap cannot enlarge transport",
-      "prefix_sealed_at_s": 691200,
-      "accepted_caps": [
-        {
-          "value": 8192,
-          "effective_at_s": 604800,
-          "block_height": 0,
-          "entry_index": 0
-        },
-        {
-          "value": 4096,
-          "effective_at_s": 691200,
-          "block_height": 0,
-          "entry_index": 1
-        }
-      ],
-      "declared_bytes": 4097,
-      "decoded_chunk_bytes": [],
-      "transport_bound": 4096,
-      "result": "frame",
-      "error": "WIST3-E03"
-    },
-    {
-      "label": "future smaller cap does not lower transport early",
-      "prefix_sealed_at_s": 0,
-      "accepted_caps": [
-        {
-          "value": 4096,
-          "effective_at_s": 604800,
-          "block_height": 0,
-          "entry_index": 0
-        }
-      ],
-      "declared_bytes": 8192,
-      "decoded_chunk_bytes": [
-        8192
-      ],
-      "transport_bound": 268435456,
-      "result": "decoded",
-      "error": null
-    },
-    {
-      "label": "Snapshot bootstrap caps []",
+      "label": "Snapshot bootstrap with no accepted caps uses the Registry default",
       "snapshot_bootstrap": true,
       "prefix_sealed_at_s": null,
       "accepted_caps": [],
-      "declared_bytes": 268435457,
-      "decoded_chunk_bytes": [],
+      "rejected_caps": [],
+      "entries_bytes": 268435456,
       "transport_bound": 268435456,
-      "result": "frame",
+      "valid": true,
+      "error": null
+    },
+    {
+      "label": "Snapshot bootstrap rejects entries above the Registry default",
+      "snapshot_bootstrap": true,
+      "prefix_sealed_at_s": null,
+      "accepted_caps": [],
+      "rejected_caps": [],
+      "entries_bytes": 268435457,
+      "transport_bound": 268435456,
+      "valid": false,
       "error": "WIST3-E03"
     },
     {
-      "label": "Snapshot bootstrap caps [536870912]",
+      "label": "Snapshot bootstrap authenticated tuple raises the bound",
       "snapshot_bootstrap": true,
       "prefix_sealed_at_s": null,
       "accepted_caps": [
@@ -1566,30 +1513,26 @@
           "value": 536870912
         }
       ],
-      "declared_bytes": 268435457,
-      "decoded_chunk_bytes": [
-        268435457
-      ],
+      "rejected_caps": [],
+      "entries_bytes": 536870912,
       "transport_bound": 536870912,
-      "result": "decoded",
+      "valid": true,
       "error": null
     },
     {
-      "label": "Snapshot bootstrap caps [4096]",
+      "label": "Snapshot bootstrap entries above the authenticated bound are rejected",
       "snapshot_bootstrap": true,
       "prefix_sealed_at_s": null,
       "accepted_caps": [
         {
-          "value": 4096
+          "value": 536870912
         }
       ],
-      "declared_bytes": 8192,
-      "decoded_chunk_bytes": [
-        8192
-      ],
-      "transport_bound": 268435456,
-      "result": "decoded",
-      "error": null
+      "rejected_caps": [],
+      "entries_bytes": 536870913,
+      "transport_bound": 536870912,
+      "valid": false,
+      "error": "WIST3-E03"
     }
   ],
   "recovery_window_base_s": 1800000000,
