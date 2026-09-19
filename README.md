@@ -111,6 +111,7 @@ family, the independent anchor its verification rests on.
 - [ADR-0046](decisions/0046-single-tree-log.md) — The Log is one RFC 6962 tree published as C2SP checkpoints and tiles (amends ADR-0004, supersedes ADR-0021)
 - [ADR-0047](decisions/0047-key-act-authentication-height.md) — Key acts authenticate under the previous height's keys
 - [ADR-0048](decisions/0048-epoch-terminology.md) — The interval between two Checkpoints is an Epoch, and wire names describe their values
+- [ADR-0049](decisions/0049-snapshot-key-authentication.md) — A Snapshot carries its key acts, and unsealed Aggregator documents verify at the adopted head
 
 ## Licenses
 

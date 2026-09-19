@@ -25,10 +25,12 @@
                   {"type": "string", "maxLength": 64},
                   {"type": "string", "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$(?![\\s\\S])"},
                   {"type": "integer", "minimum": 0},
-                  {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]}
+                  {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]},
+                  {"type": ["object", "null"]},
+                  {"type": ["object", "null"]}
                 ],
                 "items": false,
-                "minItems": 5
+                "minItems": 7
               },
               {
                 "prefixItems": [

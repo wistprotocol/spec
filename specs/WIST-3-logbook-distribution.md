@@ -366,6 +366,19 @@ additions (below). The genesis key is removable like any other key. An
 Epoch whose accepted removals leave no key valid at N has no valid
 Checkpoint N (§5) and is therefore never applied.
 
+**Unsealed documents.** An Aggregator-signed document that is neither
+sealed in the Log nor a Checkpoint — the Snapshot index (§6), a Snapshot
+manifest and state file, each part of a split state file included (§7),
+and the Mirror list (§5) — states no height of its own. A Consumer
+verifies it under the keys valid at the height of the Checkpoint it
+adopts (§8): a signature under a key not valid at that height does not
+verify, whatever that key's validity at a lower height. An Aggregator
+that removes a key MUST re-sign, under a key valid at the removing
+Epoch's height, every such document that key signed and the Aggregator
+still serves, and SHOULD add a replacement key at a lower height than it
+removes the key replaced, since no document verifies on both sides of an
+Epoch across which no key stays valid.
+
 Removal is permanent, not a toggle: a `key_id` removed at height N is
 invalid at every height ≥ N, and an `aggregator_key_add` naming it is a
 key-act failure (below) that restores no validity. An operator that
@@ -658,8 +671,12 @@ Entries' absence is the Aggregator's to remedy.
   carrying `wist_version`, `updated_at` (descriptive: when the Aggregator
   last rewrote the list, compared to nothing) and `mirror_urls`, the
   `https` base URLs of Mirrors it knows to re-serve the Log, each ending
-  in `/` —
-  and a Consumer SHOULD also
+  in `/`. The list verifies under the keys valid at the Consumer's
+  adopted head (§3.4); one that does not verify — signed by a key since
+  removed, or read before the Consumer has a head — has no error code,
+  and its entries are location hints integrity never depends on (§6),
+  never evidence of authorship, Log membership or independence. A
+  Consumer SHOULD also
   retain Mirror URLs from any other source it trusts, because a list the
   Aggregator curates is exactly the wrong sole source for the parties
   meant to catch the Aggregator equivocating: its value is bootstrap
@@ -1495,7 +1512,7 @@ value fields are:
 
 | Kind | Key fields | Value fields | Defined by |
 |---|---|---|---|
-| `aggregator_key` | `key_id` | `public_key`, added height, removed height or `null` | §3.4 |
+| `aggregator_key` | `key_id` | `public_key`, added height, removed height or `null`, adding act or `null`, removing act or `null` | §3.4 |
 | `declaration` | domain | the current Declaration Envelope, its sealing height, the highest accepted `seq` | WIST-1 §5 |
 | `pending_declaration` | domain | the pending head Envelope, its sealing height, the activation height | WIST-1 §5.2 |
 | `parameter` | identifier, `effective_at` | value | WIST-4 §5 |
@@ -1507,7 +1524,7 @@ value fields are:
 | `record` | publisher, URL | chain-tip Delta ID | §6.1, §7 |
 
 An `aggregator_key` tuple exists for every key admitted at or below
-`tree_size`: the genesis key, with added height 0, and every key an
+Epoch `epoch_number`: the genesis key, with added height 0, and every key an
 accepted `aggregator_key_add` (§3.4) admitted, with that act's sealing
 height. A removed key's tuple MUST remain, carrying the sealing height of the accepted
 `aggregator_key_remove`; it is the one kind whose tuples outlive their
@@ -1516,7 +1533,56 @@ against removed keys and judges a lower Checkpoint under the keys valid
 at its own height (§5) exactly as a replaying one does. A tuple's key is
 valid at height *h* ≥ 0 iff its added height ≤ *h* and its removed height
 is `null` or greater than *h*; the set valid at height −1 is the genesis
-key alone (§3.4).
+key alone (§3.4). The adding act is the accepted `aggregator_key_add`
+Registry Update Envelope that admitted the key, verbatim as sealed, and
+`null` for the genesis key alone; the removing act is the accepted
+`aggregator_key_remove` Envelope sealed at the removed height, verbatim,
+and `null` exactly when the removed height is `null`. Of two removals of
+one key accepted in one Epoch (§3.4), the tuple carries the one at the
+lower Entry index.
+
+**Authenticating the key tuples.** The tuples say which keys speak for
+the Log, so no signature under one of them authenticates them: a
+Consumer holding the Anchor authenticates them from its genesis key
+before it uses any tuple. With *E* the manifest's `epoch_number`, all of
+the following MUST hold, and a state file failing any is rejected with
+its Snapshot (`WIST3-E04`):
+
+1. No two `aggregator_key` tuples carry one `key_id` or keys with one
+   note key ID (§3.4).
+2. Exactly one tuple has a `null` adding act. Its `key_id` and
+   `public_key` are the Anchor's `genesis_key`'s and its added height is
+   0.
+3. Every non-`null` adding act passes WIST-4 §5.1's field validation as an
+   `aggregator_key_add` whose `key_id` and `public_key` are the
+   tuple's, and its added height is an integer from 0 through *E*.
+4. The removing act is `null` exactly when the removed height is
+   `null`. A non-`null` removing act passes WIST-4 §5.1's field
+   validation as an `aggregator_key_remove` naming the tuple's
+   `key_id`. A non-`null` removed height is at most *E*, at least 0 for the genesis key and greater
+   than the added height for every other key.
+5. Each act's signature verifies under the key of the tuple its
+   `sig.key_id` names, and that key is valid at height *h* − 1 by the
+   tuples' heights, *h* being the height the tuple gives the act — the
+   added height for an adding act, the removed height for a removing
+   one (§3.4's authentication height for key acts).
+
+A key valid at *h* − 1 has an added height below *h* or is the genesis
+key, so rule 5 chains every act to the Anchor by induction on height.
+The heights themselves, and which of two removals accepted in one Epoch
+a tuple carries, are assertions of the state file's signer that these
+rules do not test: they are falsifiable by replay like every other
+tuple, through `state_digest` (§8, `WIST3-E04`).
+
+A Consumer that already holds key state for the Log — one catching up
+through a Snapshot (§8) — applies the same rules and additionally
+rejects the Snapshot (`WIST3-E04`) unless the tuples agree with its own
+registry up to its verified head *V*: every key the registry holds has a
+tuple with the registry's `public_key`, added height and adding act; a
+key the registry holds as removed has the registry's removed height and
+removing act; a key the registry holds as valid at *V* has a removed
+height that is `null` or greater than *V*; and every tuple for a key
+the registry does not hold has an added height greater than *V*.
 
 A `parameter` tuple exists only for a parameter amended since genesis:
 Registry defaults are constants of this suite and are not restated. One
@@ -1622,18 +1688,21 @@ above, treats its coverage as partial.
 
 **Cold start:**
 
-1. Fetch `/snapshots/index.json`; verify its signature; choose an entry
-   (normally the newest).
-2. Fetch that entry's `manifest_url`; verify its signature; verify that its
-   `snapshot_date`, `tree_size` and `content_digest` are the ones the
+1. Fetch `/snapshots/index.json`; validate it against its schema;
+   choose an entry (normally the newest). The signatures of the index,
+   the manifest and the state file are verified in step 8, under keys
+   no step before it has established (§3.4).
+2. Fetch that entry's `manifest_url`; validate it against its schema;
+   verify that its `snapshot_date`, `tree_size` and `content_digest` are the ones the
    index entry named (`WIST3-E04` on disagreement — the two are independently
    signed statements about the same Snapshot).
 3. Download the listed files — all of them, or, under a manifest that
    declares `shards` (§7), the state file and any subset of shards —
    and verify each SHA-256 and byte size.
-4. Load the state artifact (§7): verify its signature and that its
-   `tree_size` is the manifest's (`WIST3-E04` otherwise, rejecting the
-   Snapshot), and adopt its tuples as the protocol state at Epoch
+4. Load the state artifact (§7): verify that its `tree_size` is the
+   manifest's and authenticate its `aggregator_key` tuples from the
+   Anchor as §7 requires (`WIST3-E04` otherwise, rejecting the
+   Snapshot), and take its tuples as the protocol state at Epoch
    `epoch_number` — key registries, Declarations, parameters, the
    Public Suffix List snapshot in force (whose octets the Consumer
    fetches from `/log/suffix-lists/` and verifies by their identifier
@@ -1652,7 +1721,7 @@ above, treats its coverage as partial.
    no Delta authority, and activates or is reversed at the heights
    WIST-1 §5.2 fixes.
 5. Fetch `/log/checkpoints/<epoch_number>` (§6) and verify it as §5
-   requires under the `aggregator_key` tuples just loaded; verify that
+   requires under the `aggregator_key` tuples just authenticated; verify that
    it states tree size `tree_size` and the root hash
    `root_hash` carries (§3.1). A mismatch is chain divergence
    (`WIST3-E02`), not a corrupt file: it means the Snapshot describes a
@@ -1679,7 +1748,16 @@ above, treats its coverage as partial.
    step 5 included, carrying the Witness quorum §5 requires, recorded as
    unwitnessed where §5's interim applies. Entries above its tree size
    are not applied. If none carries the quorum the Consumer has no state
-   to act on and retries (§5).
+   to act on and retries (§5). Then verify the signatures of the index,
+   the manifest and every state file loaded under the keys valid at the
+   adopted Checkpoint's height (§3.4) — the tuples' keys as amended by
+   the key acts of the Epochs walked in step 7. A signature that does
+   not verify rejects the entire Snapshot (`WIST3-E04`). Until all
+   verify, the Consumer MUST NOT persist or act on anything derived
+   from the Snapshot. A signature whose `sig.key_id` names a tuple's key
+   and does not verify under that key verifies at no height, and the
+   Consumer MAY reject the Snapshot as soon as it has authenticated the
+   tuples.
 9. Fetch `/payloads/<delta-id-hex>.json` for every content-bearing Delta
    in the Epochs up to it whose Payload has not been withdrawn (§6.2);
    verify each against its Delta's commitment and `bytes` (§6.1).
@@ -1717,7 +1795,9 @@ Epochs, and simply materializes no content for the affected Deltas. Tree
 integrity and content availability are separate failures, and only the
 first is ever a reason to stop.
 
-**Catch-up decision.** A Consumer offline for a long period compares the
+**Catch-up decision.** A Consumer catching up through a Snapshot
+performs cold start's steps against it, applying §7's additional rule
+for a Consumer that holds key state. A Consumer offline for a long period compares the
 Epoch distance from its position to the newest Checkpoint against the
 distance covered by the newest Snapshot, and chooses whichever costs less
 to process. Both paths converge to identical state — the record tuples by
@@ -1760,7 +1840,7 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 | WIST3-E01 | A Checkpoint, tile, entry bundle or Public Suffix List snapshot missing at a source (§5, §6). Fetch it from another — a Mirror, the Aggregator or, for a head Checkpoint, a trusted Witness's monitoring endpoint; integrity never depends on the source. A Consumer holding a Checkpoint whose Entries no source serves keeps this code and applies nothing above its verified head (§5). |
 | WIST3-E02 | Chain divergence: a Consistency Proof that fails between two Checkpoints of the Log, or from the empty tree to a Checkpoint stating tree size 0 with a root other than §4's — that one Checkpoint is the whole evidence — two Checkpoints that equivocate under §5, or a Snapshot manifest whose `tree_size` or `root_hash` is not what Checkpoint `epoch_number` states (§7, §8). Hard failure: preserve the Checkpoints — and, for a failed Consistency Proof, the tiles that reproduce the larger root — as an evidence bundle (§5), MUST NOT apply the data. |
 | WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules, states a `sealed_at` not later than its predecessor's or off the grid (§3.1), or sits at an archive path not its own (§6); a tile or entry bundle over its format size, malformed (§6) or not reproducing the tree its Checkpoint states (§3.1, §6); an Epoch over the size cap (§6, WIST-4 §5) or carrying an Entry over 65 535 octets (§3.3); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; an Epoch the Aggregator sealed over a bound is misbehavior no source repairs. |
-| WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, a state file whose `tree_size` is not the manifest's, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `tree_size`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `tree_size`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
+| WIST3-E04 | Snapshot mismatch. Three cases, one code, different responses. An index, manifest or state file that fails its schema, a file hash or byte size that disagrees with the manifest, a state file whose `tree_size` is not the manifest's or whose `aggregator_key` tuples do not authenticate from the Anchor (§7), an index, manifest or state file whose signature does not verify under the keys valid at the adopted Checkpoint's height (§3.4, §8), or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `tree_size`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `tree_size`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
 A Checkpoint short of the Witness quorum has no code: §5 makes it a
@@ -1832,6 +1912,20 @@ is equivocation (`WIST3-E02`).
   is evaluated at the signed object's own height, computed by replaying
   the log from the Log Anchor, so a signature valid at sealing time
   remains binding evidence regardless of later rotation.
+- **Snapshot state signed by a removed key.** The state artifact is
+  committed by no tree, so a key that could sign it for an old Epoch
+  could attach false state to the genuine Log. §3.4 therefore verifies
+  the Snapshot documents at the adopted head, where a removed key is
+  not valid. The holder of a removed key that also confines a Consumer
+  to a head below the removal can still pass a false Snapshot, where a
+  replaying Consumer would see only old truth; §5's staleness warning
+  and heads fetched from more than one source, Witness monitoring
+  endpoints among them, are the defence. A holder of a once-valid key
+  can likewise present `aggregator_key` tuples omitting its removal, as
+  it can serve a replaying Consumer a fork from before it; comparison
+  across sources and the Witness quorum catch both. A key valid at the
+  head can assert false state, and `state_digest` recomputation by any
+  replaying party (§8) is what falsifies it.
 
 ## 11. Privacy Considerations
 
@@ -1902,6 +1996,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Publishes `/snapshots/index.json`, signed, newest first, agreeing
       with each manifest it points to, and removes an entry when it stops
       serving that Snapshot (§6)
+- [ ] Carries each key's adding and removing act in its `aggregator_key`
+      tuple (§7), and on removing a key re-signs every unsealed document
+      that key signed and it still serves (§3.4)
 - [ ] Retains every entry bundle and full tile from genesis and every
       Checkpoint it has published, the latter at
       `/log/checkpoints/<epoch_number>` (§6)
@@ -2013,6 +2110,11 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Registrable Domain under the snapshot in force, obtained and
       verified by its identifier, over the per-Labeler cap, or carrying
       an Entry over 65 535 octets (§3.1–§3.3, §6, WIST-4 §3.1)
+- [ ] Authenticates a state file's `aggregator_key` tuples from the
+      Anchor's genesis key before using them, and verifies the index,
+      manifest and state file signatures under the keys valid at the
+      Checkpoint it adopts, persisting nothing from the Snapshot before
+      they verify (`WIST3-E04`; §3.4, §7, §8)
 - [ ] On cold start from a Snapshot, loads the state artifact and
       validates subsequent Entries against it; on a sharded Snapshot,
       verifies each held shard's digest and treats coverage as partial
@@ -2030,6 +2132,7 @@ Generated by `tools/gen_vectors.py`; verified by
 [`vectors/wist3/epoch.json`](../vectors/wist3/epoch.json),
 [`vectors/wist3/inclusion-proof.json`](../vectors/wist3/inclusion-proof.json),
 [`vectors/wist3/aggregator-keys.json`](../vectors/wist3/aggregator-keys.json),
+[`vectors/wist3/snapshot-keys.json`](../vectors/wist3/snapshot-keys.json),
 [`vectors/wist3/checkpoints.json`](../vectors/wist3/checkpoints.json),
 [`vectors/wist3/tile-bounds.json`](../vectors/wist3/tile-bounds.json).
 

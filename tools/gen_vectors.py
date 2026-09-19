@@ -2889,8 +2889,10 @@ def key_acts_applied(prior: dict, log_id: str, height: int, entries: list):
     """WIST-3 §3.4 over one Epoch: authenticated key acts first, in canonical
     Entry index order, each read at height-1 and evaluated against the
     admitted set; then every other act, read at the height the accepted key
-    acts leave. Returns (state after the Epoch, per-Entry dispositions, the
-    key_ids valid at `height`)."""
+    acts leave. Each admitted key keeps the accepted Envelope that admitted
+    it and the accepted Envelope that retired it — of two removals accepted
+    in one Epoch, the one at the lower Entry index (§7). Returns (state after
+    the Epoch, per-Entry dispositions, the key_ids valid at `height`)."""
     state = {kid: dict(entry) for kid, entry in prior.items()}
     valid_before = {kid for kid, entry in state.items() if entry["removed"] is None}
     admitted_note_ids = {note_key_id(log_id, raw_from_b64u(entry["public_key"]))
@@ -2910,12 +2912,15 @@ def key_acts_applied(prior: dict, log_id: str, height: int, entries: list):
             if named in state or kid in admitted_note_ids:
                 codes[index] = "WIST4-E04"
                 continue
-            state[named] = {"public_key": public_key, "added": height, "removed": None}
+            state[named] = {"public_key": public_key, "added": height, "removed": None,
+                            "adding": entry["body"], "removing": None}
             admitted_note_ids.add(kid)
         elif named not in valid_before:
             codes[index] = "WIST4-E04"
         else:
             state[named]["removed"] = height
+            if state[named]["removing"] is None:
+                state[named]["removing"] = entry["body"]
     valid_after = {kid for kid, entry in state.items() if entry["removed"] is None}
     for index, entry in enumerate(entries):
         if entry["body"]["update"]["action"] in ("aggregator_key_add", "aggregator_key_remove"):
@@ -2927,8 +2932,11 @@ def key_acts_applied(prior: dict, log_id: str, height: int, entries: list):
 
 def key_state_tuples(state: dict) -> list:
     """WIST-3 §7: one `aggregator_key` tuple per key ever admitted, a removed
-    key carrying the sealing height of its removal."""
-    return sorted(([["aggregator_key", kid, entry["public_key"], entry["added"], entry["removed"]]
+    key carrying the sealing height of its removal, each carrying the accepted
+    key acts verbatim — `null` adding act for the genesis key, `null` removing
+    act while the key is valid."""
+    return sorted(([["aggregator_key", kid, entry["public_key"], entry["added"], entry["removed"],
+                     entry["adding"], entry["removing"]]
                     for kid, entry in state.items()]), key=lambda tuple_: tuple_[1])
 
 
@@ -2943,7 +2951,8 @@ def key_history(name: str, note: str, log_id: str, genesis_key_id: str, genesis_
                     "genesis_key": {"key_id": genesis_key_id, "alg": "Ed25519",
                                     "public_key": genesis_public},
                     "created_at": created_at}
-    state = {genesis_key_id: {"public_key": genesis_public, "added": 0, "removed": None}}
+    state = {genesis_key_id: {"public_key": genesis_public, "added": 0, "removed": None,
+                              "adding": None, "removing": None}}
     valid_at = [{"height": -1, "key_ids": [genesis_key_id]}]
     leaves, epochs = [], []
     for height, spec in enumerate(specs):
@@ -3543,7 +3552,7 @@ assert all(r["url"] != DELETED_URL for r in snapshot_records), \
     "a deleted URL has no content tuple"
 
 state_entries = [
-    ["aggregator_key", "test-agg-k1", b64u(pub_raw), 0, None],
+    ["aggregator_key", "test-agg-k1", b64u(pub_raw), 0, None, None, None],
     ["record", "example.com", DELTA_URL, delta_id],
     ["record", "example.com", DELETED_URL, retired_delete_id],
     ["record", "reduced.example.org", REDUCED_URL, reduced_delta_id],
@@ -3612,6 +3621,482 @@ print("wist3 epoch hash:", epoch_hash)
 print("wist3 merkle root:", epoch_hash)
 print("wist3 leaves:", [l.hex() for l in leaves])
 print("wist3 nodes: n01=%s n23=%s" % (n01.hex(), n23.hex()))
+
+# ---------------- WIST-3 §3.4, §7, §8: authenticating a Snapshot's key tuples
+# Its own Log — Anchor, genesis key and cumulative tree — whose Entries are key
+# acts alone, so every Snapshot of it carries `aggregator_key` tuples and
+# nothing else and its content_digest is the empty record set's. A case is a
+# whole Snapshot: the three unsealed documents §3.4 names, the Checkpoint of
+# the Epoch it is taken at, and the head the Consumer adopts, whose Checkpoint
+# and intervening key acts the history supplies.
+SNAPSHOT_KEY_EFFECTIVE = "2026-11-01T00:00:00Z"   # > param_grace_days after every sealed_at below
+SNAPSHOT_KEY_TIER0 = b"tier0-placeholder"
+SNAPSHOT_KEY_CONTENT_DIGEST = content_digest([])
+
+
+def snapshot_key_vectors() -> dict:
+    log_id = "snapshot-keys.example.org"
+    G, B, C, D = "test-snap-g", "test-snap-b", "test-snap-c", "test-snap-d"
+    X, SPARE, F = "test-snap-x", "test-snap-s", "test-snap-f"
+    material = {name: agg_key("snapshot " + name)
+                for name in (G, B, C, D, X, SPARE, F)}
+
+    def add_entry(key_id, signer_key_id, effective_at=SNAPSHOT_KEY_EFFECTIVE, key_of=None):
+        return registry_entry(
+            key_update("aggregator_key_add", key_id, effective_at,
+                       raw_public(material[key_of or key_id])),
+            material[signer_key_id], signer_key_id)
+
+    def remove_entry(key_id, signer_key_id, effective_at=SNAPSHOT_KEY_EFFECTIVE):
+        return registry_entry(key_update("aggregator_key_remove", key_id, effective_at),
+                              material[signer_key_id], signer_key_id)
+
+    lower_removal = remove_entry(D, B, "2026-11-02T00:00:00Z")
+    upper_removal = remove_entry(D, B, "2026-11-03T00:00:00Z")
+
+    history = key_history(
+        "rotation",
+        "One Log whose Entries are key acts alone: the genesis key admits a "
+        "successor at Epoch 0 and is removed at Epoch 1, two further keys are "
+        "admitted at Epochs 2 and 3, and Epoch 4 accepts two removals of one "
+        "key. Every Snapshot below is taken at one of these Epochs and read at "
+        "one of these heights.",
+        log_id, G, material[G], "2026-09-04T12:00:00Z", material,
+        [
+            {"sealed_at": "2026-09-05T00:00:00Z", "signers": [G, B],
+             "why": "the genesis key admits the successor that signs every later "
+                    "Checkpoint and unsealed document",
+             "entries": [{"entry": add_entry(B, G),
+                          "why": "an accepted addition under the genesis key, read at "
+                                 "height -1 where the genesis key alone is valid"}]},
+            {"sealed_at": "2026-09-06T00:00:00Z", "signers": [B],
+             "why": "the genesis key is removed: no document a Consumer adopts a head "
+                    "at or above this Epoch for verifies under it again",
+             "entries": [{"entry": remove_entry(G, B),
+                          "why": "the successor removes the genesis key, a key act read "
+                                 "at height 0 where both are valid"}]},
+            {"sealed_at": "2026-09-07T00:00:00Z", "signers": [B],
+             "why": "a key admitted above the Snapshots taken at Epochs 0 and 1, which "
+                    "their tuples therefore cannot name",
+             "entries": [{"entry": add_entry(D, B),
+                          "why": "an accepted addition under the key valid at height 1"}]},
+            {"sealed_at": "2026-09-08T00:00:00Z", "signers": [B, C],
+             "why": "a second key admitted above those Snapshots; a Consumer that walks "
+                    "to this height learns it from this Epoch's key act",
+             "entries": [{"entry": add_entry(C, B),
+                          "why": "an accepted addition under the key valid at height 2"}]},
+            {"sealed_at": "2026-09-09T00:00:00Z", "signers": [B],
+             "why": "two removals of one valid key in one Epoch: both are accepted and "
+                    "the §7 tuple carries the one at the lower Entry index",
+             "entries": [
+                 {"entry": lower_removal,
+                  "why": "one of two removals naming " + D + " in this Epoch"},
+                 {"entry": upper_removal,
+                  "why": "the other removal naming " + D + "; it is accepted too and "
+                         "changes no key registry state"},
+             ]},
+        ])
+
+    def clone(node):
+        return json.loads(json.dumps(node))
+
+    def tuples_at(epoch_number):
+        return clone(history["epochs"][epoch_number]["expected_state"])
+
+    def tuple_of(epoch_number, key_id):
+        return next(t for t in tuples_at(epoch_number) if t[1] == key_id)
+
+    def valid_key_ids(height):
+        return next(q["key_ids"] for q in history["valid_at"] if q["height"] == height)
+
+    MEMBER = {"key_id": 1, "public_key": 2, "added": 3, "removed": 4,
+              "adding": 5, "removing": 6}
+
+    def replaced(entries, named, **members):
+        out = []
+        for tuple_ in entries:
+            if tuple_[1] != named:
+                out.append(tuple_)
+                continue
+            edited = list(tuple_)
+            for name, value in members.items():
+                edited[MEMBER[name]] = value
+            out.append(edited)
+        return out
+
+    def without(entries, key_id):
+        return [t for t in entries if t[1] != key_id]
+
+    def key_tuple(key_id, public_key_of, added, removed, adding, removing):
+        return ["aggregator_key", key_id, b64u(raw_public(material[public_key_of])),
+                added, removed, adding, removing]
+
+    def minted_add(key_id, public_key_of, signer_key_id, effective_at):
+        """An `aggregator_key_add` Envelope no Epoch of this Log sealed. §7's
+        rules read a carried act's fields and signature, never its membership:
+        the heights are the state file signer's assertions."""
+        return add_entry(key_id, signer_key_id, effective_at, key_of=public_key_of)["body"]
+
+    def minted_remove(key_id, signer_key_id, effective_at):
+        return remove_entry(key_id, signer_key_id, effective_at)["body"]
+
+    def damaged(envelope):
+        broken = clone(envelope)
+        raw = bytearray(raw_from_b64u(broken["sig"]["value"]))
+        raw[0] ^= 0xFF
+        broken["sig"]["value"] = b64u(bytes(raw))
+        return broken
+
+    def signed_by(key_id, with_key=None):
+        return [key_id, material[with_key or key_id]]
+
+    def epoch_root(epoch):
+        leaves_ = [bytes.fromhex(h) for h in epoch["leaf_hashes"]]
+        return merkle_tree_root(leaves_) if leaves_ else EMPTY_ROOT
+
+    def snapshot_documents(entries, epoch_number, signers, corrupt=()):
+        epoch = history["epochs"][epoch_number]
+        date = epoch["sealed_at"][:10]
+        state = sign_envelope_with(signers["state"][1], "state",
+                                   {"wist_version": "1.0.0", "tree_size": epoch["tree_size"],
+                                    "entries": entries}, signers["state"][0])
+        if "state" in corrupt:
+            state = damaged(state)
+        octets = rfc8785.dumps(state)
+        manifest_inner = {
+            "wist_version": "1.0.0", "snapshot_date": date, "epoch_number": epoch_number,
+            "tree_size": epoch["tree_size"],
+            "root_hash": "sha256:" + epoch_root(epoch).hex(),
+            "content_digest": SNAPSHOT_KEY_CONTENT_DIGEST,
+            "state": {"path": "state.json", "sha256": sha256_hex(octets),
+                      "bytes": len(octets), "state_digest": state_digest_of(entries)},
+            "files": [{"path": "tier0/index.sqlite", "sha256": sha256_hex(SNAPSHOT_KEY_TIER0),
+                       "bytes": len(SNAPSHOT_KEY_TIER0), "tier": 0}],
+        }
+        manifest = sign_envelope_with(signers["manifest"][1], "manifest", manifest_inner,
+                                      signers["manifest"][0])
+        if "manifest" in corrupt:
+            manifest = damaged(manifest)
+        index_inner = {
+            "wist_version": "1.0.0", "updated_at": date + "T12:00:00Z",
+            "snapshots": [{"snapshot_date": date, "tree_size": epoch["tree_size"],
+                           "manifest_url": "/snapshots/%s/manifest.json" % date,
+                           "content_digest": SNAPSHOT_KEY_CONTENT_DIGEST}]}
+        index = sign_envelope_with(signers["index"][1], "index", index_inner,
+                                   signers["index"][0])
+        if "index" in corrupt:
+            index = damaged(index)
+        return index, manifest, state, manifest_inner["state"]["state_digest"]
+
+    cases = []
+
+    def case(name, why, epoch_number, adopted_head, entries=None, signers=None,
+             corrupt=(), checkpoint=None, consumer_registry=None,
+             tuple_rules=(), catch_up=(), unsealed=(), self_consistent=None):
+        entries = tuples_at(epoch_number) if entries is None else entries
+        chosen = {"index": signed_by(B), "manifest": signed_by(B), "state": signed_by(B)}
+        chosen.update(signers or {})
+        index, manifest, state, digest = snapshot_documents(
+            entries, epoch_number, chosen, corrupt)
+        rejected = bool(tuple_rules) or bool(catch_up) or bool(unsealed)
+        record = {
+            "name": name, "why": why, "log": history["name"],
+            "epoch_number": epoch_number, "adopted_head": adopted_head,
+            "checkpoint": checkpoint or history["epochs"][epoch_number]["checkpoint"],
+            "index": index, "manifest": manifest, "state": state,
+            "state_digest": digest,
+            "expected": "WIST3-E04" if rejected else "accept",
+        }
+        if consumer_registry is not None:
+            record["consumer_registry"] = consumer_registry
+        if self_consistent is not None:
+            record["self_consistent"] = self_consistent
+        if rejected:
+            record["violations"] = {"tuple_rules": sorted(tuple_rules),
+                                    "catch_up": list(catch_up),
+                                    "unsealed_documents": sorted(unsealed)}
+        else:
+            record["key_ids_at_adopted_head"] = valid_key_ids(adopted_head)
+        cases.append(record)
+        return record
+
+    # ---- resuming across a rotation.
+    case("resume across a key addition",
+         "the Snapshot is taken at the Epoch that admitted the key its documents "
+         "are signed under, and the Consumer adopts a head two Epochs above it",
+         0, 2)
+    case("resume after the genesis key's removal",
+         "every document is signed by the key admitted below the removal; the "
+         "removed genesis key keeps its tuple, now carrying its removing act",
+         1, 1)
+
+    # ---- a Snapshot self-consistent under its own tuples and admitted by no
+    # chain from the Anchor's genesis key.
+    forged_self_signed = tuples_at(1) + [
+        key_tuple(X, X, 0, None, minted_add(X, X, X, "2026-11-04T00:00:00Z"), None)]
+    case("a forged Snapshot whose key admits itself",
+         "the attacker's key is named by a tuple, its adding act is signed by "
+         "itself, and every document and the Checkpoint verify under it; rule 5 "
+         "asks for a signer valid at the act's height minus one, where only the "
+         "genesis key is, so nothing admits the key",
+         1, 1, entries=forged_self_signed,
+         signers={"index": signed_by(X), "manifest": signed_by(X), "state": signed_by(X)},
+         checkpoint=checkpoint_signed_by(log_id, [material[X]],
+                                         history["epochs"][1]["tree_size"],
+                                         epoch_root(history["epochs"][1]), 1,
+                                         history["epochs"][1]["sealed_at"]),
+         tuple_rules=[5], self_consistent=True)
+    forged_no_act = tuples_at(1) + [key_tuple(X, X, 0, None, None, None)]
+    case("a forged Snapshot whose key carries no adding act",
+         "a second tuple with a `null` adding act: rule 2 admits exactly one, "
+         "the Anchor's genesis key",
+         1, 1, entries=forged_no_act,
+         signers={"index": signed_by(X), "manifest": signed_by(X), "state": signed_by(X)},
+         checkpoint=checkpoint_signed_by(log_id, [material[X]],
+                                         history["epochs"][1]["tree_size"],
+                                         epoch_root(history["epochs"][1]), 1,
+                                         history["epochs"][1]["sealed_at"]),
+         tuple_rules=[2], self_consistent=True)
+    forged_genesis = [key_tuple(G, X, 0, None, None, None)]
+    case("a forged Snapshot restating the genesis key's public key",
+         "one tuple, naming the Anchor's genesis key_id under the attacker's "
+         "public key, with every document and the Checkpoint signed under it; "
+         "only rule 2's comparison against the Anchor catches it",
+         0, 0, entries=forged_genesis,
+         signers={"index": signed_by(G, X), "manifest": signed_by(G, X),
+                  "state": signed_by(G, X)},
+         checkpoint=checkpoint_signed_by(log_id, [material[X]],
+                                         history["epochs"][0]["tree_size"],
+                                         epoch_root(history["epochs"][0]), 0,
+                                         history["epochs"][0]["sealed_at"]),
+         tuple_rules=[2], self_consistent=True)
+
+    # ---- rule 1: one key_id and one note key ID per tuple set.
+    case("two tuples naming one key_id",
+         "the second tuple's act names its own key_id and public key and is "
+         "signed by the genesis key, so only rule 1 rejects it",
+         3, 3, entries=tuples_at(3) + [
+             key_tuple(D, SPARE, 0, None,
+                       minted_add(D, SPARE, G, "2026-11-05T00:00:00Z"), None)],
+         tuple_rules=[1])
+    case("two tuples whose keys share a note key ID",
+         "one public key under two key_ids: a Checkpoint signature line would "
+         "name both (§3.4)",
+         3, 3, entries=tuples_at(3) + [
+             key_tuple(F, C, 0, None,
+                       minted_add(F, C, G, "2026-11-06T00:00:00Z"), None)],
+         tuple_rules=[1])
+
+    # ---- rule 2: the tuple with no adding act is the Anchor's genesis key at 0.
+    case("the genesis tuple states an added height other than 0",
+         "rule 2 fixes the genesis key's added height at 0 whatever its Anchor "
+         "signature proves",
+         0, 0, entries=replaced(tuples_at(0), G, added=1), tuple_rules=[2])
+
+    # ---- rule 3: the adding act names the tuple's key at a height through E.
+    case("an adding act whose public_key is not the tuple's",
+         "the act the genesis key signed admits another key than the tuple names",
+         0, 0, entries=replaced(tuples_at(0), B,
+                                public_key=b64u(raw_public(material[SPARE]))),
+         signers={"index": signed_by(G), "manifest": signed_by(G), "state": signed_by(G)},
+         tuple_rules=[3])
+    case("an adding act whose key_id is not the tuple's",
+         "the tuple renames the key the act admits",
+         2, 2, entries=replaced(tuples_at(2), D, key_id=F), tuple_rules=[3])
+    case("an added height above the Snapshot's Epoch",
+         "a key admitted at Epoch 3 cannot be state at Epoch 2; the Consumer "
+         "learns it by walking, not from a tuple",
+         2, 2, entries=tuples_at(2) + [tuple_of(3, C)], tuple_rules=[3])
+    case("an aggregator_key_remove carried as an adding act",
+         "rule 3 reads the act's action, not only its signature",
+         2, 2, entries=replaced(tuples_at(2), D,
+                                adding=minted_remove(D, B, "2026-11-07T00:00:00Z")),
+         tuple_rules=[3])
+
+    # ---- rule 4: the removing act and the removed height.
+    case("a removed height equal to the added height",
+         "a removal is above its addition for every key but the genesis key",
+         4, 4, entries=replaced(tuples_at(4), D, removed=2), tuple_rules=[4])
+    case("a removed height above the Snapshot's Epoch",
+         "a removal sealed at Epoch 4 is not state at Epoch 3",
+         3, 3, entries=replaced(tuples_at(3), D, removed=4, removing=tuple_of(4, D)[6]),
+         tuple_rules=[4])
+    case("a removing act naming another key",
+         "the act retires a key_id the tuple does not name",
+         4, 4, entries=replaced(tuples_at(4), D,
+                                removing=minted_remove(C, B, "2026-11-08T00:00:00Z")),
+         tuple_rules=[4])
+    case("a removing act beside a null removed height",
+         "§7 makes the removing act `null` exactly when the removed height is, "
+         "and rule 4's bound on the removed height has nothing to hold of `null`",
+         2, 2, entries=replaced(tuples_at(2), D, removing=tuple_of(4, D)[6]),
+         tuple_rules=[4])
+    case("a removed height beside a null removing act",
+         "the converse: a tuple asserting a removal carries the act that made it",
+         4, 4, entries=replaced(tuples_at(4), D, removing=None), tuple_rules=[4])
+
+    # ---- rule 5: every act verifies under a key the tuples make valid at h-1.
+    case("an act signed by a key added at the act's own height",
+         "the signer's tuple admits it at the height it signs, where §3.4 reads "
+         "the previous height's keys",
+         3, 3, entries=tuples_at(3) + [
+             key_tuple(F, F, 3, None,
+                       minted_add(F, F, C, "2026-11-09T00:00:00Z"), None)],
+         tuple_rules=[5])
+    case("an act signed by a key removed below the act's height",
+         "the genesis key was removed at Epoch 1 and the act reads height 1",
+         3, 3, entries=tuples_at(3) + [
+             key_tuple(F, F, 2, None,
+                       minted_add(F, F, G, "2026-11-10T00:00:00Z"), None)],
+         tuple_rules=[5])
+    case("an act whose signature does not verify",
+         "the Envelope still passes WIST-4 §5.1's field validation, so rule 5 is "
+         "the only rule that reads the signature",
+         2, 2, entries=replaced(tuples_at(2), D, adding=damaged(tuple_of(2, D)[5])),
+         tuple_rules=[5])
+
+    # ---- §3.4's unsealed documents, judged at the adopted head, one document
+    # at a time so that each answer names the document it came from.
+    for document in ("index", "manifest", "state"):
+        case("the %s signed by a key removed at the adopted head" % document,
+             "the key is valid at the Snapshot's Epoch and removed at the Epoch "
+             "the Consumer adopts, which the walk from the Snapshot reaches",
+             0, 1, signers={document: signed_by(G)}, unsealed=[document])
+        case("the %s signed by a key added above the Snapshot's Epoch" % document,
+             "no tuple names the key; the Consumer authenticates it from the key "
+             "acts of the Epochs it walks and it is valid at the adopted head",
+             1, 3, signers={document: signed_by(C)})
+        case("the %s signature failing under the key its tuple names" % document,
+             "the signer is valid at the adopted head and the signature verifies "
+             "at no height",
+             1, 1, corrupt=[document], unsealed=[document])
+
+    # ---- the catch-up rule: a Consumer that already holds key state.
+    case("a tuple disagreeing with the Consumer's registry below its head",
+         "the Consumer's registry holds the genesis key as removed, so the tuple "
+         "carries that removed height and removing act or the Snapshot is "
+         "rejected; this one omits the removal altogether",
+         3, 3, entries=replaced(tuples_at(3), G, removed=None, removing=None),
+         consumer_registry={"verified_head": 1, "entries": tuples_at(1)},
+         catch_up=[{"key_id": G, "reason": "disagrees"}])
+    case("a Snapshot omitting a key the Consumer's registry holds",
+         "every key the registry holds has a tuple, and this key was admitted at "
+         "a height the Consumer has already walked",
+         3, 3, entries=without(tuples_at(3), D),
+         consumer_registry={"verified_head": 2, "entries": tuples_at(2)},
+         catch_up=[{"key_id": D, "reason": "omitted"}])
+    case("a tuple for a key the Consumer's registry does not hold",
+         "the tuple is admitted at or below the Consumer's verified head, where "
+         "its own replay never saw the key; the tuples and the registry "
+         "disagree about a height the Consumer has walked, whichever is wrong",
+         3, 3, consumer_registry={"verified_head": 3,
+                                  "entries": without(tuples_at(3), D)},
+         catch_up=[{"key_id": D, "reason": "unknown"}])
+    case("a Consumer registry the tuples agree with",
+         "the one surplus tuple names a key admitted above the Consumer's "
+         "verified head, which its registry says nothing about",
+         3, 3, consumer_registry={"verified_head": 2, "entries": tuples_at(2)})
+
+    # ---- two removals of one key accepted in one Epoch.
+    accepted_case = case(
+        "the tuple carries the removal at the lower Entry index",
+        "the removal §7 names, and the state_digest a replaying Consumer "
+        "recomputes at this tree size",
+        4, 4)
+    alternate_case = case(
+        "the tuple carries the removal at the higher Entry index",
+        "both removals were accepted, so rules 1 through 5 read this tuple as "
+        "they read the one above; the state_digest is what separates them, and "
+        "it is not the digest a replay leaves",
+        4, 4, entries=replaced(tuples_at(4), D,
+                               removing=clone(history["epochs"][4]["entries"][1]["body"])))
+    epoch4 = history["epochs"][4]
+    carried = tuple_of(4, D)[6]
+    removal_tie_break = {
+        "log": history["name"], "epoch_number": 4, "key_id": D,
+        "accepted_entry_index": next(i for i, e in enumerate(epoch4["entries"])
+                                     if e["body"] == carried),
+        "accepted_case": accepted_case["name"],
+        "accepted_state_digest": accepted_case["state_digest"],
+        "alternate_case": alternate_case["name"],
+        "alternate_state_digest": alternate_case["state_digest"],
+        "why": "WIST-3 §7: of two removals of one key accepted in one Epoch the "
+               "tuple carries the one at the lower Entry index, and rules 1 "
+               "through 5 do not test which one a tuple carries. Both Envelopes "
+               "satisfy those rules, and the two state files have different "
+               "state_digests, so the digest a replaying Consumer rebuilds at "
+               "this tree size is what falsifies the other one (`WIST3-E04`).",
+    }
+
+    mirrors_inner = {"wist_version": "1.0.0", "updated_at": "2026-09-06T12:00:00Z",
+                     "mirror_urls": ["https://mirror-1.example/", "https://mirror-2.example/"]}
+    mirror_cases = [
+        {"name": "signed by a key valid at the adopted head",
+         "why": "the list verifies, and §6.1 still lets a Consumer fetch from a "
+                "source it names nothing about",
+         "log": history["name"], "adopted_head": 1,
+         "mirrors": sign_envelope_with(material[B], "mirrors", mirrors_inner, B),
+         "authenticated": True, "error": None},
+        {"name": "signed by a key removed at the adopted head",
+         "why": "§5 gives an unverifiable Mirror list no error code: its entries "
+                "stay location hints",
+         "log": history["name"], "adopted_head": 1,
+         "mirrors": sign_envelope_with(material[G], "mirrors", mirrors_inner, G),
+         "authenticated": False, "error": None},
+        {"name": "read before the Consumer has a head",
+         "why": "§5's other unverifiable case: no adopted head means no key set "
+                "to judge the signature under, and still no error code",
+         "log": history["name"], "adopted_head": None,
+         "mirrors": sign_envelope_with(material[B], "mirrors", mirrors_inner, B),
+         "authenticated": False, "error": None},
+    ]
+
+    return {
+        "note": "WIST-3 §3.4, §7 and §8: a Consumer resuming from a Snapshot "
+                "authenticates the state file's `aggregator_key` tuples from the "
+                "Anchor's genesis key before it uses any of them, and verifies "
+                "the Snapshot index, the manifest and the state file under the "
+                "keys valid at the height of the Checkpoint it adopts. `history` "
+                "is one Log with its own Anchor, genesis key and cumulative "
+                "tree; `epochs` are in Log order and each carries the Checkpoint "
+                "the Aggregator published. A case is one Snapshot of that Log: "
+                "`epoch_number` is the Epoch it is taken at, `checkpoint` the "
+                "Checkpoint of that Epoch it is served with, `adopted_head` the "
+                "height of the Checkpoint the Consumer adopts, and `index`, "
+                "`manifest` and `state` the three unsealed documents. "
+                "`expected` is `accept` with the key_ids valid at the adopted "
+                "head, or `WIST3-E04`, the one code every rejection here "
+                "carries. `violations` says which requirement the case "
+                "isolates: the §7 rules of 1 through 5 the tuples break, the "
+                "catch-up clauses `consumer_registry` falsifies — `omitted` "
+                "for a key the registry holds and no tuple names, `disagrees` "
+                "for a tuple contradicting the registry up to its verified "
+                "head, `unknown` for a tuple the registry does not hold whose "
+                "added height is not above that head — and the documents whose "
+                "signatures do not verify at the adopted head. Those rule "
+                "numbers and reason strings are this family's labels, not a "
+                "diagnostic the protocol defines: an implementation replaying "
+                "the family is compared on the accept-or-`WIST3-E04` outcome, "
+                "the key_ids valid at the adopted head, and which of the three "
+                "documents verify. `self_consistent` marks a Snapshot whose "
+                "Checkpoint and documents all verify under the tuples it "
+                "carries, so that the chain to the Anchor is the only thing "
+                "rejecting it. `state_digest` is §7's digest over the case's "
+                "own tuples; rules 1 through 5 test neither the sealing heights "
+                "a tuple asserts nor which of two removals accepted in one "
+                "Epoch it carries, and `removal_tie_break` is where the second "
+                "of those is falsified instead — by the digest a replaying "
+                "Consumer rebuilds. `mirror_cases` carry §5's Mirror list, "
+                "which has no error code when it does not verify.",
+        "history": history,
+        "cases": cases,
+        "removal_tie_break": removal_tie_break,
+        "mirror_cases": mirror_cases,
+    }
+
+
+write_json(WIST3 / "snapshot-keys.json", snapshot_key_vectors())
+print("wist3 snapshot key authentication vectors written")
 
 # --------------------------------------------- WIST-4 §5.1: Registry Update
 WIST4 = ROOT / "vectors" / "wist4"

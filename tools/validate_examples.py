@@ -2343,9 +2343,36 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/aggregator-keys.json", "leaf_hashes"):
         "leaf hashes over Entries, which carry governance acts and no page content",
     ("vectors/wist3/aggregator-keys.json", "expected_state"):
-        "WIST-3 §7 aggregator_key tuples: a key_id, an Ed25519 public key and two heights",
+        "WIST-3 §7 aggregator_key tuples: a key_id, an Ed25519 public key, two heights and "
+        "the key acts, which carry governance acts and no page content",
     ("vectors/wist3/aggregator-keys.json", "entries"):
         "WIST-3 §7 aggregator_key tuples in the Snapshot state cases, as above",
+    ("vectors/wist3/snapshot-keys.json", "public_key"):
+        "an Ed25519 Aggregator key, in a Log Anchor, an aggregator_key_add or a §7 "
+        "aggregator_key tuple (WIST-3 §3.4)",
+    ("vectors/wist3/snapshot-keys.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/snapshot-keys.json", "leaf_hashes"):
+        "leaf hashes over Entries, which carry governance acts and no page content",
+    ("vectors/wist3/snapshot-keys.json", "root_hash"):
+        "root over Entries, which carry governance acts and no page content",
+    ("vectors/wist3/snapshot-keys.json", "expected_state"):
+        "WIST-3 §7 aggregator_key tuples: a key_id, an Ed25519 public key, two heights and "
+        "the key acts, which carry governance acts and no page content",
+    ("vectors/wist3/snapshot-keys.json", "entries"):
+        "WIST-3 §7 aggregator_key tuples in the Snapshot state files and the Consumer "
+        "registries, as above",
+    ("vectors/wist3/snapshot-keys.json", "content_digest"):
+        "WIST-3 §7's digest over the live record set, empty in a Log whose Entries are key "
+        "acts alone: Log-derived identifiers only, never page content",
+    ("vectors/wist3/snapshot-keys.json", "sha256"):
+        "SHA-256 over a Snapshot state file's octets and over a placeholder tier file "
+        "(WIST-3 §7); neither carries page content",
+    ("vectors/wist3/snapshot-keys.json", "state_digest"):
+        "WIST-3 §7's digest over the state tuples, which carry key registry state only",
+    ("vectors/wist3/snapshot-keys.json", "accepted_state_digest"):
+        "WIST-3 §7's digest over the state tuples, as above",
+    ("vectors/wist3/snapshot-keys.json", "alternate_state_digest"):
+        "WIST-3 §7's digest over the state tuples, as above",
     ("vectors/wist3/epoch.json", "prev"): "a Delta ID",
     ("vectors/wist3/epoch.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/checkpoints.json", "prev"): "a Delta ID",
@@ -7372,8 +7399,10 @@ def _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries, validator
     Entry index order, each read at height-1 and evaluated against the admitted
     set, then every other act read at the height the accepted key acts leave.
     Returns (`aggregator_key` tuples after the Epoch, one disposition per
-    Entry). The keyword arguments spell the readings §3.4 fixes; the mutation
-    twin flips each and requires the outcome to move."""
+    Entry); each tuple carries the accepted key acts §7 keeps, the removal at
+    the lower Entry index where an Epoch accepts two of one key. The keyword
+    arguments spell the readings §3.4 fixes; the mutation twin flips each and
+    requires the outcome to move."""
     before = [list(t) for t in tuples]
     after = [list(t) for t in before]
     codes = [None] * len(entries)
@@ -7420,7 +7449,7 @@ def _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries, validator
             if named in epoching or (note_key_id_collisions and note_id in admitted_note_ids):
                 codes[index] = "WIST4-E04"
                 continue
-            after.append(["aggregator_key", named, public_key, height, None])
+            after.append(["aggregator_key", named, public_key, height, None, body, None])
             admitted_note_ids.add(note_id)
         else:
             reference = _keys_valid_at(before, genesis_key_id, height - 1)
@@ -7434,6 +7463,8 @@ def _replay_key_epoch(tuples, log_id, genesis_key_id, height, entries, validator
             for tuple_ in after:
                 if tuple_[1] == named:
                     tuple_[4] = height
+                    if tuple_[6] is None:
+                        tuple_[6] = body
 
     other_set = (_keys_valid_at(after, genesis_key_id, height)
                  if other_act_authentication == "own Epoch"
@@ -7469,7 +7500,8 @@ def _replay_key_history(history, validator, **variant):
     log_id = history["log_id"]
     anchor = history["anchor"]["anchor"]
     genesis_key_id = anchor["genesis_key"]["key_id"]
-    tuples = [["aggregator_key", genesis_key_id, anchor["genesis_key"]["public_key"], 0, None]]
+    tuples = [["aggregator_key", genesis_key_id, anchor["genesis_key"]["public_key"],
+               0, None, None, None]]
     states, dispositions, key_sets, pubkeys = {}, [], {-1: {genesis_key_id}}, {}
     leaves, cumulative, head = [], {}, None
     for epoch in history["epochs"]:
@@ -7569,7 +7601,7 @@ def _wist3_aggregator_keys():
             expected_state = sorted(map(json.dumps, replay["states"][height]))
             assert expected_state == sorted(map(json.dumps, epoch["expected_state"])), \
                 f"{where}: the aggregator_key tuples the replay leaves"
-            assert all(t[0] == "aggregator_key" and len(t) == 5 for t in epoch["expected_state"]), where
+            assert all(t[0] == "aggregator_key" and len(t) == 7 for t in epoch["expected_state"]), where
             if not epoch["applied"]:
                 seen_unapplied += 1
                 assert epoch["checkpoint_cases"] and all(
@@ -7669,7 +7701,10 @@ def _wist3_aggregator_keys():
         "its height, and a Checkpoint whose line from a key not valid there is ignored"
 
     # WIST-3 §3.4: the key set at N does not depend on the order two key acts of
-    # one Epoch are evaluated in.
+    # one Epoch are evaluated in. The two histories' additions differ in the
+    # `effective_at` that moves their leaf-hash order, so the §7 tuples' carried
+    # acts differ by construction; what must agree is the key validity the
+    # tuples state — key_id, public key and both heights.
     first, second = (next(h for h in v["histories"] if h["name"] == name)
                      for name in v["same_registry_histories"])
 
@@ -7677,8 +7712,11 @@ def _wist3_aggregator_keys():
         return next(i for i, e in enumerate(history["epochs"][-1]["entries"])
                     if e["body"]["update"]["action"] == action)
 
-    assert first["epochs"][-1]["expected_state"] == second["epochs"][-1]["expected_state"], \
+    assert [t[:5] for t in first["epochs"][-1]["expected_state"]] \
+        == [t[:5] for t in second["epochs"][-1]["expected_state"]], \
         "the two Entry orders leave different key registries"
+    assert first["epochs"][-1]["expected_state"] != second["epochs"][-1]["expected_state"], \
+        "the two histories carry one addition Envelope, so the Entry orders are not distinct"
     assert (index_of(first, "aggregator_key_add") < index_of(first, "aggregator_key_remove")) \
         != (index_of(second, "aggregator_key_add") < index_of(second, "aggregator_key_remove")), \
         "both histories place the addition on the same side of the removal"
@@ -7773,8 +7811,7 @@ def _wist3_aggregator_keys_twin():
     self_removal = next(a for a in epoch["acts"] if a["action"] == "aggregator_key_remove")
     assert self_removal["code"] is None and self_removal["signer_key_id"] == self_removal["subject"], \
         "the history does not carry a key signing its own removal"
-    prior = [["aggregator_key", t[1], t[2], t[3], t[4]]
-             for t in order_history["epochs"][-2]["expected_state"]]
+    prior = [list(t) for t in order_history["epochs"][-2]["expected_state"]]
     _, flipped = _replay_key_epoch(prior, order_history["log_id"],
                                    order_history["anchor"]["anchor"]["genesis_key"]["key_id"],
                                    epoch["epoch_number"], epoch["entries"], validator,
@@ -7811,6 +7848,479 @@ def _wist3_aggregator_keys_twin():
     assert inverted == len(rotation["equivocation_cases"]), \
         "the head's key set answers these Checkpoints as their own height's does"
 check("negative:wist3-aggregator-keys", _wist3_aggregator_keys_twin)
+
+
+# WIST-3 §3.4, §7 and §8: a Snapshot's `aggregator_key` tuples authenticated
+# from the Anchor, and the unsealed documents verified at the height of the
+# Checkpoint the Consumer adopts. Implemented here from the prose, like the key
+# acts above and never from tools/gen_vectors.py: every outcome below is
+# recomputed from a case's own Anchor, Checkpoints, Envelopes and tuples, and
+# the vector's stated outcome is compared to it afterwards.
+UNSEALED_DOCUMENTS = ("index", "manifest", "state")
+
+
+def _snapshot_keys_vector():
+    return json.loads((ROOT / "vectors/wist3/snapshot-keys.json").read_text())
+
+
+def _carried_act_ok(act, action, key_id, public_key, validator):
+    """WIST-3 §7 rules 3 and 4: a carried key act passes WIST-4 §5.1's field
+    validation — its JSON/JCS eligibility, its schema and its own version check,
+    not the authentication §5.1 performs after them — as that action, naming the
+    tuple's key."""
+    code, doc = _registry_update_eligibility(json.dumps(act), validator)
+    if code is not None:
+        return False
+    update = doc["update"]
+    if update["action"] != action or update["details"].get("key_id") != key_id:
+        return False
+    return public_key is None or update["details"].get("public_key") == public_key
+
+
+def _authenticate_key_tuples(tuples, anchor, epoch_number, log_id, validator,
+                             act_height="previous height", genesis_binding=True):
+    """WIST-3 §7 'Authenticating the key tuples': the rules of 1 through 5 the
+    tuple set breaks, every rule evaluated over the whole set so that the answer
+    does not depend on the order they are read in. `act_height` and
+    `genesis_binding` spell the readings §7 fixes; the twin flips each."""
+    keys = [t for t in tuples if t[0] == "aggregator_key"]
+    genesis = anchor["genesis_key"]
+    violated = set()
+
+    key_ids = [t[1] for t in keys]
+    note_ids = [note_key_id(log_id, b64u_decode(t[2])) for t in keys]
+    if len(set(key_ids)) != len(key_ids) or len(set(note_ids)) != len(note_ids):
+        violated.add(1)
+
+    rootless = [t for t in keys if t[5] is None]
+    if len(rootless) != 1:
+        violated.add(2)
+    elif genesis_binding and (rootless[0][1] != genesis["key_id"]
+                              or rootless[0][2] != genesis["public_key"]
+                              or rootless[0][3] != 0):
+        violated.add(2)
+
+    for tuple_ in keys:
+        if tuple_[5] is not None:
+            if not _carried_act_ok(tuple_[5], "aggregator_key_add", tuple_[1], tuple_[2],
+                                   validator) \
+                    or not isinstance(tuple_[3], int) or not 0 <= tuple_[3] <= epoch_number:
+                violated.add(3)
+        if (tuple_[4] is None) != (tuple_[6] is None):
+            violated.add(4)        # the removing act is `null` exactly when the height is
+        elif tuple_[6] is not None:
+            floor = 0 if tuple_[5] is None else tuple_[3] + 1
+            if not _carried_act_ok(tuple_[6], "aggregator_key_remove", tuple_[1], None,
+                                   validator) \
+                    or not isinstance(tuple_[4], int) \
+                    or not floor <= tuple_[4] <= epoch_number:
+                violated.add(4)
+
+    for tuple_ in keys:
+        for act, height in ((tuple_[5], tuple_[3]), (tuple_[6], tuple_[4])):
+            if act is None or not isinstance(height, int):
+                continue
+            at = height - 1 if act_height == "previous height" else height
+            valid = _keys_valid_at(keys, genesis["key_id"], at)
+            if not any(named[1] in valid
+                       and _envelope_verifies(b64u_decode(named[2]), act)
+                       for named in keys if named[1] == act["sig"]["key_id"]):
+                violated.add(5)
+    return sorted(violated)
+
+
+def _catch_up_conflicts(tuples, registry, verified_head, surplus=True):
+    """WIST-3 §7: a Consumer that already holds key state for the Log rejects a
+    Snapshot unless the tuples agree with its own registry up to its verified
+    head V — every key the registry holds has a tuple with the registry's
+    public key, added height and adding act; a key the registry holds as
+    removed has the registry's removed height and removing act; a key the
+    registry holds as valid at V has a removed height that is null or greater
+    than V; and every tuple for a key the registry does not hold has an added
+    height greater than V. `surplus` spells that last clause; the twin drops
+    it."""
+    carried = {t[1]: t for t in tuples if t[0] == "aggregator_key"}
+    held_by = {t[1]: t for t in registry if t[0] == "aggregator_key"}
+    conflicts = []
+    for key_id, held in held_by.items():
+        offered = carried.get(key_id)
+        if offered is None:
+            conflicts.append({"key_id": key_id, "reason": "omitted"})
+            continue
+        agrees = (offered[2] == held[2] and offered[3] == held[3]
+                  and rfc8785.dumps(offered[5]) == rfc8785.dumps(held[5]))
+        if held[4] is None:
+            agrees = agrees and (offered[4] is None or offered[4] > verified_head)
+        else:
+            agrees = agrees and offered[4] == held[4] \
+                and rfc8785.dumps(offered[6]) == rfc8785.dumps(held[6])
+        if not agrees:
+            conflicts.append({"key_id": key_id, "reason": "disagrees"})
+    if surplus:
+        for key_id, offered in carried.items():
+            if key_id not in held_by and not (isinstance(offered[3], int)
+                                              and offered[3] > verified_head):
+                conflicts.append({"key_id": key_id, "reason": "unknown"})
+    return sorted(conflicts, key=lambda conflict: conflict["key_id"])
+
+
+def _walk_key_acts(tuples, history, log_id, genesis_key_id, epoch_number, head, validator):
+    """WIST-3 §8 step 7: the key acts of the Epochs between the Snapshot's and
+    the adopted Checkpoint's amend the tuples under §3.4."""
+    current = [list(t) for t in tuples if t[0] == "aggregator_key"]
+    for epoch in history["epochs"]:
+        if epoch_number < epoch["epoch_number"] <= head:
+            current, _ = _replay_key_epoch(current, log_id, genesis_key_id,
+                                           epoch["epoch_number"], epoch["entries"], validator)
+    return current
+
+
+def _unsealed_failures(case, tuples, genesis_key_id, height):
+    """WIST-3 §3.4 'Unsealed documents': the Snapshot index, the manifest and
+    the state file verify under the keys valid at the height of the Checkpoint
+    the Consumer adopts, whatever a signer's validity at a lower height."""
+    valid = _keys_valid_at(tuples, genesis_key_id, height)
+    public = {t[1]: t[2] for t in tuples if t[0] == "aggregator_key"}
+    failed = []
+    for name in UNSEALED_DOCUMENTS:
+        signer = case[name]["sig"]["key_id"]
+        if signer not in valid or signer not in public \
+                or not _envelope_verifies(b64u_decode(public[signer]), case[name], name):
+            failed.append(name)
+    return sorted(failed)
+
+
+def _snapshot_case_outcome(case, history, anchor, validator, **variant):
+    """One case's answer, recomputed from its own documents: the §7 rules its
+    tuples break, the catch-up disagreements, the unsealed documents that do
+    not verify, and the key_ids valid at the adopted head."""
+    log_id = history["log_id"]
+    genesis_key_id = anchor["genesis_key"]["key_id"]
+    tuples = case["state"]["state"]["entries"]
+    epoch_number, head = case["epoch_number"], case["adopted_head"]
+    rules = _authenticate_key_tuples(
+        tuples, anchor, epoch_number, log_id, validator,
+        act_height=variant.get("act_height", "previous height"),
+        genesis_binding=variant.get("genesis_binding", True))
+    registry = case.get("consumer_registry")
+    conflicts = ([] if registry is None or not variant.get("catch_up", True)
+                 else _catch_up_conflicts(tuples, registry["entries"],
+                                          registry["verified_head"],
+                                          surplus=variant.get("surplus", True)))
+    judged_at = (head if variant.get("unsealed_at", "adopted head") == "adopted head"
+                 else epoch_number)
+    failed = _unsealed_failures(
+        case, _walk_key_acts(tuples, history, log_id, genesis_key_id, epoch_number,
+                             judged_at, validator),
+        genesis_key_id, judged_at)
+    at_head = _walk_key_acts(tuples, history, log_id, genesis_key_id, epoch_number,
+                             head, validator)
+    return {"tuple_rules": rules, "catch_up": conflicts, "unsealed_documents": failed,
+            "key_ids": sorted(_keys_valid_at(at_head, genesis_key_id, head))}
+
+
+def _wist3_snapshot_keys():
+    """WIST-3 §7: a state file's `aggregator_key` tuples authenticate from the
+    Anchor's genesis key or the Snapshot is rejected (`WIST3-E04`); §3.4: its
+    index, manifest and state file verify under the keys valid at the height of
+    the Checkpoint the Consumer adopts; §5: a Mirror list that does not verify
+    is no error."""
+    v = _snapshot_keys_vector()
+    history = v["history"]
+    log_id = history["log_id"]
+    anchor = history["anchor"]["anchor"]
+    genesis = anchor["genesis_key"]
+    validator = Draft202012Validator(
+        json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+    anchor_schema = Draft202012Validator(
+        json.loads((ROOT / "schemas/log-anchor.schema.json").read_text()))
+    document_schema = {
+        name: Draft202012Validator(json.loads(
+            (ROOT / f"schemas/snapshot-{name}.schema.json").read_text()))
+        for name in UNSEALED_DOCUMENTS}
+    mirrors_schema = Draft202012Validator(
+        json.loads((ROOT / "schemas/mirrors.schema.json").read_text()))
+
+    anchor_schema.validate(history["anchor"])
+    assert anchor["log_id"] == log_id, "the Anchor names another Log"
+    assert history["anchor"]["sig"]["key_id"] == genesis["key_id"] \
+        and _envelope_verifies(b64u_decode(genesis["public_key"]), history["anchor"], "anchor"), \
+        "the Anchor is not self-signed under its own genesis_key"
+
+    replay = _replay_key_history(history, validator)
+    assert replay["head"] == history["verified_head"], "the verified head the replay leaves"
+    for epoch, codes in zip(history["epochs"], replay["dispositions"]):
+        height = epoch["epoch_number"]
+        assert all(code is None for code in codes), \
+            f"epoch {height}: this Log seals accepted key acts only"
+        assert sorted(map(json.dumps, replay["states"][height])) \
+            == sorted(map(json.dumps, epoch["expected_state"])), \
+            f"epoch {height}: the tuples the replay leaves"
+
+    by_name, self_consistent = {}, 0
+    for case in v["cases"]:
+        where = case["name"]
+        assert where not in by_name, f"two cases named {where!r}"
+        by_name[where] = case
+        assert case["log"] == history["name"], where
+        epoch_number, head = case["epoch_number"], case["adopted_head"]
+        epoch = history["epochs"][epoch_number]
+        assert epoch["epoch_number"] == epoch_number, where
+        assert epoch_number <= head <= history["verified_head"], \
+            f"{where}: the adopted head is not at or above the Snapshot's Epoch"
+        for name in UNSEALED_DOCUMENTS:
+            document_schema[name].validate(case[name])
+        tuples = case["state"]["state"]["entries"]
+
+        # WIST-3 §8 steps 2-4: the index entry, the manifest and the state file
+        # are statements about one Snapshot, and the state file is the one the
+        # manifest names, so that nothing below is decided by a mismatch there.
+        manifest = case["manifest"]["manifest"]
+        entry = case["index"]["index"]["snapshots"][0]
+        for field in ("snapshot_date", "tree_size", "content_digest"):
+            assert entry[field] == manifest[field], \
+                f"{where}: the index entry's {field} disagrees with the manifest"
+        octets = rfc8785.dumps(case["state"])
+        assert manifest["state"]["sha256"] == hashlib.sha256(octets).hexdigest() \
+            and manifest["state"]["bytes"] == len(octets), \
+            f"{where}: the manifest does not hash the state file it names"
+        assert case["state"]["state"]["tree_size"] == manifest["tree_size"] == epoch["tree_size"], \
+            f"{where}: the state file's tree_size is not the manifest's"
+        digest = "sha256:" + hashlib.sha256(
+            b"".join(sorted(rfc8785.dumps(t) for t in tuples))).hexdigest()
+        assert digest == manifest["state"]["state_digest"] == case["state_digest"], \
+            f"{where}: the state_digest is not this state file's"
+
+        # WIST-3 §8 step 5: the Snapshot is served with the Checkpoint of its
+        # Epoch, stating that Epoch's tree.
+        parsed = parse_checkpoint(case["checkpoint"])
+        assert parsed["origin"] == log_id and parsed["epoch_number"] == epoch_number \
+            and parsed["tree_size"] == epoch["tree_size"] \
+            and parsed["root"] == bytes.fromhex(manifest["root_hash"].split(":")[1]), \
+            f"{where}: the Checkpoint does not state this Snapshot's tree"
+
+        outcome = _snapshot_case_outcome(case, history, anchor, validator)
+        rejected = bool(outcome["tuple_rules"] or outcome["catch_up"]
+                        or outcome["unsealed_documents"])
+        assert ("WIST3-E04" if rejected else "accept") == case["expected"], \
+            f"{where}: replayed {outcome}, vector says {case['expected']}"
+        if rejected:
+            stated = case["violations"]
+            assert outcome["tuple_rules"] == stated["tuple_rules"], \
+                f"{where}: §7 rules {outcome['tuple_rules']} vs {stated['tuple_rules']}"
+            assert outcome["catch_up"] == stated["catch_up"], \
+                f"{where}: catch-up {outcome['catch_up']} vs {stated['catch_up']}"
+            assert outcome["unsealed_documents"] == stated["unsealed_documents"], \
+                f"{where}: unsealed {outcome['unsealed_documents']} vs " \
+                f"{stated['unsealed_documents']}"
+        else:
+            assert outcome["key_ids"] == case["key_ids_at_adopted_head"], \
+                f"{where}: the key set at the adopted head"
+
+        # A Snapshot that verifies against itself: the Checkpoint and all three
+        # documents verify under the tuples it carries, so the chain to the
+        # Anchor is the only thing that rejects it.
+        if case.get("self_consistent"):
+            self_consistent += 1
+            at_epoch = _keys_valid_at(tuples, genesis["key_id"], epoch_number)
+            _verify_checkpoint_keyset(
+                case["checkpoint"], log_id,
+                {t[1]: b64u_decode(t[2]) for t in tuples if t[1] in at_epoch})
+            assert not outcome["unsealed_documents"] and not outcome["catch_up"], \
+                f"{where}: a self-consistent Snapshot's own documents must verify"
+            assert outcome["tuple_rules"], \
+                f"{where}: a self-consistent Snapshot must be rejected by §7's rules"
+
+    rejects = [c for c in v["cases"] if c["expected"] != "accept"]
+    accepts = [c for c in v["cases"] if c["expected"] == "accept"]
+    assert rejects and accepts and {c["expected"] for c in v["cases"]} \
+        == {"accept", "WIST3-E04"}, "the family does not carry both outcomes"
+    for rule in (1, 2, 3, 4, 5):
+        assert any(c["violations"]["tuple_rules"] == [rule] for c in rejects), \
+            f"no case breaks §7 rule {rule} and nothing else"
+    for document in UNSEALED_DOCUMENTS:
+        assert any(c["violations"]["unsealed_documents"] == [document] for c in rejects), \
+            f"no case rejects on the {document}'s signature alone"
+        assert any(c[document]["sig"]["key_id"]
+                   not in {t[1] for t in c["state"]["state"]["entries"]} for c in accepts), \
+            f"no accepted Snapshot has its {document} signed by a key admitted above its Epoch"
+    assert {conflict["reason"] for c in rejects for conflict in c["violations"]["catch_up"]} \
+        == {"omitted", "disagrees", "unknown"}, \
+        "the catch-up rule's three forms are not all exercised"
+    assert any("consumer_registry" in c for c in accepts), \
+        "no Consumer registry the Snapshot's tuples agree with"
+    assert any("consumer_registry" in c
+               and any(t[1] not in {h[1] for h in c["consumer_registry"]["entries"]}
+                       and t[3] > c["consumer_registry"]["verified_head"]
+                       for t in c["state"]["state"]["entries"])
+               for c in accepts), \
+        "no accepted Snapshot carries a key admitted above the Consumer's verified head"
+    assert any(any(t[1] == genesis["key_id"] and t[4] is not None and t[6] is not None
+                   for t in c["state"]["state"]["entries"]) for c in accepts), \
+        "no accepted Snapshot carries the removed genesis key's tuple with its removing act"
+    assert any(c["adopted_head"] > c["epoch_number"] for c in accepts), \
+        "no accepted Snapshot is read at a head above its own Epoch"
+    assert self_consistent >= 3, \
+        "the family must carry forgeries that verify against themselves"
+
+    # WIST-3 §7: of two removals of one key accepted in one Epoch the tuple
+    # carries the one at the lower Entry index; rules 1 through 5 read both, and
+    # the state_digest a replaying Consumer rebuilds is what separates them.
+    tie = v["removal_tie_break"]
+    epoch = history["epochs"][tie["epoch_number"]]
+    removals = [index for index, e in enumerate(epoch["entries"])
+                if e["body"]["update"]["action"] == "aggregator_key_remove"
+                and e["body"]["update"]["details"]["key_id"] == tie["key_id"]]
+    codes = replay["dispositions"][tie["epoch_number"]]
+    assert len(removals) == 2 and all(codes[index] is None for index in removals), \
+        "the Epoch does not accept two removals of the key"
+    assert tie["accepted_entry_index"] == min(removals), "the tie-break names the wrong Entry"
+    carried = next(t[6] for t in replay["states"][tie["epoch_number"]] if t[1] == tie["key_id"])
+    assert carried == epoch["entries"][min(removals)]["body"], \
+        "the replay's tuple does not carry the removal at the lower Entry index"
+    accepted, alternate = by_name[tie["accepted_case"]], by_name[tie["alternate_case"]]
+    assert accepted["state_digest"] == tie["accepted_state_digest"] \
+        and alternate["state_digest"] == tie["alternate_state_digest"], \
+        "the tie-break restates a digest neither case carries"
+    assert accepted["state_digest"] != alternate["state_digest"], \
+        "the two removals leave one state_digest, so the tie-break decides nothing recomputable"
+    rebuilt = "sha256:" + hashlib.sha256(b"".join(sorted(
+        rfc8785.dumps(t) for t in replay["states"][tie["epoch_number"]]))).hexdigest()
+    assert rebuilt == tie["accepted_state_digest"], \
+        "a replaying Consumer's own rebuild is not the accepted case's state_digest"
+    assert accepted["expected"] == alternate["expected"] == "accept", \
+        "§7's rules read the two tuples alike; only the digest separates them"
+
+    # WIST-3 §5: the Mirror list verifies at the adopted head, and one that does
+    # not verify has no error code.
+    for case in v["mirror_cases"]:
+        mirrors_schema.validate(case["mirrors"])
+        assert case["log"] == history["name"] and case["error"] is None, \
+            f"{case['name']}: §5 gives an unverifiable Mirror list no error code"
+        head = case["adopted_head"]
+        authenticated = False
+        if head is not None:
+            tuples = replay["states"][head]
+            public = {t[1]: t[2] for t in tuples}
+            signer = case["mirrors"]["sig"]["key_id"]
+            authenticated = (signer in _keys_valid_at(tuples, genesis["key_id"], head)
+                             and signer in public
+                             and _envelope_verifies(b64u_decode(public[signer]),
+                                                    case["mirrors"], "mirrors"))
+        assert authenticated == case["authenticated"], case["name"]
+    assert {c["authenticated"] for c in v["mirror_cases"]} == {True, False} \
+        and any(c["adopted_head"] is None for c in v["mirror_cases"]), \
+        "the Mirror cases do not cover a verifying list, a since-removed signer and no head"
+
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    for marker in (
+            "a Consumer holding the Anchor authenticates them from its genesis key before "
+            "it uses any tuple",
+            "A Consumer verifies it under the keys valid at the height of the Checkpoint it "
+            "adopts (§8)",
+            "Every non-`null` adding act passes WIST-4 §5.1's field validation",
+            "The removing act is `null` exactly when the removed height is `null`.",
+            "unless the tuples agree with its own registry up to its verified head *V*",
+            "every tuple for a key the registry does not hold has an added height greater "
+            "than *V*",
+            "Of two removals of one key accepted in one Epoch (§3.4), the tuple carries the "
+            "one at the lower Entry index",
+            "which of two removals accepted in one Epoch a tuple carries, are assertions of "
+            "the state file's signer that these rules do not test",
+            "A Consumer catching up through a Snapshot performs cold start's steps against "
+            "it, applying §7's additional rule for a Consumer that holds key state.",
+            "has no error code, and its entries are location hints integrity never depends on"):
+        assert marker in prose, f"missing normative sentence: {marker!r}"
+check("vectors:wist3-snapshot-keys", _wist3_snapshot_keys)
+
+
+def _wist3_snapshot_keys_twin():
+    """Mutation twins: each reading §7 and §3.4 fix, flipped, must move an
+    outcome the family states, and a damaged signature must be caught."""
+    v = _snapshot_keys_vector()
+    history = v["history"]
+    anchor = history["anchor"]["anchor"]
+    validator = Draft202012Validator(
+        json.loads((ROOT / "schemas/registry-update.schema.json").read_text()))
+
+    def outcomes(**variant):
+        return [_snapshot_case_outcome(c, history, anchor, validator, **variant)
+                for c in v["cases"]]
+
+    control = outcomes()
+    for variant in ({"act_height": "own height"}, {"genesis_binding": False},
+                    {"unsealed_at": "snapshot epoch"}, {"catch_up": False},
+                    {"surplus": False}):
+        assert outcomes(**variant) != control, \
+            f"flipping {variant} changed no outcome the family states"
+
+    # Each flip, at the case it is supposed to decide.
+    forged = next(c for c in v["cases"]
+                  if c.get("self_consistent") and c["violations"]["tuple_rules"] == [5])
+    assert not _snapshot_case_outcome(forged, history, anchor, validator,
+                                      act_height="own height")["tuple_rules"], \
+        "reading a key act at its own height did not admit the self-signed addition"
+    restated = next(c for c in v["cases"]
+                    if c.get("self_consistent") and c["violations"]["tuple_rules"] == [2]
+                    and len([t for t in c["state"]["state"]["entries"] if t[5] is None]) == 1)
+    assert not _snapshot_case_outcome(restated, history, anchor, validator,
+                                      genesis_binding=False)["tuple_rules"], \
+        "dropping rule 2's comparison against the Anchor did not admit the restated genesis key"
+    for document in UNSEALED_DOCUMENTS:
+        removed = next(c for c in v["cases"]
+                       if c["expected"] != "accept"
+                       and c["violations"]["unsealed_documents"] == [document]
+                       and c["adopted_head"] > c["epoch_number"])
+        assert not _snapshot_case_outcome(removed, history, anchor, validator,
+                                          unsealed_at="snapshot epoch")["unsealed_documents"], \
+            f"judging the {document} at the Snapshot's Epoch did not admit the removed key"
+    for case in v["cases"]:
+        if case["expected"] != "accept" and case["violations"]["catch_up"]:
+            assert not _snapshot_case_outcome(case, history, anchor, validator,
+                                              catch_up=False)["catch_up"], case["name"]
+            assert not case["violations"]["tuple_rules"] \
+                and not case["violations"]["unsealed_documents"], \
+                f"{case['name']}: the catch-up rule is not what rejects this Snapshot"
+    surplus = next(c for c in v["cases"]
+                   if c["expected"] != "accept"
+                   and [conflict["reason"] for conflict in c["violations"]["catch_up"]] == ["unknown"])
+    assert not _snapshot_case_outcome(surplus, history, anchor, validator,
+                                      surplus=False)["catch_up"], \
+        "dropping the clause on tuples the registry does not hold admitted the surplus tuple"
+    agreeing = next(c for c in v["cases"]
+                    if c["expected"] == "accept" and "consumer_registry" in c)
+    for held in agreeing["consumer_registry"]["entries"]:
+        dropped = copy.deepcopy(agreeing)
+        dropped["consumer_registry"]["entries"] = [
+            t for t in dropped["consumer_registry"]["entries"] if t[1] != held[1]]
+        assert _snapshot_case_outcome(dropped, history, anchor, validator)["catch_up"] \
+            == [{"key_id": held[1], "reason": "unknown"}], \
+            f"a registry lacking {held[1]} did not make its tuple a surplus one"
+
+    # A signature the vector states as verifying must be the reason it does.
+    for document in UNSEALED_DOCUMENTS:
+        case = copy.deepcopy(next(c for c in v["cases"] if c["expected"] == "accept"))
+        raw = bytearray(b64u_decode(case[document]["sig"]["value"]))
+        raw[0] ^= 0xFF
+        case[document]["sig"]["value"] = base64.urlsafe_b64encode(bytes(raw)).rstrip(b"=").decode()
+        assert _snapshot_case_outcome(case, history, anchor, validator)["unsealed_documents"] \
+            == [document], f"a damaged {document} signature was not caught"
+
+    # An accepted tuple set is accepted because of what it carries: dropping any
+    # one tuple's adding act, or moving any height, must reject it.
+    case = next(c for c in v["cases"]
+                if c["expected"] == "accept" and "consumer_registry" not in c
+                and len(c["state"]["state"]["entries"]) > 2)
+    for position, replacement in ((5, None), (3, 99), (4, 0), (6, None)):
+        for index in range(len(case["state"]["state"]["entries"])):
+            mutated = copy.deepcopy(case)
+            tuple_ = mutated["state"]["state"]["entries"][index]
+            if tuple_[position] == replacement:
+                continue
+            tuple_[position] = replacement
+            assert _snapshot_case_outcome(mutated, history, anchor, validator)["tuple_rules"], \
+                f"moving member {position} of tuple {index} left the tuples authenticating"
+check("negative:wist3-snapshot-keys", _wist3_snapshot_keys_twin)
 
 
 def _registrable_domain_vector():

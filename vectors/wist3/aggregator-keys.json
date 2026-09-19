@@ -156,6 +156,8 @@
               "test-agg-k1",
               "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -163,6 +165,25 @@
               "test-agg-k2",
               "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
               0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k2",
+                    "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                }
+              },
               null
             ]
           ],
@@ -294,6 +315,8 @@
               "test-agg-k1",
               "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -301,13 +324,66 @@
               "test-agg-k2",
               "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
               0,
-              1
+              1,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k2",
+                    "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "key_id": "test-agg-k2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-k4",
               "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
               1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k4",
+                    "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                }
+              },
               null
             ]
           ],
@@ -544,6 +620,8 @@
               "test-agg-k1",
               "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -551,13 +629,66 @@
               "test-agg-k2",
               "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
               0,
-              1
+              1,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k2",
+                    "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "key_id": "test-agg-k2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-k4",
               "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
               1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k4",
+                    "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                }
+              },
               null
             ],
             [
@@ -565,6 +696,25 @@
               "test-agg-k5",
               "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
               2,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k5",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k5",
+                    "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                }
+              },
               null
             ]
           ],
@@ -836,6 +986,8 @@
               "test-agg-k1",
               "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -843,20 +995,107 @@
               "test-agg-k2",
               "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
               0,
-              1
+              1,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k2",
+                    "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "key_id": "test-agg-k2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-k4",
               "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
               1,
-              3
+              3,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k4",
+                    "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "key_id": "test-agg-k4"
+                  },
+                  "effective_at": "2026-10-02T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "BHXmSGUukmlWD9BzQ0NeKv5MsTDKd8ppqc98FnHKs0lrIE3cwVQgG3b9l4_ae3mDDx2dSenB2cJY9-6XJmuZDA"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-k5",
               "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
               2,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k5",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k5",
+                    "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                }
+              },
               null
             ],
             [
@@ -864,6 +1103,25 @@
               "test-agg-k6",
               "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
               3,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k6",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k6",
+                    "public_key": "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "m4rnzOomQwGAeW8HmAcKuInGzSzJqOkxIZ2HDq3_FAuP6J-4xGEiRjAtHpVEMof6d1H8h8ZK9IuP7H03B4OIAQ"
+                }
+              },
               null
             ],
             [
@@ -871,6 +1129,25 @@
               "test-agg-k7",
               "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
               3,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k7",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k7",
+                    "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "e00VzryHfzD4Wjzh-nE5Aum-FI8IOKSUR8y61KRApLcgl8Qz5jMrzwf2T5cWHb0LzG05jARXc6yb2jizdggdDQ"
+                }
+              },
               null
             ],
             [
@@ -878,6 +1155,25 @@
               "test-agg-k9",
               "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
               3,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k9",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k9",
+                    "public_key": "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "wXlLKSN6POILG0pP7Q-8ozqxurgNFWrPNn50v0Va5aeHDkPSclahXhFHvHbZNPdYBn-W31vWov5UP0TRfGmXDg"
+                }
+              },
               null
             ]
           ],
@@ -985,27 +1281,131 @@
               "test-agg-k1",
               "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
               0,
-              4
+              4,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k1",
+                  "details": {
+                    "key_id": "test-agg-k1"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k5",
+                  "alg": "Ed25519",
+                  "value": "9e0neRT6cdyqkKAFrYU77YAwtJH9jGYEDs1bm8q34qINRYcEDAaHmaTlnjnZ-PlG79ded0qrVsvzANgADK9KBg"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-k2",
               "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
               0,
-              1
+              1,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k2",
+                    "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k2",
+                  "details": {
+                    "key_id": "test-agg-k2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-k4",
               "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
               1,
-              3
+              3,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k4",
+                    "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k2",
+                  "alg": "Ed25519",
+                  "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-k4",
+                  "details": {
+                    "key_id": "test-agg-k4"
+                  },
+                  "effective_at": "2026-10-02T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "BHXmSGUukmlWD9BzQ0NeKv5MsTDKd8ppqc98FnHKs0lrIE3cwVQgG3b9l4_ae3mDDx2dSenB2cJY9-6XJmuZDA"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-k5",
               "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
               2,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k5",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k5",
+                    "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                }
+              },
               null
             ],
             [
@@ -1013,6 +1413,25 @@
               "test-agg-k6",
               "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
               3,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k6",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k6",
+                    "public_key": "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "m4rnzOomQwGAeW8HmAcKuInGzSzJqOkxIZ2HDq3_FAuP6J-4xGEiRjAtHpVEMof6d1H8h8ZK9IuP7H03B4OIAQ"
+                }
+              },
               null
             ],
             [
@@ -1020,6 +1439,25 @@
               "test-agg-k7",
               "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
               3,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k7",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k7",
+                    "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "e00VzryHfzD4Wjzh-nE5Aum-FI8IOKSUR8y61KRApLcgl8Qz5jMrzwf2T5cWHb0LzG05jARXc6yb2jizdggdDQ"
+                }
+              },
               null
             ],
             [
@@ -1027,6 +1465,25 @@
               "test-agg-k9",
               "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
               3,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-k9",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-k9",
+                    "public_key": "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-k1",
+                  "alg": "Ed25519",
+                  "value": "wXlLKSN6POILG0pP7Q-8ozqxurgNFWrPNn50v0Va5aeHDkPSclahXhFHvHbZNPdYBn-W31vWov5UP0TRfGmXDg"
+                }
+              },
               null
             ]
           ],
@@ -1117,27 +1574,131 @@
                 "test-agg-k1",
                 "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
                 0,
-                4
+                4,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k1",
+                    "details": {
+                      "key_id": "test-agg-k1"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k5",
+                    "alg": "Ed25519",
+                    "value": "9e0neRT6cdyqkKAFrYU77YAwtJH9jGYEDs1bm8q34qINRYcEDAaHmaTlnjnZ-PlG79ded0qrVsvzANgADK9KBg"
+                  }
+                }
               ],
               [
                 "aggregator_key",
                 "test-agg-k2",
                 "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
                 0,
-                1
+                1,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k2",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k2",
+                      "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                  }
+                },
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k2",
+                    "details": {
+                      "key_id": "test-agg-k2"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k2",
+                    "alg": "Ed25519",
+                    "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                  }
+                }
               ],
               [
                 "aggregator_key",
                 "test-agg-k4",
                 "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
                 1,
-                3
+                3,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k4",
+                      "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k2",
+                    "alg": "Ed25519",
+                    "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                  }
+                },
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "key_id": "test-agg-k4"
+                    },
+                    "effective_at": "2026-10-02T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "BHXmSGUukmlWD9BzQ0NeKv5MsTDKd8ppqc98FnHKs0lrIE3cwVQgG3b9l4_ae3mDDx2dSenB2cJY9-6XJmuZDA"
+                  }
+                }
               ],
               [
                 "aggregator_key",
                 "test-agg-k5",
                 "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
                 2,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k5",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k5",
+                      "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                  }
+                },
                 null
               ],
               [
@@ -1145,6 +1706,25 @@
                 "test-agg-k6",
                 "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k6",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k6",
+                      "public_key": "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "m4rnzOomQwGAeW8HmAcKuInGzSzJqOkxIZ2HDq3_FAuP6J-4xGEiRjAtHpVEMof6d1H8h8ZK9IuP7H03B4OIAQ"
+                  }
+                },
                 null
               ],
               [
@@ -1152,6 +1732,25 @@
                 "test-agg-k7",
                 "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k7",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k7",
+                      "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "e00VzryHfzD4Wjzh-nE5Aum-FI8IOKSUR8y61KRApLcgl8Qz5jMrzwf2T5cWHb0LzG05jARXc6yb2jizdggdDQ"
+                  }
+                },
                 null
               ],
               [
@@ -1159,6 +1758,25 @@
                 "test-agg-k9",
                 "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k9",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k9",
+                      "public_key": "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "wXlLKSN6POILG0pP7Q-8ozqxurgNFWrPNn50v0Va5aeHDkPSclahXhFHvHbZNPdYBn-W31vWov5UP0TRfGmXDg"
+                  }
+                },
                 null
               ],
               [
@@ -1179,20 +1797,90 @@
                 "test-agg-k1",
                 "fLoZS_8L6nzGaRF7JDhVFYDTDruJVX6vBTWk2LNRpvg",
                 0,
-                4
+                4,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k1",
+                    "details": {
+                      "key_id": "test-agg-k1"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k5",
+                    "alg": "Ed25519",
+                    "value": "9e0neRT6cdyqkKAFrYU77YAwtJH9jGYEDs1bm8q34qINRYcEDAaHmaTlnjnZ-PlG79ded0qrVsvzANgADK9KBg"
+                  }
+                }
               ],
               [
                 "aggregator_key",
                 "test-agg-k4",
                 "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
                 1,
-                3
+                3,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k4",
+                      "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k2",
+                    "alg": "Ed25519",
+                    "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                  }
+                },
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "key_id": "test-agg-k4"
+                    },
+                    "effective_at": "2026-10-02T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "BHXmSGUukmlWD9BzQ0NeKv5MsTDKd8ppqc98FnHKs0lrIE3cwVQgG3b9l4_ae3mDDx2dSenB2cJY9-6XJmuZDA"
+                  }
+                }
               ],
               [
                 "aggregator_key",
                 "test-agg-k5",
                 "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
                 2,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k5",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k5",
+                      "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                  }
+                },
                 null
               ],
               [
@@ -1200,6 +1888,25 @@
                 "test-agg-k6",
                 "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k6",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k6",
+                      "public_key": "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "m4rnzOomQwGAeW8HmAcKuInGzSzJqOkxIZ2HDq3_FAuP6J-4xGEiRjAtHpVEMof6d1H8h8ZK9IuP7H03B4OIAQ"
+                  }
+                },
                 null
               ],
               [
@@ -1207,6 +1914,25 @@
                 "test-agg-k7",
                 "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k7",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k7",
+                      "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "e00VzryHfzD4Wjzh-nE5Aum-FI8IOKSUR8y61KRApLcgl8Qz5jMrzwf2T5cWHb0LzG05jARXc6yb2jizdggdDQ"
+                  }
+                },
                 null
               ],
               [
@@ -1214,6 +1940,25 @@
                 "test-agg-k9",
                 "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k9",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k9",
+                      "public_key": "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "wXlLKSN6POILG0pP7Q-8ozqxurgNFWrPNn50v0Va5aeHDkPSclahXhFHvHbZNPdYBn-W31vWov5UP0TRfGmXDg"
+                  }
+                },
                 null
               ],
               [
@@ -1234,20 +1979,107 @@
                 "test-agg-k2",
                 "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg",
                 0,
-                1
+                1,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k2",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k2",
+                      "public_key": "f62hjcVUsz3YXrvexRJpwwDUCAMd1eZwlA9cDfAAPlg"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "hhuPG6yT6HXpkPfRmOC2tO-GPSmF2QnVaG3QnQ_OMl5qF5d4Qas7tQurYRIyE_yhPC-47IcxSGmtF_6eOGr-Aw"
+                  }
+                },
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k2",
+                    "details": {
+                      "key_id": "test-agg-k2"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k2",
+                    "alg": "Ed25519",
+                    "value": "kT9bJV4VUleivJhd4AvKPJSQj5_EUMUKMVV57_n1cDjGZs637XTnbf3MWifnSOWYunCe8n6PBMBCvxTcvgMSAg"
+                  }
+                }
               ],
               [
                 "aggregator_key",
                 "test-agg-k4",
                 "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA",
                 1,
-                3
+                3,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k4",
+                      "public_key": "S9GagYMjNeSFfRo77y3i6dH1IwK3R3m9HuDzS7oIWxA"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k2",
+                    "alg": "Ed25519",
+                    "value": "PLuIPkOigPamz_eLeHD23tD08LaqFJUEE0EVKcO-mK7DcgPM8lECqWx5RGDs17XSzvxNIzcmByFAAYY8zmpwDQ"
+                  }
+                },
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_remove",
+                    "subject": "test-agg-k4",
+                    "details": {
+                      "key_id": "test-agg-k4"
+                    },
+                    "effective_at": "2026-10-02T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "BHXmSGUukmlWD9BzQ0NeKv5MsTDKd8ppqc98FnHKs0lrIE3cwVQgG3b9l4_ae3mDDx2dSenB2cJY9-6XJmuZDA"
+                  }
+                }
               ],
               [
                 "aggregator_key",
                 "test-agg-k5",
                 "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E",
                 2,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k5",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k5",
+                      "public_key": "aWMGVW0imgbPecRubDm6JEJ8PwN23Vzb62NJG-h3Y5E"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "oG3En2Vl98aPu-i3OdgBpOS1nz1--oy2ZDO4iklhcdVk-T1wOM13GhqYbXI92xEERFGZ9N8ZsZmcT7aKoTmhCw"
+                  }
+                },
                 null
               ],
               [
@@ -1255,6 +2087,25 @@
                 "test-agg-k6",
                 "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k6",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k6",
+                      "public_key": "uLXKcU7s6vFuf_ekXbvoj31q29fm-z58xfV6E9ygq1U"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "m4rnzOomQwGAeW8HmAcKuInGzSzJqOkxIZ2HDq3_FAuP6J-4xGEiRjAtHpVEMof6d1H8h8ZK9IuP7H03B4OIAQ"
+                  }
+                },
                 null
               ],
               [
@@ -1262,6 +2113,25 @@
                 "test-agg-k7",
                 "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k7",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k7",
+                      "public_key": "Fe7-0V8iPmBxiikMUcpqbIeEUK8ilQNoUwOlru9ySYM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "e00VzryHfzD4Wjzh-nE5Aum-FI8IOKSUR8y61KRApLcgl8Qz5jMrzwf2T5cWHb0LzG05jARXc6yb2jizdggdDQ"
+                  }
+                },
                 null
               ],
               [
@@ -1269,6 +2139,25 @@
                 "test-agg-k9",
                 "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM",
                 3,
+                null,
+                {
+                  "update": {
+                    "wist_version": "1.0.0",
+                    "action": "aggregator_key_add",
+                    "subject": "test-agg-k9",
+                    "details": {
+                      "alg": "Ed25519",
+                      "key_id": "test-agg-k9",
+                      "public_key": "JIaXlepetesgP2Mec0BsiUjo293DpWgyqeg_RQR41dM"
+                    },
+                    "effective_at": "2026-10-01T00:00:00Z"
+                  },
+                  "sig": {
+                    "key_id": "test-agg-k1",
+                    "alg": "Ed25519",
+                    "value": "wXlLKSN6POILG0pP7Q-8ozqxurgNFWrPNn50v0Va5aeHDkPSclahXhFHvHbZNPdYBn-W31vWov5UP0TRfGmXDg"
+                  }
+                },
                 null
               ],
               [
@@ -1355,6 +2244,8 @@
               "test-agg-m1",
               "1CHqFezGuGUNmHKaG_Fil7ppPOBY5BCs4N7n4IrrfhI",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -1362,6 +2253,25 @@
               "test-agg-m2",
               "vfMxF-qyOdRhc5Fkig-PS3EHmxxuzMdGSL5Kjo2QxS8",
               0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-m2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-m2",
+                    "public_key": "vfMxF-qyOdRhc5Fkig-PS3EHmxxuzMdGSL5Kjo2QxS8"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-m1",
+                  "alg": "Ed25519",
+                  "value": "HQ6dgMy4PNbnGaE10c5aU-nz6fg1P3b7Pc4SsOH9BBR2OwKBLFYZDI1TrgcLe-KPLc6S4i8NC-BIF0G0a3V6DQ"
+                }
+              },
               null
             ]
           ],
@@ -1460,6 +2370,8 @@
               "test-agg-m1",
               "1CHqFezGuGUNmHKaG_Fil7ppPOBY5BCs4N7n4IrrfhI",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -1467,6 +2379,25 @@
               "test-agg-m2",
               "vfMxF-qyOdRhc5Fkig-PS3EHmxxuzMdGSL5Kjo2QxS8",
               0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-m2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-m2",
+                    "public_key": "vfMxF-qyOdRhc5Fkig-PS3EHmxxuzMdGSL5Kjo2QxS8"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-m1",
+                  "alg": "Ed25519",
+                  "value": "HQ6dgMy4PNbnGaE10c5aU-nz6fg1P3b7Pc4SsOH9BBR2OwKBLFYZDI1TrgcLe-KPLc6S4i8NC-BIF0G0a3V6DQ"
+                }
+              },
               null
             ]
           ],
@@ -1565,6 +2496,8 @@
               "test-agg-n1",
               "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -1572,6 +2505,25 @@
               "test-agg-n2",
               "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
               0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n2",
+                    "public_key": "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n1",
+                  "alg": "Ed25519",
+                  "value": "izlWGYW3bMXdRaTbBtYLvyQ5-8QtwPFHvaPr_UmMtvnxWfFfclF3MkjA8k8svJhmLIxZWbNkKAwYGnzGxusQDw"
+                }
+              },
               null
             ]
           ],
@@ -1655,6 +2607,8 @@
               "test-agg-n1",
               "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -1662,13 +2616,66 @@
               "test-agg-n2",
               "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
               0,
-              1
+              1,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n2",
+                    "public_key": "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n1",
+                  "alg": "Ed25519",
+                  "value": "izlWGYW3bMXdRaTbBtYLvyQ5-8QtwPFHvaPr_UmMtvnxWfFfclF3MkjA8k8svJhmLIxZWbNkKAwYGnzGxusQDw"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "key_id": "test-agg-n2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "vgTkmpVmJ8YHvzIvccSGUxu5kohsc1jpcoSMyY2j9qgbuUkGGmM1e5t8HzCaDJrWI7dusDzFyPuW4SclviVkBg"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-n3",
               "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU",
               1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n3",
+                    "public_key": "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU"
+                  },
+                  "effective_at": "2026-10-01T00:11:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "qv-5j9lUMhZQ1c-DUrNfwjbDx6x6xTSvB_iNEk0_h0CpiV323GRJpqeViSwSHtXi-yGitvOsJRgWDg9tmx4WDw"
+                }
+              },
               null
             ]
           ],
@@ -1770,6 +2777,8 @@
               "test-agg-n1",
               "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -1777,6 +2786,25 @@
               "test-agg-n2",
               "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
               0,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n2",
+                    "public_key": "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n1",
+                  "alg": "Ed25519",
+                  "value": "izlWGYW3bMXdRaTbBtYLvyQ5-8QtwPFHvaPr_UmMtvnxWfFfclF3MkjA8k8svJhmLIxZWbNkKAwYGnzGxusQDw"
+                }
+              },
               null
             ]
           ],
@@ -1860,6 +2888,8 @@
               "test-agg-n1",
               "E-D3m0a5WEXYQYPyQW6xBR5oPJsGtwwy9b82y6bh_Rc",
               0,
+              null,
+              null,
               null
             ],
             [
@@ -1867,13 +2897,66 @@
               "test-agg-n2",
               "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts",
               0,
-              1
+              1,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n2",
+                    "public_key": "wC785nJfilJihQ6HZ0K3Z0ZW76UNSHQBSRj2jy7OFts"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n1",
+                  "alg": "Ed25519",
+                  "value": "izlWGYW3bMXdRaTbBtYLvyQ5-8QtwPFHvaPr_UmMtvnxWfFfclF3MkjA8k8svJhmLIxZWbNkKAwYGnzGxusQDw"
+                }
+              },
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_remove",
+                  "subject": "test-agg-n2",
+                  "details": {
+                    "key_id": "test-agg-n2"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "vgTkmpVmJ8YHvzIvccSGUxu5kohsc1jpcoSMyY2j9qgbuUkGGmM1e5t8HzCaDJrWI7dusDzFyPuW4SclviVkBg"
+                }
+              }
             ],
             [
               "aggregator_key",
               "test-agg-n3",
               "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU",
               1,
+              null,
+              {
+                "update": {
+                  "wist_version": "1.0.0",
+                  "action": "aggregator_key_add",
+                  "subject": "test-agg-n3",
+                  "details": {
+                    "alg": "Ed25519",
+                    "key_id": "test-agg-n3",
+                    "public_key": "VjrLMBDuJZtPaJZCYYBU1-JtMGmZQ3OCwjWSxhHcnpU"
+                  },
+                  "effective_at": "2026-10-01T00:00:00Z"
+                },
+                "sig": {
+                  "key_id": "test-agg-n2",
+                  "alg": "Ed25519",
+                  "value": "-D7NVy049iB6kdkZ6N2Wi2nI6YnB151mEBcEURVIXRvA9ivhAXp-yPBcNZeSo_2C-_qztwSu0YYKr3PeLtNPCQ"
+                }
+              },
               null
             ]
           ],

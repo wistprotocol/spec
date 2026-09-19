@@ -8,9 +8,9 @@
     "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
     "state": {
       "path": "state.json",
-      "sha256": "3ac0616fcfe419e1309fcac8c1fc18ab76627fa89cc367a6ee19978730901288",
-      "bytes": 701,
-      "state_digest": "sha256:d8b9d027652bfc495d56e75b3b4b97270b8633a02031ffa18bf29704d4ad7da3"
+      "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+      "bytes": 711,
+      "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
     },
     "files": [
       {
@@ -36,6 +36,6 @@
   "sig": {
     "key_id": "test-agg-k1",
     "alg": "Ed25519",
-    "value": "YwBeQIB4DqrQMthsjHsCvPgjsysXVMrPklpMpGj_zfU9HIPbX4plSW1vWWsF1m21jKSKPDFdfJmu1WfpTmP-Cg"
+    "value": "7Xt61SuXIOZyYOU0yclyINnDlhrO6QCsof4DnqjMLT7zxI5CYbtLhtaA3AVwH_3xJIz-p28rkoVAep3d_M3GDA"
   }
 }
