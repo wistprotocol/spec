@@ -2465,14 +2465,56 @@ def _with_epoch_number_line(value: str) -> str:
     lines = list(_base_lines); lines[3] = value
     return _note(lines)
 
-_bad_sig_bytes = bytearray(base64.b64decode(_sig_block[len(f"— {LOG_ID} "):].strip()))
-_bad_sig_bytes[-1] ^= 0xFF
-_sig_fails_block = f"— {LOG_ID} " + base64.b64encode(bytes(_bad_sig_bytes)).decode() + "\n"
+def signed_note(note_text: str) -> str:
+    """The Log's signature line over arbitrary note text (WIST-3 §5), for
+    the root-hash-line cases below: re-signing the mutation leaves the
+    parse rule under test as the only ground for rejection."""
+    kid = note_key_id(LOG_ID, raw_public(priv))
+    return note_text + "\n— %s %s\n" % (
+        LOG_ID, base64.b64encode(kid + priv.sign(note_text.encode())).decode())
 
-unknown_signer_line = "— unknown-signer.example %s\n" % base64.b64encode(
-    note_key_id("unknown-signer.example", raw_public(priv5))
-    + priv5.sign(note_text_only(checkpoint2).encode())).decode()
+def with_root_line(value: str) -> str:
+    lines = list(_base_lines); lines[2] = value
+    return signed_note("\n".join(lines) + "\n")
+
+def broken_signature(checkpoint_text: str) -> str:
+    """The same Checkpoint with the last octet of its Log signature flipped:
+    a signature line naming a known key that does not verify (WIST-3 §5)."""
+    text, block = checkpoint_text.split("\n\n", 1)
+    prefix = "— %s " % LOG_ID
+    assert block.startswith(prefix), "the Log's signature is not the first line"
+    blob = bytearray(base64.b64decode(block[len(prefix):].strip()))
+    blob[-1] ^= 0xFF
+    return text + "\n\n" + prefix + base64.b64encode(bytes(blob)).decode() + "\n"
+
+def unknown_signature_line(name: str, checkpoint_text: str) -> str:
+    """A signature line over a Checkpoint's note text under a key no roster
+    in this file knows, in the [signed-note] form WIST-3 §5 fixes."""
+    return "— %s %s\n" % (name, base64.b64encode(
+        note_key_id(name, raw_public(priv5))
+        + priv5.sign(note_text_only(checkpoint_text).encode())).decode())
+
+_sig_fails_block = broken_signature(epoch["checkpoint"]).split("\n\n", 1)[1]
+
+unknown_signer_line = unknown_signature_line("unknown-signer.example", checkpoint2)
 outsider_cosignature_line = cosignature_line("witness-outsider.example", witness_outsider, checkpoint2, WITNESS_T)
+
+# §5's four parse points: the root hash line is the base64 of exactly 32
+# octets and re-encodes to itself, every signature line ends in a newline,
+# a key name is non-empty and free of Unicode space and `+`, and a note
+# carries at most 16 signature lines.
+B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+_root_line = _base_lines[2]
+_root_tail = B64_ALPHABET.index(_root_line[42])
+assert _root_tail % 4 == 0, "a 32-octet root's last base64 character carries two unused bits"
+_root_trailing_bits = _root_line[:42] + B64_ALPHABET[_root_tail + 1] + "="
+assert base64.b64decode(_root_trailing_bits) == root_bytes
+assert base64.b64encode(root_bytes).decode() != _root_trailing_bits
+_root_unpadded = _root_line.rstrip("=")
+assert len(_root_unpadded) == 43
+
+_unknown_lines = [unknown_signature_line("unknown-signer-%02d.example" % i, checkpoint2)
+                  for i in range(1, 17)]
 
 note_form_cases = [
     {"name": "six-line note text", "checkpoint": _note(_base_lines + ["extra_field 1"]),
@@ -2493,6 +2535,33 @@ note_form_cases = [
      "checkpoint": with_signature_lines(checkpoint2, unknown_signer_line), "expected": "valid"},
     {"name": "cosignature line from a Witness not in the roster",
      "checkpoint": with_signature_lines(checkpoint2, outsider_cosignature_line), "expected": "valid"},
+    {"name": "root hash line decoding to 31 octets",
+     "checkpoint": with_root_line(base64.b64encode(root_bytes[:31]).decode()),
+     "expected": "WIST3-E03"},
+    {"name": "root hash line decoding to 33 octets",
+     "checkpoint": with_root_line(base64.b64encode(root_bytes + root_bytes[:1]).decode()),
+     "expected": "WIST3-E03"},
+    {"name": "root hash line with nonzero trailing bits",
+     "checkpoint": with_root_line(_root_trailing_bits), "expected": "WIST3-E03"},
+    {"name": "root hash line without its base64 padding",
+     "checkpoint": with_root_line(_root_unpadded), "expected": "WIST3-E03"},
+    {"name": "final signature line without its terminating newline",
+     "checkpoint": epoch["checkpoint"][:-1], "expected": "WIST3-E03"},
+    {"name": "signature line whose key name contains a plus",
+     "checkpoint": with_signature_lines(
+         checkpoint2, unknown_signature_line("unknown+signer.example", checkpoint2)),
+     "expected": "WIST3-E03"},
+    {"name": "signature line whose key name carries a no-break space",
+     "checkpoint": with_signature_lines(
+         checkpoint2, unknown_signature_line("unknown signer.example", checkpoint2)),
+     "expected": "WIST3-E03"},
+    {"name": "signature line whose key name is empty",
+     "checkpoint": with_signature_lines(checkpoint2, unknown_signature_line("", checkpoint2)),
+     "expected": "WIST3-E03"},
+    {"name": "note carrying 16 signature lines",
+     "checkpoint": with_signature_lines(checkpoint2, *_unknown_lines[:15]), "expected": "valid"},
+    {"name": "note carrying 17 signature lines",
+     "checkpoint": with_signature_lines(checkpoint2, *_unknown_lines), "expected": "WIST3-E03"},
 ]
 
 consistency_cases = [
@@ -2599,30 +2668,146 @@ quorum_cases = [
      "checkpoint": checkpoint2, "expected": "valid", "unwitnessed": True},
 ]
 
+# WIST-3 §3.1: how the table's rules fail between two consecutive
+# Checkpoints. Epoch 2's Checkpoint is the verified head throughout; each
+# case offers one higher Checkpoint. EPOCH_CADENCE_SECONDS is the grid
+# every `sealed_at` in this file lands on (WIST-4 §5's Registry default).
+EPOCH_CADENCE_SECONDS = 3600
+root2_bytes = merkle_tree_root(leaves2)
+assert nbf_at("2026-08-02T15:00:00Z") % EPOCH_CADENCE_SECONDS == 0
+
+checkpoint3_empty = checkpoint_note(LOG_ID, priv, 7, root2_bytes, 3, "2026-08-02T16:00:00Z")
+checkpoint4_empty = checkpoint_note(LOG_ID, priv, 7, root2_bytes, 4, "2026-08-02T17:00:00Z")
+_seq_sealed_equal = checkpoint_note(LOG_ID, priv, 7, root2_bytes, 3, "2026-08-02T15:00:00Z")
+_seq_sealed_earlier = checkpoint_note(LOG_ID, priv, 7, root2_bytes, 3, "2026-08-02T14:00:00Z")
+_seq_sealed_off_grid = checkpoint_note(LOG_ID, priv, 7, root2_bytes, 3, "2026-08-02T15:30:00Z")
+assert nbf_at("2026-08-02T15:30:00Z") % EPOCH_CADENCE_SECONDS
+
+# A tree size below the head's, once under a root that is not the head
+# tree's prefix root at that size — §5's third Equivocation form — and once
+# under the prefix root itself, where no Consistency Proof is missing.
+_seq_below_entries = [{"type": "publisher_delta", "body": attest_delta(n, synthetic_prior_id(n))}
+                      for n in (305, 306, 307, 308, 309)]
+_seq_below_entries.sort(key=lambda e: leaf_hash(rfc8785.dumps(e)))
+_seq_below_root = merkle_tree_root([leaf_hash(rfc8785.dumps(e)) for e in _seq_below_entries])
+_seq_prefix_root = merkle_tree_root(leaves2[:5])
+assert _seq_below_root != _seq_prefix_root
+_seq_below = checkpoint_note(LOG_ID, priv, 5, _seq_below_root, 3, "2026-08-02T16:00:00Z")
+_seq_below_prefix = checkpoint_note(LOG_ID, priv, 5, _seq_prefix_root, 3, "2026-08-02T16:00:00Z")
+_seq_below_off_grid = checkpoint_note(LOG_ID, priv, 5, _seq_below_root, 3, "2026-08-02T15:30:00Z")
+
+sequence_cases = [
+    {"name": "empty Epoch one cadence after the verified head",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": checkpoint3_empty, "signature_verifies": True,
+     "expected": "valid", "expected_head_epoch_number": 3},
+    {"name": "Checkpoint N+2 offered while Checkpoint N+1 is unobtainable",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": checkpoint4_empty, "unobtainable_epoch_number": 3,
+     "signature_verifies": True, "expected": "WIST3-E01",
+     "expected_head_epoch_number": 2,
+     "note": "WIST-3 §3.1: a gap is never an object a Consumer holds. The "
+             "offered Checkpoint parses and its signature verifies; the "
+             "unobtainable Checkpoint 3 is the WIST3-E01, and nothing of "
+             "Epoch 3 or Epoch 4 is applied."},
+    {"name": "sealed_at equal to the previous Checkpoint's",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": _seq_sealed_equal, "signature_verifies": True,
+     "expected": "WIST3-E03", "expected_head_epoch_number": 2},
+    {"name": "sealed_at equal to the previous Checkpoint's, signature not verifying",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": broken_signature(_seq_sealed_equal), "signature_verifies": False,
+     "expected": "WIST3-E03", "expected_head_epoch_number": 2},
+    {"name": "sealed_at earlier than the previous Checkpoint's",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": _seq_sealed_earlier, "signature_verifies": True,
+     "expected": "WIST3-E03", "expected_head_epoch_number": 2},
+    {"name": "sealed_at off the epoch_cadence_seconds grid",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": _seq_sealed_off_grid, "signature_verifies": True,
+     "expected": "WIST3-E03", "expected_head_epoch_number": 2},
+    {"name": "tree size below the previous Checkpoint's, validly signed",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": _seq_below, "signature_verifies": True,
+     "expected": "WIST3-E02", "expected_head_epoch_number": 2,
+     "evidence": ["verified_checkpoint", "offered_checkpoint", "larger_tree_leaf_hashes"],
+     "larger_tree_leaf_hashes": [h.hex() for h in leaves2]},
+    {"name": "tree size below the previous Checkpoint's under that tree's prefix root, validly signed",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": _seq_below_prefix, "signature_verifies": True,
+     "expected": "WIST3-E03", "expected_head_epoch_number": 2,
+     "larger_tree_leaf_hashes": [h.hex() for h in leaves2],
+     "note": "WIST-3 §3.1: the smaller size alone is WIST3-E03. The offered "
+             "root is the root of Checkpoint 2's tree at size 5, so no "
+             "Consistency Proof between the two is missing and §5's third "
+             "Equivocation form does not apply."},
+    {"name": "tree size below the previous Checkpoint's, signature not verifying",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": broken_signature(_seq_below), "signature_verifies": False,
+     "expected": "WIST3-E03", "expected_head_epoch_number": 2,
+     "larger_tree_leaf_hashes": [h.hex() for h in leaves2]},
+    {"name": "off-grid sealed_at and a tree size below the previous Checkpoint's, validly signed",
+     "verified_head_epoch_number": 2, "verified_checkpoint": checkpoint2,
+     "offered_checkpoint": _seq_below_off_grid, "signature_verifies": True,
+     "expected": "WIST3-E02", "expected_head_epoch_number": 2,
+     "evidence": ["verified_checkpoint", "offered_checkpoint", "larger_tree_leaf_hashes"],
+     "larger_tree_leaf_hashes": [h.hex() for h in leaves2],
+     "note": "WIST-3 §3.1: a Checkpoint failing more than one of these "
+             "rules is WIST3-E02 where the Equivocation form applies. This "
+             "one is off the grid and states a smaller tree under a root "
+             "that is not the prefix root, so the off-grid WIST3-E03 does "
+             "not displace the evidence."},
+]
+
+# WIST-3 §8 steps 4-5: the state file against the manifest, then the
+# manifest against the Checkpoint the manifest's `epoch_number` selects.
 cold_start_cases = [
     {"name": "manifest matches the archived Checkpoint",
      "manifest": {"epoch_number": 2, "tree_size": 7, "root_hash": root_token(leaves2)},
-     "checkpoint": checkpoint2, "expected": "valid"},
+     "state_tree_size": 7, "checkpoint": checkpoint2, "expected": "valid",
+     "expected_head_epoch_number": 2},
+    {"name": "manifest naming an empty Epoch restating the previous tree size and root",
+     "manifest": {"epoch_number": 3, "tree_size": 7, "root_hash": root_token(leaves2)},
+     "state_tree_size": 7, "checkpoint": checkpoint3_empty, "expected": "valid",
+     "expected_head_epoch_number": 3},
     {"name": "manifest tree_size does not match",
      "manifest": {"epoch_number": 2, "tree_size": 4, "root_hash": root_token(leaves2)},
-     "checkpoint": checkpoint2, "expected": "WIST3-E02"},
+     "state_tree_size": 4, "checkpoint": checkpoint2, "expected": "WIST3-E02",
+     "expected_head_epoch_number": None},
     {"name": "manifest root_hash does not match",
      "manifest": {"epoch_number": 2, "tree_size": 7, "root_hash": root_token(leaves)},
-     "checkpoint": checkpoint2, "expected": "WIST3-E02"},
+     "state_tree_size": 7, "checkpoint": checkpoint2, "expected": "WIST3-E02",
+     "expected_head_epoch_number": None},
+    {"name": "archive file at the manifest's path stating another epoch_number",
+     "manifest": {"epoch_number": 2, "tree_size": 7, "root_hash": root_token(leaves2)},
+     "state_tree_size": 7, "checkpoint": epoch_1_checkpoint, "expected": "WIST3-E03",
+     "expected_head_epoch_number": None,
+     "note": "WIST-3 §8 step 5: the manifest's epoch_number selects the "
+             "Checkpoint and is never itself compared for divergence. The "
+             "file served here states another epoch_number, and with it "
+             "another tree size and root; the disposition is the source "
+             "fault WIST3-E03 and a re-fetch, never WIST3-E02."},
+    {"name": "state file tree_size differing from the manifest's",
+     "manifest": {"epoch_number": 2, "tree_size": 7, "root_hash": root_token(leaves2)},
+     "state_tree_size": 4, "checkpoint": checkpoint2, "expected": "WIST3-E04",
+     "expected_head_epoch_number": None},
 ]
 
 write_json(WIST3 / "checkpoints.json", {
-    "note": "WIST-3 §§4-6, 8-10: Checkpoint note form, Consistency Proofs, "
-            "rollback, the three Equivocation forms, the archive path rule, "
+    "note": "WIST-3 §§3.1, 4-6, 8-10: Checkpoint note form, the §3.1 "
+            "sequence failures, Consistency Proofs, rollback, the three "
+            "Equivocation forms, the archive path rule, "
             "Witness quorum (WIST-4 §5 checkpoint_witness_quorum), the "
             "§4 size-0 root comparison, and the "
-            "§8 step 5 Snapshot cold-start match, over one cumulative tree "
+            "§8 steps 4-5 Snapshot cold-start match, over one cumulative tree "
             "of 7 leaves (Epoch 0 of vectors/wist3/epoch.json, the empty "
             "Epoch 1 of empty-epoch.json, and Epoch 2 below). Each case list "
-            "judges its own candidates: note_form_cases, size_zero_cases and "
+            "judges its own candidates: note_form_cases, sequence_cases, "
+            "cold_start_cases, size_zero_cases and "
             "equivocation_cases deliberately carry Checkpoints that "
-            "contradict the epochs above them.",
+            "contradict, or continue past, the epochs above them.",
     "log_id": LOG_ID,
+    "epoch_cadence_seconds": EPOCH_CADENCE_SECONDS,
     "epochs": [
         {"epoch_number": 0, "checkpoint": epoch["checkpoint"], "entries": entries,
          "leaf_hashes": [h.hex() for h in leaves]},
@@ -2632,6 +2817,7 @@ write_json(WIST3 / "checkpoints.json", {
          "leaf_hashes": [h.hex() for h in leaves2]},
     ],
     "note_form_cases": note_form_cases,
+    "sequence_cases": sequence_cases,
     "consistency_cases": consistency_cases,
     "rollback_cases": rollback_cases,
     "equivocation_cases": equivocation_cases,
@@ -4649,12 +4835,86 @@ ENTRY_JCS_BOUND_BYTES = 65535
 entry_at_bound = padded_entry(ENTRY_JCS_BOUND_BYTES)
 entry_over_bound = padded_entry(ENTRY_JCS_BOUND_BYTES + 1)
 
+# WIST-3 §6: the forms that already exclude reproducing a Checkpoint's
+# root, so `valid` here means only that the form admits recomputation —
+# which root a tile or bundle reproduces is the separate check §4 fixes.
+def form_entry(index: int) -> bytes:
+    """One synthetic Entry's leaf data for the form cases below: all of one
+    length, so a bundle's octet count is its Entry count times a constant."""
+    return rfc8785.dumps({"type": "publisher_delta", "body": {"pad": "%04d" % index}})
+
+def form_bundle(count: int, start: int = 0) -> bytes:
+    return entry_bundle_bytes([form_entry(i) for i in range(start, start + count)])
+
+FULL_TILE_PATH = tile_path(0, 0)
+PARTIAL_TILE_PATH = tile_path(0, 1, 44)
+FULL_BUNDLE_PATH = tile_path("entries", 0)
+PARTIAL_BUNDLE_PATH = tile_path("entries", 1, 44)
+
+tile_form_cases = [
+    {"name": "full-tile path holding 256 hashes", "path": FULL_TILE_PATH,
+     "octets_hex": filler_octets(256 * 32).hex(), "expected": "valid"},
+    {"name": "partial path holding the 44 hashes its width states", "path": PARTIAL_TILE_PATH,
+     "octets_hex": filler_octets(44 * 32).hex(), "expected": "valid"},
+    {"name": "empty tile", "path": FULL_TILE_PATH, "octets_hex": "", "expected": "WIST3-E03"},
+    {"name": "tile length not a multiple of 32 octets", "path": PARTIAL_TILE_PATH,
+     "octets_hex": filler_octets(44 * 32 - 1).hex(), "expected": "WIST3-E03"},
+    {"name": "full-tile path holding 255 hashes", "path": FULL_TILE_PATH,
+     "octets_hex": filler_octets(255 * 32).hex(), "expected": "WIST3-E03"},
+    {"name": "partial path .p/44 holding 43 hashes", "path": PARTIAL_TILE_PATH,
+     "octets_hex": filler_octets(43 * 32).hex(), "expected": "WIST3-E03"},
+    {"name": "partial path .p/0, one hash", "path": tile_path(0, 1) + ".p/0",
+     "octets_hex": filler_octets(32).hex(), "expected": "WIST3-E03",
+     "note": "Every tile at a .p/0 path is WIST3-E03: the width is outside 1 "
+             "through 255, and no octets isolate that from the other rules — "
+             "an empty file is rejected as empty and any other holds a "
+             "number of hashes the path does not state. The case fixes the "
+             "disposition rather than discriminating the width rule."},
+    {"name": "partial path .p/256, 256 hashes", "path": tile_path(0, 1) + ".p/256",
+     "octets_hex": filler_octets(256 * 32).hex(), "expected": "WIST3-E03",
+     "note": "The octets are exactly what a full tile holds, so the path's "
+             "width being outside 1 through 255 is the only ground for "
+             "rejection."},
+]
+
+bundle_form_cases = [
+    {"name": "full bundle path holding 256 Entries", "path": FULL_BUNDLE_PATH,
+     "octets_hex": form_bundle(256).hex(), "expected": "valid"},
+    {"name": "partial path holding the 44 Entries its width states", "path": PARTIAL_BUNDLE_PATH,
+     "octets_hex": form_bundle(44).hex(), "expected": "valid"},
+    {"name": "length prefix cut short at the 44th Entry", "path": PARTIAL_BUNDLE_PATH,
+     "octets_hex": (form_bundle(43) + b"\x00").hex(), "expected": "WIST3-E03"},
+    {"name": "leaf data cut short at the 44th Entry", "path": PARTIAL_BUNDLE_PATH,
+     "octets_hex": (form_bundle(43) + len(form_entry(43)).to_bytes(2, "big")
+                    + form_entry(43)[:8]).hex(), "expected": "WIST3-E03"},
+    {"name": "one octet after the 44th Entry", "path": PARTIAL_BUNDLE_PATH,
+     "octets_hex": (form_bundle(44) + b"\x00").hex(), "expected": "WIST3-E03"},
+    {"name": "full bundle path holding 257 Entries", "path": FULL_BUNDLE_PATH,
+     "octets_hex": form_bundle(257).hex(), "expected": "WIST3-E03"},
+    {"name": "partial path .p/44 holding 43 Entries", "path": PARTIAL_BUNDLE_PATH,
+     "octets_hex": form_bundle(43).hex(), "expected": "WIST3-E03"},
+]
+
+epoch_range_cases = [
+    {"name": "Epoch Entries filling the leaf range", "size_previous": 4, "size": 7,
+     "entry_leaf_indexes": [4, 5, 6], "expected": "valid"},
+    {"name": "Epoch Entries short of the leaf range", "size_previous": 4, "size": 7,
+     "entry_leaf_indexes": [4, 5], "expected": "WIST3-E03"},
+    {"name": "Epoch Entries reaching past the leaf range", "size_previous": 4, "size": 7,
+     "entry_leaf_indexes": [4, 5, 7], "expected": "WIST3-E03"},
+]
+
 write_json(ROOT / "vectors/wist3/tile-bounds.json", {
-    "note": "WIST-3 §6 static-file octet bounds and §3.3's per-Entry bound. A Consumer stops "
+    "note": "WIST-3 §6 static-file octet bounds, the malformed forms §6 excludes, and §3.3's "
+            "per-Entry bound. A Consumer stops "
             "reading a response before buffering bytes past a bound; equality with a bound is "
             "permitted, and every excess is WIST3-E03. The entry bundle case states its bound "
             "and declared size arithmetically, per §6's 'sum over the Epoch's Entries of each "
-            "JCS length plus two' formula, rather than embedding 16 777 472 literal octets.",
+            "JCS length plus two' formula, rather than embedding 16 777 472 literal octets. In "
+            "tile_form_cases, bundle_form_cases and epoch_range_cases, 'valid' says only that "
+            "the form admits recomputation against a Checkpoint's root, which §4's separate "
+            "check decides; the Entries there are synthetic leaf data of one length, and no "
+            "Checkpoint in this suite states a root over them.",
     "tile": {
         "bound_bytes": TILE_BOUND_BYTES,
         "at_bound_hex": filler_octets(TILE_BOUND_BYTES).hex(), "at_bound_expected": "valid",
@@ -4670,6 +4930,11 @@ write_json(ROOT / "vectors/wist3/tile-bounds.json", {
         "at_bound_entry": entry_at_bound, "at_bound_expected": "valid",
         "over_bound_entry": entry_over_bound, "over_bound_expected": "WIST3-E03",
     },
+    "tile_hash_octets": 32,
+    "full_tile_hashes": 256,
+    "tile_form_cases": tile_form_cases,
+    "bundle_form_cases": bundle_form_cases,
+    "epoch_range_cases": epoch_range_cases,
 })
 
 def unix_seconds(ts: str) -> int:

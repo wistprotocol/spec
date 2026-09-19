@@ -68,17 +68,35 @@ def note_key_id(name: str, raw_pub: bytes) -> bytes:
     return hashlib.sha256(name.encode() + b"\x0a\x01" + raw_pub).digest()[:4]
 
 
+CHECKPOINT_SIGNATURE_LINES_MAX = 16
+
+# The Unicode White_Space property (WIST-3 §5), enumerated rather than read
+# from the interpreter's character tables, which follow whichever Unicode
+# version the interpreter ships.
+UNICODE_WHITE_SPACE = frozenset(
+    "\t\n\v\f\r \x85\xa0     　"
+    + "".join(chr(c) for c in range(0x2000, 0x200B)))
+
+
 def parse_checkpoint(text: str) -> dict:
     """Parse a Checkpoint note per WIST-3 §5 / [signed-note] / [tlog-checkpoint],
     independently of gen_vectors.py's signing helper. Raises ValueError
-    ("WIST3-E03: ...") on any structural defect. A signature line's blob
-    need only decode to at least a 4-octet key ID plus a signature: §5
-    "ignores every other signature line as [signed-note] requires", so the
-    68-octet Aggregator shape (and the 76-octet Witness cosignature shape)
-    are enforced only for a line naming a known key, in `verify_checkpoint`.
-    Does not authenticate a signature — see `verify_checkpoint`."""
+    ("WIST3-E03: ...") on any structural defect. §5 fixes four points the
+    two formats leave open: the root hash line is the base64 of exactly 32
+    octets and re-encodes to itself, every signature line — the last
+    included — ends in a newline, a key name is non-empty and carries no
+    plus and no character with the Unicode White_Space property, and a note
+    carries at most 16 signature
+    lines. A signature line's blob need only decode to at least a 4-octet
+    key ID plus a signature: §5 "ignores every other signature line as
+    [signed-note] requires", so the 68-octet Aggregator shape (and the
+    76-octet Witness cosignature shape) are enforced only for a line naming
+    a known key, in `verify_checkpoint`. Does not authenticate a signature —
+    see `verify_checkpoint`."""
     if "\n\n" not in text:
         raise ValueError("WIST3-E03: no blank line between note text and signatures")
+    if not text.endswith("\n"):
+        raise ValueError("WIST3-E03: the last signature line does not end in a newline")
     header, sigblock = text.split("\n\n", 1)
     lines = header.split("\n")
     if len(lines) != 5:
@@ -93,6 +111,8 @@ def parse_checkpoint(text: str) -> dict:
         raise ValueError(f"WIST3-E03: root hash does not parse as base64: {e}")
     if base64.b64encode(root).decode() != root_line:
         raise ValueError("WIST3-E03: root hash is not canonical base64")
+    if len(root) != 32:
+        raise ValueError(f"WIST3-E03: root hash decodes to {len(root)} octets, not 32")
     m = re.fullmatch(r"epoch_number (0|[1-9][0-9]*)", bn_line)
     if not m:
         raise ValueError("WIST3-E03: malformed epoch_number line")
@@ -107,6 +127,10 @@ def parse_checkpoint(text: str) -> dict:
         sig_lines.pop()
     if not sig_lines:
         raise ValueError("WIST3-E03: no signature line")
+    if len(sig_lines) > CHECKPOINT_SIGNATURE_LINES_MAX:
+        raise ValueError(
+            f"WIST3-E03: note carries {len(sig_lines)} signature lines, over the "
+            f"{CHECKPOINT_SIGNATURE_LINES_MAX} §5 admits")
     signatures = []
     for line in sig_lines:
         if not line.startswith("— "):
@@ -115,6 +139,11 @@ def parse_checkpoint(text: str) -> dict:
         if " " not in rest:
             raise ValueError("WIST3-E03: malformed signature line")
         name, sig_b64 = rest.rsplit(" ", 1)
+        if not name:
+            raise ValueError("WIST3-E03: signature line with an empty key name")
+        if "+" in name or any(ch in UNICODE_WHITE_SPACE for ch in name):
+            raise ValueError(
+                "WIST3-E03: key name carries a plus or a White_Space character")
         try:
             blob = base64.b64decode(sig_b64, validate=True)
         except Exception as e:
@@ -2303,6 +2332,8 @@ NON_CONTENT_VALUES = {
     ("vectors/wist3/checkpoints.json", "n_root"): "root over Entries, which carry commitments only",
     ("vectors/wist3/checkpoints.json", "path"): "Merkle sibling hashes over Entries",
     ("vectors/wist3/checkpoints.json", "leaf_hashes_2"): "leaf hashes over Entries, which carry commitments only",
+    ("vectors/wist3/checkpoints.json", "larger_tree_leaf_hashes"): "leaf hashes over Entries, which carry commitments only",
+    ("vectors/wist3/tile-bounds.json", "octets_hex"): "the octets a tile or entry bundle is served as, carrying no page content",
     ("vectors/wist3/checkpoints.json", "witness-a.example"): "an Ed25519 public key",
     ("vectors/wist3/checkpoints.json", "witness-b.example"): "an Ed25519 public key",
     ("vectors/wist3/checkpoints.json", "root_hash"): "root over Entries, which carry commitments only",
@@ -2911,6 +2942,65 @@ def _wist3_checkpoints():
                 result = "WIST3-E02"
         assert result == case["expected"], case["name"]
 
+    # WIST-3 §3.1's sequence failures. A Checkpoint stating a tree size
+    # below the head's has no Entries to walk, so the key set valid at N is
+    # the one valid at N-1; it is §5's third Equivocation form only when its
+    # signature verifies under that set and its root is not the head tree's
+    # root at the smaller size. Equivocation decides a Checkpoint failing
+    # more than one rule; every other failure, alone or combined, is
+    # `WIST3-E03`, and `WIST3-E01` is the unobtainable Checkpoint below an
+    # offered one that breaks no rule itself.
+    cadence = v["epoch_cadence_seconds"]
+    for case in v["sequence_cases"]:
+        held = verify_checkpoint(case["verified_checkpoint"], log_id, keys)
+        assert held["epoch_number"] == case["verified_head_epoch_number"], case["name"]
+        try:
+            offered = verify_checkpoint(case["offered_checkpoint"], log_id, keys)
+            signed = True
+        except ValueError as e:
+            assert "WIST3-E03" in str(e), f"{case['name']}: wrong code: {e}"
+            offered = parse_checkpoint(case["offered_checkpoint"])
+            signed = False
+        assert signed == case["signature_verifies"], case["name"]
+        assert offered["epoch_number"] > held["epoch_number"], case["name"]
+        sealed = log_seconds(offered["sealed_at"])
+        below = offered["tree_size"] < held["tree_size"]
+        assert ("larger_tree_leaf_hashes" in case) == below, case["name"]
+        equivocates = False
+        if below:
+            larger = [bytes.fromhex(h) for h in case["larger_tree_leaf_hashes"]]
+            assert merkle_root(larger) == held["root"], \
+                f"{case['name']}: the stated hashes do not reproduce the larger tree's root"
+            equivocates = signed and merkle_root(larger[:offered["tree_size"]]) != offered["root"]
+        if equivocates:
+            result = "WIST3-E02"
+        elif below or not signed or sealed <= log_seconds(held["sealed_at"]) or sealed % cadence:
+            result = "WIST3-E03"
+        elif "unobtainable_epoch_number" in case:
+            result = "WIST3-E01"
+        else:
+            result = "valid"
+        if "unobtainable_epoch_number" in case:
+            assert held["epoch_number"] < case["unobtainable_epoch_number"] < \
+                offered["epoch_number"], case["name"]
+        assert result == case["expected"], f"{case['name']}: got {result}"
+        head = offered["epoch_number"] if result == "valid" else held["epoch_number"]
+        assert head == case["expected_head_epoch_number"], case["name"]
+        assert ("evidence" in case) == (result == "WIST3-E02"), case["name"]
+        if result == "WIST3-E02":
+            assert case["evidence"] == ["verified_checkpoint", "offered_checkpoint",
+                                        "larger_tree_leaf_hashes"], case["name"]
+    assert {c["expected"] for c in v["sequence_cases"]} == \
+        {"valid", "WIST3-E01", "WIST3-E02", "WIST3-E03"}, \
+        "the sequence cases must exercise acceptance and all three codes"
+    combined = next(c for c in v["sequence_cases"]
+                    if c["name"].startswith("off-grid sealed_at and a tree size below"))
+    combined_cp = verify_checkpoint(combined["offered_checkpoint"], log_id, keys)
+    assert log_seconds(combined_cp["sealed_at"]) % cadence \
+        and combined_cp["tree_size"] < held["tree_size"] \
+        and combined["expected"] == "WIST3-E02", \
+        "the multi-failure case must break the grid rule and the size rule and still be E02"
+
     for case in v["equivocation_cases"]:
         cp1 = verify_checkpoint(case["checkpoint_1"], log_id, keys)
         cp2 = verify_checkpoint(case["checkpoint_2"], log_id, keys)
@@ -2948,13 +3038,34 @@ def _wist3_checkpoints():
         if "unwitnessed" in case:
             assert (len(cp["cosigners"]) == 0) == case["unwitnessed"], case["name"]
 
+    # WIST-3 §8 steps 4-5: the state artifact's `tree_size` against the
+    # manifest's first (`WIST3-E04`), then the Checkpoint the manifest's
+    # `epoch_number` selects. A file at that path stating another
+    # `epoch_number` is the source's fault (`WIST3-E03`) and never
+    # divergence, whatever else it states.
     for case in v["cold_start_cases"]:
-        cp = verify_checkpoint(case["checkpoint"], log_id, keys)
         m = case["manifest"]
-        matches = (m["tree_size"] == cp["tree_size"]
-                  and m["root_hash"] == "sha256:" + cp["root"].hex())
-        result = "valid" if matches else "WIST3-E02"
-        assert result == case["expected"], case["name"]
+        cp = verify_checkpoint(case["checkpoint"], log_id, keys)
+        if case["state_tree_size"] != m["tree_size"]:
+            result = "WIST3-E04"
+        elif cp["epoch_number"] != m["epoch_number"]:
+            result = "WIST3-E03"
+        elif (m["tree_size"] != cp["tree_size"]
+              or m["root_hash"] != "sha256:" + cp["root"].hex()):
+            result = "WIST3-E02"
+        else:
+            result = "valid"
+        assert result == case["expected"], f"{case['name']}: got {result}"
+        head = m["epoch_number"] if result == "valid" else None
+        assert head == case["expected_head_epoch_number"], case["name"]
+    assert {c["expected"] for c in v["cold_start_cases"]} == \
+        {"valid", "WIST3-E02", "WIST3-E03", "WIST3-E04"}, \
+        "the cold-start cases must exercise acceptance, divergence, a source fault and E04"
+    off_path = next(c for c in v["cold_start_cases"] if c["expected"] == "WIST3-E03")
+    off_cp = verify_checkpoint(off_path["checkpoint"], log_id, keys)
+    assert off_cp["tree_size"] != off_path["manifest"]["tree_size"], \
+        "the source-fault case must also disagree on tree size, or it does not " \
+        "separate WIST3-E03 from WIST3-E02"
 
     # WIST-3 §4, §5: a validly signed Checkpoint stating tree size 0 is judged
     # by the Consistency Proof from the empty tree to itself, which compares
@@ -2970,6 +3081,28 @@ def _wist3_checkpoints():
         assert result == case["expected"], case["name"]
     assert {c["expected"] for c in v["size_zero_cases"]} == {"valid", "WIST3-E02"}, \
         "the size-0 cases must exercise both outcomes"
+
+    prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    for marker in (
+            "The root hash line is the RFC 4648 §4 base64 encoding, padding "
+            "included, of exactly 32 octets, and re-encoding the decoded octets "
+            "reproduces the line.",
+            "Every signature line, the last included, ends in a newline (U+000A).",
+            "a key name that is non-empty and contains no plus (U+002B) and no "
+            "character with the Unicode White_Space property",
+            "A note carries at most 16 signature lines: a Consumer MUST accept 16 "
+            "and MUST reject 17 or more",
+            "or is off the grid, is `WIST3-E03`, whether or not its signature verifies",
+            "unless its signature verifies under that set and its root is not the "
+            "root of Checkpoint N−1's tree at the smaller size: that is §5's third "
+            "form of Equivocation (`WIST3-E02`)",
+            "A Checkpoint failing more than one of these rules is `WIST3-E02` when "
+            "that form applies and `WIST3-E03` otherwise.",
+            "an archived Checkpoint no source serves is `WIST3-E01`",
+            "The manifest's `epoch_number` selects the Checkpoint and is never "
+            "itself compared for divergence",
+            "a state file whose `tree_size` is not the manifest's"):
+        assert marker in prose, f"WIST-3 does not state: {marker!r}"
 check("vectors:wist3-checkpoints", _wist3_checkpoints)
 
 def _wist3_checkpoints_twin():
@@ -3010,6 +3143,42 @@ def _wist3_checkpoints_twin():
     cp = verify_checkpoint(diverging["checkpoint"], log_id, keys)
     assert cp["root"] != hashlib.sha256(b"").digest(), "the case states the empty-tree root"
     verify_consistency(0, 0, hashlib.sha256(b"").digest(), hashlib.sha256(b"").digest(), [])
+
+    # The §3.1 sequence rejections are not signature failures and not each
+    # other: the off-grid and tree-size-below Checkpoints verify as objects,
+    # and the accepted control breaks under each rule in turn.
+    cadence = v["epoch_cadence_seconds"]
+    for name in ("sealed_at off the epoch_cadence_seconds grid",
+                 "tree size below the previous Checkpoint's, validly signed"):
+        case = next(c for c in v["sequence_cases"] if c["name"] == name)
+        verify_checkpoint(case["offered_checkpoint"], log_id, keys)
+    control = next(c for c in v["sequence_cases"] if c["expected"] == "valid")
+    held = verify_checkpoint(control["verified_checkpoint"], log_id, keys)
+    offered = verify_checkpoint(control["offered_checkpoint"], log_id, keys)
+    assert log_seconds(offered["sealed_at"]) % cadence == 0 \
+        and log_seconds(offered["sealed_at"]) > log_seconds(held["sealed_at"]) \
+        and offered["tree_size"] >= held["tree_size"] \
+        and offered["epoch_number"] == held["epoch_number"] + 1, \
+        "the accepted control does not satisfy every §3.1 sequence rule"
+    for broken in v["sequence_cases"]:
+        if broken["expected"] == "valid":
+            continue
+        assert broken["offered_checkpoint"] != control["offered_checkpoint"], \
+            f"{broken['name']}: the rejected candidate is the accepted control"
+
+    # A note one signature line over the limit is rejected for that line
+    # alone: the same note without it is accepted.
+    sixteen = next(c for c in v["note_form_cases"] if c["name"] == "note carrying 16 signature lines")
+    seventeen = next(c for c in v["note_form_cases"] if c["name"] == "note carrying 17 signature lines")
+    parse_checkpoint(sixteen["checkpoint"])
+    assert seventeen["checkpoint"].startswith(sixteen["checkpoint"]), \
+        "the 17-line note is not the 16-line note plus one line"
+    try:
+        parse_checkpoint(seventeen["checkpoint"])
+    except ValueError as e:
+        assert "WIST3-E03" in str(e)
+    else:
+        raise AssertionError("a 17-line note parsed")
 check("negative:wist3-checkpoints", _wist3_checkpoints_twin)
 
 def _keyset_vector():
@@ -5463,6 +5632,146 @@ def _single_discovery_channel():
     assert "(DNS TXT fallback)" not in adr, \
         "ADR-0002 still lists the fallback as part of the accepted decision"
 check("spec:single-discovery-channel", _single_discovery_channel)
+
+
+def tile_path_width(path: str) -> int:
+    """The number of hashes or Entries a [tlog-tiles] path states (WIST-3
+    §6): `W` for `.p/<W>`, `W` being 1 through 255, and 256 for a full tile
+    or bundle. A path stating a width outside that range states no width a
+    file can hold, so anything served at it is `WIST3-E03`."""
+    m = re.fullmatch(
+        r"/tile/(?:entries|[0-9]+)/(?:x[0-9]{3}/)*[0-9]{3}(?:\.p/(0|[1-9][0-9]{0,2}))?", path)
+    if not m:
+        raise ValueError(f"not a [tlog-tiles] path: {path}")
+    if m.group(1) is None:
+        return 256
+    width = int(m.group(1))
+    if not 1 <= width <= 255:
+        raise ValueError(f"WIST3-E03: partial width {width} is outside 1 through 255")
+    return width
+
+
+def parse_tile(octets: bytes, width: int) -> list:
+    """WIST-3 §6 / [tlog-tiles]: a tile's hashes, 32 octets each, as many as
+    the path states. Raises ValueError ("WIST3-E03: ...") on a form §6
+    excludes from reproducing any root. Implemented independently of
+    merkle.tile_bytes, which only builds one."""
+    if not octets:
+        raise ValueError("WIST3-E03: empty tile")
+    if len(octets) % 32:
+        raise ValueError("WIST3-E03: tile length is not a multiple of 32 octets")
+    hashes = [octets[i:i + 32] for i in range(0, len(octets), 32)]
+    if len(hashes) != width:
+        raise ValueError(
+            f"WIST3-E03: tile holds {len(hashes)} hashes, not the {width} its path states")
+    return hashes
+
+
+def parse_entry_bundle(octets: bytes, count: int) -> list:
+    """WIST-3 §6 / [tlog-tiles]: an entry bundle's leaf data — each Entry's
+    JCS serialization behind its big-endian uint16 length — as many Entries
+    as the path states, and no octet after the last. Raises ValueError
+    ("WIST3-E03: ...") otherwise. Implemented independently of
+    merkle.entry_bundle_bytes, which only builds one."""
+    entries = []
+    pos = 0
+    while len(entries) < count:
+        if pos + 2 > len(octets):
+            raise ValueError("WIST3-E03: entry bundle ends inside a length prefix")
+        length = int.from_bytes(octets[pos:pos + 2], "big")
+        pos += 2
+        if pos + length > len(octets):
+            raise ValueError("WIST3-E03: entry bundle ends inside leaf data")
+        entries.append(octets[pos:pos + length])
+        pos += length
+    if pos != len(octets):
+        raise ValueError("WIST3-E03: octets after the bundle's last Entry")
+    return entries
+
+
+def _tile_form_vectors():
+    """WIST-3 §6: the tile, entry-bundle and Epoch-leaf-range forms that
+    already exclude reproducing the root a Checkpoint states, each
+    `WIST3-E03`, beside the forms that admit it."""
+    vector = json.loads((ROOT / "vectors/wist3/tile-bounds.json").read_text())
+    assert vector["tile_hash_octets"] == 32 and vector["full_tile_hashes"] == 256
+
+    for case in vector["tile_form_cases"]:
+        try:
+            width = tile_path_width(case["path"])
+            hashes = parse_tile(bytes.fromhex(case["octets_hex"]), width)
+            assert len(hashes) == width, case["name"]
+            result = "valid"
+        except ValueError as e:
+            assert "WIST3-E03" in str(e), f"{case['name']}: wrong code: {e}"
+            result = "WIST3-E03"
+        assert result == case["expected"], f"{case['name']}: got {result}"
+
+    for case in vector["bundle_form_cases"]:
+        octets = bytes.fromhex(case["octets_hex"])
+        try:
+            count = tile_path_width(case["path"])
+            entries = parse_entry_bundle(octets, count)
+            assert len(entries) == count, case["name"]
+            for data in entries:
+                assert len(data) <= 65535, f"{case['name']}: leaf data over §3.3's bound"
+                json.loads(data)
+            result = "valid"
+        except ValueError as e:
+            assert "WIST3-E03" in str(e), f"{case['name']}: wrong code: {e}"
+            result = "WIST3-E03"
+        assert result == case["expected"], f"{case['name']}: got {result}"
+
+    for case in vector["epoch_range_cases"]:
+        wanted = list(range(case["size_previous"], case["size"]))
+        result = "valid" if case["entry_leaf_indexes"] == wanted else "WIST3-E03"
+        assert result == case["expected"], f"{case['name']}: got {result}"
+
+    for family in ("tile_form_cases", "bundle_form_cases", "epoch_range_cases"):
+        assert {c["expected"] for c in vector[family]} == {"valid", "WIST3-E03"}, \
+            f"{family} must exercise both outcomes"
+
+    prose = re.sub(r"\s+", " ",
+                   (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
+    for marker in (
+            "a tile that is empty, whose length is not a multiple of 32 octets, "
+            "or that holds a number of hashes other than the one its path states "
+            "— 256 for a full tile, `W` for `.p/<W>`, `W` being 1 through 255",
+            "an entry bundle whose last length prefix or leaf data is cut short, "
+            "that carries octets after its last Entry, or that holds a number of "
+            "Entries other than the one its path states",
+            "an Epoch's Entries that do not fill the leaf range `size(N-1)` "
+            "through `size(N) - 1`"):
+        assert marker in prose, f"WIST-3 §6 does not state: {marker!r}"
+check("vectors:wist3-tile-forms", _tile_form_vectors)
+
+
+def _tile_form_twin():
+    """The form parsers are not blind: an accepted tile loses one octet and
+    an accepted bundle gains one, and each is then rejected at the width its
+    path states."""
+    vector = json.loads((ROOT / "vectors/wist3/tile-bounds.json").read_text())
+    tile = next(c for c in vector["tile_form_cases"] if c["expected"] == "valid")
+    octets = bytes.fromhex(tile["octets_hex"])
+    parse_tile(octets, tile_path_width(tile["path"]))
+    for mutated in (octets[:-1], octets[:-32]):
+        try:
+            parse_tile(mutated, tile_path_width(tile["path"]))
+        except ValueError:
+            continue
+        raise AssertionError("a mutated tile still parsed")
+
+    bundle = next(c for c in vector["bundle_form_cases"] if c["expected"] == "valid")
+    octets = bytes.fromhex(bundle["octets_hex"])
+    count = tile_path_width(bundle["path"])
+    parse_entry_bundle(octets, count)
+    for mutated, at in ((octets + b"\x00", count), (octets, count + 1), (octets, count - 1)):
+        try:
+            parse_entry_bundle(mutated, at)
+        except ValueError:
+            continue
+        raise AssertionError("a mutated entry bundle still parsed")
+check("negative:wist3-tile-forms", _tile_form_twin)
 
 
 def _tile_bound_vectors():

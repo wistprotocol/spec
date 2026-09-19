@@ -139,6 +139,25 @@ rather than an operator's choice. The first Epoch after a `parameter_change` to
 `epoch_cadence_seconds` takes effect lands on the new grid; the Anchor's
 own `created_at` is not an Epoch and is unconstrained.
 
+The table's rules fail as follows. A gap is never an object a Consumer
+holds: it verifies Checkpoints in `epoch_number` order (§5), so it
+verifies no Checkpoint N+1 and applies nothing of Epoch N+1 before
+Checkpoint N, and an archived Checkpoint no source serves is `WIST3-E01`
+(§6). A Checkpoint N whose `sealed_at` is not later than Checkpoint
+N−1's, or is off the grid, is `WIST3-E03`, whether or not its signature
+verifies. One that verifies under the key set valid at N is misbehavior
+no source repairs: the Log can sign no other Checkpoint N without
+equivocating (§5), so the Consumer keeps its verified head at N−1 and
+the remedy is succession (§3.4). A Checkpoint N stating a tree size
+below Checkpoint N−1's has no Entries to walk, so the key set valid at
+N is the one valid at N−1. It is `WIST3-E03` with the same
+consequences, unless its signature verifies under that set and its
+root is not the root of Checkpoint N−1's tree at the smaller size:
+that is §5's third form of Equivocation (`WIST3-E02`), with Checkpoints
+N−1 and N and the tree hashes of the larger tree as the evidence. A
+Checkpoint failing more than one of these rules is `WIST3-E02` when
+that form applies and `WIST3-E03` otherwise.
+
 An Epoch is identified by its number; what its Checkpoint states about
 the tree is the pair (tree size, root hash), which an empty Epoch shares
 with the Epoch before it (§3.2), and an Epoch has no hash apart from
@@ -582,7 +601,17 @@ origin is not the Anchor's `log_id`, whose line 4 or 5 differs from the
 form above in any octet — a leading zero, a second space, a `sealed_at`
 outside the §3.1 profile — or whose text or signature lines do not
 parse under those formats is not this Log's Checkpoint: it is rejected
-as `WIST3-E03`, and nothing in it is evidence.
+as `WIST3-E03`, and nothing in it is evidence. Four points those formats
+leave to the verifier are fixed here, and a note failing any of them
+does not parse. The root hash line is the RFC 4648 §4 base64 encoding,
+padding included, of exactly 32 octets, and re-encoding the decoded
+octets reproduces the line. Every signature line, the last included,
+ends in a newline (U+000A). Every signature line, under a known key or
+not, is an em dash (U+2014), one space, a key name that is non-empty and
+contains no plus (U+002B) and no character with the Unicode White_Space
+property, one space and a base64 signature [signed-note]. A note carries at most 16 signature lines: a
+Consumer MUST accept 16 and MUST reject 17 or more, and the Aggregator
+MUST NOT publish a Checkpoint carrying more than 16.
 
 **The Log's signature.** A Checkpoint MUST carry at least one signature
 line under an Aggregator key valid at height N in the sense §3.4 gives
@@ -591,8 +620,7 @@ defines; it MAY carry more than one, as during a rotation. A Consumer
 treats as known exactly the Aggregator keys valid at N and the Witness
 keys it trusts, ignores every other signature line as [signed-note]
 requires, and MUST reject the Checkpoint (`WIST3-E03`) when a line
-naming a known key fails to verify; the number of signature lines it
-accepts follows [signed-note]. The signature is checked after the
+naming a known key fails to verify. The signature is checked after the
 Epochs up to N are walked, because the keys that can speak for Epoch N
 are the ones the Log establishes at N: the Consumer parses the note,
 fetches the Entries below `size(N)` it does not hold (§6), verifies
@@ -808,7 +836,16 @@ the tree fixes, byte-identical at every source, and compressed, if at
 all, at the HTTP layer as [tlog-tiles] provides. A Consumer verifies a
 tile or bundle only by recomputation against the root a verified
 Checkpoint states (§3.1, §4); one that does not reproduce it is
-`WIST3-E03`. The Log serves no proof objects (§4). The Aggregator MUST
+`WIST3-E03`. So is one whose form already excludes reproducing it: a
+tile that is empty, whose length is not a multiple of 32 octets, or
+that holds a number of hashes other than the one its path states — 256
+for a full tile, `W` for `.p/<W>`, `W` being 1 through 255
+[tlog-tiles]; an entry bundle whose last length
+prefix or leaf data is cut short, that carries octets after its last
+Entry, or that holds a number of Entries other than the one its path
+states, under the same widths; and an Epoch's Entries that do not fill the leaf range
+`size(N-1)` through `size(N) - 1` (§3.1). The Log serves no proof
+objects (§4). The Aggregator MUST
 serve, for the tree size its head Checkpoint states, the partial tiles
 and the partial entry bundle that size requires, and MAY delete a
 partial tile or bundle once the full one exists [tlog-tiles]; a
@@ -1594,8 +1631,9 @@ above, treats its coverage as partial.
 3. Download the listed files — all of them, or, under a manifest that
    declares `shards` (§7), the state file and any subset of shards —
    and verify each SHA-256 and byte size.
-4. Load the state artifact (§7): verify its signature and its
-   `tree_size`, and adopt its tuples as the protocol state at Epoch
+4. Load the state artifact (§7): verify its signature and that its
+   `tree_size` is the manifest's (`WIST3-E04` otherwise, rejecting the
+   Snapshot), and adopt its tuples as the protocol state at Epoch
    `epoch_number` — key registries, Declarations, parameters, the
    Public Suffix List snapshot in force (whose octets the Consumer
    fetches from `/log/suffix-lists/` and verifies by their identifier
@@ -1618,8 +1656,14 @@ above, treats its coverage as partial.
    it states tree size `tree_size` and the root hash
    `root_hash` carries (§3.1). A mismatch is chain divergence
    (`WIST3-E02`), not a corrupt file: it means the Snapshot describes a
-   different tree from the one the Log signs. This Checkpoint is the
-   Consumer's verified head.
+   different tree from the one the Log signs. The manifest's
+   `epoch_number` selects the Checkpoint and is never itself compared
+   for divergence: a file at that path stating another `epoch_number`
+   is the source's fault (`WIST3-E03`, §6) and is fetched again, from
+   another source if needed. The same dispositions hold wherever a
+   Consumer reads a manifest against a Checkpoint, a catch-up through a
+   Snapshot (below) included. This
+   Checkpoint is the Consumer's verified head.
 6. Fetch `/checkpoint` (SHOULD: from ≥ 2 sources, the monitoring
    endpoint of each trusted Witness among them, §5) and every archived
    Checkpoint between the head and it. A Checkpoint, tile or entry
@@ -1715,8 +1759,8 @@ Logs reconciled, and nothing here extends it to concurrent Logs.
 |---------|--------------------------------------------------------------|
 | WIST3-E01 | A Checkpoint, tile, entry bundle or Public Suffix List snapshot missing at a source (§5, §6). Fetch it from another — a Mirror, the Aggregator or, for a head Checkpoint, a trusted Witness's monitoring endpoint; integrity never depends on the source. A Consumer holding a Checkpoint whose Entries no source serves keeps this code and applies nothing above its verified head (§5). |
 | WIST3-E02 | Chain divergence: a Consistency Proof that fails between two Checkpoints of the Log, or from the empty tree to a Checkpoint stating tree size 0 with a root other than §4's — that one Checkpoint is the whole evidence — two Checkpoints that equivocate under §5, or a Snapshot manifest whose `tree_size` or `root_hash` is not what Checkpoint `epoch_number` states (§7, §8). Hard failure: preserve the Checkpoints — and, for a failed Consistency Proof, the tiles that reproduce the larger root — as an evidence bundle (§5), MUST NOT apply the data. |
-| WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules or sits at an archive path not its own (§6); a tile or entry bundle over its format size or not reproducing the tree its Checkpoint states (§3.1, §6); an Epoch over the size cap (§6, WIST-4 §5) or carrying an Entry over 65 535 octets (§3.3); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; an Epoch the Aggregator sealed over a bound is misbehavior no source repairs. |
-| WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `tree_size`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `tree_size`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
+| WIST3-E03 | Invalid object: a Checkpoint that fails §5's parsing or signature rules, states a `sealed_at` not later than its predecessor's or off the grid (§3.1), or sits at an archive path not its own (§6); a tile or entry bundle over its format size, malformed (§6) or not reproducing the tree its Checkpoint states (§3.1, §6); an Epoch over the size cap (§6, WIST-4 §5) or carrying an Entry over 65 535 octets (§3.3); a suffix-list file whose octets do not hash to its name (§6); or a Payload that does not reproduce its Delta's commitment (WIST-1 §3.6, `WIST1-E10`). Re-download, from another source if needed, before concluding misbehavior; an Epoch the Aggregator sealed over a bound is misbehavior no source repairs. |
+| WIST3-E04 | Snapshot manifest mismatch. Three cases, one code, different responses. A file hash or byte size that disagrees with the manifest, a state file whose `tree_size` is not the manifest's, or a manifest that disagrees with the `/snapshots/index.json` entry that pointed to it (§8): reject the entire Snapshot and re-fetch, from another Mirror if needed. A `content_digest`, `state_digest` or per-shard digest (§7) that disagrees with the Consumer's own rebuild at `tree_size`: not a transport fault and not fixable by re-downloading — the Consumer MUST NOT treat that Snapshot as authoritative, MUST fall back to materializing from the Log and the Payloads, and SHOULD publish both digests with the `tree_size`, since a Snapshot that does not match the Log is a claim the Aggregator cannot support and anyone replaying the Log can check the report. |
 | WIST3-E05 | Payload absent from a Mirror inside the availability window with no `payload_withdrawal` sealed for it (§6.1, §6.2). A fault against that Mirror, never against the Delta: fetch the Payload from another Mirror or from the Publisher (WIST-2 §3.1), and keep applying the Log. A Consumer that sees `WIST3-E05` from every source it tries SHOULD publish that fact, because a Payload absent everywhere with no logged basis is the signature of suppression rather than of erasure. |
 
 A Checkpoint short of the Witness quorum has no code: §5 makes it a
@@ -1824,8 +1868,9 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       size and root)
 - [ ] Publishes a Checkpoint per sealed Epoch at `/checkpoint` and in
       the archive, as the five-line signed note of §5 under a key valid
-      at its height, never before every Entry below its tree size is
-      durably stored and served (§5, §6)
+      at its height, carrying at most 16 signature lines, never before
+      every Entry below its tree size is durably stored and served
+      (§5, §6)
 - [ ] Serves the static layout of §6: the [tlog-tiles] tiles and entry
       bundles at the Service Origin's root, the partial ones its head
       requires, never pruned
@@ -1909,12 +1954,25 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 **Consumer:**
 
 - [ ] Applies the tile and entry-bundle format sizes, the transport
-      bound and the accepted-schedule size checks (§6); rejects leap
+      bound and the accepted-schedule size checks (§6); rejects a tile or
+      entry bundle whose form §6 excludes and an Epoch whose Entries do
+      not fill its leaf range (§3.1, §6); rejects leap
       seconds in Log-comparable timestamps (§3.1, §7)
 - [ ] Verifies every Checkpoint between its head and the one it adopts —
-      parse, Consistency Proof with the size-0 root compared (§4), the
+      parse, including the 32-octet canonical root hash line, every
+      signature line's terminating newline and key-name form and the
+      16-line limit (§5); Consistency Proof with the size-0 root compared (§4), the
       Epoch's leaves against the root, the Log's signature under the keys valid at its height — before
       applying its Epoch (§5, §8)
+- [ ] Applies §3.1's sequence dispositions: `WIST3-E01` and nothing
+      applied where the Checkpoint below an offered one is unobtainable;
+      `WIST3-E03`, whatever the signature does, for a `sealed_at` not
+      later than the previous Checkpoint's or off the grid; and a tree
+      size below the previous Checkpoint's judged under the key set valid
+      at the previous height — `WIST3-E02` only where the signature
+      verifies under it and the root is not that tree's root at the
+      smaller size, `WIST3-E03` otherwise, and `WIST3-E02` for any
+      Checkpoint failing several rules where that form applies
 - [ ] When verifying an Inclusion Proof, derives sibling sides from
       `index` and `tree_size` rather than trusting side labels in the
       proof, and rejects a shape-mismatched `path`, an `index` out of
@@ -1928,9 +1986,12 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
 - [ ] Warns when the newest Checkpoint's `sealed_at` lags the current time
       by more than three sealing cadences (§5, §8)
 - [ ] Verifies manifest hashes/sizes before using a Snapshot, checks the
-      manifest against the `/snapshots/index.json` entry that named it, and
-      binds `epoch_number`, `tree_size` and `root_hash` to the
-      Checkpoint it verified (§8)
+      manifest against the `/snapshots/index.json` entry that named it and
+      the state file's `tree_size` against the manifest's (`WIST3-E04`),
+      and binds `tree_size` and `root_hash` to the
+      Checkpoint the manifest's `epoch_number` selects, re-fetching a file
+      at that path that states another `epoch_number` (`WIST3-E03`) rather
+      than reading it as divergence (§8)
 - [ ] Verifies every Payload against its Delta's commitment and `bytes`
       before materializing its content, and never lets a missing Payload
       stop chain verification (§6.1, §8)
@@ -1968,7 +2029,9 @@ Generated by `tools/gen_vectors.py`; verified by
 `tools/validate_examples.py`. Full files:
 [`vectors/wist3/epoch.json`](../vectors/wist3/epoch.json),
 [`vectors/wist3/inclusion-proof.json`](../vectors/wist3/inclusion-proof.json),
-[`vectors/wist3/aggregator-keys.json`](../vectors/wist3/aggregator-keys.json).
+[`vectors/wist3/aggregator-keys.json`](../vectors/wist3/aggregator-keys.json),
+[`vectors/wist3/checkpoints.json`](../vectors/wist3/checkpoints.json),
+[`vectors/wist3/tile-bounds.json`](../vectors/wist3/tile-bounds.json).
 
 Epoch 0 contains 4 `publisher_delta` Entries: the WIST-1 vector Delta and
 three `attest` Deltas for `post-2..4`, at leaf indexes 0 through 3 of a
@@ -2057,9 +2120,53 @@ the record encoding, not a materialization of Epoch 0.
 corresponding discovery index, carrying the same `snapshot_date`,
 `tree_size` and `content_digest` the manifest declares.
 
+[`vectors/wist3/checkpoints.json`](../vectors/wist3/checkpoints.json)
+extends that tree with Epoch 2 and judges Checkpoints case by case; each
+list carries its own candidates, including ones that contradict the
+Epochs above them. `note_form_cases` covers §5's parse rules: the
+five-line text, a root hash line decoding to 31 or 33 octets and two
+non-canonical encodings of 32, a final signature line without its
+newline, a key name carrying `+`, one carrying U+00A0 and an empty one,
+and a 16-line note
+accepted beside a 17-line note rejected. `sequence_cases` covers §3.1's failures at a
+verified head — Checkpoint N+2 offered while N+1 is unobtainable
+(`WIST3-E01`, the offered note still parsing and verifying), a
+`sealed_at` equal to, earlier than, or off the grid of the previous
+Checkpoint's (`WIST3-E03`, with a signature-failing twin), and a tree
+size below the previous Checkpoint's: `WIST3-E02` where its root is not
+that tree's root at the smaller size and its signature verifies, the
+evidence being both Checkpoints and the larger tree's leaf hashes, and
+`WIST3-E03` where its root is that prefix root or its signature fails.
+One case breaks two rules at once — off the grid and a smaller tree
+under a non-prefix root — and is `WIST3-E02`. `cold_start_cases` covers §8 steps 4–5: a state
+file's `tree_size` against the manifest's (`WIST3-E04`), a manifest
+naming an empty Epoch that restates the previous tree size and root
+(accepted, that Epoch becoming the verified head), a `tree_size` or
+`root_hash` the Checkpoint contradicts (`WIST3-E02`), and a file at the
+manifest's path stating another `epoch_number` (`WIST3-E03`, never
+divergence). `consistency_cases`, `rollback_cases`,
+`equivocation_cases`, `archive_cases`, `quorum_cases` and
+`size_zero_cases` carry the §§4–6 rules named above.
+
+[`vectors/wist3/tile-bounds.json`](../vectors/wist3/tile-bounds.json)
+carries §6's tile and entry-bundle octet bounds and §3.3's per-Entry
+bound, and beside them the forms §6 excludes, all `WIST3-E03`:
+`tile_form_cases` (empty, a length that is not a multiple of 32, a
+full-tile path holding 255 hashes, `.p/44` holding 43, and the widths
+`.p/0` and `.p/256` that lie outside 1 through 255),
+`bundle_form_cases` (a length prefix and leaf data cut short, an octet
+after the last Entry, a full path holding 257 Entries, `.p/44` holding
+43) and `epoch_range_cases` (Entries short of, and reaching past, the
+leaf range `size(N-1)`
+through `size(N) - 1`). Each of those families also carries the form
+that admits recomputation, which is what a Checkpoint's root then
+decides (§4).
+
 ## References
 
 - [RFC 2119] / [RFC 8174] BCP 14 key words
+- [RFC 4648] The Base16, Base32, and Base64 Data Encodings — the
+  Checkpoint root hash line (§5)
 - [RFC 6962] Certificate Transparency — Merkle hashing discipline,
   checkpoint/equivocation model
 - [RFC 8785] JSON Canonicalization Scheme (JCS)
