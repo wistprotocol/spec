@@ -5,28 +5,28 @@
 ## Context
 
 The Registry Update schema constrains every Envelope, but the error registry
-named codes only for `details`/`evidence` contract failures, roster, canary,
-parameter and process rules. An Envelope carrying unknown members, a
-malformed signature field, an unsupported major version, a timestamp
-denoting no instant, or a signature that fails under the key its action's
-signing rule names had no diagnostic and no stated precedence, and nothing
-said whether such an act still takes part in §3.1's batch. The subject shape
-§9.1 requires of roster acts likewise named no code.
+named codes only for `details` contract failures and parameter rules. An
+Envelope carrying unknown members, a malformed signature field, an
+unsupported major version, a timestamp denoting no instant, or a signature
+that fails under the Log key had no diagnostic and no stated precedence, and
+nothing said whether such an act still changes replay state. The decision
+first covered roster, canary and process acts as well;
+[ADR-0041](0041-signed-publications.md) removed those acts, and the gate
+governs the five acts WIST-4 §3 lists.
 
 ## Decision
 
-WIST-4 §9.1 defines the eligibility gate every Registry Update passes before
+WIST-4 §5.1 defines the eligibility gate every Registry Update passes before
 any semantic rule: WIST-1 §4 JSON/JCS eligibility (`WIST1-E05`), then the
-complete schema, partitioned into the action's `details`, `evidence` and
-`subject` contract (`WIST4-E04`) and every other field failure (`WIST4-E11`),
-then the act's own version support (`WIST4-E11`), then authenticity under the
-signing rule its action fixes (`WIST4-E11` unless the act's section registers
-another code, as §3.1 does for checkpoints and §7 for appeals). E11 precedes
-E04; field failures precede authenticity; authenticity precedes semantics. An
-act rejected at the gate is no candidate in §3.1's batch and changes no
-state; the containing Epoch stays valid. The schema's version, timestamp and
-identifier patterns are exact whole-string patterns, and an `auditor_remove`
-subject carries the hostname shape an `auditor_admit` requires.
+complete schema, partitioned into the action's `details` and `subject`
+contract (`WIST4-E04`) and every other field failure (`WIST4-E11`), then the
+act's own version support (`WIST4-E11`), then authenticity under a Log key
+valid at the height WIST-3 §3.4 fixes for the act (`WIST4-E11`). E11 precedes
+E04; field failures precede authenticity; authenticity precedes semantics, a
+key-act failure's `WIST4-E04` included. An act rejected at the gate changes
+no key registry, schedule or withdrawal state; the containing Epoch stays
+valid. The schema's version, timestamp and identifier patterns are exact
+whole-string patterns.
 
 A `payload_withdrawal` is authenticated under the Log key (WIST4-E11
 otherwise); its `delta_id` must name a Delta sealed at or below the act's
@@ -36,35 +36,28 @@ accepted, the earliest Epoch governing. Rejecting a withdrawal of an
 unsealed or foreign Delta keeps the act's `subject` truthful and gives every
 replayer one withdrawal height per Delta.
 
-Every Registry Update is identified by its ID: a repeated occurrence is
-idempotent for roster acts, checkpoints, attestations and canary acts as §7
-already made it for process acts, so a re-sealed Entry never re-applies,
-conflicts with itself or scores twice. Canary subjects keep §9.1's two-label
-hostname shape (WIST4-E04 otherwise), matching Observers and Auditors and
-the two-label suffix the allocation-period ration (then called the epoch
-ration) reads; a `leaves` below 1 is a contract failure (WIST4-E04) while
-one above `canary_leaves_max` is the parameter-dependent rejection
-(WIST4-E08).
+Every Registry Update is identified by its ID: an occurrence of an ID already
+accepted at a lower Epoch, or earlier in the same Epoch, is idempotent, so a
+re-sealed Entry never re-applies or conflicts with itself.
 
 ## Alternatives and consequences
 
 Ignoring such acts without a code leaves implementations no shared
-diagnostic and no precedence, so two validators could report a malformed
-admission as E04, E07 or nothing. Assigning field failures to E04 would make
-one code cover both an action's contract and unrelated Envelope defects,
-which §10.1 already separates for Records (E09/E02). Letting a malformed or
-unauthenticated act into stage 1 would let anyone who can place bytes in an
-Epoch reject a same-subject admission without holding any key.
+diagnostic and no precedence, so two validators could report one malformed
+act as E04 or as nothing. Assigning field failures to E04 would make one code
+cover both an action's contract and unrelated Envelope defects. Letting a
+malformed or unauthenticated act reach the semantic rules would let bytes no
+Log key signed admit or retire a key, amend a parameter or withdraw a
+Payload.
 
 Reusing `WIST1-E01` for every failing signature would mislabel an act signed
 under the wrong key, whose signature may verify under a key the rule does not
-admit. Where a section already names a code the gate defers to it, so
-existing checkpoint and appeal dispositions do not change.
+admit.
 
-`vectors/wist4/roster-acts.json` supplies signed roster-act histories with
-raw JSON, field, version, precedence, authenticity and batch-participation
-cases. Publisher-signed governance acts and Aggregator-signed process acts
-follow the same gate; their vectors accompany the canary and process work
-recorded in [CONFORMANCE.md](../CONFORMANCE.md).
+`vectors/wist4/withdrawal.json` and `vectors/wist4/registrable-domain.json`
+carry unknown-member, unsupported-major, foreign-key and contract cases for
+`payload_withdrawal` and `suffix_list_update`;
+`vectors/wist3/aggregator-keys.json` carries the authentication height of key
+acts and of acts signed by a key admitted or removed in the same Epoch.
 
 The undeployed draft changes under [PUBLICATION.md](../PUBLICATION.md).
