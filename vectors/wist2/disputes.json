@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 section 3.3 disputes over sealed Labels: accepted means the dispute validates under the disputant's Declaration and its dispute_id seals; fields, unsealed and authority are WIST2-E06 (the named Label must be sealed in this Log and its subject must lie under the disputant's authority); signature and binding keep WIST-1 codes; log and height are the disputant's citation and are not checked against this Log. current_cases replay sealed disputes of one (label, disputant) and give the current dispute and the WIST-3 section 7 dispute tuple.",
+  "note": "WIST-2 section 3.3 disputes over sealed Labels, every case validated at clock under clock_skew_seconds: accepted means the dispute validates under the disputant's Declaration and its dispute_id seals; fields, clock, unsealed and authority are WIST2-E06 (clock is an asserted_at beyond the inclusive allowance, read as a Label's; the named Label must be sealed in this Log and its subject must lie under the disputant's authority); signature and binding keep WIST-1 codes; log and height are the disputant's citation and are not checked against this Log. current_cases replay sealed disputes of one (label, disputant) and give the current dispute and the WIST-3 section 7 dispute tuple.",
   "sealed_labels": [
     {
       "label_id": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
@@ -8,6 +8,8 @@
       "height": 1
     }
   ],
+  "clock": "2026-08-02T14:00:00Z",
+  "clock_skew_seconds": 600,
   "cases": [
     {
       "name": "valid dispute",
@@ -769,6 +771,141 @@
         }
       },
       "expected": "fields",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "asserted_at at the allowance bound",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T14:10:00Z"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "F-Pjg3kA-4JsD6pRq1J_oln28WxojEsReDxwVDICK-PIOEdKIQfIC18RdFubgcWfKDfcGdzC9EoDrAfZaeigAA"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785542400
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "sz-IarGemtLK0iKm81_Ulokwi1_-nIjjIUeeNxiotqQcCmDDGyQ98CDsJoh_I_J8Mqd0YZOPGocOx2vl18AaDg"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "dispute_id": "sha256:100043df23876815e7655207998eeee112260136dab471aed99a11117e315802"
+    },
+    {
+      "name": "asserted_at one second beyond the allowance",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T14:10:01Z"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "hPeXUrfzeHZeztk0fkTeouTtpJYYPbe7EFeCDZ0OcO-Oe4oi95fumLfmfnb6lp12UY2nOdZummm5r-wpiw1tCA"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785542400
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "sz-IarGemtLK0iKm81_Ulokwi1_-nIjjIUeeNxiotqQcCmDDGyQ98CDsJoh_I_J8Mqd0YZOPGocOx2vl18AaDg"
+        }
+      },
+      "expected": "clock",
+      "code": "WIST2-E06",
+      "dispute_id": null
+    },
+    {
+      "name": "asserted_at a fraction beyond the allowance",
+      "envelope": {
+        "dispute": {
+          "wist_version": "1.0.0",
+          "disputant": "reduced.example.org",
+          "label": "sha256:ca80dbb3a412e2892b7f3e176d8e3a895be29357857f20170566d78e01e19b52",
+          "log": "log.example",
+          "height": 1,
+          "asserted_at": "2026-08-02T14:10:00.5Z"
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "onTni45L5dFqeNjtyyj3R37EBmAiRFN3jKvfkdBNxY_jTq_6moddTZ16b7Bktk69b1GTCjA_6NmQFXt83XbxCw"
+        }
+      },
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "reduced.example.org",
+          "subdomain_scope": [
+            "www.reduced.example.org"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "JUO5L_EJVRFHatyDadtt3JM2ZaEZeN2hQE7hBmypVZ0",
+              "kid": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+              "nbf": 1785542400
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "WeVHjIQTOLKu-P74oC-WL-MNn_sLM5CvrzuMjDFC3-s",
+          "alg": "Ed25519",
+          "value": "sz-IarGemtLK0iKm81_Ulokwi1_-nIjjIUeeNxiotqQcCmDDGyQ98CDsJoh_I_J8Mqd0YZOPGocOx2vl18AaDg"
+        }
+      },
+      "expected": "clock",
       "code": "WIST2-E06",
       "dispute_id": null
     },

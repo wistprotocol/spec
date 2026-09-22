@@ -4205,7 +4205,7 @@ def label_vectors():
             author_signature = True
         except (KeyError, TypeError, ValueError, InvalidSignature):
             author_signature = False
-        code = {"accepted": None, "fields": "WIST2-E06", "self": "WIST2-E06",
+        code = {"accepted": None, "fields": "WIST2-E06", "clock": "WIST2-E06", "self": "WIST2-E06",
                 "signature": "WIST1-E01", "binding": "WIST1-E02"}[expected]
         cases.append(dict(name=name, envelope=doc, expected=expected, code=code,
                           author_signature=author_signature,
@@ -4246,6 +4246,14 @@ def label_vectors():
     add("asserted_at without a zone", dict(label, asserted_at="2026-08-02T12:30:00"), expected="fields")
     add("asserted_at with an offset", dict(label, asserted_at="2026-08-02T14:30:00+02:00"))
     add("asserted_at on a leap second", dict(label, asserted_at="2026-06-30T23:59:60Z"), expected="fields")
+    add("asserted_at at the allowance bound", dict(label, asserted_at="2026-08-03T12:10:00Z"))
+    add("asserted_at at the allowance bound under an offset", dict(label, asserted_at="2026-08-03T09:10:00-03:00"))
+    add("asserted_at one second beyond the allowance", dict(label, asserted_at="2026-08-03T12:10:01Z"),
+        expected="clock")
+    add("asserted_at a fraction beyond the allowance", dict(label, asserted_at="2026-08-03T12:10:00.001Z"),
+        expected="clock")
+    add("asserted_at beyond the allowance under an offset", dict(label, asserted_at="2026-08-03T14:10:01+02:00"),
+        expected="clock")
     add("labeler other than the authenticated domain", dict(label, labeler="reduced.example.org"), expected="fields")
     add("self-label of the domain", dict(label, subject="example.com"), expected="self")
     add("self-label of a scoped host", dict(label, subject="www.example.com"), expected="self")
@@ -4333,16 +4341,20 @@ def label_vectors():
         binding.append({"name": name, "delta": delta, "record_anchor": anchor, "applies": applies})
     return dict(
         note=("WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases "
-              "over the example Declaration: accepted means the Label validates and its label_id seals; "
-              "fields and self are WIST2-E06; signature and binding keep WIST-1 codes. current_cases "
+              "over the example Declaration, every case validated at clock under clock_skew_seconds: "
+              "accepted means the Label validates and its label_id seals; fields, clock and self are "
+              "WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + "
+              "clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's "
+              "clock before sealing, the committing Epoch's sealed_at once sealed); signature and "
+              "binding keep WIST-1 codes. current_cases "
               "replay sealed Labels of one (labeler, subject, name) and give the current Label at the "
               "end and the WIST-3 section 7 tuple the state carries, null where the current Label is "
               "retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a "
               "Label's delta against the subject record's anchor Delta: a bound Label applies only "
-              "while the record stands on that Delta. The clock allowance over asserted_at is "
-              "exercised by wist1/delta-clock-time.json."),
+              "while the record stands on that Delta."),
         declaration=json.loads((EXAMPLES / "publisher.json").read_text()),
-        url_cap_bytes=2048, cases=cases, current_cases=current, binding_cases=binding)
+        url_cap_bytes=2048, clock="2026-08-03T12:00:00Z", clock_skew_seconds=600,
+        cases=cases, current_cases=current, binding_cases=binding)
 
 
 write_json(WIST2V / "labels.json", label_vectors())
@@ -4365,7 +4377,7 @@ def dispute_vectors():
         doc = sign_envelope_with(signer, "dispute", body, key_id)
         if mutate:
             mutate(doc)
-        code = {"accepted": None, "fields": "WIST2-E06", "unsealed": "WIST2-E06",
+        code = {"accepted": None, "fields": "WIST2-E06", "clock": "WIST2-E06", "unsealed": "WIST2-E06",
                 "authority": "WIST2-E06", "signature": "WIST1-E01", "binding": "WIST1-E02"}[expected]
         cases.append(dict(name=name, envelope=doc, declaration=declaration, expected=expected, code=code,
                           dispute_id=("sha256:" + sha256_hex(rfc8785.dumps(doc["dispute"])))
@@ -4386,6 +4398,11 @@ def dispute_vectors():
     add("reason not normalized", dict(base, reason="https://Reduced.example.org/x"), expected="fields")
     add("log not a Canonical Host", dict(base, log="Log.Example"), expected="fields")
     add("asserted_at on a leap second", dict(base, asserted_at="2026-06-30T23:59:60Z"), expected="fields")
+    add("asserted_at at the allowance bound", dict(base, asserted_at="2026-08-02T14:10:00Z"))
+    add("asserted_at one second beyond the allowance", dict(base, asserted_at="2026-08-02T14:10:01Z"),
+        expected="clock")
+    add("asserted_at a fraction beyond the allowance", dict(base, asserted_at="2026-08-02T14:10:00.5Z"),
+        expected="clock")
     add("unsupported major", dict(base, wist_version="2.0.0"), expected="fields")
     add("label the Log has not sealed", dict(base, label="sha256:" + sha256_hex(b"never sealed")),
         expected="unsealed")
@@ -4419,14 +4436,17 @@ def dispute_vectors():
                                                                     "https://reduced.example.org/later")], 1),
     ]
     return dict(
-        note=("WIST-2 section 3.3 disputes over sealed Labels: accepted means the dispute validates under "
-              "the disputant's Declaration and its dispute_id seals; fields, unsealed and authority are "
-              "WIST2-E06 (the named Label must be sealed in this Log and its subject must lie under the "
-              "disputant's authority); signature and binding keep WIST-1 codes; log and height are the "
+        note=("WIST-2 section 3.3 disputes over sealed Labels, every case validated at clock under "
+              "clock_skew_seconds: accepted means the dispute validates under the disputant's Declaration "
+              "and its dispute_id seals; fields, clock, unsealed and authority are WIST2-E06 (clock is an "
+              "asserted_at beyond the inclusive allowance, read as a Label's; the named Label must be "
+              "sealed in this Log and its subject must lie under the disputant's authority); signature "
+              "and binding keep WIST-1 codes; log and height are the "
               "disputant's citation and are not checked against this Log. current_cases replay sealed "
               "disputes of one (label, disputant) and give the current dispute and the WIST-3 section 7 "
               "dispute tuple."),
-        sealed_labels=sealed_labels, cases=cases, current_cases=current)
+        sealed_labels=sealed_labels, clock="2026-08-02T14:00:00Z", clock_skew_seconds=600,
+        cases=cases, current_cases=current)
 
 
 write_json(WIST2V / "disputes.json", dispute_vectors())

@@ -8672,9 +8672,10 @@ def _wist_label_terms():
     assert len(terms) >= 7 and len(terms) == len(set(terms))
     return set(terms)
 
-def _label_disposition(doc, declaration, validator, url_cap_bytes, terms):
-    """WIST-2 §3.3 over one Label Envelope: accepted, fields, self, signature
-    or binding, in the order WIST-2 §3.3 and WIST-1 §7 apply them."""
+def _label_disposition(doc, declaration, validator, url_cap_bytes, terms, clock, clock_skew_seconds):
+    """WIST-2 §3.3 over one Label Envelope: accepted, fields, clock, self,
+    signature or binding, in the order WIST-2 §3.3 and WIST-1 §7 apply them;
+    `clock` is the Log instant `asserted_at` is checked against (WIST-1 §3.4)."""
     import link_extraction
     if not validator.is_valid(doc):
         return "fields"
@@ -8706,9 +8707,12 @@ def _label_disposition(doc, declaration, validator, url_cap_bytes, terms):
         return "fields"
     try:
         asserted = publisher_instant(label["asserted_at"])
-        if "expires_at" in label and publisher_instant(label["expires_at"]) <= asserted:
-            return "fields"
+        expires = publisher_instant(label["expires_at"]) if "expires_at" in label else None
     except ValueError:
+        return "fields"
+    if asserted > log_seconds(clock) + clock_skew_seconds:
+        return "clock"
+    if expires is not None and expires <= asserted:
         return "fields"
     if "delta" in label and not subject.startswith("https://"):
         return "fields"
@@ -8730,19 +8734,27 @@ def _label_vectors():
     v = _label_vector()
     validator = Draft202012Validator(json.loads((ROOT / "schemas/label.schema.json").read_text()))
     terms = _wist_label_terms()
-    codes = {"accepted": None, "fields": "WIST2-E06", "self": "WIST2-E06",
+    codes = {"accepted": None, "fields": "WIST2-E06", "clock": "WIST2-E06", "self": "WIST2-E06",
              "signature": "WIST1-E01", "binding": "WIST1-E02"}
+    bound = log_seconds(v["clock"]) + v["clock_skew_seconds"]
     outcomes = set()
     for case in v["cases"]:
-        got = _label_disposition(case["envelope"], v["declaration"], validator, v["url_cap_bytes"], terms)
+        got = _label_disposition(case["envelope"], v["declaration"], validator, v["url_cap_bytes"], terms,
+                                 v["clock"], v["clock_skew_seconds"])
         assert got == case["expected"], (case["name"], got, case["expected"])
         assert case["code"] == codes[case["expected"]], case["name"]
         label_id = "sha256:" + hashlib.sha256(rfc8785.dumps(case["envelope"]["label"])).hexdigest()
         assert case["label_id"] == (label_id if case["expected"] == "accepted" else None), case["name"]
         outcomes.add(case["expected"])
     assert outcomes == set(codes)
+    at_bound = [c for c in v["cases"] if c["expected"] == "accepted"
+                and publisher_instant(c["envelope"]["label"]["asserted_at"]) == bound]
+    assert len({c["envelope"]["label"]["asserted_at"] for c in at_bound}) >= 2, "no inclusive bound spellings"
+    assert any(c["expected"] == "clock" and publisher_instant(c["envelope"]["label"]["asserted_at"]) - bound < 1
+               for c in v["cases"]), "no fractional excess"
     example = json.loads((ROOT / "examples" / "label.json").read_text())
-    assert _label_disposition(example, v["declaration"], validator, v["url_cap_bytes"], terms) == "accepted"
+    assert _label_disposition(example, v["declaration"], validator, v["url_cap_bytes"], terms,
+                              v["clock"], v["clock_skew_seconds"]) == "accepted"
     feed = json.loads((ROOT / "examples" / "label-feed.json").read_text())
     assert feed["feed"]["deltas"] == ["sha256:" + hashlib.sha256(rfc8785.dumps(example["label"])).hexdigest()]
     Draft202012Validator(json.loads((ROOT / "schemas/feed.schema.json").read_text())).validate(feed)
@@ -8776,6 +8788,8 @@ def _label_vectors():
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     assert "the sealed Label with the greatest `asserted_at`, and among equal instants the one later in Log order" in prose
     assert "it is rejected under `WIST2-E06` and never sealed" in prose
+    assert "Publisher timestamp under WIST-1 §3.4's profile and clock rule, read exactly as a Delta's `observed_at`" in prose
+    assert "an `asserted_at` beyond the clock allowance" in prose
     assert "applies nothing at an Epoch whose `sealed_at` is at or after that instant" in prose
     assert "the Label applies only while the subject URL's record stands on that anchor Delta" in prose
 check("vectors:wist2-labels", _label_vectors)
@@ -8792,10 +8806,17 @@ def _label_vectors_twin():
     widened["publisher"]["subdomain_scope"] = []
     doc = copy.deepcopy(self_case["envelope"])
     doc["label"]["labeler"] = "elsewhere.example"
-    assert _label_disposition(doc, widened, validator, v["url_cap_bytes"], terms) == "signature"
+    clock = (v["clock"], v["clock_skew_seconds"])
+    assert _label_disposition(doc, widened, validator, v["url_cap_bytes"], terms, *clock) == "signature"
     foreign = next(c for c in v["cases"] if c["name"] == "name under a Canonical Host prefix")
-    assert _label_disposition(foreign["envelope"], v["declaration"], validator, v["url_cap_bytes"], set()) == "accepted"
-    assert _label_disposition(foreign["envelope"], v["declaration"], validator, 20, terms) == "fields"
+    assert _label_disposition(foreign["envelope"], v["declaration"], validator, v["url_cap_bytes"], set(), *clock) == "accepted"
+    assert _label_disposition(foreign["envelope"], v["declaration"], validator, 20, terms, *clock) == "fields"
+    at_bound = next(c for c in v["cases"] if c["name"] == "asserted_at at the allowance bound")
+    assert _label_disposition(at_bound["envelope"], v["declaration"], validator, v["url_cap_bytes"], terms,
+                              v["clock"], v["clock_skew_seconds"] - 1) == "clock"
+    beyond = next(c for c in v["cases"] if c["name"] == "asserted_at a fraction beyond the allowance")
+    assert _label_disposition(beyond["envelope"], v["declaration"], validator, v["url_cap_bytes"], terms,
+                              v["clock"], v["clock_skew_seconds"] + 1) == "accepted"
     tie = next(c for c in v["current_cases"] if c["name"] == "equal instants break by Epoch number")
     reversed_order = min(tie["sealed"], key=lambda s: (s["height"], s["entry_index"]))
     assert reversed_order["label_id"] != tie["current"]
@@ -8805,9 +8826,11 @@ check("negative:wist2-labels", _label_vectors_twin)
 def _dispute_vector():
     return json.loads((ROOT / "vectors/wist2/disputes.json").read_text())
 
-def _dispute_disposition(doc, declaration, validator, sealed):
-    """WIST-2 §3.3 over one Dispute Envelope: accepted, fields, unsealed,
-    authority, signature or binding, in the order the section applies them."""
+def _dispute_disposition(doc, declaration, validator, sealed, clock, clock_skew_seconds):
+    """WIST-2 §3.3 over one Dispute Envelope: accepted, fields, clock,
+    unsealed, authority, signature or binding, in the order the section
+    applies them; `clock` is the Log instant `asserted_at` is checked
+    against, as a Label's is (WIST-1 §3.4)."""
     import link_extraction
     if not validator.is_valid(doc):
         return "fields"
@@ -8822,9 +8845,11 @@ def _dispute_disposition(doc, declaration, validator, sealed):
     if "reason" in dispute and link_extraction.normalize_url(dispute["reason"], dispute["reason"]) != dispute["reason"]:
         return "fields"
     try:
-        publisher_instant(dispute["asserted_at"])
+        asserted = publisher_instant(dispute["asserted_at"])
     except ValueError:
         return "fields"
+    if asserted > log_seconds(clock) + clock_skew_seconds:
+        return "clock"
     label = sealed.get(dispute["label"])
     if label is None:
         return "unsealed"
@@ -8848,23 +8873,30 @@ def _dispute_vectors():
     v = _dispute_vector()
     validator = Draft202012Validator(json.loads((ROOT / "schemas/dispute.schema.json").read_text()))
     sealed = {l["label_id"]: l for l in v["sealed_labels"]}
-    codes = {"accepted": None, "fields": "WIST2-E06", "unsealed": "WIST2-E06", "authority": "WIST2-E06",
-             "signature": "WIST1-E01", "binding": "WIST1-E02"}
+    codes = {"accepted": None, "fields": "WIST2-E06", "clock": "WIST2-E06", "unsealed": "WIST2-E06",
+             "authority": "WIST2-E06", "signature": "WIST1-E01", "binding": "WIST1-E02"}
+    bound = log_seconds(v["clock"]) + v["clock_skew_seconds"]
     outcomes = set()
     for case in v["cases"]:
-        got = _dispute_disposition(case["envelope"], case["declaration"], validator, sealed)
+        got = _dispute_disposition(case["envelope"], case["declaration"], validator, sealed,
+                                   v["clock"], v["clock_skew_seconds"])
         assert got == case["expected"], (case["name"], got, case["expected"])
         assert case["code"] == codes[case["expected"]], case["name"]
         dispute_id = "sha256:" + hashlib.sha256(rfc8785.dumps(case["envelope"]["dispute"])).hexdigest()
         assert case["dispute_id"] == (dispute_id if case["expected"] == "accepted" else None), case["name"]
         outcomes.add(case["expected"])
     assert outcomes == set(codes)
+    assert any(c["expected"] == "accepted" and publisher_instant(c["envelope"]["dispute"]["asserted_at"]) == bound
+               for c in v["cases"]), "no inclusive bound"
+    assert any(c["expected"] == "clock" and publisher_instant(c["envelope"]["dispute"]["asserted_at"]) - bound < 1
+               for c in v["cases"]), "no fractional excess"
     assert any(c["expected"] == "accepted" and c["envelope"]["dispute"]["log"] != "log.example" for c in v["cases"]), \
         "no accepted dispute cites another Log"
     example = json.loads((ROOT / "examples" / "dispute.json").read_text())
     example_sealed = {example["dispute"]["label"]: {"subject": "https://example.com/blog/post-1"}}
     publisher = json.loads((ROOT / "examples" / "publisher.json").read_text())
-    assert _dispute_disposition(example, publisher, validator, example_sealed) == "accepted"
+    assert _dispute_disposition(example, publisher, validator, example_sealed,
+                                v["clock"], v["clock_skew_seconds"]) == "accepted"
     state = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-state.schema.json").read_text()))
     envelope = json.loads((ROOT / "examples" / "snapshot-state.json").read_text())
     for case in v["current_cases"]:
@@ -8879,6 +8911,7 @@ def _dispute_vectors():
         state.validate(envelope)
     prose = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-2-site-publication.md").read_text())
     assert "the disputed Label's `subject` MUST lie under the disputant's authority" in prose
+    assert "a Normalized URL where the disputant states its grounds, and `asserted_at`, read as a Label's" in prose
     assert "an Aggregator MUST NOT reject a dispute for naming another Log" in prose
     assert "A dispute is never applied by the Aggregator or a Snapshot builder" in prose
     w3 = re.sub(r"\s+", " ", (ROOT / "specs" / "WIST-3-logbook-distribution.md").read_text())
@@ -8894,8 +8927,12 @@ def _dispute_vectors_twin():
     widened["publisher"]["domain"] = "elsewhere.example"
     doc = copy.deepcopy(valid["envelope"])
     doc["dispute"]["disputant"] = "elsewhere.example"
-    assert _dispute_disposition(doc, widened, validator, sealed) == "authority"
-    assert _dispute_disposition(valid["envelope"], valid["declaration"], validator, {}) == "unsealed"
+    clock = (v["clock"], v["clock_skew_seconds"])
+    assert _dispute_disposition(doc, widened, validator, sealed, *clock) == "authority"
+    assert _dispute_disposition(valid["envelope"], valid["declaration"], validator, {}, *clock) == "unsealed"
+    at_bound = next(c for c in v["cases"] if c["name"] == "asserted_at at the allowance bound")
+    assert _dispute_disposition(at_bound["envelope"], at_bound["declaration"], validator, sealed,
+                                v["clock"], v["clock_skew_seconds"] - 1) == "clock"
     tie = next(c for c in v["current_cases"] if c["name"] == "equal instants break by Log order")
     assert min(tie["sealed"], key=lambda s: s["entry_index"])["dispute_id"] != tie["current"]
 check("negative:wist2-disputes", _dispute_vectors_twin)

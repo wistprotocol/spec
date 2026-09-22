@@ -175,9 +175,12 @@ and signature dispositions, current-Label replays with the WIST-3 §7
 tuple each leaves at a Snapshot instant, and binding cases against a
 record's anchor Delta; the reference recomputes every disposition, the
 Label IDs and the tuples, and its twins flip the self-labeling scope,
-the registry term set and the tie order. The clock allowance over
-`asserted_at` is exercised by `vectors/wist1/delta-clock-time.json` for
-Deltas and applies to Labels by reference. Live Label Feed pulls,
+the registry term set and the tie order. Every case is validated at the
+vector's `clock` under its `clock_skew_seconds`, with `asserted_at` at
+the inclusive bound in two spellings, a second beyond it and a fraction
+beyond it (WIST-1 §3.4's clock rule read over a Label); which clock an
+attempt or a sealed Label selects is fixed for Deltas and Labels alike by
+`vectors/wist1/delta-clock-time.json`. Live Label Feed pulls,
 `WIST2-E06` reporting, sealing as `label` Entries under the inclusion
 ceiling, `tier1/labels.parquet` and Consumer subscription need
 integrated validation.
@@ -187,8 +190,9 @@ add label definitions, disputes, the per-Labeler cap, the recommended
 default profile and the labeler statistics (draft
 [ADR-0043](decisions/0043-label-accountability.md)).
 `vectors/wist2/disputes.json` carries signed disputes over a fixture
-disputant Declaration with field, unsealed-Label, third-party,
-signature and binding dispositions and current-dispute replays with
+disputant Declaration with field, clock-allowance, unsealed-Label,
+third-party, signature and binding dispositions and current-dispute
+replays with
 their tuples; `vectors/wist2/label-definitions.json` carries signed
 definitions with their served paths and every treatment;
 `vectors/wist3/label-tables.json` carries the labeler statistics rows,

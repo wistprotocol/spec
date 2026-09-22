@@ -1,5 +1,5 @@
 {
-  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration: accepted means the Label validates and its label_id seals; fields and self are WIST2-E06; signature and binding keep WIST-1 codes. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta against the subject record's anchor Delta: a bound Label applies only while the record stands on that Delta. The clock allowance over asserted_at is exercised by wist1/delta-clock-time.json.",
+  "note": "WIST-2 section 3.3 and WIST-4 section 6. Field, form, self-labeling and signature cases over the example Declaration, every case validated at clock under clock_skew_seconds: accepted means the Label validates and its label_id seals; fields, clock and self are WIST2-E06, clock being an asserted_at beyond the inclusive allowance clock + clock_skew_seconds (WIST-1 section 3.4's rule read over asserted_at: the validator's clock before sealing, the committing Epoch's sealed_at once sealed); signature and binding keep WIST-1 codes. current_cases replay sealed Labels of one (labeler, subject, name) and give the current Label at the end and the WIST-3 section 7 tuple the state carries, null where the current Label is retracted or expired at sealed_at, the Snapshot Epoch's instant. binding_cases read a Label's delta against the subject record's anchor Delta: a bound Label applies only while the record stands on that Delta.",
   "declaration": {
     "publisher": {
       "wist_version": "1.0.0",
@@ -36,6 +36,8 @@
     }
   },
   "url_cap_bytes": 2048,
+  "clock": "2026-08-03T12:00:00Z",
+  "clock_skew_seconds": 600,
   "cases": [
     {
       "name": "valid Label",
@@ -772,6 +774,111 @@
         }
       },
       "expected": "fields",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "asserted_at at the allowance bound",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-03T12:10:00Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "eJTYAqtMbDDy3Pj_Pjpk2DsRtslanvGStANU56kv_EQR3L1I0MNiMc6BLSQXJuNaeli1upMSS_YNY6M7bXdKBw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:2e65229fa195940e415e97ca26e11982efefde2fa1505faf69715c766858cab9"
+    },
+    {
+      "name": "asserted_at at the allowance bound under an offset",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-03T09:10:00-03:00"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "UJ8frFRQUo6vORflurRe2nvNlj1svuG6jmjYjbMND1gV29eSnRO5SpY56CiPeTJTvHVbQrQE04_4-uP3Al3yAw"
+        }
+      },
+      "expected": "accepted",
+      "code": null,
+      "author_signature": true,
+      "label_id": "sha256:2ae11be61feee816c3e39cec5ca15c0b38f9ff0397eafb74b0c85f819842d4db"
+    },
+    {
+      "name": "asserted_at one second beyond the allowance",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-03T12:10:01Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "gRAUYajXkye3nxgGtok_k2ex6P9jW3cOqWKWC0jWsNp24-1de8G4Eaoib9FNyjhj6VO2iQeAFhqxdiHmSEt1Cw"
+        }
+      },
+      "expected": "clock",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "asserted_at a fraction beyond the allowance",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-03T12:10:00.001Z"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "mck2Z3Zty-aA-BsKtEg1Rdd3uMdzOlrN5jmTb6VmzkDV0RM2hbBqlP2Ovh7EUVXm4Ne9uSOZfLLBXR4zflHUBw"
+        }
+      },
+      "expected": "clock",
+      "code": "WIST2-E06",
+      "author_signature": true,
+      "label_id": null
+    },
+    {
+      "name": "asserted_at beyond the allowance under an offset",
+      "envelope": {
+        "label": {
+          "wist_version": "1.0.0",
+          "labeler": "example.com",
+          "subject": "https://reduced.example.org/notice",
+          "name": "wist:spam",
+          "asserted_at": "2026-08-03T14:10:01+02:00"
+        },
+        "sig": {
+          "key_id": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y",
+          "alg": "Ed25519",
+          "value": "GakId-NjUjLt1vuxj4d0r7AtL8ffzFt62sdgodd-YEBuOX8DZzLp8_MuyEsjWQz9NCTxy5wyuLxPJIbRDLaqAw"
+        }
+      },
+      "expected": "clock",
       "code": "WIST2-E06",
       "author_signature": true,
       "label_id": null
