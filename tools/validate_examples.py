@@ -1508,6 +1508,16 @@ def _epoch_checks():
     assert cp["epoch_number"] == 0, "the example Checkpoint is not Epoch 0's"
 check("checkpoint+binding+treesize", _epoch_checks)
 
+def _snapshot_directory(manifest_inner):
+    """WIST-3 §6: /snapshots/<snapshot_date>/<epoch_number>/, the Epoch zero-padded to nine digits."""
+    return "/snapshots/%s/%09d/" % (manifest_inner["snapshot_date"], manifest_inner["epoch_number"])
+
+
+def _shard_of(domain, count):
+    """WIST-3 §7: first 8 octets of SHA-256(UTF-8 of the domain), big-endian, mod count."""
+    return int.from_bytes(hashlib.sha256(domain.encode()).digest()[:8], "big") % count
+
+
 RECORD_FIELDS = ["url", "publisher", "delta_id", "observed_at"]
 
 def _content_digest(records):
@@ -1554,8 +1564,8 @@ def _snapshot_content_digest():
     for field in ("snapshot_date", "tree_size", "content_digest"):
         assert entry[field] == manifest[field], \
             f"the index entry's {field} disagrees with the manifest it names"
-    assert entry["manifest_url"] == "/snapshots/%s/manifest.json" % entry["snapshot_date"], \
-        "the index entry does not name the §6 layout path for its snapshot_date"
+    assert entry["manifest_url"] == _snapshot_directory(manifest) + "manifest.json", \
+        "the index entry does not name the §6 directory of its Snapshot's date and Epoch"
     dates = [s["snapshot_date"] for s in index["snapshots"]]
     assert dates == sorted(dates, reverse=True), "the index is not newest first"
 
@@ -1639,6 +1649,77 @@ def _snapshot_links_materialization():
         "embeddings in the manifest: the protocol carries none (ADR-0009)"
 
 check("spec:snapshot-links", _snapshot_links_materialization)
+
+
+SHARD_TIER_FILES = ["tier0/index.sqlite", "tier1/extracts.parquet", "tier1/links.parquet",
+                    "tier1/labels.parquet", "tier1/disputes.parquet", "tier1/labelers.parquet"]
+
+
+def _assert_sharded_section(vec):
+    sharded, records = vec["sharded"], vec["records"]
+    count = sharded["count"]
+    assert count >= 2 and len(sharded["digests"]) == count, "digests is not one per shard"
+    for domain, index in sharded["shard_of"].items():
+        assert index == _shard_of(domain, count), f"{domain}: shard_of != §7's domain rule"
+    for i in range(count):
+        held = [r for r in records if _shard_of(r["publisher"], count) == i]
+        assert _content_digest(held) == sharded["digests"][i], \
+            f"shard {i}: digest != content_digest over its records"
+    assert _content_digest(records) == vec["content_digest"], "the whole-set digest changed"
+    expected_files = [{"path": f"shard-{i}/{path}", "tier": 0 if path.startswith("tier0/") else 1,
+                       "shard": i} for i in range(count) for path in SHARD_TIER_FILES]
+    assert sharded["files"] == expected_files, "files != shard-<i>/ paths of the six tier files"
+    for row in sharded["label_rows"] + sharded["labeler_rows"]:
+        assert row["shard"] == _shard_of(row["labeler"], count), \
+            f"a label or labeler row of {row['labeler']} is not in the Labeler's shard"
+    for row in sharded["dispute_rows"]:
+        assert row["shard"] == _shard_of(row["disputant"], count), \
+            f"a dispute row of {row['disputant']} is not in the disputant's shard"
+    subject_hosts = {re.sub(r"^https?://([^/]+).*$", r"\1", row["subject"]) for row in sharded["label_rows"]}
+    assert any(_shard_of(h, count) != _shard_of(r["labeler"], count)
+               for h in subject_hosts for r in sharded["label_rows"]
+               if re.sub(r"^https?://([^/]+).*$", r"\1", r["subject"]) == h), \
+        "no Label row separates the Labeler's shard from the subject Publisher's"
+
+
+def _snapshot_sharding():
+    """WIST-3 §7 sharding: the per-shard digests, the shard-<i>/ file layout and
+    the shard each Label, labeler and dispute row is filed under, recomputed from
+    the records and the domain rule."""
+    vec = json.loads((ROOT / "vectors" / "wist3" / "snapshot-records.json").read_text())
+    _assert_sharded_section(vec)
+
+check("spec:snapshot-sharding", _snapshot_sharding)
+
+
+def _snapshot_sharding_twin():
+    """Mutation twin: a Label row moved to its subject's Publisher's shard must
+    fail on the Labeler rule; a record moved across shards must fail its digest."""
+    vec = json.loads((ROOT / "vectors" / "wist3" / "snapshot-records.json").read_text())
+    count = vec["sharded"]["count"]
+    moved = json.loads(json.dumps(vec))
+    row = next(r for r in moved["sharded"]["label_rows"] if r["labeler"] == "example.com")
+    row["shard"] = _shard_of("reduced.example.org", count)
+    assert row["shard"] != _shard_of("example.com", count), "the twin's move is a no-op"
+    try:
+        _assert_sharded_section(moved)
+    except AssertionError as e:
+        assert "not in the Labeler's shard" in str(e), f"rejected, but not by its target rule: {e}"
+    else:
+        raise AssertionError("a Label row in its subject's shard passed — the check is blind")
+    swapped = json.loads(json.dumps(vec))
+    swapped["sharded"]["digests"] = swapped["sharded"]["digests"][::-1]
+    try:
+        _assert_sharded_section(swapped)
+    except AssertionError as e:
+        assert "digest != content_digest over its records" in str(e), \
+            f"rejected, but not by its target rule: {e}"
+        return
+    raise AssertionError("reversed per-shard digests passed — the check is blind")
+
+check("negative:snapshot-sharding", _snapshot_sharding_twin)
+
+
 
 def _snapshot_links_twin():
     """Mutation twin: a shifted `position` must be rejected by the same
@@ -2318,6 +2399,15 @@ NON_CONTENT_VALUES = {
         "the manifest's record-tuple digest, restated by the index (WIST-3 §6, §7)",
     ("examples/snapshot-index.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/snapshot-records.json", "delta_id"): "a Delta ID",
+    ("vectors/wist3/snapshot-records.json", "digests"):
+        "WIST-3 §7's record-tuple digest per shard, recomputed by `snapshot-sharding` from the records this file publishes",
+    ("vectors/wist3/snapshot-index.json", "content_digest"):
+        "the example manifest's record-tuple digest, restated by each index entry (WIST-3 §6, §7)",
+    ("vectors/wist3/snapshot-index.json", "sha256"): "a whole tier or state file, not any one record (WIST-3 §7)",
+    ("vectors/wist3/snapshot-index.json", "root_hash"): "SHA-256 of an Epoch header",
+    ("vectors/wist3/snapshot-index.json", "state_digest"):
+        "WIST-3 §7's digest construction over state tuples — every field Log-derived, no content in the preimage",
+    ("vectors/wist3/snapshot-index.json", "value"): "an Ed25519 signature",
     ("vectors/wist3/snapshot-records.json", "content_digest"):
         "WIST-3 §7's record-tuple digest, recomputed by `snapshot:content-digest` from the records this file publishes",
     ("examples/status.json", "delta_id"): "a Delta ID",
@@ -8232,6 +8322,75 @@ def _wist3_snapshot_keys():
             "has no error code, and its entries are location hints integrity never depends on"):
         assert marker in prose, f"missing normative sentence: {marker!r}"
 check("vectors:wist3-snapshot-keys", _wist3_snapshot_keys)
+
+
+def _index_case_outcome(case):
+    """WIST-3 §8 step 2 on the case's first entry, and §6's listing order."""
+    entry = case["index"]["index"]["snapshots"][0]
+    manifest = case["manifests"][entry["manifest_url"]]["manifest"]
+    disagrees = [f for f in ("snapshot_date", "tree_size", "content_digest")
+                 if entry[f] != manifest[f]]
+    keys = []
+    for e in case["index"]["index"]["snapshots"]:
+        m = case["manifests"][e["manifest_url"]]["manifest"]
+        assert e["manifest_url"] == _snapshot_directory(m) + "manifest.json", \
+            "an entry does not name its manifest's §6 directory"
+        keys.append((e["snapshot_date"], m["epoch_number"]))
+    urls = [e["manifest_url"] for e in case["index"]["index"]["snapshots"]]
+    assert len(set(urls)) == len(urls), "two entries name one directory"
+    return {"expected": "WIST3-E04" if disagrees else "accept", "disagrees": disagrees,
+            "index_ordered": keys == sorted(keys, reverse=True)}
+
+
+def _wist3_snapshot_index():
+    """WIST-3 §6 and §8 step 2: immutable per-Snapshot directories, the index's
+    listing order and the entry-versus-manifest check, each recomputed."""
+    v = json.loads((ROOT / "vectors" / "wist3" / "snapshot-index.json").read_text())
+    index_schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-index.schema.json").read_text()))
+    manifest_schema = Draft202012Validator(json.loads((ROOT / "schemas/snapshot-manifest.schema.json").read_text()))
+    genesis = json.loads((ROOT / "examples/log-anchor.json").read_text())["anchor"]["genesis_key"]
+    pub = b64u_decode(genesis["public_key"])
+    seen = set()
+    for case in v["cases"]:
+        where = case["name"]
+        assert where not in seen, f"two cases named {where!r}"
+        seen.add(where)
+        index_schema.validate(case["index"])
+        assert _envelope_verifies(pub, case["index"], "index"), f"{where}: the index signature"
+        for url, manifest in case["manifests"].items():
+            manifest_schema.validate(manifest)
+            assert _envelope_verifies(pub, manifest, "manifest"), f"{where}: the manifest signature at {url}"
+            assert all(not f["path"].startswith("/") for f in manifest["manifest"]["files"]) \
+                and not manifest["manifest"]["state"]["path"].startswith("/"), \
+                f"{where}: a listed path is not relative to the manifest"
+        outcome = _index_case_outcome(case)
+        assert outcome["expected"] == case["expected"], f"{where}: {outcome}, vector says {case['expected']}"
+        assert outcome["index_ordered"] == case["index_ordered"], f"{where}: listing order"
+        if case["expected"] != "accept":
+            assert case["response"] == "re-fetch the index", f"{where}: the response"
+    outcomes = {(c["expected"], c["index_ordered"]) for c in v["cases"]}
+    assert {("accept", True), ("accept", False), ("WIST3-E04", True)} <= outcomes, \
+        "the family does not separate the Consumer's outcome from the Aggregator's order"
+    first = v["cases"][0]["index"]["index"]["snapshots"]
+    assert first[0]["snapshot_date"] == first[1]["snapshot_date"] \
+        and first[0]["manifest_url"] != first[1]["manifest_url"], \
+        "no case serves two Snapshots of one date under two directories"
+
+check("vectors:wist3-snapshot-index", _wist3_snapshot_index)
+
+
+def _wist3_snapshot_index_twin():
+    """Mutation twin: an accepted entry given the manifest's tree_size plus one
+    must come out WIST3-E04, and a reversed same-date listing out of order."""
+    v = json.loads((ROOT / "vectors" / "wist3" / "snapshot-index.json").read_text())
+    case = json.loads(json.dumps(next(c for c in v["cases"] if c["expected"] == "accept" and c["index_ordered"])))
+    case["index"]["index"]["snapshots"][0]["tree_size"] += 1
+    assert _index_case_outcome(case)["expected"] == "WIST3-E04", "a moved tree_size still agreed"
+    case = json.loads(json.dumps(next(c for c in v["cases"] if c["expected"] == "accept" and c["index_ordered"])))
+    case["index"]["index"]["snapshots"].reverse()
+    assert not _index_case_outcome(case)["index_ordered"], "a reversed same-date listing read as ordered"
+
+check("negative:wist3-snapshot-index", _wist3_snapshot_index_twin)
 
 
 def _wist3_snapshot_keys_twin():

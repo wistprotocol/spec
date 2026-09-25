@@ -733,7 +733,7 @@
             {
               "snapshot_date": "2026-09-05",
               "tree_size": 1,
-              "manifest_url": "/snapshots/2026-09-05/manifest.json",
+              "manifest_url": "/snapshots/2026-09-05/000000000/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -741,7 +741,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "4ESO5DOKYPM9fstSOsCgSeuGeZxlyNnNswgrbKXwHgprahL1GFusAbbDlFf-Vk9sUoENSniweulPaICxa2l1DA"
+          "value": "mGldGENQfF83L4yVMgx2khldPLNXwi7JPFQZTDXx2hX5LfzgafdRlOa8RSKrgjL8NQs3ei9PzW6xq8H6YEuHCg"
         }
       },
       "manifest": {
@@ -843,7 +843,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -851,7 +851,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "ao_5HLQbJi8rzcywhfNOyocBSsrPCVzP1_SaYWAP3tyflEPWyqBr3CKpCairsg2gAn2d8aYWCxCC8kjYac8ECg"
+          "value": "1c9rgKdE0iRx6SI-Kdcxz-yLcnqC4u5gK5tbzxaN7E1K6_ZPcX_xQhRyMjkQuijEjaI21wg0pSOmFTp3KpkeDg"
         }
       },
       "manifest": {
@@ -967,7 +967,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -975,7 +975,7 @@
         "sig": {
           "key_id": "test-snap-x",
           "alg": "Ed25519",
-          "value": "50GvQqvBPNFFHNUfz6zUKFXCdRkmRHF_5jZcKChJFSMienC3McS7em0V8tPslyPrGA1H2N09DNe3UWUS6rQOBw"
+          "value": "9zkOHGteu00B5F74a3rhlB3ZMaFTrswPGxCSIa1FdasEg2O9VviF-EEaLOfh0lpQUS3KnPOU5T34Ou2NMtr2DA"
         }
       },
       "manifest": {
@@ -1122,7 +1122,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -1130,7 +1130,7 @@
         "sig": {
           "key_id": "test-snap-x",
           "alg": "Ed25519",
-          "value": "50GvQqvBPNFFHNUfz6zUKFXCdRkmRHF_5jZcKChJFSMienC3McS7em0V8tPslyPrGA1H2N09DNe3UWUS6rQOBw"
+          "value": "9zkOHGteu00B5F74a3rhlB3ZMaFTrswPGxCSIa1FdasEg2O9VviF-EEaLOfh0lpQUS3KnPOU5T34Ou2NMtr2DA"
         }
       },
       "manifest": {
@@ -1260,7 +1260,7 @@
             {
               "snapshot_date": "2026-09-05",
               "tree_size": 1,
-              "manifest_url": "/snapshots/2026-09-05/manifest.json",
+              "manifest_url": "/snapshots/2026-09-05/000000000/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -1268,7 +1268,7 @@
         "sig": {
           "key_id": "test-snap-g",
           "alg": "Ed25519",
-          "value": "8ZHg9rvGO3I5kqogDzuNPKHVwrkPr-U8bisuMmxPTydmx2Bvi3BFKBGznqWCZRMNlBGDem0ibvK6CTcHXkRbBg"
+          "value": "QD0cCwiS-l4A4eQy_7iQdedSZbb16-W_E1FjTytVRmiO2dmjV4au-yKxdpUcKqFlMix2Az09PT14fFZdKwfcDQ"
         }
       },
       "manifest": {
@@ -1348,7 +1348,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -1356,7 +1356,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -1554,7 +1554,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -1562,7 +1562,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -1760,7 +1760,7 @@
             {
               "snapshot_date": "2026-09-05",
               "tree_size": 1,
-              "manifest_url": "/snapshots/2026-09-05/manifest.json",
+              "manifest_url": "/snapshots/2026-09-05/000000000/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -1768,7 +1768,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "4ESO5DOKYPM9fstSOsCgSeuGeZxlyNnNswgrbKXwHgprahL1GFusAbbDlFf-Vk9sUoENSniweulPaICxa2l1DA"
+          "value": "mGldGENQfF83L4yVMgx2khldPLNXwi7JPFQZTDXx2hX5LfzgafdRlOa8RSKrgjL8NQs3ei9PzW6xq8H6YEuHCg"
         }
       },
       "manifest": {
@@ -1873,7 +1873,7 @@
             {
               "snapshot_date": "2026-09-05",
               "tree_size": 1,
-              "manifest_url": "/snapshots/2026-09-05/manifest.json",
+              "manifest_url": "/snapshots/2026-09-05/000000000/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -1881,7 +1881,7 @@
         "sig": {
           "key_id": "test-snap-g",
           "alg": "Ed25519",
-          "value": "rRFWhVSeOOtyGYvkptn27S4vF4ThEfjngX64Ei9A-s0oCJbqVbjsXIPtZsSBcshjMlEIy356ZdzrW0XxnObgBA"
+          "value": "C304X1x2Zfq7e0F8Plsc3sMlgME9u-MgYXHKuC7ByWsrSdYHDbKhY-zcwz7R3Tigq86KQy4t5Ta5ICz3SosPDQ"
         }
       },
       "manifest": {
@@ -1986,7 +1986,7 @@
             {
               "snapshot_date": "2026-09-07",
               "tree_size": 3,
-              "manifest_url": "/snapshots/2026-09-07/manifest.json",
+              "manifest_url": "/snapshots/2026-09-07/000000002/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -1994,7 +1994,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "1lZOWjGNXFw6DgYyJMGHpV3cVLm0v_JUsq_FYXrBgowK-k1scGjkBXoDDphy4faSo9gA7vvX-3Gx-rs0V8N_Cg"
+          "value": "yh2epUG4_1lSQBd-HeBlflAUSR2_SgvKR3t9iuuzdVKXeOgM6JYX56g7dAW8dwtXSqj32GVl-kcQR6q3CyElBQ"
         }
       },
       "manifest": {
@@ -2140,7 +2140,7 @@
             {
               "snapshot_date": "2026-09-07",
               "tree_size": 3,
-              "manifest_url": "/snapshots/2026-09-07/manifest.json",
+              "manifest_url": "/snapshots/2026-09-07/000000002/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -2148,7 +2148,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "1lZOWjGNXFw6DgYyJMGHpV3cVLm0v_JUsq_FYXrBgowK-k1scGjkBXoDDphy4faSo9gA7vvX-3Gx-rs0V8N_Cg"
+          "value": "yh2epUG4_1lSQBd-HeBlflAUSR2_SgvKR3t9iuuzdVKXeOgM6JYX56g7dAW8dwtXSqj32GVl-kcQR6q3CyElBQ"
         }
       },
       "manifest": {
@@ -2320,7 +2320,7 @@
             {
               "snapshot_date": "2026-09-07",
               "tree_size": 3,
-              "manifest_url": "/snapshots/2026-09-07/manifest.json",
+              "manifest_url": "/snapshots/2026-09-07/000000002/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -2328,7 +2328,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "1lZOWjGNXFw6DgYyJMGHpV3cVLm0v_JUsq_FYXrBgowK-k1scGjkBXoDDphy4faSo9gA7vvX-3Gx-rs0V8N_Cg"
+          "value": "yh2epUG4_1lSQBd-HeBlflAUSR2_SgvKR3t9iuuzdVKXeOgM6JYX56g7dAW8dwtXSqj32GVl-kcQR6q3CyElBQ"
         }
       },
       "manifest": {
@@ -2472,7 +2472,7 @@
             {
               "snapshot_date": "2026-09-09",
               "tree_size": 6,
-              "manifest_url": "/snapshots/2026-09-09/manifest.json",
+              "manifest_url": "/snapshots/2026-09-09/000000004/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -2480,7 +2480,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "PQRvHkafnGHtiR6VulHM8XYMxTRpPhXcOFXah59sMa3Znnrz4qSKQri-o3FXTzWTvfcZhbO5NyJrN0XBRhDsCQ"
+          "value": "gFeR5l6rgXquN2MhpYywsMKQZfudNpzRwOdwZ1x17xb8n_MSWHLFrC3DQjI1BwFEJjm1sEKZ25oOdBb_e3afDg"
         }
       },
       "manifest": {
@@ -2667,7 +2667,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -2675,7 +2675,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -2862,7 +2862,7 @@
             {
               "snapshot_date": "2026-09-09",
               "tree_size": 6,
-              "manifest_url": "/snapshots/2026-09-09/manifest.json",
+              "manifest_url": "/snapshots/2026-09-09/000000004/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -2870,7 +2870,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "PQRvHkafnGHtiR6VulHM8XYMxTRpPhXcOFXah59sMa3Znnrz4qSKQri-o3FXTzWTvfcZhbO5NyJrN0XBRhDsCQ"
+          "value": "gFeR5l6rgXquN2MhpYywsMKQZfudNpzRwOdwZ1x17xb8n_MSWHLFrC3DQjI1BwFEJjm1sEKZ25oOdBb_e3afDg"
         }
       },
       "manifest": {
@@ -3057,7 +3057,7 @@
             {
               "snapshot_date": "2026-09-07",
               "tree_size": 3,
-              "manifest_url": "/snapshots/2026-09-07/manifest.json",
+              "manifest_url": "/snapshots/2026-09-07/000000002/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -3065,7 +3065,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "1lZOWjGNXFw6DgYyJMGHpV3cVLm0v_JUsq_FYXrBgowK-k1scGjkBXoDDphy4faSo9gA7vvX-3Gx-rs0V8N_Cg"
+          "value": "yh2epUG4_1lSQBd-HeBlflAUSR2_SgvKR3t9iuuzdVKXeOgM6JYX56g7dAW8dwtXSqj32GVl-kcQR6q3CyElBQ"
         }
       },
       "manifest": {
@@ -3226,7 +3226,7 @@
             {
               "snapshot_date": "2026-09-09",
               "tree_size": 6,
-              "manifest_url": "/snapshots/2026-09-09/manifest.json",
+              "manifest_url": "/snapshots/2026-09-09/000000004/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -3234,7 +3234,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "PQRvHkafnGHtiR6VulHM8XYMxTRpPhXcOFXah59sMa3Znnrz4qSKQri-o3FXTzWTvfcZhbO5NyJrN0XBRhDsCQ"
+          "value": "gFeR5l6rgXquN2MhpYywsMKQZfudNpzRwOdwZ1x17xb8n_MSWHLFrC3DQjI1BwFEJjm1sEKZ25oOdBb_e3afDg"
         }
       },
       "manifest": {
@@ -3406,7 +3406,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -3414,7 +3414,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -3612,7 +3612,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -3620,7 +3620,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -3818,7 +3818,7 @@
             {
               "snapshot_date": "2026-09-07",
               "tree_size": 3,
-              "manifest_url": "/snapshots/2026-09-07/manifest.json",
+              "manifest_url": "/snapshots/2026-09-07/000000002/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -3826,7 +3826,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "1lZOWjGNXFw6DgYyJMGHpV3cVLm0v_JUsq_FYXrBgowK-k1scGjkBXoDDphy4faSo9gA7vvX-3Gx-rs0V8N_Cg"
+          "value": "yh2epUG4_1lSQBd-HeBlflAUSR2_SgvKR3t9iuuzdVKXeOgM6JYX56g7dAW8dwtXSqj32GVl-kcQR6q3CyElBQ"
         }
       },
       "manifest": {
@@ -3972,7 +3972,7 @@
             {
               "snapshot_date": "2026-09-05",
               "tree_size": 1,
-              "manifest_url": "/snapshots/2026-09-05/manifest.json",
+              "manifest_url": "/snapshots/2026-09-05/000000000/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -3980,7 +3980,7 @@
         "sig": {
           "key_id": "test-snap-g",
           "alg": "Ed25519",
-          "value": "rRFWhVSeOOtyGYvkptn27S4vF4ThEfjngX64Ei9A-s0oCJbqVbjsXIPtZsSBcshjMlEIy356ZdzrW0XxnObgBA"
+          "value": "C304X1x2Zfq7e0F8Plsc3sMlgME9u-MgYXHKuC7ByWsrSdYHDbKhY-zcwz7R3Tigq86KQy4t5Ta5ICz3SosPDQ"
         }
       },
       "manifest": {
@@ -4085,7 +4085,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4093,7 +4093,7 @@
         "sig": {
           "key_id": "test-snap-c",
           "alg": "Ed25519",
-          "value": "utgWa3r9KLfRTSYEFyT1ogZqdhgsdyc6zyuAx-qsLN01vQ9FvwWiwRPZnZoXGIVw0XrfLZAZoTDACsefAq1FDQ"
+          "value": "hQ1gpVnP3bJ4xsTf9ZnUUeP21NcVzgXYgd5QgHqzyV-mjZFAQxi7EFt5CfjxqLOv-Pfm3v3OL22GUTnZtdunBA"
         }
       },
       "manifest": {
@@ -4211,7 +4211,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4219,7 +4219,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "lY_5HLQbJi8rzcywhfNOyocBSsrPCVzP1_SaYWAP3tyflEPWyqBr3CKpCairsg2gAn2d8aYWCxCC8kjYac8ECg"
+          "value": "Ks9rgKdE0iRx6SI-Kdcxz-yLcnqC4u5gK5tbzxaN7E1K6_ZPcX_xQhRyMjkQuijEjaI21wg0pSOmFTp3KpkeDg"
         }
       },
       "manifest": {
@@ -4339,7 +4339,7 @@
             {
               "snapshot_date": "2026-09-05",
               "tree_size": 1,
-              "manifest_url": "/snapshots/2026-09-05/manifest.json",
+              "manifest_url": "/snapshots/2026-09-05/000000000/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4347,7 +4347,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "4ESO5DOKYPM9fstSOsCgSeuGeZxlyNnNswgrbKXwHgprahL1GFusAbbDlFf-Vk9sUoENSniweulPaICxa2l1DA"
+          "value": "mGldGENQfF83L4yVMgx2khldPLNXwi7JPFQZTDXx2hX5LfzgafdRlOa8RSKrgjL8NQs3ei9PzW6xq8H6YEuHCg"
         }
       },
       "manifest": {
@@ -4452,7 +4452,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4460,7 +4460,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "ao_5HLQbJi8rzcywhfNOyocBSsrPCVzP1_SaYWAP3tyflEPWyqBr3CKpCairsg2gAn2d8aYWCxCC8kjYac8ECg"
+          "value": "1c9rgKdE0iRx6SI-Kdcxz-yLcnqC4u5gK5tbzxaN7E1K6_ZPcX_xQhRyMjkQuijEjaI21wg0pSOmFTp3KpkeDg"
         }
       },
       "manifest": {
@@ -4578,7 +4578,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4586,7 +4586,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "ao_5HLQbJi8rzcywhfNOyocBSsrPCVzP1_SaYWAP3tyflEPWyqBr3CKpCairsg2gAn2d8aYWCxCC8kjYac8ECg"
+          "value": "1c9rgKdE0iRx6SI-Kdcxz-yLcnqC4u5gK5tbzxaN7E1K6_ZPcX_xQhRyMjkQuijEjaI21wg0pSOmFTp3KpkeDg"
         }
       },
       "manifest": {
@@ -4706,7 +4706,7 @@
             {
               "snapshot_date": "2026-09-05",
               "tree_size": 1,
-              "manifest_url": "/snapshots/2026-09-05/manifest.json",
+              "manifest_url": "/snapshots/2026-09-05/000000000/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4714,7 +4714,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "4ESO5DOKYPM9fstSOsCgSeuGeZxlyNnNswgrbKXwHgprahL1GFusAbbDlFf-Vk9sUoENSniweulPaICxa2l1DA"
+          "value": "mGldGENQfF83L4yVMgx2khldPLNXwi7JPFQZTDXx2hX5LfzgafdRlOa8RSKrgjL8NQs3ei9PzW6xq8H6YEuHCg"
         }
       },
       "manifest": {
@@ -4819,7 +4819,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4827,7 +4827,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "ao_5HLQbJi8rzcywhfNOyocBSsrPCVzP1_SaYWAP3tyflEPWyqBr3CKpCairsg2gAn2d8aYWCxCC8kjYac8ECg"
+          "value": "1c9rgKdE0iRx6SI-Kdcxz-yLcnqC4u5gK5tbzxaN7E1K6_ZPcX_xQhRyMjkQuijEjaI21wg0pSOmFTp3KpkeDg"
         }
       },
       "manifest": {
@@ -4945,7 +4945,7 @@
             {
               "snapshot_date": "2026-09-06",
               "tree_size": 2,
-              "manifest_url": "/snapshots/2026-09-06/manifest.json",
+              "manifest_url": "/snapshots/2026-09-06/000000001/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -4953,7 +4953,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "ao_5HLQbJi8rzcywhfNOyocBSsrPCVzP1_SaYWAP3tyflEPWyqBr3CKpCairsg2gAn2d8aYWCxCC8kjYac8ECg"
+          "value": "1c9rgKdE0iRx6SI-Kdcxz-yLcnqC4u5gK5tbzxaN7E1K6_ZPcX_xQhRyMjkQuijEjaI21wg0pSOmFTp3KpkeDg"
         }
       },
       "manifest": {
@@ -5073,7 +5073,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -5081,7 +5081,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -5296,7 +5296,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -5304,7 +5304,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -5534,7 +5534,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -5542,7 +5542,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -5798,7 +5798,7 @@
             {
               "snapshot_date": "2026-09-08",
               "tree_size": 4,
-              "manifest_url": "/snapshots/2026-09-08/manifest.json",
+              "manifest_url": "/snapshots/2026-09-08/000000003/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -5806,7 +5806,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "hxLoeFshcwHYHI0VqWQbHNiv1LaBxFZugPqwcMtqswRUklZJwCTt53lqqc92kykiyBSy_RqDE9iP7syKkNfwAw"
+          "value": "a4QrJdWIQyNkSfoqHz-4FuNZS-4b9y64clwjUJyFPoj0p_jjeZmxN4EAKiOuxNHKQJqfBdX_TlZcJQBW2HalAQ"
         }
       },
       "manifest": {
@@ -6057,7 +6057,7 @@
             {
               "snapshot_date": "2026-09-09",
               "tree_size": 6,
-              "manifest_url": "/snapshots/2026-09-09/manifest.json",
+              "manifest_url": "/snapshots/2026-09-09/000000004/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -6065,7 +6065,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "PQRvHkafnGHtiR6VulHM8XYMxTRpPhXcOFXah59sMa3Znnrz4qSKQri-o3FXTzWTvfcZhbO5NyJrN0XBRhDsCQ"
+          "value": "gFeR5l6rgXquN2MhpYywsMKQZfudNpzRwOdwZ1x17xb8n_MSWHLFrC3DQjI1BwFEJjm1sEKZ25oOdBb_e3afDg"
         }
       },
       "manifest": {
@@ -6249,7 +6249,7 @@
             {
               "snapshot_date": "2026-09-09",
               "tree_size": 6,
-              "manifest_url": "/snapshots/2026-09-09/manifest.json",
+              "manifest_url": "/snapshots/2026-09-09/000000004/manifest.json",
               "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             }
           ]
@@ -6257,7 +6257,7 @@
         "sig": {
           "key_id": "test-snap-b",
           "alg": "Ed25519",
-          "value": "PQRvHkafnGHtiR6VulHM8XYMxTRpPhXcOFXah59sMa3Znnrz4qSKQri-o3FXTzWTvfcZhbO5NyJrN0XBRhDsCQ"
+          "value": "gFeR5l6rgXquN2MhpYywsMKQZfudNpzRwOdwZ1x17xb8n_MSWHLFrC3DQjI1BwFEJjm1sEKZ25oOdBb_e3afDg"
         }
       },
       "manifest": {

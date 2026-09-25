@@ -3365,6 +3365,50 @@ snapshot_digest = content_digest(snapshot_records)
 assert content_digest(list(reversed(snapshot_records))) == snapshot_digest, \
     "the digest depends on input order"
 
+
+def snapshot_directory(manifest_inner) -> str:
+    """WIST-3 §6: /snapshots/<snapshot_date>/<epoch_number>/, nine-digit Epoch."""
+    return "/snapshots/%s/%09d/" % (manifest_inner["snapshot_date"], manifest_inner["epoch_number"])
+
+
+def shard_of(domain: str, count: int) -> int:
+    """WIST-3 §7: first 8 octets of SHA-256(UTF-8 domain), big-endian, mod count."""
+    return int.from_bytes(hashlib.sha256(domain.encode()).digest()[:8], "big") % count
+
+
+# WIST-3 §7 sharding: the same records split by Publisher domain, the six tier
+# files of shard i under shard-<i>/, and Label, labeler and dispute rows filed
+# by Labeler and disputant rather than by the subject's Publisher. The count is
+# the smallest one that separates the two Publishers; a shard no domain hashes
+# to is listed like any other, its digest the digest of no records.
+SHARD_TIER_FILES = [("tier0/index.sqlite", 0), ("tier1/extracts.parquet", 1),
+                    ("tier1/links.parquet", 1), ("tier1/labels.parquet", 1),
+                    ("tier1/disputes.parquet", 1), ("tier1/labelers.parquet", 1)]
+_publishers = sorted({r["publisher"] for r in snapshot_records})
+SHARD_COUNT = next(n for n in range(2, 64)
+                   if len({shard_of(d, n) for d in _publishers}) == len(_publishers))
+_labeler_a, _labeler_b, _disputant = "labels.sample.net", "example.com", "reduced.example.org"
+_sharded_domains = sorted(set(_publishers) | {_labeler_a, _labeler_b, _disputant})
+sharded_records = {
+    "count": SHARD_COUNT,
+    "shard_of": {d: shard_of(d, SHARD_COUNT) for d in _sharded_domains},
+    "digests": [content_digest([r for r in snapshot_records
+                                if shard_of(r["publisher"], SHARD_COUNT) == i])
+                for i in range(SHARD_COUNT)],
+    "files": [{"path": "shard-%d/%s" % (i, path), "tier": tier, "shard": i}
+              for i in range(SHARD_COUNT) for path, tier in SHARD_TIER_FILES],
+    "label_rows": [
+        {"labeler": _labeler_a, "subject": DELTA_URL, "name": "wist:copied",
+         "shard": shard_of(_labeler_a, SHARD_COUNT)},
+        {"labeler": _labeler_b, "subject": "https://reduced.example.org/notice",
+         "name": "wist:spam", "shard": shard_of(_labeler_b, SHARD_COUNT)},
+    ],
+    "labeler_rows": [{"labeler": d, "shard": shard_of(d, SHARD_COUNT)}
+                     for d in (_labeler_a, _labeler_b)],
+    "dispute_rows": [{"disputant": _disputant, "shard": shard_of(_disputant, SHARD_COUNT)}],
+}
+assert sorted(sharded_records["digests"]) != [snapshot_digest] * SHARD_COUNT
+
 # tier1/links.parquet materialization (WIST-3 §7): one row per declared link of
 # every live record, (source_url, target_url, position). source_url is the
 # record's Normalized URL; target_url and position come from that record's
@@ -3402,6 +3446,20 @@ write_json(WIST3 / "snapshot-records.json", {
     "records": snapshot_records,
     "content_digest": snapshot_digest,
     "links": snapshot_links,
+    "sharded": dict(
+        note=("WIST-3 §7 sharding over the same records: `count` shards, "
+              "`shard_of` the shard index §7's domain rule gives each domain "
+              "named here, `digests` the per-shard content_digest over the "
+              "records whose publisher hashes to that shard — a shard no "
+              "record falls in has the digest of no records — (the whole-set "
+              "content_digest above is unchanged), `files` the manifest "
+              "entries a sharded Snapshot lists — shard i's six tier files "
+              "under shard-<i>/ with a matching `shard` — and the label, "
+              "labeler and dispute rows with the shard each is filed under: "
+              "by Labeler and by disputant, not by the subject's Publisher "
+              "(the example.com Label about a reduced.example.org URL sits in "
+              "example.com's shard)."),
+        **sharded_records),
 })
 
 # ------------------------------- WIST-3 §7: applying Deltas along their chains
@@ -3610,12 +3668,86 @@ snapshot_index = {
     "snapshots": [
         {"snapshot_date": manifest["snapshot_date"],
          "tree_size": manifest["tree_size"],
-         "manifest_url": "/snapshots/%s/manifest.json" % manifest["snapshot_date"],
+         "manifest_url": snapshot_directory(manifest) + "manifest.json",
          "content_digest": manifest["content_digest"]},
     ],
 }
 write_json(EXAMPLES / "snapshot-index.json",
            sign_envelope("index", snapshot_index, "test-agg-k1"))
+
+# --------------------------------- WIST-3 §6: immutable Snapshot directories
+# One directory per Snapshot, /snapshots/<snapshot_date>/<epoch_number>/, the
+# Epoch zero-padded to nine digits; a later Epoch of the same date gets its
+# own directory and index entry, and the index lists the higher Epoch first
+# within a date. A Consumer checks the entry it chose against the manifest it
+# names (§8 step 2); a disagreement means the index it read is stale.
+def index_entry(m):
+    return {"snapshot_date": m["snapshot_date"], "tree_size": m["tree_size"],
+            "manifest_url": snapshot_directory(m) + "manifest.json",
+            "content_digest": m["content_digest"]}
+
+later_manifest = dict(manifest, epoch_number=manifest["epoch_number"] + 1)
+same_date_manifests = {
+    snapshot_directory(m) + "manifest.json": sign_envelope("manifest", m, "test-agg-k1")
+    for m in (manifest, later_manifest)}
+index_cases = []
+
+def index_case(name, why, entries, expected, index_ordered, manifests=None, response=None):
+    inner = {"wist_version": "1.0.0", "updated_at": "2026-08-02T14:05:00Z",
+             "snapshots": entries}
+    record = {"name": name, "why": why,
+              "index": sign_envelope("index", inner, "test-agg-k1"),
+              "manifests": manifests or same_date_manifests,
+              "expected": expected, "index_ordered": index_ordered}
+    if response:
+        record["response"] = response
+    index_cases.append(record)
+
+index_case("two Snapshots of one date, higher Epoch first",
+           "the same date at Epochs 1 and 0, each under its own directory; the "
+           "Consumer's entry is the first, and the manifest it names agrees with it",
+           [index_entry(later_manifest), index_entry(manifest)], "accept", True)
+index_case("the lower Epoch of a date listed first",
+           "the Consumer's step 2 accepts the entry it chose, but the index "
+           "breaks §6's order: within one date the higher Epoch comes first",
+           [index_entry(manifest), index_entry(later_manifest)], "accept", False)
+index_case("an entry whose manifest states another tree_size",
+           "the entry restates a tree one leaf larger than the manifest at its "
+           "URL declares: the index the Consumer read no longer describes the "
+           "served directory, which is never rewritten (§6), so the Consumer "
+           "re-fetches the index rather than the manifest",
+           [dict(index_entry(later_manifest), tree_size=later_manifest["tree_size"] + 1),
+            index_entry(manifest)], "WIST3-E04", True, response="re-fetch the index")
+index_case("an entry whose manifest states another content_digest",
+           "the entry's digest is not the manifest's: the same stale-index "
+           "outcome as a tree_size disagreement",
+           [dict(index_entry(later_manifest),
+                 content_digest="sha256:" + sha256_hex(b"another record set")),
+            index_entry(manifest)], "WIST3-E04", True, response="re-fetch the index")
+index_case("an entry whose manifest states another snapshot_date",
+           "the entry dates the Snapshot a day later than its manifest does",
+           [dict(index_entry(later_manifest), snapshot_date="2026-08-03"),
+            index_entry(manifest)], "WIST3-E04", True, response="re-fetch the index")
+
+write_json(WIST3 / "snapshot-index.json", {
+    "note": ("WIST-3 §6 and §8 step 2: each Snapshot is served under its own "
+             "immutable directory /snapshots/<snapshot_date>/<epoch_number>/, "
+             "the Epoch zero-padded to nine digits, and the index lists the "
+             "Snapshots newest snapshot_date first and, within one date, the "
+             "higher epoch_number first. A case is one signed index and the "
+             "signed manifests served at the URLs it names (`manifests`, keyed "
+             "by manifest_url); the Consumer chooses the first entry and "
+             "checks its snapshot_date, tree_size and content_digest against "
+             "the manifest (`expected`: accept, or WIST3-E04 with `response` "
+             "naming what is re-fetched — the index, since a served directory "
+             "is never rewritten and a disagreement means the index read is "
+             "stale). `index_ordered` is the Aggregator's obligation, judged "
+             "separately from the Consumer's outcome: the listing order §6 "
+             "requires, recomputed from the manifests' dates and Epochs. Every "
+             "index and manifest is signed under the examples' test-agg-k1."),
+    "cases": index_cases,
+})
+print("wist3 snapshot index vectors written")
 print("wist3 snapshot content digest:", snapshot_digest)
 print("wist3 epoch hash:", epoch_hash)
 print("wist3 merkle root:", epoch_hash)
@@ -3780,7 +3912,7 @@ def snapshot_key_vectors() -> dict:
         index_inner = {
             "wist_version": "1.0.0", "updated_at": date + "T12:00:00Z",
             "snapshots": [{"snapshot_date": date, "tree_size": epoch["tree_size"],
-                           "manifest_url": "/snapshots/%s/manifest.json" % date,
+                           "manifest_url": snapshot_directory(manifest_inner) + "manifest.json",
                            "content_digest": SNAPSHOT_KEY_CONTENT_DIGEST}]}
         index = sign_envelope_with(signers["index"][1], "index", index_inner,
                                    signers["index"][0])

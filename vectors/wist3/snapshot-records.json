@@ -39,5 +39,141 @@
       "target_url": "https://example.org/~user",
       "position": 2
     }
-  ]
+  ],
+  "sharded": {
+    "note": "WIST-3 \u00a77 sharding over the same records: `count` shards, `shard_of` the shard index \u00a77's domain rule gives each domain named here, `digests` the per-shard content_digest over the records whose publisher hashes to that shard \u2014 a shard no record falls in has the digest of no records \u2014 (the whole-set content_digest above is unchanged), `files` the manifest entries a sharded Snapshot lists \u2014 shard i's six tier files under shard-<i>/ with a matching `shard` \u2014 and the label, labeler and dispute rows with the shard each is filed under: by Labeler and by disputant, not by the subject's Publisher (the example.com Label about a reduced.example.org URL sits in example.com's shard).",
+    "count": 3,
+    "shard_of": {
+      "example.com": 1,
+      "labels.sample.net": 0,
+      "reduced.example.org": 0
+    },
+    "digests": [
+      "sha256:4d8e0706c775f84ab1e4cdd08584cc89423519dca7cce02de47dcf1cf91bd8aa",
+      "sha256:bb475ba1215b42a4c3369166b6c449dd4628c3582c3ee8a9dc523835f703e2eb",
+      "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    ],
+    "files": [
+      {
+        "path": "shard-0/tier0/index.sqlite",
+        "tier": 0,
+        "shard": 0
+      },
+      {
+        "path": "shard-0/tier1/extracts.parquet",
+        "tier": 1,
+        "shard": 0
+      },
+      {
+        "path": "shard-0/tier1/links.parquet",
+        "tier": 1,
+        "shard": 0
+      },
+      {
+        "path": "shard-0/tier1/labels.parquet",
+        "tier": 1,
+        "shard": 0
+      },
+      {
+        "path": "shard-0/tier1/disputes.parquet",
+        "tier": 1,
+        "shard": 0
+      },
+      {
+        "path": "shard-0/tier1/labelers.parquet",
+        "tier": 1,
+        "shard": 0
+      },
+      {
+        "path": "shard-1/tier0/index.sqlite",
+        "tier": 0,
+        "shard": 1
+      },
+      {
+        "path": "shard-1/tier1/extracts.parquet",
+        "tier": 1,
+        "shard": 1
+      },
+      {
+        "path": "shard-1/tier1/links.parquet",
+        "tier": 1,
+        "shard": 1
+      },
+      {
+        "path": "shard-1/tier1/labels.parquet",
+        "tier": 1,
+        "shard": 1
+      },
+      {
+        "path": "shard-1/tier1/disputes.parquet",
+        "tier": 1,
+        "shard": 1
+      },
+      {
+        "path": "shard-1/tier1/labelers.parquet",
+        "tier": 1,
+        "shard": 1
+      },
+      {
+        "path": "shard-2/tier0/index.sqlite",
+        "tier": 0,
+        "shard": 2
+      },
+      {
+        "path": "shard-2/tier1/extracts.parquet",
+        "tier": 1,
+        "shard": 2
+      },
+      {
+        "path": "shard-2/tier1/links.parquet",
+        "tier": 1,
+        "shard": 2
+      },
+      {
+        "path": "shard-2/tier1/labels.parquet",
+        "tier": 1,
+        "shard": 2
+      },
+      {
+        "path": "shard-2/tier1/disputes.parquet",
+        "tier": 1,
+        "shard": 2
+      },
+      {
+        "path": "shard-2/tier1/labelers.parquet",
+        "tier": 1,
+        "shard": 2
+      }
+    ],
+    "label_rows": [
+      {
+        "labeler": "labels.sample.net",
+        "subject": "https://example.com/blog/post-1",
+        "name": "wist:copied",
+        "shard": 0
+      },
+      {
+        "labeler": "example.com",
+        "subject": "https://reduced.example.org/notice",
+        "name": "wist:spam",
+        "shard": 1
+      }
+    ],
+    "labeler_rows": [
+      {
+        "labeler": "labels.sample.net",
+        "shard": 0
+      },
+      {
+        "labeler": "example.com",
+        "shard": 1
+      }
+    ],
+    "dispute_rows": [
+      {
+        "disputant": "reduced.example.org",
+        "shard": 0
+      }
+    ]
+  }
 }

@@ -821,12 +821,32 @@ but they are the one class of file that may cease to be served, under §6.2.
 /log/suffix-lists/7d33b504….dat         (immutable; a pinned Public Suffix List snapshot, WIST-4 §3.1)
 /payloads/6cac5bdd….json                (one per content-bearing Delta — §6.1)
 /snapshots/index.json                   (mutable, signed; the discovery entry point)
-/snapshots/2026-08-02/manifest.json     (signed; declares log position)
-/snapshots/2026-08-02/state.json        (signed; the state artifact — §7)
-/snapshots/2026-08-02/tier0/index.sqlite
-/snapshots/2026-08-02/tier1/extracts.parquet
-/snapshots/2026-08-02/tier1/links.parquet
+/snapshots/2026-08-02/000000000/manifest.json          (immutable, signed; declares log position — one directory per Snapshot, named by its date and Epoch)
+/snapshots/2026-08-02/000000000/state.json             (immutable, signed; the state artifact — §7)
+/snapshots/2026-08-02/000000000/tier0/index.sqlite
+/snapshots/2026-08-02/000000000/tier1/extracts.parquet
+/snapshots/2026-08-02/000000000/tier1/links.parquet
+/snapshots/2026-08-03/000000024/shard-0/tier0/index.sqlite   (a sharded Snapshot: shard 0's six tier files under shard-0/ — §7)
+/snapshots/2026-08-03/000000024/shard-1/tier0/index.sqlite
 ```
+
+**Snapshot directories are immutable.** A Snapshot is served under a
+directory of its own, `/snapshots/<snapshot_date>/<epoch_number>/`, the
+Epoch number zero-padded to nine digits as under `/log/checkpoints/`,
+and that directory is written once: an Aggregator MUST NOT serve another
+Snapshot, or other octets, at a path a served manifest or index entry
+has named. The one rewrite of a served document is §3.4's re-signing
+after a key removal, which replaces the signature of the manifest or
+state file and nothing the signature covers. A later Snapshot, one
+taken at a later Epoch of the same `snapshot_date` included, gets its
+own directory and its own index entry; a Snapshot stops being served by
+removing its index entry and then its files. Rewriting a directory in place would put a Consumer
+that read the index before the rewrite in front of a manifest its entry
+does not describe, and a Mirror that fetched a tier file before it in
+front of octets no current manifest hashes. A Mirror MAY satisfy a
+listed file from any copy whose `sha256` and `bytes` the manifest
+states, which is how an unchanged shard crosses Snapshots without a
+second fetch.
 
 `/log/anchor.json` is served here for convenience only. It is the Log's
 out-of-band trust root, and a Consumer MUST NOT accept the copy served at
@@ -920,9 +940,9 @@ Mirror MUST serve unchanged.
 is the discovery entry point: a signed, mutable index whose inner object is
 `index`, carrying `wist_version`, `updated_at` (when the Aggregator last
 rewrote it), and `snapshots` — the Snapshots the Aggregator currently
-serves, newest `snapshot_date` first, each with its `tree_size`, its
-`manifest_url`, and the `content_digest` (§7) that Snapshot's manifest
-declares. Cold start begins there (§8). The index
+serves, newest `snapshot_date` first and, within one date, the higher
+`epoch_number` first, each with its `tree_size`, its `manifest_url`, and
+the `content_digest` (§7) that Snapshot's manifest declares. Cold start begins there (§8). The index
 carries the digest so that a Consumer can check a manifest it fetches
 against a second, independently signed statement of what that Snapshot
 contains. An Aggregator MUST remove an entry from the index when it stops
@@ -1479,6 +1499,24 @@ trusting it. `shards.count` is the Aggregator's choice per Snapshot; a
 manifest without `shards` is the `count` = 1 case with the bookkeeping
 elided.
 
+Where sharded, shard *i*'s six tier files (below) sit under `shard-<i>/`
+relative to the manifest, `<i>` the decimal index without padding
+(`shard-0/tier0/index.sqlite`), and a `files` entry's `shard` is the
+index its path prefix names. A sharded manifest whose `digests` has
+other than `count` entries, that lists a file without a `shard` or with
+one outside `[0, count)`, lists a tier file outside its `shard-<i>/`
+prefix, or has a shard in `[0, count)` with no `tier0/index.sqlite`
+entry of `tier` 0, does not verify (`WIST3-E04`). Rows are assigned by
+the domain rule
+above applied to the domain each row is keyed by, the same keys the
+state artifact's parts use (below): a record's row and its
+`tier1/extracts.parquet` and `tier1/links.parquet` rows by the record's
+Publisher, `tier1/labels.parquet` and `tier1/labelers.parquet` rows by
+the Labeler, `tier1/disputes.parquet` rows by the disputant. A Label
+is not filed under its subject's Publisher: a subject can be a URL no
+record covers, and the rows a subscription decision reads (WIST-4 §6)
+are a Labeler's, which this rule keeps whole in one shard.
+
 **Tier layout is normative.** A conforming rebuild MUST produce, per
 shard where sharded: `tier0/index.sqlite` — a SQLite database whose
 table `records` has columns `url`, `publisher`, `delta_id`,
@@ -1695,10 +1733,13 @@ above, treats its coverage as partial.
 2. Fetch that entry's `manifest_url`; validate it against its schema;
    verify that its `snapshot_date`, `tree_size` and `content_digest` are the ones the
    index entry named (`WIST3-E04` on disagreement — the two are independently
-   signed statements about the same Snapshot).
+   signed statements about the same Snapshot; since a served directory is
+   never rewritten (§6), a disagreement means the index the Consumer read
+   is no longer the current one, and the re-fetch is of the index).
 3. Download the listed files — all of them, or, under a manifest that
-   declares `shards` (§7), the state file and any subset of shards —
-   and verify each SHA-256 and byte size.
+   declares `shards` (§7), the state file and the files of any subset
+   of shards, selected by their `shard` index — and verify each SHA-256
+   and byte size.
 4. Load the state artifact (§7): verify that its `tree_size` is the
    manifest's and authenticate its `aggregator_key` tuples from the
    Anchor as §7 requires (`WIST3-E04` otherwise, rejecting the
@@ -1993,9 +2034,16 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       Checkpoint `epoch_number` states
 - [ ] Treats any companion pack it publishes itself as a Snapshot
       artifact for §6.2's withdrawal obligations (§7)
-- [ ] Publishes `/snapshots/index.json`, signed, newest first, agreeing
-      with each manifest it points to, and removes an entry when it stops
-      serving that Snapshot (§6)
+- [ ] Publishes `/snapshots/index.json`, signed, newest first — the
+      higher Epoch first within one date — agreeing with each manifest it
+      points to, and removes an entry when it stops serving that Snapshot
+      (§6)
+- [ ] Serves each Snapshot under an immutable directory of its own, a
+      later Snapshot of the same date under a new one, and never rewrites
+      a path a served manifest or index entry has named (§6)
+- [ ] Where sharded, lists each shard's six tier files under `shard-<i>/`
+      with a matching `shard` index and files Label, labeler and dispute
+      rows by Labeler and disputant (§7)
 - [ ] Carries each key's adding and removing act in its `aggregator_key`
       tuple (§7), and on removing a key re-signs every unsealed document
       that key signed and it still serves (§3.4)
@@ -2117,6 +2165,7 @@ sensitive Consumers can sync over Tor or from a Mirror they operate.
       they verify (`WIST3-E04`; §3.4, §7, §8)
 - [ ] On cold start from a Snapshot, loads the state artifact and
       validates subsequent Entries against it; on a sharded Snapshot,
+      reads each held shard's six tier files under `shard-<i>/`,
       verifies each held shard's digest and treats coverage as partial
       (§7, §8)
 - [ ] On accepting a successor Anchor, verifies the predecessor chain to
@@ -2221,7 +2270,15 @@ domain's Delta is not an Entry of the example Epoch; the vector demonstrates
 the record encoding, not a materialization of Epoch 0.
 [`examples/snapshot-index.json`](../examples/snapshot-index.json) is the
 corresponding discovery index, carrying the same `snapshot_date`,
-`tree_size` and `content_digest` the manifest declares.
+`tree_size` and `content_digest` the manifest declares. The vector's
+`sharded` member splits the same records into two shards by §7's domain
+rule and publishes the per-shard digests, the `shard-<i>/` file paths and
+the shard each Label, labeler and dispute row is filed under.
+[`vectors/wist3/snapshot-index.json`](../vectors/wist3/snapshot-index.json)
+exercises §6's index rules: an index naming two Snapshots of one date,
+higher Epoch first, each under its own directory; an entry whose manifest
+states another `tree_size` or `content_digest` (`WIST3-E04`, and the
+index is re-fetched); and an index out of order.
 
 [`vectors/wist3/checkpoints.json`](../vectors/wist3/checkpoints.json)
 extends that tree with Epoch 2 and judges Checkpoints case by case; each

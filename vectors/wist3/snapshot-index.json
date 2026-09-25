@@ -1,0 +1,583 @@
+{
+  "note": "WIST-3 \u00a76 and \u00a78 step 2: each Snapshot is served under its own immutable directory /snapshots/<snapshot_date>/<epoch_number>/, the Epoch zero-padded to nine digits, and the index lists the Snapshots newest snapshot_date first and, within one date, the higher epoch_number first. A case is one signed index and the signed manifests served at the URLs it names (`manifests`, keyed by manifest_url); the Consumer chooses the first entry and checks its snapshot_date, tree_size and content_digest against the manifest (`expected`: accept, or WIST3-E04 with `response` naming what is re-fetched \u2014 the index, since a served directory is never rewritten and a disagreement means the index read is stale). `index_ordered` is the Aggregator's obligation, judged separately from the Consumer's outcome: the listing order \u00a76 requires, recomputed from the manifests' dates and Epochs. Every index and manifest is signed under the examples' test-agg-k1.",
+  "cases": [
+    {
+      "name": "two Snapshots of one date, higher Epoch first",
+      "why": "the same date at Epochs 1 and 0, each under its own directory; the Consumer's entry is the first, and the manifest it names agrees with it",
+      "index": {
+        "index": {
+          "wist_version": "1.0.0",
+          "updated_at": "2026-08-02T14:05:00Z",
+          "snapshots": [
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000001/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            },
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000000/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "nHyWLntYkzyIAURHbZgSjU_VPxYRpMtCbU49II3cTX6fbLnyz0OAHXWj1vWfJa0uMQ5i66Wq3qFBGlJaEpJrAA"
+        }
+      },
+      "manifests": {
+        "/snapshots/2026-08-02/000000000/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 0,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "7Xt61SuXIOZyYOU0yclyINnDlhrO6QCsof4DnqjMLT7zxI5CYbtLhtaA3AVwH_3xJIz-p28rkoVAep3d_M3GDA"
+          }
+        },
+        "/snapshots/2026-08-02/000000001/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 1,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "HgXs8cP1rH_EFpAaXdgBgtoSONmLqTd9PXGq6p1z6_si1M5rLZKKyr04H7sEub5cTLPUXBrVM9s1XJ3nceqwAg"
+          }
+        }
+      },
+      "expected": "accept",
+      "index_ordered": true
+    },
+    {
+      "name": "the lower Epoch of a date listed first",
+      "why": "the Consumer's step 2 accepts the entry it chose, but the index breaks \u00a76's order: within one date the higher Epoch comes first",
+      "index": {
+        "index": {
+          "wist_version": "1.0.0",
+          "updated_at": "2026-08-02T14:05:00Z",
+          "snapshots": [
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000000/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            },
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000001/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "BdR_8fyF1LXCsQhpX0-2-qds1WiR0RqbaJqmLLHBT9M08jcpHiQ9I67Q9YjxFZ7TkG_Tgg6-1Zb6SoML_cGMCw"
+        }
+      },
+      "manifests": {
+        "/snapshots/2026-08-02/000000000/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 0,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "7Xt61SuXIOZyYOU0yclyINnDlhrO6QCsof4DnqjMLT7zxI5CYbtLhtaA3AVwH_3xJIz-p28rkoVAep3d_M3GDA"
+          }
+        },
+        "/snapshots/2026-08-02/000000001/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 1,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "HgXs8cP1rH_EFpAaXdgBgtoSONmLqTd9PXGq6p1z6_si1M5rLZKKyr04H7sEub5cTLPUXBrVM9s1XJ3nceqwAg"
+          }
+        }
+      },
+      "expected": "accept",
+      "index_ordered": false
+    },
+    {
+      "name": "an entry whose manifest states another tree_size",
+      "why": "the entry restates a tree one leaf larger than the manifest at its URL declares: the index the Consumer read no longer describes the served directory, which is never rewritten (\u00a76), so the Consumer re-fetches the index rather than the manifest",
+      "index": {
+        "index": {
+          "wist_version": "1.0.0",
+          "updated_at": "2026-08-02T14:05:00Z",
+          "snapshots": [
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 5,
+              "manifest_url": "/snapshots/2026-08-02/000000001/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            },
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000000/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "b8wVxHZ4MguQrWngkQ8Ft3nk0ZvDF78WjYfTUaC5otTMLq97ZwE5G8BBPhwvBzdEgyuTi5W7JTE-oEsM5dlMDg"
+        }
+      },
+      "manifests": {
+        "/snapshots/2026-08-02/000000000/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 0,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "7Xt61SuXIOZyYOU0yclyINnDlhrO6QCsof4DnqjMLT7zxI5CYbtLhtaA3AVwH_3xJIz-p28rkoVAep3d_M3GDA"
+          }
+        },
+        "/snapshots/2026-08-02/000000001/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 1,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "HgXs8cP1rH_EFpAaXdgBgtoSONmLqTd9PXGq6p1z6_si1M5rLZKKyr04H7sEub5cTLPUXBrVM9s1XJ3nceqwAg"
+          }
+        }
+      },
+      "expected": "WIST3-E04",
+      "index_ordered": true,
+      "response": "re-fetch the index"
+    },
+    {
+      "name": "an entry whose manifest states another content_digest",
+      "why": "the entry's digest is not the manifest's: the same stale-index outcome as a tree_size disagreement",
+      "index": {
+        "index": {
+          "wist_version": "1.0.0",
+          "updated_at": "2026-08-02T14:05:00Z",
+          "snapshots": [
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000001/manifest.json",
+              "content_digest": "sha256:fce64d6bf3b92be36a177a62ab158d22a5813b612ff1fd608aad9c80dd9d7ca8"
+            },
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000000/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "i0LGUf_m5ACxNx_ZGp167NkLQptY0_PaWR4dwLSYHnjHrq0PNHbuDZ6ppbMZwiWLhm5IAvfXkTHAx0hlROCLDA"
+        }
+      },
+      "manifests": {
+        "/snapshots/2026-08-02/000000000/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 0,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "7Xt61SuXIOZyYOU0yclyINnDlhrO6QCsof4DnqjMLT7zxI5CYbtLhtaA3AVwH_3xJIz-p28rkoVAep3d_M3GDA"
+          }
+        },
+        "/snapshots/2026-08-02/000000001/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 1,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "HgXs8cP1rH_EFpAaXdgBgtoSONmLqTd9PXGq6p1z6_si1M5rLZKKyr04H7sEub5cTLPUXBrVM9s1XJ3nceqwAg"
+          }
+        }
+      },
+      "expected": "WIST3-E04",
+      "index_ordered": true,
+      "response": "re-fetch the index"
+    },
+    {
+      "name": "an entry whose manifest states another snapshot_date",
+      "why": "the entry dates the Snapshot a day later than its manifest does",
+      "index": {
+        "index": {
+          "wist_version": "1.0.0",
+          "updated_at": "2026-08-02T14:05:00Z",
+          "snapshots": [
+            {
+              "snapshot_date": "2026-08-03",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000001/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            },
+            {
+              "snapshot_date": "2026-08-02",
+              "tree_size": 4,
+              "manifest_url": "/snapshots/2026-08-02/000000000/manifest.json",
+              "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8"
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "test-agg-k1",
+          "alg": "Ed25519",
+          "value": "gi4GynihLwYdGMZAVdygxGeqdQkFwACkOkXtv5-V13YqU_ea7LXo8u_fCK03LOD37uaXmm_f1Gys8Y_D1rkvAQ"
+        }
+      },
+      "manifests": {
+        "/snapshots/2026-08-02/000000000/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 0,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "7Xt61SuXIOZyYOU0yclyINnDlhrO6QCsof4DnqjMLT7zxI5CYbtLhtaA3AVwH_3xJIz-p28rkoVAep3d_M3GDA"
+          }
+        },
+        "/snapshots/2026-08-02/000000001/manifest.json": {
+          "manifest": {
+            "wist_version": "1.0.0",
+            "snapshot_date": "2026-08-02",
+            "epoch_number": 1,
+            "tree_size": 4,
+            "root_hash": "sha256:405940d7902a70ecd62a01c438ec95e5250c0ad580d8b88903358530c120dbbe",
+            "content_digest": "sha256:00e57b63af01a5601724fce21c02d64d47aa662628ceacd2f7b33cda267e26b8",
+            "state": {
+              "path": "state.json",
+              "sha256": "39868adbf6a7fb8447e65a089b7acc9e4ff1d5696e07d1862451b87d05a206a2",
+              "bytes": 711,
+              "state_digest": "sha256:b77d69465a8168cda570e5757bd7f8a6be533347f0875743efe74ce9fe5b4401"
+            },
+            "files": [
+              {
+                "path": "tier0/index.sqlite",
+                "sha256": "a4da2fd616d1a7f66e931cbc7f54cbbd85f1aca964983f7964b1437d8da55d45",
+                "bytes": 17,
+                "tier": 0
+              },
+              {
+                "path": "tier1/extracts.parquet",
+                "sha256": "ef588453732f728a15ab947f237d8ed232cc752aa648527d94b20d42c980a615",
+                "bytes": 17,
+                "tier": 1
+              },
+              {
+                "path": "tier1/links.parquet",
+                "sha256": "7e3965a04bd068d77fd841e9a275574edd516426fea737e795d261147f6ad8b7",
+                "bytes": 17,
+                "tier": 1
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "test-agg-k1",
+            "alg": "Ed25519",
+            "value": "HgXs8cP1rH_EFpAaXdgBgtoSONmLqTd9PXGq6p1z6_si1M5rLZKKyr04H7sEub5cTLPUXBrVM9s1XJ3nceqwAg"
+          }
+        }
+      },
+      "expected": "WIST3-E04",
+      "index_ordered": true,
+      "response": "re-fetch the index"
+    }
+  ]
+}
