@@ -61,6 +61,81 @@ a Publisher to each other, so that a content system written for one
 signing tool works with another, and changes nothing an Aggregator or a
 Consumer does.
 
+### Streams
+
+A stream is UTF-8 octets with no byte order mark, divided into lines
+by LF (0x0A); the LF of the last line may be absent. The division
+precedes the reading of a line's octets as UTF-8, so a fault of
+encoding belongs to its line. A stream of no octets differs from the
+form. Each line is one JSON object, which JSON whitespace may
+surround, with no repeated member name, whose strings are sequences of
+Unicode scalar values and in which no array or object lies inside a
+member's array or object. Member names are compared after their
+escapes are decoded. The first line is the header, the last is the
+trailer, and each line between them is an Emission or a removal. An
+object carries exactly the members listed for its kind. A line with a
+`removed` member is read as a removal. A last line is the trailer when
+it carries exactly the trailer's member set; any other last line is
+read as a line before a missing trailer. The line of a stream of one
+line is its first, so that stream lacks its trailer. A first line with another
+member set than the header's, a line between the first and the last
+that carries the header's member set or the trailer's, and a trailer
+whose `end` is not `true` differ from the form. `count` is written in
+decimal digits alone, without sign, fraction, exponent or leading
+zero, and is at most 9007199254740991.
+
+| Line | Members |
+|---|---|
+| Header | `wist_emission`, the string `1`; `publisher`, the Publisher's `domain`; `collection`, the Collection's name; `mode`, `complete` or `incremental` |
+| Emission | `url`; `lang`, in the profile of WIST-1 §3.7; `modified`, a Publisher timestamp (WIST-1 §3.4); `title`; optionally `abstract`; and either `html`, or `text` with an optional array `links` of strings |
+| Removal | `url`; `removed`, the value `true`. In an incremental stream only |
+| Trailer | `end`, the value `true`; `count`, the number of lines between header and trailer |
+
+The trailer exists because a complete stream cut short would
+otherwise remove every publication it no longer lists.
+
+The URL of a line is the Normalized URL (WIST-1 §2) of its `url`,
+which is absolute and need not be spelled normalized; a relative
+reference has no Normalized URL. The header's `publisher` is compared
+with `domain` octet by octet.
+
+The part that reads a stream refuses it whole, and publishes nothing
+from it, on the first of these it meets, reading the lines in order
+and, within a line, the conditions in the order of the table; a
+missing trailer and a wrong `count` are met after the last line.
+WIST-5 assigns the codes.
+
+| Refusal | Condition |
+|---|---|
+| `stream-form` | The octets, a line, the header's or the trailer's place, or `count` differ from the form above |
+| `header` | A header member of another value or type, a `publisher` or `collection` that is not the one the stream is read for, or a `collection` the Publisher's current Declaration does not name |
+| `emission-form` | An Emission or a removal with another member set, a member of another type or profile, or a removal in a complete stream |
+| `url` | A `url` with no Normalized URL |
+| `duplicate` | Two lines with the same URL |
+| `scope` | An Emission whose URL the Collection's Scope (ADR-0051) does not cover under the Publisher's current Declaration |
+| `cap` | An Emission with the `JCS` serialization of its URL above `url_cap_bytes`, a derived `extract` above `extract_cap_bytes`, a `title` above 256 or an `abstract` above 1500 Unicode scalar values, or `JCS(summary)` above `summary_cap_bytes` (WIST-1 §3.6) |
+
+A removal's URL is read for `url` and `duplicate` alone.
+
+Each Emission yields one publication: its URL, `lang`, `modified` and
+the Payload's `content` (WIST-1 §3.6), whose `summary` carries `title`
+and, where present, `abstract`, unchanged.
+
+A stream is applied to the Collection's published publications, from
+which those the Scope no longer covers are first taken out. A complete
+stream leaves exactly its own publications. An incremental stream
+replaces or adds the publication of each Emission and takes out the
+one each removal names; a removal that names no published URL has no
+effect. A publication whose `lang` and `JCS(content)` equal the
+published one's is unchanged and keeps the published `modified`.
+
+The application states its plan in four lists of URLs. `added`,
+`changed` and `unchanged` hold the URL of each Emission, by whether
+the published publications, after those outside the Scope were taken
+out, lack it, hold it with another `lang` or `content`, or hold it
+unchanged. `removed` holds each published URL the result lacks. A
+publication an incremental stream does not name is in no list.
+
 ### `links`
 
 `links` declares the external links of the published content. Where
@@ -76,6 +151,18 @@ WIST-2 §11 and §12 remain the suite's deterministic procedures. They
 apply to the content a Publisher emits, and to a served page only for a
 party that chooses to compare the page with the publication.
 
+Both procedures read the UTF-8 octets of `html`. §11 step 5 resolves
+against the Emission's URL, and step 7 reads the header's `publisher`.
+An `extract` derived from `text` is `text`, unchanged. Each member of
+an Emission's `links` passes §11 steps 5 to 8, without the character
+references of step 4; an Emission of `text` without `links` declares
+`{"total": 0, "urls": []}`.
+
+A link whose `JCS` serialization exceeds `link_url_cap_bytes` (WIST-1
+§3.6) is discarded at step 6 with the links that have no Normalized
+URL, and `total` does not count it. §11 did not state what becomes of
+such a link, and a Payload that declares one is rejected.
+
 ### Pages that declare themselves
 
 WIST-5 carries an optional profile for a Publisher whose only store of
@@ -84,6 +171,32 @@ content with a second one. An Emitter following the profile emits only
 from pages that carry the first marker, and only the region the second
 delimits. A page without the marker is never emitted, whatever listing
 names it.
+
+The profile reads a page's URL and its octets, where the page is HTML
+under WIST-2 §11 or a file its owner names as HTML. It scans as §11
+steps 1 to 3 do, outside comments and raw-text elements, reading a
+start tag's attributes by step 3 with the element's name in the place
+of `a`. The start tags it reads so are those of `a`, `meta`, `title`
+and `html`; a comment opens inside any other tag as §11 step 1 has it
+open anywhere. Attribute values are compared and taken as octets,
+before any character reference is decoded, and an attribute without a
+value has the empty value.
+
+| Part | Source in the page |
+|---|---|
+| Marker | A `meta` start tag whose first `name` attribute is `wist` and whose first `content` attribute is `publish` |
+| Region | The octets between the first comment `<!--wist:content-->` and the first comment `<!--/wist:content-->` after it, both found outside raw-text elements |
+| `html` | The region, decoded as UTF-8 with each invalid sequence replaced by U+FFFD |
+| `title` | §12 applied to the octets between the first `title` start tag and the next `</title` in the octets after it, inside a comment or not, compared without case; the empty string where the page has no such start tag or no `</title` after it |
+| `abstract` | §12 applied to the first `content` attribute of the first `meta` start tag whose first `name` attribute is `description`; absent where the page has no such tag or that tag has no `content` |
+| `lang` | The first `lang` attribute of the first `html` start tag, with the letters before its first `-` in lowercase, where the result is in the profile of WIST-1 §3.7; `und` otherwise |
+| `modified` | The instant the Emitter's source gives for the page's last change, or the instant of reading; never the page |
+
+A page with the marker and without a whole region is not emitted. A
+page whose region is empty is emitted with an empty `html`, as an
+Emission of any source may carry empty content. The profile shortens
+nothing: a page above a cap reaches the refusal of the stream that
+carries it.
 
 ## Alternatives considered
 
@@ -98,6 +211,15 @@ names it.
 - **Leave the format between the content system and the signing part
   to each tool.** Binds every content system to the one tool it was
   written for.
+- **Refuse the one Emission that fails and publish the rest.** In a
+  complete stream the refused URL would be absent and therefore
+  removed, and the fault would reach the Log before its owner saw it.
+- **A region delimited by an attribute on an element.** Finding the
+  element's end takes a tree of elements, which two readers build
+  differently from malformed markup; a pair of comments is found by
+  the scan §11 already fixes.
+- **An Emitter that shortens content above a cap.** The tool would
+  choose what part of a page is published.
 
 ## Consequences
 
@@ -127,3 +249,10 @@ links truncated at `links_cap_bytes`; a complete stream and an
 incremental one that reach the same publications; an Emission refused
 for a URL outside its Scope; a marked page, the same page without its
 marker, and a marked page whose region is empty.
+
+They are `vectors/wist5/emission-streams.json`,
+`emission-derivation.json` and `marked-pages.json`, generated by
+`tools/gen_emission_vectors.py` from the reference in
+`tools/emissions.py` and `tools/marked_page.py`, and recomputed by
+`tools/verify_emission_vectors.py`, which was written from this text
+without the other three.

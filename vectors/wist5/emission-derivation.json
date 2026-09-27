@@ -1,0 +1,805 @@
+{
+  "note": "Each Emission is accepted as the only line of a complete stream for the Collection; expected is the publication it yields. page, page_links and page_extract show the whole page around an HTML fragment, which the publication does not read. No case here is refused; in a refusal elsewhere, line is the 1-based line number, null for a missing trailer and a wrong count. Plan lists and states are ordered by the octets of the URL.",
+  "default_parameters": {
+    "url_cap_bytes": 2048,
+    "extract_cap_bytes": 32768,
+    "links_cap_bytes": 4096,
+    "link_url_cap_bytes": 2048,
+    "summary_cap_bytes": 2048
+  },
+  "cases": [
+    {
+      "label": "html fragment links exclude surrounding page",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/rise",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Rise",
+        "html": "<p>The survey <a href=\"https://example.org/survey\">reports</a> a rise; see <a href=\"/journal/method\">our method</a> and <a href=\"https://data.example.net/set?a=1&amp;b=2\">the data</a>.</p>"
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Rise</title></head><body><nav><a href=\"https://example.net/partner\">Partner</a> <a href=\"/about\">About</a></nav><main><p>The survey <a href=\"https://example.org/survey\">reports</a> a rise; see <a href=\"/journal/method\">our method</a> and <a href=\"https://data.example.net/set?a=1&amp;b=2\">the data</a>.</p></main><footer><a href=\"https://example.org/license\">License</a></footer></body></html>",
+      "page_links": {
+        "total": 4,
+        "urls": [
+          "https://example.net/partner",
+          "https://example.org/survey",
+          "https://data.example.net/set?a=1&b=2",
+          "https://example.org/license"
+        ]
+      },
+      "page_extract": "Rise Partner About The survey reports a rise; see our method and the data . License",
+      "expected": {
+        "url": "https://example.com/rise",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "The survey reports a rise; see our method and the data .",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://example.org/survey",
+              "https://data.example.net/set?a=1&b=2"
+            ]
+          },
+          "summary": {
+            "title": "Rise"
+          }
+        }
+      }
+    },
+    {
+      "label": "text with declared links",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/today",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Today",
+        "links": [
+          "//example.org/cited",
+          "https://example.org/paper",
+          "../journal/other",
+          "https://EXAMPLE.org/paper",
+          "https://example.com/about",
+          "https://www.example.com/x",
+          "https://example.org/%zz",
+          "http://example.net/plain",
+          "https://example.org/search?q=a&amp;b=c",
+          "https://example.net/data#section"
+        ],
+        "text": "Fish &amp; chips\nwere cheaper\r\n  than   expected."
+      },
+      "expected": {
+        "url": "https://example.com/notes/today",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Fish &amp; chips\nwere cheaper\r\n  than   expected.",
+          "links": {
+            "total": 4,
+            "urls": [
+              "https://example.org/cited",
+              "https://example.org/paper",
+              "https://example.org/search?q=a&amp;b=c",
+              "https://example.net/data"
+            ]
+          },
+          "summary": {
+            "title": "Today"
+          }
+        }
+      }
+    },
+    {
+      "label": "text without links",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/plain",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Plain",
+        "text": "No links at all."
+      },
+      "expected": {
+        "url": "https://example.com/notes/plain",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "No links at all.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Plain"
+          }
+        }
+      }
+    },
+    {
+      "label": "text with empty links",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/empty",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Empty",
+        "links": [],
+        "text": "None."
+      },
+      "expected": {
+        "url": "https://example.com/notes/empty",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "None.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Empty"
+          }
+        }
+      }
+    },
+    {
+      "label": "links truncated at default cap",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/many",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Many",
+        "links": [
+          "https://example.org/reference/000",
+          "https://example.org/reference/001",
+          "https://example.org/reference/002",
+          "https://example.org/reference/003",
+          "https://example.org/reference/004",
+          "https://example.org/reference/005",
+          "https://example.org/reference/006",
+          "https://example.org/reference/007",
+          "https://example.org/reference/008",
+          "https://example.org/reference/009",
+          "https://example.org/reference/010",
+          "https://example.org/reference/011",
+          "https://example.org/reference/012",
+          "https://example.org/reference/013",
+          "https://example.org/reference/014",
+          "https://example.org/reference/015",
+          "https://example.org/reference/016",
+          "https://example.org/reference/017",
+          "https://example.org/reference/018",
+          "https://example.org/reference/019",
+          "https://example.org/reference/020",
+          "https://example.org/reference/021",
+          "https://example.org/reference/022",
+          "https://example.org/reference/023",
+          "https://example.org/reference/024",
+          "https://example.org/reference/025",
+          "https://example.org/reference/026",
+          "https://example.org/reference/027",
+          "https://example.org/reference/028",
+          "https://example.org/reference/029",
+          "https://example.org/reference/030",
+          "https://example.org/reference/031",
+          "https://example.org/reference/032",
+          "https://example.org/reference/033",
+          "https://example.org/reference/034",
+          "https://example.org/reference/035",
+          "https://example.org/reference/036",
+          "https://example.org/reference/037",
+          "https://example.org/reference/038",
+          "https://example.org/reference/039",
+          "https://example.org/reference/040",
+          "https://example.org/reference/041",
+          "https://example.org/reference/042",
+          "https://example.org/reference/043",
+          "https://example.org/reference/044",
+          "https://example.org/reference/045",
+          "https://example.org/reference/046",
+          "https://example.org/reference/047",
+          "https://example.org/reference/048",
+          "https://example.org/reference/049",
+          "https://example.org/reference/050",
+          "https://example.org/reference/051",
+          "https://example.org/reference/052",
+          "https://example.org/reference/053",
+          "https://example.org/reference/054",
+          "https://example.org/reference/055",
+          "https://example.org/reference/056",
+          "https://example.org/reference/057",
+          "https://example.org/reference/058",
+          "https://example.org/reference/059",
+          "https://example.org/reference/060",
+          "https://example.org/reference/061",
+          "https://example.org/reference/062",
+          "https://example.org/reference/063",
+          "https://example.org/reference/064",
+          "https://example.org/reference/065",
+          "https://example.org/reference/066",
+          "https://example.org/reference/067",
+          "https://example.org/reference/068",
+          "https://example.org/reference/069",
+          "https://example.org/reference/070",
+          "https://example.org/reference/071",
+          "https://example.org/reference/072",
+          "https://example.org/reference/073",
+          "https://example.org/reference/074",
+          "https://example.org/reference/075",
+          "https://example.org/reference/076",
+          "https://example.org/reference/077",
+          "https://example.org/reference/078",
+          "https://example.org/reference/079",
+          "https://example.org/reference/080",
+          "https://example.org/reference/081",
+          "https://example.org/reference/082",
+          "https://example.org/reference/083",
+          "https://example.org/reference/084",
+          "https://example.org/reference/085",
+          "https://example.org/reference/086",
+          "https://example.org/reference/087",
+          "https://example.org/reference/088",
+          "https://example.org/reference/089",
+          "https://example.org/reference/090",
+          "https://example.org/reference/091",
+          "https://example.org/reference/092",
+          "https://example.org/reference/093",
+          "https://example.org/reference/094",
+          "https://example.org/reference/095",
+          "https://example.org/reference/096",
+          "https://example.org/reference/097",
+          "https://example.org/reference/098",
+          "https://example.org/reference/099",
+          "https://example.org/reference/100",
+          "https://example.org/reference/101",
+          "https://example.org/reference/102",
+          "https://example.org/reference/103",
+          "https://example.org/reference/104",
+          "https://example.org/reference/105",
+          "https://example.org/reference/106",
+          "https://example.org/reference/107",
+          "https://example.org/reference/108",
+          "https://example.org/reference/109",
+          "https://example.org/reference/110",
+          "https://example.org/reference/111",
+          "https://example.org/reference/112",
+          "https://example.org/reference/113",
+          "https://example.org/reference/114",
+          "https://example.org/reference/115",
+          "https://example.org/reference/116",
+          "https://example.org/reference/117",
+          "https://example.org/reference/118",
+          "https://example.org/reference/119",
+          "https://example.org/reference/120",
+          "https://example.org/reference/121",
+          "https://example.org/reference/122",
+          "https://example.org/reference/123",
+          "https://example.org/reference/124",
+          "https://example.org/reference/125",
+          "https://example.org/reference/126",
+          "https://example.org/reference/127",
+          "https://example.org/reference/128",
+          "https://example.org/reference/129",
+          "https://example.org/reference/130",
+          "https://example.org/reference/131",
+          "https://example.org/reference/132",
+          "https://example.org/reference/133",
+          "https://example.org/reference/134",
+          "https://example.org/reference/135",
+          "https://example.org/reference/136",
+          "https://example.org/reference/137",
+          "https://example.org/reference/138",
+          "https://example.org/reference/139",
+          "https://example.org/reference/140",
+          "https://example.org/reference/141",
+          "https://example.org/reference/142",
+          "https://example.org/reference/143",
+          "https://example.org/reference/144",
+          "https://example.org/reference/145",
+          "https://example.org/reference/146",
+          "https://example.org/reference/147",
+          "https://example.org/reference/148",
+          "https://example.org/reference/149"
+        ],
+        "text": "References."
+      },
+      "expected": {
+        "url": "https://example.com/notes/many",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "References.",
+          "links": {
+            "total": 150,
+            "urls": [
+              "https://example.org/reference/000",
+              "https://example.org/reference/001",
+              "https://example.org/reference/002",
+              "https://example.org/reference/003",
+              "https://example.org/reference/004",
+              "https://example.org/reference/005",
+              "https://example.org/reference/006",
+              "https://example.org/reference/007",
+              "https://example.org/reference/008",
+              "https://example.org/reference/009",
+              "https://example.org/reference/010",
+              "https://example.org/reference/011",
+              "https://example.org/reference/012",
+              "https://example.org/reference/013",
+              "https://example.org/reference/014",
+              "https://example.org/reference/015",
+              "https://example.org/reference/016",
+              "https://example.org/reference/017",
+              "https://example.org/reference/018",
+              "https://example.org/reference/019",
+              "https://example.org/reference/020",
+              "https://example.org/reference/021",
+              "https://example.org/reference/022",
+              "https://example.org/reference/023",
+              "https://example.org/reference/024",
+              "https://example.org/reference/025",
+              "https://example.org/reference/026",
+              "https://example.org/reference/027",
+              "https://example.org/reference/028",
+              "https://example.org/reference/029",
+              "https://example.org/reference/030",
+              "https://example.org/reference/031",
+              "https://example.org/reference/032",
+              "https://example.org/reference/033",
+              "https://example.org/reference/034",
+              "https://example.org/reference/035",
+              "https://example.org/reference/036",
+              "https://example.org/reference/037",
+              "https://example.org/reference/038",
+              "https://example.org/reference/039",
+              "https://example.org/reference/040",
+              "https://example.org/reference/041",
+              "https://example.org/reference/042",
+              "https://example.org/reference/043",
+              "https://example.org/reference/044",
+              "https://example.org/reference/045",
+              "https://example.org/reference/046",
+              "https://example.org/reference/047",
+              "https://example.org/reference/048",
+              "https://example.org/reference/049",
+              "https://example.org/reference/050",
+              "https://example.org/reference/051",
+              "https://example.org/reference/052",
+              "https://example.org/reference/053",
+              "https://example.org/reference/054",
+              "https://example.org/reference/055",
+              "https://example.org/reference/056",
+              "https://example.org/reference/057",
+              "https://example.org/reference/058",
+              "https://example.org/reference/059",
+              "https://example.org/reference/060",
+              "https://example.org/reference/061",
+              "https://example.org/reference/062",
+              "https://example.org/reference/063",
+              "https://example.org/reference/064",
+              "https://example.org/reference/065",
+              "https://example.org/reference/066",
+              "https://example.org/reference/067",
+              "https://example.org/reference/068",
+              "https://example.org/reference/069",
+              "https://example.org/reference/070",
+              "https://example.org/reference/071",
+              "https://example.org/reference/072",
+              "https://example.org/reference/073",
+              "https://example.org/reference/074",
+              "https://example.org/reference/075",
+              "https://example.org/reference/076",
+              "https://example.org/reference/077",
+              "https://example.org/reference/078",
+              "https://example.org/reference/079",
+              "https://example.org/reference/080",
+              "https://example.org/reference/081",
+              "https://example.org/reference/082",
+              "https://example.org/reference/083",
+              "https://example.org/reference/084",
+              "https://example.org/reference/085",
+              "https://example.org/reference/086",
+              "https://example.org/reference/087",
+              "https://example.org/reference/088",
+              "https://example.org/reference/089",
+              "https://example.org/reference/090",
+              "https://example.org/reference/091",
+              "https://example.org/reference/092",
+              "https://example.org/reference/093",
+              "https://example.org/reference/094",
+              "https://example.org/reference/095",
+              "https://example.org/reference/096",
+              "https://example.org/reference/097",
+              "https://example.org/reference/098",
+              "https://example.org/reference/099",
+              "https://example.org/reference/100",
+              "https://example.org/reference/101",
+              "https://example.org/reference/102",
+              "https://example.org/reference/103",
+              "https://example.org/reference/104",
+              "https://example.org/reference/105",
+              "https://example.org/reference/106",
+              "https://example.org/reference/107",
+              "https://example.org/reference/108",
+              "https://example.org/reference/109",
+              "https://example.org/reference/110",
+              "https://example.org/reference/111",
+              "https://example.org/reference/112"
+            ]
+          },
+          "summary": {
+            "title": "Many"
+          }
+        }
+      }
+    },
+    {
+      "label": "links truncated at reduced cap",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 128,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/many",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Many",
+        "links": [
+          "https://example.org/reference/000",
+          "https://example.org/reference/001",
+          "https://example.org/reference/002",
+          "https://example.org/reference/003",
+          "https://example.org/reference/004",
+          "https://example.org/reference/005",
+          "https://example.org/reference/006",
+          "https://example.org/reference/007",
+          "https://example.org/reference/008",
+          "https://example.org/reference/009"
+        ],
+        "text": "References."
+      },
+      "expected": {
+        "url": "https://example.com/notes/many",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "References.",
+          "links": {
+            "total": 10,
+            "urls": [
+              "https://example.org/reference/000",
+              "https://example.org/reference/001"
+            ]
+          },
+          "summary": {
+            "title": "Many"
+          }
+        }
+      }
+    },
+    {
+      "label": "link above link url cap discarded uncounted",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/long",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Long",
+        "links": [
+          "https://example.org/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "https://example.org/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+          "https://example.net/short"
+        ],
+        "text": "Long links."
+      },
+      "expected": {
+        "url": "https://example.com/notes/long",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Long links.",
+          "links": {
+            "total": 2,
+            "urls": [
+              "https://example.org/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+              "https://example.net/short"
+            ]
+          },
+          "summary": {
+            "title": "Long"
+          }
+        }
+      }
+    },
+    {
+      "label": "unnormalized url",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://EXAMPLE.com:443/a/./b/../c/%7e%2fx#frag",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Spelled",
+        "text": "x"
+      },
+      "expected": {
+        "url": "https://example.com/a/c/~%2Fx",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "x",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Spelled"
+          }
+        }
+      }
+    },
+    {
+      "label": "abstract present",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/abstract",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "With abstract",
+        "abstract": "A short  abstract &amp; more.",
+        "text": "Body."
+      },
+      "expected": {
+        "url": "https://example.com/notes/abstract",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Body.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "With abstract",
+            "abstract": "A short  abstract &amp; more."
+          }
+        }
+      }
+    },
+    {
+      "label": "empty html",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/empty-html",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Empty body",
+        "html": ""
+      },
+      "expected": {
+        "url": "https://example.com/notes/empty-html",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Empty body"
+          }
+        }
+      }
+    },
+    {
+      "label": "empty title",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://example.com/notes/untitled",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "",
+        "text": "Untitled body."
+      },
+      "expected": {
+        "url": "https://example.com/notes/untitled",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "Untitled body.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": ""
+          }
+        }
+      }
+    },
+    {
+      "label": "html subdomain scope host",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "collection": "default",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "emission": {
+        "url": "https://blog.example.com/post",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "title": "Post",
+        "html": "<a href=\"https://blog.example.com/x\">self</a><a href=\"https://example.org/y\">out</a>"
+      },
+      "expected": {
+        "url": "https://blog.example.com/post",
+        "lang": "en",
+        "modified": "2026-09-01T10:00:00Z",
+        "content": {
+          "extract": "self out",
+          "links": {
+            "total": 1,
+            "urls": [
+              "https://example.org/y"
+            ]
+          },
+          "summary": {
+            "title": "Post"
+          }
+        }
+      }
+    }
+  ]
+}

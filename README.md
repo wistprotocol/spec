@@ -55,6 +55,8 @@ python -m venv tools/.venv
 tools/.venv/bin/pip install -r tools/requirements.txt
 tools/.venv/bin/python tools/validate_examples.py   # validates examples + vectors
 tools/.venv/bin/python tools/gen_vectors.py         # regenerates (byte-identical)
+tools/.venv/bin/python tools/gen_emission_vectors.py      # regenerates vectors/wist5
+tools/.venv/bin/python tools/verify_emission_vectors.py   # verifies them from the prose
 ```
 
 The harness validates every example against its schema, recomputes the

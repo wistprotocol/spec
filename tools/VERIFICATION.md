@@ -21,6 +21,10 @@ they exercise; agreement without such an anchor may preserve a shared error.
   but shares its authorship.
 - **self-consistency** — the harness recomputes what the generator
   produced, plus mutation twins proving the check is not blind.
+- **independent-rederivation** — a verifier written from the prose
+  alone, without the generator or the reference module it drives,
+  recomputes every expected value. It detects a misreading one of the
+  two made and not one both made, nor a fault of the prose.
 
 Every family additionally has mutation twins or negative cases where
 applicable; those prove sensitivity, not correctness, and are not listed
@@ -84,6 +88,9 @@ as anchors.
 | multilog `dedup.json` | the Publisher Declaration and every sealed Delta Envelope — the top-level copies and every copy each Log seals in its Epochs — validated against `schemas/publisher.schema.json` and `schemas/delta.schema.json` and verified under the declared Key Set (WIST-1 §5.1), with a mutation twin; the dedup rule itself (stable identity across Logs and heights, Consumer-side merge by Delta ID) stays prose-traced; Checkpoint/Anchor signatures in this vector are not independently reverified | third-party-lib (schema/signatures) + self-consistency (dedup rule) | partial |
 | wist4 `parameter-in-force.json` | prose-traced in-force rule | self-consistency | self-consistency-only |
 | wist4 `parameter-combinations.json` | prospective schedules under the §5 combination rules, frozen recovery-window anchors over supplied eligible events/accepted amendments, parameter reads for work already begun, the wire integer domain against the schema, and Epoch-size/transport traces with negative boundary cases | third-party-lib (schema/signatures) + self-consistency (schedules) | partial |
+| wist5 `emission-streams.json` | streams read by `tools/emissions.py` and again by `tools/verify_emission_vectors.py`: line division, JSON form, member sets, `count`, each refusal of ADR-0050 with its line and the order among refusals, Scope coverage, the five caps with twins at the bound, application of complete and incremental streams to a published state and the plan; supplied Declarations without keys and supplied parameter maps; no signed object, Item or Catalog | independent-rederivation | partial |
+| wist5 `emission-derivation.json` | `extract` and `links` of an emitted fragment against a supplied page around it, declared links of `text`, truncation at `links_cap_bytes`, the link cap with a twin at the bound, unnormalized `url` spellings; both implementations run WIST-2 §11 and §12 through `tools/link_extraction.py`, so the scan itself stays anchored as wist2 `link-extraction.json` and `text-extraction.json` are | independent-rederivation (derivation rules) + self-consistency (scan) | partial |
+| wist5 `marked-pages.json` | the marker, the region and its delimiters, `title`, `abstract` and `lang` read by two scans written separately, comments and raw-text elements hiding each of them, and the publication each emitted page yields; ASCII fixture hosts; `modified` supplied | independent-rederivation | partial |
 
 ## Reading the table
 

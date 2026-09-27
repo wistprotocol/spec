@@ -1,0 +1,1366 @@
+{
+  "note": "The marked-page profile. The page octets are the UTF-8 encoding of page, or the RFC 4648 base64 decoding of page_base64. expected.emission is null when the page is not emitted; expected.publication is the publication the Emission yields for the publisher's domain under parameters. No case here is refused; in a refusal elsewhere, line is the 1-based line number, null for a missing trailer and a wrong count. Plan lists and states are ordered by the octets of the URL.",
+  "default_parameters": {
+    "url_cap_bytes": 2048,
+    "extract_cap_bytes": 32768,
+    "links_cap_bytes": 4096,
+    "link_url_cap_bytes": 2048,
+    "summary_cap_bytes": 2048
+  },
+  "cases": [
+    {
+      "label": "marked page",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "same page without marker",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "empty region",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": ""
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "marker inside comment",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><!--<meta name=\"wist\" content=\"publish\">--></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "marker inside script",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><script>var m = '<meta name=\"wist\" content=\"publish\">';</script></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "marker uppercase attribute names",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta NAME=\"wist\" CONTENT=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "marker attributes in other order",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta content=publish name='wist'></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "marker content capitalized",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"Publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "marker name capitalized value",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"WIST\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "marker first name attribute counts",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"other\" name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "marker valueless content",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "delimiters in uppercase",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--WIST:CONTENT--><p>x</p><!--/WIST:CONTENT--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "delimiters with inner spaces",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!-- wist:content --><p>x</p><!-- /wist:content --><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "delimiter text inside a start tag attribute",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><a title=\"<!--wist:content-->\" href=\"https://example.org/\">x</a><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "comment opened inside other tag hides later marker",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><div title=\"<!--\"><meta name=\"wist\" content=\"publish\">",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "same page with closed attribute keeps later marker",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><div title=\"x\"><meta name=\"wist\" content=\"publish\">",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "valueless description content gives empty abstract",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"><meta name=\"description\" content></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "abstract": "",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page",
+              "abstract": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "title end inside comment",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>A <!-- </title> --> B</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "A",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "A"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "opening delimiter without closing",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><p>Unclosed.</p><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "closing delimiter inside script",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><p>Kept.</p><script>document.write('<!--/wist:content-->')</script><p>Also kept.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<p>Kept.</p><script>document.write('<!--/wist:content-->')</script><p>Also kept.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Kept. Also kept.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "opening delimiter inside script",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><script>'<!--wist:content-->'</script><p>Outside.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": null,
+        "publication": null
+      }
+    },
+    {
+      "label": "two regions first only",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><p>First.</p><!--/wist:content--><!--wist:content--><p>Second.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<p>First.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "First.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "invalid utf8 inside region",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page_base64": "PCFkb2N0eXBlIGh0bWw+PGh0bWwgbGFuZz0iZW4iPjxoZWFkPjx0aXRsZT5NYXJrZWQgcGFnZTwvdGl0bGU+PG1ldGEgbmFtZT0id2lzdCIgY29udGVudD0icHVibGlzaCI+PC9oZWFkPjxib2R5PjxuYXY+PGEgaHJlZj0iaHR0cHM6Ly9leGFtcGxlLm5ldC9uYXYiPm5hdjwvYT48L25hdj48IS0td2lzdDpjb250ZW50LS0+PGgxPk1hcmtlZDwvaDE+PHA+Qm9keSDDKCB3aXRoIDxhIGhyZWY9Imh0dHBzOi8vZXhhbXBsZS5vcmcvY2l0ZWQiPmEgY2l0YXRpb248L2E+LjwvcD48IS0tL3dpc3Q6Y29udGVudC0tPjxmb290ZXI+PGEgaHJlZj0iaHR0cHM6Ly9leGFtcGxlLm9yZy9mb290ZXIiPmZvb3RlcjwvYT48L2Zvb3Rlcj48L2JvZHk+PC9odG1sPg==",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body \ufffd( with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body \ufffd( with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "title absent",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "title without end tag",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><meta name=\"wist\" content=\"publish\"><title>Never closed</head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "title surrounding whitespace",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>\n   Spaced   title \t</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Spaced title",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Spaced title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "title character reference",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Fish &amp; chips</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Fish & chips",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Fish & chips"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "title uppercase tag",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><TITLE>Upper</TITLE><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Upper",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Upper"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "abstract from description",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"><meta name=\"description\" content=\"A page &amp; its  summary.\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "abstract": "A page & its summary.",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page",
+              "abstract": "A page & its summary."
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "description without content before one with",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"><meta name=\"description\"><meta name=\"description\" content=\"Second.\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang en",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang uppercase primary subtag",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"EN-us\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en-us",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "en-us",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang region subtag kept",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"pt-BR\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "pt-BR",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "pt-BR",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang malformed",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html lang=\"en_US\"><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang absent",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page": "<!doctype html><html><head><title>Marked page</title><meta name=\"wist\" content=\"publish\"></head><body><nav><a href=\"https://example.net/nav\">nav</a></nav><!--wist:content--><h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p><!--/wist:content--><footer><a href=\"https://example.org/footer\">footer</a></footer></body></html>",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "lang not utf8",
+      "url": "https://example.com/journal/marked",
+      "modified": "2026-09-01T10:00:00Z",
+      "publisher": {
+        "domain": "example.com",
+        "subdomain_scope": [
+          "blog.example.com"
+        ]
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "page_base64": "PCFkb2N0eXBlIGh0bWw+PGh0bWwgbGFuZz0iZW4t/yI+PGhlYWQ+PHRpdGxlPk1hcmtlZCBwYWdlPC90aXRsZT48bWV0YSBuYW1lPSJ3aXN0IiBjb250ZW50PSJwdWJsaXNoIj48L2hlYWQ+PGJvZHk+PG5hdj48YSBocmVmPSJodHRwczovL2V4YW1wbGUubmV0L25hdiI+bmF2PC9hPjwvbmF2PjwhLS13aXN0OmNvbnRlbnQtLT48aDE+TWFya2VkPC9oMT48cD5Cb2R5IHdpdGggPGEgaHJlZj0iaHR0cHM6Ly9leGFtcGxlLm9yZy9jaXRlZCI+YSBjaXRhdGlvbjwvYT4uPC9wPjwhLS0vd2lzdDpjb250ZW50LS0+PGZvb3Rlcj48YSBocmVmPSJodHRwczovL2V4YW1wbGUub3JnL2Zvb3RlciI+Zm9vdGVyPC9hPjwvZm9vdGVyPjwvYm9keT48L2h0bWw+",
+      "expected": {
+        "emission": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "title": "Marked page",
+          "html": "<h1>Marked</h1><p>Body with <a href=\"https://example.org/cited\">a citation</a>.</p>"
+        },
+        "publication": {
+          "url": "https://example.com/journal/marked",
+          "lang": "und",
+          "modified": "2026-09-01T10:00:00Z",
+          "content": {
+            "extract": "Marked Body with a citation .",
+            "links": {
+              "total": 1,
+              "urls": [
+                "https://example.org/cited"
+              ]
+            },
+            "summary": {
+              "title": "Marked page"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
