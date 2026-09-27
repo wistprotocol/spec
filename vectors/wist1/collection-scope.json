@@ -1,0 +1,5044 @@
+{
+  "note": "ADR-0051 Scope. coverage_cases give whether the named Collection's Scope in `declaration` covers `url` after normalizing it (WIST-1 section 2); a URL with no Normalized URL and a Collection the Declaration does not name cover nothing. A host is compared without its port; coverage compares the port with the rest of the URL. disjointness_cases validate `envelope` under `parameters`. publication_cases judge `probe` against `declaration`: the WIST-1 section 5.1 binding check, then the Scope rule; `url` must already be a Normalized URL. A probe is an Envelope in WIST-1 section 4's form whose inner member `probe` is {publisher, collection, url, instant}, signed over its Canonical Bytes; it stands for the Collection's signed list in these fixtures and is no protocol object. `instant` takes the place of `observed_at` in the binding windows of WIST-1 section 5.1.",
+  "keys": {
+    "owner": {
+      "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+    },
+    "owner2": {
+      "seed_hex": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+      "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+      "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU"
+    },
+    "recovery": {
+      "seed_hex": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo"
+    },
+    "recovery2": {
+      "seed_hex": "c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+      "x": "3FF_9SfnvPqwZ_LMYbvvjnX5uo4TMq09QviTjgBF7Yk",
+      "kid": "EAaAHtmt_4kKIcDJuJy8m9J06wTGigZXq_O3tlfbsuQ"
+    },
+    "fresh": {
+      "seed_hex": "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+      "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+      "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4"
+    },
+    "journal": {
+      "seed_hex": "c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6",
+      "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+      "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8"
+    },
+    "journal2": {
+      "seed_hex": "c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7",
+      "x": "1a8l4gStA9CibiNplkBPG-UaYJSLzAJs0ISoNpC3VtM",
+      "kid": "EYMxTgrYrenHv_YiK5f_nkWCgD-z0F3v91Ny_qq2NhY"
+    },
+    "store": {
+      "seed_hex": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+      "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8"
+    },
+    "store2": {
+      "seed_hex": "c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9",
+      "x": "ujthHiiCwbaqSyrj7HjqBzbjrZkjg1NFAXFQekufFbU",
+      "kid": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA"
+    },
+    "docs": {
+      "seed_hex": "cacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacaca",
+      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g"
+    }
+  },
+  "coverage_cases": [
+    {
+      "name": "an entry with a port covers URLs with that port",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "site",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "app",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/app/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "b6Jibtx_eYuZ85oqyTTD2192yVAZHFzVnPlrQS_uJh6mx3-XdIJLSGQ-GPRi4M-R2HFjen8bti03s-z2IuHkDg"
+        }
+      },
+      "collection": "app",
+      "url": "https://example.com:8443/app/x",
+      "covered": true
+    },
+    {
+      "name": "coverage compares the port with the rest of the URL",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "site",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "app",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/app/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "b6Jibtx_eYuZ85oqyTTD2192yVAZHFzVnPlrQS_uJh6mx3-XdIJLSGQ-GPRi4M-R2HFjen8bti03s-z2IuHkDg"
+        }
+      },
+      "collection": "app",
+      "url": "https://example.com/app/x",
+      "covered": false
+    },
+    {
+      "name": "a prefix entry without a port does not cover a URL with one",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "site",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "app",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/app/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "b6Jibtx_eYuZ85oqyTTD2192yVAZHFzVnPlrQS_uJh6mx3-XdIJLSGQ-GPRi4M-R2HFjen8bti03s-z2IuHkDg"
+        }
+      },
+      "collection": "site",
+      "url": "https://example.com:8443/x",
+      "covered": false
+    },
+    {
+      "name": "an explicit :443 is no port after normalization",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "site",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "app",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/app/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "b6Jibtx_eYuZ85oqyTTD2192yVAZHFzVnPlrQS_uJh6mx3-XdIJLSGQ-GPRi4M-R2HFjen8bti03s-z2IuHkDg"
+        }
+      },
+      "collection": "site",
+      "url": "https://example.com:443/x",
+      "covered": true
+    },
+    {
+      "name": "a prefix entry covers its own URL",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/blog",
+      "covered": true
+    },
+    {
+      "name": "prefix compares octets, not path segments",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/blogs",
+      "covered": true
+    },
+    {
+      "name": "prefix reads no query",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/blog?p=1",
+      "covered": true
+    },
+    {
+      "name": "a longer path",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/blog/2026/post",
+      "covered": true
+    },
+    {
+      "name": "shorter than the entry",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/blo",
+      "covered": false
+    },
+    {
+      "name": "path case is significant",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/Blog",
+      "covered": false
+    },
+    {
+      "name": "host case is settled by normalization",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://EXAMPLE.COM/blog/x",
+      "covered": true
+    },
+    {
+      "name": "the home page as an exact entry",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/",
+      "covered": true
+    },
+    {
+      "name": "an empty path normalizes to the home page",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com",
+      "covered": true
+    },
+    {
+      "name": "exact covers that URL alone",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/index.html",
+      "covered": false
+    },
+    {
+      "name": "exact covers its URL",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/about",
+      "covered": true
+    },
+    {
+      "name": "exact does not cover the URL with a query",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/about?x=1",
+      "covered": false
+    },
+    {
+      "name": "exact does not cover a longer path",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/about/",
+      "covered": false
+    },
+    {
+      "name": "an unreserved escape is decoded by normalization",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/%7eteam",
+      "covered": true
+    },
+    {
+      "name": "escape hex is uppercased by normalization",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/files/a%2fb",
+      "covered": true
+    },
+    {
+      "name": "a decoded reserved octet is another URL",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/files/a/b",
+      "covered": false
+    },
+    {
+      "name": "an explicit :443 is removed by normalization",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com:443/about",
+      "covered": true
+    },
+    {
+      "name": "a URL with no Normalized URL is covered by nothing",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/blog/%zz",
+      "covered": false
+    },
+    {
+      "name": "a prefix entry on a subdomain_scope host",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "sub",
+      "url": "https://blog.example.com/any",
+      "covered": true
+    },
+    {
+      "name": "covered by another Collection only",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "pages",
+      "url": "https://example.com/blog",
+      "covered": false
+    },
+    {
+      "name": "a Declaration with collections has no implicit default",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "collection": "default",
+      "url": "https://www.example.com/",
+      "covered": false
+    },
+    {
+      "name": "implicit default covers a subdomain_scope host",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5lpOm5yk2NuEzjxOprUmNQXKTDbjRv5zqeRlUMHo-kzxLO0xjlSTHvhMW06dcDSohbExAuIvykIOSyess9rFCA"
+        }
+      },
+      "collection": "default",
+      "url": "https://www.example.com/x",
+      "covered": true
+    },
+    {
+      "name": "implicit default covers the domain",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5lpOm5yk2NuEzjxOprUmNQXKTDbjRv5zqeRlUMHo-kzxLO0xjlSTHvhMW06dcDSohbExAuIvykIOSyess9rFCA"
+        }
+      },
+      "collection": "default",
+      "url": "https://example.com/anything?q",
+      "covered": true
+    },
+    {
+      "name": "a host outside subdomain_scope",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5lpOm5yk2NuEzjxOprUmNQXKTDbjRv5zqeRlUMHo-kzxLO0xjlSTHvhMW06dcDSohbExAuIvykIOSyess9rFCA"
+        }
+      },
+      "collection": "default",
+      "url": "https://shop.example.com/x",
+      "covered": false
+    },
+    {
+      "name": "another domain",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5lpOm5yk2NuEzjxOprUmNQXKTDbjRv5zqeRlUMHo-kzxLO0xjlSTHvhMW06dcDSohbExAuIvykIOSyess9rFCA"
+        }
+      },
+      "collection": "default",
+      "url": "https://example.org/x",
+      "covered": false
+    },
+    {
+      "name": "no Collection of that name",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5lpOm5yk2NuEzjxOprUmNQXKTDbjRv5zqeRlUMHo-kzxLO0xjlSTHvhMW06dcDSohbExAuIvykIOSyess9rFCA"
+        }
+      },
+      "collection": "journal",
+      "url": "https://example.com/x",
+      "covered": false
+    }
+  ],
+  "disjointness_cases": [
+    {
+      "name": "prefix covering prefix",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/blog/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/blog/2026/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "CnQV7N9nheiu1EcUMWGQtT7nlcGc24DRbOI3vE_BCNylnouNA5DhNaZRrIATP8j3kJkYp1Jz2y0uEXlpeolvBw"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "prefix covering prefix, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/blog/2026/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/blog/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "RYDdmxHzMTjFWoq0j2j-8X2zeFvx0GfCl5amgEXyYSvmc7dmI30Na5IXh0U-PjFde3CAToT4TcuhA3nrWESVDg"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "prefix covering prefix by octets",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/blog-archive/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "TyVyOhH52U-x5jvhaN91hF4KzLoUn7DhdQzQ1DxF_p0cC5rCRhaY1ntyqEym0UY3kXgG6iaKgj9UMvl2hHjfCg"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "prefix covering prefix by octets, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/blog-archive/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "Fn46MwVocP0M2W8Za8F50400J2XqBcHScAREtR-brcO1ktcCVx86QfC4T2tPXVNSN9kWe2hCfsimgNynecNCBg"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "prefix covering exact",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/shop/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/shop/cart",
+                  "match": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "D6ydopUYdHYWeY2JKuFCV66BZ2dU3rhMhfYwaZRO_E_dZIEgPniMH9GT_LlAf4omL5MlR-G-aPCzxYgHHcPtCA"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "prefix covering exact, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/shop/cart",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/shop/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "oXJsd5eRauVBXaMA_zizKHRpl0aHgNw353aC3z9c-btnOe6Ox4hst9l87ji64EZSnWFBEgioDlXFMNs5h7B7AA"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "exact equal to exact",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "-yhRywJSJ7eiPgkpfWW2_4QYWBYrdOopEM8QV0kGnhDwPTpwgncAPKzlHZtY6R0a-8jB0ueSoajLfJL_TGM8Ag"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "exact equal to exact, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "kEuGen3uUgdo2VCG6I_nczP3egS5_echQWQBRto2aT7XeyzJJUyiqhyYgmzu6SRIS2cJx0ScJvvKRd1x24euCw"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "exact equal to a prefix entry's URL",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/docs",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/docs",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "LFWUL1IewZStIT4C9NY5RyISYGR4DamDJRzI8YFQ79jIOPtL-EcPJbrAHMs3TVMyJNesN8Hjr-uxuBlvjfzZBw"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "exact equal to a prefix entry's URL, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/docs",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/docs",
+                  "match": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "-0hlftJojcM4o7kJHx-htZIAbXvNJFEcIG2vFxkMIhZ7pOHs_JuJMQOuCw9iFsM4Zwtz6u-TijuWG4ZE2zjJBw"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "overlap in a later entry",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/a/",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/x",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/b/",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/x",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "xBFW0FMtiNBnpNPb3GzMAj_9cZk-Nc3USNuhYJunsLrBjgGbGqZi36IEKtgpZupKvgTvbCpDtaYLXVh0PEivCA"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "overlap in a later entry, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/b/",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/x",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/a/",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/x",
+                  "match": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "f-H6YC88X7jPHmCodXgQtTB-HO4Oe3pciXtBHr9rkhi-YL7YPb11EfYw3l1pwtR5k5HQU-HtTmXIlfHbzIUvAw"
+        }
+      },
+      "expected": "WIST1-E16"
+    },
+    {
+      "name": "sibling prefixes",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/blog/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/blog-archive/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "TomLNHCP-4XDgbR23qothl14G0g4r0NQ6EOUWP-VuN64oyuvbdh_B5sU31zNr7-Njx4j2UEErw1TMd4i5SBWBA"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "sibling prefixes, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/blog-archive/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/blog/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "GwBR0_EjjHLpYz1AJkFRU7ITnmZtlJPsduLgbzgMJ6bqU94HHBL3zmeN-FB7A2ishZRAUIMJ5QL8BVZjJEA5Cg"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "exact entry not covered by a longer prefix",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/shop",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/shop/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "N55l8CmcaU82I47KTE-JYUgD21uOZlh3LzQF-CCp8-9wJwpTul4MONQxfLCaHJdt3bwykiiAxrHQ_WUmhts3BQ"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "exact entry not covered by a longer prefix, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/shop/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/shop",
+                  "match": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5m4D_-Ej6P8WQ7fAsOoORj_lSxqWyPZwdVwkmM5XaFmam5xOnlCTtLhC7JjiDtcxoEOhfBK6UMfr4V9a6WKxAQ"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "same path on two hosts",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://www.example.com/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "7aAoJYvgmkcN_K8L9Zt6lKT0RtD-bNWHD4T4Ktdyj2-7PVRyaNIu86WaJgCO5VCzIr0WjIDD8PzESpijPpq9Bw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "same path on two hosts, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://www.example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "9BO_KlxGFEXeDCzTz0-4q3rGf6y1g_nMzy8NPwEFNdosV7gN2bp_bgcSWQIt5ge-HYSJhsAWAnqGuUyBKK93Aw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "same host on another port",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "8plUZX2kI9l9u_TW_tK46WdBtPk30NCB4t6G_l3C5OFo98xCFLE6cFFYm6mprom_dZNqSrxGm7LGoQ7pV3fGBA"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "same host on another port, reversed",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "wByUtLZDjXaxysBoeNO0BElv-iP02T4SYIr5aDEXxcU7DrsMzpzs2f1-od4yU0WmemMy3U1N5sig0dDF0rFEBg"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "entries of one Collection cover each other and repeat",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048
+      },
+      "envelope": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "a",
+              "scope": [
+                {
+                  "url": "https://example.com/blog/",
+                  "match": "prefix"
+                },
+                {
+                  "url": "https://example.com/blog/post",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/blog/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "scope": [
+                {
+                  "url": "https://example.com/shop/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "_MnCLKmVPs6-MVlyIReeWWcm899MxYoqyJcwhmp1wUgu42KgpTe7XEzcKwJJqtxbTOJUmCvfW_dXncp54L_OAA"
+        }
+      },
+      "expected": "accepted"
+    }
+  ],
+  "publication_cases": [
+    {
+      "name": "inside its Scope",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "journal",
+          "url": "https://example.com/blog/post",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "DnKhbVH_hFexoIgUjkp9yhiZlx3fJ5GHeZQIEex462k8QMHL5Yl94ouBfh8fIjikvE-yfZKXDJ8op6b12FZdDw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "inside its Scope on a subdomain_scope host",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "sub",
+          "url": "https://blog.example.com/p",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "_WMXsearZNdmvxMGKT5ws-HIuAeMWqz1m_dsi9Rfw8Kk1s-QhLqJWzaZnLR3MgadTzqKY8xzgpZwR-rI73lGAQ"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "outside every Scope",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "journal",
+          "url": "https://example.com/shop/item",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "7AfeoQwqex6UMmGIybHH5mrd2JExxaMSQ5v6uhCX2QHtu8w3Exr-rpMvfWJ5OqHyr1BSRqN32NAI-LGq_clrBA"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "across: inside another Collection's Scope",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "journal",
+          "url": "https://example.com/about",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "OnYMGjeQ-rzE2XiW3BJvVweBpamMb-kTJyiUevay8hYRIR4pQK290MS1NcVkpW9vdJii6m64BNLfEcRF6zbBDA"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "across: the home page under the journal",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "journal",
+          "url": "https://example.com/",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "rAqfUfKe-tCiCk7DlVOZPGapsdWlaVv_D0flFoqgG5Lt1ULP8D1fh68JOZIyvCFAZIV7v-NKTb5wyyXxKThfAg"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url not a Normalized URL",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "journal",
+          "url": "https://EXAMPLE.com/blog/post",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "JlHhl4JXm1iEDjJeA3BbT0J83zhl_HvTr0Kqo-vCyMM7P4AhD5qfA7zA31FPy2SbUUkzN3QbxL4SuuCv_a4aBQ"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "a Collection the Declaration does not name",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "store",
+          "url": "https://example.com/blog/post",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "wOQxqrhPcYQfhXjupPLPkDCHLpeTWkKCIabvvvKCyGmpPkisjDZfANrwpqHHkDH7GSZfVMxbOLEa23C7uWSlDA"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "a Collection the Declaration does not name, signed by a key no source lists",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "journal",
+              "scope": [
+                {
+                  "url": "https://example.com/blog",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                  "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                  "nbf": 1788220800
+                }
+              ]
+            },
+            {
+              "name": "pages",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/about",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/~team",
+                  "match": "exact"
+                },
+                {
+                  "url": "https://example.com/files/a%2Fb",
+                  "match": "exact"
+                }
+              ]
+            },
+            {
+              "name": "sub",
+              "scope": [
+                {
+                  "url": "https://blog.example.com/",
+                  "match": "prefix"
+                }
+              ],
+              "keys": [
+                {
+                  "kty": "OKP",
+                  "crv": "Ed25519",
+                  "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                  "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                  "nbf": 1788220800
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "XAYt8NeKYGn12bE3Ccf4YpMAn9OuZh0sajlMl3dwTQUGCwLxwVH2EVx1PgmutJ1s0pKcHoFCtJHC6XgNkEw-Dw"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "store",
+          "url": "https://example.com/blog/post",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g",
+          "alg": "Ed25519",
+          "value": "DncxxtB4az9Ct47GPzQhVfDJb8In8vSrOzURxvtm4twp8IBj0CFVRhQpvd90tY4VKX9jZ_fUqimcya0uNW8YAw"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "inside a Scope whose entry carries a port",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "site",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "app",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/app/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "b6Jibtx_eYuZ85oqyTTD2192yVAZHFzVnPlrQS_uJh6mx3-XdIJLSGQ-GPRi4M-R2HFjen8bti03s-z2IuHkDg"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "app",
+          "url": "https://example.com:8443/app/x",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "T5C1vNDODuAXydVFGS7twr3-GqVd5AJV_rJ_lVP8BHXLASWSsxNB8d5WwDTCXQ7MPv3sW9jOFm2gzx_11swRAw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "same path without the port is outside that Scope",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com",
+            "blog.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ],
+          "collections": [
+            {
+              "name": "site",
+              "scope": [
+                {
+                  "url": "https://example.com/",
+                  "match": "prefix"
+                }
+              ]
+            },
+            {
+              "name": "app",
+              "scope": [
+                {
+                  "url": "https://example.com:8443/app/",
+                  "match": "prefix"
+                }
+              ]
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "b6Jibtx_eYuZ85oqyTTD2192yVAZHFzVnPlrQS_uJh6mx3-XdIJLSGQ-GPRi4M-R2HFjen8bti03s-z2IuHkDg"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "app",
+          "url": "https://example.com/app/x",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "IGa0ZBN0A1DtIMvUjM9KfF8PTUidvPO8y7wyPyZYlCyJGSWSPHPEVtSoNo2XRogVX7B7rBCdbxAOWhmnkkOrCw"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "implicit default on a subdomain_scope host",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5lpOm5yk2NuEzjxOprUmNQXKTDbjRv5zqeRlUMHo-kzxLO0xjlSTHvhMW06dcDSohbExAuIvykIOSyess9rFCA"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "default",
+          "url": "https://www.example.com/x",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "VankVj07L8cDWkaLmqpuVSBzf1gNAaiIgbnl4ZfBHTC30C8SDvFJSrVqE93tNJWCwzVRmzDpIkOgo6GNlvfWBg"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "implicit default outside the authority",
+      "declaration": {
+        "publisher": {
+          "wist_version": "1.0.0",
+          "seq": 0,
+          "domain": "example.com",
+          "subdomain_scope": [
+            "www.example.com"
+          ],
+          "keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+              "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+              "nbf": 1788220800
+            }
+          ],
+          "recovery_keys": [
+            {
+              "kty": "OKP",
+              "crv": "Ed25519",
+              "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+              "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+              "nbf": 1788220800
+            }
+          ]
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5lpOm5yk2NuEzjxOprUmNQXKTDbjRv5zqeRlUMHo-kzxLO0xjlSTHvhMW06dcDSohbExAuIvykIOSyess9rFCA"
+        }
+      },
+      "probe": {
+        "probe": {
+          "publisher": "example.com",
+          "collection": "default",
+          "url": "https://shop.example.com/x",
+          "instant": "2026-10-01T12:00:00Z"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "rjlBEZm56Q4kuwIoPFIiYG24HNz6m40PW2kKlOJjYzjJlKGgUFVxlNVbDDA7S5hwvgaLtoW2GkAXqbrWSWt7AA"
+        }
+      },
+      "expected": "WIST1-E03"
+    }
+  ]
+}

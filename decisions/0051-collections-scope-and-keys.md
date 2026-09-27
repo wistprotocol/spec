@@ -40,6 +40,19 @@ its publications persist across the two forms.
 Each Collection publishes its own signed list under its own path and is
 pulled, admitted and sealed on its own.
 
+`collections` is an array of one or more objects with exactly the
+members `name`, `scope` and, optionally, `keys`. `name` is 1 to 32
+octets of lowercase ASCII letters, digits and `-`, neither beginning
+nor ending with `-`, and names one Collection of the array. `scope` is
+an array of one or more entries. `keys` is an array of key entries in
+the form of WIST-1 §5.1; an absent `keys` and an empty one are the
+same. The implicit `default` has no keys of its own. A member of
+another form is `WIST1-E14`; a repeated `name` is `WIST1-E16`.
+
+An empty `collections` or `scope` is refused because a list emptied by
+a fault of the tool that writes the Declaration would remove every
+record it governs.
+
 ### Scope
 
 A **Scope** is a list of entries. Each entry is a Normalized URL whose
@@ -49,10 +62,38 @@ alone. Where `collections` is present, a URL outside every Scope cannot
 be published by any key. No entry of one Collection covers an entry of
 another.
 
+An entry is an object with exactly the members `url` and `match`.
+`url` is byte-identical to its own Normalized URL (WIST-1 §2) and
+`JCS(url)` is within `url_cap_bytes`; `match` is `prefix` or `exact`;
+any other form is `WIST1-E14`. The host of `url` equals `domain` or a
+member of `subdomain_scope`; otherwise the Declaration is rejected with
+`WIST1-E16`.
+
+Coverage compares octets of Normalized URLs and reads neither path
+segments nor the query: a `prefix` entry `https://example.com/blog`
+covers `https://example.com/blogs` and `https://example.com/blog?p=1`.
+An entry covers another entry when it covers that entry's `url`,
+whatever the other's `match`. A Declaration in which an entry of one
+Collection covers an entry of another is rejected with `WIST1-E16`, so
+a URL lies in at most one Scope. Entries of one Collection may cover
+each other or repeat.
+
+The Scope of the implicit `default` covers every URL whose host equals
+`domain` or a member of `subdomain_scope`.
+
 An Aggregator does not admit, and a Consumer ignores, a publication
 outside its Collection's Scope under the Declaration in force at the
 sealing Epoch. This is WIST-1 §3.2's scope rule and `WIST1-E03`,
-extended from hosts to URLs.
+extended from hosts to URLs. A publication whose URL another
+Collection's Scope covers is outside its own and fails the same way,
+as does one that names a Collection the Declaration does not have. An
+entry's host and a publication's are compared as WIST-1 §3.2 compares
+hosts, without the port; coverage compares the port with the rest of
+the URL.
+
+A record is identified by its Publisher and its URL and carries its
+Collection. Disjoint Scopes and narrowing leave no URL with a record
+in two Collections.
 
 ### Narrowing
 
@@ -70,6 +111,34 @@ remove nothing. A Declaration without `collections` keeps the present
 rule, under which a later change of `subdomain_scope` "does not revise
 authority at an earlier Delta's sealing height" (WIST-1 §5.2).
 
+Narrowing reads the Publisher's live records and the Declaration that
+takes effect, and no earlier Declaration. Under a Declaration that
+carries `collections`, a record stays when the Declaration names the
+record's Collection and that Collection's Scope covers the record's
+URL. Under a Declaration without `collections`, a record stays when its
+Collection is `default`, whatever its host; the records of every other
+Collection leave, since no Declaration in force names their Collection.
+
+The transitions that narrow, each at the height of the Epoch in which
+WIST-1 §5.2 applies it:
+
+| Transition | Height |
+|---|---|
+| An ordinary rotation naming the current Declaration, sealed outside a recovery window, a reversal of a pending head included | Its sealing Epoch |
+| Settlement of a recovery window, for the recovery-chain head it makes current | The first Epoch whose `sealed_at` is at or after the window's end |
+| Activation of a pending head | The activation height |
+
+A recovery rotation, a Declaration of any class accepted inside an
+open window, a fresh identity that becomes pending, a replacement of a
+pending head and an idempotent re-serve remove nothing when they are
+sealed. Where one Epoch settles or activates and also seals an
+ordinary rotation, the transitions narrow in the order WIST-1 §5.2
+applies them.
+
+Narrowing at height N removes records sealed below N. The publications
+Epoch N seals are then read under the Declaration in force once every
+transition of Epoch N has applied, which is the Scope rule above.
+
 ### Keys
 
 `keys` are the owner's: they sign Declarations and the publications of
@@ -83,13 +152,66 @@ set and is a fresh identity, pending and reversible. The Key Set
 fingerprint, which `next_keys` and the DNS record carry, covers `keys`
 alone.
 
+WIST-1 §5.2's unique-key rule and its `WIST1-E08` extend to Collection
+keys: a public key listed twice within one Collection, in two
+Collections, or in a Collection and in `keys` or `recovery_keys`.
+
+The binding check of WIST-1 §5.1 collects a publication's candidates
+from `keys` and from the `keys` of the Collection the publication
+names, in each source Declaration §5.2 authorizes. A `sig.key_id` that
+names only a key of another Collection has no candidate and is
+`WIST1-E02`.
+
+Declaration signer resolution (WIST-1 §5.2) collects no candidate from
+a Collection's `keys`, the predecessor's or the incoming Declaration's.
+A Declaration signed by a key its predecessor lists in a Collection
+authenticates only when the Declaration lists that key in its own
+`keys`, and is then a fresh identity; otherwise it is `WIST1-E02`.
+
 ### Reaching the Log
 
 An Aggregator fetches the Declaration at the start of every pull. It
-seals a Declaration that removes a key, a Collection or a Scope entry
-within `record_seal_epochs`, the deadline WIST-1 §5.2 gives a recovery
+seals a Declaration that reduces authority, by the test below, within
+`record_seal_epochs`, the deadline WIST-1 §5.2 gives a recovery
 Declaration, and ahead of the publications of the same Registrable
-Domain that wait for capacity.
+Domain that wait for capacity. The test covers a Declaration that
+removes a key, a Collection, a Scope entry or a host, or shortens a
+key's window.
+
+A pull of a Publisher's Collections proceeds only after that fetch
+succeeded in the same pull; an unchanged answer to a conditional
+request is a success. When the fetch fails, or the fetched Declaration
+fails its acceptance checks, the Aggregator pulls no Collection of
+that Publisher and retries as WIST-2 §7 retries a failed fetch. The
+pull reads Collections, Scopes and keys from the Declarations WIST-1
+§5.2 authorizes for admission once the fetched one has been applied
+there: a fetched Declaration that becomes pending leaves the pull
+under the current one. The Key Set cache of WIST-1 §5.1 is removed with its parameter:
+a pull under a cached Key Set would admit publications under a Scope
+or a key the served Declaration has removed.
+
+A Declaration D reduces authority against the Declaration P it names
+as predecessor when at least one of the following holds. Each
+Declaration is read with its Collections, the implicit `default`
+included.
+
+- P lists a public key in `keys`, in `recovery_keys` or in a
+  Collection that D does not list in the same member, or in the
+  Collection of the same name. Keys are compared by their public
+  octets.
+- D lists such a key with a shorter window: a later `nbf`, an earlier
+  `exp`, or an `exp` where P has none.
+- P has a Collection that D does not have.
+- A Collection of P has a Scope entry that the Collection of the same
+  name in D does not carry with the same `url` and `match`. The Scope
+  of an implicit `default` counts as one entry that another implicit
+  `default` carries and no `collections` member does.
+- `subdomain_scope` of P has a member that D's does not.
+
+The test reads entries and not the URLs they cover: a Declaration that
+replaces an entry by a wider one reduces authority. The deadline is
+counted as WIST-1 §5.2 counts it for a recovery Declaration, from the
+discovery of D.
 
 ### Size
 
@@ -97,6 +219,16 @@ A Declaration's JCS serialization fits one Log Entry (WIST-3 §3.3).
 `collections_max` and `scope_entries_max` bound the counts. The octet
 bound binds first: sixteen Collections of thirty-two entries at
 `url_cap_bytes` would hold 1 048 576 octets.
+
+`collections_max` is 16 Collections in a Declaration and
+`scope_entries_max` is 32 entries in a Scope; neither is amended below
+1. A Declaration above either count is rejected with `WIST1-E16`. A
+Declaration whose `publisher_declaration` Entry (WIST-3 §3.3) has a
+JCS serialization above 65 535 octets is rejected with `WIST1-E04`.
+The two counts and `url_cap_bytes` are read for a Declaration at the
+instant WIST-1 §3.6's size-cap parameter time gives a Delta.
+
+`WIST1-E16` is a new code of WIST-1 §7: a Collection rule violation.
 
 ## Alternatives considered
 
@@ -143,9 +275,6 @@ bound binds first: sixteen Collections of thirty-two entries at
 
 - The order in which the Collections of one Registrable Domain take
   the capacity they share.
-- Whether the Key Set cache of WIST-1 §5.1 keeps a purpose once the
-  Declaration is fetched at every pull.
-- The values of `collections_max` and `scope_entries_max`.
 
 ## Verification
 
@@ -158,3 +287,13 @@ pending Declaration that removes nothing; `default` named beside other
 Collections; a Declaration signed by a Collection key; a Declaration
 above the Entry bound; the sealing deadline of a Declaration that
 removes a key.
+
+They are `vectors/wist1/collection-fields.json`,
+`collection-scope.json`, `collection-keys.json` and
+`collection-narrowing.json` and `vectors/wist2/declaration-pull.json`,
+generated by `tools/gen_collection_vectors.py` from the reference in
+`tools/collection_rules.py` and `tools/narrowing.py`, and recomputed by
+`tools/verify_collection_vectors.py`, which was written from this text
+without the other three. A publication in them is a signed probe that
+stands for the Collection's signed list; the vectors of ADR-0052 carry
+the list itself.

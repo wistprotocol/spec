@@ -1,0 +1,6172 @@
+{
+  "note": "ADR-0051 narrowing over one Publisher's Declaration history. Each history replays `epochs` in order; an Epoch lists the labels of the Declaration Envelopes it seals (from `declarations`) and the records it seals as {url, collection}. Within an Epoch: settle a window whose end is at or before sealed_at, activate a pending head whose activation height is this height, apply the Declarations in ascending seq (WIST-1 section 5.2), then read the Epoch's records under the Declaration then current: a record outside its Collection's Scope is WIST1-E03 and never a record. A narrowing transition removes every live record sealed below its height that the Declaration taking effect does not keep. `expected.epochs` give, per Epoch after it applies, the current Declaration, the pending head and its activation height, the open window's end, the transitions in order with the records each removed, and the records sealed and rejected; `expected.live_records` are the records live at the end, one per URL. A record is identified by its Publisher and URL and carries its Collection: sealing a URL again replaces its record. Lists of records are in ascending octet order of url, then collection. `parameters` carry recovery_window_days and declaration_activation_epochs as trusted fixture input.",
+  "keys": {
+    "owner": {
+      "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+    },
+    "owner2": {
+      "seed_hex": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+      "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+      "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU"
+    },
+    "recovery": {
+      "seed_hex": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo"
+    },
+    "recovery2": {
+      "seed_hex": "c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+      "x": "3FF_9SfnvPqwZ_LMYbvvjnX5uo4TMq09QviTjgBF7Yk",
+      "kid": "EAaAHtmt_4kKIcDJuJy8m9J06wTGigZXq_O3tlfbsuQ"
+    },
+    "fresh": {
+      "seed_hex": "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+      "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+      "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4"
+    },
+    "journal": {
+      "seed_hex": "c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6",
+      "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+      "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8"
+    },
+    "journal2": {
+      "seed_hex": "c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7",
+      "x": "1a8l4gStA9CibiNplkBPG-UaYJSLzAJs0ISoNpC3VtM",
+      "kid": "EYMxTgrYrenHv_YiK5f_nkWCgD-z0F3v91Ny_qq2NhY"
+    },
+    "store": {
+      "seed_hex": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+      "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8"
+    },
+    "store2": {
+      "seed_hex": "c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9",
+      "x": "ujthHiiCwbaqSyrj7HjqBzbjrZkjg1NFAXFQekufFbU",
+      "kid": "LTiFLLj59ZnhL4xlxeMuU5vce0pxyJ28uMieoiWU6KA"
+    },
+    "docs": {
+      "seed_hex": "cacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacaca",
+      "x": "RmYn1SdzydXNpsj9KOox7HuU5oqo1C4q0xp13I0k7Qc",
+      "kid": "meO4ULylsrL0dMlVTH2i2xMG6FPWxwoyYRZ3hhfiA8g"
+    }
+  },
+  "histories": [
+    {
+      "name": "ordinary rotation narrows at its sealing Epoch",
+      "why": "Records the new Scopes no longer cover and records of the dropped store leave at height 2. A record sealed at height 2 inside the new Scope stays; one outside it is never a record.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "D": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TUh46r1eDUW1b7ZZeC0tlDIncETV1rFiyp5zG6OSc-HzFryZNuhtnUvIR0COOAzEyZKLevbylLa2-vD9msEhCg"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/journal/2025/older",
+              "collection": "journal"
+            }
+          ]
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "D"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/two",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/new",
+              "collection": "journal"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/store/item-2",
+              "collection": "store"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/older",
+                "collection": "journal"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "D",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "ordinary_rotation",
+                "declaration": "D",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/journal/2025/older",
+                    "collection": "journal",
+                    "sealed_height": 1
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2026/two",
+                "collection": "journal"
+              }
+            ],
+            "records_rejected": [
+              {
+                "url": "https://example.com/journal/2025/new",
+                "collection": "journal",
+                "code": "WIST1-E03"
+              }
+            ]
+          },
+          {
+            "height": 3,
+            "current_declaration": "D",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": [
+              {
+                "url": "https://example.com/store/item-2",
+                "collection": "store",
+                "code": "WIST1-E03"
+              }
+            ]
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://example.com/journal/2026/two",
+            "collection": "journal",
+            "sealed_height": 2
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "recovery rotation narrows at settlement, an Epoch exactly at the window's end",
+      "why": "The recovery rotation sealed at height 2 removes nothing; height 4 is the last Epoch before the end; height 5, sealed exactly at the end, settles and narrows.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "R": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+                "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "alg": "Ed25519",
+            "value": "qaHA1mrkAmpwsCno5QAiuu7loIO3SC3NnySyKudcD1QrSemXm4Hjq9WKBSmdzzsudMwZkQPxDJRMCGl1UWnDBA"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "R"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-08T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-08T02:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/three",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-9",
+              "collection": "store"
+            }
+          ]
+        },
+        {
+          "height": 6,
+          "sealed_at": "2026-10-08T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [
+              {
+                "kind": "recovery_rotation",
+                "declaration": "R",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 5,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "settlement",
+                "declaration": "R",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2026/three",
+                "collection": "journal"
+              }
+            ],
+            "records_rejected": [
+              {
+                "url": "https://example.com/store/item-9",
+                "collection": "store",
+                "code": "WIST1-E03"
+              }
+            ]
+          },
+          {
+            "height": 6,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://example.com/journal/2026/three",
+            "collection": "journal",
+            "sealed_height": 5
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "recovery rotation narrows at settlement, the first Epoch after the window's end",
+      "why": "No Epoch is sealed at the end itself; height 5, sealed one hour after it, is the first at or after the end and settles.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "R": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+                "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "alg": "Ed25519",
+            "value": "qaHA1mrkAmpwsCno5QAiuu7loIO3SC3NnySyKudcD1QrSemXm4Hjq9WKBSmdzzsudMwZkQPxDJRMCGl1UWnDBA"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "R"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-08T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-08T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [
+              {
+                "kind": "recovery_rotation",
+                "declaration": "R",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 5,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "settlement",
+                "declaration": "R",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "in-window follower becomes the chain head, in-window competitor superseded",
+      "why": "R keeps every Scope; F follows it under R's own key and becomes the chain head; C, a fresh identity with a narrower Scope, becomes current but removes nothing. Settlement makes F current and narrows by F's Collections alone: the journal record C would have removed stays.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "R": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+                "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "alg": "Ed25519",
+            "value": "5oRpeQW1VloHuKagcG-CMxVHk463SlCK0IqYE5j_B_xoFMw0YXMkAKh4uVH2xQ2lvMTodhHHf68fxriGMEr2Bg"
+          }
+        },
+        "F": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 2,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+                "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:c355bcb8d3e06f136020f2785210502b8c0c78a4a726266c87746f207ab38340"
+          },
+          "sig": {
+            "key_id": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+            "alg": "Ed25519",
+            "value": "P-8HF8F4ozK0IHUn7vV90Y4s5qMVaxuxALV3YiAHZ_I703-MeEZNgZLVI5Ujg1UfqI9mncq9DeYCeS05L5iWDA"
+          }
+        },
+        "C": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 3,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:e88fc631fe1e3e735803fe665ee30b2911b82a74487daac8fa114a274b0fc153"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "oZPSZUaorFpuL7CX5T-J15ApuOsvmGfmXAIm4SrmVW4eGRajp189C4uAcIhdHJvDKbC21Fv81N_uVn1oJQHpDA"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "R"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [
+            "F"
+          ],
+          "records": []
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "declarations": [
+            "C"
+          ],
+          "records": []
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-08T02:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 6,
+          "sealed_at": "2026-10-08T03:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/four",
+              "collection": "journal"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [
+              {
+                "kind": "recovery_rotation",
+                "declaration": "R",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "F",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [
+              {
+                "kind": "in_window_chain",
+                "declaration": "F",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "C",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [
+              {
+                "kind": "in_window_competitor",
+                "declaration": "C",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 5,
+            "current_declaration": "F",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "settlement",
+                "declaration": "F",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 6,
+            "current_declaration": "F",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2026/four",
+                "collection": "journal"
+              }
+            ],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/four",
+            "collection": "journal",
+            "sealed_height": 6
+          },
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "fresh identity narrows at its activation height",
+      "why": "The fresh identity sealed at height 2 is pending until height 26; a store record sealed at height 3 under the current Declaration is admitted and leaves at activation.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "P": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "jDNmj23_p7ERxXbIhaNW6HZS02ovsAy_3xUhNWBotbT8x2WszZf9v5cXYowe16TVt1iq34d3E5kw2irPgAY2Bw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "P"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/store/item-3",
+              "collection": "store"
+            }
+          ]
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-01T05:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 6,
+          "sealed_at": "2026-10-01T06:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 7,
+          "sealed_at": "2026-10-01T07:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 8,
+          "sealed_at": "2026-10-01T08:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 9,
+          "sealed_at": "2026-10-01T09:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 10,
+          "sealed_at": "2026-10-01T10:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 11,
+          "sealed_at": "2026-10-01T11:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 12,
+          "sealed_at": "2026-10-01T12:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 13,
+          "sealed_at": "2026-10-01T13:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 14,
+          "sealed_at": "2026-10-01T14:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 15,
+          "sealed_at": "2026-10-01T15:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 16,
+          "sealed_at": "2026-10-01T16:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 17,
+          "sealed_at": "2026-10-01T17:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 18,
+          "sealed_at": "2026-10-01T18:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 19,
+          "sealed_at": "2026-10-01T19:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 20,
+          "sealed_at": "2026-10-01T20:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 21,
+          "sealed_at": "2026-10-01T21:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 22,
+          "sealed_at": "2026-10-01T22:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 23,
+          "sealed_at": "2026-10-01T23:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 24,
+          "sealed_at": "2026-10-02T00:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 25,
+          "sealed_at": "2026-10-02T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 26,
+          "sealed_at": "2026-10-02T02:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/store/item-4",
+              "collection": "store"
+            },
+            {
+              "url": "https://example.com/journal/2026/five",
+              "collection": "journal"
+            }
+          ]
+        },
+        {
+          "height": 27,
+          "sealed_at": "2026-10-02T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "fresh_identity_pending",
+                "declaration": "P",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [
+              {
+                "url": "https://example.com/store/item-3",
+                "collection": "store"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 5,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 6,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 7,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 8,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 9,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 10,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 11,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 12,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 13,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 14,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 15,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 16,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 17,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 18,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 19,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 20,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 21,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 22,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 23,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 24,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 25,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 26,
+            "current_declaration": "P",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "activation",
+                "declaration": "P",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-3",
+                    "collection": "store",
+                    "sealed_height": 3
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2026/five",
+                "collection": "journal"
+              }
+            ],
+            "records_rejected": [
+              {
+                "url": "https://example.com/store/item-4",
+                "collection": "store",
+                "code": "WIST1-E03"
+              }
+            ]
+          },
+          {
+            "height": 27,
+            "current_declaration": "P",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/five",
+            "collection": "journal",
+            "sealed_height": 26
+          },
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "fresh identity with declaration_activation_epochs 0 narrows at its sealing Epoch",
+      "why": "The activation height is the sealing height: the fresh identity becomes pending and activates in height 2, and the records sealed there are read under it.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 0
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "P": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "jDNmj23_p7ERxXbIhaNW6HZS02ovsAy_3xUhNWBotbT8x2WszZf9v5cXYowe16TVt1iq34d3E5kw2irPgAY2Bw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "P"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/store/item-3",
+              "collection": "store"
+            },
+            {
+              "url": "https://example.com/journal/2026/five",
+              "collection": "journal"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "P",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "fresh_identity_pending",
+                "declaration": "P",
+                "narrows": false,
+                "removed": []
+              },
+              {
+                "kind": "activation",
+                "declaration": "P",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2026/five",
+                "collection": "journal"
+              }
+            ],
+            "records_rejected": [
+              {
+                "url": "https://example.com/store/item-3",
+                "collection": "store",
+                "code": "WIST1-E03"
+              }
+            ]
+          },
+          {
+            "height": 3,
+            "current_declaration": "P",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/five",
+            "collection": "journal",
+            "sealed_height": 2
+          },
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "pending head replaced before activation",
+      "why": "P2 names the pending head P and replaces it without moving the activation height; at height 26 the replacement's Collections narrow, so only the default record leaves.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "P": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "jDNmj23_p7ERxXbIhaNW6HZS02ovsAy_3xUhNWBotbT8x2WszZf9v5cXYowe16TVt1iq34d3E5kw2irPgAY2Bw"
+          }
+        },
+        "P2": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 2,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:7624df8f3f669313e540db4042cd9a3cbd1276cef8bcd3e682e79f2c66cd9256"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "4a5Ey1I-M9hChC9oZYszrIaIWZp22zTgCfiARjuIkJSzPDagTtdpZI29H64hP0Apc4MoSQkn0hbimwMEUnYVDw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "P"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-01T05:00:00Z",
+          "declarations": [
+            "P2"
+          ],
+          "records": []
+        },
+        {
+          "height": 6,
+          "sealed_at": "2026-10-01T06:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 7,
+          "sealed_at": "2026-10-01T07:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 8,
+          "sealed_at": "2026-10-01T08:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 9,
+          "sealed_at": "2026-10-01T09:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 10,
+          "sealed_at": "2026-10-01T10:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 11,
+          "sealed_at": "2026-10-01T11:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 12,
+          "sealed_at": "2026-10-01T12:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 13,
+          "sealed_at": "2026-10-01T13:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 14,
+          "sealed_at": "2026-10-01T14:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 15,
+          "sealed_at": "2026-10-01T15:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 16,
+          "sealed_at": "2026-10-01T16:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 17,
+          "sealed_at": "2026-10-01T17:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 18,
+          "sealed_at": "2026-10-01T18:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 19,
+          "sealed_at": "2026-10-01T19:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 20,
+          "sealed_at": "2026-10-01T20:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 21,
+          "sealed_at": "2026-10-01T21:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 22,
+          "sealed_at": "2026-10-01T22:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 23,
+          "sealed_at": "2026-10-01T23:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 24,
+          "sealed_at": "2026-10-02T00:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 25,
+          "sealed_at": "2026-10-02T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 26,
+          "sealed_at": "2026-10-02T02:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 27,
+          "sealed_at": "2026-10-02T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "fresh_identity_pending",
+                "declaration": "P",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 5,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "pending_replacement",
+                "declaration": "P2",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 6,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 7,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 8,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 9,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 10,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 11,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 12,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 13,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 14,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 15,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 16,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 17,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 18,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 19,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 20,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 21,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 22,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 23,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 24,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 25,
+            "current_declaration": "G",
+            "pending_head": "P2",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 26,
+            "current_declaration": "P2",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "activation",
+                "declaration": "P2",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://www.example.com/about",
+                    "collection": "default",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 27,
+            "current_declaration": "P2",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2025/old",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://example.com/store/item-1",
+            "collection": "store",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "pending head reversed by an ordinary rotation that narrows",
+      "why": "V names the current Declaration under an owner key: it reverses the pending head, narrows at its sealing Epoch by its own Collections, and nothing happens at the discarded activation height.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "P": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "LbeXY24yPtV26bDgPifLkhcaiWtj6RhvDUpDucfTgtE",
+                "kid": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "Z4WtBskQtozjaaWhUt-mi1wZZZj2q9WmMx1T2ylkRb4",
+            "alg": "Ed25519",
+            "value": "jDNmj23_p7ERxXbIhaNW6HZS02ovsAy_3xUhNWBotbT8x2WszZf9v5cXYowe16TVt1iq34d3E5kw2irPgAY2Bw"
+          }
+        },
+        "V": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 2,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "gurBLYwMqpbbWfyQJDF0y0iIULHuTsMn-YjmOvDqbPu3wZUVRhsc5VMEgFnEcDtH56m2KS5PHm8h7ifPwhwDCw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "P"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "declarations": [
+            "V"
+          ],
+          "records": []
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-01T05:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/six",
+              "collection": "journal"
+            }
+          ]
+        },
+        {
+          "height": 6,
+          "sealed_at": "2026-10-01T06:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 7,
+          "sealed_at": "2026-10-01T07:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 8,
+          "sealed_at": "2026-10-01T08:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 9,
+          "sealed_at": "2026-10-01T09:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 10,
+          "sealed_at": "2026-10-01T10:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 11,
+          "sealed_at": "2026-10-01T11:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 12,
+          "sealed_at": "2026-10-01T12:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 13,
+          "sealed_at": "2026-10-01T13:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 14,
+          "sealed_at": "2026-10-01T14:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 15,
+          "sealed_at": "2026-10-01T15:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 16,
+          "sealed_at": "2026-10-01T16:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 17,
+          "sealed_at": "2026-10-01T17:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 18,
+          "sealed_at": "2026-10-01T18:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 19,
+          "sealed_at": "2026-10-01T19:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 20,
+          "sealed_at": "2026-10-01T20:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 21,
+          "sealed_at": "2026-10-01T21:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 22,
+          "sealed_at": "2026-10-01T22:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 23,
+          "sealed_at": "2026-10-01T23:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 24,
+          "sealed_at": "2026-10-02T00:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 25,
+          "sealed_at": "2026-10-02T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 26,
+          "sealed_at": "2026-10-02T02:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 27,
+          "sealed_at": "2026-10-02T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "fresh_identity_pending",
+                "declaration": "P",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "G",
+            "pending_head": "P",
+            "activation_height": 26,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "reversal_ordinary_rotation",
+                "declaration": "V",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/journal/2026/one",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 5,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": [
+              {
+                "url": "https://example.com/journal/2026/six",
+                "collection": "journal",
+                "code": "WIST1-E03"
+              }
+            ]
+          },
+          {
+            "height": 6,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 7,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 8,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 9,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 10,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 11,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 12,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 13,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 14,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 15,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 16,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 17,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 18,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 19,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 20,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 21,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 22,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 23,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 24,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 25,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 26,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 27,
+            "current_declaration": "V",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/store/item-1",
+            "collection": "store",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "idempotent re-serve removes nothing",
+      "why": "Re-serving the current Declaration, before and after a narrowing rotation, installs nothing.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "D": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TUh46r1eDUW1b7ZZeC0tlDIncETV1rFiyp5zG6OSc-HzFryZNuhtnUvIR0COOAzEyZKLevbylLa2-vD9msEhCg"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [
+            "D"
+          ],
+          "records": []
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "declarations": [
+            "D"
+          ],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "idempotent",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "D",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "ordinary_rotation",
+                "declaration": "D",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "D",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "idempotent",
+                "declaration": "D",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "Declaration without collections following one with them",
+      "why": "Records of the named journal and store leave; the default record on www.example.com stays although the new subdomain_scope drops that host. A record sealed afterwards on that host is outside the authority.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "W": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "sapltE8uj-WTgZ6Jjz13dN5dBDIcJDMgF9tcnwMeY-0UDzKQ8p57KyFTqXII9UTi1GpUBAXoaO4W1UnuxSHmAQ"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "W"
+          ],
+          "records": [
+            {
+              "url": "https://www.example.com/new",
+              "collection": "default"
+            },
+            {
+              "url": "https://example.com/journal/moved",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "W",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "ordinary_rotation",
+                "declaration": "W",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/journal/2026/one",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/moved",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": [
+              {
+                "url": "https://www.example.com/new",
+                "collection": "default",
+                "code": "WIST1-E03"
+              }
+            ]
+          },
+          {
+            "height": 3,
+            "current_declaration": "W",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/moved",
+            "collection": "default",
+            "sealed_height": 2
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "Declaration without collections following one without them drops a subdomain_scope host",
+      "why": "Nothing is removed: under a Declaration without collections a default record stays whatever its host.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "EZGzUpMz4h-UOtVh6B6MU0uBsDH6QUEY-SijKW3IcCaeBPw-RraeTTx-dZ6pOlnbmwy08Zqm4l4aP_yFr_t0BA"
+          }
+        },
+        "W": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "prev_declaration": "sha256:4ae8d5c90869e65f7248a9b458b87f0c44cdf4b626ece05bffe5101cf052b477"
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "L6As7tJTzShW2-TDQc2pggDH97FNWlyLz2Kzpdwm8dNZ5hQ_pN5fL-8-gmXaPyTBnD2pQEwyaidIdeP1GfwVDg"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://www.example.com/a",
+              "collection": "default"
+            },
+            {
+              "url": "https://blog.example.com/b",
+              "collection": "default"
+            },
+            {
+              "url": "https://example.com/c",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "W"
+          ],
+          "records": [
+            {
+              "url": "https://www.example.com/new",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://blog.example.com/b",
+                "collection": "default"
+              },
+              {
+                "url": "https://example.com/c",
+                "collection": "default"
+              },
+              {
+                "url": "https://www.example.com/a",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "W",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "ordinary_rotation",
+                "declaration": "W",
+                "narrows": true,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": [
+              {
+                "url": "https://www.example.com/new",
+                "collection": "default",
+                "code": "WIST1-E03"
+              }
+            ]
+          },
+          {
+            "height": 3,
+            "current_declaration": "W",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://blog.example.com/b",
+            "collection": "default",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://example.com/c",
+            "collection": "default",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/a",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "one Epoch settles a window and seals an ordinary rotation",
+      "why": "Height 5 settles R, which narrows the journal, and then applies O, an ordinary rotation naming the restored R outside any window, which drops the store.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "R": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+                "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "alg": "Ed25519",
+            "value": "jaWoGbeY5PxosV7WannVvK0S7RI_OcExufo69_xCYOQxJF9l_fXHyydgtQZCsYWv1mvsrXXHEh3FLb1ZAxRTDQ"
+          }
+        },
+        "O": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 2,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "tygv5HL5dkHBcJeCGlN4dKqqUyZFrTTb1ZhzMaTnP40",
+                "kid": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/2026/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:33212fc7dafada4fc6939202408d7a3571af6e12d50276c8b6890e738d15977c"
+          },
+          "sig": {
+            "key_id": "Ln1ZbO6k5sjrxINUgSYY9rFcgW-UhpUDRGXvamF7ZTU",
+            "alg": "Ed25519",
+            "value": "TiQDt8_EvjKLx9CfpxCyvgCnb9ndmLseJ8W0Feff5Ia4O823_A8nT3dIQ0WxKSGuyzRUS6ZGeHSjdOWDzL02CQ"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/2026/one",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/2025/old",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            },
+            {
+              "url": "https://www.example.com/about",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "R"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 4,
+          "sealed_at": "2026-10-01T04:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 5,
+          "sealed_at": "2026-10-08T02:00:00Z",
+          "declarations": [
+            "O"
+          ],
+          "records": []
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/2025/old",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/2026/one",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              },
+              {
+                "url": "https://www.example.com/about",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [
+              {
+                "kind": "recovery_rotation",
+                "declaration": "R",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 4,
+            "current_declaration": "R",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": "2026-10-08T02:00:00Z",
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 5,
+            "current_declaration": "O",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "settlement",
+                "declaration": "R",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/2025/old",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  }
+                ]
+              },
+              {
+                "kind": "ordinary_rotation",
+                "declaration": "O",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/store/item-1",
+                    "collection": "store",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/2026/one",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://www.example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "Collections introduced with a named default",
+      "why": "Default records the named default still covers stay; a default record on a host no Scope covers, one the sub Collection covers and one the journal covers leave. The journal URL returns when sealed from the journal.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "EZGzUpMz4h-UOtVh6B6MU0uBsDH6QUEY-SijKW3IcCaeBPw-RraeTTx-dZ6pOlnbmwy08Zqm4l4aP_yFr_t0BA"
+          }
+        },
+        "I": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "prev_declaration": "sha256:4ae8d5c90869e65f7248a9b458b87f0c44cdf4b626ece05bffe5101cf052b477",
+            "collections": [
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://example.com/about",
+                    "match": "exact"
+                  },
+                  {
+                    "url": "https://example.com/pages/",
+                    "match": "prefix"
+                  }
+                ]
+              },
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "sub",
+                "scope": [
+                  {
+                    "url": "https://blog.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "7PF_HRJa95H0FLwh0p3af3ogdgHIh8I9E5wQ97zDx0IBFRY4uRj7kB6CD_gqC3Pmk1b7EFPd3n20nl3mil4vBw"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/about",
+              "collection": "default"
+            },
+            {
+              "url": "https://www.example.com/x",
+              "collection": "default"
+            },
+            {
+              "url": "https://blog.example.com/y",
+              "collection": "default"
+            },
+            {
+              "url": "https://example.com/journal/p",
+              "collection": "default"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "I"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/journal/p",
+              "collection": "journal"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://blog.example.com/y",
+                "collection": "default"
+              },
+              {
+                "url": "https://example.com/about",
+                "collection": "default"
+              },
+              {
+                "url": "https://example.com/journal/p",
+                "collection": "default"
+              },
+              {
+                "url": "https://www.example.com/x",
+                "collection": "default"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "I",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "ordinary_rotation",
+                "declaration": "I",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://blog.example.com/y",
+                    "collection": "default",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://example.com/journal/p",
+                    "collection": "default",
+                    "sealed_height": 0
+                  },
+                  {
+                    "url": "https://www.example.com/x",
+                    "collection": "default",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "I",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/p",
+                "collection": "journal"
+              }
+            ],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/about",
+            "collection": "default",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://example.com/journal/p",
+            "collection": "journal",
+            "sealed_height": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "URL moving from one Collection to another",
+      "why": "The journal's deals URL is removed with the Declaration and sealed again from the store; the final live records hold that URL once, in the store.",
+      "parameters": {
+        "collections_max": 16,
+        "scope_entries_max": 32,
+        "url_cap_bytes": 2048,
+        "recovery_window_days": 7,
+        "declaration_activation_epochs": 24
+      },
+      "declarations": {
+        "G": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 0,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ]
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "TvYUhfFFQ0IrlCVHEl8zwS7CMI9o0jFq8GocbUKtaAULJcydkmL988YTBqjQaXJWLrFvzn4qxCAOdSlcVPdGDg"
+          }
+        },
+        "M": {
+          "publisher": {
+            "wist_version": "1.0.0",
+            "seq": 1,
+            "domain": "example.com",
+            "subdomain_scope": [
+              "www.example.com",
+              "blog.example.com"
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+                "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+                "nbf": 1788220800
+              }
+            ],
+            "recovery_keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+                "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+                "nbf": 1788220800
+              }
+            ],
+            "collections": [
+              {
+                "name": "journal",
+                "scope": [
+                  {
+                    "url": "https://example.com/journal/posts/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                    "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "store",
+                "scope": [
+                  {
+                    "url": "https://example.com/store/",
+                    "match": "prefix"
+                  },
+                  {
+                    "url": "https://example.com/journal/deals/",
+                    "match": "prefix"
+                  }
+                ],
+                "keys": [
+                  {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                    "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                    "nbf": 1788220800
+                  }
+                ]
+              },
+              {
+                "name": "default",
+                "scope": [
+                  {
+                    "url": "https://www.example.com/",
+                    "match": "prefix"
+                  }
+                ]
+              }
+            ],
+            "prev_declaration": "sha256:0138e85aef70caf0f3ef8152f7d24328c06af325cd6cf964fba877797e319d3d"
+          },
+          "sig": {
+            "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "alg": "Ed25519",
+            "value": "qgGAZSvnp4FthJksvRIOqwfIW2zxBl8tVt_Edykrl5yxOv6CDDTaNejPFfuwaQe-zZ2oOqOV2PrSMwuZu2fsBQ"
+          }
+        }
+      },
+      "epochs": [
+        {
+          "height": 0,
+          "sealed_at": "2026-10-01T00:00:00Z",
+          "declarations": [
+            "G"
+          ],
+          "records": [
+            {
+              "url": "https://example.com/journal/posts/a",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/journal/deals/1",
+              "collection": "journal"
+            },
+            {
+              "url": "https://example.com/store/item-1",
+              "collection": "store"
+            }
+          ]
+        },
+        {
+          "height": 1,
+          "sealed_at": "2026-10-01T01:00:00Z",
+          "declarations": [],
+          "records": []
+        },
+        {
+          "height": 2,
+          "sealed_at": "2026-10-01T02:00:00Z",
+          "declarations": [
+            "M"
+          ],
+          "records": []
+        },
+        {
+          "height": 3,
+          "sealed_at": "2026-10-01T03:00:00Z",
+          "declarations": [],
+          "records": [
+            {
+              "url": "https://example.com/journal/deals/1",
+              "collection": "store"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "epochs": [
+          {
+            "height": 0,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "initial",
+                "declaration": "G",
+                "narrows": false,
+                "removed": []
+              }
+            ],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/deals/1",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/journal/posts/a",
+                "collection": "journal"
+              },
+              {
+                "url": "https://example.com/store/item-1",
+                "collection": "store"
+              }
+            ],
+            "records_rejected": []
+          },
+          {
+            "height": 1,
+            "current_declaration": "G",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 2,
+            "current_declaration": "M",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [
+              {
+                "kind": "ordinary_rotation",
+                "declaration": "M",
+                "narrows": true,
+                "removed": [
+                  {
+                    "url": "https://example.com/journal/deals/1",
+                    "collection": "journal",
+                    "sealed_height": 0
+                  }
+                ]
+              }
+            ],
+            "records_sealed": [],
+            "records_rejected": []
+          },
+          {
+            "height": 3,
+            "current_declaration": "M",
+            "pending_head": null,
+            "activation_height": null,
+            "window_end": null,
+            "transitions": [],
+            "records_sealed": [
+              {
+                "url": "https://example.com/journal/deals/1",
+                "collection": "store"
+              }
+            ],
+            "records_rejected": []
+          }
+        ],
+        "live_records": [
+          {
+            "url": "https://example.com/journal/deals/1",
+            "collection": "store",
+            "sealed_height": 3
+          },
+          {
+            "url": "https://example.com/journal/posts/a",
+            "collection": "journal",
+            "sealed_height": 0
+          },
+          {
+            "url": "https://example.com/store/item-1",
+            "collection": "store",
+            "sealed_height": 0
+          }
+        ]
+      }
+    }
+  ]
+}
