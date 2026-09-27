@@ -1,0 +1,2253 @@
+{
+  "note": "ADR-0052 From publications to Items, for the Collection `collection` under the Declaration named by `declaration`. Inputs: the served list `served.list` with `served.payloads` (the Payload of each served page Item, keyed by Item ID), the publications a stream's application leaves ({url, lang, modified, content}, ADR-0050), the Catalog's `generated_at` and `wist_version`, `parameters` (removal_retention_days and the size caps url_cap_bytes, extract_cap_bytes, links_cap_bytes, link_url_cap_bytes and summary_cap_bytes those Payload checks read) and `salts`, the salt a new Item for that url takes. A served Item whose publisher is not the Publisher's domain is read as a page Item whose Payload is not held. The first row a served Item or publication meets decides: a served Item whose url the Collection's Scope does not cover yields nothing; a publication whose url has a served page Item with meta.lang equal to its lang and a held Payload that passes WIST-1 section 7's Payload checks against the Item's payload (the Payload's form and version spelling, WIST1-E14; a supported major, WIST1-E15; the caps under `parameters`, WIST1-E04; JCS(content) exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) equal to payload.commitment, WIST1-E10; the links rules of WIST-1 section 3.6, WIST1-E12) and whose JCS(content) equals its content yields that Item and Payload unchanged; any other publication yields a new page Item {publisher: the Publisher's domain, url, observed_at: modified, payload: {commitment: hmac-sha256: + hex(HMAC-SHA256(salt, JCS(content))), alg: HMAC-SHA256, bytes: octets of JCS(content)}, meta: {lang}} and the Payload {wist_version: the Catalog's wist_version, salt, content}; a served page Item whose url has no publication yields {publisher: the Publisher's domain, url, observed_at: generated_at, removed: true}; a served removed Item whose url has no publication is kept unchanged while generated_at is earlier than its observed_at plus removal_retention_days of 86 400 seconds, compared as exact instants, and yields nothing from then on. A served page Item whose Payload is absent from served.payloads does not meet the second row. The Publisher's domain is the Declaration's `domain`. `expected` is {list (ascending octet order of key), payloads (keyed by Item ID)}, or {\"refused\": \"item-instant\"} when an Item of the new list has an observed_at later than generated_at, in which case nothing is published. `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
+  "keys": {
+    "owner": {
+      "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+    },
+    "recovery": {
+      "seed_hex": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo"
+    },
+    "journal": {
+      "seed_hex": "c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6",
+      "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+      "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8"
+    },
+    "store": {
+      "seed_hex": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+      "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8"
+    }
+  },
+  "declarations": {
+    "collections": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://blog.example.com/journal/",
+                "match": "prefix"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                "nbf": 1788220800,
+                "exp": 1796083200
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://example.com/store/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/cart",
+                "match": "exact"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                "nbf": 1788220800
+              }
+            ]
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "LDmUipAfTgsomP77qvUqPrd3yEXpDt6vfXYA8SVOwUpRqcvtfXhZ07pXy0XCajQnZMe6qTBtGFPfL6gLb2AiAw"
+      }
+    },
+    "implicit": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "EZGzUpMz4h-UOtVh6B6MU0uBsDH6QUEY-SijKW3IcCaeBPw-RraeTTx-dZ6pOlnbmwy08Zqm4l4aP_yFr_t0BA"
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "a new URL",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [],
+        "payloads": {}
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "unchanged publication keeps the served Item and its Payload",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "publication whose modified alone changed keeps the served Item",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-30T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "publication whose content changed",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-30T08:00:00Z",
+          "content": {
+            "extract": "Text of a, revised.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-30T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:9f2edd5bec1ff9a89b6b3419eceeea5c473154bb6077c0b5c2994870414777d3",
+              "alg": "HMAC-SHA256",
+              "bytes": 121
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:3f3aaab4f0c695f0bb6f78cfbd7e4c43310eb3dba88891640f48f14a6751ff63": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of a, revised.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "publication whose lang alone changed",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en-GB",
+          "modified": "2026-09-30T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-30T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en-GB"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:67201d3640820309753e1f5f1298fd13d71ff7c23659873224adacc9f25d79cf": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "served page Item without a publication becomes removed at generated_at",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-10-01T12:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "served page Item of another publisher becomes removed under the Publisher's domain",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "blog.example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:1fb2307e7877ab5d8bcdd71bd28d4e4e748ee49e2d20edd7d32bd378c3c8267a": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-10-01T12:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "served page Item whose Payload the signing part does not hold: a new Item",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "held Payload with another salt, not reproducing the commitment: a new Item",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "LbJhbIT3_tbVNH_GHEixwQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "served Item declaring one octet more than JCS(content) of its held Payload: a new Item",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 141
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:83b5eb2b3b784d19c21cec2309cfc1932d8de2c426ddf182d7962672973d75f4": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "held Payload of a major version the validator does not implement: a new Item",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "2.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "served page Item of another publisher with an equal publication: a new Item",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "blog.example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:1fb2307e7877ab5d8bcdd71bd28d4e4e748ee49e2d20edd7d32bd378c3c8267a": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "served removed Item of another publisher without a publication becomes removed at generated_at",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "blog.example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-20T00:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-10-01T12:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "served removed Item of another publisher with a publication: a new Item",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "blog.example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-20T00:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.0.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "new Item's Payload carries the Catalog's wist_version",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.2.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [],
+        "payloads": {}
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:71389220b48c16ab2560effcb0241ae18472ed7946f135cbe592cecc84e70610",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:57fee2ba27587c02b05839bfd0d423a92fc22188946229e29794d54758aa3adb": {
+            "wist_version": "1.2.0",
+            "salt": "lkmsyX_5i95zkMGwYajl5Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "removed Item one second before the retention end is kept",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-04-04T12:00:01Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-04-04T12:00:01Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "removed Item at the retention end is dropped",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-04-04T12:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "removed Item one second before the retention end, observed_at at an offset",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-04-04T13:00:01+01:00",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-04-04T13:00:01+01:00",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "removed Item whose retention ended a thousandth of a second before generated_at is dropped",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-04-04T11:59:59.999Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "a removed URL published again",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-09-15T00:00:00Z",
+            "removed": true
+          }
+        ],
+        "payloads": {}
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/b",
+          "lang": "en",
+          "modified": "2026-09-30T09:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/b.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/b"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/b",
+          "salt": "5R3wpynEw75JOuRjJaDADw"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-09-30T09:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:b9ae9a5510a372f3cfab957034ec4a00510ce29782dbefe4ab0710234f5ae5bb",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:73c01f7714f10ffcf7dd0a808e50d2e66b0625ab48bb144e472d05da4341d46d": {
+            "wist_version": "1.0.0",
+            "salt": "5R3wpynEw75JOuRjJaDADw",
+            "content": {
+              "extract": "Text of https://example.com/journal/b.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/b"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "served Items outside the Collection's Scope leave the list",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/about",
+            "observed_at": "2026-09-20T00:00:00Z",
+            "removed": true
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/store/x",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:d0806facc240114893bd3ab3ccb2d62e2276c92ed26d8edbbf27fad10895158e",
+              "alg": "HMAC-SHA256",
+              "bytes": 136
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:7a7b3940a19fbad5947156df5ca9509d904e14cdf6619c789bac9dd45d63bb1c": {
+            "wist_version": "1.0.0",
+            "salt": "TfEHgZz_olZyzLXWu2MavQ",
+            "content": {
+              "extract": "Text of https://example.com/store/x.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/store/x"
+              }
+            }
+          }
+        }
+      },
+      "publications": [],
+      "salts": [],
+      "expected": {
+        "list": [],
+        "payloads": {}
+      }
+    },
+    {
+      "name": "every row at once",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://blog.example.com/journal/d-old",
+            "observed_at": "2026-04-04T12:00:00Z",
+            "removed": true
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-09-15T00:00:00Z",
+            "removed": true
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c",
+            "observed_at": "2026-09-02T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:7d3c7cb8cb5764ebff11eeb29ac5ac25807350268a44c2a279429968db808a5d",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/store/x",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:d0806facc240114893bd3ab3ccb2d62e2276c92ed26d8edbbf27fad10895158e",
+              "alg": "HMAC-SHA256",
+              "bytes": 136
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          },
+          "sha256:e17740094ff8071bbac28955a39e7deebf8240d76cc5161e63b09fcd7c714a70": {
+            "wist_version": "1.0.0",
+            "salt": "VcrLAZbfJj1wU5Kr24SzkA",
+            "content": {
+              "extract": "Text of https://example.com/journal/c.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/c"
+              }
+            }
+          },
+          "sha256:7a7b3940a19fbad5947156df5ca9509d904e14cdf6619c789bac9dd45d63bb1c": {
+            "wist_version": "1.0.0",
+            "salt": "TfEHgZz_olZyzLXWu2MavQ",
+            "content": {
+              "extract": "Text of https://example.com/store/x.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/store/x"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-30T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        },
+        {
+          "url": "https://blog.example.com/journal/d",
+          "lang": "en",
+          "modified": "2026-09-29T00:00:00Z",
+          "content": {
+            "extract": "Text of https://blog.example.com/journal/d.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://blog.example.com/journal/d"
+            }
+          }
+        },
+        {
+          "url": "https://example.com/journal/b",
+          "lang": "en",
+          "modified": "2026-09-30T09:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/b.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/b"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        },
+        {
+          "url": "https://blog.example.com/journal/d",
+          "salt": "JHWC9uwaxchL_zx8r8sP0Q"
+        },
+        {
+          "url": "https://example.com/journal/b",
+          "salt": "5R3wpynEw75JOuRjJaDADw"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/b",
+            "observed_at": "2026-09-30T09:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:b9ae9a5510a372f3cfab957034ec4a00510ce29782dbefe4ab0710234f5ae5bb",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c",
+            "observed_at": "2026-10-01T12:00:00Z",
+            "removed": true
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://blog.example.com/journal/d",
+            "observed_at": "2026-09-29T00:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:e9d8c3e5fc55152f3df6e1c75ed82dad517b7084c1dc9385f91898243127b899",
+              "alg": "HMAC-SHA256",
+              "bytes": 150
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          },
+          "sha256:73c01f7714f10ffcf7dd0a808e50d2e66b0625ab48bb144e472d05da4341d46d": {
+            "wist_version": "1.0.0",
+            "salt": "5R3wpynEw75JOuRjJaDADw",
+            "content": {
+              "extract": "Text of https://example.com/journal/b.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/b"
+              }
+            }
+          },
+          "sha256:1746c05061fd37b93bc8bb855d82e86a2dd208cf6b951d7c9a02d0cbb3016027": {
+            "wist_version": "1.0.0",
+            "salt": "JHWC9uwaxchL_zx8r8sP0Q",
+            "content": {
+              "extract": "Text of https://blog.example.com/journal/d.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://blog.example.com/journal/d"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "publication whose modified is later than generated_at: no Catalog is signed",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        },
+        {
+          "url": "https://example.com/journal/c",
+          "lang": "en",
+          "modified": "2026-10-01T12:00:01Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/c.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/c"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        },
+        {
+          "url": "https://example.com/journal/c",
+          "salt": "J9GaCorTNbvETyakSlD93Q"
+        }
+      ],
+      "expected": {
+        "refused": "item-instant"
+      }
+    },
+    {
+      "name": "publication whose modified equals generated_at",
+      "declaration": "collections",
+      "collection": "journal",
+      "generated_at": "2026-10-01T12:00:00Z",
+      "wist_version": "1.0.0",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048,
+        "removal_retention_days": 180
+      },
+      "served": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          }
+        }
+      },
+      "publications": [
+        {
+          "url": "https://example.com/journal/a",
+          "lang": "en",
+          "modified": "2026-09-01T08:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/a.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/a"
+            }
+          }
+        },
+        {
+          "url": "https://example.com/journal/c",
+          "lang": "en",
+          "modified": "2026-10-01T12:00:00Z",
+          "content": {
+            "extract": "Text of https://example.com/journal/c.",
+            "links": {
+              "total": 0,
+              "urls": []
+            },
+            "summary": {
+              "title": "Title https://example.com/journal/c"
+            }
+          }
+        }
+      ],
+      "salts": [
+        {
+          "url": "https://example.com/journal/a",
+          "salt": "lkmsyX_5i95zkMGwYajl5Q"
+        },
+        {
+          "url": "https://example.com/journal/c",
+          "salt": "J9GaCorTNbvETyakSlD93Q"
+        }
+      ],
+      "expected": {
+        "list": [
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/a",
+            "observed_at": "2026-09-01T08:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          },
+          {
+            "publisher": "example.com",
+            "url": "https://example.com/journal/c",
+            "observed_at": "2026-10-01T12:00:00Z",
+            "payload": {
+              "commitment": "hmac-sha256:7b51fec6fb574c5e758fdb537877caad49e2320c6c5f09591d31263172c8ccc4",
+              "alg": "HMAC-SHA256",
+              "bytes": 140
+            },
+            "meta": {
+              "lang": "en"
+            }
+          }
+        ],
+        "payloads": {
+          "sha256:86e4a59b4b267322bcc8c2d2568821cb4efd642159bfeb354190ba4ec7bf6c9c": {
+            "wist_version": "1.0.0",
+            "salt": "dL-ptkF0tAli52OoopZkPQ",
+            "content": {
+              "extract": "Text of https://example.com/journal/a.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/a"
+              }
+            }
+          },
+          "sha256:93ae200ae65a4bdccca9a905aafa31560e898ba8b1025aaa34a54fa71c2b3276": {
+            "wist_version": "1.0.0",
+            "salt": "J9GaCorTNbvETyakSlD93Q",
+            "content": {
+              "extract": "Text of https://example.com/journal/c.",
+              "links": {
+                "total": 0,
+                "urls": []
+              },
+              "summary": {
+                "title": "Title https://example.com/journal/c"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

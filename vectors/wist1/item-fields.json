@@ -1,0 +1,3902 @@
+{
+  "note": "ADR-0052 Items. item_cases judge `item` with `catalog`, the inner object of the Catalog that lists it, of which only publisher, collection and generated_at are read, under the Declaration named by `declaration` and the size-cap map `parameters`. An object with a member `removed` is of kind removed and carries exactly publisher, url, observed_at and removed (true); any other is of kind page and carries exactly publisher, url, observed_at, payload and meta; each member has the form WIST-1 sections 3.2, 3.4, 3.6, 3.7 and 3.8 give a Delta's. A form failure is WIST1-E14, except that a string url keeps WIST1-E03 and WIST1-E11 and a nonnegative safe-integer payload.bytes above the derived cap (extract_cap_bytes + links_cap_bytes + summary_cap_bytes + 32) keeps WIST1-E04. WIST1-E03: url not byte-identical to its Normalized URL, host (without port) outside domain and subdomain_scope, or url outside the Scope of the Catalog's Collection. WIST1-E11: JCS(url) above url_cap_bytes. WIST1-E06: observed_at later than generated_at as exact instants. WIST2-E03: publisher other than the Catalog's. Each rejected case fails exactly one rule, with one exception: a missing or malformed publisher is also other than the Catalog's, and those cases exercise the ADR's rule that the WIST1-E14 conditions are checked first. known_answers give Item ID = sha256: + hex(SHA-256(JCS(item))), key = SHA-256(JCS([\"page\", url])) and leaf = SHA-256(0x00 || key || SHA-256(JCS(item))), key and leaf as lowercase hex; a page Item's entry carries its Payload. payload_cases check `payload`, served at `payload_path` whose last segment is the 64 digits of the Item ID that follow sha256:, followed by .json, against the page Item `item` under WIST-1 section 3.6: JCS(content) must be exactly payload.bytes octets and HMAC-SHA256(salt, JCS(content)) must reproduce payload.commitment, else WIST1-E10. Every case supplies its own parameter map; no default applies. `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
+  "keys": {
+    "owner": {
+      "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+    },
+    "recovery": {
+      "seed_hex": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo"
+    },
+    "journal": {
+      "seed_hex": "c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6",
+      "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+      "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8"
+    },
+    "store": {
+      "seed_hex": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+      "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8"
+    }
+  },
+  "declarations": {
+    "collections": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://blog.example.com/journal/",
+                "match": "prefix"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                "nbf": 1788220800,
+                "exp": 1796083200
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://example.com/store/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/cart",
+                "match": "exact"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                "nbf": 1788220800
+              }
+            ]
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "LDmUipAfTgsomP77qvUqPrd3yEXpDt6vfXYA8SVOwUpRqcvtfXhZ07pXy0XCajQnZMe6qTBtGFPfL6gLb2AiAw"
+      }
+    },
+    "implicit": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "EZGzUpMz4h-UOtVh6B6MU0uBsDH6QUEY-SijKW3IcCaeBPw-RraeTTx-dZ6pOlnbmwy08Zqm4l4aP_yFr_t0BA"
+      }
+    }
+  },
+  "item_cases": [
+    {
+      "name": "page Item",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "removed Item",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item with topics and license",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en-GB",
+          "topics": [
+            "history",
+            "maps"
+          ],
+          "license": "CC-BY-4.0"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item with ten topics of 64 scalar values",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en",
+          "topics": [
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa",
+            "\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa\ud83d\uddfa"
+          ]
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item with eleven topics",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en",
+          "topics": [
+            "t",
+            "t",
+            "t",
+            "t",
+            "t",
+            "t",
+            "t",
+            "t",
+            "t",
+            "t",
+            "t"
+          ]
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item with a topic of 65 scalar values",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en",
+          "topics": [
+            "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+          ]
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item with a license of 64 scalar values",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en",
+          "license": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item with a license of 65 scalar values",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en",
+          "license": "lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item with payload.bytes 0",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 0
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item on a subdomain_scope host inside the Scope",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://blog.example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item whose url carries a query",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/?p=1",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item under the implicit default on a subdomain_scope host",
+      "declaration": "implicit",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "default",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:2775813f00e3d3d38465450b23c0d37f5897f4838ccc4217be1299aea9d9e3d4",
+        "tree": "sha256:8e6c487b307ef9da0412fcced1474be0b843aabd7089bb880b2f49287950a180"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://www.example.com/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "page Item without meta",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item without observed_at",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item without payload",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item without publisher",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item without url",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed Item without observed_at",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "removed": true
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed Item without publisher",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed Item without url",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item with a Delta member prev",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        },
+        "prev": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item with a Delta member change_type",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        },
+        "change_type": "update"
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item with a Delta member wist_version",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        },
+        "wist_version": "1.0.0"
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed Item carrying payload",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true,
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed Item carrying meta",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true,
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "page Item carrying removed true",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        },
+        "removed": true
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed false",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": false
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed the string true",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": "true"
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed 1",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": 1
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed null",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": null
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "Item that is an array",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/first",
+          "observed_at": "2026-10-01T09:30:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+            "alg": "HMAC-SHA256",
+            "bytes": 92
+          },
+          "meta": {
+            "lang": "en"
+          }
+        }
+      ],
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "publisher uppercase",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "Example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "publisher with a trailing dot",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com.",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "publisher empty",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "publisher a number",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": 7,
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "publisher a URL",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "https://example.com/",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "url a number",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": 7,
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "url null",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": null,
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "url an array",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": [
+          "https://example.com/journal/first"
+        ],
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at with second 60",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:60Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "removed Item observed_at with second 60",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T09:30:60Z",
+        "removed": true
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at on 30 February",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-02-30T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at with a space for T",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01 09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at without offset",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at with offset hour 24",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00+24:00",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at with an empty fraction",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00.Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at a number",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": 1790847000,
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "observed_at date only",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload an array",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": [
+          {
+            "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+            "alg": "HMAC-SHA256",
+            "bytes": 92
+          }
+        ],
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload without bytes",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256"
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload with an extra member",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92,
+          "salt": "uQv5uUTPioyRm5crWStVIw"
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload.commitment a number",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": 7,
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload.alg lowercase",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "hmac-sha256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload.bytes negative",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": -1
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload.bytes fractional",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 1.5
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload.bytes a string",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": "86"
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload.bytes true",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": true
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "payload.bytes one above the safe range",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 9007199254740992
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "meta an array",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": [
+          "en"
+        ]
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "meta without lang",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "license": "CC0-1.0"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "meta.lang uppercase",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "EN"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "meta.lang of four letters",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "engl"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "meta.lang with an empty subtag",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en-"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "meta.lang with a nine-character subtag",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en-abcdefghi"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "meta with an unknown member",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en",
+          "title": "First"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "url with an uppercase host",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://EXAMPLE.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url with an explicit :443",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com:443/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url with a fragment",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first#top",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url with a dot segment",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/../journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url with an unreserved escape",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/%7Efirst",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url with a lowercase escape",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/a%2fb",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url with no Normalized URL",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/%zz",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url over http",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "http://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url on a host outside the authority",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.org/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url outside every Scope",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/about",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url inside another Collection's Scope",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/store/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url equal to another Collection's exact entry",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/cart",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "removed Item outside every Scope",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/about",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "removed Item inside another Collection's Scope",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/store/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "url under the implicit default on a host outside the authority",
+      "declaration": "implicit",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "default",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:2775813f00e3d3d38465450b23c0d37f5897f4838ccc4217be1299aea9d9e3d4",
+        "tree": "sha256:8e6c487b307ef9da0412fcced1474be0b843aabd7089bb880b2f49287950a180"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://shop.example.com/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "JCS(url) at url_cap_bytes",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 64,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "JCS(url) one octet above url_cap_bytes",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 64,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E11"
+    },
+    {
+      "name": "removed Item with JCS(url) one octet above url_cap_bytes",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 64,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "expected": "WIST1-E11"
+    },
+    {
+      "name": "payload.bytes at the derived cap",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 100,
+        "links_cap_bytes": 50,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 50
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 232
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "payload.bytes one above the derived cap",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 100,
+        "links_cap_bytes": 50,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 50
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 233
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E04"
+    },
+    {
+      "name": "payload.bytes one above the default derived cap",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 38945
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E04"
+    },
+    {
+      "name": "payload.bytes at the default derived cap",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 38944
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at equal to generated_at",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T12:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at equal to generated_at with a zero fraction",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T12:00:00.000Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at equal to generated_at in lowercase t and z",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01t12:00:00z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at one microsecond before generated_at",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T11:59:59.999999Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at one microsecond after generated_at",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T12:00:00.000001Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "observed_at one second after generated_at",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T12:00:01Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "observed_at equal to generated_at at offset +02:00",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T14:00:00+02:00",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at half a second after generated_at at offset +02:00",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T14:00:00.5+02:00",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "observed_at equal to generated_at at offset -05:00",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T07:00:00-05:00",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at equal to generated_at at offset -00:00",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T12:00:00-00:00",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at one minute after generated_at by offset -00:01",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T12:00:00-00:01",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "observed_at one minute before generated_at by offset +00:01",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T12:00:00+00:01",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "observed_at on the next day at offset -12:00",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-02T00:00:00-12:00",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "removed Item observed_at one second after generated_at",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T12:00:01Z",
+        "removed": true
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "publisher other than the Catalog's",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "blog.example.com",
+        "url": "https://blog.example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "expected": "WIST2-E03"
+    },
+    {
+      "name": "removed Item with a publisher other than the Catalog's",
+      "declaration": "collections",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:60d8589f0b553cbbc1b77c56526fc1ff44b6d7f022aadd042dbc555cd0fe5bd3",
+        "tree": "sha256:892c7aa87c29508d9fde4d97ff92e5fde713da609cf14f141e64b491886f5833"
+      },
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "item": {
+        "publisher": "blog.example.com",
+        "url": "https://blog.example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "expected": "WIST2-E03"
+    }
+  ],
+  "known_answers": [
+    {
+      "name": "page Item",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "item_id": "sha256:06d8ad02887fb050bbb98dc19d53b3d0f7f77ff9557992bc2df0e824bcb82218",
+      "key": "d7d7602467f7f8d55402ff7dfa9e174ef15065f83f9f19814747c109062e674f",
+      "leaf": "2775813f00e3d3d38465450b23c0d37f5897f4838ccc4217be1299aea9d9e3d4",
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "uQv5uUTPioyRm5crWStVIw",
+        "content": {
+          "extract": "Text of first.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title first"
+          }
+        }
+      }
+    },
+    {
+      "name": "removed Item",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/gone",
+        "observed_at": "2026-10-01T10:00:00Z",
+        "removed": true
+      },
+      "item_id": "sha256:6316793f2d18fdf0c8e8b53ad6029e1d87b4d8f0204bb6a2138321fcc30bbae2",
+      "key": "bd5fe13c7b1ed8b3c688260f884c6f3621169f9dd96484633356c6a766a236e9",
+      "leaf": "05593f3c6d268e8ed00d734f0e17dcbe511e4c62b3a95bc895c05366d43cf900"
+    },
+    {
+      "name": "page Item whose url carries a query",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/?p=1",
+        "observed_at": "2026-10-01T09:30:00.25+02:00",
+        "payload": {
+          "commitment": "hmac-sha256:0fc3118cd80526a526be93bdd333007d1c4818e1b470994970cd864f639be2a6",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "item_id": "sha256:447ddf3f3b5a34f9b96c5acdbaa252a61e12446e0e861d93b6fc3426f090fa5a",
+      "key": "c37a81d97b6753217bacb4476e0e42c2a859c1c90402addc9098b6434aa63e9e",
+      "leaf": "fa7f7a21267fae4f71cfe14b238d143141b62e6c32aad1e448ca27f380fbdf1e",
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "9Y7VKYM71oiIvhooqzJnnQ",
+        "content": {
+          "extract": "Text of query.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title query"
+          }
+        }
+      }
+    },
+    {
+      "name": "removed Item on a subdomain_scope host",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://blog.example.com/journal/gone",
+        "observed_at": "2026-09-30T23:00:00Z",
+        "removed": true
+      },
+      "item_id": "sha256:e6f2786a463e817fbbd92f5134ff7aad00a5b9bb5f7ae756ddee2a1c99bb2ccd",
+      "key": "6c7573516480f88ba3502353aacda8deb88606464de5503e4b96d30644a303c5",
+      "leaf": "cdd2d3babcc8ee4b926a586f0fb10da420bccc23060da63ecdb500cbbdb8c119"
+    }
+  ],
+  "payload_cases": [
+    {
+      "name": "Payload that reproduces the commitment",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "payload_path": "/.well-known/wist/collections/journal/payloads/06d8ad02887fb050bbb98dc19d53b3d0f7f77ff9557992bc2df0e824bcb82218.json",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "uQv5uUTPioyRm5crWStVIw",
+        "content": {
+          "extract": "Text of first.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title first"
+          }
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "Payload with another extract of equal length",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "payload_path": "/.well-known/wist/collections/journal/payloads/06d8ad02887fb050bbb98dc19d53b3d0f7f77ff9557992bc2df0e824bcb82218.json",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "uQv5uUTPioyRm5crWStVIw",
+        "content": {
+          "extract": "Text of fir5t.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title first"
+          }
+        }
+      },
+      "expected": "WIST1-E10"
+    },
+    {
+      "name": "Payload with another salt",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "payload_path": "/.well-known/wist/collections/journal/payloads/06d8ad02887fb050bbb98dc19d53b3d0f7f77ff9557992bc2df0e824bcb82218.json",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "HUw_reoo_UPdBbp0cMj9hQ",
+        "content": {
+          "extract": "Text of first.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title first"
+          }
+        }
+      },
+      "expected": "WIST1-E10"
+    },
+    {
+      "name": "Payload of another Item of equal length",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "payload_path": "/.well-known/wist/collections/journal/payloads/06d8ad02887fb050bbb98dc19d53b3d0f7f77ff9557992bc2df0e824bcb82218.json",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "UihmheQZDYwyQXk4ao2f0g",
+        "content": {
+          "extract": "Text of final.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title final"
+          }
+        }
+      },
+      "expected": "WIST1-E10"
+    },
+    {
+      "name": "Payload of that other Item under its own Item ID",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/second",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:3ebe0b5a726d35b32edb089a2ba025f09809967bdae889555769774051feb847",
+          "alg": "HMAC-SHA256",
+          "bytes": 92
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "payload_path": "/.well-known/wist/collections/journal/payloads/a78c079afe32ac663e673bad5d3883f8900d896b9998009349af043972ff08ef.json",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "UihmheQZDYwyQXk4ao2f0g",
+        "content": {
+          "extract": "Text of final.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title final"
+          }
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "Item declaring one octet more than JCS(content)",
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/first",
+        "observed_at": "2026-10-01T09:30:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:1de27c3a15285b9e5bed51a947757f187afd0a48073b71617b9bde0decc9b1a8",
+          "alg": "HMAC-SHA256",
+          "bytes": 93
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "payload_path": "/.well-known/wist/collections/journal/payloads/80bd19901a77ba59c407e329407c900e52ea18a6f8a54a3e6c271c7d7631e85b.json",
+      "parameters": {
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "payload": {
+        "wist_version": "1.0.0",
+        "salt": "uQv5uUTPioyRm5crWStVIw",
+        "content": {
+          "extract": "Text of first.",
+          "links": {
+            "total": 0,
+            "urls": []
+          },
+          "summary": {
+            "title": "Title first"
+          }
+        }
+      },
+      "expected": "WIST1-E10"
+    }
+  ]
+}

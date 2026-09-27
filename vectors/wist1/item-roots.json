@@ -1,0 +1,2566 @@
+{
+  "note": "ADR-0052 roots, Inclusion Proofs and publisher_item bodies. root_cases list `items` in list order (ascending octet order of key), with each Item's key and leaf as lowercase hex and `root` = sha256: + hex of the Merkle Tree Hash of WIST-3 section 4 over the leaves, node = SHA-256(0x01 || left || right), SHA-256(\"\") for no Item; key = SHA-256(JCS([\"page\", url])), leaf = SHA-256(0x00 || key || SHA-256(JCS(item))). proof_cases verify `proof` for `item` against `catalog` (a Catalog inner object; size and root are read): a proof that is not an object of exactly index, tree_size and path, with index and tree_size nonnegative safe integers and path an array of 64-digit lowercase hex strings, is WIST1-E14; otherwise WIST1-E17 when tree_size is not size, when index is not below tree_size, when the WIST-3 section 4 walk from the leaf lacks a path element or leaves one unread, or when it ends with a hash other than root. Each rejected proof is a twin of an accepted one and fails exactly one of these rules; in the tree_size case the walk under the altered tree_size still consumes the path exactly and ends at root. A case with `proof_json` in place of `proof` carries the proof as its serialized octets (UTF-8 text): index and tree_size are integers by value and not by spelling, so 2.0 and 2e0 are the integer 2. body_cases judge a publisher_item `body` against `catalog`, the inner object of the Catalog the body names (for a malformed catalog member, the Catalog it was built against): a body other than exactly item (an Item in the form of the Items section), collection (a Collection name), catalog (the Catalog ID, sha256: + hex(SHA-256(JCS(catalog)))) and proof (an Inclusion Proof in the form above) is WIST1-E14; a collection other than the Catalog's is WIST1-E17; an Item whose publisher is not the Catalog's is WIST2-E03; the proof is then verified against the Catalog as in proof_cases; else `accepted`. The WIST1-E14 conditions are checked first; no order holds among the other codes. Each rejected body fails one rule, except the body whose collection is not a Collection name, which is also not the Catalog's collection and relies on that stated precedence; a body whose Item is malformed or of another publisher is proved against a Catalog that lists that Item. `payloads` gives the Payload of each page Item, keyed by Item ID; no root, proof or body reads it. No case reads a parameter.",
+  "root_cases": [
+    {
+      "name": "0 Items",
+      "items": [],
+      "keys": [],
+      "leaves": [],
+      "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "1 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937"
+      ],
+      "root": "sha256:6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937"
+    },
+    {
+      "name": "2 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0"
+      ],
+      "root": "sha256:a1dbd00dee3a5f3d1e068ae72c3e32b527b858fbbde7ebfe9993af7369cee148"
+    },
+    {
+      "name": "3 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:11cf0bcf0da6763655ce2ce0741e894f676c7fe399d6b69b1fccec433cb9017b"
+    },
+    {
+      "name": "4 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r03",
+          "observed_at": "2026-09-13T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:646bda93ffad4bb39834f6a5132c26ee9617bdc773174f981d627aa16ff81ffa",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "83a537a06cc2ed1e0cb36c36a19dab10b290928dc9c584faf2c287f7a7834697",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "e167d12d00809773dccbc0a9334db92b5e1924b6f8f6694c1821d3e035ba109f",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:dd6f8f351176da9918673f58139c703513c91c076ef8645157145bbe9641f8da"
+    },
+    {
+      "name": "5 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r03",
+          "observed_at": "2026-09-13T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:646bda93ffad4bb39834f6a5132c26ee9617bdc773174f981d627aa16ff81ffa",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r04",
+          "observed_at": "2026-09-14T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:bf59312806e65ce9aa26588e2e66ab35a88041b65503938f50581d7638db6049",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "83a537a06cc2ed1e0cb36c36a19dab10b290928dc9c584faf2c287f7a7834697",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "dea7d83f566de66c4b99a9fde2370f5361acffcfd2f7176a8c79078c659e8b61",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "e167d12d00809773dccbc0a9334db92b5e1924b6f8f6694c1821d3e035ba109f",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "7228e42faacbc4c8b3ff39bd41bb7b092b6bb4d3a5b39ed2e4b7d36e8a0b4124",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:c5a7c92311fb0882d8e5a07b81e90f3ba548e33a93ab6fb78699e0fa39a4a38e"
+    },
+    {
+      "name": "7 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r03",
+          "observed_at": "2026-09-13T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:646bda93ffad4bb39834f6a5132c26ee9617bdc773174f981d627aa16ff81ffa",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r06",
+          "observed_at": "2026-09-16T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:5b8fadad3f439c484d972116a43b69e0a4528979de028d61dadaea72a8184839",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r04",
+          "observed_at": "2026-09-14T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:bf59312806e65ce9aa26588e2e66ab35a88041b65503938f50581d7638db6049",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r05",
+          "observed_at": "2026-09-15T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "83a537a06cc2ed1e0cb36c36a19dab10b290928dc9c584faf2c287f7a7834697",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "d16e469b029779373c2ca5d0a07475d642d1af1ace3888665ea4fa671762e6c3",
+        "dea7d83f566de66c4b99a9fde2370f5361acffcfd2f7176a8c79078c659e8b61",
+        "ebcc04a73af4c91d8274eaf0aea0c59e43a014c00845042bb83ea3a5a2f0112d",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "e167d12d00809773dccbc0a9334db92b5e1924b6f8f6694c1821d3e035ba109f",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "9063e236567e6d07af8a84bb2175701498d3aa01ca34d075e4413d198e5796e9",
+        "7228e42faacbc4c8b3ff39bd41bb7b092b6bb4d3a5b39ed2e4b7d36e8a0b4124",
+        "f39c5185bd25e44b2936dd878cba7dc46b933cf7680c2bb822b53d4bf1a56f0c",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:2a7f658c7439c9296ea5066d375cf98cc60ad05f30eb8999efeaa53793be9980"
+    },
+    {
+      "name": "8 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r07",
+          "observed_at": "2026-09-17T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:12b340acb67b2ba0c600ace0fc458d37cbdfc85be9d83751bbb79502d5051601",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r03",
+          "observed_at": "2026-09-13T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:646bda93ffad4bb39834f6a5132c26ee9617bdc773174f981d627aa16ff81ffa",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r06",
+          "observed_at": "2026-09-16T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:5b8fadad3f439c484d972116a43b69e0a4528979de028d61dadaea72a8184839",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r04",
+          "observed_at": "2026-09-14T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:bf59312806e65ce9aa26588e2e66ab35a88041b65503938f50581d7638db6049",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r05",
+          "observed_at": "2026-09-15T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "70d4679cb65808833dcf24b68808a0d5acc17884eec8a964d048f008037ae1f3",
+        "83a537a06cc2ed1e0cb36c36a19dab10b290928dc9c584faf2c287f7a7834697",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "d16e469b029779373c2ca5d0a07475d642d1af1ace3888665ea4fa671762e6c3",
+        "dea7d83f566de66c4b99a9fde2370f5361acffcfd2f7176a8c79078c659e8b61",
+        "ebcc04a73af4c91d8274eaf0aea0c59e43a014c00845042bb83ea3a5a2f0112d",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9",
+        "e167d12d00809773dccbc0a9334db92b5e1924b6f8f6694c1821d3e035ba109f",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "9063e236567e6d07af8a84bb2175701498d3aa01ca34d075e4413d198e5796e9",
+        "7228e42faacbc4c8b3ff39bd41bb7b092b6bb4d3a5b39ed2e4b7d36e8a0b4124",
+        "f39c5185bd25e44b2936dd878cba7dc46b933cf7680c2bb822b53d4bf1a56f0c",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:5967818804da49602f7d4e03998e49aab4594172aa6dd011ff0b36c75595d043"
+    },
+    {
+      "name": "9 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r08",
+          "observed_at": "2026-09-18T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r07",
+          "observed_at": "2026-09-17T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:12b340acb67b2ba0c600ace0fc458d37cbdfc85be9d83751bbb79502d5051601",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r03",
+          "observed_at": "2026-09-13T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:646bda93ffad4bb39834f6a5132c26ee9617bdc773174f981d627aa16ff81ffa",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r06",
+          "observed_at": "2026-09-16T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:5b8fadad3f439c484d972116a43b69e0a4528979de028d61dadaea72a8184839",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r04",
+          "observed_at": "2026-09-14T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:bf59312806e65ce9aa26588e2e66ab35a88041b65503938f50581d7638db6049",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r05",
+          "observed_at": "2026-09-15T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "64cb7bc6b953314e08456e23c88a5427558eca13b10cbf700f2f80fef1405bc0",
+        "70d4679cb65808833dcf24b68808a0d5acc17884eec8a964d048f008037ae1f3",
+        "83a537a06cc2ed1e0cb36c36a19dab10b290928dc9c584faf2c287f7a7834697",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "d16e469b029779373c2ca5d0a07475d642d1af1ace3888665ea4fa671762e6c3",
+        "dea7d83f566de66c4b99a9fde2370f5361acffcfd2f7176a8c79078c659e8b61",
+        "ebcc04a73af4c91d8274eaf0aea0c59e43a014c00845042bb83ea3a5a2f0112d",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "1e5cdfe2c9cbc21962ab0dbf4fd329053508d6bd0f23573cf57e5ed1879e8982",
+        "ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9",
+        "e167d12d00809773dccbc0a9334db92b5e1924b6f8f6694c1821d3e035ba109f",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "9063e236567e6d07af8a84bb2175701498d3aa01ca34d075e4413d198e5796e9",
+        "7228e42faacbc4c8b3ff39bd41bb7b092b6bb4d3a5b39ed2e4b7d36e8a0b4124",
+        "f39c5185bd25e44b2936dd878cba7dc46b933cf7680c2bb822b53d4bf1a56f0c",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:88176b5e947555ca0a1af1e8f5941925a679c0c63bddf7e59336381d286ad4ba"
+    },
+    {
+      "name": "13 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r12",
+          "observed_at": "2026-09-22T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:50b198cb4a583b0da40e262d2e1dc7a5bf36c4c44fe369a7f6ccf96e4321e770",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r08",
+          "observed_at": "2026-09-18T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r07",
+          "observed_at": "2026-09-17T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:12b340acb67b2ba0c600ace0fc458d37cbdfc85be9d83751bbb79502d5051601",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r10",
+          "observed_at": "2026-09-20T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:fa6a0321aca16499d3217babd3580867c6135b785233c4811cd1cf0189ceceff",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r03",
+          "observed_at": "2026-09-13T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:646bda93ffad4bb39834f6a5132c26ee9617bdc773174f981d627aa16ff81ffa",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r11",
+          "observed_at": "2026-09-21T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r06",
+          "observed_at": "2026-09-16T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:5b8fadad3f439c484d972116a43b69e0a4528979de028d61dadaea72a8184839",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r09",
+          "observed_at": "2026-09-19T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:43bb37f69a7a5ee612a91a325f7995e1e06b7891fec9dada9edb5aad31cf1d43",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r04",
+          "observed_at": "2026-09-14T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:bf59312806e65ce9aa26588e2e66ab35a88041b65503938f50581d7638db6049",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r05",
+          "observed_at": "2026-09-15T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "04e0220fde52c13cf85c0dbd37442d496bfc58a42e9592a1e53fe19e87fca96c",
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "64cb7bc6b953314e08456e23c88a5427558eca13b10cbf700f2f80fef1405bc0",
+        "70d4679cb65808833dcf24b68808a0d5acc17884eec8a964d048f008037ae1f3",
+        "77b5f37c577fd6387179dd7ade7dd238234ed8b46eda970ad7ec026fb6e9791f",
+        "83a537a06cc2ed1e0cb36c36a19dab10b290928dc9c584faf2c287f7a7834697",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "a59b313328acbab39b2bb6db2fe42480a540204cad10d7776e4b17d26b414a63",
+        "d16e469b029779373c2ca5d0a07475d642d1af1ace3888665ea4fa671762e6c3",
+        "da9b7d8a5cf6e1f71730e9ac84ea92fb145fb66ef7acfc1c577f4b368ddeec1f",
+        "dea7d83f566de66c4b99a9fde2370f5361acffcfd2f7176a8c79078c659e8b61",
+        "ebcc04a73af4c91d8274eaf0aea0c59e43a014c00845042bb83ea3a5a2f0112d",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "2f35a87107b7a7a4fddb31e27327f7c5ea106ba8f53843720c20b1d26f5f41b9",
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "1e5cdfe2c9cbc21962ab0dbf4fd329053508d6bd0f23573cf57e5ed1879e8982",
+        "ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9",
+        "5c52e362d4b3507979819fbd3f04331b79df7ff57df07f9f6bf91ae5b108d752",
+        "e167d12d00809773dccbc0a9334db92b5e1924b6f8f6694c1821d3e035ba109f",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+        "9063e236567e6d07af8a84bb2175701498d3aa01ca34d075e4413d198e5796e9",
+        "dffa62afd368712b9f3ecc151fd7c27887a11783b8f87e888e7cddd8dbcda1a4",
+        "7228e42faacbc4c8b3ff39bd41bb7b092b6bb4d3a5b39ed2e4b7d36e8a0b4124",
+        "f39c5185bd25e44b2936dd878cba7dc46b933cf7680c2bb822b53d4bf1a56f0c",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba"
+    },
+    {
+      "name": "17 Items",
+      "items": [
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r12",
+          "observed_at": "2026-09-22T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:50b198cb4a583b0da40e262d2e1dc7a5bf36c4c44fe369a7f6ccf96e4321e770",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r08",
+          "observed_at": "2026-09-18T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r07",
+          "observed_at": "2026-09-17T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:12b340acb67b2ba0c600ace0fc458d37cbdfc85be9d83751bbb79502d5051601",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r10",
+          "observed_at": "2026-09-20T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:fa6a0321aca16499d3217babd3580867c6135b785233c4811cd1cf0189ceceff",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r16",
+          "observed_at": "2026-09-26T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:98e9dacf50003cb78a7c24989594da9c886d0e2266670cf8968a871a3285971b",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r03",
+          "observed_at": "2026-09-13T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:646bda93ffad4bb39834f6a5132c26ee9617bdc773174f981d627aa16ff81ffa",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r15",
+          "observed_at": "2026-09-25T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:9ac5990ef1aeccbf82c3affaa6ee18e4555cf63c5df3c84bc305b3fc94897c10",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r11",
+          "observed_at": "2026-09-21T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r06",
+          "observed_at": "2026-09-16T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:5b8fadad3f439c484d972116a43b69e0a4528979de028d61dadaea72a8184839",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r13",
+          "observed_at": "2026-09-23T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:44a1b32d7f8e87ac2497e1283cc42e9d39a41ec672e66fb20c33f8482bd3fec6",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r09",
+          "observed_at": "2026-09-19T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:43bb37f69a7a5ee612a91a325f7995e1e06b7891fec9dada9edb5aad31cf1d43",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r04",
+          "observed_at": "2026-09-14T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:bf59312806e65ce9aa26588e2e66ab35a88041b65503938f50581d7638db6049",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r05",
+          "observed_at": "2026-09-15T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r14",
+          "observed_at": "2026-09-24T08:00:00Z",
+          "removed": true
+        },
+        {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r02",
+          "observed_at": "2026-09-12T08:00:00Z",
+          "removed": true
+        }
+      ],
+      "keys": [
+        "04e0220fde52c13cf85c0dbd37442d496bfc58a42e9592a1e53fe19e87fca96c",
+        "4dd3fc9bafd9a9d23120866efb1d347ac5e4274c686d90f3b8a46158d77e6397",
+        "64cb7bc6b953314e08456e23c88a5427558eca13b10cbf700f2f80fef1405bc0",
+        "70d4679cb65808833dcf24b68808a0d5acc17884eec8a964d048f008037ae1f3",
+        "77b5f37c577fd6387179dd7ade7dd238234ed8b46eda970ad7ec026fb6e9791f",
+        "7e7ce278b47f080d685dd66156f97627b4b98e557b9f1cf722831cd51076ee70",
+        "83a537a06cc2ed1e0cb36c36a19dab10b290928dc9c584faf2c287f7a7834697",
+        "8d2cfeac11cd29daabff0f6fc203eb5b3f662ac82ddd8061d318bad6aa21235c",
+        "9f984591066387da1d3a244f0986442c1fa9b4220ea0f6bf2d76a38e9cd0534a",
+        "a59b313328acbab39b2bb6db2fe42480a540204cad10d7776e4b17d26b414a63",
+        "d16e469b029779373c2ca5d0a07475d642d1af1ace3888665ea4fa671762e6c3",
+        "d5184cff8eca7122f3e1c1785e19fa674c0acf462a34efe2811af33905b66cb6",
+        "da9b7d8a5cf6e1f71730e9ac84ea92fb145fb66ef7acfc1c577f4b368ddeec1f",
+        "dea7d83f566de66c4b99a9fde2370f5361acffcfd2f7176a8c79078c659e8b61",
+        "ebcc04a73af4c91d8274eaf0aea0c59e43a014c00845042bb83ea3a5a2f0112d",
+        "ef4071f09f23a708a8a88b8ce45d17d5212c9d9044cc4657a4cfb9710b198d28",
+        "ff307484eb14abccd0800ebca141597afe1d09c76f0e3052076b380b1085cd4c"
+      ],
+      "leaves": [
+        "2f35a87107b7a7a4fddb31e27327f7c5ea106ba8f53843720c20b1d26f5f41b9",
+        "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "1e5cdfe2c9cbc21962ab0dbf4fd329053508d6bd0f23573cf57e5ed1879e8982",
+        "ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9",
+        "5c52e362d4b3507979819fbd3f04331b79df7ff57df07f9f6bf91ae5b108d752",
+        "8ce288ca79d76ce4902701bd3ea4b7a8558ddabc4bc7eb9642e9b5c5e712c30e",
+        "e167d12d00809773dccbc0a9334db92b5e1924b6f8f6694c1821d3e035ba109f",
+        "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+        "a5102e2b478baf68202d1c9a7721e5755ba85c5012e95c782d17297e53dbc8ff",
+        "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+        "9063e236567e6d07af8a84bb2175701498d3aa01ca34d075e4413d198e5796e9",
+        "d0c2d7a73fe15b2775c4bdb75fa6686c580e10d1591d36561f787fde041fa10a",
+        "dffa62afd368712b9f3ecc151fd7c27887a11783b8f87e888e7cddd8dbcda1a4",
+        "7228e42faacbc4c8b3ff39bd41bb7b092b6bb4d3a5b39ed2e4b7d36e8a0b4124",
+        "f39c5185bd25e44b2936dd878cba7dc46b933cf7680c2bb822b53d4bf1a56f0c",
+        "89f13a55999471787b51f952b69282922bbcf09f555720210ea12ae10c384227",
+        "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+      ],
+      "root": "sha256:42f6937a055eb52559999884d7b8d376064ac217550bb435b3af82c2d10eb099"
+    }
+  ],
+  "proof_cases": [
+    {
+      "name": "first leaf of 13",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r12",
+        "observed_at": "2026-09-22T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:50b198cb4a583b0da40e262d2e1dc7a5bf36c4c44fe369a7f6ccf96e4321e770",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 0,
+        "tree_size": 13,
+        "path": [
+          "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+          "e785360594bc4939b440d0be12e00205695c3caf47e193ad16754e75a0a57d73",
+          "4ddbc03fa5424a3f5b18b63ceaa7a42d3853cfe02bd640c765286867cdc99a97",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "last leaf of 13",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r02",
+        "observed_at": "2026-09-12T08:00:00Z",
+        "removed": true
+      },
+      "proof": {
+        "index": 12,
+        "tree_size": 13,
+        "path": [
+          "81f81bd9fa8a1c5cf4ddbc1a4ffca478bffd6341cd74291e7e08e29f2e82de9c",
+          "aafef2d527483b4c526c31e2c3b08b3847003c44d0d6df204e8709490225c34e"
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "middle leaf of 13",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "lone leaf",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "tree": "sha256:07091a4da4cd5a70c3b5b57db67d26c903779ace58434f60e16a0f8297e988c3"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r00",
+        "observed_at": "2026-09-10T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 0,
+        "tree_size": 1,
+        "path": []
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "leaf 2 of 13",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r08",
+        "observed_at": "2026-09-18T08:00:00Z",
+        "removed": true
+      },
+      "proof": {
+        "index": 2,
+        "tree_size": 13,
+        "path": [
+          "ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9",
+          "a4bbd80f711ecabcf70d68f7fe5605d3b775c33e99f6d77725f28844d1bff543",
+          "4ddbc03fa5424a3f5b18b63ceaa7a42d3853cfe02bd640c765286867cdc99a97",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "leaf 2 of 13, index spelled 2.0",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r08",
+        "observed_at": "2026-09-18T08:00:00Z",
+        "removed": true
+      },
+      "proof_json": "{\"index\": 2.0, \"tree_size\": 13, \"path\": [\"ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9\", \"a4bbd80f711ecabcf70d68f7fe5605d3b775c33e99f6d77725f28844d1bff543\", \"4ddbc03fa5424a3f5b18b63ceaa7a42d3853cfe02bd640c765286867cdc99a97\", \"6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe\"]}",
+      "expected": "accepted"
+    },
+    {
+      "name": "leaf 2 of 13, index spelled 2e0",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r08",
+        "observed_at": "2026-09-18T08:00:00Z",
+        "removed": true
+      },
+      "proof_json": "{\"index\": 2e0, \"tree_size\": 13, \"path\": [\"ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9\", \"a4bbd80f711ecabcf70d68f7fe5605d3b775c33e99f6d77725f28844d1bff543\", \"4ddbc03fa5424a3f5b18b63ceaa7a42d3853cfe02bd640c765286867cdc99a97\", \"6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe\"]}",
+      "expected": "accepted"
+    },
+    {
+      "name": "leaf 2 of 13, tree_size spelled 13.0",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r08",
+        "observed_at": "2026-09-18T08:00:00Z",
+        "removed": true
+      },
+      "proof_json": "{\"index\": 2, \"tree_size\": 13.0, \"path\": [\"ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9\", \"a4bbd80f711ecabcf70d68f7fe5605d3b775c33e99f6d77725f28844d1bff543\", \"4ddbc03fa5424a3f5b18b63ceaa7a42d3853cfe02bd640c765286867cdc99a97\", \"6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe\"]}",
+      "expected": "accepted"
+    },
+    {
+      "name": "leaf 0 of 3",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 3,
+        "root": "sha256:11cf0bcf0da6763655ce2ce0741e894f676c7fe399d6b69b1fccec433cb9017b",
+        "tree": "sha256:8e8d1020192db4400028854cc4f3fa2f3c4a1e0acbf8d5946b171cce5b37a026"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r00",
+        "observed_at": "2026-09-10T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 0,
+        "tree_size": 3,
+        "path": [
+          "a94de078ab15664b9e3664af712d246c115c9c65b5f00ea5583cb47aa547f8e0",
+          "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "leaf 1 of 3",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 3,
+        "root": "sha256:11cf0bcf0da6763655ce2ce0741e894f676c7fe399d6b69b1fccec433cb9017b",
+        "tree": "sha256:8e8d1020192db4400028854cc4f3fa2f3c4a1e0acbf8d5946b171cce5b37a026"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 1,
+        "tree_size": 3,
+        "path": [
+          "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+          "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "leaf 2 of 3",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 3,
+        "root": "sha256:11cf0bcf0da6763655ce2ce0741e894f676c7fe399d6b69b1fccec433cb9017b",
+        "tree": "sha256:8e8d1020192db4400028854cc4f3fa2f3c4a1e0acbf8d5946b171cce5b37a026"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r02",
+        "observed_at": "2026-09-12T08:00:00Z",
+        "removed": true
+      },
+      "proof": {
+        "index": 2,
+        "tree_size": 3,
+        "path": [
+          "a1dbd00dee3a5f3d1e068ae72c3e32b527b858fbbde7ebfe9993af7369cee148"
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "tree_size other than the Catalog's size, the walk still ending at its root",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 3,
+        "root": "sha256:11cf0bcf0da6763655ce2ce0741e894f676c7fe399d6b69b1fccec433cb9017b",
+        "tree": "sha256:8e8d1020192db4400028854cc4f3fa2f3c4a1e0acbf8d5946b171cce5b37a026"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 1,
+        "tree_size": 4,
+        "path": [
+          "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+          "6fb94213e4e5298f89815032ace39acb7a7140b8934192c091943464f90aeef0"
+        ]
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "index equal to tree_size",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r02",
+        "observed_at": "2026-09-12T08:00:00Z",
+        "removed": true
+      },
+      "proof": {
+        "index": 13,
+        "tree_size": 13,
+        "path": [
+          "81f81bd9fa8a1c5cf4ddbc1a4ffca478bffd6341cd74291e7e08e29f2e82de9c",
+          "aafef2d527483b4c526c31e2c3b08b3847003c44d0d6df204e8709490225c34e"
+        ]
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "index above tree_size",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r02",
+        "observed_at": "2026-09-12T08:00:00Z",
+        "removed": true
+      },
+      "proof": {
+        "index": 14,
+        "tree_size": 13,
+        "path": [
+          "81f81bd9fa8a1c5cf4ddbc1a4ffca478bffd6341cd74291e7e08e29f2e82de9c",
+          "aafef2d527483b4c526c31e2c3b08b3847003c44d0d6df204e8709490225c34e"
+        ]
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "proof against an empty Catalog",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 0,
+        "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r12",
+        "observed_at": "2026-09-22T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:50b198cb4a583b0da40e262d2e1dc7a5bf36c4c44fe369a7f6ccf96e4321e770",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 0,
+        "tree_size": 0,
+        "path": []
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "path lacking its last element",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9"
+        ]
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "path with one element left unread",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe",
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a"
+        ]
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "path element altered",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e740",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "proof of another Item",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r11",
+        "observed_at": "2026-09-21T08:00:00Z",
+        "removed": true
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "lone-leaf proof of an Item not listed",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "tree": "sha256:07091a4da4cd5a70c3b5b57db67d26c903779ace58434f60e16a0f8297e988c3"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 0,
+        "tree_size": 1,
+        "path": []
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "proof without index",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "proof with an extra member",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ],
+        "leaf": "x"
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "path element in uppercase hexadecimal",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111CD1F23BFF5C9FB9AAC0AD528BAECEBCCCB56C318A8D712A5ABC8817B7E74A",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "path element with a sha256: prefix",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "sha256:111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "path element of 63 digits",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "path not an array",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": {
+        "index": 6,
+        "tree_size": 13,
+        "path": "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e96901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "proof an array",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "item": {
+        "publisher": "example.com",
+        "url": "https://example.com/journal/r01",
+        "observed_at": "2026-09-11T08:00:00Z",
+        "payload": {
+          "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+          "alg": "HMAC-SHA256",
+          "bytes": 144
+        },
+        "meta": {
+          "lang": "en"
+        }
+      },
+      "proof": [
+        6,
+        13,
+        [
+          "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+          "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+          "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+          "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+        ]
+      ],
+      "expected": "WIST1-E14"
+    }
+  ],
+  "body_cases": [
+    {
+      "name": "body of a page Item",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "body of a removed Item",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r08",
+          "observed_at": "2026-09-18T08:00:00Z",
+          "removed": true
+        },
+        "collection": "journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 2,
+          "tree_size": 13,
+          "path": [
+            "ba2f295a53757106550ea7032d6ee5aa32e6ceed853ea417143bba34cd64d8b9",
+            "a4bbd80f711ecabcf70d68f7fe5605d3b775c33e99f6d77725f28844d1bff543",
+            "4ddbc03fa5424a3f5b18b63ceaa7a42d3853cfe02bd640c765286867cdc99a97",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "body of a lone Item",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+        "tree": "sha256:07091a4da4cd5a70c3b5b57db67d26c903779ace58434f60e16a0f8297e988c3"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r00",
+          "observed_at": "2026-09-10T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f31e641d50a4aeae321d920cc2892cc39e6bb26fde7f699033d0311b4748613c",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:d9e29f4003277f94ecd6824d3edd903c700f89e5cad07ec109539a081e65e3ea",
+        "proof": {
+          "index": 0,
+          "tree_size": 1,
+          "path": []
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "body without proof",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d"
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "body without item",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "collection": "journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "body with an extra member",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        },
+        "sig": {
+          "alg": "Ed25519"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "body whose Item lacks observed_at, listed so in its Catalog",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:1d818e3367507f8df201db1f330a4d0c8ac829a09eeabb256aa7286c00cd7a0f",
+        "tree": "sha256:62174c62addf1817b15d096c69ca3f52a551869508326283927b9135cf633a27"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:c4f9546040d8eab6fc846c5a063de365d25da8c937d1148071f1d1f11ac6b4e8",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "body naming another Collection than its Catalog's",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "store",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        }
+      },
+      "expected": "WIST1-E17"
+    },
+    {
+      "name": "body whose Item's publisher is not the named Catalog's, listed so in its Catalog",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 5,
+        "root": "sha256:652629b258d566e35bba4866de46ce6889e388b29f43fd7c9f376e06e4c1c654",
+        "tree": "sha256:ccdcc3f0742e402f1aa1393e39d6577b1afda61224a25cbc59bd9a8474437d85"
+      },
+      "body": {
+        "item": {
+          "publisher": "blog.example.com",
+          "url": "https://blog.example.com/journal/r99",
+          "observed_at": "2026-09-27T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:f9855224fd1b450bbc486f99ab4566ee17d1b0955102bf9fe9f38da903f047bf",
+            "alg": "HMAC-SHA256",
+            "bytes": 154
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:fa94778953760d976cc5a00d2942dcfee51693544b3525aefb5a87f597b8464b",
+        "proof": {
+          "index": 4,
+          "tree_size": 5,
+          "path": [
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9"
+          ]
+        }
+      },
+      "expected": "WIST2-E03"
+    },
+    {
+      "name": "body of another Item of that Catalog",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 5,
+        "root": "sha256:652629b258d566e35bba4866de46ce6889e388b29f43fd7c9f376e06e4c1c654",
+        "tree": "sha256:ccdcc3f0742e402f1aa1393e39d6577b1afda61224a25cbc59bd9a8474437d85"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r12",
+          "observed_at": "2026-09-22T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:50b198cb4a583b0da40e262d2e1dc7a5bf36c4c44fe369a7f6ccf96e4321e770",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:fa94778953760d976cc5a00d2942dcfee51693544b3525aefb5a87f597b8464b",
+        "proof": {
+          "index": 0,
+          "tree_size": 5,
+          "path": [
+            "6479c101ae15d621be06f6b6c86e8fcc8a82e417ec12031a9a5ad406e6da4937",
+            "e785360594bc4939b440d0be12e00205695c3caf47e193ad16754e75a0a57d73",
+            "5b8d0aebbb9c4bbb0372bf3b6847d63580add0312ab49d8fe27c7e91c308c653"
+          ]
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "body whose collection is not a Collection name",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "Journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "body whose catalog is in uppercase hexadecimal",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:088279B44C891F21E49CBD57DB9928FC581988BE76B237CD1573E35AFAF7271D",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9",
+            "6901c8b6132f4ec878c4bb6ea9224fd1f9bcc4fa8827c17bc56f60dc5da44cfe"
+          ]
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "body whose proof path is not an array",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": null
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "body whose proof lacks its last path element",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 13,
+        "root": "sha256:c4505db585a3d090f1d0eb02869c422e57e418483c5b81622ddd4c21684ec9ba",
+        "tree": "sha256:897dca8c3bd8a945729b0fd6c2643885df5726953516e9a34f82f36fcd63bd30"
+      },
+      "body": {
+        "item": {
+          "publisher": "example.com",
+          "url": "https://example.com/journal/r01",
+          "observed_at": "2026-09-11T08:00:00Z",
+          "payload": {
+            "commitment": "hmac-sha256:61ebc0049fd35f9e3722aea5341f345c1c4ab6649672e5746c6c7110aa66127e",
+            "alg": "HMAC-SHA256",
+            "bytes": 144
+          },
+          "meta": {
+            "lang": "en"
+          }
+        },
+        "collection": "journal",
+        "catalog": "sha256:088279b44c891f21e49cbd57db9928fc581988be76b237cd1573e35afaf7271d",
+        "proof": {
+          "index": 6,
+          "tree_size": 13,
+          "path": [
+            "111cd1f23bff5c9fb9aac0ad528baecebcccb56c318a8d712a5abc8817b7e74a",
+            "647cdb0fe4b828ac3498d7e213225cfd86f7b08f9a96ad035eca8b66ad016cba",
+            "8178bcfffba92a0c07a6b130fe6016daa9dea6f088474607492353a0fb71d0e9"
+          ]
+        }
+      },
+      "expected": "WIST1-E17"
+    }
+  ],
+  "payloads": {
+    "sha256:dfafc632316f6775b47ae9ed197ca5e7f31623ad40188e78f27bf71dfae038ec": {
+      "wist_version": "1.0.0",
+      "salt": "SdkgINP9CTiIkgYRdXduHg",
+      "content": {
+        "extract": "Text of https://example.com/journal/r00.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r00"
+        }
+      }
+    },
+    "sha256:648c149cb4a352f0ee612558af00d1672fe6fc57a1258d9deed00c0995a66653": {
+      "wist_version": "1.0.0",
+      "salt": "9FBzWz4DYhOKu7rhuGvn8Q",
+      "content": {
+        "extract": "Text of https://example.com/journal/r01.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r01"
+        }
+      }
+    },
+    "sha256:59feee65973e8df459b1b4cac234be460cd3f5cbf4f0434347b5adf16c258521": {
+      "wist_version": "1.0.0",
+      "salt": "wPnNPmt1bC_v8YjvciLYMA",
+      "content": {
+        "extract": "Text of https://example.com/journal/r03.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r03"
+        }
+      }
+    },
+    "sha256:c8fa114ef1e6db8e332054512b764e83223544a26d2c38d8a31c16b7325c558c": {
+      "wist_version": "1.0.0",
+      "salt": "_cJNBXbogv9DCA8z3injPg",
+      "content": {
+        "extract": "Text of https://example.com/journal/r04.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r04"
+        }
+      }
+    },
+    "sha256:657ee8bb6ef35e7064e85bf1f12713002995d2cd3add1086d399919f8db1d76e": {
+      "wist_version": "1.0.0",
+      "salt": "J8k67VUOPV1mUjKMD5yxNw",
+      "content": {
+        "extract": "Text of https://example.com/journal/r06.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r06"
+        }
+      }
+    },
+    "sha256:27eaa1ee6a582742a02f37a2003f313d066707688622b0ccb60a2161be72e8db": {
+      "wist_version": "1.0.0",
+      "salt": "n6M4qiqzHKRXASkp0gKo2w",
+      "content": {
+        "extract": "Text of https://example.com/journal/r07.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r07"
+        }
+      }
+    },
+    "sha256:9f8a1e72269f04124973b2f2fc6f80f59c002f157c5424a0773805db6202c00b": {
+      "wist_version": "1.0.0",
+      "salt": "9tf4jNMODTYLnfc4ztyhpw",
+      "content": {
+        "extract": "Text of https://example.com/journal/r09.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r09"
+        }
+      }
+    },
+    "sha256:0acfd956e71e66d1340e05aab261eabeca71171f266a04c63ada78c82f5f6e75": {
+      "wist_version": "1.0.0",
+      "salt": "YPymWltTJWsSsChLRdzdtw",
+      "content": {
+        "extract": "Text of https://example.com/journal/r10.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r10"
+        }
+      }
+    },
+    "sha256:4ad5c66dea9f4ad3f6549704773a83fe61ba8d227566e637107a3c9c78597ab3": {
+      "wist_version": "1.0.0",
+      "salt": "0vy4r_liwl0_qx0TMNapHw",
+      "content": {
+        "extract": "Text of https://example.com/journal/r12.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r12"
+        }
+      }
+    },
+    "sha256:33b2120b6b34f73b57f512f616d23bf0c3af5a51ea09450ad268609200ae3e11": {
+      "wist_version": "1.0.0",
+      "salt": "KDUauQdMlBvu1h6t49G3Mg",
+      "content": {
+        "extract": "Text of https://example.com/journal/r13.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r13"
+        }
+      }
+    },
+    "sha256:6f071349806da5b2c50741be0ea09dcf327b4960de9d3ec7cbb37dd256ee4852": {
+      "wist_version": "1.0.0",
+      "salt": "GrZ-DDJ3xQ7lvpjhz4ly0A",
+      "content": {
+        "extract": "Text of https://example.com/journal/r15.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r15"
+        }
+      }
+    },
+    "sha256:15dcbc18a7cf1788f0e252f299fa1f91e73acc870e0081bfc2efc4c5e95d9c04": {
+      "wist_version": "1.0.0",
+      "salt": "MO00rYeOT5kW0XunUSchEg",
+      "content": {
+        "extract": "Text of https://example.com/journal/r16.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://example.com/journal/r16"
+        }
+      }
+    },
+    "sha256:f047a848e9cbdb07929b5fc9acfb60a487d9c43c8bc0e59e7c719b8e86d9e40b": {
+      "wist_version": "1.0.0",
+      "salt": "uDELnoJi1UQ_paxVPwJWpg",
+      "content": {
+        "extract": "Text of https://blog.example.com/journal/r99.",
+        "links": {
+          "total": 0,
+          "urls": []
+        },
+        "summary": {
+          "title": "Title https://blog.example.com/journal/r99"
+        }
+      }
+    }
+  }
+}

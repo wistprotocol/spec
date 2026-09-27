@@ -1,0 +1,515 @@
+{
+  "note": "ADR-0052 Items of a signed Catalog, in the positions ADR-0051's Verification gives a publication. Each case judges the Catalog Envelope `catalog` under the Declaration named by `declaration`, at `clock` and under `parameters`, as vectors/wist1/catalog-fields.json does; `expected.catalog` is `accepted` or the code refusing the Catalog whole, in which case no Item is judged. For an accepted Catalog the list is walked from `tree_files` as vectors/wist2/catalog-tree.json does (every walk here succeeds), and `expected.items` gives, in list order, each Item's url, Item ID and outcome under the Item conditions of ADR-0052 (vectors/wist1/item-fields.json): `accepted` or its code. A refused Item stays in the list and its leaf in the root. `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
+  "keys": {
+    "owner": {
+      "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+    },
+    "recovery": {
+      "seed_hex": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo"
+    },
+    "journal": {
+      "seed_hex": "c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6",
+      "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+      "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8"
+    },
+    "store": {
+      "seed_hex": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+      "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8"
+    }
+  },
+  "declarations": {
+    "collections": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://blog.example.com/journal/",
+                "match": "prefix"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                "nbf": 1788220800,
+                "exp": 1796083200
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://example.com/store/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/cart",
+                "match": "exact"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                "nbf": 1788220800
+              }
+            ]
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "LDmUipAfTgsomP77qvUqPrd3yEXpDt6vfXYA8SVOwUpRqcvtfXhZ07pXy0XCajQnZMe6qTBtGFPfL6gLb2AiAw"
+      }
+    },
+    "implicit": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "EZGzUpMz4h-UOtVh6B6MU0uBsDH6QUEY-SijKW3IcCaeBPw-RraeTTx-dZ6pOlnbmwy08Zqm4l4aP_yFr_t0BA"
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "journal Catalog signed by the journal key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 8,
+          "root": "sha256:4d72ebdcd69a7b484a230208dd1e46b4c203009b730a42d31b0879f60fe3ad8c",
+          "tree": "sha256:455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "Umck0VKhgr1600n2y-G7tVYgt__Znp3iYQYD4u3leHX_AOZQk-gvvCdt0YmVTvKda7EfnLTU_1dYSnzCk8aFAg"
+        }
+      },
+      "tree_files": {
+        "455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:2d7d9860ee321d3fe0297c9cf1001547dc51891561fca16f181c16858d4c5013\"},\"publisher\":\"example.com\",\"url\":\"https://blog.example.com/journal/h\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":132,\"commitment\":\"hmac-sha256:21a300f10040f8c2a6703aad484b669d1d7bd11e70586a1c43dbd8dd6782d74e\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/about\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:33db2f76e4014ac7f4c1146673ada2361ee8da84a0142ae5066bdd04853bf48a\"},\"publisher\":\"blog.example.com\",\"url\":\"https://blog.example.com/journal/g\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/about-us\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/journal/d\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/cart\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":136,\"commitment\":\"hmac-sha256:30307dca20b9bd3aabe6a42aae930b88cb7e532d7bf5ab107f6e7837fc46b3e3\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/store/c\"}]}"
+      },
+      "expected": {
+        "catalog": "accepted",
+        "items": [
+          {
+            "url": "https://blog.example.com/journal/h",
+            "item_id": "sha256:a79d3f1b65c7b1785b5c5078ff6b2814dfebd82fdcb746f3917ea178c32b8648",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/about",
+            "item_id": "sha256:4e8dcb0e1b0859991f049d2ff9393173f12fb079f340d73fdfdc2b9fe220ad20",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://blog.example.com/journal/g",
+            "item_id": "sha256:f184495557ad6366224b6adfd7fb680bd59c3fe0ce03a69dd9fbd83768ecf63c",
+            "expected": "WIST2-E03"
+          },
+          {
+            "url": "https://example.com/about-us",
+            "item_id": "sha256:a733e6fc56ef998d2beaddfbaa9f16111f76dd4cd6a5db4ad0e986ca7f0708d1",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://example.com/journal/a",
+            "item_id": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/journal/d",
+            "item_id": "sha256:361a5c42ba7786d9f5835362410a3e7b9ec263e8b7e062c83bb6bf14f20489ed",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/cart",
+            "item_id": "sha256:78387d394ac9d60c274f347c2a59f56a767587dd643cb90d638cc8a9fa95980b",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://example.com/store/c",
+            "item_id": "sha256:7029e3099d2389fda2a1dcea36b4030de0c70bfb876c875ca74e3cb561321090",
+            "expected": "WIST1-E03"
+          }
+        ]
+      }
+    },
+    {
+      "name": "journal Catalog signed by an owner key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 8,
+          "root": "sha256:4d72ebdcd69a7b484a230208dd1e46b4c203009b730a42d31b0879f60fe3ad8c",
+          "tree": "sha256:455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "H81qgi2X09cvKbugMKVs3CAEtBQ9-ofZH5EO5B5CerKsJ2hclpWcTLNBXB2ddEfR8oytSPlXzzHqD-J4wnrFDg"
+        }
+      },
+      "tree_files": {
+        "455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:2d7d9860ee321d3fe0297c9cf1001547dc51891561fca16f181c16858d4c5013\"},\"publisher\":\"example.com\",\"url\":\"https://blog.example.com/journal/h\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":132,\"commitment\":\"hmac-sha256:21a300f10040f8c2a6703aad484b669d1d7bd11e70586a1c43dbd8dd6782d74e\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/about\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:33db2f76e4014ac7f4c1146673ada2361ee8da84a0142ae5066bdd04853bf48a\"},\"publisher\":\"blog.example.com\",\"url\":\"https://blog.example.com/journal/g\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/about-us\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/journal/d\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/cart\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":136,\"commitment\":\"hmac-sha256:30307dca20b9bd3aabe6a42aae930b88cb7e532d7bf5ab107f6e7837fc46b3e3\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/store/c\"}]}"
+      },
+      "expected": {
+        "catalog": "accepted",
+        "items": [
+          {
+            "url": "https://blog.example.com/journal/h",
+            "item_id": "sha256:a79d3f1b65c7b1785b5c5078ff6b2814dfebd82fdcb746f3917ea178c32b8648",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/about",
+            "item_id": "sha256:4e8dcb0e1b0859991f049d2ff9393173f12fb079f340d73fdfdc2b9fe220ad20",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://blog.example.com/journal/g",
+            "item_id": "sha256:f184495557ad6366224b6adfd7fb680bd59c3fe0ce03a69dd9fbd83768ecf63c",
+            "expected": "WIST2-E03"
+          },
+          {
+            "url": "https://example.com/about-us",
+            "item_id": "sha256:a733e6fc56ef998d2beaddfbaa9f16111f76dd4cd6a5db4ad0e986ca7f0708d1",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://example.com/journal/a",
+            "item_id": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/journal/d",
+            "item_id": "sha256:361a5c42ba7786d9f5835362410a3e7b9ec263e8b7e062c83bb6bf14f20489ed",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/cart",
+            "item_id": "sha256:78387d394ac9d60c274f347c2a59f56a767587dd643cb90d638cc8a9fa95980b",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://example.com/store/c",
+            "item_id": "sha256:7029e3099d2389fda2a1dcea36b4030de0c70bfb876c875ca74e3cb561321090",
+            "expected": "WIST1-E03"
+          }
+        ]
+      }
+    },
+    {
+      "name": "store Catalog signed by the store key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "store",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 6,
+          "root": "sha256:9317c902a8cf10db6981dce8a4be55b4be3388e21b26692fa907e005c0793ba9",
+          "tree": "sha256:6cc4abcafb13a64dfe83eaa78051f2018671df8f3a263aaff825cbe73fd45f35"
+        },
+        "sig": {
+          "key_id": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+          "alg": "Ed25519",
+          "value": "5Cfhcqr2IEL4h53_P7HsLXrOm_KNhu5HK-8NDa4X408tQ_w9Ko7WNc598Qg-dgRS0JO8VO24gBHC8lzAqchCBQ"
+        }
+      },
+      "tree_files": {
+        "6cc4abcafb13a64dfe83eaa78051f2018671df8f3a263aaff825cbe73fd45f35": "{\"items\":[{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://blog.example.com/journal/h\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/about\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/store/gone\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":130,\"commitment\":\"hmac-sha256:f11c71eadf0115d3dd8adbd67d22eff8c23e1ad8363f5dd44e347640f39b5c9f\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/cart\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":136,\"commitment\":\"hmac-sha256:30307dca20b9bd3aabe6a42aae930b88cb7e532d7bf5ab107f6e7837fc46b3e3\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/store/c\"}]}"
+      },
+      "expected": {
+        "catalog": "accepted",
+        "items": [
+          {
+            "url": "https://blog.example.com/journal/h",
+            "item_id": "sha256:05e3a07c173d7a0a40ae672a49f34babaac4b8caa357743536fd4341d30cde59",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://example.com/about",
+            "item_id": "sha256:5b5e10c78adce2c50ac466096d3d4f9225e33887da7f70bc5c0c711f43cae0da",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://example.com/store/gone",
+            "item_id": "sha256:6b5e6c2b9f05089b4a0525134d1f69768b67640806929bc71b1996273e5e44f1",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/journal/a",
+            "item_id": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://example.com/cart",
+            "item_id": "sha256:4099d24e24910fb986286dba601e81cbf45a3d1b2738a2eb4e2607f05666e5e7",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/store/c",
+            "item_id": "sha256:7029e3099d2389fda2a1dcea36b4030de0c70bfb876c875ca74e3cb561321090",
+            "expected": "accepted"
+          }
+        ]
+      }
+    },
+    {
+      "name": "implicit default Catalog signed by an owner key",
+      "declaration": "implicit",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 5,
+          "root": "sha256:dedf4b6b7cc0182622ba57fde98c99a0ba133f93206445141390465a75332cb3",
+          "tree": "sha256:62a6124375bbccfd2ae0e5bc2d6f5ef2f9da8837d0098a3f94e93b2efbc454fe"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "GgSUDCfbcaicK2k8ejGgIay6gOo7kzwPiQPRNllcCmTfdEcBQQFIn_A3zqZLoPUmNV-HQgmNTOp4lM3rLPghDw"
+        }
+      },
+      "tree_files": {
+        "62a6124375bbccfd2ae0e5bc2d6f5ef2f9da8837d0098a3f94e93b2efbc454fe": "{\"items\":[{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://blog.example.com/b\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.org/b\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":134,\"commitment\":\"hmac-sha256:04ed138ff1e253f3c0c2744afde17e54831e03bcdc1deb6cb03afdc23a0639bd\"},\"publisher\":\"example.com\",\"url\":\"https://shop.example.com/a\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":132,\"commitment\":\"hmac-sha256:cde28f1aad83b38fe1df926a3a135afb21e809b85acf08b7f9f3a77a9139bc80\"},\"publisher\":\"example.com\",\"url\":\"https://www.example.com/a\"}]}"
+      },
+      "expected": {
+        "catalog": "accepted",
+        "items": [
+          {
+            "url": "https://blog.example.com/b",
+            "item_id": "sha256:09da6533c53b9e0015542ba0c437b52e72281d07d4859ffad4fe90535441821a",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.com/journal/a",
+            "item_id": "sha256:a5289a6e4d4db65e193c91a696bb9bfe44fe827d770f5a1895d9e514d1ad1f7e",
+            "expected": "accepted"
+          },
+          {
+            "url": "https://example.org/b",
+            "item_id": "sha256:06cd0e4601b796a95b93a4885d69be8eab27daa31fa935ba8149d94af9456396",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://shop.example.com/a",
+            "item_id": "sha256:1f72d6bb2f3d11a21f0b693676a39143af55a353cfb50401221337a712a47b5f",
+            "expected": "WIST1-E03"
+          },
+          {
+            "url": "https://www.example.com/a",
+            "item_id": "sha256:9779b65603a8c60b86346ff1d3e94d06a41bdbbe637694f4c8a501de48cd585f",
+            "expected": "accepted"
+          }
+        ]
+      }
+    },
+    {
+      "name": "journal Catalog signed by the store key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 8,
+          "root": "sha256:4d72ebdcd69a7b484a230208dd1e46b4c203009b730a42d31b0879f60fe3ad8c",
+          "tree": "sha256:455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6"
+        },
+        "sig": {
+          "key_id": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+          "alg": "Ed25519",
+          "value": "i2FZen5g62a3rt8bdzEon5vtnEO3HEY_IqxR_HAe1vtka8iTNkWBwgvSTChXx5mANYGGMnTxDmOjPl6kMPbZAQ"
+        }
+      },
+      "tree_files": {
+        "455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:2d7d9860ee321d3fe0297c9cf1001547dc51891561fca16f181c16858d4c5013\"},\"publisher\":\"example.com\",\"url\":\"https://blog.example.com/journal/h\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":132,\"commitment\":\"hmac-sha256:21a300f10040f8c2a6703aad484b669d1d7bd11e70586a1c43dbd8dd6782d74e\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/about\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:33db2f76e4014ac7f4c1146673ada2361ee8da84a0142ae5066bdd04853bf48a\"},\"publisher\":\"blog.example.com\",\"url\":\"https://blog.example.com/journal/g\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/about-us\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/journal/d\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/cart\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":136,\"commitment\":\"hmac-sha256:30307dca20b9bd3aabe6a42aae930b88cb7e532d7bf5ab107f6e7837fc46b3e3\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/store/c\"}]}"
+      },
+      "expected": {
+        "catalog": "WIST1-E02"
+      }
+    },
+    {
+      "name": "Catalog naming a Collection the Declaration lacks",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216,
+        "tree_file_cap_bytes": 65536,
+        "tree_depth_max": 16,
+        "url_cap_bytes": 2048,
+        "extract_cap_bytes": 32768,
+        "links_cap_bytes": 4096,
+        "link_url_cap_bytes": 2048,
+        "summary_cap_bytes": 2048
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "docs",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 8,
+          "root": "sha256:4d72ebdcd69a7b484a230208dd1e46b4c203009b730a42d31b0879f60fe3ad8c",
+          "tree": "sha256:455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "Se8svow2wNgUbVeJrX_OyJleD6NuAc3_9QHcHA0RDDm7yEwXNvPXclGEQxmFQgaZWzWnxd1Am97DDBM4GDQGDg"
+        }
+      },
+      "tree_files": {
+        "455405de4860ffaa2477d951d58393b42541bc46c45a76b8950b3bc2e47b42c6": "{\"items\":[{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:2d7d9860ee321d3fe0297c9cf1001547dc51891561fca16f181c16858d4c5013\"},\"publisher\":\"example.com\",\"url\":\"https://blog.example.com/journal/h\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":132,\"commitment\":\"hmac-sha256:21a300f10040f8c2a6703aad484b669d1d7bd11e70586a1c43dbd8dd6782d74e\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/about\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":150,\"commitment\":\"hmac-sha256:33db2f76e4014ac7f4c1146673ada2361ee8da84a0142ae5066bdd04853bf48a\"},\"publisher\":\"blog.example.com\",\"url\":\"https://blog.example.com/journal/g\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/about-us\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":140,\"commitment\":\"hmac-sha256:86c5d65040cf3a9694c59de8d3198ec973bcab18436669af792e9489ab869f86\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/journal/a\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/journal/d\"},{\"observed_at\":\"2026-09-30T11:00:00Z\",\"publisher\":\"example.com\",\"removed\":true,\"url\":\"https://example.com/cart\"},{\"meta\":{\"lang\":\"en\"},\"observed_at\":\"2026-09-30T10:00:00Z\",\"payload\":{\"alg\":\"HMAC-SHA256\",\"bytes\":136,\"commitment\":\"hmac-sha256:30307dca20b9bd3aabe6a42aae930b88cb7e532d7bf5ab107f6e7837fc46b3e3\"},\"publisher\":\"example.com\",\"url\":\"https://example.com/store/c\"}]}"
+      },
+      "expected": {
+        "catalog": "WIST1-E03"
+      }
+    }
+  ]
+}

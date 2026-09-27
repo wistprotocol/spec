@@ -1,0 +1,2208 @@
+{
+  "note": "ADR-0052 Catalog fields. Each case judges `catalog` (an Envelope) or `catalog_json` (its octets as UTF-8 text) under the Declaration named by `declaration`, with the validation clock `clock` and `parameters` (clock_skew_seconds, catalog_items_max). WIST1-E05: octets that are not valid JCS input (here, outside JSON's grammar). A number's value, not its spelling, decides whether size is an integer: the cases spelling size 2.0 and 2e0 are accepted and give `catalog_id`, the Catalog ID of their inner object (JCS serializes the number 2 as 2), equal to that of the twin spelled 2. WIST1-E14: an Envelope other than exactly {catalog, sig}; sig other than exactly key_id (a string of at most 64 characters), alg Ed25519 and value (canonical base64url of 64 octets); an inner object other than exactly wist_version (the version spelling of WIST-1 section 3.1), publisher (a Canonical Host), collection (1 to 32 octets of a-z, 0-9 and -, neither first nor last -), generated_at (the whole-second literal-Z profile of WIST-3 section 3.1), size (a nonnegative safe integer), root and tree (sha256: + 64 lowercase hex). WIST1-E15: a major other than 1. WIST1-E04: size above catalog_items_max. WIST1-E03: a collection the Declaration does not name (a Declaration without collections names only default). WIST1-E02 / WIST1-E01: the WIST-1 section 5.1 binding check with generated_at in place of observed_at, over the Declaration history of exactly the Catalog's publisher, so a Catalog whose publisher is not the Declaration's domain has no candidate: candidates are the entries of `keys` and of the named Collection's `keys` whose kid equals sig.key_id and whose window holds generated_at (nbf <= generated_at and, with exp, generated_at < exp); none is WIST1-E02, none verifying the Ed25519 signature over JCS(catalog) is WIST1-E01. WIST1-E06: generated_at more than clock_skew_seconds after `clock`, compared as exact instants. Every signed case is signed over its own inner object, so each rejected case fails exactly one rule, with one exception: a missing or malformed collection is also one the Declaration does not name, and those cases exercise the ADR's rule that the WIST1-E14 conditions are checked first. id_cases give Catalog ID = sha256: + hex(SHA-256(JCS(catalog))). `declarations` holds the signed Declarations the cases name by label: `collections` carries the Collections journal (prefix entries https://example.com/journal/ and https://blog.example.com/journal/, key journal with exp) and store (prefix https://example.com/store/, exact https://example.com/cart, key store); `implicit` carries none, so its only Collection is the implicit default, whose Scope is every URL on example.com, www.example.com and blog.example.com. Both list the owner key in `keys` and the recovery key in `recovery_keys`. Keys derive from the stated test-only seeds.",
+  "keys": {
+    "owner": {
+      "seed_hex": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+      "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+    },
+    "recovery": {
+      "seed_hex": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+      "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo"
+    },
+    "journal": {
+      "seed_hex": "c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6",
+      "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+      "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8"
+    },
+    "store": {
+      "seed_hex": "c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8",
+      "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+      "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8"
+    }
+  },
+  "declarations": {
+    "collections": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ],
+        "collections": [
+          {
+            "name": "journal",
+            "scope": [
+              {
+                "url": "https://example.com/journal/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://blog.example.com/journal/",
+                "match": "prefix"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "u0fTPXd7RVm7kX0YJYJ0IcSmsblzfxLhxY6kMFr4i3Q",
+                "kid": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+                "nbf": 1788220800,
+                "exp": 1796083200
+              }
+            ]
+          },
+          {
+            "name": "store",
+            "scope": [
+              {
+                "url": "https://example.com/store/",
+                "match": "prefix"
+              },
+              {
+                "url": "https://example.com/cart",
+                "match": "exact"
+              }
+            ],
+            "keys": [
+              {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "l__Ig8gL7nI375XZubcD1K1j5goh5gWGdoK3W4s_QwM",
+                "kid": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+                "nbf": 1788220800
+              }
+            ]
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "LDmUipAfTgsomP77qvUqPrd3yEXpDt6vfXYA8SVOwUpRqcvtfXhZ07pXy0XCajQnZMe6qTBtGFPfL6gLb2AiAw"
+      }
+    },
+    "implicit": {
+      "publisher": {
+        "wist_version": "1.0.0",
+        "seq": 0,
+        "domain": "example.com",
+        "subdomain_scope": [
+          "www.example.com",
+          "blog.example.com"
+        ],
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "rNzISU1Fj0SnqqwdaoTsYk2u6IQ22yribme6ZFoQYig",
+            "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+            "nbf": 1788220800
+          }
+        ],
+        "recovery_keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "1AS8RFZa7buJkVDlsLOzK5RBvwy3iEwzEw2o28J90s8",
+            "kid": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+            "nbf": 1788220800
+          }
+        ]
+      },
+      "sig": {
+        "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+        "alg": "Ed25519",
+        "value": "EZGzUpMz4h-UOtVh6B6MU0uBsDH6QUEY-SijKW3IcCaeBPw-RraeTTx-dZ6pOlnbmwy08Zqm4l4aP_yFr_t0BA"
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "journal Catalog signed by an owner key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "journal Catalog signed by the journal key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "oJyaWc9NbPISgrSG1QkMfJfhZLaFrXMypXNVl2kD-qHkEhNWMSkb4Jhl1yeyGANQ6K5TudPz_DzaDdnUYDn0Bw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "store Catalog signed by the store key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "store",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 1,
+          "root": "sha256:5eff8cdbad90aca0a60667e6af0816f6c25ef859cf83052543c2df8340393ecf",
+          "tree": "sha256:30f93859e5dcfeb979bc15af67701426bd176cfd036c2def060e8743866866d9"
+        },
+        "sig": {
+          "key_id": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+          "alg": "Ed25519",
+          "value": "MfEQYcddkR5mVxYGTYpXa2V7YkWwOdfQN61Iv0d9vAx6R4RQvKa5uaTyUg5DosQEkQCdMs_B4nzX_PMBUlbNAQ"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "store Catalog signed by an owner key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "store",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 1,
+          "root": "sha256:5eff8cdbad90aca0a60667e6af0816f6c25ef859cf83052543c2df8340393ecf",
+          "tree": "sha256:30f93859e5dcfeb979bc15af67701426bd176cfd036c2def060e8743866866d9"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "b0NtFbMOhfdLNeouhlfbPBDI7hEqlujP5tVBp8a2KDybOQqhMN5l_9QDOXc4EKouGU13p1L06SWFKnMRI9hhDw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "implicit default Catalog signed by an owner key",
+      "declaration": "implicit",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 1,
+          "root": "sha256:0fd3eff59d91ffa4f7a45bac2358206b6b3979e656cf14c090f7b342329910ef",
+          "tree": "sha256:2b5556b8e18bbce81f94d45a707131b932ea5e40e932400338b3ef16cab709b9"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "YbkM4GFiWloL46Mh-EYmtHD9qUoWG2Fa2OuQTnBU_xo0FkrT-15fgssFlzh-MHHAdd79WmKCJewTN3iVZEeGCg"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "journal Catalog signed by the store key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "rLGNU1vTqUGAhhmD06VDRijts9CPg0JclIypRF6sQn8",
+          "alg": "Ed25519",
+          "value": "LxCn62bH-4YAGb6Wn_lJ4_0X8IRJ9vKaxhyWxVuZoJkw0zWbzd4Av9ooRiIEcTOAe9xD8CT9ktmNdu7nuLrSCQ"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "store Catalog signed by the journal key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "store",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 1,
+          "root": "sha256:5eff8cdbad90aca0a60667e6af0816f6c25ef859cf83052543c2df8340393ecf",
+          "tree": "sha256:30f93859e5dcfeb979bc15af67701426bd176cfd036c2def060e8743866866d9"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "69T9kdKSc4MUUvTh6lukmFtacuJ1-rtwSW3dTflEu7NlDDbLxBj2TArGGa22Wpkktp1h3XA5yz0vkEtTBZ8kCA"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "journal Catalog signed by a recovery key",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "7Jvgqi3etfWwLRnsYbC31TGzdNL_ZZwM6M4bZydRePo",
+          "alg": "Ed25519",
+          "value": "LqLU_KpCVrqZmuRl7YPA2P35DIT60KbICPD__G9jynVDrd3xfPPDILmV_Fnl4HXu9EWFnoLprod_L_9Q27B3Dg"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "Catalog of another publisher signed by an owner key of this Declaration",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "blog.example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "7yFRz9eq2eg7ZyISruaAuGiow0obHqpfRy7DsXVr906RvENEKJs51tJIvlMew9zFHTGvcK_OQ-iiMkxJi3eHAQ"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "implicit default Catalog signed by the journal key",
+      "declaration": "implicit",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 1,
+          "root": "sha256:0fd3eff59d91ffa4f7a45bac2358206b6b3979e656cf14c090f7b342329910ef",
+          "tree": "sha256:2b5556b8e18bbce81f94d45a707131b932ea5e40e932400338b3ef16cab709b9"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "dNxxexGVPH3CHxLotbbgkDDlfU_BpK5eSORiw41AH2KPPzQ_jQTTwN29w4YpUzCtPdMiWng76hnyTuNwqnEaCg"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "journal Catalog whose signature is over other octets",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "69T9kdKSc4MUUvTh6lukmFtacuJ1-rtwSW3dTflEu7NlDDbLxBj2TArGGa22Wpkktp1h3XA5yz0vkEtTBZ8kCA"
+        }
+      },
+      "expected": "WIST1-E01"
+    },
+    {
+      "name": "generated_at equal to the journal key's nbf",
+      "declaration": "collections",
+      "clock": "2026-09-01T00:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-09-01T00:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "4QVmLOVx5XLU-bzIt1mDZvSx6zBIECqtFIlRv5DXSm7QGUh1K2gf30Z_N_-cIIRjlDuGDcp5pGUa3Ts6MyYOAA"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "generated_at one second before the journal key's nbf",
+      "declaration": "collections",
+      "clock": "2026-08-31T23:59:59Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-08-31T23:59:59Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "RI9BpGnfZRRt9_2wlgTip5tfA5R1qIzLRptYPAeW-bH8aLK13Sd24enla6isO6mpU_zqle62PNVo_Rh876qeBQ"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "generated_at one second before the journal key's exp",
+      "declaration": "collections",
+      "clock": "2026-11-30T23:59:59Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-11-30T23:59:59Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "Yi8VPbRRakGpC0DmFh_785L5Myru8TWPqMzg-Qwxf04R4H6MjkT4Be0v-_Mb9b98MX37js9Q2leqhZs_g-d0Ag"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "generated_at equal to the journal key's exp",
+      "declaration": "collections",
+      "clock": "2026-12-01T00:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-12-01T00:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "D0o47tGuM-Sry7LUQ2xa6lDv3sE-OagCIyjbzGxVhn5CoZsQLl6icxim17p8TpUNg6ESufPOVrNBSrfAveAoAg"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "generated_at one second after the journal key's exp",
+      "declaration": "collections",
+      "clock": "2026-12-01T00:00:01Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-12-01T00:00:01Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "e6uOIB9gFydR5y7WXWxjsTMZNh7fEbczAAwPBbxuiw8",
+          "alg": "Ed25519",
+          "value": "hvZaeqe4hNB6e12WcpN2nKGRRDmdS0Xf0Fb1nSO1mQHFvHlCNGMrnnFi8wgtHPBMThUV6fTWhjsPscQFKH6ACw"
+        }
+      },
+      "expected": "WIST1-E02"
+    },
+    {
+      "name": "generated_at equal to the journal key's exp, signed by an owner key",
+      "declaration": "collections",
+      "clock": "2026-12-01T00:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-12-01T00:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "Z-ea8VbYk6Zxz3kZlNV__Q2LOd2YDwZY8f-Bc1xfNGgXKdp0rmLHm7p-B-Z1ZT1uhnBKvNK7CMjvU9RtCgm3BQ"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "generated_at at the clock plus clock_skew_seconds",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:10:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "rNhHuNd_L7dB7T6lhKsFQE8nyygjiMs0yq-TlJMskqAWN9uRyIEXO99zHkIDYlautG3mUKHuJeeJj7Livd2kAw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "generated_at one second beyond the clock plus clock_skew_seconds",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:10:01Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "064w3T31CWky3Z2CmQ8_IqU0zm_eBWhMF76CBmtoTGZpjl_XqcGiot7iP8swhtaJbcb9LkWYr4Ahkb3OITB8BA"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "generated_at at the clock under clock_skew_seconds 0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 0,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "generated_at one second beyond the clock under clock_skew_seconds 0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 0,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:01Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "WA-c4gvvNU0ADs8sWqSvzcx-sVeCSXvymWPUTAQ70SAAatFlA1iI6WYeUaiUhFe0mdCSQf5XPW4d0bd3WRb5CQ"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "generated_at at the clock plus clock_skew_seconds, the clock a fraction later",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00.5Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:10:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "rNhHuNd_L7dB7T6lhKsFQE8nyygjiMs0yq-TlJMskqAWN9uRyIEXO99zHkIDYlautG3mUKHuJeeJj7Livd2kAw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "generated_at one second beyond the allowance of a clock with an offset",
+      "declaration": "collections",
+      "clock": "2026-10-01T14:00:00+02:00",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:10:01Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "064w3T31CWky3Z2CmQ8_IqU0zm_eBWhMF76CBmtoTGZpjl_XqcGiot7iP8swhtaJbcb9LkWYr4Ahkb3OITB8BA"
+        }
+      },
+      "expected": "WIST1-E06"
+    },
+    {
+      "name": "size at catalog_items_max",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 4
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 4,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "7maIgh8uIUCfUPRDtYurp76zWIEJ6cCM96n0iwwVF11XGd62LGho6lZrFhGNjSiHAu4FMLmaBUbDDH0i6OTZBQ"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "size one above catalog_items_max",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 4
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 5,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "KQ3V2r6jWUwTj-_bxrMKmHr5Qi5O2TndVwbTzjhaNgsa5Tq-m3r_qtn5EoVeBt05gVGmIf0omdME-WwiOCr7Bw"
+        }
+      },
+      "expected": "WIST1-E04"
+    },
+    {
+      "name": "size at the default catalog_items_max",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 16777216,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "L0bek3A5GWYI4W7l0ryi7uEenrnVHoxEAzLqOYjVYUKWvZvzKM3W-FjslkWTcboUsCDqVysZj3wxHpAgWV7BCQ"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "size one above the default catalog_items_max",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 16777217,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "W6GKG8d51OwgklfV5U0hmzPPNk2_QHRs09n1Iu9kzyB8GylM1U56jjCvNviY7Qpk7P-LjMMAb3p5iIQLv-c1Dw"
+        }
+      },
+      "expected": "WIST1-E04"
+    },
+    {
+      "name": "size 0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 0,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "LF53oYZZr5zG6m9CRT8BXz8lBtt-BqSveZzsFCDL7V83wHRskCG-yPWQHwm_Aajn-l_RRfqfzxUZWQav-7dIBw"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "collection the Declaration does not name",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "docs",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "Kx0ny1XEWdDdfWVyMHClWHjXG_wKeYqnupHxgubYcCAoT4wBvQBEKGfPBJRTHuhBuC4IcWxhZRSzwJnxnGbgBg"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "journal Catalog under a Declaration without collections",
+      "declaration": "implicit",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "default Catalog under a Declaration whose Collections have no default",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "default",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "d0stq1L8R0__-5Pusinp3UuzHUfYPXHnE0wvlbMKUg6iveJ7YBTY_z9EjcX0W4uLYTcKjDj-lmoYxOsxtDMzAQ"
+        }
+      },
+      "expected": "WIST1-E03"
+    },
+    {
+      "name": "wist_version 2.0.0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "2.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "k2MZuC52HEBaHSOlw8BL3BUlUOxbHvMdcisr16T9uq_nzPiIyuogGPUf1_xvea6uADYWeHdrdRHNo7ZzS20gBQ"
+        }
+      },
+      "expected": "WIST1-E15"
+    },
+    {
+      "name": "wist_version 0.9.0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "0.9.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "v51zOg1_TcARdNHUYlbguAWPGM7uyqlc3ceR8J_Z0t2jNo5B2c4ZrXYkfg143X71bIHZ35jd-g-jDQgKXdtaDQ"
+        }
+      },
+      "expected": "WIST1-E15"
+    },
+    {
+      "name": "wist_version 1.2.3",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.2.3",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "TcptW0HsyXvm7g5e7Eu1dhz8lzPBKhchHxnDk96F_9dsH2A-PXnQUu1-sXFpaKNzkH4SNV9QrZLRhfdzKgHDCA"
+        }
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "wist_version 1.0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "bgsc6XCalKWC6Bz5rPuoCXnENFaCcy-sYmpYBJXSAMXX4TzJ1i6QVa3seRN24hMzeelFiHIGbxrSD20YKkq9Cw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "wist_version 01.0.0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "01.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "Lww0MmpLDw5LgCLCTWBg9RgOARkjfkx_GoqIkAU5bXzo7fcuq5P78WWfnpdgdgx551BPBM8ApiJ0KKfZmAKwBw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "wist_version 1.0.0-rc.1",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0-rc.1",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "dkw8DRGJbBY1zwSNK6iEdGotRhSvVn4fSIiLOAtsseEBwSn6SpMh-ThxNRzFPhc4tLhZYQ-Wl35pHR5GOmAqBw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "wist_version v1.0.0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "v1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "-t9AvO6km5EiR9PztxFrvo3nSR6uIuqrDw3phWiYJGQgiE6w_9pGl0qj2uUOMR5aXATB5P4c8esy-vs9ccEKAA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "Envelope without sig",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "Envelope with an extra member",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw"
+        },
+        "delta": {}
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "Envelope whose inner member is named delta",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "delta": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "sig with an extra member",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw",
+          "kid": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "sig.alg EdDSA",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "EdDSA",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "sig.key_id a number",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": 7,
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "sig.value with a nonzero unused bit, decoding to the same octets",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Ax"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "sig.value padded",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw=="
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog without collection",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "aQInd82H3WS02-JB4FXfGMi7CKs9QrDedZTGr0S-BSMaq1RTFsfkIUm2wBwZkSWFZTKQcXFmW-_mc0Krshu8Cg"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog without generated_at",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "qUwGHIJBHLLJPe8OHk-riZlsJDkQTJ1xWNCrFsdZSWHj3xrIZY5oXD9mkjckXGmVyNndNnzMONlZhe7yYN8kCA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog without publisher",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "CT1xrgDdFuzoiAI5hZzvDHJxE5aFnTILCtVJ-GG9aicy5ZnezQxagB_1MjZAsvth52oH2CRU7o6VVEoKOyNCDA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog without root",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "5OBEVxST9GtMjUAlOyWe4u1_O_wApehvpRGWlB5Kn2IQ2rRwt5mjGcX_X94uz_dyscHMHOEFu1OGlHtXYC7tCA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog without size",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "RpeqPL1aPd-Q0ll2xphsz-l39_sTjQftsbn45--uPXP18c1doTswaQpnhtdwPB8PLkTRAGT0qrFWaICavJO2AQ"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog without tree",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "ai9vTVoCrEwzW6gg8IxXP6U_HHhV5IK9bGgM_70CyuutnuaDY-D-2Wps4pdul0VSZtn_VGc6Rwgg6VPvuXEUBA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog without wist_version",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "21dlErYvPFz5ri19QCm6Qxu_69uOTXkBUvJRzG0y5y1hAr1fPjAuo09IbseSdLVLdPDnETc4I95tJF5ubBjSAA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "catalog with an items member",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda",
+          "items": []
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "o94oOroBLk1mF72EyELOj2TGYkEAoIvcz50IWtyrtrPXLfRhNydWJQWig8t3THrTBaJCg1Sh9RsOGHcb8OEoCA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "publisher uppercase",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "Example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "BpAuA-Vk6swwNdnUWBC7vn8BPdDNiHhsRWMj4sJuO4F69Aqwjj5SnqNFtHqTNjPPcMo44pl-hzffvX4oVbBGDA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "publisher with a trailing dot",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com.",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "QahoeeldCAxFWNZYZHXXC96bVn1Z_gzqfe8HavWf8rFzcj3xT9XodTLHTaY4ZE6o2ofMppuvM_nZE99PZvlmBw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "collection uppercase",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "Journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "eOZxsYf6fJgg1obmEOqgIn9HZ8jbzSsFJ5ZdyP3z60d5a4UiT_QvfBTo_uD8XD-teCo4faFsdijKAp145-laDw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "collection empty",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "hRr8evAsORVTA3_6pnRoQSj405LZlFOxVgFrdAGBxBm5h2XYopdyqsE8V479HoBLbssqdEEAI5IqLV2tO--QBg"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "collection with a leading hyphen",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "-journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "0wQOWW3SdKLVzN3_ix51reBZjaSCARfIHQszG3OeelkTI_yL60BZuchbBXsNiQvzNShpRPzmzcyiXl0dL8XgAw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "collection of 33 octets",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "6rppqowCPCg-D212pH_WlQ1wAZrgAx6FMpSQcRRb-dqezie4QPeOIyHm6_BCm8JnKNsh3QQLKwIM3pWD32vsCA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "generated_at with a fraction",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00.5Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "nDDy1u6QPzVvYoubIa_8_PUnpnAiPxITNhUN_ZMvUz2IP0jhNT5S9pgBviwoj4RC-OdC_H6Wy1UfB0Jjg3s1CA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "generated_at with offset +00:00",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00+00:00",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "-xaUERVxgPDTYlDFaJlnbTFYgfkkzaTWcN1lX-9TxrnbIF3dpqYne7UI40ZB5HHqOaObDSnQs1pRfISSaF3eBg"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "generated_at with lowercase t",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01t12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "ibDHnHLJko1iyax-ImSP-jRm3kCgpHWMnvubGTnUUaPvvwIflqY7-LR3GTa3Vitmmh7OBbwecuu3uPaz1NAvDA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "generated_at with second 60",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T11:59:60Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "ly4RgDS57qczfpjryiBmaaGmDjA0rP9L3-aOCVRhMDNMoin-XZh77cgzKjr5VA2OVF0UXU27w1hiUW7m17bJBQ"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "generated_at on 31 September",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-09-31T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "OkgA7EwS93iCfEjlcxKEFkaE19XbU98RwLWYWGuGRDaaP39YJkDKc_Kl4QSe17eXIZhlV8pQdNXtpZClnnlyBQ"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "generated_at a number",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": 1790856000,
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "6Z5XszOYucJEHBx0pw1yMW2NbKRwAOYtC23RT_WLMNOyqJKuCxdWr-z5c6S1VwhQSjd1b15SioPyBy4GIxzcDQ"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "size negative",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": -1,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "UuHrer23cqFHB6P3uBt3lxxQXSr1WpL3jP_YPjODG_9z8wQgaYH7qWQJxIz4Yoyel0KaOzd2zh2TzFDP2bx1Bw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "size fractional",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 1.5,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "35qQ6RGKaY0w7r3GZow7H4WlHYFH4Af8oEruMPZlxOgLaJLY3Rp-F6yaXAvdFxe2uaMa7mRqK0q22Cp8VWynBA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "size a string",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": "2",
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "ttABUtX9UonYhmfApRnudn5esAYZFpfHv9vKTXIQle0EaGhi1UnytbaLqSXToXPY7Ixs5ms7kglHxMet3DI2Bg"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "size true",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": true,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "hLyx0oR9imxekDKGSbSw6I9e17or002Z1Rs62KXGUTtpX4COt-y1rUVUDVtoTm7B0Pz3E-f_HG6UXoAeCLEvCg"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "size null",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": null,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "LW7c6P3zF75K6Wr367kYH5qlwxM7NboXRtwKzjOM2p8KVLV2t4X68SvARJhcv2epvcf20t_ZL_DXEGAQaKoUCw"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "root without its prefix",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "1K_yBHxeOOIj1hQVZxGKDthPh9htDApnzzp3g0bDcMc_D1cwmvOZdlJBFfBsm8Xy5nL0EcOTxpRhW3mbTkv3BA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "root in uppercase",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "SHA256:42BA192DA293059E9058A66568E94F68272556E9C7B8AC20EBD25BA80835F00A",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "GZTWKKHajh92LCE5IHdCL3plmni5JLxR7L6GeEzFpSO_iX85fCOVhskICDWIrsd1bpn9WHj2TKI3uYg5XUIwDQ"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "tree of 63 digits",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2ed"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "-GLhEFw7qrgRr-EJ_OvP7p4ELmWaax1UKwzAEz3X8sKvGHagtwj1PDsjrm8_mE1cEoBOszZOfJPAsye3bjRLBA"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "tree with the hmac-sha256 prefix",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog": {
+        "catalog": {
+          "wist_version": "1.0.0",
+          "publisher": "example.com",
+          "collection": "journal",
+          "generated_at": "2026-10-01T12:00:00Z",
+          "size": 2,
+          "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+          "tree": "hmac-sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+        },
+        "sig": {
+          "key_id": "FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY",
+          "alg": "Ed25519",
+          "value": "--mXHZP0XAVBxAgsJfkWSupj4jIk-04uGFOAsn1siina-Ay0Kk9FYG7T0MtC2jn3Fpp9lxk_Z-keCqK4iKySDQ"
+        }
+      },
+      "expected": "WIST1-E14"
+    },
+    {
+      "name": "Envelope cut short",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog_json": "{\"catalog\": {\"wist_version\": \"1.0.0\", \"publisher\": \"example.com\", \"collection\": \"journal\", \"generated_at\": \"2026-10-01T12:00:00Z\", \"size\": 2, \"root\": \"sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a\", \"tree\": \"sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda\"}, \"sig\": {\"key_id\": \"FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY\", \"alg\": \"Ed25519\", \"value\": \"u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw\"}",
+      "expected": "WIST1-E05"
+    },
+    {
+      "name": "size spelled with a leading zero",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog_json": "{\"catalog\": {\"wist_version\": \"1.0.0\", \"publisher\": \"example.com\", \"collection\": \"journal\", \"generated_at\": \"2026-10-01T12:00:00Z\", \"size\": 02, \"root\": \"sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a\", \"tree\": \"sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda\"}, \"sig\": {\"key_id\": \"FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY\", \"alg\": \"Ed25519\", \"value\": \"u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw\"}}",
+      "expected": "WIST1-E05"
+    },
+    {
+      "name": "size spelled 2",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog_json": "{\"catalog\": {\"wist_version\": \"1.0.0\", \"publisher\": \"example.com\", \"collection\": \"journal\", \"generated_at\": \"2026-10-01T12:00:00Z\", \"size\": 2, \"root\": \"sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a\", \"tree\": \"sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda\"}, \"sig\": {\"key_id\": \"FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY\", \"alg\": \"Ed25519\", \"value\": \"u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw\"}}",
+      "catalog_id": "sha256:a6e555ef001ef20b5e9753026b0882d87cc9c8a3830feaf5d40a469d6d85e319",
+      "expected": "accepted"
+    },
+    {
+      "name": "size spelled 2.0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog_json": "{\"catalog\": {\"wist_version\": \"1.0.0\", \"publisher\": \"example.com\", \"collection\": \"journal\", \"generated_at\": \"2026-10-01T12:00:00Z\", \"size\": 2.0, \"root\": \"sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a\", \"tree\": \"sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda\"}, \"sig\": {\"key_id\": \"FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY\", \"alg\": \"Ed25519\", \"value\": \"u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw\"}}",
+      "catalog_id": "sha256:a6e555ef001ef20b5e9753026b0882d87cc9c8a3830feaf5d40a469d6d85e319",
+      "expected": "accepted"
+    },
+    {
+      "name": "size spelled 2e0",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog_json": "{\"catalog\": {\"wist_version\": \"1.0.0\", \"publisher\": \"example.com\", \"collection\": \"journal\", \"generated_at\": \"2026-10-01T12:00:00Z\", \"size\": 2e0, \"root\": \"sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a\", \"tree\": \"sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda\"}, \"sig\": {\"key_id\": \"FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY\", \"alg\": \"Ed25519\", \"value\": \"u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw\"}}",
+      "catalog_id": "sha256:a6e555ef001ef20b5e9753026b0882d87cc9c8a3830feaf5d40a469d6d85e319",
+      "expected": "accepted"
+    },
+    {
+      "name": "Envelope followed by a second document",
+      "declaration": "collections",
+      "clock": "2026-10-01T12:00:00Z",
+      "parameters": {
+        "clock_skew_seconds": 600,
+        "catalog_items_max": 16777216
+      },
+      "catalog_json": "{\"catalog\": {\"wist_version\": \"1.0.0\", \"publisher\": \"example.com\", \"collection\": \"journal\", \"generated_at\": \"2026-10-01T12:00:00Z\", \"size\": 2, \"root\": \"sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a\", \"tree\": \"sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda\"}, \"sig\": {\"key_id\": \"FQ1REI6GSpUyky29UlGdQjB4vR-OCzX_9JiZwLsJsUY\", \"alg\": \"Ed25519\", \"value\": \"u5APA780BlGZbL9gl_CzDgQoBxv6XFnxvgwNvlrQKb1ILnQiQ3yy2ryzfH1zM0bl6juBafabSAJOYxNI-iv5Aw\"}}{}",
+      "expected": "WIST1-E05"
+    }
+  ],
+  "id_cases": [
+    {
+      "name": "journal Catalog",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "catalog_id": "sha256:a6e555ef001ef20b5e9753026b0882d87cc9c8a3830feaf5d40a469d6d85e319"
+    },
+    {
+      "name": "store Catalog",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "store",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:5eff8cdbad90aca0a60667e6af0816f6c25ef859cf83052543c2df8340393ecf",
+        "tree": "sha256:30f93859e5dcfeb979bc15af67701426bd176cfd036c2def060e8743866866d9"
+      },
+      "catalog_id": "sha256:6f1e408a272ca5f6b26e77e059d9ce3edd516406aeacb5ac2602c2f433909f99"
+    },
+    {
+      "name": "empty Collection",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 0,
+        "root": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tree": "sha256:eef46741adfc3a9f76294d3b78f37a45f113092ac9d44ee77c7a038a88ff09a1"
+      },
+      "catalog_id": "sha256:45cc5ed9ec23547040e9e16121b33076b249a4cf236c89c22396a19449401ed0"
+    },
+    {
+      "name": "implicit default Catalog",
+      "catalog": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "default",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:0fd3eff59d91ffa4f7a45bac2358206b6b3979e656cf14c090f7b342329910ef",
+        "tree": "sha256:2b5556b8e18bbce81f94d45a707131b932ea5e40e932400338b3ef16cab709b9"
+      },
+      "catalog_id": "sha256:93d103f7b49d5857e0c945ddfd306310ed6a55e5878d3c107e5dcb042eaef6d2"
+    }
+  ]
+}

@@ -1,0 +1,368 @@
+{
+  "note": "ADR-0052 Catalog order. pull_cases judge the inner object `fetched`, pulled for the Publisher and Collection of `fetched_for`, against `last_accepted`, the inner object of that Collection's last accepted Catalog or null: WIST2-E04 when fetched.publisher or fetched.collection differs from `fetched_for`; `idempotent` when its Catalog ID (sha256: + hex(SHA-256(JCS(catalog)))) equals the last accepted one's, replacing nothing; WIST2-E05 when its generated_at is at or before the last accepted one's under another Catalog ID; `accepted` otherwise, the Catalog then replacing the last accepted one. Only these rules are judged, and each rejected case fails exactly one of them. next_cases give the generated_at a Publisher signs for a Collection whose served Catalog has generated_at `served` (null when none is served), at clock `clock` (a Publisher timestamp, WIST-1 section 3.4): the later of the clock cut to the whole second and served plus one second, as {\"generated_at\": ...}; when that instant is more than clock_skew_seconds after the clock cut to the whole second, the part that signs refuses, {\"refused\": \"catalog-instant\"}, and signs nothing.",
+  "pull_cases": [
+    {
+      "name": "no Catalog accepted before",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": null,
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "later by one second",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:01Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "later by one day with another list",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-02T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "equal Catalog ID: an idempotent re-serve",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "idempotent"
+    },
+    {
+      "name": "equal instant with another Catalog ID",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 2,
+        "root": "sha256:42ba192da293059e9058a66568e94f68272556e9c7b8ac20ebd25ba80835f00a",
+        "tree": "sha256:5d1bf7788a520d68dd6ff4effc8f52a073817f3dac5c92063325c3a6ecad2eda"
+      },
+      "expected": "WIST2-E05"
+    },
+    {
+      "name": "earlier by one second",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T11:59:59Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "WIST2-E05"
+    },
+    {
+      "name": "earlier with the list unchanged",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-09-01T00:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "WIST2-E05"
+    },
+    {
+      "name": "fetched for another Publisher",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "blog.example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:01Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "WIST2-E04"
+    },
+    {
+      "name": "fetched for another Collection",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "journal",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "store",
+        "generated_at": "2026-10-01T12:00:01Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "WIST2-E04"
+    },
+    {
+      "name": "fetched for another Collection with none accepted before",
+      "fetched_for": {
+        "publisher": "example.com",
+        "collection": "journal"
+      },
+      "last_accepted": null,
+      "fetched": {
+        "wist_version": "1.0.0",
+        "publisher": "example.com",
+        "collection": "store",
+        "generated_at": "2026-10-01T12:00:00Z",
+        "size": 1,
+        "root": "sha256:22463d29c6427ace2c97ce42d13b279157f31f13a7b80e1e1803c03c1a8a6e32",
+        "tree": "sha256:bce1810ea338030ebfdd8c39a46105cbcff1e8babc7970f1d4921c3e6d384914"
+      },
+      "expected": "WIST2-E04"
+    }
+  ],
+  "next_cases": [
+    {
+      "name": "nothing served",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": null,
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:00:00Z"
+      }
+    },
+    {
+      "name": "nothing served, the clock cut to the whole second",
+      "clock": "2026-10-01T12:00:00.999Z",
+      "served": null,
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:00:00Z"
+      }
+    },
+    {
+      "name": "clock ahead of the served instant",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-01T11:00:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:00:00Z"
+      }
+    },
+    {
+      "name": "clock one second ahead of the served instant",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-01T11:59:59Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:00:00Z"
+      }
+    },
+    {
+      "name": "clock with an offset ahead of the served instant",
+      "clock": "2026-10-01T14:00:00.25+02:00",
+      "served": "2026-10-01T11:00:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:00:00Z"
+      }
+    },
+    {
+      "name": "served instant equal to the clock",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-01T12:00:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:00:01Z"
+      }
+    },
+    {
+      "name": "served instant equal to the clock cut to the whole second",
+      "clock": "2026-10-01T12:00:00.5Z",
+      "served": "2026-10-01T12:00:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:00:01Z"
+      }
+    },
+    {
+      "name": "served instant ahead of the clock within the allowance",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-01T12:05:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:05:01Z"
+      }
+    },
+    {
+      "name": "served instant one second short of the allowance: the next instant at the allowance",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-01T12:09:59Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:10:00Z"
+      }
+    },
+    {
+      "name": "served instant at the allowance: the next instant one second beyond it",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-01T12:10:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "refused": "catalog-instant"
+      }
+    },
+    {
+      "name": "served instant one second short of the allowance of a clock a fraction later",
+      "clock": "2026-10-01T12:00:00.999Z",
+      "served": "2026-10-01T12:09:59Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "generated_at": "2026-10-01T12:10:00Z"
+      }
+    },
+    {
+      "name": "served instant at the allowance of a clock a fraction later",
+      "clock": "2026-10-01T12:00:00.999Z",
+      "served": "2026-10-01T12:10:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "refused": "catalog-instant"
+      }
+    },
+    {
+      "name": "served instant a day beyond the clock",
+      "clock": "2026-10-01T12:00:00Z",
+      "served": "2026-10-02T12:00:00Z",
+      "clock_skew_seconds": 600,
+      "expected": {
+        "refused": "catalog-instant"
+      }
+    }
+  ]
+}
