@@ -173,10 +173,20 @@ authenticates only when the Declaration lists that key in its own
 An Aggregator fetches the Declaration at the start of every pull. It
 seals a Declaration that reduces authority, by the test below, within
 `record_seal_epochs`, the deadline WIST-1 §5.2 gives a recovery
-Declaration, and ahead of the publications of the same Registrable
-Domain that wait for capacity. The test covers a Declaration that
-removes a key, a Collection, a Scope entry or a host, or shortens a
-key's window.
+Declaration, and ahead of its Publisher's publications. The test
+covers a Declaration that removes a key, a Collection, a Scope entry
+or a host, or shortens a key's window.
+
+A Declaration is discovered at the pull that fetches it and finds that
+it passes its acceptance checks. From the discovery of one that
+reduces authority, the Aggregator seals no publication of that
+Publisher in an Epoch below the one that seals the Declaration. The
+publications that wait are eligible (WIST-4 §5) for that Epoch, where
+they are judged under the Declaration in force once its transitions
+have applied. The rule holds for a Declaration of any class, a
+recovery rotation and a fresh identity that becomes pending included.
+The publications of the other Publishers of the Registrable Domain
+proceed.
 
 A pull of a Publisher's Collections proceeds only after that fetch
 succeeded in the same pull; an unchanged answer to a conditional
@@ -189,6 +199,40 @@ there: a fetched Declaration that becomes pending leaves the pull
 under the current one. The Key Set cache of WIST-1 §5.1 is removed with its parameter:
 a pull under a cached Key Set would admit publications under a Scope
 or a key the served Declaration has removed.
+
+A pull reads the Collections of a Declaration in the order
+`collections` lists them. A Declaration under which a pull read is
+sealed at or below the Epoch that seals the first publication that
+pull accepted (WIST-3 §3.3). Unless it reduces authority it defers no
+eligibility, so the inclusion ceiling of those publications bounds its
+own sealing.
+
+| State of the Publisher | Sources the pull reads | Collections pulled |
+|---|---|---|
+| A current Declaration, no pending head, no open recovery window | The current Declaration | Its Collections |
+| A pending head | The current Declaration alone. The pending head names no Collection to pull and supplies no candidate: a publication that verifies under its keys alone is `WIST1-E02` | The current Declaration's. A history's first Declaration is current (WIST-1 §5.2), so a pending head always has one beside it |
+| An open recovery window, or a recovery rotation discovered and not yet sealed | The two frozen sources of WIST-1 §5.2: the Declaration in effect before the recovery and the recovery Declaration that owns the window. No Declaration accepted later inside the window is read | Those of the Declaration in effect before the recovery, then those the recovery Declaration alone names. A name both carry is pulled once |
+
+A fetched Declaration whose `publisher` object is that of the pending
+head is a success of the fetch and changes no source.
+
+Inside an open recovery window each source is read alone, with its own
+Collections, Scopes and keys. A publication is admitted to the queue
+when at least one source names its Collection, supplies a candidate
+under which its binding check passes and covers its URL with that
+Collection's Scope. A Collection that one source names and a key that
+only the other lists admit nothing together.
+
+### Capacity
+
+The Collections of one Registrable Domain share its per-domain Epoch
+capacity (WIST-3 §3.2), and no Collection has a share of its own. The
+publications of the domain take the capacity in acceptance order
+across its Publishers and Collections, as WIST-3 §3.2 orders them
+across hosts. Publications accepted at one pull are ordered by the
+order in which the pull read their Collections. A Collection that
+fills the capacity delays the others of its domain; the owner's remedy
+is a Declaration that removes it, which is sealed ahead of them.
 
 A Declaration D reduces authority against the Declaration P it names
 as predecessor when at least one of the following holds. Each
@@ -243,6 +287,10 @@ instant WIST-1 §3.6's size-cap parameter time gives a Delta.
   `next_keys` commitment the committed set is installed exactly
   (WIST-1 §5.2), so a stolen Collection key could not be replaced
   without a recovery rotation.
+- **A share of the capacity for each Collection.** Keeps one
+  Collection's backlog from delaying another's. Gives the inclusion
+  ceiling a turn per Collection to account for, and differs from the
+  order WIST-3 §3.2 gives the hosts of a domain.
 - **Narrowing that hides records instead of removing them.** Hidden
   records would return when a Scope widens, with no statement from the
   Publisher that they are still published.
@@ -273,8 +321,7 @@ instant WIST-1 §3.6's size-cap parameter time gives a Delta.
 
 ## Open points
 
-- The order in which the Collections of one Registrable Domain take
-  the capacity they share.
+None.
 
 ## Verification
 
@@ -297,3 +344,12 @@ generated by `tools/gen_collection_vectors.py` from the reference in
 without the other three. A publication in them is a signed probe that
 stands for the Collection's signed list; the vectors of ADR-0052 carry
 the list itself.
+
+The sources of a pull under a pending head and inside a recovery
+window, the order of the Collections pulled, the capacity order and
+the sealing of a Declaration that reduces authority ahead of the
+publications that wait are carried by
+`vectors/wist2/collection-pull.json`,
+`vectors/wist1/catalog-recovery.json` and
+`vectors/wist3/catalog-waiting.json` (ADR-0052's Verification), over
+signed Catalogs.

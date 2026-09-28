@@ -1151,10 +1151,17 @@ SALTED_COMMITMENT_VALUES = {
     ("vectors/wist1/item-fields.json", "commitment"): "payload:commitment",
     ("vectors/wist1/item-roots.json", "commitment"): "payload:commitment",
     ("vectors/wist2/item-lists.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/catalog-sealing.json", "commitment"): "payload:commitment",
+    ("vectors/multilog/catalog-order.json", "commitment"): "payload:commitment",
+    ("vectors/wist3/catalog-waiting.json", "commitment"): "payload:commitment",
+    ("vectors/wist1/catalog-recovery.json", "commitment"): "payload:commitment",
+    ("vectors/wist2/collection-pull.json", "commitment"): "payload:commitment",
 }
 
 CATALOG_COMMITMENT_FILES = ("vectors/wist1/item-fields.json", "vectors/wist1/item-roots.json",
-                            "vectors/wist2/item-lists.json")
+                            "vectors/wist2/item-lists.json", "vectors/wist3/catalog-sealing.json",
+                            "vectors/multilog/catalog-order.json", "vectors/wist3/catalog-waiting.json",
+                            "vectors/wist1/catalog-recovery.json", "vectors/wist2/collection-pull.json")
 
 def _carried_payload_commitments(node):
     found = set()
@@ -2840,7 +2847,66 @@ NON_CONTENT_VALUES = {
     ("vectors/wist2/item-lists.json", "value"): "an Ed25519 signature",
     ("vectors/wist2/item-lists.json", "seed_hex"): "a test-only Ed25519 seed, no page content",
     ("vectors/wist2/item-lists.json", "salt"): "Payload salts",
+    ("vectors/wist3/catalog-sealing.json", "x"): "an Ed25519 public key",
+    ("vectors/wist3/catalog-sealing.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    ("vectors/wist3/catalog-sealing.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    ("vectors/wist3/catalog-sealing.json", "value"): "an Ed25519 signature",
+    ("vectors/wist3/catalog-sealing.json", "seed_hex"): "a test-only Ed25519 seed, no page content",
+    ("vectors/wist3/catalog-sealing.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
+    ("vectors/wist3/catalog-sealing.json", "root"): "an Item list root (ADR-0052): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+    ("vectors/wist3/catalog-sealing.json", "tree"): "a tree file name (ADR-0052): SHA-256 over a file of Items that carry only a salted commitment",
+    ("vectors/wist3/catalog-sealing.json", "catalog"): "a Catalog ID (ADR-0052): SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+    ("vectors/wist3/catalog-sealing.json", "item"): "an Item ID (ADR-0052): SHA-256 over an Item that carries only a salted commitment",
+    ("vectors/wist3/catalog-sealing.json", "path"): "Inclusion Proof sibling hashes over Item leaves, no page content",
+    ("vectors/multilog/catalog-order.json", "x"): "an Ed25519 public key",
+    ("vectors/multilog/catalog-order.json", "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    ("vectors/multilog/catalog-order.json", "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+    ("vectors/multilog/catalog-order.json", "value"): "an Ed25519 signature",
+    ("vectors/multilog/catalog-order.json", "seed_hex"): "a test-only Ed25519 seed, no page content",
+    ("vectors/multilog/catalog-order.json", "prev_declaration"): "SHA-256 of the named predecessor publisher object",
+    ("vectors/multilog/catalog-order.json", "root"): "an Item list root (ADR-0052): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+    ("vectors/multilog/catalog-order.json", "tree"): "a tree file name (ADR-0052): SHA-256 over a file of Items that carry only a salted commitment",
+    ("vectors/multilog/catalog-order.json", "catalog"): "a Catalog ID (ADR-0052): SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+    ("vectors/multilog/catalog-order.json", "expected"): "Catalog IDs (ADR-0052): SHA-256 over Catalogs that carry a root, a tree hash and no page content",
+    ("vectors/multilog/catalog-order.json", "item"): "an Item ID (ADR-0052): SHA-256 over an Item that carries only a salted commitment",
+    ("vectors/multilog/catalog-order.json", "path"): "Inclusion Proof sibling hashes over Item leaves, no page content",
+    ("vectors/wist2/served-files.json", "catalog"): "a Catalog ID (ADR-0052) naming a served Catalog the file does not carry, no page content",
+    ("vectors/wist3/catalog-sealing.json", "salt"): "Payload salts",
+    ("vectors/multilog/catalog-order.json", "salt"): "Payload salts",
 }
+
+PULL_FIXTURE_CATALOG_NAMES = {
+    "vectors/wist3/catalog-waiting.json": (
+        "B1", "J1", "J1b", "J1c", "J1m", "J2", "J2x", "J2y", "J3", "J4", "S1", "S2", "S3"),
+    "vectors/wist1/catalog-recovery.json": (
+        "D1", "J1", "J2", "J3", "J4", "J4j", "S0", "S1", "S1b", "S2", "So"),
+    "vectors/wist2/collection-pull.json": ("Da", "Db", "J1", "J1j", "J2", "J3", "S1"),
+}
+
+for _rel, _names in PULL_FIXTURE_CATALOG_NAMES.items():
+    NON_CONTENT_VALUES.update({
+        (_rel, "x"): "an Ed25519 public key",
+        (_rel, "kid"): "a JWK thumbprint (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+        (_rel, "key_id"): "the thumbprint naming a signing entry (WIST-1 §5.1): SHA-256 over an Ed25519 public key, no page content",
+        (_rel, "value"): "an Ed25519 signature",
+        (_rel, "seed_hex"): "a test-only Ed25519 seed, no page content",
+        (_rel, "prev_declaration"): "SHA-256 of the named predecessor publisher object",
+        (_rel, "root"): "an Item list root (ADR-0052): a Merkle Tree Hash over leaves that carry only a URL hash and an Item hash",
+        (_rel, "tree"): "a tree file name (ADR-0052): SHA-256 over a file of Items that carry only a salted commitment",
+        (_rel, "tree_files"): "tree file names (ADR-0052): SHA-256 over files of Items that carry only a salted commitment",
+        (_rel, "tree_files_fetched"): "tree file names (ADR-0052): SHA-256 over files of Items that carry only a salted commitment",
+        (_rel, "catalog"): "a Catalog ID (ADR-0052): SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+        (_rel, "last_accepted"): "a Catalog ID (ADR-0052): SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+        (_rel, "latest"): "a Catalog ID (ADR-0052): SHA-256 over a Catalog that carries a root, a tree hash and no page content",
+        (_rel, "item"): "an Item ID (ADR-0052): SHA-256 over an Item that carries only a salted commitment",
+        (_rel, "path"): "Inclusion Proof sibling hashes over Item leaves, no page content",
+        (_rel, "salt"): "Payload salts",
+    })
+    NON_CONTENT_VALUES.update({
+        (_rel, name): "a Catalog ID (ADR-0052) under the fixture's name for its Catalog, no page content"
+        for name in _names})
+for _rel in ("vectors/wist3/catalog-waiting.json", "vectors/wist2/collection-pull.json"):
+    NON_CONTENT_VALUES[(_rel, "outcome")] = "a Declaration outcome name, no page content"
 
 
 def _spec_derived_constants():
